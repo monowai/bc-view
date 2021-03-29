@@ -2,14 +2,6 @@ version: 2.1
 orbs:
   codecov: codecov/codecov@1.0.5
 
-executors:
-  java-build:
-    environment:
-      _JAVA_OPTIONS: "-Xms256m -Xmx512m"
-      GRADLE_OPTS: "-Dorg.gradle.daemon=false"
-
-    docker:
-      - image: cimg/openjdk:15.0.2
 jobs:
   build-app:
     docker:
@@ -20,31 +12,31 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - yarn-cache2-{{ checksum "~/project/bc-view/yarn.lock" }}
+            - yarn-cache2-{{ checksum "~/project/yarn.lock" }}
       - run:
           name: Install Dependencies
-          command: cd ./bc-view && yarn install
+          command: yarn install
       - run:
           name: Test with coverage
-          command: cd ./bc-view && yarn test --ci --coverage --reporters=default --reporters=jest-junit
+          command: yarn test --ci --coverage --reporters=default --reporters=jest-junit
           environment:
             JEST_JUNIT_OUTPUT_DIR: "./reports/junit"
       - save_cache:
           name: Save Yarn Package Cache
-          key: yarn-cache2-{{ checksum "~/project/bc-view/yarn.lock" }}
+          key: yarn-cache2-{{ checksum "~/project/yarn.lock" }}
           paths:
             - ~/.cache/yarn
-            - ./bc-view/node_modules
+            - ./node_modules
       - store_test_results:
-          path: bc-view/reports/junit
+          path: reports/junit
       - store_artifacts:
-          path: bc-view/reports/junit
+          path: reports/junit
       - setup_remote_docker:
           version: 18.09.3
       - run:
           name: Package BC-VIEW
           command: |
-            docker build ~/project/bc-view/. -t monowai/$IMAGE_NAME:latest
+            docker build ~/project/. -t monowai/$IMAGE_NAME:latest
             docker tag monowai/$IMAGE_NAME:latest monowai/$IMAGE_NAME:${CIRCLE_BUILD_NUM}
             docker save -o ~/project/$IMAGE_NAME.tar monowai/$IMAGE_NAME
       - persist_to_workspace:
