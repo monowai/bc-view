@@ -47,20 +47,20 @@ jobs:
   docker-publish:
     docker:
       - image: circleci/buildpack-deps:stretch
-    environment:
-      BC_APP: monowai/bc-app
 
     steps:
       - attach_workspace:
           at: /tmp/workspace
-      - setup_remote_docker
+      - setup_remote_docker:
+          version: 19.03.13
+          docker_layer_caching: true
       - run:
           name: Publish APP
           command: |
-            echo "$DOCKER_PASS" | docker login --username $DOCKER_USER --password-stdin
-            test -f /tmp/workspace/bc-app.tar &&
-                docker load -i /tmp/workspace/bc-app.tar &&
-                docker push $BC_APP
+            echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+            test -f /tmp/workspace/bc-app.tar
+            docker load -i /tmp/workspace/bc-app.tar
+            docker push monowai/bc-app
 
 workflows:
   version: 2
