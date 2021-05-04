@@ -160,8 +160,7 @@ export function TransactionEdit(portfolioId: string, trnId: string): React.React
                       type="number"
                       placeholder="quantity"
                       defaultValue={trnResult.data.quantity}
-                      name="quantity"
-                      ref={register()}
+                      { ...register("quantity") }
                     />
                   </div>
                 </div>

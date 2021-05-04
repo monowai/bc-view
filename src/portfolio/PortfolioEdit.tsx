@@ -15,7 +15,7 @@ import { ShowError } from "../errors/ShowError";
 
 export function PortfolioEdit(portfolioId: string): React.ReactElement {
   const { keycloak } = useKeycloak();
-  const { register, handleSubmit, errors } = useForm<PortfolioInput>();
+  const { register, handleSubmit } = useForm<PortfolioInput>();
   const [pfId, setPortfolioId] = useState<string>(portfolioId);
   const portfolioResult = usePortfolio(pfId);
   const [purgeTrn, setPurgeTrn] = useState(false);
@@ -94,9 +94,6 @@ export function PortfolioEdit(portfolioId: string): React.ReactElement {
   if (error) {
     return ErrorPage(error.stack, error.message);
   }
-  if (errors) {
-    console.log(errors);
-  }
 
   if (isDone(portfolioResult) && isDone(currencyResult)) {
     if (portfolioResult.error) {
@@ -119,13 +116,12 @@ export function PortfolioEdit(portfolioId: string): React.ReactElement {
                 <label className="label ">Code</label>
                 <div className="control ">
                   <input
+                    {...register("code", {required: true})}
                     type="text"
                     className={"input"}
                     autoFocus={true}
                     placeholder="code"
-                    name="code"
                     defaultValue={portfolio.code}
-                    ref={register({ required: true, maxLength: 10 })}
                   />
                 </div>
                 <div className="field">
@@ -136,8 +132,7 @@ export function PortfolioEdit(portfolioId: string): React.ReactElement {
                       type="text"
                       placeholder="name"
                       defaultValue={portfolio.name}
-                      name="name"
-                      ref={register({ required: true, maxLength: 100 })}
+                      {...register("name", {required: true, maxLength: 100})}
                     />
                   </div>
                 </div>
@@ -147,9 +142,8 @@ export function PortfolioEdit(portfolioId: string): React.ReactElement {
                     <select
                       placeholder={"Select currency"}
                       className={"select is-3"}
-                      name={"currency"}
                       defaultValue={portfolio.currency.code}
-                      ref={register({ required: true })}
+                      {...register("currency", {required: true})}
                     >
                       {currencyOptions(currencies, portfolio.currency.code)}
                     </select>
@@ -161,9 +155,8 @@ export function PortfolioEdit(portfolioId: string): React.ReactElement {
                     <select
                       placeholder={"Select currency"}
                       className={"select is-3"}
-                      name={"base"}
                       defaultValue={portfolio.base.code}
-                      ref={register({ required: true })}
+                      {...register("base", {required: true})}
                     >
                       {currencyOptions(currencies, portfolio.base.code)}
                     </select>
