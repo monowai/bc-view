@@ -21,11 +21,12 @@ function total(total: MoneyValues, position: Position, valueIn: ValueIn): MoneyV
       purchases: 0,
       sales: 0,
       tax: 0,
+      weight: 0,
       costBasis: 0,
       priceData: { close: 0, change: 0, changePercent: 0, priceDate: "", previousClose: 0 },
       valueIn: valueIn,
       averageCost: 0,
-      currency: position.moneyValues[valueIn].currency,
+      currency: position.moneyValues[valueIn].currency
     };
   }
   total.marketValue += position.moneyValues[valueIn].marketValue;
@@ -46,6 +47,7 @@ function totals(totals: MoneyValues[], position: Position, valueIn: ValueIn): Mo
   totals[valueIn] = total(totals[valueIn], position, valueIn);
   return totals;
 }
+
 // Transform the holdingContract into Holdings suitable for display
 export function calculate(
   contract: HoldingContract,
@@ -65,7 +67,7 @@ export function calculate(
         results.holdingGroups[groupKey] = results.holdingGroups[groupKey] || {
           group: groupKey,
           positions: [],
-          totals: [],
+          totals: []
         };
         results.holdingGroups[groupKey].positions.push(position);
         results.totals["PORTFOLIO"] = total(
@@ -87,7 +89,7 @@ export function calculate(
         portfolio: contract.portfolio,
         holdingGroups: [],
         valueIn: valueIn,
-        totals: [],
+        totals: []
       }
     );
 }

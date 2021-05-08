@@ -89,7 +89,7 @@ export function PortfolioEdit(portfolioId: string): React.ReactElement {
     history.goBack();
   }
   if (portfolioResult.error) {
-    return <ShowError error={portfolioResult.error} />;
+    return <ShowError {...portfolioResult.error} />;
   }
   if (error) {
     return ErrorPage(error.stack, error.message);
@@ -116,7 +116,7 @@ export function PortfolioEdit(portfolioId: string): React.ReactElement {
                 <label className="label ">Code</label>
                 <div className="control ">
                   <input
-                    {...register("code", {required: true})}
+                    {...register("code", { required: true })}
                     type="text"
                     className={"input"}
                     autoFocus={true}
@@ -132,7 +132,7 @@ export function PortfolioEdit(portfolioId: string): React.ReactElement {
                       type="text"
                       placeholder="name"
                       defaultValue={portfolio.name}
-                      {...register("name", {required: true, maxLength: 100})}
+                      {...register("name", { required: true, maxLength: 100 })}
                     />
                   </div>
                 </div>
@@ -143,7 +143,7 @@ export function PortfolioEdit(portfolioId: string): React.ReactElement {
                       placeholder={"Select currency"}
                       className={"select is-3"}
                       defaultValue={portfolio.currency.code}
-                      {...register("currency", {required: true})}
+                      {...register("currency", { required: true })}
                     >
                       {currencyOptions(currencies, portfolio.currency.code)}
                     </select>
@@ -156,7 +156,7 @@ export function PortfolioEdit(portfolioId: string): React.ReactElement {
                       placeholder={"Select currency"}
                       className={"select is-3"}
                       defaultValue={portfolio.base.code}
-                      {...register("base", {required: true})}
+                      {...register("base", { required: true })}
                     >
                       {currencyOptions(currencies, portfolio.base.code)}
                     </select>
@@ -184,7 +184,7 @@ export function PortfolioEdit(portfolioId: string): React.ReactElement {
                 </div>
 
                 <div className="field">
-                  <TrnDropZone portfolio={portfolio} purgeTrn={purgeTrn} />
+                  <TrnDropZone portfolio={portfolio} purge={purgeTrn} />
                 </div>
               </form>
             </div>

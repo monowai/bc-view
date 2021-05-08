@@ -47,7 +47,7 @@ export function DeletePortfolio(portfolioId: string): JSX.Element {
   }
 
   if (error) {
-    return <ShowError error={error} />;
+    return <ShowError {...error} />;
   }
   if (!submitted && isDone(portfolioResult)) {
     if (portfolioResult.error) {

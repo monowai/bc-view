@@ -1,18 +1,17 @@
 import React, { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
-import { Portfolio } from "../types/beancounter";
+import { TransactionImport } from "../types/beancounter";
 import { useKeycloak } from "@react-keycloak/ssr";
 import { _axios, getBearerToken } from "../common/axiosUtils";
 import { writeRows } from "./import";
 import { DelimitedImport } from "../types/app";
 import Papa from "papaparse";
 
-export function TrnDropZone(props: {
-  portfolio: Portfolio;
-  purgeTrn: boolean;
-}): React.ReactElement {
+export function TrnDropZone({
+  portfolio,
+  purge,
+}: TransactionImport): React.ReactElement {
   const { keycloak } = useKeycloak();
-  //const [purgeTrn] = useState(props.purgeTrn);
   // https://github.com/react-dropzone/react-dropzone
   const onDrop = useCallback(
     (acceptedFiles) => {
@@ -23,11 +22,11 @@ export function TrnDropZone(props: {
         reader.onload = () => {
           // Do whatever you want with the file contents
           if (typeof reader.result === "string") {
-            const results = Papa.parse(reader.result).data
+            const results = Papa.parse(reader.result).data;
             const params: DelimitedImport = {
               hasHeader: true,
-              portfolio: props.portfolio,
-              purge: props.purgeTrn,
+              portfolio: portfolio,
+              purge: purge,
               results,
               token: keycloak?.token,
             };
@@ -36,7 +35,7 @@ export function TrnDropZone(props: {
             _axios
               .post<string>(
                 "/upload/trn",
-                { portfolio: props.portfolio, message: "Finished sending " + rows + " rows" },
+                { portfolio: portfolio, message: "Finished sending " + rows + " rows" },
                 {
                   headers: getBearerToken(keycloak?.token),
                 }
@@ -55,11 +54,11 @@ export function TrnDropZone(props: {
         reader.readAsText(file, "utf-8");
       });
     },
-    [props.portfolio, keycloak, props.purgeTrn]
+    [portfolio, keycloak, purge]
   );
   const { getRootProps, getInputProps } = useDropzone({ onDrop });
 
-  if (props.portfolio.id === "new") {
+  if (portfolio.id === "new") {
     return <div />;
   }
   return (

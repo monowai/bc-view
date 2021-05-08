@@ -15,6 +15,16 @@ interface TransactionUpload {
   row: string[];
 }
 
+interface Loading {
+  message: string; show: boolean
+}
+
+interface FormatNumber {
+  value;
+  scale?: number;
+  multiplier?: number;
+}
+
 export interface DelimitedImport {
   hasHeader: boolean;
   portfolio: Portfolio;

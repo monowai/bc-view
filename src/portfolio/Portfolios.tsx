@@ -16,7 +16,7 @@ export function Portfolios(): React.ReactElement {
     );
   }
   if (portfolioResults.error) {
-    return <ShowError error={portfolioResults.error} />;
+    return <ShowError {...portfolioResults.error} />;
   }
   const portfolios = portfolioResults.data;
   if (portfolios.length > 0) {

@@ -1,11 +1,12 @@
 import React from "react";
 import { translate } from "../common/i18nUtils";
+import { GroupKey } from "../types/beancounter";
 
-export function Header(props: { groupKey: string }): JSX.Element {
+export function Header({ groupKey }: GroupKey): JSX.Element {
   return (
     <tbody className={"table-header"}>
       <tr>
-        <th>{props.groupKey}</th>
+        <th>{groupKey}</th>
         <th align={"right"}>{translate("price")}</th>
         <th align={"right"}>{translate("change")}</th>
         <th align={"right"}>{translate("quantity")}</th>

@@ -36,7 +36,7 @@ const Registration = (): JSX.Element => {
   }, [initialized, keycloak?.token]);
 
   if (error) {
-    return <ShowError error={error} />;
+    return <ShowError {...error} />;
   }
   if (systemUser) {
     return <div>Registered - {systemUser?.email}</div>;

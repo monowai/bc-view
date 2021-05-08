@@ -7,7 +7,7 @@ export function writeRows(params: DelimitedImport): number {
   let purged = false;
   params.results.forEach(function (row) {
     if (!params.hasHeader || headerSkipped) {
-      if (row && row.length >1 && !row[0].startsWith("#")) {
+      if (row && row.length > 1 && !row[0].startsWith("#")) {
         rows++;
         _axios
           .post<string>(

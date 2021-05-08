@@ -16,7 +16,6 @@ export function useHoldings(code: string): BcResult<HoldingContract> {
           headers: getBearerToken(keycloak?.token),
         })
         .then((result) => {
-          console.debug("<<fetch %s", code);
           setHoldings(result.data);
         })
         .catch((err) => {

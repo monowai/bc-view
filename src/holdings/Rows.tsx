@@ -1,100 +1,104 @@
-import { HoldingGroup, Portfolio } from "../types/beancounter";
-import { ValueIn } from "../types/valueBy";
+import { HoldingValues } from "../types/beancounter";
 import NumberFormat from "react-number-format";
 import { Link } from "react-router-dom";
-import { FormatNumber } from "../common/MoneyUtils";
+import { FormatValue } from "../common/MoneyUtils";
 import React from "react";
 
-export function Rows(props: {
-  portfolio: Portfolio;
-  holdingGroup: HoldingGroup;
-  valueIn: ValueIn;
-}): JSX.Element {
-  const valueIn = props.valueIn;
+export function Rows({
+                       portfolio,
+                       holdingGroup,
+                       groupBy,
+                       valueIn
+                     }: HoldingValues): JSX.Element {
   // eslint-disable-next-line complexity
-  const holdings = props.holdingGroup.positions.map((position, index) => (
-    <tr key={props.holdingGroup.group + index} className={"holding-row"}>
-      <td className={"asset"}>{position.asset.code + ": " + position.asset.name}</td>
+  const holdings = holdingGroup.positions.map(({
+                                                 asset,
+                                                 moneyValues,
+                                                 quantityValues,
+                                                 dateValues,
+                                               }, index) => (
+    <tr key={groupBy + index} className={"holding-row"}>
+      <td className={"asset"}>{asset.code + ": " + asset.name}</td>
       <td className={"price"} align={"right"}>
         {
           <span
             data-tooltip={
-              position.moneyValues[valueIn].priceData
-                ? position.moneyValues[valueIn].priceData.priceDate
+              moneyValues[valueIn].priceData
+                ? moneyValues[valueIn].priceData.priceDate
                 : ""
             }
           >
-            {position.moneyValues[valueIn].currency.id}
-            {position.moneyValues[valueIn].currency.symbol}
-            <FormatNumber values={position.moneyValues[valueIn].priceData} field={"close"} />
+            {moneyValues[valueIn].currency.id}
+            {moneyValues[valueIn].currency.symbol}
+            <FormatValue value={moneyValues[valueIn].priceData.close}/>
           </span>
         }
       </td>
       <td align={"right"}>
-        {!position.moneyValues[valueIn].priceData ? (
+        {!moneyValues[valueIn].priceData ? (
           "-"
         ) : (
           <span
             className={
-              position.moneyValues[valueIn].priceData.changePercent < 0
+              moneyValues[valueIn].priceData.changePercent < 0
                 ? "negative-gain"
                 : "positive-gain"
             }
             data-tooltip={
               "Previous " +
-              position.moneyValues[valueIn].currency.symbol +
+              moneyValues[valueIn].currency.symbol +
               " " +
-              position.moneyValues[valueIn].priceData.previousClose
+              moneyValues[valueIn].priceData.previousClose
             }
           >
-            {(position.moneyValues[valueIn].priceData.changePercent * 100).toFixed(2)}%
+            {(moneyValues[valueIn].priceData.changePercent * 100).toFixed(2)}%
           </span>
         )}
       </td>
       <td align={"right"}>
-        <Link to={`/trns/${props.portfolio.id}/asset/${position.asset.id}/trades`}>
+        <Link to={`/trns/${portfolio.id}/asset/${asset.id}/trades`}>
           <NumberFormat
-            value={position.quantityValues.total}
+            value={quantityValues.total}
             displayType={"text"}
-            decimalScale={position.quantityValues.precision}
+            decimalScale={quantityValues.precision}
             fixedDecimalScale={true}
             thousandSeparator={true}
           />
         </Link>
       </td>
       <td align={"right"}>
-        <FormatNumber values={position.moneyValues[valueIn]} field={"marketValue"} />
+        <FormatValue value={moneyValues[valueIn].marketValue}/>
       </td>
       <td align={"right"}>
-        <FormatNumber values={position.moneyValues[valueIn]} field={"unrealisedGain"} />
+        <FormatValue value={moneyValues[valueIn].unrealisedGain}/>
       </td>
       <td align={"right"}>
-        <FormatNumber values={position.moneyValues[valueIn]} field={"weight"} multiplier={100} />%
+        <FormatValue value={moneyValues[valueIn].weight} multiplier={100}/>%
       </td>
       <td align={"right"}>
-        <FormatNumber values={position.moneyValues[valueIn]} field={"costValue"} />
+        <FormatValue value={moneyValues[valueIn].costValue}/>
       </td>
       <td align={"right"}>
-        <FormatNumber values={position.moneyValues[valueIn]} field={"averageCost"} />
+        <FormatValue value={moneyValues[valueIn].averageCost}/>
       </td>
       <td align={"right"}>
         {
           <span
             data-tooltip={
-              position.dateValues ? "Last Event: " + position.dateValues.lastDividend : "N/A"
+              dateValues ? "Last Event: " + dateValues.lastDividend : "N/A"
             }
           >
-            <Link to={`/trns/${props.portfolio.id}/asset/${position.asset.id}/events`}>
-              <FormatNumber values={position.moneyValues[valueIn]} field={"dividends"} />
+            <Link to={`/trns/${portfolio.id}/asset/${asset.id}/events`}>
+              <FormatValue value={moneyValues[valueIn].dividends}/>
             </Link>
           </span>
         }
       </td>
       <td align={"right"}>
-        <FormatNumber values={position.moneyValues[valueIn]} field={"realisedGain"} />
+        <FormatValue value={moneyValues[valueIn].realisedGain}/>
       </td>
       <td align={"right"}>
-        <FormatNumber values={position.moneyValues[valueIn]} field={"totalGain"} />
+        <FormatValue value={moneyValues[valueIn].totalGain}/>
       </td>
     </tr>
   ));

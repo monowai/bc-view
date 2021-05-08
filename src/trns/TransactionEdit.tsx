@@ -110,7 +110,7 @@ export function TransactionEdit(portfolioId: string, trnId: string): React.React
   }
 
   if (stateError) {
-    return <ShowError error={stateError} />;
+    return <ShowError {...stateError} />;
   }
 
   if (trnResult.error) {
@@ -160,7 +160,7 @@ export function TransactionEdit(portfolioId: string, trnId: string): React.React
                       type="number"
                       placeholder="quantity"
                       defaultValue={trnResult.data.quantity}
-                      { ...register("quantity") }
+                      {...register("quantity")}
                     />
                   </div>
                 </div>

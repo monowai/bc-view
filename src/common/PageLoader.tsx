@@ -1,12 +1,13 @@
 import React from "react";
+import { Loading } from "../types/app";
 
-export default function PageLoader(props: { message: string; show: boolean }): JSX.Element {
-  if (!props.show) {
+export default function PageLoader({ message, show }: Loading): JSX.Element {
+  if (!show) {
     return <div />;
   }
   return (
     <div className="pageloader is-active is-success" data-testid={"loading"}>
-      <span className="title">{props.message}</span>
+      <span className="title">{message}</span>
     </div>
   );
 }

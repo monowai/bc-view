@@ -1,5 +1,5 @@
 import { GroupBy } from "./groupBy";
-import { ValuationCcy } from "./valueBy";
+import { ValuationCcy, ValueIn } from "./valueBy";
 
 export type TrnType = "BUY" | "SELL" | "DIVI" | "SPLIT";
 
@@ -9,6 +9,7 @@ export interface Market {
 }
 
 export interface Currency {
+  id: string;
   code: string;
   symbol: string;
 }
@@ -36,6 +37,7 @@ export interface MoneyValues {
   marketValue: number;
   currency: Currency;
   valueIn: ValuationCcy;
+  weight: number;
 }
 
 export interface PriceData {
@@ -64,6 +66,19 @@ export interface Interface {
   lastDividend: string;
 }
 
+export interface GroupedSubtotals {
+  groupBy: string,
+  subTotals: MoneyValues[],
+  valueIn: ValueIn,
+}
+
+export interface HoldingValues {
+  portfolio: Portfolio,
+  groupBy: string,
+  holdingGroup: HoldingGroup,
+  valueIn: ValueIn,
+}
+
 export interface Portfolio {
   id: string;
   code: string;
@@ -71,6 +86,12 @@ export interface Portfolio {
   currency: Currency;
   base: Currency;
   owner?: SystemUser;
+}
+
+export interface PortfolioSummary {
+  portfolio: Portfolio;
+  moneyValues: MoneyValues[];
+  valueIn: ValueIn;
 }
 
 export interface PortfolioInput {
@@ -87,6 +108,15 @@ interface HoldingContract {
   positions: Position[];
 }
 
+interface TransactionImport {
+  portfolio: Portfolio;
+  purge: boolean;
+}
+
+interface HoldingsInCurrency {
+  holdings: Holdings;
+  valueIn: ValuationCcy;
+}
 // The payload we render in the UI
 interface Holdings {
   holdingGroups: HoldingGroup[];
@@ -95,9 +125,12 @@ interface Holdings {
   totals: MoneyValues[];
 }
 
+interface GroupKey {
+  groupKey: string
+}
+
 // User defined grouping
 interface HoldingGroup {
-  group: string;
   positions: Position[];
   subTotals: MoneyValues[];
 }

@@ -1,18 +1,18 @@
 import NumberFormat from "react-number-format";
 import React from "react";
+import { FormatNumber } from "../types/app";
 
-export function FormatNumber(props: {
-  values: [];
-  field: string;
-  scale?: number;
-  multiplier?: number;
-}): JSX.Element {
-  if (props.values && props.values[props.field]) {
+export function FormatValue({
+  value,
+  scale,
+  multiplier,
+}: FormatNumber): JSX.Element {
+  if (value) {
     return (
       <NumberFormat
-        value={props.values[props.field] * (props.multiplier ? props.multiplier : 1)}
+        value={value * (multiplier ? multiplier : 1)}
         displayType={"text"}
-        decimalScale={props.scale ? props.scale : 2}
+        decimalScale={scale ? scale : 2}
         fixedDecimalScale={true}
         thousandSeparator={true}
       />

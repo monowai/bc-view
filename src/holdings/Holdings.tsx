@@ -31,13 +31,13 @@ export default function ViewHoldings(code: string): JSX.Element {
   // Render where we are in the initialization process
   if (isDone(holdingResults)) {
     if (holdingResults.error) {
-      return <ShowError error={holdingResults.error} />;
+      return <ShowError {...holdingResults.error} />;
     }
     if (!holdingResults.data.positions) {
       return (
         <div data-testid="dropzone">
           <label>This portfolio has no transactions. Please drop your CSV file to upload</label>
-          <TrnDropZone portfolio={holdingResults.data.portfolio} purgeTrn={false} />
+          <TrnDropZone portfolio={holdingResults.data.portfolio} purge={false} />
         </div>
       );
     }
@@ -85,7 +85,7 @@ export default function ViewHoldings(code: string): JSX.Element {
         </div>
         <div className={"stats-container"}>
           <table>
-            <StatsHeader portfolio={holdingResults.data.portfolio} />
+            <StatsHeader {...holdingResults.data.portfolio} />
             <StatsRow
               portfolio={holdingResults.data.portfolio}
               moneyValues={holdings.totals}
@@ -100,14 +100,16 @@ export default function ViewHoldings(code: string): JSX.Element {
               .map((groupKey) => {
                 return (
                   <React.Fragment key={groupKey}>
-                    <Header groupKey={groupKey} />
+                    <Header groupKey={groupKey}/>
                     <Rows
                       portfolio={holdingResults.data.portfolio}
+                      groupBy={groupKey}
                       holdingGroup={holdings.holdingGroups[groupKey]}
                       valueIn={valueIn.value}
                     />
                     <SubTotal
-                      holdingGroup={holdings.holdingGroups[groupKey]}
+                      groupBy={groupKey}
+                      subTotals={holdings.holdingGroups[groupKey].subTotals}
                       valueIn={valueIn.value}
                     />
                   </React.Fragment>
