@@ -1,4 +1,3 @@
-
 # Easier to build against Alpine
 FROM node:14-alpine as build
 
