@@ -17,9 +17,9 @@ function HeaderBrand(): React.ReactElement {
         {/*<img src={Logo} />*/}
       </a>
       <div className="navbar-burger burger">
-        <span/>
-        <span/>
-        <span/>
+        <span />
+        <span />
+        <span />
       </div>
     </div>
   );

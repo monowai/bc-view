@@ -67,16 +67,16 @@ export interface Interface {
 }
 
 export interface GroupedSubtotals {
-  groupBy: string,
-  subTotals: MoneyValues[],
-  valueIn: ValueIn,
+  groupBy: string;
+  subTotals: MoneyValues[];
+  valueIn: ValueIn;
 }
 
 export interface HoldingValues {
-  portfolio: Portfolio,
-  groupBy: string,
-  holdingGroup: HoldingGroup,
-  valueIn: ValueIn,
+  portfolio: Portfolio;
+  groupBy: string;
+  holdingGroup: HoldingGroup;
+  valueIn: ValueIn;
 }
 
 export interface Portfolio {
@@ -126,7 +126,7 @@ interface Holdings {
 }
 
 interface GroupKey {
-  groupKey: string
+  groupKey: string;
 }
 
 // User defined grouping

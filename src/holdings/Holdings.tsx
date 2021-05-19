@@ -100,7 +100,7 @@ export default function ViewHoldings(code: string): JSX.Element {
               .map((groupKey) => {
                 return (
                   <React.Fragment key={groupKey}>
-                    <Header groupKey={groupKey}/>
+                    <Header groupKey={groupKey} />
                     <Rows
                       portfolio={holdingResults.data.portfolio}
                       groupBy={groupKey}

@@ -7,10 +7,7 @@ import { writeRows } from "./import";
 import { DelimitedImport } from "../types/app";
 import Papa from "papaparse";
 
-export function TrnDropZone({
-  portfolio,
-  purge,
-}: TransactionImport): React.ReactElement {
+export function TrnDropZone({ portfolio, purge }: TransactionImport): React.ReactElement {
   const { keycloak } = useKeycloak();
   // https://github.com/react-dropzone/react-dropzone
   const onDrop = useCallback(

@@ -16,7 +16,8 @@ interface TransactionUpload {
 }
 
 interface Loading {
-  message: string; show: boolean
+  message: string;
+  show: boolean;
 }
 
 interface FormatNumber {

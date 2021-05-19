@@ -3,9 +3,9 @@ import { GroupBy } from "../types/groupBy";
 import { ValueIn } from "../types/valueBy";
 
 function getPath(path: string, position: Position): string {
-  return (path
+  return path
     .split(".")
-    .reduce((p, c) => (p && p[c]) || "undefined", position) as unknown) as string;
+    .reduce((p, c) => (p && p[c]) || "undefined", position) as unknown as string;
 }
 
 function total(total: MoneyValues, position: Position, valueIn: ValueIn): MoneyValues {
@@ -26,7 +26,7 @@ function total(total: MoneyValues, position: Position, valueIn: ValueIn): MoneyV
       priceData: { close: 0, change: 0, changePercent: 0, priceDate: "", previousClose: 0 },
       valueIn: valueIn,
       averageCost: 0,
-      currency: position.moneyValues[valueIn].currency
+      currency: position.moneyValues[valueIn].currency,
     };
   }
   total.marketValue += position.moneyValues[valueIn].marketValue;
@@ -67,7 +67,7 @@ export function calculate(
         results.holdingGroups[groupKey] = results.holdingGroups[groupKey] || {
           group: groupKey,
           positions: [],
-          totals: []
+          totals: [],
         };
         results.holdingGroups[groupKey].positions.push(position);
         results.totals["PORTFOLIO"] = total(
@@ -89,7 +89,7 @@ export function calculate(
         portfolio: contract.portfolio,
         holdingGroups: [],
         valueIn: valueIn,
-        totals: []
+        totals: [],
       }
     );
 }
