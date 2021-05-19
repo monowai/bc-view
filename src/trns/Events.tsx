@@ -14,10 +14,10 @@ export function Trades(portfolioId: string, assetId: string): React.ReactElement
 
   if (isDone(trnsResult) && isDone(assetResult)) {
     if (assetResult.error) {
-      return <ShowError error={assetResult.error} />;
+      return <ShowError {...assetResult.error} />;
     }
     if (trnsResult.error) {
-      return <ShowError error={trnsResult.error} />;
+      return <ShowError {...trnsResult.error} />;
     }
 
     if (trnsResult.data.length > 0) {

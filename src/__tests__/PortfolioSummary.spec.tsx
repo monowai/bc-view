@@ -1,13 +1,13 @@
-import PortfolioStats from "../holdings/Stats";
 import React from "react";
 import { cleanup, render } from "@testing-library/react";
 import "@testing-library/jest-dom/extend-expect";
 import { Currency, Portfolio, SystemUser } from "../types/beancounter";
 import { useKeycloak } from "@react-keycloak/ssr";
+import StatsHeader from "../holdings/Stats";
 
 afterEach(cleanup);
 
-const usd: Currency = { code: "USD", symbol: "$" };
+const usd: Currency = { id: "1", code: "USD", symbol: "$" };
 jest.mock("@react-keycloak/ssr", () => ({
   useKeycloak: () => ({
     initialized: true,
@@ -34,7 +34,7 @@ describe("<PortfolioStats />", () => {
     };
     const container = render(
       <table>
-        <PortfolioStats portfolio={portfolio} />
+        <StatsHeader {...portfolio} />
       </table>
     );
     expect(container).toMatchSnapshot();

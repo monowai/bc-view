@@ -17,7 +17,7 @@ export function Trades(portfolioId: string, assetId: string): React.ReactElement
       return ErrorPage(assetResult.error.stack, assetResult.error.message);
     }
     if (trnsResult.error) {
-      return <ShowError error={trnsResult.error} />;
+      return <ShowError {...trnsResult.error} />;
     }
 
     if (trnsResult.data.length > 0) {
