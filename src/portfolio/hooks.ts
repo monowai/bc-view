@@ -11,11 +11,10 @@ export function usePortfolios(): BcResult<Portfolio[]> {
   const [error, setError] = useState<AxiosError>();
   const { keycloak } = useKeycloak();
   useEffect(() => {
-    if (keycloak?.token) {
-      console.info("Find Portfolios!");
+    if (keycloak && keycloak.token) {
       _axios
         .get<Portfolio[]>("/bff/portfolios", {
-          headers: getBearerToken(keycloak?.token),
+          headers: getBearerToken(keycloak.token),
         })
         .then((result) => {
           console.debug("<<retrieved Portfolio");
@@ -24,15 +23,13 @@ export function usePortfolios(): BcResult<Portfolio[]> {
         .catch((err) => {
           if (err.response) {
             console.error("axios error [%s]: [%s]", err.response.status, err.response.data.message);
-            if (err.response.status != 403) {
-              setError(err);
-            }
+            setError(err);
           } else {
             setError(err);
           }
         });
     }
-  }, [keycloak?.token]);
+  }, [keycloak, keycloak?.token]);
   return { data: portfolios, error };
 }
 
@@ -66,5 +63,5 @@ export function usePortfolio(id: string): BcResult<Portfolio> {
     }
   }, [id, keycloak?.token]);
 
-  return { data: portfolio, error };
+  return { data: portfolio, error};
 }

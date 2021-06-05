@@ -22,6 +22,7 @@ nock("http://localhost", {
     authorization: "Bearer abc",
   },
 })
+  .persist(true)
   .get("/bff/portfolios")
   .replyWithFile(200, __dirname + "/__contracts__/portfolios.json", {
     "Access-Control-Allow-Origin": "*",

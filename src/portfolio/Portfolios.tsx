@@ -6,20 +6,20 @@ import { isDone } from "../types/typeUtils";
 import { ShowError } from "../errors/ShowError";
 
 export function Portfolios(): React.ReactElement {
-  const portfolioResults = usePortfolios();
   const history = useHistory();
-  if (!isDone(portfolioResults)) {
-    return (
-      <div id="root" data-testid="loading">
-        Loading...
-      </div>
-    );
-  }
+  const portfolioResults = usePortfolios();
   if (portfolioResults.error) {
     return <ShowError {...portfolioResults.error} />;
   }
+  if (!isDone(portfolioResults)) {
+    return (
+      <div id="root" data-testid="loading">
+        Loading...<a href="/login">or login</a>
+      </div>
+    );
+  }
   const portfolios = portfolioResults.data;
-  if (portfolios.length > 0) {
+  if (portfolios && portfolios.length > 0) {
     return (
       <div>
         <nav className="container has-background-grey-lighter">

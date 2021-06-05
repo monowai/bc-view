@@ -1,12 +1,11 @@
 import { useEffect } from "react";
 import { useKeycloak } from "@react-keycloak/ssr";
 import { initConfig } from "../common/kcConfig";
-import { ErrorPage } from "../errors/ErrorPage";
 
 export function useLogin(): undefined | boolean {
   const { keycloak } = useKeycloak();
   useEffect(() => {
-    if (!keycloak?.authenticated) {
+    if (keycloak && !keycloak.authenticated) {
       keycloak
         ?.init(initConfig)
         .then(function (authenticated) {
@@ -14,7 +13,8 @@ export function useLogin(): undefined | boolean {
           return authenticated;
         })
         .catch((err) => {
-          return ErrorPage("Auth issue", err.message);
+          console.error(err);
+          return false;
         });
     }
   }, [keycloak, keycloak?.authenticated]);
