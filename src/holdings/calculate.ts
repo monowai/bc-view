@@ -70,17 +70,30 @@ export function calculate(
           totals: [],
         };
         results.holdingGroups[groupKey].positions.push(position);
-        results.totals["PORTFOLIO"] = total(
-          results.totals["PORTFOLIO"],
+        results.totals[ValueIn.PORTFOLIO] = total(
+          results.totals[ValueIn.PORTFOLIO],
           position,
           ValueIn.PORTFOLIO
         );
-        results.totals["BASE"] = total(results.totals["BASE"], position, ValueIn.BASE);
+        results.totals[ValueIn.BASE] = total(results.totals[ValueIn.BASE], position, ValueIn.BASE);
         results.holdingGroups[groupKey].subTotals = totals(
           results.holdingGroups[groupKey].subTotals,
           position,
           valueIn
         );
+        if (!contract.mixedCurrencies) {
+          // Totalling mixed trade currencies makes no sense, so don't do it
+          results.totals[ValueIn.TRADE] = total(
+            results.totals[ValueIn.TRADE],
+            position,
+            ValueIn.TRADE
+          );
+          results.holdingGroups[groupKey].subTotals = totals(
+            results.holdingGroups[groupKey].subTotals,
+            position,
+            valueIn
+          );
+        }
 
         results.valueIn = valueIn;
         return results;

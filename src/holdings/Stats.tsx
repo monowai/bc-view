@@ -2,7 +2,6 @@ import React from "react";
 import "../css/styles.sass";
 import { Portfolio, PortfolioSummary } from "../types/beancounter";
 import { FormatValue } from "../common/MoneyUtils";
-import { ValueIn } from "../types/valueBy";
 import { Link } from "react-router-dom";
 import { translate } from "../common/i18nUtils";
 
@@ -23,6 +22,7 @@ export default function StatsHeader(portfolio: Portfolio): JSX.Element {
 
 export function StatsRow({ portfolio, moneyValues, valueIn }: PortfolioSummary): JSX.Element {
   const holdingValue = moneyValues[valueIn];
+  const currencyTotals = holdingValue !== undefined;
   return (
     <tbody>
       <tr className={"stats-row"}>
@@ -33,25 +33,23 @@ export function StatsRow({ portfolio, moneyValues, valueIn }: PortfolioSummary):
                 {portfolio.code.toUpperCase()} {": "}
               </span>
             </Link>
-            {!holdingValue || holdingValue.valueIn === ValueIn.TRADE
-              ? "N/A"
-              : holdingValue.currency.code}
+            {!currencyTotals ? "Mixed" : holdingValue.currency.code}
           </div>
         </td>
         <td align={"right"}>
-          <FormatValue value={holdingValue.marketValue} />
+          {currencyTotals ? <FormatValue value={holdingValue.marketValue} /> : <div>-</div>}
         </td>
         <td align={"right"}>
-          <FormatValue value={holdingValue.purchases} />
+          {currencyTotals ? <FormatValue value={holdingValue.purchases} /> : <div>-</div>}
         </td>
         <td align={"right"}>
-          <FormatValue value={holdingValue.sales} />
+          {currencyTotals ? <FormatValue value={holdingValue.sales} /> : <div>-</div>}
         </td>
         <td align={"right"}>
-          <FormatValue value={holdingValue.dividends} />
+          {currencyTotals ? <FormatValue value={holdingValue.dividends} /> : <div>-</div>}
         </td>
         <td align={"right"}>
-          <FormatValue value={holdingValue.totalGain} />
+          {currencyTotals ? <FormatValue value={holdingValue.totalGain} /> : <div>-</div>}
         </td>
       </tr>
     </tbody>
