@@ -1,12 +1,11 @@
 import React from "react";
-import { Redirect } from "react-router";
 import { useLogin } from "./loginHook";
+import { Redirect } from "react-router-dom";
 
 export const Login = (): JSX.Element => {
   const loggedIn = useLogin();
   if (loggedIn) {
-    return <Redirect to="/portfolios" />;
+    return <Redirect to="/dashboard"/>
   }
-
   return <div>Logging in...</div>;
 };

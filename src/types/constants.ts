@@ -17,3 +17,5 @@ export function valuationOptions(): ValuationOption[] {
     { value: ValueIn.TRADE, label: translate("valuein.trade") },
   ];
 }
+
+export const __new__ = "new";

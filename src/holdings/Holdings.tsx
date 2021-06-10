@@ -7,7 +7,7 @@ import Total from "./Total";
 import StatsHeader, { StatsRow } from "./Stats";
 import Switch from "react-switch";
 import Select, { ValueType } from "react-select";
-import { valuationOptions, ValueIn } from "../types/valueBy";
+import { valuationOptions, ValueIn } from "../types/constants";
 import { useHoldings } from "./hooks";
 import { Rows } from "./Rows";
 import { Header } from "./Header";
@@ -121,5 +121,5 @@ export default function ViewHoldings(code: string): JSX.Element {
       </div>
     );
   }
-  return <PageLoader message={"Crunching data..."} show={true} />;
+  return <PageLoader message={"Crunching data..."} show={true} data-testid={"loading"}/>;
 }

@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useKeycloak } from "@react-keycloak/ssr";
-import { initConfig } from "../common/kcConfig";
+import { initConfig } from "../auth/kcConfig";
 
 export function useLogin(): undefined | boolean {
   const { keycloak } = useKeycloak();

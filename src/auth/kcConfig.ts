@@ -1,5 +1,5 @@
 import { KeycloakConfig, KeycloakInitOptions } from "keycloak-js";
-import { bcConfig } from "./config";
+import { bcConfig } from "../common/config";
 
 export const KcConfig = typeof window !== "undefined" ? require("keycloak-js") : null;
 

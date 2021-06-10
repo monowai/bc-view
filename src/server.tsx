@@ -18,7 +18,7 @@ import { getPositions } from "./bff/positionApi";
 // react-KeyCloak
 import { ExpressCookies, SSRKeycloakProvider } from "@react-keycloak/ssr";
 import cookieParser from "cookie-parser";
-import { keycloakConfig } from "./common/kcConfig";
+import { keycloakConfig } from "./auth/kcConfig";
 import { postKafkaTrn } from "./bff/writeTrn";
 // end react-KeyCloak
 

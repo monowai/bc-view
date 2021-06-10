@@ -54,6 +54,7 @@ describe("<ViewHoldings />", () => {
       return ViewHoldings("zero");
     };
     const { container } = render(<ZeroHoldings />);
+    await waitForElementToBeRemoved(() => screen.getByTestId("loading"));
     expect(nock.isDone());
     await screen.findByTestId("dropzone");
     expect(container).toMatchSnapshot();

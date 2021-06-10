@@ -1,5 +1,5 @@
 import { GroupBy } from "./groupBy";
-import { ValuationCcy, ValueIn } from "./valueBy";
+import { ValuationCcy, ValueIn } from "./constants";
 
 export type TrnType = "BUY" | "SELL" | "DIVI" | "SPLIT";
 

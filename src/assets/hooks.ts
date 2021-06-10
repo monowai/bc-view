@@ -8,9 +8,8 @@ import { BcResult } from "../types/app";
 export function useAsset(assetId: string): BcResult<Asset> {
   const [asset, setAsset] = useState<Asset>();
   const [error, setError] = useState<AxiosError>();
-  const { keycloak, initialized } = useKeycloak();
+  const { keycloak } = useKeycloak();
   useEffect(() => {
-    if (initialized) {
       _axios
         .get<Asset>(`/bff/assets/${assetId}`, {
           headers: getBearerToken(keycloak?.token),
@@ -24,7 +23,6 @@ export function useAsset(assetId: string): BcResult<Asset> {
           }
           setError(err);
         });
-    }
-  }, [initialized, assetId, keycloak?.token]);
+  }, [assetId, keycloak?.token]);
   return { data: asset, error };
 }

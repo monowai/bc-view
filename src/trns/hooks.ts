@@ -12,9 +12,8 @@ export function useAssetTransactions(
 ): BcResult<Transaction[]> {
   const [transactions, setTransactions] = useState<Transaction[]>();
   const [error, setError] = useState<AxiosError>();
-  const { keycloak, initialized } = useKeycloak();
+  const { keycloak } = useKeycloak();
   useEffect(() => {
-    if (initialized) {
       _axios
         .get<Transaction[]>(`/bff/trns/${portfolioId}/asset/${assetId}/${filter}`, {
           headers: getBearerToken(keycloak?.token),
@@ -28,8 +27,7 @@ export function useAssetTransactions(
           }
           setError(err);
         });
-    }
-  }, [assetId, portfolioId, filter, initialized, keycloak?.token]);
+  }, [assetId, portfolioId, filter, keycloak?.token]);
   return { data: transactions, error };
 }
 

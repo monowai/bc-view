@@ -8,9 +8,9 @@ import { BcResult } from "../types/app";
 export function useHoldings(code: string): BcResult<HoldingContract> {
   const [holdingResults, setHoldings] = useState<HoldingContract>();
   const [error, setError] = useState<AxiosError>();
-  const { keycloak, initialized } = useKeycloak();
+  const { keycloak } = useKeycloak()
   useEffect(() => {
-    if (initialized) {
+    console.log("Loading Holdings...");
       _axios
         .get<HoldingContract>(`/bff/${code}/today`, {
           headers: getBearerToken(keycloak?.token),
@@ -24,7 +24,6 @@ export function useHoldings(code: string): BcResult<HoldingContract> {
             console.error("axios error [%s]: [%s]", err.response.status, err.response.data.message);
           }
         });
-    }
-  }, [code, initialized, keycloak?.token]);
+  }, [code, keycloak?.token]);
   return { data: holdingResults, error };
 }

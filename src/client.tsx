@@ -4,7 +4,7 @@ import { BrowserRouter, Route, Switch } from "react-router-dom";
 import { useSSR } from "react-i18next";
 
 import App from "./App";
-import { keycloakConfig } from "./common/kcConfig";
+import { keycloakConfig } from "./auth/kcConfig";
 import { Cookies, SSRKeycloakProvider } from "@react-keycloak/ssr";
 import { Resource } from "i18next";
 import "./i18nConfig";
