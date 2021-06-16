@@ -40,7 +40,7 @@ function total(total: MoneyValues, position: Position, valueIn: ValueIn): MoneyV
   return total;
 }
 
-function totals(totals: MoneyValues[], position: Position, valueIn: ValueIn): MoneyValues[] {
+function subTotal(totals: MoneyValues[], position: Position, valueIn: ValueIn): MoneyValues[] {
   if (!totals) {
     totals = [];
   }
@@ -75,12 +75,7 @@ export function calculate(
           position,
           ValueIn.PORTFOLIO
         );
-        results.totals[ValueIn.BASE] = total(results.totals[ValueIn.BASE], position, ValueIn.BASE);
-        results.holdingGroups[groupKey].subTotals = totals(
-          results.holdingGroups[groupKey].subTotals,
-          position,
-          valueIn
-        );
+
         if (!contract.mixedCurrencies) {
           // Totalling mixed trade currencies makes no sense, so don't do it
           results.totals[ValueIn.TRADE] = total(
@@ -88,12 +83,14 @@ export function calculate(
             position,
             ValueIn.TRADE
           );
-          results.holdingGroups[groupKey].subTotals = totals(
-            results.holdingGroups[groupKey].subTotals,
-            position,
-            valueIn
-          );
         }
+
+        results.totals[ValueIn.BASE] = total(results.totals[ValueIn.BASE], position, ValueIn.BASE);
+        results.holdingGroups[groupKey].subTotals = subTotal(
+          results.holdingGroups[groupKey].subTotals,
+          position,
+          valueIn
+        );
 
         results.valueIn = valueIn;
         return results;

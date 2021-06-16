@@ -33,7 +33,7 @@ nock("http://localhost", {
   });
 
 describe("<ViewHoldings />", () => {
-  it("matches snapshot when getData present", async () => {
+  it("Portfolio values match snapshot when transactions are returned", async () => {
     const TestHoldings = (): JSX.Element => {
       return ViewHoldings("test");
     };
@@ -45,6 +45,7 @@ describe("<ViewHoldings />", () => {
     await screen.findByTestId("loading");
     await waitForElementToBeRemoved(() => screen.getByTestId("loading"));
     expect(nock.isDone());
+
     await screen.findByText("USD");
     expect(container).toMatchSnapshot();
   });
