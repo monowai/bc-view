@@ -14,19 +14,19 @@ export function useAssetTransactions(
   const [error, setError] = useState<AxiosError>();
   const { keycloak } = useKeycloak();
   useEffect(() => {
-      _axios
-        .get<Transaction[]>(`/bff/trns/${portfolioId}/asset/${assetId}/${filter}`, {
-          headers: getBearerToken(keycloak?.token),
-        })
-        .then((result) => {
-          setTransactions(result.data);
-        })
-        .catch((err) => {
-          if (err.response) {
-            console.error("asset trns [%s]: [%s]", err.response.status, err.response.data.message);
-          }
-          setError(err);
-        });
+    _axios
+      .get<Transaction[]>(`/bff/trns/${portfolioId}/asset/${assetId}/${filter}`, {
+        headers: getBearerToken(keycloak?.token),
+      })
+      .then((result) => {
+        setTransactions(result.data);
+      })
+      .catch((err) => {
+        if (err.response) {
+          console.error("asset trns [%s]: [%s]", err.response.status, err.response.data.message);
+        }
+        setError(err);
+      });
   }, [assetId, portfolioId, filter, keycloak?.token]);
   return { data: transactions, error };
 }

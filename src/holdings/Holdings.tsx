@@ -121,5 +121,5 @@ export default function ViewHoldings(code: string): JSX.Element {
       </div>
     );
   }
-  return <PageLoader message={"Crunching data..."} show={true} data-testid={"loading"}/>;
+  return <PageLoader message={"Crunching data..."} show={true} data-testid={"loading"} />;
 }

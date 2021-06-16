@@ -11,22 +11,22 @@ export function usePortfolios(): BcResult<Portfolio[]> {
   const [error, setError] = useState<AxiosError>();
   const { keycloak } = useKeycloak();
   useEffect(() => {
-      _axios
-        .get<Portfolio[]>("/bff/portfolios", {
-          headers: getBearerToken(keycloak?.token),
-        })
-        .then((result) => {
-          console.debug("<<retrieved Portfolio");
-          setPortfolios(result.data);
-        })
-        .catch((err) => {
-          if (err.response) {
-            console.error("axios error [%s]: [%s]", err.response.status, err.response.data.message);
-            setError(err);
-          } else {
-            setError(err);
-          }
-        });
+    _axios
+      .get<Portfolio[]>("/bff/portfolios", {
+        headers: getBearerToken(keycloak?.token),
+      })
+      .then((result) => {
+        console.debug("<<retrieved Portfolio");
+        setPortfolios(result.data);
+      })
+      .catch((err) => {
+        if (err.response) {
+          console.error("axios error [%s]: [%s]", err.response.status, err.response.data.message);
+          setError(err);
+        } else {
+          setError(err);
+        }
+      });
   }, [keycloak, keycloak?.token]);
   return { data: portfolios, error };
 }
@@ -61,5 +61,5 @@ export function usePortfolio(id: string): BcResult<Portfolio> {
     }
   }, [id, keycloak?.token]);
 
-  return { data: portfolio, error};
+  return { data: portfolio, error };
 }

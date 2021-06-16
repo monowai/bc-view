@@ -10,19 +10,19 @@ export function useAsset(assetId: string): BcResult<Asset> {
   const [error, setError] = useState<AxiosError>();
   const { keycloak } = useKeycloak();
   useEffect(() => {
-      _axios
-        .get<Asset>(`/bff/assets/${assetId}`, {
-          headers: getBearerToken(keycloak?.token),
-        })
-        .then((result) => {
-          setAsset(result.data);
-        })
-        .catch((err) => {
-          if (err.response) {
-            console.error("Asset error [%s]: [%s]", err.response.status, err.response.data.message);
-          }
-          setError(err);
-        });
+    _axios
+      .get<Asset>(`/bff/assets/${assetId}`, {
+        headers: getBearerToken(keycloak?.token),
+      })
+      .then((result) => {
+        setAsset(result.data);
+      })
+      .catch((err) => {
+        if (err.response) {
+          console.error("Asset error [%s]: [%s]", err.response.status, err.response.data.message);
+        }
+        setError(err);
+      });
   }, [assetId, keycloak?.token]);
   return { data: asset, error };
 }

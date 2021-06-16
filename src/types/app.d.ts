@@ -52,4 +52,3 @@ export interface DevMessage {
   errorMessage: string;
   token: string;
 }
-
