@@ -7,7 +7,7 @@ import { MemoryRouter } from "react-router";
 
 afterEach(cleanup);
 afterAll(nock.cleanAll);
-const today = new Date().toISOString().split('T')[0]
+const today = new Date().toISOString().split("T")[0];
 
 jest.mock("@react-keycloak/ssr", () => ({
   useKeycloak: () => ({
