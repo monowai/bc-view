@@ -6,7 +6,7 @@ import { svcUrl } from "../server/utils";
 
 export const getPositions = async (req: express.Request, res: express.Response): Promise<any> => {
   const opts = {
-    url: svcUrl(req, bcConfig.bcPositions).toString(),
+    url: svcUrl(req, bcConfig.bcPositions).toString().replace("positions/", ""),
     headers: req.headers,
     method: "GET",
   } as AxiosRequestConfig;

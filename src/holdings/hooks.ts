@@ -11,9 +11,10 @@ export function useHoldings(code: string): BcResult<HoldingContract> {
   const { keycloak } = useKeycloak();
   useEffect(() => {
     console.log("Loading Holdings...");
+    const today = new Date().toISOString().split('T')[0]
     _axios
-      .get<HoldingContract>(`/bff/${code}/today`, {
-        headers: getBearerToken(keycloak?.token),
+      .get<HoldingContract>(`/bff/positions/${code}/${today}`, {
+        headers: getBearerToken(keycloak?.token)
       })
       .then((result) => {
         setHoldings(result.data);

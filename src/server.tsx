@@ -74,7 +74,7 @@ i18n
         .use(express.static(staticDir))
         .use(express.json())
         .use(cookieParser())
-        .get("/bff/*/today", getPositions)
+        .get("/bff/positions/**", getPositions)
         .post("/bff/register", postData)
         .get("/bff/currencies", getData)
         .post("/bff/register", getData)

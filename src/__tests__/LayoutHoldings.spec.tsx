@@ -7,6 +7,7 @@ import { MemoryRouter } from "react-router";
 
 afterEach(cleanup);
 afterAll(nock.cleanAll);
+const today = new Date().toISOString().split('T')[0]
 
 jest.mock("@react-keycloak/ssr", () => ({
   useKeycloak: () => ({
@@ -21,12 +22,12 @@ nock("http://localhost", {
   },
 })
   .persist(true)
-  .get("/bff/test/today")
+  .get(`/bff/positions/test/${today}`)
   .replyWithFile(200, __dirname + "/__contracts__/test-holdings.json", {
     "Access-Control-Allow-Origin": "*",
     "Content-type": "application/json",
   })
-  .get("/bff/zero/today")
+  .get(`/bff/positions/zero/${today}`)
   .replyWithFile(200, __dirname + "/__contracts__/zero-holdings.json", {
     "Access-Control-Allow-Origin": "*",
     "Content-type": "application/json",
