@@ -190,6 +190,7 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
             style="height: 26px; width: 26px; background: rgb(255, 255, 255); display: inline-block; cursor: pointer; border-radius: 50%; position: absolute; transform: translateX(29px); top: 1px; outline: 0; border: 0px; transition: background-color 0.25s, transform 0.25s, box-shadow 0.15s;"
           />
           <input
+            aria-checked="true"
             checked=""
             required=""
             role="switch"
