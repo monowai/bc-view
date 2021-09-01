@@ -5324,14 +5324,6 @@ file-loader@^4.3.0:
     loader-utils "^1.2.3"
     schema-utils "^2.5.0"
 
-file-loader@^6.2.0:
-  version "6.2.0"
-  resolved "https://registry.yarnpkg.com/file-loader/-/file-loader-6.2.0.tgz#baef7cf8e1840df325e4390b4484879480eebe4d"
-  integrity sha512-qo3glqyTa61Ytg4u73GultjHGjdRyig3tG6lPtyX/jOEJvHif9uB0/OCI2Kif6ctF3caQTW2G5gym21oAsI4pw==
-  dependencies:
-    loader-utils "^2.0.0"
-    schema-utils "^3.0.0"
-
 file-selector@^0.2.2:
   version "0.2.4"
   resolved "https://registry.yarnpkg.com/file-selector/-/file-selector-0.2.4.tgz#7b98286f9dbb9925f420130ea5ed0a69238d4d80"
@@ -9926,10 +9918,10 @@ raw-body@2.4.0:
     iconv-lite "0.4.24"
     unpipe "1.0.0"
 
-razzle-dev-utils@^4.0.3:
-  version "4.0.5"
-  resolved "https://registry.yarnpkg.com/razzle-dev-utils/-/razzle-dev-utils-4.0.5.tgz#51d236a21c590a9dd017b0107c261643e36d497f"
-  integrity sha512-ki1PxtBCugmpTyYdQ4/Ls3uToBimxNxJsxoZzNx/C8NaxBbbDAVKvysX1oqFRVT9KyMOLaQXFG/qdSFXDxcvlg==
+razzle-dev-utils@^4.0.5:
+  version "4.0.6"
+  resolved "https://registry.yarnpkg.com/razzle-dev-utils/-/razzle-dev-utils-4.0.6.tgz#ba0b5db5167861abe6bab128fe8f14a8e13ba6b8"
+  integrity sha512-azPE1qmGsNd0vozqtv76qjUeuiq7ZcE1LdpTWPMoLwBLK3hTkYpLvZEchURVuBESEJeVsCttHBd62wd5dj8nHA==
   dependencies:
     "@babel/code-frame" "^7.8.3"
     chalk "^4.1.0"
@@ -9943,10 +9935,10 @@ razzle-dev-utils@^4.0.3:
     sockjs-client "~1.4.0"
     strip-ansi "^6.0.0"
 
-razzle-plugin-scss@^4.0.3:
-  version "4.0.5"
-  resolved "https://registry.yarnpkg.com/razzle-plugin-scss/-/razzle-plugin-scss-4.0.5.tgz#bc36e021c14f88fbcbca32849abc7ee9d2d3a5db"
-  integrity sha512-uxLwIqLA/SvdhVtPEa4wHZX+wvseBRR1FHEN22u8kZKGIdr8HWwiU7vIVpxtt228yCFyqthminMkQAsCxJlwAA==
+razzle-plugin-scss@^4.0.5:
+  version "4.0.6"
+  resolved "https://registry.yarnpkg.com/razzle-plugin-scss/-/razzle-plugin-scss-4.0.6.tgz#d0ddc5425417a7132ec152c7a1d2e42f6e080cfd"
+  integrity sha512-EMDxcPNq3gjIKLFkkR3ppPQQn/MWUWId6J6MWcsd6KIWRKTlI3xAO8Kf9Yj4bn3Q7kBLZmUYkVPaV7NImEPGeg==
   dependencies:
     autoprefixer "^10.2.3"
     css-loader "^5.0.0"
@@ -9958,15 +9950,15 @@ razzle-plugin-scss@^4.0.3:
     sass "^1.29.0"
     sass-loader "^10.0.3"
 
-razzle-start-server-webpack-plugin@4.0.5:
-  version "4.0.5"
-  resolved "https://registry.yarnpkg.com/razzle-start-server-webpack-plugin/-/razzle-start-server-webpack-plugin-4.0.5.tgz#432719af814944ad15deeb9134ee5bfcfe9dc69b"
-  integrity sha512-IrsdXUsNdPYe4enEQseG/rFeggkVTvzopjICJxCxx/bco5pqcAZUdJ02ntuPPqa3f9KOr9mYFDKgBo6gh96UiQ==
+razzle-start-server-webpack-plugin@4.0.6:
+  version "4.0.6"
+  resolved "https://registry.yarnpkg.com/razzle-start-server-webpack-plugin/-/razzle-start-server-webpack-plugin-4.0.6.tgz#cf3687653813073d79a059015984b791b22e9e41"
+  integrity sha512-koPnhE28dT+MwwOdNQivxCSnYZAoS+PchTTJ/VDrESjkDdZRlYHd4v57fIPoyx3dlYxf7+Mmz4N0KhDCA4+2xA==
 
-razzle@^4:
-  version "4.0.5"
-  resolved "https://registry.yarnpkg.com/razzle/-/razzle-4.0.5.tgz#314da48f85b19022ea7f1ae21ee3c71b6b685f2a"
-  integrity sha512-35zdVelUH+7OifhDMsFeqopyz2I3u7JT2bKu+KcliR1AFOplDnPMEUSwWdQ4KFdJI7b+eFFuCAx0jJh3yi8Ahg==
+razzle@^4.0.5:
+  version "4.0.6"
+  resolved "https://registry.yarnpkg.com/razzle/-/razzle-4.0.6.tgz#fdd271a0bd07903eddc4a6f04f078b1151ffab8b"
+  integrity sha512-m9qzP1JRolWR+WVodNA+jN7dl5jwHdhliHmOu9vspzAQIBK0/f77YnUJ7Jy1dbzkGdIoYE0OmHRu3BaQ78X6Nw==
   dependencies:
     "@babel/plugin-transform-modules-commonjs" "^7.12.1"
     "@pmmmwh/react-refresh-webpack-plugin" "^0.4.3"
@@ -9994,7 +9986,7 @@ razzle@^4:
     postcss-load-config "^3.0.0"
     postcss-loader "^4.2.0"
     process "^0.11.10"
-    razzle-start-server-webpack-plugin "4.0.5"
+    razzle-start-server-webpack-plugin "4.0.6"
     react-dev-utils "^11.0.4"
     react-refresh "^0.9.0"
     resolve "^1.17.0"
