@@ -21,7 +21,23 @@ module.exports = {
         plugins: [
           require("postcss-flexbugs-fixes"),
           require("autoprefixer")({
-            // overrideBrowserslist: ['>1%', 'last 4 versions', 'Firefox ESR', 'not ie < 9'],
+            production: [
+              ">0.2%",
+              "not dead",
+              "not ie <= 11",
+              "not op_mini all",
+              "not safari < 12",
+              "not kaios <= 2.5",
+              "not edge < 79",
+              "not chrome < 70",
+              "not and_uc < 13",
+              "not samsung < 10",
+            ],
+            development: [
+              "last 1 chrome version",
+              "last 1 firefox version",
+              "last 1 safari version",
+            ],
             flexbox: "no-2009",
           }),
         ],
