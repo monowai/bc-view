@@ -13,9 +13,12 @@ jobs:
       - restore_cache:
           keys:
             - yarn-cache2-{{ checksum "~/project/yarn.lock" }}
+      #      - run:
+      #          name: Latest Yarn
+      #          command: yarn set version berry
       - run:
           name: Install Dependencies
-          command: yarn install
+          command: yarn install --immutable
       - run:
           name: Test with coverage
           command: yarn test --ci --coverage --reporters=default --reporters=jest-junit
@@ -25,8 +28,8 @@ jobs:
           name: Save Yarn Package Cache
           key: yarn-cache2-{{ checksum "~/project/yarn.lock" }}
           paths:
-            - ~/.cache/yarn
-            - ./node_modules
+            - ./yarn/cache
+            - ./yarn/unplugged
       - store_test_results:
           path: reports/junit
       - store_artifacts:

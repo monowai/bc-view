@@ -167,5 +167,6 @@
     "collectCoverageFrom": [
       "src/**/*.{js,jsx,ts,tsx}"
     ]
-  }
+  },
+  "packageManager": "yarn@3.0.2"
 }

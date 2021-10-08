@@ -1,5 +1,5 @@
 # Easier to build against Alpine
-FROM node:14-alpine as build
+FROM node:14.18-alpine as build
 
 RUN apk --no-cache add g++ gcc libgcc libstdc++ linux-headers make python
 
@@ -9,16 +9,16 @@ WORKDIR /app
 COPY package.json .
 COPY yarn.lock .
 
-RUN yarn install --frozen-lockfile --force
 COPY . /app
+RUN yarn install --immutable
 # There is an issue with "yarn package" with npx .
+ENV NODE_ENV production
 RUN yarn build --prod --ignore-scripts --prefer-offline
 
 # Runtime container...
 RUN echo "...Building container runtime"
-FROM node:14-alpine
+FROM node:14.18-alpine
 
-ENV NODE_ENV production
 ENV HOST 0.0.0.0
 ENV PORT 3000
 ENV RAZZLE_PUBLIC_DIR /app/build/public
