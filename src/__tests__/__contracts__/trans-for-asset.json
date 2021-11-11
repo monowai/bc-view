@@ -26,7 +26,6 @@
         "timezone": "US/Eastern"
       }
     },
-    "cashAsset": null,
     "tradeCurrency": {
       "code": "USD",
       "name": "Dollar",
