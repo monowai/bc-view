@@ -19,7 +19,9 @@ export function Rows({ portfolio, holdingGroup, groupBy, valueIn }: HoldingValue
             >
               {moneyValues[valueIn].currency.id}
               {moneyValues[valueIn].currency.symbol}
-              <FormatValue value={moneyValues[valueIn].priceData.close} />
+              <FormatValue
+                value={moneyValues[valueIn].priceData ? moneyValues[valueIn].priceData.close : "-"}
+              />
             </span>
           }
         </td>
