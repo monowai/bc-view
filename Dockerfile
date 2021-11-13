@@ -1,7 +1,7 @@
 # Easier to build against Alpine
 FROM node:14.18-alpine as build
 
-RUN apk --no-cache add g++ gcc libgcc libstdc++ linux-headers make python
+RUN apk --no-cache add g++ gcc libgcc libstdc++ linux-headers make
 
 
 # Contents of build will be copied in the next container
