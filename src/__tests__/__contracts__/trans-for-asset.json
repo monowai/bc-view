@@ -15,7 +15,12 @@
       "id": "alphabet",
       "code": "GOOG",
       "name": "Alphabet Inc - Ordinary Shares - Class C",
-      "category": "Equity",
+      "status": "Active",
+      "version": "1",
+      "assetCategory": {
+        "id": "Equity",
+        "name": "Equity"
+      },
       "market": {
         "code": "NASDAQ",
         "currency": {

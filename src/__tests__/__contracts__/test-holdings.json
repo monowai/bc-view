@@ -21,7 +21,12 @@
         "id": "pw1dIdlhSx2x8tnlA2qNhw",
         "code": "AAPL",
         "name": "Apple Inc",
-        "category": "Equity",
+        "status": "Active",
+        "version": "1",
+        "assetCategory": {
+          "id": "Equity",
+          "name": "Equity"
+        },
         "market": {
           "code": "NASDAQ",
           "currency": {
@@ -138,7 +143,12 @@
         "id": "QyZk-QioSRqyq1alwSf5Tw",
         "code": "ABC",
         "name": "Amerisource Bergen Corp.",
-        "category": "Equity",
+        "status": "Active",
+        "version": "1",
+        "assetCategory": {
+          "id": "Equity",
+          "name": "Equity"
+        },
         "market": {
           "code": "NYSE",
           "currency": {
@@ -255,7 +265,12 @@
         "id": "0OKznUxcT9WlNWIAp2dn2Q",
         "code": "AMP",
         "name": "Amp Limited",
-        "category": "Equity",
+        "status": "Active",
+        "version": "1",
+        "assetCategory": {
+          "id": "Equity",
+          "name": "Equity"
+        },
         "market": {
           "code": "ASX",
           "currency": {
@@ -372,7 +387,12 @@
         "id": "Dg7AMlijQaK9AOVu5Ym1cQ",
         "code": "BA",
         "name": "Boeing Co.",
-        "category": "Equity",
+        "status": "Active",
+        "version": "1",
+        "assetCategory": {
+          "id": "Equity",
+          "name": "Equity"
+        },
         "market": {
           "code": "NYSE",
           "currency": {
@@ -489,7 +509,12 @@
         "id": "HQuFW0B9RUW9bML5r2x0pA",
         "code": "CSCO",
         "name": "Cisco Systems, Inc.",
-        "category": "Equity",
+        "status": "Active",
+        "version": "1",
+        "assetCategory": {
+          "id": "Equity",
+          "name": "Equity"
+        },
         "market": {
           "code": "NASDAQ",
           "currency": {
@@ -606,7 +631,12 @@
         "id": "BFopIvYwSIWPwsrWEedYQg",
         "code": "INTC",
         "name": "Intel Corp.",
-        "category": "Equity",
+        "status": "Active",
+        "version": "1",
+        "assetCategory": {
+          "id": "Equity",
+          "name": "Equity"
+        },
         "market": {
           "code": "NASDAQ",
           "currency": {

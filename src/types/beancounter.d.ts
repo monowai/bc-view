@@ -18,7 +18,13 @@ export interface Asset {
   id: string;
   code: string;
   name: string;
+  assetCategory: AssetCategory;
   market: Market;
+}
+
+export interface AssetCategory {
+  id: string;
+  name: string;
 }
 
 export interface MoneyValues {
@@ -62,6 +68,7 @@ export interface Position {
   dateValues: DateValues;
   lastTradeDate: string;
 }
+
 export interface Interface {
   lastDividend: string;
 }
@@ -118,6 +125,7 @@ interface HoldingsInCurrency {
   holdings: Holdings;
   valueIn: ValuationCcy;
 }
+
 // The payload we render in the UI
 interface Holdings {
   holdingGroups: HoldingGroup[];

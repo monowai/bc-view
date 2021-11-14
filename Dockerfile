@@ -1,5 +1,5 @@
 # Easier to build against Alpine
-FROM node:14.18-alpine as build
+FROM node:16-alpine as build
 
 RUN apk --no-cache add g++ gcc libgcc libstdc++ linux-headers make
 
@@ -17,7 +17,7 @@ RUN yarn build --prod --ignore-scripts --prefer-offline
 
 # Runtime container...
 RUN echo "...Building container runtime"
-FROM node:14.18-alpine
+FROM node:16-alpine
 
 ENV HOST 0.0.0.0
 ENV PORT 3000
