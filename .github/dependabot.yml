@@ -1,7 +1,7 @@
 version: 2
 updates:
 - package-ecosystem: npm
-  directory: "/bc-view"
+  directory: "/"
   schedule:
     interval: weekly
     time: "21:00"
