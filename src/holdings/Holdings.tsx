@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { SubTotal } from "./SubTotal";
 import { calculate } from "./calculate";
-import { GroupBy, groupOptions } from "../types/groupBy";
+import { defaultGroup, groupOptions } from "../types/groupBy";
 import { GroupOption, Holdings, ValuationOption } from "../types/beancounter";
 import Total from "./Total";
 import StatsHeader, { StatsRow } from "./Stats";
@@ -23,10 +23,7 @@ export default function ViewHoldings(code: string): JSX.Element {
     label: "Portfolio",
   });
   const [hideEmpty, setHideEmpty] = useState<boolean>(true);
-  const [groupBy, setGroupBy] = useState<GroupOption>({
-    value: GroupBy.MARKET_CURRENCY,
-    label: "Currency",
-  });
+  const [groupBy, setGroupBy] = useState<GroupOption>(groupOptions()[defaultGroup]);
 
   // Render where we are in the initialization process
   if (isDone(holdingResults)) {

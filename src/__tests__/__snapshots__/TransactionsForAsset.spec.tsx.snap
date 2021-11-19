@@ -46,6 +46,11 @@ exports[`<Trades /> trades for asset should match snapshot 1`] = `
               <th
                 align="right"
               >
+                Cash
+              </th>
+              <th
+                align="right"
+              >
                 Tax
               </th>
               <th
@@ -77,13 +82,20 @@ exports[`<Trades /> trades for asset should match snapshot 1`] = `
                 USD
               </td>
               <td>
-                2019-01-18
+                2021-11-16
               </td>
               <td
                 align="right"
               >
                 <span>
-                  2,160.01
+                  788.91
+                </span>
+              </td>
+              <td
+                align="right"
+              >
+                <span>
+                  -788.91
                 </span>
               </td>
               <td
@@ -97,7 +109,7 @@ exports[`<Trades /> trades for asset should match snapshot 1`] = `
                 align="right"
               >
                 <span>
-                  0.00
+                  1.07
                 </span>
               </td>
               <td
@@ -111,13 +123,131 @@ exports[`<Trades /> trades for asset should match snapshot 1`] = `
                 align="right"
               >
                 <span>
-                  1,080.00
+                  393.92
                 </span>
               </td>
               <td>
                 <a
                   class="fa fa-edit"
-                  href="/trns/test/68"
+                  href="/trns/PnBHuMuJRrCc3KHMc28oUA/lR3Jy9FERp2oTMsSQlrB5A"
+                />
+              </td>
+            </tr>
+            <tr>
+              <td>
+                BUY
+              </td>
+              <td>
+                USD
+              </td>
+              <td>
+                2021-10-21
+              </td>
+              <td
+                align="right"
+              >
+                <span>
+                  1,123.48
+                </span>
+              </td>
+              <td
+                align="right"
+              >
+                <span>
+                  -1,123.48
+                </span>
+              </td>
+              <td
+                align="right"
+              >
+                <span>
+                  0.00
+                </span>
+              </td>
+              <td
+                align="right"
+              >
+                <span>
+                  1.07
+                </span>
+              </td>
+              <td
+                align="right"
+              >
+                <span>
+                  3
+                </span>
+              </td>
+              <td
+                align="right"
+              >
+                <span>
+                  374.14
+                </span>
+              </td>
+              <td>
+                <a
+                  class="fa fa-edit"
+                  href="/trns/PnBHuMuJRrCc3KHMc28oUA/l4MBcsGARNyWNIgEUzqnEQ"
+                />
+              </td>
+            </tr>
+            <tr>
+              <td>
+                BUY
+              </td>
+              <td>
+                USD
+              </td>
+              <td>
+                2021-10-06
+              </td>
+              <td
+                align="right"
+              >
+                <span>
+                  1,063.37
+                </span>
+              </td>
+              <td
+                align="right"
+              >
+                <span>
+                  -1,063.37
+                </span>
+              </td>
+              <td
+                align="right"
+              >
+                <span>
+                  0.00
+                </span>
+              </td>
+              <td
+                align="right"
+              >
+                <span>
+                  1.07
+                </span>
+              </td>
+              <td
+                align="right"
+              >
+                <span>
+                  3
+                </span>
+              </td>
+              <td
+                align="right"
+              >
+                <span>
+                  354.10
+                </span>
+              </td>
+              <td>
+                <a
+                  class="fa fa-edit"
+                  href="/trns/test/_lEAvY1vSDWiBGwqKoEv2g"
                 />
               </td>
             </tr>

@@ -18,8 +18,6 @@ function HeaderBrand(): React.ReactElement {
       </a>
       <div className="navbar-burger burger">
         <span />
-        <span />
-        <span />
       </div>
     </div>
   );

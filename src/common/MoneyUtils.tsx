@@ -14,5 +14,5 @@ export function FormatValue({ value, scale, multiplier }: FormatNumber): JSX.Ele
       />
     );
   }
-  return <span>-</span>;
+  return <span> </span>;
 }

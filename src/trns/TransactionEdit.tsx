@@ -249,6 +249,32 @@ export function TransactionEdit(portfolioId: string, trnId: string): React.React
                     </select>
                   </div>
                 </div>
+                <div className="field">
+                  <label className="label">Cash Amount</label>
+                  <div className="control">
+                    <input
+                      className="input"
+                      type="number"
+                      placeholder="Amount in Cash Settlement Currency"
+                      defaultValue={trnResult.data.cashAmount}
+                      name="tradeAmount"
+                    />
+                  </div>
+                </div>
+                <div className="field">
+                  <label className="label">Cash Currency</label>
+                  <div className="control">
+                    <select
+                      placeholder={"Select currency"}
+                      className={"select"}
+                      name={"tradeCurrency"}
+                      defaultValue={trnResult.data.cashCurrency.code}
+                    >
+                      {currencyOptions(currencies, trnResult.data.cashCurrency.code)}
+                    </select>
+                  </div>
+                </div>
+
                 <div className="field is-grouped">
                   <div className="control">
                     <button className="button is-link">Save</button>

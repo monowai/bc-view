@@ -5,24 +5,21 @@ import { translate } from "../common/i18nUtils";
 export enum GroupBy {
   MARKET_CURRENCY = "asset.market.currency.code",
   MARKET = "asset.market.code",
-}
-
-export function description(groupBy: GroupBy): string {
-  if (groupBy === GroupBy.MARKET_CURRENCY) {
-    return translate("groupby.currency");
-  }
-  if (groupBy === GroupBy.MARKET) {
-    return translate("groupby.market");
-  }
-  return translate("groupby.unknown");
+  ASSET_CLASS = "asset.assetCategory.name",
 }
 
 export function groupOptions(): GroupOption[] {
   return [
     {
-      value: GroupBy.MARKET_CURRENCY,
-      label: description(GroupBy.MARKET_CURRENCY),
+      value: GroupBy.ASSET_CLASS,
+      label: translate("groupby.class"),
     },
-    { value: GroupBy.MARKET, label: description(GroupBy.MARKET) },
+    {
+      value: GroupBy.MARKET_CURRENCY,
+      label: translate("groupby.currency"),
+    },
+    { value: GroupBy.MARKET, label: translate("groupby.market") },
   ];
 }
+
+export const defaultGroup = 0;

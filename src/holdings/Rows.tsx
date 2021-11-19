@@ -1,15 +1,20 @@
-import { HoldingValues } from "../types/beancounter";
+import { Asset, HoldingValues, MoneyValues } from "../types/beancounter";
 import NumberFormat from "react-number-format";
 import { Link } from "react-router-dom";
 import { FormatValue } from "../common/MoneyUtils";
 import React from "react";
+import { assetName, isCash } from "../assets/assetUtils";
 
 export function Rows({ portfolio, holdingGroup, groupBy, valueIn }: HoldingValues): JSX.Element {
+  function hideValue(asset: Asset, moneyValues: MoneyValues[]): boolean {
+    return isCash(asset) || !moneyValues[valueIn].priceData;
+  }
+
   // eslint-disable-next-line complexity
   const holdings = holdingGroup.positions.map(
     ({ asset, moneyValues, quantityValues, dateValues }, index) => (
       <tr key={groupBy + index} className={"holding-row"}>
-        <td className={"asset"}>{asset.code + ": " + asset.name}</td>
+        <td className={"asset"}>{assetName(asset)}</td>
         <td className={"price"} align={"right"}>
           {
             <span
@@ -20,14 +25,14 @@ export function Rows({ portfolio, holdingGroup, groupBy, valueIn }: HoldingValue
               {moneyValues[valueIn].currency.id}
               {moneyValues[valueIn].currency.symbol}
               <FormatValue
-                value={moneyValues[valueIn].priceData ? moneyValues[valueIn].priceData.close : "-"}
+                value={moneyValues[valueIn].priceData ? moneyValues[valueIn].priceData.close : " "}
               />
             </span>
           }
         </td>
         <td align={"right"}>
-          {!moneyValues[valueIn].priceData ? (
-            "-"
+          {hideValue(asset, moneyValues) ? (
+            " "
           ) : (
             <span
               className={
@@ -45,7 +50,9 @@ export function Rows({ portfolio, holdingGroup, groupBy, valueIn }: HoldingValue
           )}
         </td>
         <td align={"right"}>
-          <Link to={`/trns/${portfolio.id}/asset/${asset.id}/trades`}>
+          {hideValue(asset, moneyValues) ? (
+            " "
+          ) : (
             <NumberFormat
               value={quantityValues.total}
               displayType={"text"}
@@ -53,10 +60,12 @@ export function Rows({ portfolio, holdingGroup, groupBy, valueIn }: HoldingValue
               fixedDecimalScale={true}
               thousandSeparator={true}
             />
-          </Link>
+          )}
         </td>
         <td align={"right"}>
-          <FormatValue value={moneyValues[valueIn].marketValue} />
+          <Link to={`/trns/${portfolio.id}/asset/${asset.id}/trades`}>
+            <FormatValue value={moneyValues[valueIn].marketValue} />
+          </Link>
         </td>
         <td align={"right"}>
           <FormatValue value={moneyValues[valueIn].unrealisedGain} />
@@ -68,7 +77,11 @@ export function Rows({ portfolio, holdingGroup, groupBy, valueIn }: HoldingValue
           <FormatValue value={moneyValues[valueIn].costValue} />
         </td>
         <td align={"right"}>
-          <FormatValue value={moneyValues[valueIn].averageCost} />
+          {hideValue(asset, moneyValues) ? (
+            " "
+          ) : (
+            <FormatValue value={moneyValues[valueIn].averageCost} />
+          )}
         </td>
         <td align={"right"}>
           {

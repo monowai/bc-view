@@ -50,7 +50,7 @@ describe("<Trades />", () => {
     await screen.findByTestId("loading");
     await waitForElementToBeRemoved(() => screen.getByTestId("loading"));
     expect(nock.isDone());
-    await screen.findByText("BUY");
+    await screen.findAllByText("BUY");
     expect(container).toMatchSnapshot();
   });
 });

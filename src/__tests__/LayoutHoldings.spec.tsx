@@ -47,7 +47,8 @@ describe("<ViewHoldings />", () => {
     await waitForElementToBeRemoved(() => screen.getByTestId("loading"));
     expect(nock.isDone());
 
-    await screen.findByText("USD");
+    //await screen.findByText("Totals in");
+    await screen.findAllByText("USD");
     expect(container).toMatchSnapshot();
   });
 

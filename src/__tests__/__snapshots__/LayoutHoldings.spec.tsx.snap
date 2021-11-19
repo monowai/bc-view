@@ -97,9 +97,7 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
             >
               <div
                 class=" css-1uccc91-singleValue"
-              >
-                Currency
-              </div>
+              />
               <input
                 aria-autocomplete="list"
                 class="css-wmatm6-dummyInput-DummyInput"
@@ -250,42 +248,42 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
                     : 
                   </span>
                 </a>
-                NZD
+                USD
               </div>
             </td>
             <td
               align="right"
             >
               <span>
-                -
+                8,687.77
               </span>
             </td>
             <td
               align="right"
             >
               <span>
-                8,478.00
+                6,546.90
               </span>
             </td>
             <td
               align="right"
             >
               <span>
-                2,729.71
+                 
               </span>
             </td>
             <td
               align="right"
             >
               <span>
-                2,961.31
+                 
               </span>
             </td>
             <td
               align="right"
             >
               <span>
-                -2,786.98
+                328.34
               </span>
             </td>
           </tr>
@@ -303,7 +301,7 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
         >
           <tr>
             <th>
-              AUD
+              Cash
             </th>
             <th
               align="right"
@@ -347,40 +345,39 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
             <td
               class="asset"
             >
-              AMP: Amp Limited
+              USD Balance
             </td>
             <td
               align="right"
               class="price"
             >
               <span
-                data-tooltip="2020-05-01"
+                data-tooltip="2021-12-02"
               >
                 $
                 <span>
-                  132.03
+                  1.00
                 </span>
               </span>
             </td>
             <td
               align="right"
             >
-              <span
-                class="negative-gain"
-                data-tooltip="Previous $ 135.35"
-              >
-                -2.51
-                %
-              </span>
+               
+            </td>
+            <td
+              align="right"
+            >
+               
             </td>
             <td
               align="right"
             >
               <a
-                href="/trns/test/asset/0OKznUxcT9WlNWIAp2dn2Q/trades"
+                href="/trns/test/asset/tAocoEIDTv6xOzFEjvRPBw/trades"
               >
                 <span>
-                  637
+                  1,812.53
                 </span>
               </a>
             </td>
@@ -388,21 +385,14 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
               align="right"
             >
               <span>
-                -
+                 
               </span>
             </td>
             <td
               align="right"
             >
               <span>
-                -2,436.73
-              </span>
-            </td>
-            <td
-              align="right"
-            >
-              <span>
-                -
+                20.86
               </span>
               %
             </td>
@@ -410,27 +400,25 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
               align="right"
             >
               <span>
-                2,436.73
+                1,812.53
               </span>
             </td>
             <td
               align="right"
             >
-              <span>
-                3.83
-              </span>
+               
             </td>
             <td
               align="right"
             >
               <span
-                data-tooltip="Last Event: undefined"
+                data-tooltip="Last Event: null"
               >
                 <a
-                  href="/trns/test/asset/0OKznUxcT9WlNWIAp2dn2Q/events"
+                  href="/trns/test/asset/tAocoEIDTv6xOzFEjvRPBw/events"
                 >
                   <span>
-                    2,598.62
+                     
                   </span>
                 </a>
               </span>
@@ -439,14 +427,14 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
               align="right"
             >
               <span>
-                -
+                 
               </span>
             </td>
             <td
               align="right"
             >
               <span>
-                161.89
+                 
               </span>
             </td>
           </tr>
@@ -462,28 +450,20 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
               colspan="4"
             >
               Sub-Total - 
-              NZD
+              USD
             </td>
             <td
               align="right"
             >
               <span>
-                -
+                1,812.53
               </span>
             </td>
             <td
               align="right"
             >
               <span>
-                -2,436.73
-              </span>
-            </td>
-            <td />
-            <td
-              align="right"
-            >
-              <span>
-                2,436.73
+                 
               </span>
             </td>
             <td />
@@ -491,21 +471,29 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
               align="right"
             >
               <span>
-                2,598.62
+                1,812.53
+              </span>
+            </td>
+            <td />
+            <td
+              align="right"
+            >
+              <span>
+                 
               </span>
             </td>
             <td
               align="right"
             >
               <span>
-                -
+                 
               </span>
             </td>
             <td
               align="right"
             >
               <span>
-                161.89
+                 
               </span>
             </td>
           </tr>
@@ -515,7 +503,7 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
         >
           <tr>
             <th>
-              USD
+              Exchange Traded Fund
             </th>
             <th
               align="right"
@@ -559,18 +547,18 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
             <td
               class="asset"
             >
-              AAPL: Apple Inc
+              QQQ: Invesco QQQ Trust Series 1
             </td>
             <td
               align="right"
               class="price"
             >
               <span
-                data-tooltip="2020-05-01"
+                data-tooltip="2021-12-01"
               >
                 $
                 <span>
-                  132.03
+                  387.12
                 </span>
               </span>
             </td>
@@ -579,20 +567,27 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
             >
               <span
                 class="negative-gain"
-                data-tooltip="Previous $ 135.35"
+                data-tooltip="Previous $ 393.82"
               >
-                -2.51
+                -1.70
                 %
               </span>
             </td>
             <td
               align="right"
             >
+              <span>
+                8
+              </span>
+            </td>
+            <td
+              align="right"
+            >
               <a
-                href="/trns/test/asset/pw1dIdlhSx2x8tnlA2qNhw/trades"
+                href="/trns/test/asset/BdfztTW2RP6Z_aGdf7bgVA/trades"
               >
                 <span>
-                  12
+                  3,096.96
                 </span>
               </a>
             </td>
@@ -600,21 +595,14 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
               align="right"
             >
               <span>
-                -
+                121.20
               </span>
             </td>
             <td
               align="right"
             >
               <span>
-                -1,436.44
-              </span>
-            </td>
-            <td
-              align="right"
-            >
-              <span>
-                -
+                35.65
               </span>
               %
             </td>
@@ -622,27 +610,27 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
               align="right"
             >
               <span>
-                1,436.44
+                2,975.76
               </span>
             </td>
             <td
               align="right"
             >
               <span>
-                119.70
+                371.97
               </span>
             </td>
             <td
               align="right"
             >
               <span
-                data-tooltip="Last Event: undefined"
+                data-tooltip="Last Event: null"
               >
                 <a
-                  href="/trns/test/asset/pw1dIdlhSx2x8tnlA2qNhw/events"
+                  href="/trns/test/asset/BdfztTW2RP6Z_aGdf7bgVA/events"
                 >
                   <span>
-                    126.33
+                     
                   </span>
                 </a>
               </span>
@@ -651,14 +639,14 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
               align="right"
             >
               <span>
-                132.11
+                 
               </span>
             </td>
             <td
               align="right"
             >
               <span>
-                -1,178.00
+                121.20
               </span>
             </td>
           </tr>
@@ -668,18 +656,18 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
             <td
               class="asset"
             >
-              ABC: Amerisource Bergen Corp.
+              SMH: VanEck Vectors Semiconductor ETF
             </td>
             <td
               align="right"
               class="price"
             >
               <span
-                data-tooltip="2020-05-01"
+                data-tooltip="2021-12-01"
               >
                 $
                 <span>
-                  132.03
+                  303.82
                 </span>
               </span>
             </td>
@@ -688,20 +676,27 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
             >
               <span
                 class="negative-gain"
-                data-tooltip="Previous $ 135.35"
+                data-tooltip="Previous $ 304.9"
               >
-                -2.51
+                -0.35
                 %
               </span>
             </td>
             <td
               align="right"
             >
+              <span>
+                4
+              </span>
+            </td>
+            <td
+              align="right"
+            >
               <a
-                href="/trns/test/asset/QyZk-QioSRqyq1alwSf5Tw/trades"
+                href="/trns/test/asset/iA5Cuge_ROWF42rpRqovFw/trades"
               >
                 <span>
-                  25
+                  1,215.28
                 </span>
               </a>
             </td>
@@ -709,21 +704,14 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
               align="right"
             >
               <span>
-                -
+                214.21
               </span>
             </td>
             <td
               align="right"
             >
               <span>
-                -1,263.00
-              </span>
-            </td>
-            <td
-              align="right"
-            >
-              <span>
-                -
+                13.99
               </span>
               %
             </td>
@@ -731,27 +719,27 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
               align="right"
             >
               <span>
-                1,263.00
+                1,001.07
               </span>
             </td>
             <td
               align="right"
             >
               <span>
-                50.52
+                250.27
               </span>
             </td>
             <td
               align="right"
             >
               <span
-                data-tooltip="Last Event: undefined"
+                data-tooltip="Last Event: null"
               >
                 <a
-                  href="/trns/test/asset/QyZk-QioSRqyq1alwSf5Tw/events"
+                  href="/trns/test/asset/iA5Cuge_ROWF42rpRqovFw/events"
                 >
                   <span>
-                    6.50
+                     
                   </span>
                 </a>
               </span>
@@ -760,14 +748,14 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
               align="right"
             >
               <span>
-                -
+                 
               </span>
             </td>
             <td
               align="right"
             >
               <span>
-                -1,256.50
+                214.21
               </span>
             </td>
           </tr>
@@ -777,18 +765,18 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
             <td
               class="asset"
             >
-              CSCO: Cisco Systems, Inc.
+              SPHD: Invesco S&P 500 High Dividend Low Volatility ETF
             </td>
             <td
               align="right"
               class="price"
             >
               <span
-                data-tooltip="2020-05-01"
+                data-tooltip="2021-12-01"
               >
                 $
                 <span>
-                  132.03
+                  41.55
                 </span>
               </span>
             </td>
@@ -797,20 +785,27 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
             >
               <span
                 class="negative-gain"
-                data-tooltip="Previous $ 135.35"
+                data-tooltip="Previous $ 41.78"
               >
-                -2.51
+                -0.55
                 %
               </span>
             </td>
             <td
               align="right"
             >
+              <span>
+                40
+              </span>
+            </td>
+            <td
+              align="right"
+            >
               <a
-                href="/trns/test/asset/HQuFW0B9RUW9bML5r2x0pA/trades"
+                href="/trns/test/asset/_0GbNH2-R1GvF2eCg0C4PQ/trades"
               >
                 <span>
-                  55
+                  1,662.00
                 </span>
               </a>
             </td>
@@ -818,21 +813,14 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
               align="right"
             >
               <span>
-                -
+                -48.47
               </span>
             </td>
             <td
               align="right"
             >
               <span>
-                -971.52
-              </span>
-            </td>
-            <td
-              align="right"
-            >
-              <span>
-                -
+                19.13
               </span>
               %
             </td>
@@ -840,27 +828,27 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
               align="right"
             >
               <span>
-                971.52
+                1,710.47
               </span>
             </td>
             <td
               align="right"
             >
               <span>
-                17.66
+                42.76
               </span>
             </td>
             <td
               align="right"
             >
               <span
-                data-tooltip="Last Event: undefined"
+                data-tooltip="Last Event: null"
               >
                 <a
-                  href="/trns/test/asset/HQuFW0B9RUW9bML5r2x0pA/events"
+                  href="/trns/test/asset/_0GbNH2-R1GvF2eCg0C4PQ/events"
                 >
                   <span>
-                    229.86
+                     
                   </span>
                 </a>
               </span>
@@ -869,14 +857,123 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
               align="right"
             >
               <span>
-                227.29
+                 
               </span>
             </td>
             <td
               align="right"
             >
               <span>
-                -514.37
+                -48.47
+              </span>
+            </td>
+          </tr>
+          <tr
+            class="holding-row"
+          >
+            <td
+              class="asset"
+            >
+              SPY: S&P 500 ETF TRUST ETF
+            </td>
+            <td
+              align="right"
+              class="price"
+            >
+              <span
+                data-tooltip="2021-12-01"
+              >
+                $
+                <span>
+                  450.50
+                </span>
+              </span>
+            </td>
+            <td
+              align="right"
+            >
+              <span
+                class="negative-gain"
+                data-tooltip="Previous $ 455.56"
+              >
+                -1.11
+                %
+              </span>
+            </td>
+            <td
+              align="right"
+            >
+              <span>
+                2
+              </span>
+            </td>
+            <td
+              align="right"
+            >
+              <a
+                href="/trns/test/asset/jw0FkpdmRgmtKCrnkK1_Tw/trades"
+              >
+                <span>
+                  901.00
+                </span>
+              </a>
+            </td>
+            <td
+              align="right"
+            >
+              <span>
+                41.40
+              </span>
+            </td>
+            <td
+              align="right"
+            >
+              <span>
+                10.37
+              </span>
+              %
+            </td>
+            <td
+              align="right"
+            >
+              <span>
+                859.60
+              </span>
+            </td>
+            <td
+              align="right"
+            >
+              <span>
+                429.80
+              </span>
+            </td>
+            <td
+              align="right"
+            >
+              <span
+                data-tooltip="Last Event: null"
+              >
+                <a
+                  href="/trns/test/asset/jw0FkpdmRgmtKCrnkK1_Tw/events"
+                >
+                  <span>
+                     
+                  </span>
+                </a>
+              </span>
+            </td>
+            <td
+              align="right"
+            >
+              <span>
+                 
+              </span>
+            </td>
+            <td
+              align="right"
+            >
+              <span>
+                41.40
               </span>
             </td>
           </tr>
@@ -892,28 +989,20 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
               colspan="4"
             >
               Sub-Total - 
-              NZD
+              USD
             </td>
             <td
               align="right"
             >
               <span>
-                -
+                6,875.24
               </span>
             </td>
             <td
               align="right"
             >
               <span>
-                -3,670.96
-              </span>
-            </td>
-            <td />
-            <td
-              align="right"
-            >
-              <span>
-                3,670.96
+                328.34
               </span>
             </td>
             <td />
@@ -921,21 +1010,29 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
               align="right"
             >
               <span>
-                362.69
+                6,546.90
+              </span>
+            </td>
+            <td />
+            <td
+              align="right"
+            >
+              <span>
+                 
               </span>
             </td>
             <td
               align="right"
             >
               <span>
-                359.40
+                 
               </span>
             </td>
             <td
               align="right"
             >
               <span>
-                -2,948.87
+                328.34
               </span>
             </td>
           </tr>
@@ -958,22 +1055,14 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
               align="right"
             >
               <span>
-                -
+                8,687.77
               </span>
             </td>
             <td
               align="right"
             >
               <span>
-                -6,107.69
-              </span>
-            </td>
-            <td />
-            <td
-              align="right"
-            >
-              <span>
-                6,107.69
+                328.34
               </span>
             </td>
             <td />
@@ -981,21 +1070,29 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
               align="right"
             >
               <span>
-                2,961.31
+                8,359.43
+              </span>
+            </td>
+            <td />
+            <td
+              align="right"
+            >
+              <span>
+                 
               </span>
             </td>
             <td
               align="right"
             >
               <span>
-                359.40
+                 
               </span>
             </td>
             <td
               align="right"
             >
               <span>
-                -2,786.98
+                328.34
               </span>
             </td>
           </tr>

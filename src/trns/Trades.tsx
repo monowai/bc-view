@@ -39,6 +39,7 @@ export function Trades(portfolioId: string, assetId: string): React.ReactElement
                     <th>Currency</th>
                     <th>Trade Date</th>
                     <th align={"right"}>Amount</th>
+                    <th align={"right"}>Cash</th>
                     <th align={"right"}>Tax</th>
                     <th align={"right"}>Charges</th>
                     <th align={"right"}>Quantity</th>
@@ -55,6 +56,15 @@ export function Trades(portfolioId: string, assetId: string): React.ReactElement
                       <td align={"right"}>
                         <NumberFormat
                           value={t.tradeAmount}
+                          displayType={"text"}
+                          decimalScale={2}
+                          fixedDecimalScale={true}
+                          thousandSeparator={true}
+                        />
+                      </td>
+                      <td align={"right"}>
+                        <NumberFormat
+                          value={t.cashAmount}
                           displayType={"text"}
                           decimalScale={2}
                           fixedDecimalScale={true}

@@ -1,57 +1,341 @@
 [
   {
-    "id": "68",
-    "callerRef": {
-      "provider": "SHEETS",
-      "batch": 0,
-      "callerId": 68
-    },
+    "id": "lR3Jy9FERp2oTMsSQlrB5A",
     "trnType": "BUY",
-    "portfolio": {
-      "id": "test",
-      "code": "TEST"
-    },
     "asset": {
-      "id": "alphabet",
-      "code": "GOOG",
-      "name": "Alphabet Inc - Ordinary Shares - Class C",
-      "status": "Active",
-      "version": "1",
-      "assetCategory": {
-        "id": "Equity",
-        "name": "Equity"
-      },
+      "id": "BdfztTW2RP6Z_aGdf7bgVA",
+      "code": "QQQ",
+      "name": "Invesco QQQ Trust Series 1",
       "market": {
-        "code": "NASDAQ",
+        "code": "NYSE",
+        "currencyId": "USD",
+        "timezoneId": "US/Eastern",
+        "aliases": {
+          "SHARESIGHT": "NYS",
+          "FIGI": "US"
+        },
+        "timezone": "US/Eastern",
         "currency": {
           "code": "USD",
           "name": "Dollar",
           "symbol": "$"
         },
-        "timezone": "US/Eastern"
-      }
+        "priceTime": "19:00",
+        "daysToSubtract": 1,
+        "multiplier": 1.0,
+        "type": "Public"
+      },
+      "priceSymbol": "QQQ",
+      "assetCategory": {
+        "id": "ETF",
+        "name": "Exchange Traded Fund"
+      },
+      "status": "Active",
+      "version": "1"
     },
+    "quantity": 2.000000,
+    "callerRef": {
+      "provider": "BC",
+      "batch": "TEST",
+      "callerId": "Y1FI9fviQ0qBxigRK2gpqg"
+    },
+    "price": 393.920000,
+    "tradeAmount": 788.91,
     "tradeCurrency": {
       "code": "USD",
       "name": "Dollar",
       "symbol": "$"
     },
+    "cashAsset": {
+      "id": "tAocoEIDTv6xOzFEjvRPBw",
+      "code": "USD",
+      "name": "USD Balance",
+      "market": {
+        "code": "CASH",
+        "currencyId": "USD",
+        "timezoneId": "UTC",
+        "timezone": "UTC",
+        "currency": {
+          "code": "USD",
+          "name": "Dollar",
+          "symbol": "$"
+        },
+        "priceTime": "19:00",
+        "daysToSubtract": 1,
+        "enricher": "ECHO",
+        "multiplier": 1.0,
+        "type": "Internal"
+      },
+      "priceSymbol": "USD",
+      "assetCategory": {
+        "id": "CASH",
+        "name": "Cash"
+      },
+      "status": "Active",
+      "version": "1"
+    },
     "cashCurrency": {
-      "code": "AUD",
+      "code": "USD",
       "name": "Dollar",
       "symbol": "$"
     },
-    "tradeDate": "2019-01-18",
+    "tradeCashRate": 1.000000,
+    "tradeBaseRate": 1.000000,
+    "tradePortfolioRate": 1.000000,
+    "cashAmount": -788.91,
+    "tradeDate": "2021-11-16",
+    "portfolio": {
+      "id": "PnBHuMuJRrCc3KHMc28oUA",
+      "code": "TEST",
+      "name": "Liv Lov Portfolio",
+      "currency": {
+        "code": "USD",
+        "name": "Dollar",
+        "symbol": "$"
+      },
+      "base": {
+        "code": "NZD",
+        "name": "Dollar",
+        "symbol": "$"
+      },
+      "owner": {
+        "id": "5ac08a35-0055-4db4-987c-b5b8fad87a70",
+        "email": "mike@monowai.com",
+        "active": true,
+        "since": "2021-05-06"
+      }
+    },
     "settleDate": null,
-    "quantity": 2.0,
-    "price": 1080.0,
-    "fees": 0.0,
-    "tax": 0.0,
-    "tradeAmount": 2160.01,
-    "cashAmount": null,
-    "tradeCashRate": 1.0,
-    "tradeBaseRate": 0.72,
-    "tradePortfolioRate": 0.72,
-    "comments": "testing"
+    "fees": 1.07,
+    "tax": 0.00,
+    "comments": "",
+    "version": "2",
+    "status": "CONFIRMED"
+  },
+  {
+    "id": "l4MBcsGARNyWNIgEUzqnEQ",
+    "trnType": "BUY",
+    "asset": {
+      "id": "BdfztTW2RP6Z_aGdf7bgVA",
+      "code": "QQQ",
+      "name": "Invesco QQQ Trust Series 1",
+      "market": {
+        "code": "NYSE",
+        "currencyId": "USD",
+        "timezoneId": "US/Eastern",
+        "aliases": {
+          "SHARESIGHT": "NYS",
+          "FIGI": "US"
+        },
+        "timezone": "US/Eastern",
+        "currency": {
+          "code": "USD",
+          "name": "Dollar",
+          "symbol": "$"
+        },
+        "priceTime": "19:00",
+        "daysToSubtract": 1,
+        "multiplier": 1.0,
+        "type": "Public"
+      },
+      "priceSymbol": "QQQ",
+      "assetCategory": {
+        "id": "ETF",
+        "name": "Exchange Traded Fund"
+      },
+      "status": "Active",
+      "version": "1"
+    },
+    "quantity": 3.000000,
+    "callerRef": {
+      "provider": "BC",
+      "batch": "TEST",
+      "callerId": "7FJzsNLvSByApCU6RKtbpw"
+    },
+    "price": 374.135000,
+    "tradeAmount": 1123.48,
+    "tradeCurrency": {
+      "code": "USD",
+      "name": "Dollar",
+      "symbol": "$"
+    },
+    "cashAsset": {
+      "id": "tAocoEIDTv6xOzFEjvRPBw",
+      "code": "USD",
+      "name": "USD Balance",
+      "market": {
+        "code": "CASH",
+        "currencyId": "USD",
+        "timezoneId": "UTC",
+        "timezone": "UTC",
+        "currency": {
+          "code": "USD",
+          "name": "Dollar",
+          "symbol": "$"
+        },
+        "priceTime": "19:00",
+        "daysToSubtract": 1,
+        "enricher": "ECHO",
+        "multiplier": 1.0,
+        "type": "Internal"
+      },
+      "priceSymbol": "USD",
+      "assetCategory": {
+        "id": "CASH",
+        "name": "Cash"
+      },
+      "status": "Active",
+      "version": "1"
+    },
+    "cashCurrency": {
+      "code": "USD",
+      "name": "Dollar",
+      "symbol": "$"
+    },
+    "tradeCashRate": 1.000000,
+    "tradeBaseRate": 0.696620,
+    "tradePortfolioRate": 1.000000,
+    "cashAmount": -1123.48,
+    "tradeDate": "2021-10-21",
+    "portfolio": {
+      "id": "PnBHuMuJRrCc3KHMc28oUA",
+      "code": "TEST",
+      "name": "Liv Lov Portfolio",
+      "currency": {
+        "code": "USD",
+        "name": "Dollar",
+        "symbol": "$"
+      },
+      "base": {
+        "code": "NZD",
+        "name": "Dollar",
+        "symbol": "$"
+      },
+      "owner": {
+        "id": "5ac08a35-0055-4db4-987c-b5b8fad87a70",
+        "email": "mike@monowai.com",
+        "active": true,
+        "since": "2021-05-06"
+      }
+    },
+    "settleDate": null,
+    "fees": 1.07,
+    "tax": 0.00,
+    "comments": "",
+    "version": "2",
+    "status": "CONFIRMED"
+  },
+  {
+    "id": "_lEAvY1vSDWiBGwqKoEv2g",
+    "trnType": "BUY",
+    "asset": {
+      "id": "BdfztTW2RP6Z_aGdf7bgVA",
+      "code": "QQQ",
+      "name": "Invesco QQQ Trust Series 1",
+      "market": {
+        "code": "NYSE",
+        "currencyId": "USD",
+        "timezoneId": "US/Eastern",
+        "aliases": {
+          "SHARESIGHT": "NYS",
+          "FIGI": "US"
+        },
+        "timezone": "US/Eastern",
+        "currency": {
+          "code": "USD",
+          "name": "Dollar",
+          "symbol": "$"
+        },
+        "priceTime": "19:00",
+        "daysToSubtract": 1,
+        "multiplier": 1.0,
+        "type": "Public"
+      },
+      "priceSymbol": "QQQ",
+      "assetCategory": {
+        "id": "ETF",
+        "name": "Exchange Traded Fund"
+      },
+      "status": "Active",
+      "version": "1"
+    },
+    "quantity": 3.000000,
+    "callerRef": {
+      "provider": "BC",
+      "batch": "TEST",
+      "callerId": "wS3wNxrARRGCI0o_Zq-avw"
+    },
+    "price": 354.100000,
+    "tradeAmount": 1063.37,
+    "tradeCurrency": {
+      "code": "USD",
+      "name": "Dollar",
+      "symbol": "$"
+    },
+    "cashAsset": {
+      "id": "tAocoEIDTv6xOzFEjvRPBw",
+      "code": "USD",
+      "name": "USD Balance",
+      "market": {
+        "code": "CASH",
+        "currencyId": "USD",
+        "timezoneId": "UTC",
+        "timezone": "UTC",
+        "currency": {
+          "code": "USD",
+          "name": "Dollar",
+          "symbol": "$"
+        },
+        "priceTime": "19:00",
+        "daysToSubtract": 1,
+        "enricher": "ECHO",
+        "multiplier": 1.0,
+        "type": "Internal"
+      },
+      "priceSymbol": "USD",
+      "assetCategory": {
+        "id": "CASH",
+        "name": "Cash"
+      },
+      "status": "Active",
+      "version": "1"
+    },
+    "cashCurrency": {
+      "code": "USD",
+      "name": "Dollar",
+      "symbol": "$"
+    },
+    "tradeCashRate": 1.000000,
+    "tradeBaseRate": 0.696620,
+    "tradePortfolioRate": 1.000000,
+    "cashAmount": -1063.37,
+    "tradeDate": "2021-10-06",
+    "portfolio": {
+      "id": "test",
+      "code": "TEST",
+      "name": "TEST",
+      "currency": {
+        "code": "USD",
+        "name": "Dollar",
+        "symbol": "$"
+      },
+      "base": {
+        "code": "NZD",
+        "name": "Dollar",
+        "symbol": "$"
+      },
+      "owner": {
+        "id": "5ac08a35-0055-4db4-987c-b5b8fad87a70",
+        "email": "test@nowhere.com",
+        "active": true,
+        "since": "2021-05-06"
+      }
+    },
+    "settleDate": null,
+    "fees": 1.07,
+    "tax": 0.00,
+    "comments": "",
+    "version": "2",
+    "status": "CONFIRMED"
   }
 ]
