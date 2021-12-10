@@ -166,8 +166,15 @@ interface TrnInput {
   tradeDate: string;
   quantity: number;
   price: number;
+  tradeCurrency: string;
   tradeAmount: number;
+  tradeBaseRate: number;
+  tradePortfolioRate: number;
+  cashCurrency: string;
+  cashAmount: number;
+  tradeCashRate: number;
   fees: number;
+  tax: number;
 }
 
 interface CallerRef {
@@ -185,11 +192,13 @@ interface Transaction {
   tradeDate: string;
   quantity: number;
   price: number;
-  fees: number;
-  tradeAmount: number;
   tradeCurrency: Currency;
-  tradeCashRate: number;
+  tradeAmount: number;
   tradeBaseRate: number;
   tradePortfolioRate: number;
+  cashCurrency: string;
+  cashAmount: number;
+  tradeCashRate: number;
+  fees: number;
   comments: string;
 }

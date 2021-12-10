@@ -41,7 +41,22 @@ exports[`<Trades /> trades for asset should match snapshot 1`] = `
               <th
                 align="right"
               >
+                Quantity
+              </th>
+              <th
+                align="right"
+              >
+                Price
+              </th>
+              <th
+                align="right"
+              >
                 Amount
+              </th>
+              <th
+                align="right"
+              >
+                T/B Rate
               </th>
               <th
                 align="right"
@@ -57,16 +72,6 @@ exports[`<Trades /> trades for asset should match snapshot 1`] = `
                 align="right"
               >
                 Charges
-              </th>
-              <th
-                align="right"
-              >
-                Quantity
-              </th>
-              <th
-                align="right"
-              >
-                Price
               </th>
               <th>
                 Action
@@ -88,7 +93,28 @@ exports[`<Trades /> trades for asset should match snapshot 1`] = `
                 align="right"
               >
                 <span>
+                  2
+                </span>
+              </td>
+              <td
+                align="right"
+              >
+                <span>
+                  393.92
+                </span>
+              </td>
+              <td
+                align="right"
+              >
+                <span>
                   788.91
+                </span>
+              </td>
+              <td
+                align="right"
+              >
+                <span>
+                  1.00
                 </span>
               </td>
               <td
@@ -112,20 +138,6 @@ exports[`<Trades /> trades for asset should match snapshot 1`] = `
                   1.07
                 </span>
               </td>
-              <td
-                align="right"
-              >
-                <span>
-                  2
-                </span>
-              </td>
-              <td
-                align="right"
-              >
-                <span>
-                  393.92
-                </span>
-              </td>
               <td>
                 <a
                   class="fa fa-edit"
@@ -147,7 +159,28 @@ exports[`<Trades /> trades for asset should match snapshot 1`] = `
                 align="right"
               >
                 <span>
+                  3
+                </span>
+              </td>
+              <td
+                align="right"
+              >
+                <span>
+                  374.14
+                </span>
+              </td>
+              <td
+                align="right"
+              >
+                <span>
                   1,123.48
+                </span>
+              </td>
+              <td
+                align="right"
+              >
+                <span>
+                  0.70
                 </span>
               </td>
               <td
@@ -171,20 +204,6 @@ exports[`<Trades /> trades for asset should match snapshot 1`] = `
                   1.07
                 </span>
               </td>
-              <td
-                align="right"
-              >
-                <span>
-                  3
-                </span>
-              </td>
-              <td
-                align="right"
-              >
-                <span>
-                  374.14
-                </span>
-              </td>
               <td>
                 <a
                   class="fa fa-edit"
@@ -206,7 +225,28 @@ exports[`<Trades /> trades for asset should match snapshot 1`] = `
                 align="right"
               >
                 <span>
+                  3
+                </span>
+              </td>
+              <td
+                align="right"
+              >
+                <span>
+                  354.10
+                </span>
+              </td>
+              <td
+                align="right"
+              >
+                <span>
                   1,063.37
+                </span>
+              </td>
+              <td
+                align="right"
+              >
+                <span>
+                  0.70
                 </span>
               </td>
               <td
@@ -228,20 +268,6 @@ exports[`<Trades /> trades for asset should match snapshot 1`] = `
               >
                 <span>
                   1.07
-                </span>
-              </td>
-              <td
-                align="right"
-              >
-                <span>
-                  3
-                </span>
-              </td>
-              <td
-                align="right"
-              >
-                <span>
-                  354.10
                 </span>
               </td>
               <td>

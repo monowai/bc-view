@@ -10,24 +10,17 @@ import { ErrorPage } from "../errors/ErrorPage";
 import { useTransaction } from "./hooks";
 import { isDone } from "../types/typeUtils";
 import { currencyOptions } from "../static/IsoHelper";
-import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { ShowError } from "../errors/ShowError";
 import { translate } from "../common/i18nUtils";
+import { trnEditSchema } from "./yup";
 
 export function TransactionEdit(portfolioId: string, trnId: string): React.ReactElement {
   const { keycloak } = useKeycloak();
 
-  const schema = yup.object().shape({
-    trnType: yup.string(),
-    quantity: yup.number().required(),
-    // fees: yup.number(),
-    // tax: yup.number(),
-    // price: yup.number(),
-    // tradeDate: yup.date(),
-  });
   const { register, handleSubmit } = useForm<TrnInput>({
-    resolver: yupResolver(schema),
+    resolver: yupResolver(trnEditSchema),
+    mode: "onChange",
   });
   const trnResult = useTransaction(portfolioId, trnId);
   const currencyResult = useCurrencies();
@@ -67,6 +60,7 @@ export function TransactionEdit(portfolioId: string, trnId: string): React.React
   });
 
   const saveTransaction = handleSubmit((trnInput: TrnInput) => {
+    console.log(trnInput);
     if (trnId === "new") {
       _axios
         .post<Transaction>(
@@ -88,7 +82,7 @@ export function TransactionEdit(portfolioId: string, trnId: string): React.React
         });
     } else {
       _axios
-        .patch<Transaction>(`/bff/trns/${trnId}`, trnInput, {
+        .patch<Transaction>(`/bff/trns/${portfolioId}/${trnId}`, trnInput, {
           headers: getBearerToken(keycloak?.token),
         })
         .then(() => {
@@ -101,8 +95,7 @@ export function TransactionEdit(portfolioId: string, trnId: string): React.React
             console.error("patchedTrn [%s]: [%s]", err.response.status, err.response.data.message);
           }
         });
-      // New Portfolio
-    } // portfolioId.callerId
+    }
   });
 
   if (submitted) {
@@ -130,154 +123,188 @@ export function TransactionEdit(portfolioId: string, trnId: string): React.React
                 onAbort={handleCancel}
                 className="column is-5-tablet is-4-desktop is-3-widescreen"
               >
-                <label className="label ">Type</label>
-                <div className="control ">
-                  <input
-                    type="label"
-                    className={"text"}
-                    placeholder="Type"
-                    name="type"
-                    defaultValue={trnResult.data.trnType}
-                  />
-                </div>
-                <div className="field">
-                  <label className="label">Trade Date</label>
-                  <div className="control">
+                <div className="field is-grouped">
+                  <div className="control ">
+                    <label className="label ">Type</label>
                     <input
+                      {...register("trnType")}
+                      type="label"
                       className="input is-4"
-                      type="string"
-                      placeholder="Date of trade"
-                      defaultValue={trnResult.data.tradeDate}
-                      name="tradeDate"
+                      placeholder="Transaction type"
+                      name="trnType"
+                      defaultValue={trnResult.data.trnType}
                     />
+                  </div>
+                  <div className="field">
+                    <label className="label">Trade Date</label>
+                    <div className="control">
+                      <input
+                        {...register("tradeDate")}
+                        className="input is-4"
+                        type="text"
+                        placeholder="Date of trade"
+                        defaultValue={trnResult.data.tradeDate}
+                        name="tradeDate"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="field is-grouped">
+                  <div className="field">
+                    <label className="label">Quantity</label>
+                    <div className="control">
+                      <input
+                        {...register("quantity")}
+                        className="input"
+                        type="text"
+                        placeholder="Quantity of the asset purchased"
+                        defaultValue={trnResult.data.quantity}
+                      />
+                    </div>
+                  </div>
+                  <div className="field">
+                    <label className="label">Price</label>
+                    <div className="control">
+                      <input
+                        {...register("price")}
+                        className="input"
+                        type="text"
+                        placeholder="Price paid for the asset"
+                        defaultValue={trnResult.data.price}
+                        name="price"
+                      />
+                    </div>
+                  </div>
+                  <div className="field">
+                    <label className="label">Ccy</label>
+                    <div className="control">
+                      <select
+                        {...register("tradeCurrency")}
+                        placeholder={"Select Currency of Trade"}
+                        className={"select"}
+                        name={"tradeCurrency"}
+                        defaultValue={trnResult.data.tradeCurrency.code}
+                      >
+                        {currencyOptions(currencies, trnResult.data.tradeCurrency.code)}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                <div className="field is-grouped">
+                  <div className="field">
+                    <div className="control">
+                      <label className="label">Fees</label>
+                      <input
+                        {...register("fees")}
+                        className="input"
+                        type="text"
+                        placeholder="Fees and charges"
+                        defaultValue={trnResult.data.fees}
+                        name="fees"
+                      />
+                    </div>
+                  </div>
+                  <div className="field">
+                    <div className="control">
+                      <label className="label">Tax</label>
+                      <input
+                        {...register("tax")}
+                        className="input"
+                        type="text"
+                        placeholder="Tax Paid"
+                        defaultValue={trnResult.data.tax}
+                        name="tax"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="field is-grouped">
+                  <div className="field">
+                    <label className="label">Trade Base</label>
+                    <div className="control">
+                      <input
+                        {...register("tradeBaseRate")}
+                        className="input"
+                        type="text"
+                        placeholder="Trade to Base Rate"
+                        defaultValue={trnResult.data.tradeBaseRate}
+                        name="tradeBaseRate"
+                      />
+                    </div>
+                  </div>
+                  <div className="field">
+                    <label className="label">Trade Portfolio</label>
+                    <div className="control">
+                      <input
+                        {...register("tradePortfolioRate")}
+                        className="input"
+                        type="text"
+                        placeholder="Trade to Portfolio FX rate"
+                        defaultValue={trnResult.data.tradePortfolioRate}
+                        name="tradePortfolioRate"
+                      />
+                    </div>
                   </div>
                 </div>
                 <div className="field">
-                  <label className="label">Quantity</label>
                   <div className="control">
+                    <label className="label">Amount</label>
                     <input
+                      {...register("tradeAmount")}
                       className="input"
-                      type="number"
-                      placeholder="quantity"
-                      defaultValue={trnResult.data.quantity}
-                      {...register("quantity")}
-                    />
-                  </div>
-                </div>
-                <div className="field">
-                  <label className="label">Price</label>
-                  <div className="control">
-                    <input
-                      className="input"
-                      type="number"
-                      placeholder="price"
-                      defaultValue={trnResult.data.price}
-                      name="price"
-                    />
-                  </div>
-                </div>
-                <div className="field">
-                  <label className="label">Fees</label>
-                  <div className="control">
-                    <input
-                      className="input"
-                      type="number"
-                      placeholder="Fees and charges"
-                      defaultValue={trnResult.data.fees}
-                      name="fees"
-                    />
-                  </div>
-                </div>
-                <div className="field">
-                  <label className="label">Tax</label>
-                  <div className="control">
-                    <input
-                      className="input"
-                      type="number"
-                      placeholder="Tax Paid"
-                      defaultValue={trnResult.data.tax}
-                      name="tax"
-                    />
-                  </div>
-                </div>
-                <div className="field">
-                  <label className="label">Trade PF</label>
-                  <div className="control">
-                    <input
-                      className="input"
-                      type="number"
-                      placeholder="Trade to PF"
-                      defaultValue={trnResult.data.tradePortfolioRate}
-                      name="tradePortfolioRate"
-                    />
-                  </div>
-                </div>
-                <div className="field">
-                  <label className="label">Trade Base</label>
-                  <div className="control">
-                    <input
-                      className="input"
-                      type="number"
-                      placeholder="Trade to Base"
-                      defaultValue={trnResult.data.tradeBaseRate}
-                      name="tradeBaseRate"
-                    />
-                  </div>
-                </div>
-                <div className="field">
-                  <label className="label">Amount</label>
-                  <div className="control">
-                    <input
-                      className="input"
-                      type="number"
+                      type="text"
                       placeholder="Amount in Trade Currency"
                       defaultValue={trnResult.data.tradeAmount}
                       name="tradeAmount"
                     />
                   </div>
                 </div>
-                <div className="field">
-                  <label className="label">Trade Currency</label>
+                <div className="field is-grouped">
                   <div className="control">
+                    <label className="label">Cash Currency</label>
                     <select
+                      {...register("cashCurrency")}
                       placeholder={"Select currency"}
                       className={"select"}
-                      name={"tradeCurrency"}
-                      defaultValue={trnResult.data.tradeCurrency.code}
-                    >
-                      {currencyOptions(currencies, trnResult.data.tradeCurrency.code)}
-                    </select>
-                  </div>
-                </div>
-                <div className="field">
-                  <label className="label">Cash Amount</label>
-                  <div className="control">
-                    <input
-                      className="input"
-                      type="number"
-                      placeholder="Amount in Cash Settlement Currency"
-                      defaultValue={trnResult.data.cashAmount}
-                      name="tradeAmount"
-                    />
-                  </div>
-                </div>
-                <div className="field">
-                  <label className="label">Cash Currency</label>
-                  <div className="control">
-                    <select
-                      placeholder={"Select currency"}
-                      className={"select"}
-                      name={"tradeCurrency"}
+                      name="cashCurrency"
                       defaultValue={trnResult.data.cashCurrency.code}
                     >
                       {currencyOptions(currencies, trnResult.data.cashCurrency.code)}
                     </select>
                   </div>
+                  <div className="field">
+                    <div className="control">
+                      <label className="label">Trade Cash</label>
+                      <input
+                        {...register("tradeCashRate")}
+                        className="input"
+                        type="text"
+                        placeholder="Trade to Cash FX rate"
+                        defaultValue={trnResult.data.tradeCashRate}
+                        name="tradeCashRate"
+                      />
+                    </div>
+                  </div>
+                  <div className="field">
+                    <label className="label">Cash Amount</label>
+                    <div className="control">
+                      <input
+                        {...register("cashAmount")}
+                        className="input"
+                        type="text"
+                        placeholder="+/- Impact on Cash in Settlement Currency"
+                        defaultValue={trnResult.data.cashAmount}
+                        name="cashAmount"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="field is-grouped">
                   <div className="control">
-                    <button className="button is-link">Save</button>
+                    <button className="button is-link" onClick={saveTransaction}>
+                      Save
+                    </button>
                   </div>
                   <div className="control">
                     <button className="button is-link is-light" onClick={handleCancel}>

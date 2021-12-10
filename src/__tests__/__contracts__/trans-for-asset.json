@@ -33,13 +33,13 @@
       "status": "Active",
       "version": "1"
     },
-    "quantity": 2.000000,
+    "quantity": 2.0,
     "callerRef": {
       "provider": "BC",
       "batch": "TEST",
       "callerId": "Y1FI9fviQ0qBxigRK2gpqg"
     },
-    "price": 393.920000,
+    "price": 393.92,
     "tradeAmount": 788.91,
     "tradeCurrency": {
       "code": "USD",
@@ -79,9 +79,9 @@
       "name": "Dollar",
       "symbol": "$"
     },
-    "tradeCashRate": 1.000000,
-    "tradeBaseRate": 1.000000,
-    "tradePortfolioRate": 1.000000,
+    "tradeCashRate": 1.0,
+    "tradeBaseRate": 1.0,
+    "tradePortfolioRate": 1.0,
     "cashAmount": -788.91,
     "tradeDate": "2021-11-16",
     "portfolio": {
@@ -107,7 +107,7 @@
     },
     "settleDate": null,
     "fees": 1.07,
-    "tax": 0.00,
+    "tax": 0.0,
     "comments": "",
     "version": "2",
     "status": "CONFIRMED"
@@ -146,13 +146,13 @@
       "status": "Active",
       "version": "1"
     },
-    "quantity": 3.000000,
+    "quantity": 3.0,
     "callerRef": {
       "provider": "BC",
       "batch": "TEST",
       "callerId": "7FJzsNLvSByApCU6RKtbpw"
     },
-    "price": 374.135000,
+    "price": 374.135,
     "tradeAmount": 1123.48,
     "tradeCurrency": {
       "code": "USD",
@@ -192,9 +192,9 @@
       "name": "Dollar",
       "symbol": "$"
     },
-    "tradeCashRate": 1.000000,
-    "tradeBaseRate": 0.696620,
-    "tradePortfolioRate": 1.000000,
+    "tradeCashRate": 1.0,
+    "tradeBaseRate": 0.69662,
+    "tradePortfolioRate": 1.0,
     "cashAmount": -1123.48,
     "tradeDate": "2021-10-21",
     "portfolio": {
@@ -220,7 +220,7 @@
     },
     "settleDate": null,
     "fees": 1.07,
-    "tax": 0.00,
+    "tax": 0.0,
     "comments": "",
     "version": "2",
     "status": "CONFIRMED"
@@ -259,13 +259,13 @@
       "status": "Active",
       "version": "1"
     },
-    "quantity": 3.000000,
+    "quantity": 3.0,
     "callerRef": {
       "provider": "BC",
       "batch": "TEST",
       "callerId": "wS3wNxrARRGCI0o_Zq-avw"
     },
-    "price": 354.100000,
+    "price": 354.1,
     "tradeAmount": 1063.37,
     "tradeCurrency": {
       "code": "USD",
@@ -305,9 +305,9 @@
       "name": "Dollar",
       "symbol": "$"
     },
-    "tradeCashRate": 1.000000,
-    "tradeBaseRate": 0.696620,
-    "tradePortfolioRate": 1.000000,
+    "tradeCashRate": 1.0,
+    "tradeBaseRate": 0.69662,
+    "tradePortfolioRate": 1.0,
     "cashAmount": -1063.37,
     "tradeDate": "2021-10-06",
     "portfolio": {
@@ -333,7 +333,7 @@
     },
     "settleDate": null,
     "fees": 1.07,
-    "tax": 0.00,
+    "tax": 0.0,
     "comments": "",
     "version": "2",
     "status": "CONFIRMED"

@@ -50,17 +50,17 @@ export function Rows({ portfolio, holdingGroup, groupBy, valueIn }: HoldingValue
           )}
         </td>
         <td align={"right"}>
-          {hideValue(asset, moneyValues) ? (
-            " "
-          ) : (
-            <NumberFormat
-              value={quantityValues.total}
-              displayType={"text"}
-              decimalScale={quantityValues.precision}
-              fixedDecimalScale={true}
-              thousandSeparator={true}
-            />
-          )}
+          {/*{hideValue(asset, moneyValues) ? (*/}
+          {/*  " "*/}
+          {/*) : (*/}
+          <NumberFormat
+            value={quantityValues.total}
+            displayType={"text"}
+            decimalScale={quantityValues.precision}
+            fixedDecimalScale={true}
+            thousandSeparator={true}
+          />
+          {/*)}*/}
         </td>
         <td align={"right"}>
           <Link to={`/trns/${portfolio.id}/asset/${asset.id}/trades`}>

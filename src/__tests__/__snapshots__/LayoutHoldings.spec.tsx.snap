@@ -368,7 +368,9 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
             <td
               align="right"
             >
-               
+              <span>
+                1,812.530
+              </span>
             </td>
             <td
               align="right"

@@ -86,6 +86,7 @@ i18n
         .delete("/bff/portfolios/*", deleteData)
         .patch("/bff/portfolios/*", patchData)
         .get("/bff/trns/*", getData)
+        .patch("/bff/trns/*", patchData)
         .delete("/bff/trns/portfolio/*", deleteData)
         .delete("/bff/trns/*", deleteData)
         .get("/bff/assets/*", getData)
