@@ -2458,12 +2458,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/ramda@npm:^0.27.17":
-  version: 0.27.49
-  resolution: "@types/ramda@npm:0.27.49"
+"@types/ramda@npm:^0.27.62":
+  version: 0.27.62
+  resolution: "@types/ramda@npm:0.27.62"
   dependencies:
     ts-toolbelt: ^6.15.1
-  checksum: 6e894debac3295a327e526a1a8aa4545a38c583eb8c96493a2ef4c1cde2e3ce932dfe0f9131cc84837df060c4cbf317789fcd0c5568dfc47bffb735aa1ae2fc4
+  checksum: fb42398becc45ce94fae3b27c358960172b16a92f7395eba5d66eaf63d0ad962762a9fa956b1a5e3ff3f2403f5538e12efe205377b956497a7a397d71355d51d
   languageName: node
   linkType: hard
 
@@ -3770,9 +3770,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"babel-preset-razzle@npm:^4.2":
-  version: 4.2.7
-  resolution: "babel-preset-razzle@npm:4.2.7"
+"babel-preset-razzle@npm:^4.2.13":
+  version: 4.2.13
+  resolution: "babel-preset-razzle@npm:4.2.13"
   dependencies:
     "@babel/core": ^7.11.1
     "@babel/plugin-proposal-class-properties": ^7.8.3
@@ -3791,7 +3791,7 @@ __metadata:
     babel-plugin-syntax-jsx: ^6.18.0
     babel-plugin-transform-react-remove-prop-types: ^0.4.24
     chalk: ^4.1.0
-  checksum: 10f090e59b127def15ca78618bd2db96ae7fa3e273063a585678d418201f18c2c4b6b47a56048e917f3ab8736907ffd768c9ee7f6656dc68d0a09c7be58c40af
+  checksum: ab0f7aea3ed1411e0de10610a6d7c937e92177c599919dbc11499722ef2eb337b86538d9dd44c11b6e7a4d59b7dad43ad3c6dc68fe95c22864c15da16dcd6c49
   languageName: node
   linkType: hard
 
@@ -3867,7 +3867,7 @@ __metadata:
     "@types/i18next-node-fs-backend": ^2.1.0
     "@types/jest": ^26.0.14
     "@types/node": ^16.11
-    "@types/ramda": ^0.27.17
+    "@types/ramda": ^0.27.62
     "@types/react": ^17.0.34
     "@types/react-dom": ^17.0.11
     "@types/react-helmet": ^6.1.4
@@ -3884,7 +3884,7 @@ __metadata:
     autoprefixer: ^10
     axios: ^0.24.0
     babel-jest: ^26.3
-    babel-preset-razzle: ^4.2
+    babel-preset-razzle: ^4.2.13
     bulma: ^0.9.3
     bulma-pageloader: ^0.3.0
     bulma-spacing: ^2.1.5
@@ -3895,7 +3895,7 @@ __metadata:
     eslint-plugin-jest: latest
     eslint-plugin-jest-dom: latest
     eslint-plugin-prettier: latest
-    eslint-plugin-react: latest
+    eslint-plugin-react: ^7.28
     eslint-plugin-react-hooks: latest
     eslint-plugin-testing-library: latest
     express: ^4.17.1
@@ -3923,17 +3923,17 @@ __metadata:
     pretty-format: latest
     prop-types: ^15.7.2
     ramda: ^0.27.0
-    razzle: ^4.2
-    razzle-dev-utils: ^4.2
-    razzle-plugin-scss: ^4.2
-    razzle-plugin-typescript: ^4.2
+    razzle: ^4.2.13
+    razzle-dev-utils: ^4.2.13
+    razzle-plugin-scss: ^4.2.13
+    razzle-plugin-typescript: ^4.2.13
     react: ^17
     react-dom: ^17
     react-dropzone: ^11
     react-helmet: ^6.1.0
     react-hook-form: ^7
     react-hot-loader: ^4
-    react-i18next: ^11
+    react-i18next: ^11.15.1
     react-loadable: ^5.5.0
     react-number-format: ^4.5
     react-router: ^5.2.0
@@ -6313,9 +6313,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-plugin-react@npm:latest":
-  version: 7.27.0
-  resolution: "eslint-plugin-react@npm:7.27.0"
+"eslint-plugin-react@npm:^7.28":
+  version: 7.28.0
+  resolution: "eslint-plugin-react@npm:7.28.0"
   dependencies:
     array-includes: ^3.1.4
     array.prototype.flatmap: ^1.2.5
@@ -6333,7 +6333,7 @@ __metadata:
     string.prototype.matchall: ^4.0.6
   peerDependencies:
     eslint: ^3 || ^4 || ^5 || ^6 || ^7 || ^8
-  checksum: 47d75e003898129a56ca2416d3aa038b4c4a752df3edf71174c3017788eb8b83d786091fc6c3702abf870a2abe5d25cc367d5aa7c1417153cf5b5b707aec6446
+  checksum: 90293d0fd53bb1f735ffd32141cdd211fb1120c9f7bbe5342f9e923261a39e52a2b2575d4e46c9cd77d257f42db4a99b8b339689fc5b5c1c26048929f69b1784
   languageName: node
   linkType: hard
 
@@ -7683,7 +7683,7 @@ fsevents@^1.2.7:
   languageName: node
   linkType: hard
 
-"html-escaper@npm:^2.0.0":
+"html-escaper@npm:^2.0.0, html-escaper@npm:^2.0.2":
   version: 2.0.2
   resolution: "html-escaper@npm:2.0.2"
   checksum: d2df2da3ad40ca9ee3a39c5cc6475ef67c8f83c234475f24d8e9ce0dc80a2c82df8e1d6fa78ddd1e9022a586ea1bd247a615e80a5cd9273d90111ddda7d9e974
@@ -13076,9 +13076,9 @@ fsevents@^1.2.7:
   languageName: node
   linkType: hard
 
-"razzle-dev-utils@npm:^4.2":
-  version: 4.2.7
-  resolution: "razzle-dev-utils@npm:4.2.7"
+"razzle-dev-utils@npm:^4.2.13":
+  version: 4.2.13
+  resolution: "razzle-dev-utils@npm:4.2.13"
   dependencies:
     "@babel/code-frame": ^7.8.3
     chalk: ^4.1.0
@@ -13094,13 +13094,13 @@ fsevents@^1.2.7:
   peerDependencies:
     webpack: ~4||~5
     webpack-dev-server: ~3||~4
-  checksum: 7969d103ac9c75c54f544f8f82fa23af845339e1b812393c6e2fe82436004870c2c7f1f2087dd626311f5f09787c2b9388c1f91f277f03567db8707270030b7b
+  checksum: 082aa93b297c974513ba45452264769b7b61f2533373d0a354b84bc8ec77fad0457a1da00b2d69040f806ea74ad2f9097740576f146066e4029cee2c698003d6
   languageName: node
   linkType: hard
 
-"razzle-plugin-scss@npm:^4.2":
-  version: 4.2.7
-  resolution: "razzle-plugin-scss@npm:4.2.7"
+"razzle-plugin-scss@npm:^4.2.13":
+  version: 4.2.13
+  resolution: "razzle-plugin-scss@npm:4.2.13"
   dependencies:
     autoprefixer: ^10.2.3
     css-loader: ^5.0.0
@@ -13113,39 +13113,39 @@ fsevents@^1.2.7:
     sass-loader: ^10.0.3
   peerDependencies:
     mini-css-extract-plugin: ">=0.9.0 <1.0.0"
-    razzle: 4.2.7
-    razzle-dev-utils: 4.2.7
-  checksum: bb622eca0758f3e9740266932cada8304946b71e608efd70cc1d1785bad55a841c612d13bf49cf0b67a6688d1da44de5600f315e3f734220dde999c469505887
+    razzle: 4.2.13
+    razzle-dev-utils: 4.2.13
+  checksum: f544ec409f74def2cb83690b7f6ed6fb7d17cf329e67e8123497c6f9ab2cd367eecaeea26da8b98e4a2dc5d0eb253f7d589b5ea854370441db8f0dcacf0aa481
   languageName: node
   linkType: hard
 
-"razzle-plugin-typescript@npm:^4.2":
-  version: 4.2.7
-  resolution: "razzle-plugin-typescript@npm:4.2.7"
+"razzle-plugin-typescript@npm:^4.2.13":
+  version: 4.2.13
+  resolution: "razzle-plugin-typescript@npm:4.2.13"
   dependencies:
     fork-ts-checker-webpack-plugin: ^5.2.0
     ts-loader: ^8.0.4
     typescript: ">=4.0.3"
   peerDependencies:
-    razzle: 4.2.7
-    razzle-dev-utils: 4.2.7
+    razzle: 4.2.13
+    razzle-dev-utils: 4.2.13
     webpack: ~4||~5
-  checksum: 9d4fa3b2e2d730cd581d080ae4e54f30080955c8508c8da092ecaec70055b8709e237ac9a08b8938bf7f073f691744af334024aa0bb0ff9df84f3958ef0289ec
+  checksum: 4f922edd0c57c2bdccb3e63701cae88f7cd0f73bf10b6b846e59ae47888dc45c7aaad1dfe5e93a614ae9c8bd516f6797e12ee6383e013ca630ec85af9bf4057d
   languageName: node
   linkType: hard
 
-"razzle-start-server-webpack-plugin@npm:4.2.7":
-  version: 4.2.7
-  resolution: "razzle-start-server-webpack-plugin@npm:4.2.7"
+"razzle-start-server-webpack-plugin@npm:4.2.13":
+  version: 4.2.13
+  resolution: "razzle-start-server-webpack-plugin@npm:4.2.13"
   peerDependencies:
     webpack: ~4||~5
-  checksum: a4cafe76b58a8cf7ced30a7e534db10c5b8982aa6cc68bdbd19332abebed69a539e8836fcca20330ac58a1763151f0adf5de399926d55c1e203ccf0238926f89
+  checksum: 27f1286c22e9b4fdc8b1cffc3e7ed8220b8b1158d66e328885cfd17ddd797f9031da1fcbb9fdcafbe781c6e2229237b5ae90a7036dbab0b069c27a64402334b4
   languageName: node
   linkType: hard
 
-"razzle@npm:^4.2":
-  version: 4.2.7
-  resolution: "razzle@npm:4.2.7"
+"razzle@npm:^4.2.13":
+  version: 4.2.13
+  resolution: "razzle@npm:4.2.13"
   dependencies:
     "@babel/plugin-transform-modules-commonjs": ^7.12.1
     "@pmmmwh/react-refresh-webpack-plugin": ^0.4.3
@@ -13173,7 +13173,7 @@ fsevents@^1.2.7:
     postcss-load-config: ^3.0.0
     postcss-loader: ^4.2.0
     process: ^0.11.10
-    razzle-start-server-webpack-plugin: 4.2.7
+    razzle-start-server-webpack-plugin: 4.2.13
     react-dev-utils: ^11.0.4
     react-refresh: ^0.9.0
     resolve: ^1.17.0
@@ -13188,15 +13188,15 @@ fsevents@^1.2.7:
     webpack-manifest-plugin: ^3.1.1
     webpackbar: ~4||~5
   peerDependencies:
-    babel-preset-razzle: 4.2.7
+    babel-preset-razzle: 4.2.13
     html-webpack-plugin: ~4||~5
     mini-css-extract-plugin: ">=0.9.0 <1.0.0"
-    razzle-dev-utils: 4.2.7
+    razzle-dev-utils: 4.2.13
     webpack: ~4||~5
     webpack-dev-server: ^3.11.0||~4
   bin:
     razzle: bin/razzle.js
-  checksum: 98a2e895ca9662a3e77202c34c6e111114e6fe9c48d2f1dbf0e40ee78a2fc260e2f642a7cb20adf261d7522229e94d8636b2f50c1fd12522e6c2089fa4eb54f2
+  checksum: c8d502d3d32c1747795b16492c787dde050ee61c5d414927e2e11651782340035ecd4fd3fdbef92440eebe7441598f1a4fe872d3b3065ba46812092501bf2d50
   languageName: node
   linkType: hard
 
@@ -13332,16 +13332,17 @@ fsevents@^1.2.7:
   languageName: node
   linkType: hard
 
-"react-i18next@npm:^11":
-  version: 11.14.2
-  resolution: "react-i18next@npm:11.14.2"
+"react-i18next@npm:^11.15.1":
+  version: 11.15.1
+  resolution: "react-i18next@npm:11.15.1"
   dependencies:
     "@babel/runtime": ^7.14.5
+    html-escaper: ^2.0.2
     html-parse-stringify: ^3.0.1
   peerDependencies:
     i18next: ">= 19.0.0"
     react: ">= 16.8.0"
-  checksum: 336051bda04f381b309a6737044038cd9b7b90077bb080f90860c683286bf88b1d774d40f4c2655ee66c4ab03267990a6ad562169430bf4b2d436b1064963814
+  checksum: 0cf2e475af95fa0007a026590402dc50cb325b146e5636b5d396b5381c74c9a1c34a37b24486a2d9b3a62b7c728cd3b1e7bc41c7b8a02da6b4cf8cc4a1a0a49f
   languageName: node
   linkType: hard
 
