@@ -96,7 +96,7 @@
     "husky": "^4",
     "jest": "^26.6",
     "jest-environment-jsdom-sixteen": "^2.0.0",
-    "jest-junit": "^12",
+    "jest-junit": "^13",
     "js-levenshtein": "^1.1",
     "lint-staged": "latest",
     "mini-css-extract-plugin": "0.9.0",
