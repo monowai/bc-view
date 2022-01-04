@@ -6,7 +6,7 @@ import { GroupOption, Holdings, ValuationOption } from "../types/beancounter";
 import Total from "./Total";
 import StatsHeader, { StatsRow } from "./Stats";
 import Switch from "react-switch";
-import Select, { ValueType } from "react-select";
+import Select, { OnChangeValue } from "react-select";
 import { valuationOptions, ValueIn } from "../types/constants";
 import { useHoldings } from "./hooks";
 import { Rows } from "./Rows";
@@ -54,7 +54,7 @@ export default function ViewHoldings(code: string): JSX.Element {
               defaultValue={valueIn}
               isSearchable={false}
               isClearable={false}
-              onChange={(newValue: ValueType<ValuationOption, false>) => {
+              onChange={(newValue: OnChangeValue<ValuationOption, false>) => {
                 if (newValue) {
                   setValueIn(newValue as ValuationOption);
                 }
@@ -68,7 +68,7 @@ export default function ViewHoldings(code: string): JSX.Element {
               defaultValue={groupBy}
               isSearchable={false}
               isClearable={false}
-              onChange={(newValue: ValueType<GroupOption, false>) => {
+              onChange={(newValue: OnChangeValue<GroupOption, false>) => {
                 if (newValue) {
                   setGroupBy(newValue as GroupOption);
                 }
