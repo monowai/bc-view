@@ -1,10 +1,8 @@
 import React from "react";
 import { useHistory } from "react-router";
-import { useTranslation } from "react-i18next";
 
 function HeaderBrand(): React.ReactElement {
   const history = useHistory();
-  const { t } = useTranslation();
   return (
     <div className="navbar-brand">
       <a
@@ -13,7 +11,7 @@ function HeaderBrand(): React.ReactElement {
           history.push("/");
         }}
       >
-        {t("app")}
+        Holds<i>worth</i>
         {/*<img src={Logo} />*/}
       </a>
       <div className="navbar-burger burger">

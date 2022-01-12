@@ -2,7 +2,12 @@ import NumberFormat from "react-number-format";
 import React from "react";
 import { FormatNumber } from "../types/app";
 
-export function FormatValue({ value, scale, multiplier }: FormatNumber): JSX.Element {
+export function FormatValue({
+  value,
+  scale,
+  multiplier,
+  defaultValue = " ",
+}: FormatNumber): JSX.Element {
   if (value) {
     return (
       <NumberFormat
@@ -14,5 +19,5 @@ export function FormatValue({ value, scale, multiplier }: FormatNumber): JSX.Ele
       />
     );
   }
-  return <span> </span>;
+  return <span>{defaultValue}</span>;
 }

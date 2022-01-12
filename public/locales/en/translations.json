@@ -1,7 +1,6 @@
 {
-  "error-global-oops": "Oh No!",
-  "error-global": "Something went unexpectedly wrong",
-  "app": "DoshBosh",
+  "error-global-oops": "Doh!",
+  "error-global": "That shouldn't have happened",
   "tagline": "Wealth management for the rest of us",
   "quantity": "Quantity",
   "price": "Price",

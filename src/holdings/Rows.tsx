@@ -64,7 +64,7 @@ export function Rows({ portfolio, holdingGroup, groupBy, valueIn }: HoldingValue
         </td>
         <td align={"right"}>
           <Link to={`/trns/${portfolio.id}/asset/${asset.id}/trades`}>
-            <FormatValue value={moneyValues[valueIn].marketValue} />
+            <FormatValue value={moneyValues[valueIn].marketValue} defaultValue="0" />
           </Link>
         </td>
         <td align={"right"}>

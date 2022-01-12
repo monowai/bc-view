@@ -1,4 +1,5 @@
 import { Portfolio } from "./beancounter";
+import { AxiosError } from "axios";
 
 export interface BcOptions {
   bcPositions: string;
@@ -24,6 +25,7 @@ interface FormatNumber {
   value;
   scale?: number;
   multiplier?: number;
+  defaultValue?: string;
 }
 
 export interface DelimitedImport {
