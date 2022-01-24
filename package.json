@@ -107,7 +107,7 @@
     "pretty-format": "latest",
     "razzle": "^4.2.13",
     "razzle-dev-utils": "^4.2.13",
-    "razzle-plugin-scss": "^4.2.13",
+    "razzle-plugin-scss": "^4.2.14",
     "razzle-plugin-typescript": "^4.2.13",
     "react-hot-loader": "^4",
     "remark-cli": "^10.0.1",
