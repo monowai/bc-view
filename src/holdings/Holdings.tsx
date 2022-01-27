@@ -4,7 +4,7 @@ import { calculate } from "./calculate";
 import { defaultGroup, groupOptions } from "../types/groupBy";
 import { GroupOption, Holdings, ValuationOption } from "../types/beancounter";
 import Total from "./Total";
-import StatsHeader, { StatsRow } from "./Stats";
+import SummaryHeader, { SummaryRow } from "./Summary";
 import Switch from "react-switch";
 import Select, { OnChangeValue } from "react-select";
 import { valuationOptions, ValueIn } from "../types/constants";
@@ -82,8 +82,8 @@ export default function ViewHoldings(code: string): JSX.Element {
         </div>
         <div className={"stats-container"}>
           <table>
-            <StatsHeader {...holdingResults.data.portfolio} />
-            <StatsRow
+            <SummaryHeader {...holdingResults.data.portfolio} />
+            <SummaryRow
               portfolio={holdingResults.data.portfolio}
               moneyValues={holdings.totals}
               valueIn={valueIn.value}

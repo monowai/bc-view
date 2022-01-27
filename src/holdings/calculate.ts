@@ -76,8 +76,8 @@ export function calculate(
           ValueIn.PORTFOLIO
         );
 
+        // Totalling mixed trade currencies makes no sense, so don't do it
         if (!contract.mixedCurrencies) {
-          // Totalling mixed trade currencies makes no sense, so don't do it
           results.totals[ValueIn.TRADE] = total(
             results.totals[ValueIn.TRADE],
             position,

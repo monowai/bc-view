@@ -5,7 +5,7 @@ import { FormatValue } from "../common/MoneyUtils";
 import { Link } from "react-router-dom";
 import { translate } from "../common/i18nUtils";
 
-export default function StatsHeader(portfolio: Portfolio): JSX.Element {
+export default function SummaryHeader(portfolio: Portfolio): JSX.Element {
   return (
     <tbody key={portfolio.code}>
       <tr className={"stats-header"}>
@@ -20,7 +20,7 @@ export default function StatsHeader(portfolio: Portfolio): JSX.Element {
   );
 }
 
-export function StatsRow({ portfolio, moneyValues, valueIn }: PortfolioSummary): JSX.Element {
+export function SummaryRow({ portfolio, moneyValues, valueIn }: PortfolioSummary): JSX.Element {
   const holdingValue = moneyValues[valueIn];
   const currencyTotals = holdingValue !== undefined;
   return (

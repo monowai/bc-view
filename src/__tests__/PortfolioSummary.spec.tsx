@@ -3,7 +3,7 @@ import { cleanup, render } from "@testing-library/react";
 import "@testing-library/jest-dom/extend-expect";
 import { Currency, Portfolio, SystemUser } from "../types/beancounter";
 import { useKeycloak } from "@react-keycloak/ssr";
-import StatsHeader from "../holdings/Stats";
+import SummaryHeader from "../holdings/Summary";
 
 afterEach(cleanup);
 
@@ -34,7 +34,7 @@ describe("<PortfolioStats />", () => {
     };
     const container = render(
       <table>
-        <StatsHeader {...portfolio} />
+        <SummaryHeader {...portfolio} />
       </table>
     );
     expect(container).toMatchSnapshot();
