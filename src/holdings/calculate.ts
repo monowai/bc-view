@@ -1,6 +1,7 @@
 import { HoldingContract, Holdings, MoneyValues, Position } from "../types/beancounter";
 import { GroupBy } from "../types/groupBy";
 import { ValueIn } from "../types/constants";
+import { isCash } from "../assets/assetUtils";
 
 function getPath(path: string, position: Position): string {
   return path
@@ -18,6 +19,7 @@ function total(total: MoneyValues, position: Position, valueIn: ValueIn): MoneyV
       totalGain: 0,
       unrealisedGain: 0,
       fees: 0,
+      cash: 0,
       purchases: 0,
       sales: 0,
       tax: 0,
@@ -35,8 +37,12 @@ function total(total: MoneyValues, position: Position, valueIn: ValueIn): MoneyV
   total.realisedGain += position.moneyValues[valueIn].realisedGain;
   total.unrealisedGain += position.moneyValues[valueIn].unrealisedGain;
   total.totalGain += position.moneyValues[valueIn].totalGain;
-  total.purchases += position.moneyValues[valueIn].purchases;
-  total.sales += position.moneyValues[valueIn].sales;
+  if (isCash(position.asset)) {
+    total.cash += position.moneyValues[valueIn].marketValue;
+  } else {
+    total.purchases += position.moneyValues[valueIn].purchases;
+    total.sales += position.moneyValues[valueIn].sales;
+  }
   return total;
 }
 

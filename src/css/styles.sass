@@ -1,14 +1,15 @@
 @import "~bulma/sass/utilities/all"
 @import url('https://fonts.googleapis.com/css?family=Helvetica Neue:400,700')
 $family-sans-serif: "Helvetica Neue", "Helvetica", "Arial", sans-serif
-$table-border: #e7e7e7
-$green: #7e7e7e
-$darkgreen: #cacdcf
-$table-head-background-color: #00a546
-$table-foot-background-color: #00a546
-$table-foot-cell-color: whitesmoke
-$table-head-cell-color: whitesmoke
-$tooltip-background-color: green
+$bcdark: #7e7e7e
+$bcxdark: #494949FF
+$table-border: $bcdark
+$bclight: whitesmoke
+$table-head-background-color: $bcdark
+$table-foot-background-color: $bcdark
+$table-foot-cell-color: $bclight
+$table-head-cell-color: $bclight
+$tooltip-background-color: $bcdark
 
 @import "~bulma/sass/base/all"
 @import "~bulma/sass/grid/_all"
@@ -45,15 +46,15 @@ $tooltip-background-color: green
 
 .page-box
   padding: 10px 15px
-  background-color: whitesmoke
+  background-color: $bclight
 
 .page-title
-  background-color: $green !important
+  background-color: $bcdark !important
   color: white !important
 
 .hero-body
-  background-color: whitesmoke
-  color: whitesmoke
+  background-color: $bclight
+  color: $bclight
 
 .filter-columns
   display: flex
@@ -74,22 +75,21 @@ $tooltip-background-color: green
 
 .table-header
   th
-    color: whitesmoke
-
+    color: $bclight
 .stats-header
-  color: #494949FF
+  color: $bcxdark
   height: 2em
 
   th
     padding-left: 10px
     padding-right: 10px
     padding-top: 5px
-    background-color: #4f4f4f
+    background-color: $bcxdark
 
 
 .stats-row
   font-size: medium
-  background: whitesmoke
+  background: $bclight
 
   td
     padding-left: 10px
@@ -139,8 +139,8 @@ table
   border-collapse: collapse
 
   th
-    color: whitesmoke
-    background: #9B9B9BFF
+    color: $bclight
+    background: $bcdark
     font-size: smaller
     width: 900px
 

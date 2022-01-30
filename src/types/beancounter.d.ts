@@ -32,6 +32,7 @@ export interface MoneyValues {
   costValue: number;
   fees: number;
   tax: number;
+  cash: number; // separate out cash into its own bucket
   purchases: number;
   sales: number;
   costBasis: number;

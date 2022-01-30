@@ -168,7 +168,7 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
         >
           <div
             class="react-switch-bg"
-            style="height: 28px; width: 56px; margin: 0px; position: relative; background: rgb(0, 136, 0); border-radius: 14px; cursor: pointer; transition: background 0.25s;"
+            style="height: 28px; width: 56px; margin: 0px; position: relative; background: rgb(0, 0, 0); border-radius: 14px; cursor: pointer; transition: background 0.25s;"
           >
             <div
               style="height: 28px; width: 30px; position: relative; opacity: 1; pointer-events: none; transition: opacity 0.25s;"
@@ -246,6 +246,9 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
             <th
               align="right"
             />
+            <th
+              align="right"
+            />
           </tr>
         </tbody>
         <tbody>
@@ -289,14 +292,21 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
               align="right"
             >
               <span>
-                 
+                -
               </span>
             </td>
             <td
               align="right"
             >
               <span>
-                 
+                1,812.53
+              </span>
+            </td>
+            <td
+              align="right"
+            >
+              <span>
+                -
               </span>
             </td>
             <td

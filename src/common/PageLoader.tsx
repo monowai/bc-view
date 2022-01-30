@@ -6,7 +6,7 @@ export default function PageLoader({ message, show }: Loading): JSX.Element {
     return <div />;
   }
   return (
-    <div className="pageloader is-active is-success" data-testid={"loading"}>
+    <div className="pageloader is-active is-dark" data-testid={"loading"}>
       <span className="title">{message}</span>
     </div>
   );

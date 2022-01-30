@@ -30,6 +30,9 @@ Object {
             <th
               align="right"
             />
+            <th
+              align="right"
+            />
           </tr>
         </tbody>
       </table>
@@ -46,6 +49,9 @@ Object {
           >
             Summary
           </th>
+          <th
+            align="right"
+          />
           <th
             align="right"
           />

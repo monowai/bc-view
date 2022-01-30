@@ -77,7 +77,13 @@ export default function ViewHoldings(code: string): JSX.Element {
           </div>
           <div className="filter-label">Open Only</div>
           <div className="filter-column">
-            <Switch className="react-switch" onChange={setHideEmpty} checked={hideEmpty} required />
+            <Switch
+              className="react-switch"
+              onColor="#000"
+              onChange={setHideEmpty}
+              checked={hideEmpty}
+              required
+            />
           </div>
         </div>
         <div className={"stats-container"}>
