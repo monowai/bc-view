@@ -25,6 +25,7 @@ function total(total: MoneyValues, position: Position, valueIn: ValueIn): MoneyV
       tax: 0,
       weight: 0,
       costBasis: 0,
+      gainOnDay: 0,
       priceData: { close: 0, change: 0, changePercent: 0, priceDate: "", previousClose: 0 },
       valueIn: valueIn,
       averageCost: 0,
@@ -42,6 +43,7 @@ function total(total: MoneyValues, position: Position, valueIn: ValueIn): MoneyV
   } else {
     total.purchases += position.moneyValues[valueIn].purchases;
     total.sales += position.moneyValues[valueIn].sales;
+    total.gainOnDay += position.moneyValues[valueIn].gainOnDay;
   }
   return total;
 }

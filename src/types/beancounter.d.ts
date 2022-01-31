@@ -39,6 +39,7 @@ export interface MoneyValues {
   averageCost: number;
   realisedGain: number;
   unrealisedGain: number;
+  gainOnDay: number;
   totalGain: number;
   priceData: PriceData;
   marketValue: number;

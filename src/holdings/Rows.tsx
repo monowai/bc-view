@@ -50,9 +50,9 @@ export function Rows({ portfolio, holdingGroup, groupBy, valueIn }: HoldingValue
           )}
         </td>
         <td align={"right"}>
-          {/*{hideValue(asset, moneyValues) ? (*/}
-          {/*  " "*/}
-          {/*) : (*/}
+          <FormatValue value={moneyValues[valueIn].gainOnDay} />
+        </td>
+        <td align={"right"}>
           <NumberFormat
             value={quantityValues.total}
             displayType={"text"}

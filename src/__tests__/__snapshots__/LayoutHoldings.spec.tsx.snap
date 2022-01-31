@@ -366,6 +366,9 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
             <th
               align="right"
             />
+            <th
+              align="right"
+            />
           </tr>
         </tbody>
         <tbody>
@@ -394,6 +397,13 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
               align="right"
             >
                
+            </td>
+            <td
+              align="right"
+            >
+              <span>
+                 
+              </span>
             </td>
             <td
               align="right"
@@ -479,13 +489,21 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
           >
             <td
               align="right"
-              colspan="4"
+              colspan="3"
             >
               Sub-Total - 
               USD
             </td>
             <td
               align="right"
+            >
+              <span>
+                 
+              </span>
+            </td>
+            <td
+              align="right"
+              colspan="2"
             >
               <span>
                 1,812.53
@@ -570,6 +588,9 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
             <th
               align="right"
             />
+            <th
+              align="right"
+            />
           </tr>
         </tbody>
         <tbody>
@@ -603,6 +624,13 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
               >
                 -1.70
                 %
+              </span>
+            </td>
+            <td
+              align="right"
+            >
+              <span>
+                 
               </span>
             </td>
             <td
@@ -718,6 +746,13 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
               align="right"
             >
               <span>
+                 
+              </span>
+            </td>
+            <td
+              align="right"
+            >
+              <span>
                 4
               </span>
             </td>
@@ -821,6 +856,13 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
               >
                 -0.55
                 %
+              </span>
+            </td>
+            <td
+              align="right"
+            >
+              <span>
+                 
               </span>
             </td>
             <td
@@ -936,6 +978,13 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
               align="right"
             >
               <span>
+                 
+              </span>
+            </td>
+            <td
+              align="right"
+            >
+              <span>
                 2
               </span>
             </td>
@@ -1018,13 +1067,21 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
           >
             <td
               align="right"
-              colspan="4"
+              colspan="3"
             >
               Sub-Total - 
               USD
             </td>
             <td
               align="right"
+            >
+              <span>
+                 
+              </span>
+            </td>
+            <td
+              align="right"
+              colspan="2"
             >
               <span>
                 6,875.24
@@ -1075,7 +1132,7 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
           <tr>
             <td
               align="right"
-              colspan="4"
+              colspan="3"
             >
               <div>
                 Totals in 
@@ -1085,6 +1142,14 @@ exports[`<ViewHoldings /> Portfolio values match snapshot when transactions are 
             </td>
             <td
               align="right"
+            >
+              <span>
+                 
+              </span>
+            </td>
+            <td
+              align="right"
+              colspan="2"
             >
               <span>
                 8,687.77

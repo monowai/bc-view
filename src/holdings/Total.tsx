@@ -7,7 +7,7 @@ export default function Total({ holdings, valueIn }: HoldingsInCurrency): JSX.El
   return (
     <tbody className={"totals-row"} key={holdings.portfolio.code + "totals"}>
       <tr key={valueIn}>
-        <td colSpan={4} align={"right"}>
+        <td colSpan={3} align={"right"}>
           {currencyTotals ? (
             <div>Totals in {valueIn} currency</div>
           ) : (
@@ -15,6 +15,9 @@ export default function Total({ holdings, valueIn }: HoldingsInCurrency): JSX.El
           )}
         </td>
         <td align={"right"}>
+          <FormatValue value={holdings.totals[valueIn].gainOnDay} />
+        </td>
+        <td colSpan={2} align={"right"}>
           {currencyTotals ? (
             <FormatValue value={holdings.totals[valueIn].marketValue} />
           ) : (

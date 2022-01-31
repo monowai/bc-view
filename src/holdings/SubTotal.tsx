@@ -6,10 +6,13 @@ export function SubTotal({ groupBy, subTotals, valueIn }: GroupedSubtotals): JSX
   return (
     <tbody className={"holding-totals-row"}>
       <tr key={groupBy} className={"holding-footer"}>
-        <td colSpan={4} align={"right"}>
+        <td colSpan={3} align={"right"}>
           Sub-Total - {subTotals[valueIn].currency.code}
         </td>
         <td align={"right"}>
+          <FormatValue value={subTotals[valueIn].gainOnDay} />
+        </td>
+        <td colSpan={2} align={"right"}>
           <FormatValue value={subTotals[valueIn].marketValue} />
         </td>
         <td align={"right"}>

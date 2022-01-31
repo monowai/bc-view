@@ -16,6 +16,7 @@
   "change": "Change",
   "gain.realised": "Realised",
   "gain.unrealised": "Unrealised",
+  "gain.onday": "Day Gain",
   "gain": "Gain",
   "groupby.currency": "Currency",
   "groupby.market": "Market",
