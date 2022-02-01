@@ -2,11 +2,11 @@
 const { findIndex, has, remove } = require("ramda");
 
 module.exports = {
+  options: {
+    // https://razzlejs.org/docs/customization
+    verbose: false,
+  },
   plugins: [
-    {
-      name: "typescript", // Required since Razzle >4.0.5. During yarn build, it causes "Can't resolve
-      // '../node_modules/babel-preset-razzle/node_modules/@babel/runtime/regenerator'"
-    },
     {
       name: "scss",
       options: {
