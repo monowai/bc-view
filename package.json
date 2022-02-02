@@ -47,7 +47,7 @@
     "react-number-format": "^4.9.1",
     "react-router": "^5",
     "react-router-config": "^5",
-    "react-router-dom": "^5",
+    "react-router-dom": "^6",
     "react-select": "^5",
     "react-switch": "^6",
     "winston": "^3",
