@@ -80,7 +80,7 @@
     "@typescript-eslint/eslint-plugin": "latest",
     "@typescript-eslint/parser": "latest",
     "autoprefixer": "^10",
-    "babel-jest": "^26.3",
+    "babel-jest": "^27.5",
     "babel-preset-razzle": "^4.2.14",
     "eslint": "latest",
     "eslint-config-prettier": "latest",
