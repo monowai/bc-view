@@ -1,9 +1,9 @@
 import React from "react";
 import { cleanup, render } from "@testing-library/react";
 import "@testing-library/jest-dom/extend-expect";
-import { Currency, Portfolio, SystemUser } from "../types/beancounter";
+import { Currency, Portfolio, SystemUser } from "../core/types/beancounter";
 import { useKeycloak } from "@react-keycloak/ssr";
-import SummaryHeader from "../holdings/Summary";
+import SummaryHeader from "../domain/holdings/Summary";
 
 afterEach(cleanup);
 

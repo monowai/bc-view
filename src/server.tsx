@@ -3,7 +3,7 @@ import { StaticRouter } from "react-router-dom";
 import express from "express";
 import { renderToString } from "react-dom/server";
 import { Helmet } from "react-helmet";
-import i18n from "./i18nConfig";
+import i18n from "./core/i18n/i18nConfig";
 import Backend from "i18next-node-fs-backend";
 import { I18nextProvider } from "react-i18next"; // has no proper import yet
 import * as path from "path";
@@ -12,13 +12,13 @@ import cors from "cors";
 import i18nextMiddleware from "i18next-express-middleware";
 import logger from "./server/nodeLogging";
 import App from "./App";
-import { bcConfig } from "./common/config";
+import { bcConfig } from "./core/common/config";
 import { deleteData, getData, patchData, postData } from "./bff/dataApi";
 import { getPositions } from "./bff/positionApi";
 // react-KeyCloak
 import { ExpressCookies, SSRKeycloakProvider } from "@react-keycloak/ssr";
 import cookieParser from "cookie-parser";
-import { keycloakConfig } from "./auth/kcConfig";
+import { keycloakConfig } from "./core/auth/kcConfig";
 import { postKafkaTrn } from "./bff/writeTrn";
 // end react-KeyCloak
 

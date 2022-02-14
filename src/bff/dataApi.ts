@@ -1,6 +1,6 @@
 import express from "express";
-import { makeRequest } from "../common/axiosUtils";
-import { bcConfig } from "../common/config";
+import { makeRequest } from "../core/common/axiosUtils";
+import { bcConfig } from "../core/common/config";
 import { AxiosRequestConfig } from "axios";
 import { svcUrl } from "../server/utils";
 

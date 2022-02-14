@@ -1,7 +1,7 @@
 import express from "express";
 import kafka from "kafka-node";
-import { bcConfig } from "../common/config";
-import { TransactionUpload } from "../types/app";
+import { bcConfig } from "../core/common/config";
+import { TransactionUpload } from "../core/types/app";
 
 function writeTrn(trnRequest: TransactionUpload): void {
   try {
@@ -23,7 +23,7 @@ function writeTrn(trnRequest: TransactionUpload): void {
         );
       }
     });
-  } catch (e) {
+  } catch (e: any) {
     console.error("%s", e.toString());
   }
 }

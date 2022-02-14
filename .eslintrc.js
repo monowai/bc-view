@@ -22,6 +22,7 @@ module.exports = {
   },
 
   rules: {
+    "react/react-in-jsx-scope": "off",
     "react/no-multi-comp": 0,
     "react/jsx-uses-vars": "warn",
     strict: "error",

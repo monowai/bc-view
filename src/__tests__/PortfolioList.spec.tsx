@@ -2,7 +2,7 @@ import React from "react";
 import { cleanup, render, screen, waitForElementToBeRemoved } from "@testing-library/react";
 import "@testing-library/jest-dom/extend-expect";
 import nock from "nock";
-import Portfolios from "../portfolio/Portfolios";
+import Portfolios from "../domain/portfolio/Portfolios";
 import { MemoryRouter } from "react-router";
 //https://kentcdodds.com/blog/common-mistakes-with-react-testing-library
 afterEach(cleanup);

@@ -3,7 +3,7 @@ import { cleanup, render, screen, waitForElementToBeRemoved } from "@testing-lib
 import "@testing-library/jest-dom/extend-expect";
 import nock from "nock";
 import { MemoryRouter } from "react-router";
-import Trades from "../trns/Trades";
+import Trades from "../domain/trns/Trades";
 
 afterEach(cleanup);
 afterAll(nock.cleanAll);

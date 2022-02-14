@@ -1,7 +1,7 @@
 import React from "react";
 import { cleanup, render, screen, waitForElementToBeRemoved } from "@testing-library/react";
 import "@testing-library/jest-dom/extend-expect";
-import ViewHoldings from "../holdings";
+import ViewHoldings from "../domain/holdings";
 import nock from "nock";
 import { MemoryRouter } from "react-router";
 
