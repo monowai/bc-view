@@ -1,11 +1,11 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { useHistory } from "react-router";
-import { usePortfolios } from "./hooks";
+import { usePortfolios } from "../../domain/portfolio/hooks";
 import { isDone } from "../../core/types/typeUtils";
 import { ShowError } from "../../core/errors/ShowError";
 
-export function Portfolios(): React.ReactElement {
+export function List(): React.ReactElement {
   const history = useHistory();
   const portfolioResults = usePortfolios();
   if (portfolioResults.error) {
@@ -85,4 +85,4 @@ export function Portfolios(): React.ReactElement {
   );
 }
 
-export default Portfolios;
+export default List;

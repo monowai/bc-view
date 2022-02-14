@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
 import Events from "./Events";
-import { TransactionEdit } from "./TransactionEdit";
+import { Edit } from "../../pages/trn/Edit";
 import Trades from "./Trades";
 import { __new__ } from "../../core/types/constants";
 
@@ -29,5 +29,5 @@ export const RouteTrnEdit = (): JSX.Element => {
   }>();
   const pId = portfolioId == undefined ? __new__ : portfolioId;
   const tId = trnId == undefined ? __new__ : trnId;
-  return TransactionEdit(pId, tId);
+  return Edit(pId, tId);
 };

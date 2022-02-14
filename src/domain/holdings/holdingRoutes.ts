@@ -1,5 +1,5 @@
 import { useParams } from "react-router-dom";
-import ViewHoldings from "./Holdings";
+import ViewHoldings from "../../pages/holdings";
 import { __new__ } from "../../core/types/constants";
 
 export const RouteHoldings = (): JSX.Element => {

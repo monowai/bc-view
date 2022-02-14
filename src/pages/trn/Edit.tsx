@@ -2,20 +2,20 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Transaction, TrnInput } from "../../core/types/beancounter";
 import { _axios, getBearerToken } from "../../core/common/axiosUtils";
-import { useCurrencies } from "../currency/hooks";
+import { useCurrencies } from "../../domain/currency/hooks";
 import { AxiosError } from "axios";
 import { useHistory } from "react-router";
 import { useKeycloak } from "@react-keycloak/ssr";
 import { ErrorPage } from "../../core/errors/ErrorPage";
-import { useTransaction } from "./hooks";
+import { useTransaction } from "../../domain/trns/hooks";
 import { isDone } from "../../core/types/typeUtils";
-import { currencyOptions } from "../currency/IsoHelper";
+import { currencyOptions } from "../../domain/currency/IsoHelper";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { ShowError } from "../../core/errors/ShowError";
 import { translate } from "../../core/common/i18nUtils";
-import { trnEditSchema } from "./yup";
+import { trnEditSchema } from "../../domain/trns/yup";
 
-export function TransactionEdit(portfolioId: string, trnId: string): React.ReactElement {
+export function Edit(portfolioId: string, trnId: string): React.ReactElement {
   const { keycloak } = useKeycloak();
 
   const { register, handleSubmit } = useForm<TrnInput>({

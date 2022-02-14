@@ -2,18 +2,18 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Portfolio, PortfolioInput } from "../../core/types/beancounter";
 import { _axios, getBearerToken } from "../../core/common/axiosUtils";
-import { useCurrencies } from "../currency/hooks";
-import { usePortfolio } from "./hooks";
+import { useCurrencies } from "../../domain/currency/hooks";
+import { usePortfolio } from "../../domain/portfolio/hooks";
 import { AxiosError } from "axios";
 import { useHistory } from "react-router";
 import { useKeycloak } from "@react-keycloak/ssr";
 import { ErrorPage } from "../../core/errors/ErrorPage";
 import { isDone } from "../../core/types/typeUtils";
-import { currencyOptions } from "../currency/IsoHelper";
-import { TrnDropZone } from "./DropZone";
+import { currencyOptions } from "../../domain/currency/IsoHelper";
+import { TrnDropZone } from "../../domain/portfolio/DropZone";
 import { ShowError } from "../../core/errors/ShowError";
 
-export function PortfolioEdit(portfolioId: string): React.ReactElement {
+export function Edit(portfolioId: string): React.ReactElement {
   const { keycloak } = useKeycloak();
   const { register, handleSubmit } = useForm<PortfolioInput>();
   const [pfId, setPortfolioId] = useState<string>(portfolioId);

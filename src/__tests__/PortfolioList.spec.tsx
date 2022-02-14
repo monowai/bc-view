@@ -2,8 +2,8 @@ import React from "react";
 import { cleanup, render, screen, waitForElementToBeRemoved } from "@testing-library/react";
 import "@testing-library/jest-dom/extend-expect";
 import nock from "nock";
-import Portfolios from "../domain/portfolio/Portfolios";
 import { MemoryRouter } from "react-router";
+import List from "../pages/portfolio/List";
 //https://kentcdodds.com/blog/common-mistakes-with-react-testing-library
 afterEach(cleanup);
 jest.mock("react-i18next", () => ({
@@ -29,11 +29,11 @@ nock("http://localhost", {
     "Content-type": "application/json",
   });
 
-describe("<Portfolios />", () => {
+describe("<List />", () => {
   it("should match snapshot", async () => {
     const { container } = render(
       <MemoryRouter initialEntries={["/"]} keyLength={0}>
-        <Portfolios />
+        <List />
       </MemoryRouter>
     );
     await screen.findByTestId("loading");

@@ -1,7 +1,7 @@
 import React from "react";
 import { Switch, withRouter } from "react-router";
 import Header from "./domain/header/Header";
-import Portfolios from "./domain/portfolio/Portfolios";
+import List from "./pages/portfolio/List";
 import { Redirect } from "react-router-dom";
 import { useKeycloak } from "@react-keycloak/ssr";
 import { Login } from "./domain/user/Login";
@@ -21,7 +21,7 @@ const App = (): JSX.Element => {
     <div className={"page.box"}>
       <Header />
       <Switch>
-        <RouteAuthenticated path={"/dashboard"} component={Portfolios} />
+        <RouteAuthenticated path={"/dashboard"} component={List} />
         <RouteAuthenticated path={"/holdings/:portfolioId"} component={RouteHoldings} />
         <RouteAuthenticated
           path={"/portfolios/:portfolioId/delete"}

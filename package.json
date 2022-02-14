@@ -82,11 +82,11 @@
     "autoprefixer": "^10",
     "babel-jest": "^26.3",
     "babel-preset-razzle": "^4.2.14",
-    "eslint": "latest",
-    "eslint-config-prettier": "latest",
+    "eslint": "^7.32.0",
+    "eslint-config-prettier": "^8.3.0",
     "eslint-plugin-jest": "latest",
     "eslint-plugin-jest-dom": "^4",
-    "eslint-plugin-prettier": "latest",
+    "eslint-plugin-prettier": "^4.0.0",
     "eslint-plugin-react": "latest",
     "eslint-plugin-react-hooks": "latest",
     "eslint-plugin-testing-library": "latest",
@@ -166,5 +166,5 @@
       "src/**/*.{js,jsx,ts,tsx}"
     ]
   },
-  "packageManager": "yarn@3.0.2"
+  "packageManager": "yarn@3.1.1"
 }

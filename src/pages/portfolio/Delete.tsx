@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { _axios, getBearerToken } from "../../core/common/axiosUtils";
-import { usePortfolio } from "./hooks";
+import { usePortfolio } from "../../domain/portfolio/hooks";
 import { AxiosError } from "axios";
 import { useHistory } from "react-router";
 import { useKeycloak } from "@react-keycloak/ssr";
@@ -8,7 +8,7 @@ import { ErrorPage } from "../../core/errors/ErrorPage";
 import { isDone } from "../../core/types/typeUtils";
 import { ShowError } from "../../core/errors/ShowError";
 
-export function DeletePortfolio(portfolioId: string): JSX.Element {
+export function Delete(portfolioId: string): JSX.Element {
   const [pfId] = useState<string>(portfolioId);
   const [error, setError] = useState<AxiosError>();
   const history = useHistory();
