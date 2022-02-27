@@ -2,7 +2,7 @@ import React from "react";
 import "../../core/css/styles.sass";
 import { Link } from "react-router-dom";
 import { useAssetTransactions } from "./hooks";
-import { useAsset } from "../assets/hooks";
+import { useAsset } from "../assets/useAsset";
 import NumberFormat from "react-number-format";
 import { isDone } from "../../core/types/typeUtils";
 import { ShowError } from "../../core/errors/ShowError";

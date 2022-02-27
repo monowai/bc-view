@@ -1,9 +1,9 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { useHistory } from "react-router";
-import { usePortfolios } from "../../domain/portfolio/hooks";
-import { isDone } from "../../core/types/typeUtils";
-import { ShowError } from "../../core/errors/ShowError";
+import { usePortfolios } from "../domain/portfolio/hooks";
+import { isDone } from "../core/types/typeUtils";
+import { ShowError } from "../core/errors/ShowError";
 
 export function List(): React.ReactElement {
   const history = useHistory();

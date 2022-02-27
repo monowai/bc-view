@@ -1,20 +1,20 @@
 import React, { useState } from "react";
-import { SubTotal } from "../domain/holdings/SubTotal";
-import { calculate } from "../domain/holdings/calculate";
-import { defaultGroup, groupOptions } from "../core/types/groupBy";
-import { GroupOption, Holdings, ValuationOption } from "../core/types/beancounter";
-import Total from "../domain/holdings/Total";
-import SummaryHeader, { SummaryRow } from "../domain/holdings/Summary";
+import { SubTotal } from "../../domain/holdings/SubTotal";
+import { calculate } from "../../domain/holdings/calculate";
+import { defaultGroup, groupOptions } from "../../core/types/groupBy";
+import { GroupOption, Holdings, ValuationOption } from "../../core/types/beancounter";
+import Total from "../../domain/holdings/Total";
+import SummaryHeader, { SummaryRow } from "../../domain/holdings/Summary";
 import Switch from "react-switch";
 import Select, { OnChangeValue } from "react-select";
-import { valuationOptions, ValueIn } from "../core/types/constants";
-import { useHoldings } from "../domain/holdings/hooks";
-import { Rows } from "../domain/holdings/Rows";
-import { Header } from "../domain/holdings/Header";
-import { isDone } from "../core/types/typeUtils";
-import PageLoader from "../core/common/PageLoader";
-import { TrnDropZone } from "../domain/portfolio/DropZone";
-import { ShowError } from "../core/errors/ShowError";
+import { valuationOptions, ValueIn } from "../../core/types/constants";
+import { useHoldings } from "../../domain/holdings/hooks";
+import { Rows } from "../../domain/holdings/Rows";
+import { Header } from "../../domain/holdings/Header";
+import { isDone } from "../../core/types/typeUtils";
+import PageLoader from "../../core/common/PageLoader";
+import { TrnDropZone } from "../../domain/portfolio/DropZone";
+import { ShowError } from "../../core/errors/ShowError";
 
 export default function ViewHoldings(code: string): JSX.Element {
   const holdingResults = useHoldings(code);

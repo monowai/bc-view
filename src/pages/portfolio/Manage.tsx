@@ -13,7 +13,7 @@ import { currencyOptions } from "../../domain/currency/IsoHelper";
 import { TrnDropZone } from "../../domain/portfolio/DropZone";
 import { ShowError } from "../../core/errors/ShowError";
 
-export function Edit(portfolioId: string): React.ReactElement {
+export function Manage(portfolioId: string): React.ReactElement {
   const { keycloak } = useKeycloak();
   const { register, handleSubmit } = useForm<PortfolioInput>();
   const [pfId, setPortfolioId] = useState<string>(portfolioId);

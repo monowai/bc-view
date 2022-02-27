@@ -3,7 +3,7 @@ import { cleanup, render, screen, waitForElementToBeRemoved } from "@testing-lib
 import "@testing-library/jest-dom/extend-expect";
 import nock from "nock";
 import { MemoryRouter } from "react-router";
-import List from "../pages/portfolio/List";
+import List from "../pages/portfolio";
 //https://kentcdodds.com/blog/common-mistakes-with-react-testing-library
 afterEach(cleanup);
 jest.mock("react-i18next", () => ({

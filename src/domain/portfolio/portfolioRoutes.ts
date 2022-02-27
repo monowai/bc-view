@@ -1,5 +1,5 @@
 import { useParams } from "react-router-dom";
-import { Edit } from "../../pages/portfolio/Edit";
+import { Manage } from "../../pages/portfolio/Manage";
 import { Delete } from "../../pages/portfolio/Delete";
 import { __new__ } from "../../core/types/constants";
 
@@ -8,7 +8,7 @@ export const RoutePortfolio = (): JSX.Element => {
     portfolioId: string;
   }>();
   const pfId = portfolioId == undefined ? __new__ : portfolioId;
-  return Edit(pfId);
+  return Manage(pfId);
 };
 export const RoutePortfolioDelete = (): JSX.Element => {
   const { portfolioId } = useParams<{

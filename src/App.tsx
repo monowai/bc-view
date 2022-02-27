@@ -1,7 +1,7 @@
 import React from "react";
 import { Switch, withRouter } from "react-router";
 import Header from "./domain/header/Header";
-import List from "./pages/portfolio/List";
+import List from "./pages/portfolio";
 import { Redirect } from "react-router-dom";
 import { useKeycloak } from "@react-keycloak/ssr";
 import { Login } from "./domain/user/Login";

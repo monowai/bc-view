@@ -65,7 +65,7 @@ export interface QuantityValues {
 
 export interface Position {
   asset: Asset;
-  moneyValues: MoneyValues[];
+  moneyValues: MoneyValues[ValueIn];
   quantityValues: QuantityValues;
   dateValues: DateValues;
   lastTradeDate: string;
@@ -77,7 +77,7 @@ export interface Interface {
 
 export interface GroupedSubtotals {
   groupBy: string;
-  subTotals: MoneyValues[];
+  subTotals: MoneyValues[ValueIn];
   valueIn: ValueIn;
 }
 
@@ -99,7 +99,7 @@ export interface Portfolio {
 
 export interface PortfolioSummary {
   portfolio: Portfolio;
-  moneyValues: MoneyValues[];
+  moneyValues: MoneyValues[ValueIn];
   valueIn: ValueIn;
 }
 
@@ -115,7 +115,7 @@ interface HoldingContract {
   portfolio: Portfolio;
   mixedCurrencies: boolean; // Mixed trade currencies?
   asAt: string;
-  positions: Position[];
+  positions: Position[string];
 }
 
 interface TransactionImport {
@@ -130,10 +130,10 @@ interface HoldingsInCurrency {
 
 // The payload we render in the UI
 interface Holdings {
-  holdingGroups: HoldingGroup[];
+  holdingGroups: HoldingGroup[string];
   portfolio: Portfolio;
   valueIn: ValuationCcy;
-  totals: MoneyValues[];
+  totals: MoneyValues[ValueIn];
 }
 
 interface GroupKey {
@@ -143,7 +143,7 @@ interface GroupKey {
 // User defined grouping
 interface HoldingGroup {
   positions: Position[];
-  subTotals: MoneyValues[];
+  subTotals: MoneyValues[ValueIn];
 }
 
 interface GroupOption {

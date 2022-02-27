@@ -51,6 +51,7 @@
     "react-select": "^5",
     "react-switch": "^6",
     "winston": "^3",
+    "yarn": "^1.22.17",
     "yup": "^0.32.9"
   },
   "devDependencies": {
@@ -165,6 +166,5 @@
     "collectCoverageFrom": [
       "src/**/*.{js,jsx,ts,tsx}"
     ]
-  },
-  "packageManager": "yarn@3.1.1"
+  }
 }
