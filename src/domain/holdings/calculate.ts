@@ -6,7 +6,7 @@ import { isCash } from "../assets/assetUtils";
 function getPath(path: string, position: Position): string {
   return path
     .split(".")
-    .reduce((p, c) => (p && p[c]) || "undefined", position) as unknown as string;
+    .reduce((p, path: string) => (p && p[path]) || "undefined", position) as unknown as string;
 }
 
 function total(total: MoneyValues, position: Position, valueIn: ValueIn): MoneyValues {
