@@ -98,7 +98,7 @@
     "jest-junit": "^13",
     "js-levenshtein": "^1.1",
     "lint-staged": "^12.3.2",
-    "mini-css-extract-plugin": "0.9.0",
+    "mini-css-extract-plugin": "0.12.0",
     "nock": "latest",
     "postcss": "8.2.4",
     "postcss-flexbugs-fixes": "^5.0.2",
