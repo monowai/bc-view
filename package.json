@@ -102,7 +102,7 @@
     "nock": "latest",
     "postcss": "8.2.4",
     "postcss-flexbugs-fixes": "^5.0.2",
-    "postcss-preset-env": "^6.7.0",
+    "postcss-preset-env": "^7.4.2",
     "prettier": "latest",
     "pretty-format": "latest",
     "razzle": "^4.2.14",
