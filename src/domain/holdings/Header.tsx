@@ -1,24 +1,25 @@
 import React from "react";
-import { translate } from "../../core/common/i18nUtils";
 import { GroupKey } from "../../core/types/beancounter";
+import { useTranslation } from "next-i18next";
 
 export function Header({ groupKey }: GroupKey): JSX.Element {
+  const { t } = useTranslation("common");
   return (
     <tbody className={"table-header"}>
       <tr>
         <th>{groupKey}</th>
-        <th align={"right"}>{translate("price")}</th>
-        <th align={"right"}>{translate("change")}</th>
-        <th align={"right"}>{translate("gain.onday")}</th>
-        <th align={"right"}>{translate("quantity")}</th>
-        <th align={"right"}>{translate("summary.value")}</th>
-        <th align={"right"}>{translate("gain.unrealised")}</th>
-        <th align={"right"}>{translate("weight")}</th>
-        <th align={"right"}>{translate("cost")}</th>
-        <th align={"right"}>{translate("cost.avg")}</th>
-        <th align={"right"}>{translate("summary.dividends")}</th>
-        <th align={"right"}>{translate("gain.realised")}</th>
-        <th align={"right"}>{translate("gain")}</th>
+        <th align={"right"}>{t("asset.price")}</th>
+        <th align={"right"}>{t("asset.change")}</th>
+        <th align={"right"}>{t("gain.onday")}</th>
+        <th align={"right"}>{t("quantity")}</th>
+        <th align={"right"}>{t("summary.value")}</th>
+        <th align={"right"}>{t("gain.unrealised")}</th>
+        <th align={"right"}>{t("weight")}</th>
+        <th align={"right"}>{t("cost")}</th>
+        <th align={"right"}>{t("cost.avg")}</th>
+        <th align={"right"}>{t("summary.dividends")}</th>
+        <th align={"right"}>{t("gain.realised")}</th>
+        <th align={"right"}>{t("gain")}</th>
       </tr>
     </tbody>
   );

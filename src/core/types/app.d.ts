@@ -36,14 +36,6 @@ export interface DelimitedImport {
   token: string | undefined;
 }
 
-declare global {
-  interface Window {
-    initialI18nStore: any;
-    initialLanguage: any;
-    env: any;
-  }
-}
-
 interface BcResult<T> {
   data: T | any;
   error: AxiosError | any;

@@ -1,0 +1,183 @@
+@import "../node_modules/bulma/sass/utilities/all"
+@import url('https://fonts.googleapis.com/css?family=Helvetica Neue:400,700')
+$family-sans-serif: "Helvetica Neue", "Helvetica", "Arial", sans-serif
+$bcdark: #914444
+$bcxdark: #652a2a
+$table-border: $bcdark
+$bclight: whitesmoke
+$table-head-background-color: $bcdark
+$table-foot-background-color: $bcdark
+$table-foot-cell-color: $bcdark
+$table-head-cell-color: $bclight
+$tooltip-background-color: $bcxdark
+
+@import "../node_modules/bulma/sass/base/all"
+@import "../node_modules/bulma/sass/grid/all"
+@import "../node_modules/bulma/sass/form/all"
+@import "../node_modules/bulma/sass/elements/all"
+@import "../node_modules/bulma/sass/components/all"
+@import "../node_modules/bulma/sass/layout/all"
+@import "../node_modules/@fortawesome/fontawesome-free/css/all.min.css"
+@import "../node_modules/@creativebulma/bulma-tooltip"
+@import "../node_modules/bulma-spacing/css/bulma-spacing.min.css"
+@import "../node_modules/bulma-pageloader/dist/css/bulma-pageloader.min.css"
+
+.link
+  color: black
+
+.link:hover
+  color: black
+// These alter the HeaderBrand colors but I couldn't figure out some of the bulma attributes around the dropdown
+// so leaving here for reference
+//.navbar
+//  background-color: $darkgreen
+//
+//.navbar-item
+//  color: whitesmoke
+//
+//.navbar-link
+//  color: whitesmoke
+//  background: $darkgreen
+//  background-color: $darkgreen
+//
+//.navbar-dropdown
+//  color: whitesmoke
+//  background-color: $darkgreen
+
+.page-box
+  padding: 10px 15px
+  background-color: $bclight
+
+.page-title
+  background-color: $bcdark !important
+  color: white !important
+
+.hero-body
+  background-color: $bclight
+  color: $bclight
+
+.filter-columns
+  display: flex
+  flex-basis: 200px
+  width: 75%
+  justify-content: space-between
+  font-size: small
+  padding-top: 7.5px
+  padding-bottom: 7.5px
+
+.filter-column
+  text-align: left
+  min-width: 15%
+
+.filter-label
+  padding-top: 7.5px
+  justify-content: center
+
+.table-header
+  th
+    color: $bclight
+.stats-header
+  color: $bcxdark
+  height: 2em
+
+  th
+    padding-left: 10px
+    padding-right: 10px
+    padding-top: 5px
+    background-color: $bcxdark
+
+
+.stats-row
+  font-size: medium
+  background: $bclight
+
+  td
+    padding-left: 10px
+    padding-right: 10px
+    padding-top: 2px
+    font-size: larger
+    height: 2em
+
+.negative-gain
+  color: red
+
+.positive-gain
+  color: green
+
+.holding-row
+  width: 900px
+
+  table
+    table-layout: fixed
+    text-align: right
+
+.holding-totals-row
+  font-weight: bold
+
+  td
+    padding-right: 10px
+    border-top:
+      width: 1px
+      color: black
+      style: solid
+
+.holding-footer
+  font-weight: bolder
+
+.totals-row
+  font-weight: bold
+  font-size: larger
+
+  td
+    padding-right: 10px
+    border-top:
+      width: 1.5px
+      color: black
+      style: solid
+
+table
+  border-collapse: collapse
+
+  th
+    color: $bclight
+    background: $bcdark
+    font-size: smaller
+    width: 900px
+
+  td
+    font-size: smaller
+
+.price
+  width: 15%
+
+.flex-cell
+  text-align: right
+
+.left-cell
+  text-align: left
+
+.asset
+  text-align: left
+  width: 30%
+
+@media only screen and (max-width: 767px)
+  .table-container
+    th, td
+      width: auto
+      display: block
+      border: 0
+
+  th
+    border-left: solid 1px
+    border-right: solid 1px
+    border-bottom: solid 1px
+
+  td
+    border-left: solid 1px $table-border
+    border-right: solid 1px $table-border
+    border-bottom: solid 1px $table-border
+
+  .flex-row
+    width: 100%
+
+
