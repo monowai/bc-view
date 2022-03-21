@@ -1,13 +1,13 @@
-import { Asset, HoldingValues, MoneyValues } from "@/types/beancounter";
+import { Asset, HoldingValues, PriceData } from "@/types/beancounter";
 import NumberFormat from "react-number-format";
 import { FormatValue } from "@/core/common/MoneyUtils";
 import React from "react";
-import { assetName, isCash } from "../assets/assetUtils";
+import { assetName, isCash } from "@/domain/assets/assetUtils";
 import Link from "next/link";
 
 export function Rows({ portfolio, holdingGroup, groupBy, valueIn }: HoldingValues): JSX.Element {
-  function hideValue(asset: Asset, moneyValues: MoneyValues): boolean {
-    return isCash(asset) || !moneyValues.priceData;
+  function hideValue(asset: Asset, priceData: PriceData | undefined): boolean {
+    return isCash(asset) || !priceData;
   }
 
   // eslint-disable-next-line complexity
@@ -31,7 +31,7 @@ export function Rows({ portfolio, holdingGroup, groupBy, valueIn }: HoldingValue
           }
         </td>
         <td align={"right"}>
-          {hideValue(asset, moneyValues) ? (
+          {hideValue(asset, moneyValues[valueIn].priceData) ? (
             " "
           ) : (
             <span
