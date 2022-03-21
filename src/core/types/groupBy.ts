@@ -1,5 +1,5 @@
 import { GroupOption } from "./beancounter";
-import { translate } from "../common/i18nUtils";
+import { useTranslation } from "next-i18next";
 
 // Enum is a path to a property in the holding contract
 export enum GroupBy {
@@ -9,16 +9,17 @@ export enum GroupBy {
 }
 
 export function groupOptions(): GroupOption[] {
+  // const { t, ready } = useTranslation("common");
   return [
     {
       value: GroupBy.ASSET_CLASS,
-      label: translate("groupby.class"),
+      label: "Asset Class",
     },
     {
       value: GroupBy.MARKET_CURRENCY,
-      label: translate("groupby.currency"),
+      label: "Currency",
     },
-    { value: GroupBy.MARKET, label: translate("groupby.market") },
+    { value: GroupBy.MARKET, label: "Market" },
   ];
 }
 

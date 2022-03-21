@@ -1,13 +1,13 @@
-import { Asset, HoldingValues, MoneyValues } from "../../core/types/beancounter";
+import { Asset, HoldingValues, MoneyValues } from "@/types/beancounter";
 import NumberFormat from "react-number-format";
-import { Link } from "react-router-dom";
-import { FormatValue } from "../../core/common/MoneyUtils";
+import { FormatValue } from "@/core/common/MoneyUtils";
 import React from "react";
 import { assetName, isCash } from "../assets/assetUtils";
+import Link from "next/link";
 
 export function Rows({ portfolio, holdingGroup, groupBy, valueIn }: HoldingValues): JSX.Element {
-  function hideValue(asset: Asset, moneyValues: MoneyValues[]): boolean {
-    return isCash(asset) || !moneyValues[valueIn].priceData;
+  function hideValue(asset: Asset, moneyValues: MoneyValues): boolean {
+    return isCash(asset) || !moneyValues.priceData;
   }
 
   // eslint-disable-next-line complexity
@@ -39,8 +39,7 @@ export function Rows({ portfolio, holdingGroup, groupBy, valueIn }: HoldingValue
                 moneyValues[valueIn].priceData.changePercent < 0 ? "negative-gain" : "positive-gain"
               }
               data-tooltip={
-                "Previous " +
-                moneyValues[valueIn].currency.symbol +
+                `Previous ${moneyValues[valueIn].currency.symbol}` +
                 " " +
                 moneyValues[valueIn].priceData.previousClose
               }
@@ -63,8 +62,10 @@ export function Rows({ portfolio, holdingGroup, groupBy, valueIn }: HoldingValue
           {/*)}*/}
         </td>
         <td align={"right"}>
-          <Link to={`/trns/${portfolio.id}/asset/${asset.id}/trades`}>
-            <FormatValue value={moneyValues[valueIn].marketValue} defaultValue="0" />
+          <Link href={`/trns/trades`} as={`/trns/trades/${portfolio.id}/${asset.id}`}>
+            <a>
+              <FormatValue value={moneyValues[valueIn].marketValue} defaultValue="0" />
+            </a>
           </Link>
         </td>
         <td align={"right"}>
@@ -77,7 +78,7 @@ export function Rows({ portfolio, holdingGroup, groupBy, valueIn }: HoldingValue
           <FormatValue value={moneyValues[valueIn].costValue} />
         </td>
         <td align={"right"}>
-          {hideValue(asset, moneyValues) ? (
+          {hideValue(asset, moneyValues[valueIn]) ? (
             " "
           ) : (
             <FormatValue value={moneyValues[valueIn].averageCost} />
@@ -85,9 +86,9 @@ export function Rows({ portfolio, holdingGroup, groupBy, valueIn }: HoldingValue
         </td>
         <td align={"right"}>
           {
-            <span data-tooltip={dateValues ? "Last Event: " + dateValues.lastDividend : "N/A"}>
-              <Link to={`/trns/${portfolio.id}/asset/${asset.id}/events`}>
-                <FormatValue value={moneyValues[valueIn].dividends} />
+            <span data-tooltip={dateValues ? `Last Event: ${dateValues.lastDividend}` : "N/A"}>
+              <Link href={`/trns/events`} as={`/trns/events/${portfolio.id}/${asset.id}`}>
+                <a>{<FormatValue value={moneyValues[valueIn].dividends} />}</a>
               </Link>
             </span>
           }

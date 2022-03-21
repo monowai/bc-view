@@ -1,6 +1,7 @@
-node_modules/
-build/
-yarn-error.log
-*/__tests__/
-*.iml
-*.xml
+Dockerfile
+.dockerignore
+node_modules
+npm-debug.log
+README.md
+.next
+.git

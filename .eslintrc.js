@@ -5,6 +5,7 @@ module.exports = {
     "eslint:recommended",
     "plugin:react/recommended",
     "plugin:@typescript-eslint/recommended",
+    "plugin:@next/next/recommended",
   ],
   plugins: ["@typescript-eslint", "react-hooks"],
   settings: {

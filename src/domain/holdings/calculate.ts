@@ -1,7 +1,7 @@
-import { HoldingContract, Holdings, MoneyValues, Position } from "../../core/types/beancounter";
-import { GroupBy } from "../../core/types/groupBy";
-import { ValueIn } from "../../core/types/constants";
-import { isCash } from "../assets/assetUtils";
+import { HoldingContract, Holdings, MoneyValues, Position } from "@/types/beancounter";
+import { GroupBy } from "@/types/groupBy";
+import { ValueIn } from "@/types/constants";
+import { isCash } from "@/domain/assets/assetUtils";
 
 function getPath(path: string, position: Position): string {
   return path
@@ -52,6 +52,7 @@ function subTotal(totals: MoneyValues[], position: Position, valueIn: ValueIn): 
   if (!totals) {
     totals = [];
   }
+  // @ts-ignore
   totals[valueIn] = total(totals[valueIn], position, valueIn);
   return totals;
 }

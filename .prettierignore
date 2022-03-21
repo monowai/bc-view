@@ -1,1 +1,4 @@
 src/__tests__/__snapshots__/
+.next/
+yarn.lock
+coverage

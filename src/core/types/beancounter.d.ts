@@ -28,6 +28,7 @@ export interface AssetCategory {
 }
 
 export interface MoneyValues {
+  [index: ValueIn]: MoneyValues;
   dividends: number;
   costValue: number;
   fees: number;
@@ -64,6 +65,7 @@ export interface QuantityValues {
 }
 
 export interface Position {
+  [index: string]: any; // ToDo this shouldn't use any
   asset: Asset;
   moneyValues: MoneyValues[ValueIn];
   quantityValues: QuantityValues;
@@ -202,5 +204,6 @@ interface Transaction {
   cashAmount: number;
   tradeCashRate: number;
   fees: number;
+  tax: number;
   comments: string;
 }

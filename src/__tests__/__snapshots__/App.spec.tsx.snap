@@ -1,0 +1,23 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`<App /> renders for authorised user 1`] = `
+<div>
+  <div>
+    home.welcome
+    <div>
+      <a
+        href="/portfolios"
+      >
+        home.portfolios
+      </a>
+    </div>
+    <div>
+      <a
+        href="/api/auth/logout"
+      >
+        user.logout
+      </a>
+    </div>
+  </div>
+</div>
+`;

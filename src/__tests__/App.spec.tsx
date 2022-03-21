@@ -1,24 +1,24 @@
-import App from "../App";
+import Home from "@/pages/index";
 import React from "react";
-import ReactDOM from "react-dom";
-import { MemoryRouter } from "react-router";
+import { screen, render } from "@testing-library/react";
+import { mockUser, withUserProvider } from "./fixtures";
+
+afterEach(() => {
+  jest.clearAllMocks();
+  jest.restoreAllMocks();
+  jest.resetModules();
+});
 
 jest.mock("react-i18next", () => ({
-  useTranslation: () => ({ t: (key) => key }),
-}));
-
-jest.mock("@react-keycloak/ssr", () => ({
-  useKeycloak: () => ({ initialized: () => true }),
+  useTranslation: () => ({ ready: true, t: (key: string) => key }),
 }));
 
 describe("<App />", () => {
-  test("renders without exploding", () => {
-    const div = document.createElement("div");
-    ReactDOM.render(
-      <MemoryRouter>
-        <App />
-      </MemoryRouter>,
-      div
-    );
+  test("renders for authorised user", () => {
+    const { container } = render(<Home />, { wrapper: withUserProvider({ user: mockUser }) });
+    const heading = screen.getByText("home.welcome");
+    // screen.findByText("home.welcome");
+    expect(heading).toBeInTheDocument();
+    expect(container).toMatchSnapshot();
   });
 });
