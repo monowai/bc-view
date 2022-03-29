@@ -25,7 +25,7 @@ module.exports = {
       process.env.NODE_ENV === "development"
         ? "http://localhost:9500/api" // development api
         : process.env.NODE_ENV === "docker"
-        ? "http://localhost:9510/api"
+        ? "http://localhost:9600/api"
         : "http://position:9500/api", // production api
   },
   images: {

@@ -1,8 +1,9 @@
-import { HoldingsInCurrency } from "../../core/types/beancounter";
+import { HoldingsInCurrency } from "@/types/beancounter";
 import React from "react";
-import { FormatValue } from "../../core/common/MoneyUtils";
+import { FormatValue } from "@/core/common/MoneyUtils";
 
 export default function Total({ holdings, valueIn }: HoldingsInCurrency): JSX.Element {
+  if (!holdings.totals[valueIn]) return <div />;
   const currencyTotals = holdings.totals[valueIn] !== undefined;
   return (
     <tbody className={"totals-row"} key={holdings.portfolio.code + "totals"}>

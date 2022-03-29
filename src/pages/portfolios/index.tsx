@@ -4,13 +4,12 @@ import { withPageAuthRequired } from "@auth0/nextjs-auth0";
 import { useTranslation } from "next-i18next";
 import { Portfolio } from "@/types/beancounter";
 import Link from "next/link";
+import { GetServerSideProps } from "next";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
-import { useRouter } from "next/router";
 
 export default withPageAuthRequired(function Portfolios(): React.ReactElement {
   const { response, error, isLoading } = useApiFetchHelper("/api/portfolios", getOptions);
   const { t } = useTranslation("common");
-  const router = useRouter();
   if (error) {
     return (
       <>
@@ -90,8 +89,9 @@ export default withPageAuthRequired(function Portfolios(): React.ReactElement {
   return <div id="root">{t("error.portfolios.empty")}</div>;
 });
 
-export const getStaticProps = async ({ locale = "en" }: { locale: string }) => ({
+// noinspection JSUnusedGlobalSymbols
+export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
   props: {
-    ...(await serverSideTranslations(locale)),
+    ...(await serverSideTranslations(locale as string, ["common"])),
   },
 });
