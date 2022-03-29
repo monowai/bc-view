@@ -17,7 +17,6 @@ const kafka = new Kafka({
 const topic = getTrnTopic();
 
 async function writeTrn(transactionUpload: TransactionUpload): Promise<RecordMetadata[] | void> {
-  console.log(`${getKafkaHosts()} : ${getTrnTopic()}`);
   const producer = await kafka.producer();
   await producer.connect();
   const messages = [
