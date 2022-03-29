@@ -9,8 +9,10 @@ import { useTranslation } from "next-i18next";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 import { GetServerSideProps } from "next";
 import { TrnDropZone } from "@/domain/trns/DropZone";
+import Link from "next/link";
 
 const url = "/api/portfolios";
+
 // const fetcher = (url: string) => fetch(url).then((res) => res.json())
 export default withPageAuthRequired(function Manage(): React.ReactElement {
   const { register } = useForm<PortfolioInput>();
@@ -46,10 +48,7 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
       <section className="is-primary is-fullheight">
         <div className="container">
           <div className="columns is-centered">
-            <form
-              //onSubmit={savePortfolio}
-              className="column is-5-tablet is-4-desktop is-3-widescreen"
-            >
+            <form className="column is-5-tablet is-4-desktop is-3-widescreen">
               <label className="label ">{t("portfolio.code")}</label>
               <div className="control ">
                 <input
@@ -104,7 +103,6 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
                   <button className="button is-link">{t("form.submit")}</button>
                 </div>
                 <div className="control">
-                  {/*<button className="button is-link is-light" onClick={handleCancel}>*/}
                   <button
                     className="button is-link is-light"
                     onClick={(e) => {
@@ -114,6 +112,13 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
                   >
                     {t("form.cancel")}
                   </button>
+                </div>
+                <div>
+                  <div className="control">
+                    <button className="button is-link is-light">
+                      <Link href={`/holdings/${portfolio.code}`}>{t("form.holdings")}</Link>
+                    </button>
+                  </div>
                 </div>
               </div>
               <div className="field">
@@ -137,6 +142,7 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
   );
 });
 
+// noinspection JSUnusedGlobalSymbols
 export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
   props: {
     ...(await serverSideTranslations(locale as string, ["common"])),
