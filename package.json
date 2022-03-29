@@ -2,8 +2,8 @@
   "name": "bc-next",
   "private": true,
   "scripts": {
-    "dev": "NODE_OPTIONS='--inspect=51089' next dev",
-    "demo": "SVC_POSITION=http://localhost:9600 SVC_DATA=http://localhost:9610 KAFKA_TOPIC_TRN=bc-trn-csv-demo next dev",
+    "dev": "NODE_ENV='development' NODE_OPTIONS='--inspect=51089' next dev",
+    "demo": "NODE_ENV='docker' NODE_OPTIONS='--inspect=51089' next dev",
     "prettier": "prettier --write '**/*.{ts*,json,md,yml,js}' && yarn lint",
     "build": "next build",
     "start": "next start",
