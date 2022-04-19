@@ -2797,15 +2797,15 @@ human-signals@^2.1.0:
   resolved "https://registry.yarnpkg.com/human-signals/-/human-signals-2.1.0.tgz#dc91fcba42e4d06e4abaed33b3e7a3c02f514ea0"
   integrity sha512-B4FFZ6q/T2jhhksgkbEW3HBvWIfDW85snkQgawt07S7J5QXTk6BkNV+0yAeZrM5QpMAdYlocGoljn0sJ/WQkFw==
 
-i18next-fs-backend@^1.0.7, i18next-fs-backend@^1.1.4:
+i18next-fs-backend@^1.1.4:
   version "1.1.4"
   resolved "https://registry.yarnpkg.com/i18next-fs-backend/-/i18next-fs-backend-1.1.4.tgz#d0e9b9ed2fa7a0f11002d82b9fa69c3c3d6482da"
   integrity sha512-/MfAGMP0jHonV966uFf9PkWWuDjPYLIcsipnSO3NxpNtAgRUKLTwvm85fEmsF6hGeu0zbZiCQ3W74jwO6K9uXA==
 
-i18next@^21.6.12:
-  version "21.6.14"
-  resolved "https://registry.yarnpkg.com/i18next/-/i18next-21.6.14.tgz#2bc199fba7f4da44b5952d7df0a3814a6e5c3943"
-  integrity sha512-XL6WyD+xlwQwbieXRlXhKWoLb/rkch50/rA+vl6untHnJ+aYnkQ0YDZciTWE78PPhOpbi2gR0LTJCJpiAhA+uQ==
+i18next@^21.6.14:
+  version "21.6.16"
+  resolved "https://registry.yarnpkg.com/i18next/-/i18next-21.6.16.tgz#8cff8c3ba2ffaf8438a8c83fe284083f15cf3941"
+  integrity sha512-xJlzrVxG9CyAGsbMP1aKuiNr1Ed2m36KiTB7hjGMG2Zo4idfw3p9THUEu+GjBwIgEZ7F11ZbCzJcfv4uyfKNuw==
   dependencies:
     "@babel/runtime" "^7.17.2"
 
@@ -3986,18 +3986,18 @@ natural-compare@^1.4.0:
   resolved "https://registry.yarnpkg.com/natural-compare/-/natural-compare-1.4.0.tgz#4abebfeed7541f2c27acfb29bdbbd15c8d5ba4f7"
   integrity sha1-Sr6/7tdUHywnrPspvbvRXI1bpPc=
 
-next-i18next@^10.3.0:
-  version "10.5.0"
-  resolved "https://registry.yarnpkg.com/next-i18next/-/next-i18next-10.5.0.tgz#cf9f5f1cb01cc5e900807630bcf01ac3b3d58f28"
-  integrity sha512-+Xj/v5gqpEUBKKAaFCZ76+Ps6OGAaIgGowJTF67wTcmIQbHrcHMPjHwPTbnpXy7uHrH8os7i4eAfRENAv/6xwg==
+next-i18next@^11.0.0:
+  version "11.0.0"
+  resolved "https://registry.yarnpkg.com/next-i18next/-/next-i18next-11.0.0.tgz#2857d13c58a5ed976fe57c44286f1520b07f7c96"
+  integrity sha512-phxbQiZGSJTTBE2FI4+BnqFZl88AI2V+6MrEQnT9aPFAXq/fATQ/F0pOUM3J7kU4nEeCfn3hjISq+ygGHlEz0g==
   dependencies:
     "@babel/runtime" "^7.13.17"
     "@types/hoist-non-react-statics" "^3.3.1"
     core-js "^3"
     hoist-non-react-statics "^3.2.0"
-    i18next "^21.6.12"
-    i18next-fs-backend "^1.0.7"
-    react-i18next "^11.15.5"
+    i18next "^21.6.14"
+    i18next-fs-backend "^1.1.4"
+    react-i18next "^11.16.2"
 
 next@^12.1.5:
   version "12.1.5"
@@ -4459,10 +4459,10 @@ react-hook-form@^7.29.0:
   resolved "https://registry.yarnpkg.com/react-hook-form/-/react-hook-form-7.29.0.tgz#5e7e41a483b70731720966ed8be52163ea1fecf1"
   integrity sha512-NcJqWRF6el5HMW30fqZRt27s+lorvlCCDbTpAyHoodQeYWXgQCvZJJQLC1kRMKdrJknVH0NIg3At6TUzlZJFOQ==
 
-react-i18next@^11.15.5:
-  version "11.16.1"
-  resolved "https://registry.yarnpkg.com/react-i18next/-/react-i18next-11.16.1.tgz#707e6ce56e97df97a271a2274d401ba8bec4b679"
-  integrity sha512-6Wf/YtPqANloFmnN5ol0ANeweFPzDWGykRq/dk4wU3ZkjWBR3d5iH210gMg8e8AgLQ1Dq7suUIL7WGfu08OehQ==
+react-i18next@^11.16.2:
+  version "11.16.7"
+  resolved "https://registry.yarnpkg.com/react-i18next/-/react-i18next-11.16.7.tgz#8d0680b7f4c8e43f59996336b7183ad576a28df7"
+  integrity sha512-7yotILJLnKfvUfrl/nt9eK9vFpVFjZPLWAwBzWL6XppSZZEvlmlKk0GBGDCAPfLfs8oND7WAbry8wGzdoiW5Nw==
   dependencies:
     "@babel/runtime" "^7.14.5"
     html-escaper "^2.0.2"
