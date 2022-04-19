@@ -1016,15 +1016,10 @@
   resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.180.tgz#4ab7c9ddfc92ec4a887886483bc14c79fb380670"
   integrity sha512-XOKXa1KIxtNXgASAnwj7cnttJxS4fksBRywK/9LzRV5YxrF80BXZIGeQSuoESQ/VkUj30Ae0+YcuHc15wJCB2g==
 
-"@types/node@*":
-  version "17.0.21"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-17.0.21.tgz#864b987c0c68d07b4345845c3e63b75edd143644"
-  integrity sha512-DBZCJbhII3r90XbQxI8Y9IjjiiOGlZ0Hr32omXIZvwwZ7p4DMMXGrKXVyPfuoBOri9XNtL0UK69jYIBIsRX3QQ==
-
-"@types/node@17.0":
-  version "17.0.23"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-17.0.23.tgz#3b41a6e643589ac6442bdbd7a4a3ded62f33f7da"
-  integrity sha512-UxDxWn7dl97rKVeVS61vErvw086aCYhDLyvRQZ5Rk65rZKepaFdm53GeqXaKBuOhED4e9uWq34IC3TdSdJJ2Gw==
+"@types/node@*", "@types/node@17.0":
+  version "17.0.25"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-17.0.25.tgz#527051f3c2f77aa52e5dc74e45a3da5fb2301448"
+  integrity sha512-wANk6fBrUwdpY4isjWrKTufkrXdu1D2YHCot2fD/DfWxF5sMrVSA+KN7ydckvaTCh0HiqX9IVl0L5/ZoXg5M7w==
 
 "@types/papaparse@^5.3.2":
   version "5.3.2"
@@ -2215,9 +2210,9 @@ eslint-plugin-jest-dom@^4.0.1:
     requireindex "^1.2.0"
 
 eslint-plugin-jest@^26:
-  version "26.1.3"
-  resolved "https://registry.yarnpkg.com/eslint-plugin-jest/-/eslint-plugin-jest-26.1.3.tgz#e722e5efeea18aa9dec7c7349987b641db19feb7"
-  integrity sha512-Pju+T7MFpo5VFhFlwrkK/9jRUu18r2iugvgyrWOnnGRaVTFFmFXp+xFJpHyqmjjLmGJPKLeEFLVTAxezkApcpQ==
+  version "26.1.4"
+  resolved "https://registry.yarnpkg.com/eslint-plugin-jest/-/eslint-plugin-jest-26.1.4.tgz#8e3410093ff4439d0c3a371add5bf9e05623a57a"
+  integrity sha512-wgqxujmqc2qpvZqMFWCh6Cniqc8lWpapvXt9j/19DmBDqeDaYhJrSRezYR1SKyemvjx+9e9kny/dgRahraHImA==
   dependencies:
     "@typescript-eslint/utils" "^5.10.0"
 
@@ -3243,10 +3238,10 @@ jest-jasmine2@^27.5.1:
     pretty-format "^27.5.1"
     throat "^6.0.1"
 
-jest-junit@^13.0.0:
-  version "13.0.0"
-  resolved "https://registry.yarnpkg.com/jest-junit/-/jest-junit-13.0.0.tgz#479be347457aad98ae8a5983a23d7c3ec526c9a3"
-  integrity sha512-JSHR+Dhb32FGJaiKkqsB7AR3OqWKtldLd6ZH2+FJ8D4tsweb8Id8zEVReU4+OlrRO1ZluqJLQEETm+Q6/KilBg==
+jest-junit@^13.1.0:
+  version "13.1.0"
+  resolved "https://registry.yarnpkg.com/jest-junit/-/jest-junit-13.1.0.tgz#c364b90b88ad2492dae4002f00c9fed75e0590c4"
+  integrity sha512-ECbhzEG3Oe2IH3Mnwcv2vAXM4qTbcObN/gTUzwKPlpaNsf2G/zlj/teEUqRGV17YQiQ4AqzTf3pCO7W59DKVIw==
   dependencies:
     mkdirp "^1.0.4"
     strip-ansi "^6.0.1"
