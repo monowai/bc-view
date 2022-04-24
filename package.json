@@ -3,7 +3,6 @@
   "private": true,
   "scripts": {
     "dev": "NODE_ENV='development' NODE_OPTIONS='--inspect=51089' next dev",
-    "demo": "NODE_ENV='docker' NODE_OPTIONS='--inspect=51089' next dev",
     "prettier": "prettier --write '**/*.{ts*,json,md,yml,js}' && yarn lint",
     "build": "next build",
     "start": "next start",
