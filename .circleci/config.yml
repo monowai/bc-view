@@ -3,11 +3,11 @@ orbs:
   codecov: codecov/codecov@1.0.5
 
 jobs:
-  build-app:
+  build-view:
     docker:
       - image: circleci/node:14
     environment:
-      IMAGE_NAME: bc-app
+      IMAGE_NAME: bc-view
     steps:
       - checkout
       - restore_cache:
@@ -45,7 +45,7 @@ jobs:
       - persist_to_workspace:
           root: ~/project
           paths:
-            - ./bc-app.tar
+            - ./bc-view.tar
 
   docker-publish:
     docker:
@@ -56,21 +56,21 @@ jobs:
           at: /tmp/workspace
       - setup_remote_docker
       - run:
-          name: Publish APP
+          name: Publish VIEW
           command: |
             echo "$DOCKER_PASS" | docker login -u $DOCKER_USER --password-stdin
-            test -f /tmp/workspace/bc-app.tar
-            docker load -i /tmp/workspace/bc-app.tar
-            docker push monowai/bc-app
+            test -f /tmp/workspace/bc-view.tar
+            docker load -i /tmp/workspace/bc-view.tar
+            docker push monowai/bc-view
 
 workflows:
   version: 2
   build_and_stage:
     jobs:
-      - build-app
+      - build-view
       - docker-publish:
           filters:
             branches:
               only: master
           requires:
-            - build-app
+            - build-view
