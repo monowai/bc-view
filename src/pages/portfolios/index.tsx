@@ -1,31 +1,33 @@
 import React from "react";
-import useApiFetchHelper, { getOptions } from "@/core/api/use-api-fetch-helper";
+import useSwr from "swr"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0";
 import { useTranslation } from "next-i18next";
 import { Portfolio } from "@/types/beancounter";
 import Link from "next/link";
 import { GetServerSideProps } from "next";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
+const url = "/api/portfolios"
+const fetcher = () => fetch(url).then((res) => res.json())
 
 export default withPageAuthRequired(function Portfolios(): React.ReactElement {
-  const { response, error, isLoading } = useApiFetchHelper("/api/portfolios", getOptions);
+  const {data, error } = useSwr(url, fetcher)
   const { t } = useTranslation("common");
   if (error) {
     return (
       <>
-        <p>{t("error.portfolios.retrieve")}</p>
+        <p>Oops - {t("error.portfolios.retrieve")}</p>
         <pre style={{ color: "red" }}>{JSON.stringify(error, null, 2)}</pre>
       </>
     );
   }
-  if (isLoading) {
+  if (!data) {
     return (
       <div id="root" data-testid="loading">
         {t("loading")}
       </div>
     );
   }
-  const portfolios: Portfolio[] = response.data;
+  const portfolios: Portfolio[] = data.data;
   if (portfolios && portfolios.length > 0) {
     return (
       <div>

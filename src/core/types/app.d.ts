@@ -1,16 +1,6 @@
 import { Portfolio } from "./beancounter";
 import { AxiosError } from "axios";
 
-export interface BcOptions {
-  bcPositions: string;
-  bcData: string;
-  kafkaUrl: string;
-  topicCsvTrn: string;
-  kcUrl: string;
-  kcClient: string;
-  kcRealm: string;
-}
-
 interface TransactionUpload {
   portfolio: Portfolio;
   row: string[];
