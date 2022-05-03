@@ -15,7 +15,7 @@ export default withPageAuthRequired(function Portfolios(): React.ReactElement {
   if (error) {
     return (
       <>
-        <p>Oops - {t("error.portfolios.retrieve")}</p>
+        <p>{t("error.portfolios.retrieve")}</p>
         <pre style={{ color: "red" }}>{JSON.stringify(error, null, 2)}</pre>
       </>
     );

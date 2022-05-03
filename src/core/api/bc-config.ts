@@ -1,12 +1,12 @@
 import getConfig from "next/config";
 
-const { publicRuntimeConfig } = getConfig();
+const { publicRuntimeConfig, serverRuntimeConfig } = getConfig();
 export function getDataUrl(path: string) {
-  return `${publicRuntimeConfig.apiDataUrl}${path}`;
+  return `${serverRuntimeConfig.apiDataUrl}${path}`;
 }
 
 export function getPositionsUrl(path: string) {
-  return `${publicRuntimeConfig.apiPositionsUrl}${path}`;
+  return `${serverRuntimeConfig.apiPositionsUrl}${path}`;
 }
 
 export function getTrnTopic(): string {
