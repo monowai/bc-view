@@ -33,9 +33,8 @@ export function TrnDropZone({ portfolio, purge }: TransactionImport): React.Reac
                       row,
                     } as unknown as DelimitedImport),
                   })
-                    .then(() => console.log("Done."))
+                    .then(() => rows++)
                     .catch(() => console.error("Something went wrong"));
-                  rows++;
                 }
               } else headerSkipped = true;
             });
@@ -43,7 +42,7 @@ export function TrnDropZone({ portfolio, purge }: TransactionImport): React.Reac
         };
         reader.readAsText(file, "utf-8");
       });
-      console.log(`Sent $rows rows`);
+      console.log(`Sent ${rows} rows`);
     },
     [portfolio, purge]
   );
