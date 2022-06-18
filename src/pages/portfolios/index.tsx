@@ -39,7 +39,7 @@ export default withPageAuthRequired(function Portfolios(): React.ReactElement {
                 //
               }}
             >
-              {t("tagline")}
+              {t("portfolio.create")}
             </button>
           </div>
         </nav>

@@ -4,20 +4,21 @@ import { Kafka, RecordMetadata } from "kafkajs";
 import { getKafkaHosts, getTrnTopic } from "@/core/api/bc-config";
 
 export default withApiAuthRequired(async function writeRows(req, res) {
+  console.log ("Looking to write..")
   await getAccessToken(req, res);
   await writeTrn({ portfolio: req.body.portfolio, row: req.body.row }).catch(console.error);
   res.status(200).json("ok");
 });
 
-const kafka = new Kafka({
-  clientId: "bc-view",
-  brokers: getKafkaHosts(),
-});
-
 const topic = getTrnTopic();
 
 async function writeTrn(transactionUpload: TransactionUpload): Promise<RecordMetadata[] | void> {
-  const producer = await kafka.producer();
+  const brokers = getKafkaHosts
+  console.log(`${brokers}`)
+  const producer = await new Kafka({
+    clientId: "bc-view",
+    brokers,
+  }).producer();
   await producer.connect();
   const messages = [
     {
@@ -27,7 +28,7 @@ async function writeTrn(transactionUpload: TransactionUpload): Promise<RecordMet
   ];
   return producer.send({
     topic,
-    messages: messages,
+    messages,
     // acks: 1,
   });
 }
