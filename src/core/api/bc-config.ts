@@ -1,9 +1,9 @@
 export function getDataUrl(path: string) {
-  return `${process.env.BC_DATA}${path}`;
+  return `${process.env.BC_DATA}/api${path}`;
 }
 
 export function getPositionsUrl(path: string) {
-  return `${process.env.BC_POSITION}${path}`;
+  return `${process.env.BC_POSITION}/api${path}`;
 }
 
 export function getTrnTopic(): string {
