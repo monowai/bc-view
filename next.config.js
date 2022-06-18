@@ -5,14 +5,6 @@ const nextConfig = {
 };
 const path = require("path");
 module.exports = {
-  publicRuntimeConfig: {
-    topicTrn: process.env.TOPIC_TRN,
-    kafkaUrl: process.env.KAFKA_URL
-  },
-  serverRuntimeConfig: {
-    apiDataUrl: process.env.BC_DATA,
-    apiPositionsUrl: process.env.BC_POSITION
-  },
   images: {
     domains: ["s.gravatar.com", "cdn.auth0.com"]
   },

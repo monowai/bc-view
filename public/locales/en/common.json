@@ -46,6 +46,7 @@
   "event.price": "Per Unit",
   "holdings.groupBy": "Group By",
   "holdings.summary.title": "Summary",
+  "portfolio.create": "Add",
   "portfolio.code": "Code",
   "portfolio.name": "Name",
   "portfolio.currency.report": "Report",

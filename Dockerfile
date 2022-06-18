@@ -16,12 +16,8 @@ COPY . .
 # Uncomment the following line in case you want to disable telemetry during the build.
 # ENV NEXT_TELEMETRY_DISABLED 1
 
-ARG BC_DATA=http://localhost:9500/api
-ARG BC_POSITION=http://localhost:9510/api
-ARG KAFKA_URL=localhost:9092
 ENV NODE_ENV production
-ENV BC_DATA ${BC_DATA}
-ENV BC_POSITION ${BC_POSITION}
+ARG KAFKA_URL=localhost:9092
 ENV KAFKA_URL ${KAFKA_URL}
 
 RUN yarn build
@@ -31,14 +27,7 @@ FROM node:16-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV production
-ENV BC_DATA ${BC_DATA}
-ENV BC_POSITION ${BC_POSITION}
 ENV KAFKA_URL ${KAFKA_URL}
-ENV BEANCOUNTER_TOPICS_TRN_CSV bc-trn-csv-demo
-ENV BEANCOUNTER_TOPICS_TRN_EVENT bc-trn-event-demo
-ENV BEANCOUNTER_TOPICS_PRICE bc-price-demo
-ENV BEANCOUNTER_TOPICS_CA_EVENT bc-ca-event-demo
-
 # Uncomment the following line in case you want to disable telemetry during runtime.
 # ENV NEXT_TELEMETRY_DISABLED 1
 

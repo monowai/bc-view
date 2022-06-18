@@ -13,13 +13,13 @@ yarn dev
 
 ```docker
 ## Localhost
-docker build --build-arg BC_POSITION=http://localhost:9500 --build-arg BC_DATA=http://localhost:9510 . -t monowai/bc-view
+docker build . -t monowai/bc-view
 ```
 ```docker
 ## Compose/DEMO
-docker build --build-arg BC_POSITION=http://position:9500/api --build-arg BC_DATA=http://data:9510/api --build-arg KAFKA_URL=kafka:9092 . -t monowai/bc-view-demo  
+docker build --build-arg KAFKA_URL=kafka:9092 . -t monowai/bc-view-demo  
 ```
 ```docker
-# MiniKube
-docker build --build-arg BC_POSITION=http://bc-position:9700/api --build-arg BC_DATA=http://bc-data:9710/api . -t monowai/bc-view
+# MiniKube    
+docker build --build-arg KAFKA_URL=host.minikube.internal:9092 . -t monowai/bc-view
 ```
