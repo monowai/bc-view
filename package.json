@@ -11,7 +11,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@auth0/nextjs-auth0": "^1.7",
+    "@auth0/nextjs-auth0": "^1.9",
     "@creativebulma/bulma-tooltip": "^1.2.0",
     "@fortawesome/fontawesome-free": "^6.0.0",
     "@serverless-jwt/next": "^0.2.1",
@@ -39,7 +39,7 @@
   "devDependencies": {
     "@hookform/resolvers": "^2.8.8",
     "@testing-library/jest-dom": "^5.16.4",
-    "@testing-library/react": "^12.1.4",
+    "@testing-library/react": "^12.1.5",
     "@testing-library/user-event": "^13.5.0",
     "@types/cors": "^2.8.12",
     "@types/node": "17.0",
