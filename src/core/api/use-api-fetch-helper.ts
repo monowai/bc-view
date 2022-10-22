@@ -58,8 +58,8 @@ const useApiFetchHelper = (
         );
       }
     };
-    fetchData().then((r) => console.log("Fetched."));
-  }, []);
+    fetchData().then(() => console.log("Fetched."));
+  }, [options, url]);
   return state;
 };
 

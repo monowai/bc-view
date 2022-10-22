@@ -8,12 +8,14 @@ export default withApiAuthRequired(async function eventTrns(req, res) {
   try {
     const { events } = req.query;
     const { accessToken } = await getAccessToken(req, res);
-    console.log(`Looking up events for ${events[0]} / ${events[1]}`);
-    const response = await fetch(
-      `${baseUrl}/${events[0]}/asset/${events[1]}/events`,
-      requestInit(accessToken)
-    );
-    await handleResponse<Transaction[]>(response, res);
+    if (events) {
+      console.log(`Looking up events for ${events[0]} / ${events[1]}`);
+      const response = await fetch(
+        `${baseUrl}/${events[0]}/asset/${events[1]}/events`,
+        requestInit(accessToken)
+      );
+      await handleResponse<Transaction[]>(response, res);
+    }
   } catch (error: any) {
     console.error(error);
     res.status(error.status || 500).json({

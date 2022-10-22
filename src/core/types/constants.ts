@@ -1,7 +1,6 @@
 // export type ValueIn = "TRADE" | "BASE" | "PORTFOLIO";
 
 import { ValuationOption } from "./beancounter";
-import { t } from "i18next";
 
 // Enum is pointer to a collection of values in the holding contract
 export enum ValueIn {
@@ -17,5 +16,3 @@ export function valuationOptions(): ValuationOption[] {
     { value: ValueIn.TRADE, label: "Trade" },
   ];
 }
-
-export const __new__ = "new";

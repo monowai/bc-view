@@ -8,12 +8,14 @@ export default withApiAuthRequired(async function tradeTrns(req, res) {
   try {
     const { trades } = req.query;
     const { accessToken } = await getAccessToken(req, res);
-    console.log(`Looking up trades for ${trades[0]} / ${trades[1]}`);
-    const response = await fetch(
-      `${baseUrl}/${trades[0]}/asset/${trades[1]}/trades`,
-      requestInit(accessToken)
-    );
-    await handleResponse<Transaction[]>(response, res);
+    if (trades) {
+      console.log(`Looking up trades for ${trades[0]} / ${trades[1]}`);
+      const response = await fetch(
+        `${baseUrl}/${trades[0]}/asset/${trades[1]}/trades`,
+        requestInit(accessToken)
+      );
+      await handleResponse<Transaction[]>(response, res);
+    }
   } catch (error: any) {
     console.error(error);
     res.status(error.status || 500).json({
