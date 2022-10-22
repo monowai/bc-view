@@ -26,6 +26,7 @@ module.exports = {
     "react/react-in-jsx-scope": "off",
     "react/no-multi-comp": 0,
     "react/jsx-uses-vars": "warn",
+    "@typescript-eslint/ban-ts-comment": "warn",
     strict: "error",
     "@typescript-eslint/explicit-member-accessibility": [1, { accessibility: "no-public" }],
     "react/jsx-sort-default-props": ["error", { ignoreCase: false }],

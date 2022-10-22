@@ -14,16 +14,13 @@ export function TrnDropZone({ portfolio, purge }: TransactionImport): React.Reac
         reader.onabort = () => console.debug("file reading was aborted");
         reader.onerror = () => console.debug("file reading has failed");
         reader.onload = () => {
-          console.log("Step 1")
           if (typeof reader.result === "string") {
-            console.log("is string")
             const results = Papa.parse(reader.result).data as string[];
             let headerSkipped = false;
             results.forEach(function (row: string) {
               if (headerSkipped) {
-                console.log("Header Skipped")
                 if (row && row.length > 1 && !row[0].startsWith("#")) {
-                  console.log("Calling Fetch")
+                  console.log("Posting import request");
                   fetch(`/api/trns/import`, {
                     method: "POST",
                     mode: "cors",

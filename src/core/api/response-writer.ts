@@ -1,6 +1,6 @@
 import { NextApiResponse } from "next";
 
-export function handleErrors(response: Response, res: NextApiResponse) {
+export function handleErrors(response: Response, res: NextApiResponse): void {
   if (response.status == 401 || response.status == 403) {
     res.status(response.status).json('{"error": "auth error"}');
   } else {
@@ -12,7 +12,10 @@ export function hasError(response: Response): boolean {
   return response.status >= 300;
 }
 
-export default async function handleResponse<T>(response: Response, res: NextApiResponse) {
+export default async function handleResponse<T>(
+  response: Response,
+  res: NextApiResponse
+): Promise<void> {
   if (hasError(response)) {
     handleErrors(response, res);
   } else {

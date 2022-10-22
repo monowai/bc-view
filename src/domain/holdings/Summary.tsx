@@ -1,6 +1,6 @@
 import React from "react";
-import { Portfolio, PortfolioSummary } from "../../core/types/beancounter";
-import { FormatValue } from "../../core/common/MoneyUtils";
+import { Portfolio, PortfolioSummary } from "@/types/beancounter";
+import { FormatValue } from "@/core/common/MoneyUtils";
 import Link from "next/link";
 import { useTranslation } from "next-i18next";
 
@@ -29,7 +29,7 @@ export function SummaryRow({ portfolio, moneyValues, valueIn }: PortfolioSummary
       <tr className={"stats-row"}>
         <td>
           <div className="left-cell">
-            <Link href={`/portfolios/${portfolio.id}`}>
+            <Link href={`/portfolios/${portfolio.id}`} passHref>
               <span className={"has-tooltip-right"} data-tooltip={portfolio.name}>
                 {portfolio.code.toUpperCase()} {": "}
               </span>

@@ -10,16 +10,17 @@ npm run dev
 yarn dev
 ```
 
-
 ```docker
 ## Localhost
 docker build . -t monowai/bc-view
 ```
+
 ```docker
 ## Compose/DEMO
-docker build --build-arg KAFKA_URL=kafka:9092 . -t monowai/bc-view-demo  
+docker build --build-arg KAFKA_URL=kafka:9092 . -t monowai/bc-view-demo
 ```
+
 ```docker
-# MiniKube    
+# MiniKube
 docker build --build-arg KAFKA_URL=host.minikube.internal:9092 . -t monowai/bc-view
 ```

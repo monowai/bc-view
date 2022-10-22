@@ -1,9 +1,9 @@
-export function getDataUrl(path: string) {
-  return `${process.env.BC_DATA}/api${path}`;
+export function getDataUrl(path: string): string {
+  return `${process.env.BC_DATA}${path}`;
 }
 
-export function getPositionsUrl(path: string) {
-  return `${process.env.BC_POSITION}/api${path}`;
+export function getPositionsUrl(path: string): string {
+  return `${process.env.BC_POSITION}${path}`;
 }
 
 export function getTrnTopic(): string {
@@ -11,7 +11,9 @@ export function getTrnTopic(): string {
 }
 
 export function getKafkaHosts(): string[] {
-  console.log("Hello world")
-  console.log(`${process.env.KAFKA_URL}`)
   return [`${process.env.KAFKA_URL}`];
+}
+
+export function getKafkaClient(): string {
+  return `${process.env.KAFKA_CLIENT}`;
 }
