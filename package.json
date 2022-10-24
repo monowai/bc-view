@@ -20,7 +20,7 @@
     "bulma-pageloader": "^0.3.0",
     "bulma-spacing": "^2.1.5",
     "dropzone": "^6.0.0-beta.2",
-    "i18next-fs-backend": "^1.1.4",
+    "i18next-fs-backend": "^1.1.5",
     "kafkajs": "^2.2.2",
     "next": "^12.2",
     "next-i18next": "^10.3.0",
