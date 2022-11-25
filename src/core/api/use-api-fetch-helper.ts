@@ -17,7 +17,10 @@ export const getOptions: RequestInit = {
 
 const useApiFetchHelper = (
   url: RequestInfo,
-  options: RequestInit = getOptions
+  options: RequestInit = {
+    method: "GET",
+    mode: "cors",
+  }
 ): {
   error: unknown;
   isLoading: boolean;

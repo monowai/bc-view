@@ -1,5 +1,5 @@
 import React from "react";
-import NumberFormat from "react-number-format";
+import {NumericFormat} from "react-number-format";
 import { GetServerSideProps } from "next";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 import { withPageAuthRequired } from "@auth0/nextjs-auth0";
@@ -66,7 +66,7 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                   <td>{trn.tradeCurrency.code}</td>
                   <td>{trn.tradeDate}</td>
                   <td align={"right"}>
-                    <NumberFormat
+                    <NumericFormat
                       value={trn.tradeAmount}
                       displayType={"text"}
                       decimalScale={2}
@@ -75,7 +75,7 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                     />
                   </td>
                   <td align={"right"}>
-                    <NumberFormat
+                    <NumericFormat
                       value={trn.tax}
                       displayType={"text"}
                       decimalScale={2}
@@ -84,7 +84,7 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                     />
                   </td>
                   <td align={"right"}>
-                    <NumberFormat
+                    <NumericFormat
                       value={trn.quantity}
                       displayType={"text"}
                       decimalScale={0}
@@ -93,7 +93,7 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                     />
                   </td>
                   <td align={"right"}>
-                    <NumberFormat
+                    <NumericFormat
                       value={trn.price}
                       displayType={"text"}
                       decimalScale={2}
