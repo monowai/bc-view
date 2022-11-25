@@ -1,5 +1,5 @@
 import { Asset, HoldingValues, PriceData } from "@/types/beancounter";
-import NumberFormat from "react-number-format";
+import {NumericFormat} from "react-number-format";
 import { FormatValue } from "@/core/common/MoneyUtils";
 import React from "react";
 import { assetName, isCash } from "@/domain/assets/assetUtils";
@@ -52,7 +52,7 @@ export function Rows({ portfolio, holdingGroup, groupBy, valueIn }: HoldingValue
           <FormatValue value={moneyValues[valueIn].gainOnDay} />
         </td>
         <td align={"right"}>
-          <NumberFormat
+          <NumericFormat
             value={quantityValues.total}
             displayType={"text"}
             decimalScale={quantityValues.precision}
