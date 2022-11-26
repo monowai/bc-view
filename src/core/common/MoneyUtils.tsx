@@ -1,6 +1,6 @@
 import React from "react";
 import { FormatNumber } from "@/types/app";
-import {NumericFormat} from "react-number-format";
+import { NumericFormat } from "react-number-format";
 
 export function FormatValue({
   value,

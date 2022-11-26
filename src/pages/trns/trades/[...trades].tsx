@@ -1,5 +1,5 @@
 import React from "react";
-import {NumericFormat} from "react-number-format";
+import { NumericFormat } from "react-number-format";
 import { GetServerSideProps } from "next";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 import { withPageAuthRequired } from "@auth0/nextjs-auth0";
@@ -133,9 +133,10 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                     />
                   </td>
                   <td>
-                    <Link href={`/portfolios/${trn.portfolio.id}/${trn.id}`} className="fa fa-edit">
-
-                    </Link>
+                    <Link
+                      href={`/portfolios/${trn.portfolio.id}/${trn.id}`}
+                      className="fa fa-edit"
+                    ></Link>
                   </td>
                 </tr>
               ))}
