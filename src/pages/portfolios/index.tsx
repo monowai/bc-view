@@ -71,12 +71,12 @@ export default withPageAuthRequired(function Portfolios(): React.ReactElement {
                       {portfolio.base.code}
                     </td>
                     <td>
-                      <Link href={`/portfolios/${portfolio.id}`}>
-                        <a className="far fa-edit" />
+                      <Link href={`/portfolios/${portfolio.id}`} className="far fa-edit">
+
                       </Link>
                       <span> </span>
-                      <Link href={`/portfolios/${portfolio.id}/delete`}>
-                        <a className="far fa-trash-alt" />
+                      <Link href={`/portfolios/${portfolio.id}/delete`} className="far fa-trash-alt">
+
                       </Link>
                     </td>
                   </tr>

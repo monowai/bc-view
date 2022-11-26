@@ -102,8 +102,8 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                     />
                   </td>
                   <td>
-                    <Link href={`/portfolios/${trn.portfolio.id}/${trn.id}`}>
-                      <a className="fa fa-edit" />
+                    <Link href={`/portfolios/${trn.portfolio.id}/${trn.id}`} className="fa fa-edit">
+
                     </Link>
                   </td>
                 </tr>
