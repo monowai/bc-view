@@ -13,17 +13,23 @@ function HeaderUserControls(): React.ReactElement {
   if (!user)
     return (
       <div>
-        <Link href="/api/auth/login" legacyBehavior>{t("user.login")}</Link>
+        <Link href="/api/auth/login" legacyBehavior>
+          {t("user.login")}
+        </Link>
       </div>
     );
 
   const loggedIn = (
     <div className="navbar-dropdown">
       <div>
-        <Link href="/profile" legacyBehavior>{t("user.profile")}</Link>
+        <Link href="/profile" legacyBehavior>
+          {t("user.profile")}
+        </Link>
       </div>
       <div>
-        <Link href="/api/auth/logout" legacyBehavior>{t("user.logout")}</Link>
+        <Link href="/api/auth/logout" legacyBehavior>
+          {t("user.logout")}
+        </Link>
       </div>
     </div>
   );
