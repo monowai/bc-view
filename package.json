@@ -22,7 +22,7 @@
     "i18next": "^22.0.6",
     "i18next-fs-backend": "^1.2",
     "kafkajs": "^2.2.2",
-    "next": "^12.2",
+    "next": "^13.0",
     "next-i18next": "^13.0",
     "papaparse": "^5.3.1",
     "ramda": "^0.28.0",
@@ -40,7 +40,7 @@
   "devDependencies": {
     "@hookform/resolvers": "^2.8.8",
     "@testing-library/jest-dom": "^5.16.4",
-    "@testing-library/react": "^13.0.0",
+    "@testing-library/react": "^13.4",
     "@testing-library/user-event": "^13.5.0",
     "@types/cors": "^2.8.12",
     "@types/i18next": "^13.0.0",
