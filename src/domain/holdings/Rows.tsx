@@ -63,9 +63,7 @@ export function Rows({ portfolio, holdingGroup, groupBy, valueIn }: HoldingValue
         </td>
         <td align={"right"}>
           <Link href={`/trns/trades`} as={`/trns/trades/${portfolio.id}/${asset.id}`}>
-            <a>
-              <FormatValue value={moneyValues[valueIn].marketValue} defaultValue="0" />
-            </a>
+            <FormatValue value={moneyValues[valueIn].marketValue} defaultValue="0" />
           </Link>
         </td>
         <td align={"right"}>
@@ -88,7 +86,7 @@ export function Rows({ portfolio, holdingGroup, groupBy, valueIn }: HoldingValue
           {
             <span data-tooltip={dateValues ? `Last Event: ${dateValues.lastDividend}` : "N/A"}>
               <Link href={`/trns/events`} as={`/trns/events/${portfolio.id}/${asset.id}`}>
-                <a>{<FormatValue value={moneyValues[valueIn].dividends} />}</a>
+                {<FormatValue value={moneyValues[valueIn].dividends} />}
               </Link>
             </span>
           }
