@@ -1,4 +1,4 @@
-import { useUser, withPageAuthRequired } from "@auth0/nextjs-auth0";
+import { useUser, withPageAuthRequired } from "@auth0/nextjs-auth0/client";
 import Link from "next/link";
 import React from "react";
 import { useTranslation } from "next-i18next";
@@ -27,10 +27,9 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
     );
   }
   // noinspection HtmlUnknownTarget
-  return <a href="/api/auth/login">{t("user.login")}</a>;
+  return <Link href="/api/auth/login">{t("user.login")}</Link>;
 });
 
-// noinspection JSUnusedGlobalSymbols
 export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
   props: {
     ...(await serverSideTranslations(locale as string, ["common"])),

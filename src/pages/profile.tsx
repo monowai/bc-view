@@ -1,7 +1,9 @@
 // noinspection JSUnusedGlobalSymbols
 
-import { useUser } from "@auth0/nextjs-auth0";
+import { useUser } from "@auth0/nextjs-auth0/client";
 import Image from "next/image";
+import {GetServerSideProps} from "next";
+import {serverSideTranslations} from "next-i18next/serverSideTranslations";
 
 export default function Profile(): JSX.Element {
   const { user, error, isLoading } = useUser();
@@ -18,3 +20,10 @@ export default function Profile(): JSX.Element {
     </div>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
+  props: {
+    ...(await serverSideTranslations(locale as string, ["common"])),
+  },
+});
+

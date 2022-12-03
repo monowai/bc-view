@@ -2,7 +2,7 @@ import React from "react";
 import { NumericFormat } from "react-number-format";
 import { GetServerSideProps } from "next";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
-import { withPageAuthRequired } from "@auth0/nextjs-auth0";
+import { withPageAuthRequired } from "@auth0/nextjs-auth0/client";
 import { useRouter } from "next/router";
 import useApiFetchHelper, { getOptions } from "@/core/api/use-api-fetch-helper";
 import { useTranslation } from "next-i18next";

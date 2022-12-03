@@ -4,7 +4,7 @@ import { PortfolioInput } from "@/types/beancounter";
 import { currencyOptions } from "@/domain/currency/IsoHelper";
 import useApiFetchHelper, { getOptions } from "@/core/api/use-api-fetch-helper";
 import { useRouter } from "next/router";
-import { withPageAuthRequired } from "@auth0/nextjs-auth0";
+import { withPageAuthRequired } from "@auth0/nextjs-auth0/client";
 import { useTranslation } from "next-i18next";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 import { GetServerSideProps } from "next";

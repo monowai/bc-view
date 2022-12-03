@@ -1,6 +1,6 @@
 import React from "react";
 import useSwr from "swr";
-import { withPageAuthRequired } from "@auth0/nextjs-auth0";
+import { withPageAuthRequired } from "@auth0/nextjs-auth0/client";
 import { useTranslation } from "next-i18next";
 import { Portfolio } from "@/types/beancounter";
 import Link from "next/link";
