@@ -1,5 +1,7 @@
 import React from "react";
 import { useRouter } from "next/router";
+import {GetServerSideProps} from "next";
+import {serverSideTranslations} from "next-i18next/serverSideTranslations";
 
 function HeaderBrand(): React.ReactElement {
   const router = useRouter();
@@ -20,5 +22,11 @@ function HeaderBrand(): React.ReactElement {
     </div>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
+  props: {
+    ...(await serverSideTranslations(locale as string, ["common"])),
+  },
+});
 
 export default HeaderBrand;

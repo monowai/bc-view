@@ -13,7 +13,7 @@ import { Header } from "@/domain/holdings/Header";
 import PageLoader from "@/core/common/PageLoader";
 import useApiFetchHelper, { getOptions } from "@/core/api/use-api-fetch-helper";
 import { useRouter } from "next/router";
-import { withPageAuthRequired } from "@auth0/nextjs-auth0";
+import { withPageAuthRequired } from "@auth0/nextjs-auth0/client";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 import { GetServerSideProps } from "next";
 import { useTranslation } from "next-i18next";
