@@ -7,7 +7,7 @@ import Link from "next/link";
 import { GetServerSideProps } from "next";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 const url = "/api/portfolios";
-const fetcher = () => fetch(url).then((res) => res.json());
+const fetcher: any = () => fetch(url).then((res) => res.json());
 
 export default withPageAuthRequired(function Portfolios(): React.ReactElement {
   const { data, error } = useSwr(url, fetcher);

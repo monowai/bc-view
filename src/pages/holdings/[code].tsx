@@ -21,14 +21,14 @@ import useSwr from "swr";
 // import { TrnDropZone } from "../../domain/portfolio/DropZone";
 export default withPageAuthRequired(function Holdings(): React.ReactElement {
   const router = useRouter();
-  const fetcher = async () => {
-    const res = await fetch(`/api/holdings/${router.query.code}`)
+  const fetcher: () => Promise<any> = async () => {
+    const res = await fetch(`/api/holdings/${router.query.code}`);
     if (!res.ok) {
-      throw await res.json()
+      throw await res.json();
     }
 
-    return res.json()
-  }
+    return res.json();
+  };
 
   const { data, error } = useSwr(`/api/holdings/${router.query.code}`, fetcher);
   const { t, ready } = useTranslation("common");

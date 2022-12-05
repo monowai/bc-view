@@ -22,9 +22,7 @@ export default function HeaderUserControls(): React.ReactElement {
   const loggedIn = (
     <div className="navbar-dropdown">
       <div>
-        <Link href="/profile">
-          {t("user.profile")}
-        </Link>
+        <Link href="/profile">{t("user.profile")}</Link>
       </div>
       <div>
         <Link href="/api/auth/logout">{t("user.logout")}</Link>
