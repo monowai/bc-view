@@ -2,8 +2,8 @@
 
 import { useUser } from "@auth0/nextjs-auth0/client";
 import Image from "next/image";
-import {GetServerSideProps} from "next";
-import {serverSideTranslations} from "next-i18next/serverSideTranslations";
+import { GetServerSideProps } from "next";
+import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 
 export default function Profile(): JSX.Element {
   const { user, error, isLoading } = useUser();
@@ -26,4 +26,3 @@ export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
     ...(await serverSideTranslations(locale as string, ["common"])),
   },
 });
-

@@ -1,6 +1,6 @@
 import { UserProfile, UserProvider } from "@auth0/nextjs-auth0/client";
 import { ReactNode } from "react";
-import {ConfigContext} from "@auth0/nextjs-auth0/dist/client/use-config";
+import { ConfigContext } from "@auth0/nextjs-auth0/dist/client/use-config";
 
 export const mockUser = {
   email: "foo@example.com",
