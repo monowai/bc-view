@@ -4,7 +4,6 @@ import { Kafka, RecordMetadata } from "kafkajs";
 import { getKafkaClient, getKafkaHosts, getTrnTopic } from "@/core/api/bc-config";
 
 export default withApiAuthRequired(async function writeRows(req, res) {
-  console.log("Looking to write..");
   await getAccessToken(req, res);
   await writeTrn({ portfolio: req.body.portfolio, row: req.body.row }).catch(console.error);
   res.status(200).json("ok");
