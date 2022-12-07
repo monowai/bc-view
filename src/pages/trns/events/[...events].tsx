@@ -4,33 +4,34 @@ import { GetServerSideProps } from "next";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client";
 import { useRouter } from "next/router";
-import useApiFetchHelper, { getOptions } from "@/core/api/use-api-fetch-helper";
 import { useTranslation } from "next-i18next";
 import Link from "next/link";
 import { Transaction } from "@/types/beancounter";
+import useSwr from "swr";
+import errorOut from "@/core/errors/ErrorOut";
+import { assetKey, eventKey, simpleFetcher } from "@/core/api/fetchHelper";
+import { rootLoader } from "@/core/common/PageLoader";
 
 export default withPageAuthRequired(function Events(): React.ReactElement {
   const router = useRouter();
   const portfolioId = router.query.events ? router.query.events[0] : "undefined";
   const assetId = router.query.events ? router.query.events[1] : "undefined";
   const { t, ready } = useTranslation("common");
-  const assetResponse = useApiFetchHelper(`/api/assets/${assetId}`, getOptions);
-  const { response, error, isLoading } = useApiFetchHelper(
-    `/api/trns/events/${portfolioId}/${assetId}`,
-    getOptions
+  const asset = useSwr(assetKey(assetId), simpleFetcher(assetKey(assetId)));
+  const events = useSwr(
+    eventKey(portfolioId, assetId),
+    simpleFetcher(eventKey(portfolioId, assetId))
   );
-  if (!ready || isLoading || assetResponse.isLoading) {
-    return <div id="root">...</div>;
+  if (events.error) {
+    return errorOut(t("events.error.retrieve"), events.error);
   }
-  if (error) {
-    return (
-      <>
-        <p>{t("events.error.retrieve", { id: router.query.id })}</p>
-        <pre style={{ color: "red" }}>{JSON.stringify(error, null, 2)}</pre>
-      </>
-    );
+  if (asset.error) {
+    return errorOut(t("assets.error.retrieve"), asset.error);
   }
-  const trnResults = response.data;
+  if (!ready || !events.data || !asset) {
+    return rootLoader(t("loading"));
+  }
+  const trnResults = events.data.data;
   if (!trnResults || trnResults.length === 0) {
     return <div id="root">{t("trn.noTransactions")}</div>;
   }
@@ -40,7 +41,7 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
       <nav className="container">
         <div className={"page-title"}>
           <div className={"column page-title subtitle is-6"}>
-            {assetResponse.response.data.name}:{assetResponse.response.data.market.code}
+            {asset.data.data.name}:{asset.data.data.market.code}
           </div>
         </div>
       </nav>
@@ -103,7 +104,7 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                   </td>
                   <td>
                     <Link
-                      href={`/portfolios/${trn.portfolio.id}/${trn.id}`}
+                      href={`/trns/events/edit/${trn.portfolio.id}/${trn.id}`}
                       className="fa fa-edit"
                     ></Link>
                   </td>

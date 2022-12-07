@@ -8,5 +8,5 @@ export function assetName(asset: Asset): string {
   if (isCash(asset)) {
     return asset.name;
   }
-  return asset.code + ": " + asset.name;
+  return `${asset.code}: ${asset.name}`;
 }

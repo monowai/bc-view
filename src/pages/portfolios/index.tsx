@@ -6,26 +6,18 @@ import { Portfolio } from "@/types/beancounter";
 import Link from "next/link";
 import { GetServerSideProps } from "next";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
-const url = "/api/portfolios";
-const fetcher: any = () => fetch(url).then((res) => res.json());
+import { portfoliosKey, simpleFetcher } from "@/core/api/fetchHelper";
+import errorOut from "@/core/errors/ErrorOut";
+import { rootLoader } from "@/core/common/PageLoader";
 
 export default withPageAuthRequired(function Portfolios(): React.ReactElement {
-  const { data, error } = useSwr(url, fetcher);
-  const { t } = useTranslation("common");
+  const { t, ready } = useTranslation("common");
+  const { data, error } = useSwr(portfoliosKey, simpleFetcher(portfoliosKey));
   if (error) {
-    return (
-      <>
-        <p>{t("error.portfolios.retrieve")}</p>
-        <pre style={{ color: "red" }}>{JSON.stringify(error, null, 2)}</pre>
-      </>
-    );
+    return errorOut(t("events.error.retrieve"), error);
   }
-  if (!data) {
-    return (
-      <div id="root" data-testid="loading">
-        {t("loading")}
-      </div>
-    );
+  if (!data || !ready) {
+    return rootLoader(t("loading"));
   }
   const portfolios: Portfolio[] = data.data;
   if (portfolios && portfolios.length > 0) {
