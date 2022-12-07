@@ -1,8 +1,8 @@
 // noinspection JSUnusedGlobalSymbols
 
 import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0";
-import { requestInit } from "@/core/api/use-api-fetch-helper";
-import handleResponse, {fetchError} from "@/core/api/response-writer";
+import { requestInit } from "@/core/api/fetchHelper";
+import handleResponse, { fetchError } from "@/core/api/response-writer";
 import { Portfolio } from "@/types/beancounter";
 import { getDataUrl } from "@/core/api/bc-config";
 

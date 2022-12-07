@@ -1,7 +1,6 @@
 import React from "react";
-import { Loading } from "../types/app";
 
-export default function PageLoader({ message, show }: Loading): JSX.Element {
+export function rootLoader(message: string, show = true): JSX.Element {
   if (!show) {
     return <div />;
   }

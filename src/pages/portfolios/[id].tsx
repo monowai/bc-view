@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { PortfolioInput } from "@/types/beancounter";
 import { currencyOptions } from "@/domain/currency/IsoHelper";
-import useApiFetchHelper, { getOptions } from "@/core/api/use-api-fetch-helper";
+import { ccyKey, portfolioKey, simpleFetcher } from "@/core/api/fetchHelper";
 import { useRouter } from "next/router";
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client";
 import { useTranslation } from "next-i18next";
@@ -10,38 +10,31 @@ import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 import { GetServerSideProps } from "next";
 import { TrnDropZone } from "@/domain/trns/DropZone";
 import Link from "next/link";
+import { rootLoader } from "@/core/common/PageLoader";
+import errorOut from "@/core/errors/ErrorOut";
+import useSwr from "swr";
 
-const url = "/api/portfolios";
-
-// const fetcher = (url: string) => fetch(url).then((res) => res.json())
 export default withPageAuthRequired(function Manage(): React.ReactElement {
   const { register } = useForm<PortfolioInput>();
   const router = useRouter();
-  const { response, error, isLoading } = useApiFetchHelper(`${url}/${router.query.id}`, getOptions);
+  const key = portfolioKey(`${router.query.id}`);
+  const { data, error } = useSwr(key, simpleFetcher(key));
   const [purgeTrn, setPurgeTrn] = useState(false);
-  const ccyResponse = useApiFetchHelper(`/api/currencies`, getOptions);
+  const ccyResponse = useSwr(ccyKey, simpleFetcher(ccyKey));
   const { t, ready } = useTranslation("common");
 
-  if (!ready) {
-    return <div />;
+  if (ccyResponse.error) {
+    return errorOut(t("events.error.retrieve"), ccyResponse.error);
   }
+
   if (error) {
-    return (
-      <>
-        <p>{t("error.portfolio.retrieve", { id: router.query.id })}</p>
-        <pre style={{ color: "red" }}>{JSON.stringify(error, null, 2)}</pre>
-      </>
-    );
+    return errorOut(t("events.error.retrieve"), error);
   }
-  if (isLoading || ccyResponse.isLoading) {
-    return (
-      <div id="root" data-testid="loading">
-        {t("loading")}
-      </div>
-    );
+  if (!ready || !data || !ccyResponse.data) {
+    return rootLoader(t("loading"));
   }
-  const portfolio = response.data;
-  const currencies = ccyResponse.response.data;
+  const portfolio = data.data;
+  const currencies = ccyResponse.data.data;
 
   return (
     <div>

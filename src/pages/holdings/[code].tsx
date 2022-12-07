@@ -10,27 +10,23 @@ import Select, { OnChangeValue } from "react-select";
 import { valuationOptions, ValueIn } from "@/types/constants";
 import { Rows } from "@/domain/holdings/Rows";
 import { Header } from "@/domain/holdings/Header";
-import PageLoader from "@/core/common/PageLoader";
+import { rootLoader } from "@/core/common/PageLoader";
 import { useRouter } from "next/router";
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 import { GetServerSideProps } from "next";
 import { useTranslation } from "next-i18next";
 import useSwr from "swr";
+import { holdingKey, simpleFetcher } from "@/core/api/fetchHelper";
+import errorOut from "@/core/errors/ErrorOut";
 
 // import { TrnDropZone } from "../../domain/portfolio/DropZone";
 export default withPageAuthRequired(function Holdings(): React.ReactElement {
   const router = useRouter();
-  const fetcher: () => Promise<any> = async () => {
-    const res = await fetch(`/api/holdings/${router.query.code}`);
-    if (!res.ok) {
-      throw await res.json();
-    }
-
-    return res.json();
-  };
-
-  const { data, error } = useSwr(`/api/holdings/${router.query.code}`, fetcher);
+  const { data, error } = useSwr(
+    holdingKey(`${router.query.code}`),
+    simpleFetcher(holdingKey(`${router.query.code}`))
+  );
   const { t, ready } = useTranslation("common");
   const [valueIn, setValueIn] = useState<ValuationOption>({
     value: ValueIn.PORTFOLIO,
@@ -40,19 +36,10 @@ export default withPageAuthRequired(function Holdings(): React.ReactElement {
   const [groupBy, setGroupBy] = useState<GroupOption>(groupOptions()[defaultGroup]);
 
   if (error && ready) {
-    return (
-      <>
-        <p>{t("holdings.error.retrieve", { code: router.query.code })}</p>
-        <pre style={{ color: "red" }}>{JSON.stringify(error, null, 2)}</pre>
-      </>
-    );
+    return errorOut(t("holdings.error.retrieve", { code: router.query.code }), error);
   }
   if (!data || !ready) {
-    return (
-      <div id="root" data-testid="loading">
-        <PageLoader message={"Crunching data..."} show={true} data-testid={"loading"} />;
-      </div>
-    );
+    return rootLoader("Crunching data...");
   }
   const holdingResults = data.data;
   // Render where we are in the initialization process
