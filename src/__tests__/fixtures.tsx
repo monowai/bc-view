@@ -11,7 +11,6 @@ export const mockUser = {
   sub: "1",
   updated_at: null,
 };
-// https://github.com/auth0-samples/auth0-nextjs-samples/blob/main/Sample-01/tests/fixtures.jsx
 export const withUserProvider = (user: UserProfile = {}) => {
   // eslint-disable-next-line react/display-name
   return (

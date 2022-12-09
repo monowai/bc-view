@@ -159,6 +159,7 @@ interface ValuationOption {
 }
 
 interface SystemUser {
+  id: string;
   active: boolean;
   email: string | undefined;
 }
