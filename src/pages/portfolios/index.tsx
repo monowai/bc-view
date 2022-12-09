@@ -14,7 +14,7 @@ export default withPageAuthRequired(function Portfolios(): React.ReactElement {
   const { t, ready } = useTranslation("common");
   const { data, error } = useSwr(portfoliosKey, simpleFetcher(portfoliosKey));
   if (error) {
-    return errorOut(t("events.error.retrieve"), error);
+    return errorOut(t("portfolios.error.retrieve"), error);
   }
   if (!data || !ready) {
     return rootLoader(t("loading"));
