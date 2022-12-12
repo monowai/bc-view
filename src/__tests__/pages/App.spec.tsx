@@ -22,6 +22,6 @@ describe("<App />", () => {
     expect(heading).toBeInTheDocument();
     expect(screen.getByText("home.portfolios")).toBeInTheDocument();
     expect(screen.getByText("user.logout")).toBeInTheDocument();
-    expect(container).toMatchSnapshot()
+    expect(container).toMatchSnapshot();
   });
 });
