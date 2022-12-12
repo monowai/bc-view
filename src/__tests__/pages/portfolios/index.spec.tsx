@@ -47,14 +47,14 @@ describe("<Portfolios />", () => {
     render(<Portfolios user={mockUser} />, {
       wrapper: withUserProvider({ user: mockUser }),
     });
-    expect (await screen.findByTestId("loading")).toBeInTheDocument()
+    expect(await screen.findByTestId("loading")).toBeInTheDocument();
     await waitForElementToBeRemoved(() => screen.getByTestId("loading"));
     expect(await screen.getByText("portfolio.code")).toBeInTheDocument();
     expect(await screen.getByText("portfolio.name")).toBeInTheDocument();
     expect(await screen.getByText("Test Portfolio")).toBeInTheDocument();
     const codeLink = await screen.getByText("TEST");
     expect(codeLink.toString()).toBe("http://localhost/holdings/TEST");
-    const createButton = await screen.getByText("portfolio.create")
+    const createButton = await screen.getByText("portfolio.create");
     expect(createButton).toBeInTheDocument();
   });
 });
