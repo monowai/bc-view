@@ -1,8 +1,11 @@
 {
   "compilerOptions": {
-    "target": "es2021",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
+    "target": "es2020",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "skipLibCheck": true,
     "strict": true,
     "forceConsistentCasingInFileNames": true,
@@ -16,13 +19,30 @@
     "incremental": true,
     "baseUrl": ".",
     "paths": {
-      "@/pages/*": ["src/pages/*"],
-      "@/domain/*": ["src/domain/*"],
-      "@/core/*": ["src/core/*"],
-      "@/types/*": ["src/core/types/*"],
-      "@/styles/*": ["styles/*"]
-    }
+      "@/pages/*": [
+        "src/pages/*"
+      ],
+      "@/domain/*": [
+        "src/domain/*"
+      ],
+      "@/core/*": [
+        "src/core/*"
+      ],
+      "@/types/*": [
+        "src/core/types/*"
+      ],
+      "@/styles/*": [
+        "styles/*"
+      ]
+    },
+    "allowJs": true
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules"]
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }
