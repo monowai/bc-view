@@ -7,8 +7,8 @@ import { useTranslation } from "next-i18next";
 
 export default function HeaderUserControls(): React.ReactElement {
   const { user, error, isLoading } = useUser();
-  const { t, ready } = useTranslation("common");
-  if (isLoading || !ready) return <div>{t("loading")}</div>;
+  const { t } = useTranslation("common");
+  if (isLoading) return <div>{t("loading")}</div>;
   if (error) return <div>{error.message}</div>;
   if (!user)
     // noinspection HtmlUnknownTarget
