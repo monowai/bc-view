@@ -16,7 +16,7 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
   const router = useRouter();
   const portfolioId = router.query.trades ? router.query.trades[0] : "undefined";
   const assetId = router.query.trades ? router.query.trades[1] : "undefined";
-  const { t, ready } = useTranslation("common");
+  const { t } = useTranslation("common");
   const asset = useSwr(assetKey(assetId), simpleFetcher(assetKey(assetId)));
   const trades = useSwr(
     tradeKey(portfolioId, assetId),
@@ -28,7 +28,11 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
   if (asset.error) {
     return errorOut(t("assets.error.retrieve"), asset.error);
   }
-  if (!ready || !trades.data || !asset.data) {
+  if (asset.isLoading) {
+    return rootLoader(t("loading"));
+  }
+  if (trades.isLoading) {
+    // console.log( `trades: ${trades.isLoading}, asset: ${asset.isLoading}`)
     return rootLoader(t("loading"));
   }
   const trnResults = trades.data.data;
@@ -49,9 +53,9 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
           <table className={"table is-striped is-hoverable"}>
             <thead>
               <tr>
-                <th>Type</th>
-                <th>Currency</th>
-                <th>Trade Date</th>
+                <th>{t("trn.type")}</th>
+                <th>{t("trn.currency")}</th>
+                <th>{t("trn.tradeDate")}</th>
                 <th align={"right"}>Quantity</th>
                 <th align={"right"}>Price</th>
                 <th align={"right"}>Amount</th>

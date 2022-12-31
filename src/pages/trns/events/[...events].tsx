@@ -16,7 +16,7 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
   const router = useRouter();
   const portfolioId = router.query.events ? router.query.events[0] : "undefined";
   const assetId = router.query.events ? router.query.events[1] : "undefined";
-  const { t, ready } = useTranslation("common");
+  const { t } = useTranslation("common");
   const asset = useSwr(assetKey(assetId), simpleFetcher(assetKey(assetId)));
   const events = useSwr(
     eventKey(portfolioId, assetId),
@@ -28,7 +28,10 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
   if (asset.error) {
     return errorOut(t("assets.error.retrieve"), asset.error);
   }
-  if (!ready || !events.data || !asset) {
+  if (asset.isLoading) {
+    return rootLoader(t("loading"));
+  }
+  if (events.isLoading) {
     return rootLoader(t("loading"));
   }
   const trnResults = events.data.data;

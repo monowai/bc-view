@@ -2,3 +2,5 @@ src/__tests__/pages/__snapshots__/
 .next/
 yarn.lock
 coverage
+build
+tsconfig.tsbuildinfo

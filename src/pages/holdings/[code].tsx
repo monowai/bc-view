@@ -23,7 +23,7 @@ import errorOut from "@/core/errors/ErrorOut";
 // import { TrnDropZone } from "../../domain/portfolio/DropZone";
 export default withPageAuthRequired(function Holdings(): React.ReactElement {
   const router = useRouter();
-  const { data, error } = useSwr(
+  const { data, error, isLoading } = useSwr(
     holdingKey(`${router.query.code}`),
     simpleFetcher(holdingKey(`${router.query.code}`))
   );
@@ -38,7 +38,7 @@ export default withPageAuthRequired(function Holdings(): React.ReactElement {
   if (error && ready) {
     return errorOut(t("holdings.error.retrieve", { code: router.query.code }), error);
   }
-  if (!data || !ready) {
+  if (isLoading) {
     return rootLoader("Crunching data...");
   }
   const holdingResults = data.data;

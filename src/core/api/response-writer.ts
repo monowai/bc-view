@@ -29,7 +29,7 @@ export function fetchError(res: NextApiResponse, req: NextApiRequest, error: any
 }
 
 export function hasError(response: Response): boolean {
-  return response.status >= 300;
+  return response.status >= 400;
 }
 
 export default async function handleResponse<T>(
