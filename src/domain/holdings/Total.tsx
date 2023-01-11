@@ -15,8 +15,15 @@ export default function Total({ holdings, valueIn }: HoldingsInCurrency): JSX.El
             <div>Mixed Trade Currencies</div>
           )}
         </td>
-        <td align={"right"}>
+        <td colSpan={1} align={"right"}>
           <FormatValue value={holdings.totals[valueIn].gainOnDay} />
+        </td>
+        <td colSpan={2} align={"right"}>
+          {currencyTotals ? (
+            <FormatValue value={holdings.totals[valueIn].costValue} />
+          ) : (
+            <div>-</div>
+          )}
         </td>
         <td colSpan={2} align={"right"}>
           {currencyTotals ? (
@@ -25,17 +32,9 @@ export default function Total({ holdings, valueIn }: HoldingsInCurrency): JSX.El
             <div>-</div>
           )}
         </td>
-        <td align={"right"}>
+        <td colSpan={1} align={"right"}>
           {currencyTotals ? (
             <FormatValue value={holdings.totals[valueIn].unrealisedGain} />
-          ) : (
-            <div>-</div>
-          )}
-        </td>
-        <td />
-        <td align={"right"}>
-          {currencyTotals ? (
-            <FormatValue value={holdings.totals[valueIn].costValue} />
           ) : (
             <div>-</div>
           )}
