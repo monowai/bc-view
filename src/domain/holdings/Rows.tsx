@@ -9,7 +9,6 @@ export function Rows({ portfolio, holdingGroup, groupBy, valueIn }: HoldingValue
   function hideValue(asset: Asset, priceData: PriceData | undefined): boolean {
     return isCash(asset) || !priceData;
   }
-
   // eslint-disable-next-line complexity
   const holdings = holdingGroup.positions.map(
     ({ asset, moneyValues, quantityValues, dateValues }, index) => (
@@ -62,6 +61,16 @@ export function Rows({ portfolio, holdingGroup, groupBy, valueIn }: HoldingValue
           {/*)}*/}
         </td>
         <td align={"right"}>
+          <FormatValue value={moneyValues[valueIn].costValue} />
+        </td>
+        <td align={"right"}>
+          {hideValue(asset, moneyValues[valueIn]) ? (
+            " "
+          ) : (
+            <FormatValue value={moneyValues[valueIn].averageCost} />
+          )}
+        </td>
+        <td align={"right"}>
           <Link href={`/trns/trades`} as={`/trns/trades/${portfolio.id}/${asset.id}`}>
             <FormatValue value={moneyValues[valueIn].marketValue} defaultValue="0" />
           </Link>
@@ -71,16 +80,6 @@ export function Rows({ portfolio, holdingGroup, groupBy, valueIn }: HoldingValue
         </td>
         <td align={"right"}>
           <FormatValue value={moneyValues[valueIn].weight} multiplier={100} />%
-        </td>
-        <td align={"right"}>
-          <FormatValue value={moneyValues[valueIn].costValue} />
-        </td>
-        <td align={"right"}>
-          {hideValue(asset, moneyValues[valueIn]) ? (
-            " "
-          ) : (
-            <FormatValue value={moneyValues[valueIn].averageCost} />
-          )}
         </td>
         <td align={"right"}>
           {

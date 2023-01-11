@@ -12,11 +12,11 @@ export function Header({ groupKey }: GroupKey): JSX.Element {
         <th align={"right"}>{t("asset.change")}</th>
         <th align={"right"}>{t("gain.onday")}</th>
         <th align={"right"}>{t("quantity")}</th>
+        <th align={"right"}>{t("cost")}</th>
+        <th align={"right"}>{t("cost.avg")}</th>
         <th align={"right"}>{t("summary.value")}</th>
         <th align={"right"}>{t("gain.unrealised")}</th>
         <th align={"right"}>{t("weight")}</th>
-        <th align={"right"}>{t("cost")}</th>
-        <th align={"right"}>{t("cost.avg")}</th>
         <th align={"right"}>{t("summary.dividends")}</th>
         <th align={"right"}>{t("gain.realised")}</th>
         <th align={"right"}>{t("gain")}</th>
