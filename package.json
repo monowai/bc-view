@@ -13,7 +13,7 @@
   "dependencies": {
     "@auth0/nextjs-auth0": "^2",
     "@creativebulma/bulma-tooltip": "^1.2.0",
-    "@fortawesome/fontawesome-free": "^6.0.0",
+    "@fortawesome/fontawesome-free": "^6.3.0",
     "@serverless-jwt/next": "^0.2.1",
     "bulma": "^0.9.3",
     "bulma-pageloader": "^0.3.0",
