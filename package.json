@@ -35,7 +35,7 @@
     "react-select": "^5.7",
     "react-switch": "^7.0.0",
     "swr": "^2.0.3",
-    "yup": "^0.32.11"
+    "yup": "^1.0.0"
   },
   "devDependencies": {
     "@hookform/resolvers": "^2.9",
