@@ -5,7 +5,7 @@ orbs:
 jobs:
   build-view:
     docker:
-      - image: circleci/node:14
+      - image: cimg/node:18.14
     environment:
       IMAGE_NAME: bc-view
     steps:
