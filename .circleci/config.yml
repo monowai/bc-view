@@ -39,12 +39,9 @@ jobs:
       - run:
           name: Package BC-VIEW
           command: |
-            docker build --build-arg BC_POSITION=http://position:9500/api --build-arg BC_DATA=http://data:9510/api --build-arg KAFKA_URL=kafka:9092 ~/project/. -t monowai/$IMAGE_NAME-demo:latest
-            docker build --build-arg BC_POSITION=http://bc-position:9700/api --build-arg BC_DATA=http://bc-data:9710/api --build-arg KAFKA_URL=kafka:9092 ~/project/. -t monowai/$IMAGE_NAME:latest
-            docker tag monowai/$IMAGE_NAME-demo:latest monowai/$IMAGE_NAME-demo:${CIRCLE_BUILD_NUM}
-            docker tag monowai/$IMAGE_NAME:latest monowai/$IMAGE_NAME:${CIRCLE_BUILD_NUM}
-            docker save -o ~/project/$IMAGE_NAME-demo.tar monowai/$IMAGE_NAME-demo
-            docker save -o ~/project/$IMAGE_NAME.tar monowai/$IMAGE_NAME
+            docker buildx build --push --platform linux/arm/v7,linux/arm64/v8,linux/amd64 ~/project/. -t "monowai/$IMAGE_NAME-demo:latest"
+            #docker tag monowai/$IMAGE_NAME:latest monowai/$IMAGE_NAME:${CIRCLE_BUILD_NUM}
+            #docker save -o ~/project/$IMAGE_NAME.tar monowai/$IMAGE_NAME
       - persist_to_workspace:
           root: ~/project
           paths:
