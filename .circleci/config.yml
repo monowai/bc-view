@@ -36,44 +36,26 @@ jobs:
           path: reports/junit
       - setup_remote_docker:
           version: 20.10.14
-      - run:
-          name: Package BC-VIEW
-          command: |
-            docker build --build-arg BC_POSITION=http://position:9500/api --build-arg BC_DATA=http://data:9510/api --build-arg KAFKA_URL=kafka:9092 ~/project/. -t monowai/$IMAGE_NAME-demo:latest
-            docker build --build-arg BC_POSITION=http://bc-position:9700/api --build-arg BC_DATA=http://bc-data:9710/api --build-arg KAFKA_URL=kafka:9092 ~/project/. -t monowai/$IMAGE_NAME:latest
-            docker tag monowai/$IMAGE_NAME-demo:latest monowai/$IMAGE_NAME-demo:${CIRCLE_BUILD_NUM}
-            docker tag monowai/$IMAGE_NAME:latest monowai/$IMAGE_NAME:${CIRCLE_BUILD_NUM}
-            docker save -o ~/project/$IMAGE_NAME-demo.tar monowai/$IMAGE_NAME-demo
-            docker save -o ~/project/$IMAGE_NAME.tar monowai/$IMAGE_NAME
-      - persist_to_workspace:
-          root: ~/project
-          paths:
-            - ./bc-view.tar
+      - when:
+          condition:
+            equal: [ master, << pipeline.git.branch >> ]
+          steps:
+            - run:
+                name: Package BC-VIEW
+                command: |
+                  docker buildx create --use
+                  docker buildx inspect
+                  docker run --rm --privileged tonistiigi/binfmt --install arm64
+                  echo "$DOCKER_PASS" | docker login -u $DOCKER_USER --password-stdin
+                  docker buildx build --push \
+                                      --platform linux/arm64/v8,linux/amd64 \
+                                      -t "monowai/$IMAGE_NAME:latest" \
+                                       ~/project/.
 
-  docker-publish:
-    docker:
-      - image: circleci/buildpack-deps:stretch
 
-    steps:
-      - attach_workspace:
-          at: /tmp/workspace
-      - setup_remote_docker
-      - run:
-          name: Publish VIEW
-          command: |
-            echo "$DOCKER_PASS" | docker login -u $DOCKER_USER --password-stdin
-            test -f /tmp/workspace/bc-view.tar
-            docker load -i /tmp/workspace/bc-view.tar
-            docker push monowai/bc-view
 
 workflows:
   version: 2
   build_and_stage:
     jobs:
       - build-view
-      - docker-publish:
-          filters:
-            branches:
-              only: master
-          requires:
-            - build-view
