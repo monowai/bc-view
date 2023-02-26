@@ -46,6 +46,7 @@ jobs:
                   docker buildx create --use
                   docker buildx inspect
                   docker run --rm --privileged tonistiigi/binfmt --install arm64
+                  echo "$DOCKER_PASS" | docker login -u $DOCKER_USER --password-stdin
                   docker buildx build --push \
                                       --platform linux/arm64/v8,linux/amd64 \
                                       -t "monowai/$IMAGE_NAME:latest" \
