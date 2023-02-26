@@ -44,8 +44,8 @@ jobs:
             echo "$DOCKER_PASS" | docker login --username $DOCKER_USER --password-stdin
             docker buildx build --push \ 
                                 --platform linux/arm/v7,linux/arm64/v8,linux/amd64 \
-                                --tag "monowai/$IMAGE_NAME-demo:latest" \
-                                ~/project/. 
+                                ~/project/. \
+                                -t "monowai/$IMAGE_NAME-demo:latest" 
 
       - persist_to_workspace:
           root: ~/project
