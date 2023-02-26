@@ -40,8 +40,6 @@ jobs:
       - image: circleci/buildpack-deps:stretch
 
     steps:
-      - attach_workspace:
-          at: /tmp/workspace
       - setup_remote_docker
       - run:
           name: Publish VIEW
