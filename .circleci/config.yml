@@ -34,32 +34,27 @@ jobs:
           path: reports/junit
       - store_artifacts:
           path: reports/junit
+      - setup_remote_docker:
+          version: 20.10.14
+      - when:
+          condition:
+            equal: [ multi-arch-build, << pipeline.git.branch >> ]
+            steps:
+              - run:
+                  name: Package BC-VIEW
+                  command: |
+                    docker buildx create --use
+                    docker buildx inspect
+                    #docker run --rm --privileged tonistiigi/binfmt --install arm64
+                    docker buildx build --push \
+                                        --platform linux/arm/v7,linux/arm64/v8,linux/amd64 \
+                                        -t "monowai/$IMAGE_NAME:latest" \
+                                         ~/project/.
 
-  docker-publish:
-    docker:
-      - image: circleci/buildpack-deps:stretch
 
-    steps:
-      - setup_remote_docker
-      - run:
-          name: Publish VIEW
-          command: |
-            docker buildx create --use
-            docker buildx inspect
-            #docker run --rm --privileged tonistiigi/binfmt --install arm64
-            docker buildx build --push \
-                                --platform linux/arm/v7,linux/arm64/v8,linux/amd64 \
-                                -t "monowai/$IMAGE_NAME:latest" \
-                                 ~/project/.
 
 workflows:
   version: 2
   build_and_stage:
     jobs:
       - build-view
-      - docker-publish:
-          filters:
-            branches:
-              only: multi-arch-build
-          requires:
-            - build-view
