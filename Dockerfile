@@ -25,7 +25,7 @@ RUN yarn build
 # Production image, copy all the files and run next
 FROM node:18-alpine AS runner
 WORKDIR /app
-
+RUN apk add --no-cache libc6-compat
 ENV NODE_ENV production
 ENV KAFKA_URL ${KAFKA_URL}
 # Uncomment the following line in case you want to disable telemetry during runtime.
