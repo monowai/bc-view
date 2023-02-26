@@ -63,6 +63,6 @@ workflows:
       - docker-publish:
           filters:
             branches:
-              only: master
+              only: master,multi-arch-build
           requires:
             - build-view
