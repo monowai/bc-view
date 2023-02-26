@@ -47,7 +47,7 @@ jobs:
                   docker buildx inspect
                   docker run --rm --privileged tonistiigi/binfmt --install arm64
                   docker buildx build --push \
-                                      --platform linux/arm/v7,linux/arm64/v8,linux/amd64 \
+                                      --platform linux/arm64/v8,linux/amd64 \
                                       -t "monowai/$IMAGE_NAME:latest" \
                                        ~/project/.
 
