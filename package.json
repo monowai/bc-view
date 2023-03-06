@@ -34,7 +34,7 @@
     "react-number-format": "^5.1.0",
     "react-select": "^5.7",
     "react-switch": "^7.0.0",
-    "swr": "^2.0.3",
+    "swr": "^2.1.0",
     "yup": "^1.0.0"
   },
   "devDependencies": {
