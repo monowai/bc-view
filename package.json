@@ -40,7 +40,7 @@
   "devDependencies": {
     "@hookform/resolvers": "^2.9",
     "@testing-library/jest-dom": "^5.16.4",
-    "@testing-library/react": "^13.4",
+    "@testing-library/react": "^14.0",
     "@testing-library/user-event": "^14.4.3",
     "@types/cors": "^2.8.13",
     "@types/i18next": "^13.0.0",
