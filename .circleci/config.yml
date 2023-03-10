@@ -38,7 +38,7 @@ jobs:
           version: 20.10.14
       - when:
           condition:
-            equal: [ master, << pipeline.git.branch >> ]
+            equal: [master, << pipeline.git.branch >>]
           steps:
             - run:
                 name: Package BC-VIEW
@@ -51,8 +51,6 @@ jobs:
                                       --platform linux/arm64/v8,linux/amd64 \
                                       -t "monowai/$IMAGE_NAME:latest" \
                                        ~/project/.
-
-
 
 workflows:
   version: 2
