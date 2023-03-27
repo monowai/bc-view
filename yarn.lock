@@ -16,9 +16,9 @@
     "@jridgewell/trace-mapping" "^0.3.9"
 
 "@auth0/nextjs-auth0@^2":
-  version "2.2.2"
-  resolved "https://registry.yarnpkg.com/@auth0/nextjs-auth0/-/nextjs-auth0-2.2.2.tgz#5fac070c402136af968df32a9deb57bf4e7f3d99"
-  integrity sha512-Vo85dFzB9qAwoqxv32uEHo4aaBpb0x5kMnDTT4a2GMX3Hsw8RJOrnrCVdCcNXdQolLOHAA9huK7RMQqLEzInYg==
+  version "2.4.0"
+  resolved "https://registry.yarnpkg.com/@auth0/nextjs-auth0/-/nextjs-auth0-2.4.0.tgz#bdfc13aed1d78829d728600864c916c9ecb2ec2f"
+  integrity sha512-5pjFp9sp1kRXtpuStBG3qZlmxlF9dUg6pp6AjAvNuaBgdDIOCOT0jKW2eQcnm99gWZGjv6+VsC9qwjvvRT7RaA==
   dependencies:
     "@panva/hkdf" "^1.0.2"
     cookie "^0.5.0"
