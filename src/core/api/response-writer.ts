@@ -4,7 +4,12 @@ import { BcApiError } from "@/core/errors/bcApiError";
 export async function handleErrors(response: Response): Promise<void> {
   const result: BcApiError = await response.json();
   if (response.status == 401 || response.status == 403) {
-    throw new BcApiError(response.status, "Auth error", response.statusText, result.path);
+    throw new BcApiError(
+      response.status,
+      "Auth error",
+      response.statusText,
+      result.path
+    );
   } else {
     throw new BcApiError(
       response.status,
@@ -16,7 +21,11 @@ export async function handleErrors(response: Response): Promise<void> {
   }
 }
 
-export function fetchError(res: NextApiResponse, req: NextApiRequest, error: any): void {
+export function fetchError(
+  res: NextApiResponse,
+  req: NextApiRequest,
+  error: any
+): void {
   const apiError = new BcApiError(
     error.statusCode,
     error.message,

@@ -4,7 +4,10 @@ import { TransactionImport } from "@/types/beancounter";
 import { DelimitedImport } from "@/types/app";
 import Papa from "papaparse";
 
-export function TrnDropZone({ portfolio, purge }: TransactionImport): React.ReactElement {
+export function TrnDropZone({
+  portfolio,
+  purge,
+}: TransactionImport): React.ReactElement {
   // https://github.com/react-dropzone/react-dropzone
   const onDrop = useCallback(
     (acceptedFiles: Blob[]) => {

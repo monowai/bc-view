@@ -66,7 +66,9 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
                 </div>
               </div>
               <div className="field">
-                <label className="label">{t("portfolio.currency.reporting")}</label>
+                <label className="label">
+                  {t("portfolio.currency.reporting")}
+                </label>
                 <div className="control">
                   <select
                     placeholder={"Select currency"}
@@ -79,7 +81,9 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
                 </div>
               </div>
               <div className="field">
-                <label className="label">{t("portfolio.currency.base.label")}</label>
+                <label className="label">
+                  {t("portfolio.currency.base.label")}
+                </label>
                 <div className="control">
                   <select
                     placeholder={"Select currency"}
@@ -109,7 +113,9 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
                 <div>
                   <div className="control">
                     <button className="button is-link is-light">
-                      <Link href={`/holdings/${portfolio.code}`}>{t("form.holdings")}</Link>
+                      <Link href={`/holdings/${portfolio.code}`}>
+                        {t("form.holdings")}
+                      </Link>
                     </button>
                   </div>
                 </div>

@@ -14,7 +14,9 @@ import useSwr from "swr";
 
 export default withPageAuthRequired(function Events(): React.ReactElement {
   const router = useRouter();
-  const portfolioId = router.query.trades ? router.query.trades[0] : "undefined";
+  const portfolioId = router.query.trades
+    ? router.query.trades[0]
+    : "undefined";
   const assetId = router.query.trades ? router.query.trades[1] : "undefined";
   const { t } = useTranslation("common");
   const asset = useSwr(assetKey(assetId), simpleFetcher(assetKey(assetId)));

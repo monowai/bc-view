@@ -1,4 +1,9 @@
-import { HoldingContract, Holdings, MoneyValues, Position } from "@/types/beancounter";
+import {
+  HoldingContract,
+  Holdings,
+  MoneyValues,
+  Position,
+} from "@/types/beancounter";
 import { GroupBy } from "@/types/groupBy";
 import { ValueIn } from "@/types/constants";
 import { isCash } from "@/domain/assets/assetUtils";
@@ -6,10 +11,17 @@ import { isCash } from "@/domain/assets/assetUtils";
 function getPath(path: string, position: Position): string {
   return path
     .split(".")
-    .reduce((p, path: string) => (p && p[path]) || "undefined", position) as unknown as string;
+    .reduce(
+      (p, path: string) => (p && p[path]) || "undefined",
+      position
+    ) as unknown as string;
 }
 
-function total(total: MoneyValues, position: Position, valueIn: ValueIn): MoneyValues {
+function total(
+  total: MoneyValues,
+  position: Position,
+  valueIn: ValueIn
+): MoneyValues {
   if (!total) {
     total = {
       costValue: 0,
@@ -26,7 +38,13 @@ function total(total: MoneyValues, position: Position, valueIn: ValueIn): MoneyV
       weight: 0,
       costBasis: 0,
       gainOnDay: 0,
-      priceData: { close: 0, change: 0, changePercent: 0, priceDate: "", previousClose: 0 },
+      priceData: {
+        close: 0,
+        change: 0,
+        changePercent: 0,
+        priceDate: "",
+        previousClose: 0,
+      },
       valueIn: valueIn,
       averageCost: 0,
       currency: position.moneyValues[valueIn].currency,
@@ -48,7 +66,11 @@ function total(total: MoneyValues, position: Position, valueIn: ValueIn): MoneyV
   return total;
 }
 
-function subTotal(totals: MoneyValues[], position: Position, valueIn: ValueIn): MoneyValues[] {
+function subTotal(
+  totals: MoneyValues[],
+  position: Position,
+  valueIn: ValueIn
+): MoneyValues[] {
   if (!totals) {
     totals = [];
   }
@@ -66,7 +88,9 @@ export function calculate(
 ): Holdings {
   return Object.keys(contract.positions)
     .filter((positionKey) =>
-      hideEmpty ? contract.positions[positionKey].quantityValues.total !== 0 : true
+      hideEmpty
+        ? contract.positions[positionKey].quantityValues.total !== 0
+        : true
     )
     .reduce(
       (results: Holdings, group) => {
@@ -94,7 +118,11 @@ export function calculate(
           );
         }
 
-        results.totals[ValueIn.BASE] = total(results.totals[ValueIn.BASE], position, ValueIn.BASE);
+        results.totals[ValueIn.BASE] = total(
+          results.totals[ValueIn.BASE],
+          position,
+          ValueIn.BASE
+        );
         results.holdingGroups[groupKey].subTotals = subTotal(
           results.holdingGroups[groupKey].subTotals,
           position,

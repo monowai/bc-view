@@ -33,17 +33,27 @@ export default withPageAuthRequired(function Holdings(): React.ReactElement {
     label: "Portfolio",
   });
   const [hideEmpty, setHideEmpty] = useState<boolean>(true);
-  const [groupBy, setGroupBy] = useState<GroupOption>(groupOptions()[defaultGroup]);
+  const [groupBy, setGroupBy] = useState<GroupOption>(
+    groupOptions()[defaultGroup]
+  );
 
   if (error && ready) {
-    return errorOut(t("holdings.error.retrieve", { code: router.query.code }), error);
+    return errorOut(
+      t("holdings.error.retrieve", { code: router.query.code }),
+      error
+    );
   }
   if (isLoading) {
     return rootLoader("Crunching data...");
   }
   const holdingResults = data.data;
   // Render where we are in the initialization process
-  const holdings = calculate(holdingResults, hideEmpty, valueIn.value, groupBy.value) as Holdings;
+  const holdings = calculate(
+    holdingResults,
+    hideEmpty,
+    valueIn.value,
+    groupBy.value
+  ) as Holdings;
   return (
     <div className="page-box">
       <div className="filter-columns">

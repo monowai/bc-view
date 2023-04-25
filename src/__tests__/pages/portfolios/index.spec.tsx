@@ -1,5 +1,9 @@
 import React from "react";
-import { screen, render, waitForElementToBeRemoved } from "@testing-library/react";
+import {
+  screen,
+  render,
+  waitForElementToBeRemoved,
+} from "@testing-library/react";
 import { mockUser, withUserProvider } from "../../fixtures";
 import Portfolios from "@/pages/portfolios";
 import fetchMock from "jest-fetch-mock";

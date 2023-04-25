@@ -6,26 +6,34 @@ export const trnEditSchema = yup.object().shape({
   cashCurrency: yup.string(),
   quantity: yup
     .number()
-    .test("quantity", "Quantity can only have 5 digits or less after decimal", (value) =>
-      /^\d+(\.\d{1,5})?$/.test("" + value)
+    .test(
+      "quantity",
+      "Quantity can only have 5 digits or less after decimal",
+      (value) => /^\d+(\.\d{1,5})?$/.test("" + value)
     ),
 
   tradeAmount: yup
     .number()
-    .test("tradeAmount", "Trade amount can only have 2 digits or less after decimal", (value) =>
-      /^\d+(\.\d{1,2})?$/.test("" + value)
+    .test(
+      "tradeAmount",
+      "Trade amount can only have 2 digits or less after decimal",
+      (value) => /^\d+(\.\d{1,2})?$/.test("" + value)
     ),
 
   cashAmount: yup
     .number()
-    .test("cashAmount", "Cash amount can only have 2 digits or less after decimal", (value) =>
-      /^-?\d+(\.\d{1,2})?$/.test("" + value)
+    .test(
+      "cashAmount",
+      "Cash amount can only have 2 digits or less after decimal",
+      (value) => /^-?\d+(\.\d{1,2})?$/.test("" + value)
     ),
 
   fees: yup
     .number()
-    .test("fees", "Fees can only have 2 digits or less after decimal", (value) =>
-      /^\d+(\.\d{1,2})?$/.test("" + value)
+    .test(
+      "fees",
+      "Fees can only have 2 digits or less after decimal",
+      (value) => /^\d+(\.\d{1,2})?$/.test("" + value)
     ),
   tax: yup
     .number()
@@ -35,8 +43,10 @@ export const trnEditSchema = yup.object().shape({
 
   price: yup
     .number()
-    .test("price", "Price can only have 4 digits or less after decimal", (value) =>
-      /^\d+(\.\d{1,4})?$/.test("" + value)
+    .test(
+      "price",
+      "Price can only have 4 digits or less after decimal",
+      (value) => /^\d+(\.\d{1,4})?$/.test("" + value)
     ),
   tradeBaseRate: yup
     .number()

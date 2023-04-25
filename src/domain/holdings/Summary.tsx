@@ -21,7 +21,11 @@ export default function SummaryHeader(portfolio: Portfolio): JSX.Element {
   );
 }
 
-export function SummaryRow({ portfolio, moneyValues, valueIn }: PortfolioSummary): JSX.Element {
+export function SummaryRow({
+  portfolio,
+  moneyValues,
+  valueIn,
+}: PortfolioSummary): JSX.Element {
   const holdingValue = moneyValues[valueIn];
   const currencyTotals = holdingValue !== undefined;
   return (
@@ -30,7 +34,10 @@ export function SummaryRow({ portfolio, moneyValues, valueIn }: PortfolioSummary
         <td>
           <div className="left-cell">
             <Link href={`/portfolios/${portfolio.id}`} passHref>
-              <span className={"has-tooltip-right"} data-tooltip={portfolio.name}>
+              <span
+                className={"has-tooltip-right"}
+                data-tooltip={portfolio.name}
+              >
                 {portfolio.code.toUpperCase()} {": "}
               </span>
             </Link>
