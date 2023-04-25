@@ -11,22 +11,21 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
   const { t } = useTranslation("common");
   if (isLoading) return rootLoader(t("loading"));
   if (error) return <div>{error.message}</div>;
-  if (!user) {
+  if (user) {
     // noinspection HtmlUnknownTarget
-    return <Link href="/api/auth/login">{t("user.login")}</Link>;
+    return (
+      <div>
+        {t("home.welcome")}
+        <div>
+          <Link href="/portfolios">{t("home.portfolios")}</Link>
+        </div>
+        <div>
+          <Link href="/api/auth/logout">{t("user.logout")}</Link>
+        </div>
+      </div>
+    );
   }
-  // noinspection HtmlUnknownTarget
-  return (
-    <div>
-      {t("home.welcome")}
-      <div>
-        <Link href="/portfolios">{t("home.portfolios")}</Link>
-      </div>
-      <div>
-        <Link href="/api/auth/logout">{t("user.logout")}</Link>
-      </div>
-    </div>
-  );
+  return <Link href={"/api/auth/login"}>{t("user.login")}</Link>;
 });
 
 export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({

@@ -1,8 +1,9 @@
 import { handleAuth, handleLogin } from "@auth0/nextjs-auth0";
 import { fetchError } from "@/core/api/response-writer";
 
-// https://community.auth0.com/t/
-// accesstokenerror-could-not-retrieve-an-access-token-with-scopes-openid-profile-email/61745/20
+/*
+ https://community.auth0.com/t/accesstokenerror-could-not-retrieve-an-access-token-with-scopes-openid-profile-email/61745/20
+ */
 export default handleAuth({
   async login(req, res) {
     try {
