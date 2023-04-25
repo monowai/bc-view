@@ -25,6 +25,8 @@ export const tradeKey = (portfolioId: string, assetId: string): string =>
 export const eventKey = (portfolioId: string, assetId: string): string =>
   `/api/trns/events/${portfolioId}/${assetId}`;
 
-export const holdingKey = (portfolioCode: string): string => `/api/holdings/${portfolioCode}`;
+export const holdingKey = (portfolioCode: string): string =>
+  `/api/holdings/${portfolioCode}`;
 
-export const portfolioKey = (portfolioId: string): string => `${portfoliosKey}/${portfolioId}`;
+export const portfolioKey = (portfolioId: string): string =>
+  `${portfoliosKey}/${portfolioId}`;

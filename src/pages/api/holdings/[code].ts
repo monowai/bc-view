@@ -14,7 +14,10 @@ export default withApiAuthRequired(async function holdingsByCode(req, res) {
       query: { code },
     } = req;
     console.log(`Looking up holdings ${code}`);
-    const response = await fetch(`${baseUrl}/${code}/today`, headerRequest(accessToken));
+    const response = await fetch(
+      `${baseUrl}/${code}/today`,
+      headerRequest(accessToken)
+    );
     await handleResponse<HoldingContract>(response, res);
   } catch (error: any) {
     fetchError(res, req, error);

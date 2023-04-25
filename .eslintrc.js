@@ -1,13 +1,7 @@
 module.exports = {
   parser: "@typescript-eslint/parser", // Specifies the ESLint parser
-  extends: [
-    "prettier",
-    "eslint:recommended",
-    "plugin:react/recommended",
-    "plugin:@typescript-eslint/recommended",
-    "plugin:@next/next/recommended",
-  ],
   plugins: ["@typescript-eslint", "react-hooks"],
+  extends: ["plugin:@next/next/recommended"],
   settings: {
     react: {
       version: "detect",
@@ -23,22 +17,27 @@ module.exports = {
   },
 
   rules: {
-    "react/react-in-jsx-scope": "off",
-    "react/no-multi-comp": 0,
-    "react/jsx-uses-vars": "warn",
-    "@typescript-eslint/ban-ts-comment": "warn",
     strict: "error",
-    "@typescript-eslint/explicit-member-accessibility": [1, { accessibility: "no-public" }],
-    "react/jsx-sort-default-props": ["error", { ignoreCase: false }],
+    "react/no-multi-comp": 0,
+    "@typescript-eslint/ban-ts-comment": "warn",
+    "@typescript-eslint/explicit-member-accessibility": [
+      1,
+      { accessibility: "no-public" },
+    ],
     "max-len": [
       "error",
       {
-        code: 100,
+        comments: 100,
+        code: 90,
       },
     ],
     "require-await": "error",
     "no-func-assign": "error",
-    "object-shorthand": ["error", "methods", { avoidExplicitReturnArrows: false }],
+    "object-shorthand": [
+      "error",
+      "methods",
+      { avoidExplicitReturnArrows: false },
+    ],
     "prefer-const": [
       "error",
       {

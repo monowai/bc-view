@@ -2,7 +2,10 @@ import { HoldingsInCurrency } from "@/types/beancounter";
 import React from "react";
 import { FormatValue } from "@/core/common/MoneyUtils";
 
-export default function Total({ holdings, valueIn }: HoldingsInCurrency): JSX.Element {
+export default function Total({
+  holdings,
+  valueIn,
+}: HoldingsInCurrency): JSX.Element {
   if (!holdings.totals[valueIn]) return <div />;
   const currencyTotals = holdings.totals[valueIn] !== undefined;
   return (

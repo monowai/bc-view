@@ -2,7 +2,11 @@ import React from "react";
 import { GroupedSubtotals } from "@/types/beancounter";
 import { FormatValue } from "@/core/common/MoneyUtils";
 
-export function SubTotal({ groupBy, subTotals, valueIn }: GroupedSubtotals): JSX.Element {
+export function SubTotal({
+  groupBy,
+  subTotals,
+  valueIn,
+}: GroupedSubtotals): JSX.Element {
   return (
     <tbody className={"holding-totals-row"}>
       <tr key={groupBy} className={"holding-footer"}>

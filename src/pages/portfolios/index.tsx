@@ -51,7 +51,9 @@ export default withPageAuthRequired(function Portfolios(): React.ReactElement {
                 {portfolios.map((portfolio) => (
                   <tr key={portfolio.id}>
                     <td>
-                      <Link href={`/holdings/${portfolio.code}`}>{portfolio.code}</Link>
+                      <Link href={`/holdings/${portfolio.code}`}>
+                        {portfolio.code}
+                      </Link>
                     </td>
                     <td>{portfolio.name}</td>
                     <td>
@@ -63,7 +65,10 @@ export default withPageAuthRequired(function Portfolios(): React.ReactElement {
                       {portfolio.base.code}
                     </td>
                     <td>
-                      <Link href={`/portfolios/${portfolio.id}`} className="far fa-edit"></Link>
+                      <Link
+                        href={`/portfolios/${portfolio.id}`}
+                        className="far fa-edit"
+                      ></Link>
                       <span> </span>
                       <Link
                         href={`/portfolios/${portfolio.id}/delete`}

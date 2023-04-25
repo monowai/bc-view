@@ -12,7 +12,6 @@ export const mockUser = {
   updated_at: null,
 };
 export const withUserProvider = (user: UserProfile = {}) => {
-  // eslint-disable-next-line react/display-name
   return (
     props: JSX.IntrinsicAttributes & {
       user?: UserProfile | undefined;

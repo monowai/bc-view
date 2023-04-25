@@ -14,7 +14,12 @@ export default function Profile(): JSX.Element {
 
   return (
     <div>
-      <Image src={user.picture as string} alt={user.name as string} width={500} height={500} />
+      <Image
+        src={user.picture as string}
+        alt={user.name as string}
+        width={500}
+        height={500}
+      />
       <h2>{user.name}</h2>
       <p>{user.email}</p>
     </div>
