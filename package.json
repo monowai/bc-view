@@ -39,7 +39,7 @@
   },
   "devDependencies": {
     "@hookform/resolvers": "^2.9",
-    "@next/eslint-plugin-next": "^13.3.1",
+    "@next/eslint-plugin-next": "^13.3.4",
     "@testing-library/jest-dom": "^5.16.4",
     "@testing-library/react": "^13.4",
     "@testing-library/user-event": "^14.4.3",
