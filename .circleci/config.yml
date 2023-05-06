@@ -50,6 +50,7 @@ jobs:
                   docker buildx build --push \
                                       --platform linux/arm64/v8,linux/amd64 \
                                       -t "monowai/$IMAGE_NAME:latest" \
+                                      -t "monowai/$IMAGE_NAME:${CIRCLE_BUILD_NUM}" \
                                        ~/project/.
 
 workflows:
