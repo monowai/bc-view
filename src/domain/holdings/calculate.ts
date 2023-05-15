@@ -6,7 +6,7 @@ import {
 } from "@/types/beancounter";
 import { GroupBy } from "@/types/groupBy";
 import { ValueIn } from "@/types/constants";
-import { isCash } from "@/domain/assets/assetUtils";
+import {isCashRelated} from "@/domain/assets/assetUtils";
 
 function getPath(path: string, position: Position): string {
   return path
@@ -56,7 +56,7 @@ function total(
   total.realisedGain += position.moneyValues[valueIn].realisedGain;
   total.unrealisedGain += position.moneyValues[valueIn].unrealisedGain;
   total.totalGain += position.moneyValues[valueIn].totalGain;
-  if (isCash(position.asset)) {
+  if (isCashRelated(position.asset)) {
     total.cash += position.moneyValues[valueIn].marketValue;
   } else {
     total.purchases += position.moneyValues[valueIn].purchases;
