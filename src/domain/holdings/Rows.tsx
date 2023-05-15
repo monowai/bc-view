@@ -2,7 +2,7 @@ import { Asset, HoldingValues, PriceData } from "@/types/beancounter";
 import { NumericFormat } from "react-number-format";
 import { FormatValue } from "@/core/common/MoneyUtils";
 import React from "react";
-import { assetName, isCash } from "@/domain/assets/assetUtils";
+import {assetName, isCashRelated} from "@/domain/assets/assetUtils";
 import Link from "next/link";
 
 export function Rows({
@@ -12,7 +12,7 @@ export function Rows({
   valueIn,
 }: HoldingValues): JSX.Element {
   function hideValue(asset: Asset, priceData: PriceData | undefined): boolean {
-    return isCash(asset) || !priceData;
+    return isCashRelated(asset) || !priceData;
   }
   // eslint-disable-next-line complexity
   const holdings = holdingGroup.positions.map(
@@ -20,7 +20,9 @@ export function Rows({
       <tr key={groupBy + index} className={"holding-row"}>
         <td className={"asset"}>{assetName(asset)}</td>
         <td className={"price"} align={"right"}>
-          {
+          {hideValue(asset, moneyValues[valueIn].priceData) ? (
+            " "
+            ) :
             <span
               data-tooltip={
                 moneyValues[valueIn].priceData
@@ -61,16 +63,22 @@ export function Rows({
           )}
         </td>
         <td align={"right"}>
-          <FormatValue value={moneyValues[valueIn].gainOnDay} />
+          {hideValue(asset, moneyValues[valueIn].priceData) ? (
+            " "
+          ) : (
+          <FormatValue value={moneyValues[valueIn].gainOnDay} />)}
         </td>
         <td align={"right"}>
-          <NumericFormat
+          {hideValue(asset, moneyValues[valueIn].priceData) ? (
+            " "
+          ) : (
+            <NumericFormat
             value={quantityValues.total}
             displayType={"text"}
             decimalScale={quantityValues.precision}
             fixedDecimalScale={true}
             thousandSeparator={true}
-          />
+          />)}
           {/*)}*/}
         </td>
         <td align={"right"}>

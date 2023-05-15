@@ -62,6 +62,8 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                 <th align={"right"}>Price</th>
                 <th align={"right"}>Amount</th>
                 <th align={"right"}>T/B Rate</th>
+                <th align={"right"}>T/C Rate</th>
+                <th align={"right"}>T/P Rate</th>
                 <th align={"right"}>Cash</th>
                 <th align={"right"}>Tax</th>
                 <th align={"right"}>Charges</th>
@@ -105,11 +107,30 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                     <NumericFormat
                       value={trn.tradeBaseRate}
                       displayType={"text"}
-                      decimalScale={2}
+                      decimalScale={4}
                       fixedDecimalScale={true}
                       thousandSeparator={true}
                     />
                   </td>
+                  <td align={"right"}>
+                    <NumericFormat
+                      value={trn.tradeCashRate}
+                      displayType={"text"}
+                      decimalScale={4}
+                      fixedDecimalScale={true}
+                      thousandSeparator={true}
+                    />
+                  </td>
+                  <td align={"right"}>
+                    <NumericFormat
+                      value={trn.tradePortfolioRate}
+                      displayType={"text"}
+                      decimalScale={4}
+                      fixedDecimalScale={true}
+                      thousandSeparator={true}
+                    />
+                  </td>
+
                   <td align={"right"}>
                     <NumericFormat
                       value={trn.cashAmount}
