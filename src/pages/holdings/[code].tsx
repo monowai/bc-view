@@ -43,7 +43,7 @@ export default withPageAuthRequired(function Holdings(): React.ReactElement {
   // Render where we are in the initialization process
   const holdings = calculate(
     holdingResults,
-    holdingState.isHideEmpty,
+    holdingState.hideEmpty,
     holdingState.valueIn.value,
     holdingState.groupBy.value
   ) as Holdings;

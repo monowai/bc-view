@@ -32,7 +32,10 @@ export interface GroupOption {
 }
 
 export interface HoldingDefaults {
-  hideEmpty: boolean;
-  valueIn: ValuationOption;
-  groupBy: GroupOption;
+  toggleHideEmpty(): void;
+  readonly valueIn: ValuationOption;
+  setValueIn(value: ValuationOption): void;
+  readonly hideEmpty: boolean;
+  readonly groupBy: GroupOption;
+  setGroupBy(value: GroupOption): void
 }
