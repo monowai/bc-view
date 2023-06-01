@@ -15,11 +15,10 @@
     "incremental": true,
     "baseUrl": ".",
     "paths": {
-      "@/pages/*": ["src/pages/*"],
-      "@/domain/*": ["src/domain/*"],
-      "@/core/*": ["src/core/*"],
-      "@/types/*": ["src/core/types/*"],
-      "@/styles/*": ["styles/*"]
+      "@pages/*": ["src/pages/*"],
+      "@domain/*": ["src/domain/*"],
+      "@core/*": ["src/core/*"],
+      "@styles/*": ["styles/*"]
     },
     "allowJs": true
   },

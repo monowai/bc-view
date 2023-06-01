@@ -48,7 +48,7 @@ node_modules
 build
 dist
 cache
-.idea
+.idea/*
 
 .yarn/*
 !.yarn/releases
@@ -56,4 +56,3 @@ cache
 !.yarn/plugins
 !.yarn/sdks
 !.yarn/versions
-

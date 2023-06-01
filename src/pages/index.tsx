@@ -4,7 +4,7 @@ import React from "react";
 import { useTranslation } from "next-i18next";
 import { GetServerSideProps } from "next";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
-import { rootLoader } from "@/core/common/PageLoader";
+import { rootLoader } from "@core/common/PageLoader";
 
 export default withPageAuthRequired(function Home(): React.ReactElement {
   const { user, error, isLoading } = useUser();

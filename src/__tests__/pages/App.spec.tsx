@@ -1,4 +1,4 @@
-import Home from "@/pages/index";
+import Home from "@pages/index";
 import React from "react";
 import { screen, render } from "@testing-library/react";
 import { mockUser, withUserProvider } from "../fixtures";

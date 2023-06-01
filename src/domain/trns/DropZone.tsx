@@ -1,7 +1,7 @@
 import React, { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
-import { TransactionImport } from "@/types/beancounter";
-import { DelimitedImport } from "@/types/app";
+import { TransactionImport } from "@core/types/beancounter";
+import { DelimitedImport } from "@core/types/app";
 import Papa from "papaparse";
 
 export function TrnDropZone({

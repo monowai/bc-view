@@ -1,5 +1,5 @@
 import React from "react";
-import { FormatNumber } from "@/types/app";
+import { FormatNumber } from "@core/types/app";
 import { NumericFormat } from "react-number-format";
 
 export function FormatValue({

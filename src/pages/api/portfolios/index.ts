@@ -1,10 +1,10 @@
 // noinspection JSUnusedGlobalSymbols
 
 import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0";
-import { headerRequest } from "@/core/api/fetchHelper";
-import handleResponse, { fetchError } from "@/core/api/response-writer";
-import { Portfolio } from "@/types/beancounter";
-import { getDataUrl } from "@/core/api/bc-config";
+import { headerRequest } from "@core/api/fetchHelper";
+import handleResponse, { fetchError } from "@core/api/response-writer";
+import { Portfolio } from "@core/types/beancounter";
+import { getDataUrl } from "@core/api/bc-config";
 
 const baseUrl = getDataUrl("/portfolios");
 

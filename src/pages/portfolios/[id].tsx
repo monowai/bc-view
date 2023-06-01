@@ -1,17 +1,17 @@
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
-import { PortfolioInput } from "@/types/beancounter";
-import { currencyOptions } from "@/domain/currency/IsoHelper";
-import { ccyKey, portfolioKey, simpleFetcher } from "@/core/api/fetchHelper";
+import { PortfolioInput } from "@core/types/beancounter";
+import { currencyOptions } from "@domain/currency/IsoHelper";
+import { ccyKey, portfolioKey, simpleFetcher } from "@core/api/fetchHelper";
 import { useRouter } from "next/router";
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client";
 import { useTranslation } from "next-i18next";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 import { GetServerSideProps } from "next";
-import { TrnDropZone } from "@/domain/trns/DropZone";
+import { TrnDropZone } from "@domain/trns/DropZone";
 import Link from "next/link";
-import { rootLoader } from "@/core/common/PageLoader";
-import errorOut from "@/core/errors/ErrorOut";
+import { rootLoader } from "@core/common/PageLoader";
+import errorOut from "@core/errors/ErrorOut";
 import useSwr from "swr";
 
 export default withPageAuthRequired(function Manage(): React.ReactElement {

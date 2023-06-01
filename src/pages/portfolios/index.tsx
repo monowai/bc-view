@@ -2,13 +2,13 @@ import React from "react";
 import useSwr from "swr";
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client";
 import { useTranslation } from "next-i18next";
-import { Portfolio } from "@/types/beancounter";
+import { Portfolio } from "@core/types/beancounter";
 import Link from "next/link";
 import { GetServerSideProps } from "next";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
-import { portfoliosKey, simpleFetcher } from "@/core/api/fetchHelper";
-import errorOut from "@/core/errors/ErrorOut";
-import { rootLoader } from "@/core/common/PageLoader";
+import { portfoliosKey, simpleFetcher } from "@core/api/fetchHelper";
+import errorOut from "@core/errors/ErrorOut";
+import { rootLoader } from "@core/common/PageLoader";
 
 export default withPageAuthRequired(function Portfolios(): React.ReactElement {
   const { t, ready } = useTranslation("common");
