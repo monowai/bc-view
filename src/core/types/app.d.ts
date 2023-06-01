@@ -1,4 +1,5 @@
 import { Portfolio } from "./beancounter";
+import { GroupBy, ValueIn } from "@types/constants";
 
 interface TransactionUpload {
   portfolio: Portfolio;
@@ -18,4 +19,20 @@ export interface DelimitedImport {
   purge: boolean;
   results: string[];
   token: string | undefined;
+}
+
+export interface ValuationOption {
+  label: string;
+  value: ValueIn;
+}
+
+export interface GroupOption {
+  label: string;
+  value: GroupBy;
+}
+
+export interface HoldingDefaults {
+  hideEmpty: boolean;
+  valueIn: ValuationOption;
+  groupBy: GroupOption;
 }

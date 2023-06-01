@@ -1,5 +1,4 @@
-import { GroupBy } from "./groupBy";
-import { ValuationCcy, ValueIn } from "./constants";
+import { ValueIn } from "@types/core/components/valueIn";
 
 export type TrnType = "BUY" | "SELL" | "DIVI" | "SPLIT";
 
@@ -29,6 +28,7 @@ export interface AssetCategory {
 
 export interface MoneyValues {
   [index: ValueIn]: MoneyValues;
+
   dividends: number;
   costValue: number;
   fees: number;
@@ -71,10 +71,6 @@ export interface Position {
   quantityValues: QuantityValues;
   dateValues: DateValues;
   lastTradeDate: string;
-}
-
-export interface Interface {
-  lastDividend: string;
 }
 
 export interface GroupedSubtotals {
@@ -146,16 +142,6 @@ interface GroupKey {
 interface HoldingGroup {
   positions: Position[];
   subTotals: MoneyValues[ValueIn];
-}
-
-interface GroupOption {
-  label: string;
-  value: GroupBy;
-}
-
-interface ValuationOption {
-  label: string;
-  value: ValuationCcy;
 }
 
 interface SystemUser {
