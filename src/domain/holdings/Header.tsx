@@ -1,5 +1,5 @@
 import React from "react";
-import { GroupKey } from "@/types/beancounter";
+import { GroupKey } from "@core/types/beancounter";
 import { useTranslation } from "next-i18next";
 
 export function Header({ groupKey }: GroupKey): JSX.Element {

@@ -1,10 +1,10 @@
 // noinspection JSUnusedGlobalSymbols
 
 import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0";
-import { headerRequest } from "@/core/api/fetchHelper";
-import handleResponse, { fetchError } from "@/core/api/response-writer";
-import { HoldingContract } from "@/types/beancounter";
-import { getPositionsUrl } from "@/core/api/bc-config";
+import { headerRequest } from "@core/api/fetchHelper";
+import handleResponse, { fetchError } from "@core/api/response-writer";
+import { HoldingContract } from "@core/types/beancounter";
+import { getPositionsUrl } from "@core/api/bc-config";
 
 const baseUrl = getPositionsUrl("");
 export default withApiAuthRequired(async function holdingsByCode(req, res) {

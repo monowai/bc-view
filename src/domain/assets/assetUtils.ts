@@ -1,7 +1,7 @@
-import { Asset } from "@/types/beancounter";
+import { Asset } from "@core/types/beancounter";
 
 export function isCashRelated(asset: Asset): boolean {
-  return asset.assetCategory.id === "RE" || isCash(asset)
+  return asset.assetCategory.id === "RE" || isCash(asset);
 }
 export function isCash(asset: Asset): boolean {
   return asset.assetCategory.id === "CASH";

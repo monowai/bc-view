@@ -1,6 +1,6 @@
 import React from "react";
-import HeaderBrand from "@/pages/header/HeaderBrand";
-import HeaderUserControls from "@/pages/header/HeaderUserControls";
+import HeaderBrand from "@pages/header/HeaderBrand";
+import HeaderUserControls from "@pages/header/HeaderUserControls";
 import { t } from "i18next";
 import { GetServerSideProps } from "next";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";

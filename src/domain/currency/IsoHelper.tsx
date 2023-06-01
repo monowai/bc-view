@@ -1,5 +1,5 @@
 import React, { ReactNode } from "react";
-import { Currency } from "@/types/beancounter";
+import { Currency } from "@core/types/beancounter";
 
 export function currencyOptions(
   currencies: Currency[],

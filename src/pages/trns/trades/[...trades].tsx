@@ -4,12 +4,12 @@ import { GetServerSideProps } from "next";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client";
 import { useRouter } from "next/router";
-import { assetKey, simpleFetcher, tradeKey } from "@/core/api/fetchHelper";
+import { assetKey, simpleFetcher, tradeKey } from "@core/api/fetchHelper";
 import { useTranslation } from "next-i18next";
 import Link from "next/link";
-import { Transaction } from "@/types/beancounter";
-import { rootLoader } from "@/core/common/PageLoader";
-import errorOut from "@/core/errors/ErrorOut";
+import { Transaction } from "@core/types/beancounter";
+import { rootLoader } from "@core/common/PageLoader";
+import errorOut from "@core/errors/ErrorOut";
 import useSwr from "swr";
 
 export default withPageAuthRequired(function Events(): React.ReactElement {

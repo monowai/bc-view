@@ -5,7 +5,7 @@ import {
   waitForElementToBeRemoved,
 } from "@testing-library/react";
 import { mockUser, withUserProvider } from "../../fixtures";
-import Portfolios from "@/pages/portfolios";
+import Portfolios from "@pages/portfolios";
 import fetchMock from "jest-fetch-mock";
 import { enableFetchMocks } from "jest-fetch-mock";
 enableFetchMocks();

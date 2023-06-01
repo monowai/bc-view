@@ -46,6 +46,8 @@
   "event.price": "Per Unit",
   "holdings.groupBy": "Group By",
   "holdings.summary.title": "Summary",
+  "holdings.valueIn": "Value In",
+  "holdings.openOnly": "Open Only",
   "portfolio.create": "Add",
   "portfolio.code": "Code",
   "portfolio.name": "Name",

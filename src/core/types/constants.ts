@@ -1,18 +1,14 @@
-// export type ValueIn = "TRADE" | "BASE" | "PORTFOLIO";
+// Enums can't be exported from types in time to compilation to resolve
 
-import { ValuationOption } from "./beancounter";
-
-// Enum is pointer to a collection of values in the holding contract
-export enum ValueIn {
-  TRADE = "TRADE",
-  BASE = "BASE",
-  PORTFOLIO = "PORTFOLIO",
+export enum GroupBy {
+  MARKET_CURRENCY = "asset.market.currency.code",
+  MARKET = "asset.market.code",
+  ASSET_CLASS = "asset.assetCategory.name",
 }
 
-export function valuationOptions(): ValuationOption[] {
-  return [
-    { value: ValueIn.PORTFOLIO, label: "Portfolio" },
-    { value: ValueIn.BASE, label: "Base" },
-    { value: ValueIn.TRADE, label: "Trade" },
-  ];
+// Enum is pointer to a collection of values that index the holding contract
+export enum ValueIn {
+  PORTFOLIO = "PORTFOLIO",
+  BASE = "BASE",
+  TRADE = "TRADE",
 }

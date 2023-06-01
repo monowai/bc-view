@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { BcApiError } from "@/core/errors/bcApiError";
+import { BcApiError } from "@core/errors/bcApiError";
 
 export async function handleErrors(response: Response): Promise<void> {
   const result: BcApiError = await response.json();
