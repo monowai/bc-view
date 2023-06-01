@@ -9,7 +9,7 @@ export function HideEmpty(): JSX.Element {
       className="react-switch"
       onColor="#000"
       onChange={holdingState.toggleHideEmpty}
-      checked={holdingState.isHideEmpty}
+      checked={holdingState.hideEmpty}
       required
     />
   );

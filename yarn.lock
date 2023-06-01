@@ -490,10 +490,13 @@
   resolved "https://registry.yarnpkg.com/@hookstate/core/-/core-4.0.1.tgz#6744380e96ce13fe3488c926c1cbae93bbea0ff6"
   integrity sha512-Uh2D8Z0z/pqOJ7t+SfC+2sj13JQcB4yFhtL+T1choCaBxTSlgOS/CKRBohgJ4cjTKoxOmTT8uSQysu3gUjX+Gw==
 
-"@hookstate/localstored@^4.0.2":
-  version "4.0.2"
-  resolved "https://registry.yarnpkg.com/@hookstate/localstored/-/localstored-4.0.2.tgz#6f0ef6b71baa4c28e5e8835431585500eb6a9532"
-  integrity sha512-81dbUH6xnwbePby21NQN8zrmjvMA8tOYeOOLZXqRmRGKnhtcokjTJoRNMZugpC9P3/NnacllBZ5ZUt43nmrKkA==
+"@hookstate/devtools@^4.0.0":
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/@hookstate/devtools/-/devtools-4.0.0.tgz#47857c11ff760a44c43966ed312fcfc40267ecdb"
+  integrity sha512-4uUwfA6g5kZnhW9MyxIi20ZFie8D/JPP5NBhTjPNuU+NtwuRQ4276qUG/RnYDXR+p55+LrY66JA/rAy1lEkhTg==
+  dependencies:
+    redux "4.2.0"
+    redux-devtools-extension "2.13.9"
 
 "@humanwhocodes/config-array@^0.11.8":
   version "0.11.8"
@@ -4661,6 +4664,18 @@ redent@^3.0.0:
   dependencies:
     indent-string "^4.0.0"
     strip-indent "^3.0.0"
+
+redux-devtools-extension@2.13.9:
+  version "2.13.9"
+  resolved "https://registry.yarnpkg.com/redux-devtools-extension/-/redux-devtools-extension-2.13.9.tgz#6b764e8028b507adcb75a1cae790f71e6be08ae7"
+  integrity sha512-cNJ8Q/EtjhQaZ71c8I9+BPySIBVEKssbPpskBfsXqb8HJ002A3KRVHfeRzwRo6mGPqsm7XuHTqNSNeS1Khig0A==
+
+redux@4.2.0:
+  version "4.2.0"
+  resolved "https://registry.yarnpkg.com/redux/-/redux-4.2.0.tgz#46f10d6e29b6666df758780437651eeb2b969f13"
+  integrity sha512-oSBmcKKIuIR4ME29/AeNUnl5L+hvBq7OaJWzaptTQJAntaPvxIJqfnjbaEiCzzaIz+XmVILfqAM3Ob0aXLPfjA==
+  dependencies:
+    "@babel/runtime" "^7.9.2"
 
 regenerator-runtime@^0.13.11:
   version "0.13.11"

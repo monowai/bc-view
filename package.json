@@ -15,7 +15,7 @@
     "@creativebulma/bulma-tooltip": "^1.2.0",
     "@fortawesome/fontawesome-free": "^6.0.0",
     "@hookstate/core": "^4.0.1",
-    "@hookstate/localstored": "^4.0.2",
+    "@hookstate/devtools": "^4.0.0",
     "@serverless-jwt/next": "^0.2.1",
     "bulma": "^0.9.3",
     "bulma-pageloader": "^0.3.0",
