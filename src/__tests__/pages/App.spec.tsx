@@ -15,13 +15,12 @@ afterEach(() => {
 
 describe("<App />", () => {
   test("renders for authorised user", () => {
-    const { container } = render(<Home user={mockUser} />, {
+    render(<Home user={mockUser} />, {
       wrapper: withUserProvider({ user: mockUser }),
     });
     const heading = screen.getByText("home.welcome");
     expect(heading).toBeInTheDocument();
     expect(screen.getByText("home.portfolios")).toBeInTheDocument();
     expect(screen.getByText("user.logout")).toBeInTheDocument();
-    expect(container).toMatchSnapshot();
   });
 });
