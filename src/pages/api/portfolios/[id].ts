@@ -1,5 +1,3 @@
-// noinspection JSUnusedGlobalSymbols
-
 import { withApiAuthRequired, getAccessToken } from "@auth0/nextjs-auth0";
 import { headerRequest } from "@core/api/fetchHelper";
 import handleResponse, { fetchError } from "@core/api/response-writer";

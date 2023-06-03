@@ -141,7 +141,6 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
   );
 });
 
-// noinspection JSUnusedGlobalSymbols
 export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
   props: {
     ...(await serverSideTranslations(locale as string, ["common"])),

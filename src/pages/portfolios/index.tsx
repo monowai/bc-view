@@ -87,7 +87,6 @@ export default withPageAuthRequired(function Portfolios(): React.ReactElement {
   return <div id="root">{t("error.portfolios.empty")}</div>;
 });
 
-// noinspection JSUnusedGlobalSymbols
 export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
   props: {
     ...(await serverSideTranslations(locale as string, ["common"])),
