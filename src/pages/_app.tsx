@@ -9,6 +9,7 @@ function App({ Component, pageProps }: AppProps): JSX.Element {
     <UserProvider>
       <div className={"page.box"}>
         <Header />
+        {/*// @ts-ignore */}
         <Component {...pageProps} />
       </div>
     </UserProvider>
