@@ -13,6 +13,7 @@ import Link from "next/link";
 import { rootLoader } from "@core/common/PageLoader";
 import errorOut from "@core/errors/ErrorOut";
 import useSwr from "swr";
+import {useUser} from "@auth0/nextjs-auth0/dist/client";
 
 export default withPageAuthRequired(function Manage(): React.ReactElement {
   const { register } = useForm<PortfolioInput>();
@@ -49,7 +50,7 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
                   type="text"
                   className={"input"}
                   autoFocus={true}
-                  placeholder="code"
+                  placeholder={t("portfolio.code.hint")!!}
                   defaultValue={portfolio.code}
                 />
               </div>
@@ -59,7 +60,7 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
                   <input
                     className="input is-3"
                     type="text"
-                    placeholder="name"
+                    placeholder={t("portfolio.name.hint")!!}
                     defaultValue={portfolio.name}
                     {...register("name", { required: true, maxLength: 100 })}
                   />
@@ -131,7 +132,7 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
                 </label>
               </div>
               <div className="field">
-                <TrnDropZone portfolio={portfolio} purge={purgeTrn} />
+                <TrnDropZone portfolio={portfolio} purge={purgeTrn}/>
               </div>
             </form>
           </div>
