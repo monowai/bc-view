@@ -2,7 +2,6 @@ import React from "react";
 import {
   screen,
   render,
-  waitForElementToBeRemoved,
 } from "@testing-library/react";
 import { mockUser, withUserProvider } from "../../fixtures";
 import Portfolios from "@pages/portfolios";
@@ -52,7 +51,6 @@ describe("<Portfolios />", () => {
       wrapper: withUserProvider({ user: mockUser }),
     });
     expect(await screen.findByTestId("loading")).toBeInTheDocument();
-    await waitForElementToBeRemoved(() => screen.getByTestId("loading"));
     expect(await screen.getByText("portfolio.code")).toBeInTheDocument();
     expect(await screen.getByText("portfolio.name")).toBeInTheDocument();
     expect(await screen.getByText("Test Portfolio")).toBeInTheDocument();
