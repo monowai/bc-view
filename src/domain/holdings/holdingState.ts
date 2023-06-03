@@ -1,14 +1,17 @@
 import { valuationOptions } from "@core/components/valueIn";
 import { defaultGroupBy } from "@core/components/groupBy";
-import {hookstate, useHookstate} from "@hookstate/core";
+import { hookstate, useHookstate } from "@hookstate/core";
 import { devtools } from "@hookstate/devtools";
-import {GroupOption, HoldingDefaults, ValuationOption} from "@core/types/app";
+import { GroupOption, HoldingDefaults, ValuationOption } from "@core/types/app";
 
-const holdingDefaults = hookstate({
-  hideEmpty: true,
-  valueIn: valuationOptions()[0],
-  groupBy: defaultGroupBy,
-}, devtools({ key: "holdings" }));
+const holdingDefaults = hookstate(
+  {
+    hideEmpty: true,
+    valueIn: valuationOptions()[0],
+    groupBy: defaultGroupBy,
+  },
+  devtools({ key: "holdings" })
+);
 
 // This function wraps the state by an interface,
 // i.e. the state link is not accessible directly outside of this module.

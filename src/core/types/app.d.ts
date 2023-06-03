@@ -37,5 +37,5 @@ export interface HoldingDefaults {
   setValueIn(value: ValuationOption): void;
   readonly hideEmpty: boolean;
   readonly groupBy: GroupOption;
-  setGroupBy(value: GroupOption): void
+  setGroupBy(value: GroupOption): void;
 }
