@@ -5,20 +5,20 @@ orbs:
 jobs:
   build-view:
     docker:
-      - image: cimg/node:18.14
+      - image: cimg/node:20.2
+    resource_class: large
     environment:
       IMAGE_NAME: bc-view
     steps:
       - checkout
       - restore_cache:
           keys:
-            - yarn-cache2-{{ checksum "~/project/yarn.lock" }}
-      #      - run:
-      #          name: Latest Yarn
-      #          command: yarn set version berry
+            - yarn-cache2-{{ checksum "yarn.lock" }}
       - run:
           name: Install Dependencies
-          command: yarn install --immutable
+          command: |
+            yarn cache dir
+            yarn install --frozen-lockfile --cache-folder ~/.cache/yarn
       - run:
           name: Test with coverage
           command: yarn test:ci
@@ -26,16 +26,18 @@ jobs:
             JEST_JUNIT_OUTPUT_DIR: "./reports/junit"
       - save_cache:
           name: Save Yarn Package Cache
-          key: yarn-cache2-{{ checksum "~/project/yarn.lock" }}
+          key: yarn-cache2-{{ checksum "yarn.lock" }}
           paths:
-            - ./yarn/cache
-            - ./yarn/unplugged
+            - ~/.cache/yarn
+#            - ./yarn/cache
+#            - ./yarn/unplugged
       - store_test_results:
           path: reports/junit
       - store_artifacts:
           path: reports/junit
       - setup_remote_docker:
-          version: 20.10.14
+          version: 20.10.18
+          docker_layer_caching: true
       - when:
           condition:
             equal: [master, << pipeline.git.branch >>]
