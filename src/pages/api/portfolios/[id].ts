@@ -11,10 +11,7 @@ export default withApiAuthRequired(async function portfoliosById(req, res) {
     } = req;
     const { accessToken } = await getAccessToken(req, res);
     console.log(`Looking up portfolio ${id}`);
-    const response = await fetch(
-      `${baseUrl}/${id}`,
-      requestInit(accessToken)
-    );
+    const response = await fetch(`${baseUrl}/${id}`, requestInit(accessToken));
     await handleResponse<Portfolio>(response, res);
   } catch (error: any) {
     fetchError(res, req, error);
