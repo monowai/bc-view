@@ -7,7 +7,6 @@ import { getDataUrl } from "@core/api/bc-config";
 const baseUrl = getDataUrl("/portfolios");
 
 export default withApiAuthRequired(async function portfolios(req, res) {
-  // console.log(`API portfolios from ${baseUrl}`);
   try {
     const { accessToken } = await getAccessToken(req, res);
     const response = await fetch(`${baseUrl}`, requestInit(accessToken));

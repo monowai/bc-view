@@ -11,7 +11,7 @@ import useSwr from "swr";
 import errorOut from "@core/errors/ErrorOut";
 import { assetKey, eventKey, simpleFetcher } from "@core/api/fetchHelper";
 import { rootLoader } from "@core/common/PageLoader";
-import { deleteTrn } from "@domain/trns/trnHelper";
+import { deleteTrn } from "@domain/trns/apiHelper";
 
 export default withPageAuthRequired(function Events(): React.ReactElement {
   const router = useRouter();
@@ -143,10 +143,10 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                       href={`/trns/trades/edit/${trn.portfolio.id}/${trn.id}`}
                       className="fa fa-edit"
                     ></Link>
-                    <text
+                    <a
                       onClick={() => deleteTrn(trn.id, t("trn.delete"))}
                       className="simple-padding fa fa-trash-can"
-                    ></text>
+                    ></a>
                   </td>
                 </tr>
               ))}

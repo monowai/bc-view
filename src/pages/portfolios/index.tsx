@@ -9,6 +9,7 @@ import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 import { portfoliosKey, simpleFetcher } from "@core/api/fetchHelper";
 import errorOut from "@core/errors/ErrorOut";
 import { rootLoader } from "@core/common/PageLoader";
+import { deletePortfolio } from "@domain/trns/apiHelper";
 
 export default withPageAuthRequired(function Portfolios(): React.ReactElement {
   const { t, ready } = useTranslation("common");
@@ -70,10 +71,15 @@ export default withPageAuthRequired(function Portfolios(): React.ReactElement {
                         className="far fa-edit"
                       ></Link>
                       <span> </span>
-                      <Link
-                        href={`/portfolios/${portfolio.id}/delete`}
-                        className="far fa-trash-alt"
-                      ></Link>
+                      <a
+                        onClick={() =>
+                          deletePortfolio(
+                            portfolio.id,
+                            t("portfolio.delete", { code: portfolio.code })
+                          )
+                        }
+                        className="simple-padding far fa-trash-alt"
+                      ></a>
                     </td>
                   </tr>
                 ))}

@@ -19,7 +19,7 @@ COPY . .
 # ENV NEXT_TELEMETRY_DISABLED 1
 
 #RUN --mount=type=cache,target=/usr/local/share/.cache/yarn/v6,sharing=locked yarn install --frozen-lockfile
-RUN --mount=type=cache,target=/usr/local/share/.cache/yarn/v6,sharing=locked yarn build
+RUN yarn build
 
 # Production image, copy all the files and run next
 FROM base AS runner
