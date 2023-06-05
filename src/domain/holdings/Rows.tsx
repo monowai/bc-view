@@ -2,7 +2,7 @@ import { Asset, HoldingValues, PriceData } from "@core/types/beancounter";
 import { NumericFormat } from "react-number-format";
 import { FormatValue } from "@core/common/MoneyUtils";
 import React from "react";
-import { assetName, isCashRelated } from "@domain/assets/assetUtils";
+import { displayName, isCashRelated } from "@domain/assets/assetUtils";
 import Link from "next/link";
 
 export function Rows({
@@ -18,7 +18,7 @@ export function Rows({
   const holdings = holdingGroup.positions.map(
     ({ asset, moneyValues, quantityValues, dateValues }, index) => (
       <tr key={groupBy + index} className={"holding-row"}>
-        <td className={"asset"}>{assetName(asset)}</td>
+        <td className={"asset"}>{displayName(asset)}</td>
         <td className={"price"} align={"right"}>
           {hideValue(asset, moneyValues[valueIn].priceData) ? (
             " "

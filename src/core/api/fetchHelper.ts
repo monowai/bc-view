@@ -1,4 +1,7 @@
-export function requestInit(accessToken: string | undefined, method: string = "GET"): RequestInit {
+export function requestInit(
+  accessToken: string | undefined,
+  method: string = "GET"
+): RequestInit {
   return {
     method,
     headers: {
