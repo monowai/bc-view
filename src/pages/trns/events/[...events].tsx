@@ -11,6 +11,7 @@ import useSwr from "swr";
 import errorOut from "@core/errors/ErrorOut";
 import { assetKey, eventKey, simpleFetcher } from "@core/api/fetchHelper";
 import { rootLoader } from "@core/common/PageLoader";
+import { deleteTrn } from "@domain/trns/trnHelper";
 
 export default withPageAuthRequired(function Events(): React.ReactElement {
   const router = useRouter();
@@ -59,12 +60,12 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                 <th>{t("trn.currency")}</th>
                 <th>{t("trn.tradeDate")}</th>
                 <th align={"right"}>{t("event.amount")}</th>
-                <th align={"right"}>{t("event.tax")}</th>
+                <th align={"right"}>{t("trn.amount.tax")}</th>
                 <th align={"right"}>{t("event.quantity")}</th>
                 <th align={"right"}>{t("event.price")}</th>
-                <th align={"right"}>T/B Rate</th>
-                <th align={"right"}>T/C Rate</th>
-                <th align={"right"}>T/P Rate</th>
+                <th align={"right"}>{t("trn.rate.tb")}</th>
+                <th align={"right"}>{t("trn.rate.tc")}</th>
+                <th align={"right"}>{t("trn.rate.tp")}</th>
                 <th>{t("trn.action")}</th>
               </tr>
             </thead>
@@ -137,11 +138,15 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                       thousandSeparator={true}
                     />
                   </td>
-                  <td>
+                  <td align={"left"}>
                     <Link
-                      href={`/trns/events/edit/${trn.portfolio.id}/${trn.id}`}
+                      href={`/trns/trades/edit/${trn.portfolio.id}/${trn.id}`}
                       className="fa fa-edit"
                     ></Link>
+                    <text
+                      onClick={() => deleteTrn(trn.id, t("trn.delete"))}
+                      className="simple-padding fa fa-trash-can"
+                    ></text>
                   </td>
                 </tr>
               ))}

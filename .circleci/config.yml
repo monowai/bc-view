@@ -29,8 +29,8 @@ jobs:
           key: yarn-cache2-{{ checksum "yarn.lock" }}
           paths:
             - ~/.cache/yarn
-#            - ./yarn/cache
-#            - ./yarn/unplugged
+      #            - ./yarn/cache
+      #            - ./yarn/unplugged
       - store_test_results:
           path: reports/junit
       - store_artifacts:
