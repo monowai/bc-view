@@ -2,6 +2,7 @@ import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0";
 import handleResponse, { fetchError } from "@core/api/response-writer";
 import { Transaction } from "@core/types/beancounter";
 import { getDataUrl } from "@core/api/bc-config";
+import { requestInit } from "@core/api/fetchHelper";
 
 const baseUrl = getDataUrl("/trns");
 export default withApiAuthRequired(async function tradeTrns(req, res) {
@@ -15,23 +16,17 @@ export default withApiAuthRequired(async function tradeTrns(req, res) {
         case "GET": {
           const response = await fetch(
             `${baseUrl}/${trades[0]}/asset/${trades[1]}/trades`,
-            {
-              headers: {
-                Authorization: `Bearer ${accessToken}`,
-              },
-            }
+            requestInit(accessToken)
           );
           await handleResponse<Transaction[]>(response, res);
           break;
         }
         case "DELETE": {
           console.log(`Delete trnId: ${trades[0]}`);
-          const response = await fetch(`${baseUrl}/${trades[0]}`, {
-            method: "DELETE",
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          });
+          const response = await fetch(
+            `${baseUrl}/${trades[0]}`,
+            requestInit(accessToken, "DELETE")
+          );
           await handleResponse(response, res);
           break;
         }
