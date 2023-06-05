@@ -11,7 +11,7 @@ import { Transaction } from "@core/types/beancounter";
 import { rootLoader } from "@core/common/PageLoader";
 import errorOut from "@core/errors/ErrorOut";
 import useSwr from "swr";
-import { deleteTrn } from "@domain/trns/trnHelper";
+import { deleteTrn } from "@domain/trns/apiHelper";
 
 export default withPageAuthRequired(function Events(): React.ReactElement {
   const { t } = useTranslation("common");
@@ -162,10 +162,10 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                       href={`/trns/trades/edit/${trn.portfolio.id}/${trn.id}`}
                       className="fa fa-edit"
                     ></Link>
-                    <text
+                    <a
                       onClick={() => deleteTrn(trn.id, t("trn.delete"))}
                       className="simple-padding fa fa-trash-can"
-                    ></text>
+                    ></a>
                   </td>
                 </tr>
               ))}

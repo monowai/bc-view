@@ -7,12 +7,29 @@ const baseUrl = getDataUrl("/portfolios");
 export default withApiAuthRequired(async function portfoliosById(req, res) {
   try {
     const {
+      method,
       query: { id },
     } = req;
     const { accessToken } = await getAccessToken(req, res);
-    console.log(`Looking up portfolio ${id}`);
-    const response = await fetch(`${baseUrl}/${id}`, requestInit(accessToken));
-    await handleResponse<Portfolio>(response, res);
+    console.log(`${method} for portfolio ${id}`);
+    switch (method) {
+      case "GET": {
+        const response = await fetch(
+          `${baseUrl}/${id}`,
+          requestInit(accessToken)
+        );
+        await handleResponse<Portfolio>(response, res);
+        break;
+      }
+      case "DELETE": {
+        const response = await fetch(
+          `${baseUrl}/${id}`,
+          requestInit(accessToken, method)
+        );
+        await handleResponse<void>(response, res);
+        break;
+      }
+    }
   } catch (error: any) {
     fetchError(res, req, error);
   }

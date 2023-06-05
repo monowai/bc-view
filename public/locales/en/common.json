@@ -55,6 +55,7 @@
   "portfolio.currency.report": "Report",
   "portfolio.currency.base": "Base",
   "portfolio.actions": "Actions",
+  "portfolio.delete": "Delete portfolio {{code}} and all associated transactions?",
   "option.portfolio": "Portfolio",
   "assets.error.retrieve": "Error retrieving asset information",
   "events.error.retrieve": "Error retrieving events for the asset",
