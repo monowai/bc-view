@@ -11,14 +11,16 @@ import { Transaction } from "@core/types/beancounter";
 import { rootLoader } from "@core/common/PageLoader";
 import errorOut from "@core/errors/ErrorOut";
 import useSwr from "swr";
+import { deleteTrn } from "@domain/trns/trnHelper";
 
 export default withPageAuthRequired(function Events(): React.ReactElement {
+  const { t } = useTranslation("common");
+
   const router = useRouter();
   const portfolioId = router.query.trades
     ? router.query.trades[0]
     : "undefined";
   const assetId = router.query.trades ? router.query.trades[1] : "undefined";
-  const { t } = useTranslation("common");
   const asset = useSwr(assetKey(assetId), simpleFetcher(assetKey(assetId)));
   const trades = useSwr(
     tradeKey(portfolioId, assetId),
@@ -30,11 +32,7 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
   if (asset.error) {
     return errorOut(t("assets.error.retrieve"), asset.error);
   }
-  if (asset.isLoading) {
-    return rootLoader(t("loading"));
-  }
-  if (trades.isLoading) {
-    // console.log( `trades: ${trades.isLoading}, asset: ${asset.isLoading}`)
+  if (asset.isLoading || trades.isLoading) {
     return rootLoader(t("loading"));
   }
   const trnResults = trades.data.data;
@@ -58,16 +56,16 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                 <th>{t("trn.type")}</th>
                 <th>{t("trn.currency")}</th>
                 <th>{t("trn.tradeDate")}</th>
-                <th align={"right"}>Quantity</th>
-                <th align={"right"}>Price</th>
-                <th align={"right"}>Amount</th>
-                <th align={"right"}>T/B Rate</th>
-                <th align={"right"}>T/C Rate</th>
-                <th align={"right"}>T/P Rate</th>
-                <th align={"right"}>Cash</th>
-                <th align={"right"}>Tax</th>
-                <th align={"right"}>Charges</th>
-                <th>{t("trn.action")}</th>
+                <th align={"right"}>{t("quantity")}</th>
+                <th align={"right"}>{t("trn.price")}</th>
+                <th align={"right"}>{t("trn.amount.trade")}</th>
+                <th align={"right"}>{t("trn.rate.tb")}</th>
+                <th align={"right"}>{t("trn.rate.tc")}</th>
+                <th align={"right"}>{t("trn.rate.tp")}</th>
+                <th align={"right"}>{t("trn.amount.cash")}</th>
+                <th align={"right"}>{t("trn.amount.tax")}</th>
+                <th align={"right"}>{t("trn.amount.charges")}</th>
+                <th align={"right"}>{t("trn.action")}</th>
               </tr>
             </thead>
             <tbody>
@@ -159,11 +157,15 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                       thousandSeparator={true}
                     />
                   </td>
-                  <td>
+                  <td align={"left"}>
                     <Link
-                      href={`/portfolios/${trn.portfolio.id}/${trn.id}`}
+                      href={`/trns/trades/edit/${trn.portfolio.id}/${trn.id}`}
                       className="fa fa-edit"
                     ></Link>
+                    <text
+                      onClick={() => deleteTrn(trn.id, t("trn.delete"))}
+                      className="simple-padding fa fa-trash-can"
+                    ></text>
                   </td>
                 </tr>
               ))}

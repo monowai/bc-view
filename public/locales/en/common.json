@@ -41,7 +41,6 @@
   "trn.currency": "Currency",
   "trn.tradeDate": "Trade Date",
   "event.amount": "Amount",
-  "event.tax": "Tax",
   "event.quantity": "Affected Quantity",
   "event.price": "Per Unit",
   "holdings.groupBy": "Group By",
@@ -65,5 +64,14 @@
   "portfolio.currency.base.label": "Cross Portfolio Base Currency",
   "portfolio.delete.trns": "Delete existing transactions",
   "portfolios.error.retrieve": "Error retrieving portfolios",
-  "portfolios.error.empty": "You have no portfolios"
+  "portfolios.error.empty": "You have no portfolios",
+  "trn.amount.trade": "Amount",
+  "trn.rate.tb": "T/B Rate",
+  "trn.rate.tc": "T/C Rate",
+  "trn.rate.tp": "T/P Rate",
+  "trn.amount.cash": "Cash",
+  "trn.amount.tax": "Tax",
+  "trn.amount.charges": "Fees",
+  "trn.action": "Action",
+  "trn.price": "Price"
 }
