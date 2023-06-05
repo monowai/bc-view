@@ -1,5 +1,6 @@
-export function headerRequest(accessToken: string | undefined): RequestInit {
+export function requestInit(accessToken: string | undefined, method: string = "GET"): RequestInit {
   return {
+    method,
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
