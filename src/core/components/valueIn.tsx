@@ -1,20 +1,27 @@
 import { ValueIn } from "@core/types/constants";
 import Select from "react-select";
 import { useHoldingState } from "@domain/holdings/holdingState";
-import { ValuationOption } from "@core/types/app";
+import { ValuationOption, ValuationOptions } from "@core/types/app";
+import { useTranslation } from "next-i18next";
 
-export function valuationOptions(): ValuationOption[] {
-  return [
-    { value: ValueIn.PORTFOLIO, label: "Portfolio" },
-    { value: ValueIn.BASE, label: "Base" },
-    { value: ValueIn.TRADE, label: "Trade" },
-  ];
+export function useValuationOptions(): ValuationOptions {
+  const { t } = useTranslation("common");
+  return {
+    values: [
+      { value: ValueIn.PORTFOLIO, label: t("in.portfolio") },
+      { value: ValueIn.BASE, label: t("in.base") },
+      { value: ValueIn.TRADE, label: t("in.trade") },
+    ],
+    valuationDefault: { value: ValueIn.PORTFOLIO, label: t("in.portfolio") },
+  };
 }
+
 export function ValueInOption(): JSX.Element {
   const holdingState = useHoldingState();
+  const valuationOptions = useValuationOptions();
   return (
     <Select
-      options={valuationOptions()}
+      options={valuationOptions.values}
       defaultValue={holdingState.valueIn}
       isSearchable={false}
       isClearable={false}
@@ -24,5 +31,3 @@ export function ValueInOption(): JSX.Element {
     />
   );
 }
-
-export const defaultValueInOption = valuationOptions()[0];

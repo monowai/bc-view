@@ -2,26 +2,45 @@ import Select from "react-select";
 import React from "react";
 import { useHoldingState } from "@domain/holdings/holdingState";
 import { GroupBy } from "@core/types/constants";
-import { GroupOption } from "@core/types/app";
+import { GroupOption, GroupOptions } from "@core/types/app";
+import { useTranslation } from "next-i18next";
+import { rootLoader } from "@core/common/PageLoader";
 
-function groupOptions(): GroupOption[] {
-  return [
-    {
+export function useGroupOptions(): GroupOptions {
+  const { t } = useTranslation("common");
+  return {
+    groupDefault: {
       value: GroupBy.ASSET_CLASS,
-      label: "Asset Class",
+      label: t("by.class"),
     },
-    {
-      value: GroupBy.MARKET_CURRENCY,
-      label: "Currency",
-    },
-    { value: GroupBy.MARKET, label: "Market" },
-  ];
+    values: [
+      {
+        value: GroupBy.ASSET_CLASS,
+        label: t("by.class"),
+      },
+      {
+        value: GroupBy.MARKET_CURRENCY,
+        label: t("by.currency"),
+      },
+      {
+        value: GroupBy.MARKET,
+        label: t("by.market"),
+      },
+    ],
+  };
 }
+
 export function GroupByOption(): JSX.Element {
   const holdingState = useHoldingState();
+  const groupOptions = useGroupOptions();
+  const { t, ready } = useTranslation("common");
+  if (!ready) {
+    return rootLoader(t("loading"));
+  }
+
   return (
     <Select
-      options={groupOptions()}
+      options={groupOptions.values}
       defaultValue={holdingState.groupBy}
       isSearchable={false}
       isClearable={false}
@@ -31,5 +50,3 @@ export function GroupByOption(): JSX.Element {
     />
   );
 }
-
-export const defaultGroupBy = groupOptions()[0];
