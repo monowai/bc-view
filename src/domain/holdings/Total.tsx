@@ -1,14 +1,14 @@
 import { HoldingsInCurrency } from "@core/types/beancounter";
 import React from "react";
 import { FormatValue } from "@core/common/MoneyUtils";
-import {useTranslation} from "next-i18next";
+import { useTranslation } from "next-i18next";
 
 export default function Total({
   holdings,
   valueIn,
 }: HoldingsInCurrency): JSX.Element {
   const { t, ready } = useTranslation("common");
-  if (!ready) return <div />
+  if (!ready) return <div />;
   if (!holdings.totals[valueIn]) return <div />;
 
   const currencyTotals = holdings.totals[valueIn] !== undefined;

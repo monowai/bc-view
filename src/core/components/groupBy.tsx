@@ -9,10 +9,6 @@ import { rootLoader } from "@core/common/PageLoader";
 export function useGroupOptions(): GroupOptions {
   const { t } = useTranslation("common");
   return {
-    groupDefault: {
-      value: GroupBy.ASSET_CLASS,
-      label: t("by.class"),
-    },
     values: [
       {
         value: GroupBy.ASSET_CLASS,
@@ -27,6 +23,10 @@ export function useGroupOptions(): GroupOptions {
         label: t("by.market"),
       },
     ],
+    groupDefault: {
+      value: GroupBy.ASSET_CLASS,
+      label: t("by.class"),
+    },
   };
 }
 

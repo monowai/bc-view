@@ -44,9 +44,9 @@ export interface GroupOption {
 export interface HoldingDefaults {
   toggleHideEmpty(): void;
   readonly valueIn: ValuationOption;
+  readonly groupBy: GroupOption;
   setValueIn(value: ValuationOption): void;
   readonly hideEmpty: boolean;
-  readonly groupBy: GroupOption;
   setGroupBy(value: GroupOption): void;
   // groupOptions: GroupOption[];
 }
