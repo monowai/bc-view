@@ -10,10 +10,10 @@ import {useRouter} from "next/router";
 export function Portfolios(selectedPortfolio: Portfolio): JSX.Element {
   const { data } = useSwr(portfoliosKey, simpleFetcher(portfoliosKey));
   const { t, ready } = useTranslation("common");
+  const router = useRouter()
   if (!ready || !data) {
     return rootLoader(t("loading"));
   }
-  const router = useRouter()
   const portfolios: Portfolio[] = data.data;
 
   return (
@@ -25,7 +25,7 @@ export function Portfolios(selectedPortfolio: Portfolio): JSX.Element {
       isSearchable={false}
       isClearable={false}
       onChange={(e) => {
-        router.push(`${e!!.code}`);
+        router.push(`${e!!.code}`).then();
       }}
     />
   );
