@@ -26,6 +26,16 @@ export interface ValuationOption {
   value: ValueIn;
 }
 
+export interface ValuationOptions {
+  valuationDefault: ValuationOption;
+  values: ValuationOption[];
+}
+
+export interface GroupOptions {
+  groupDefault: GroupOption;
+  values: GroupOption[];
+}
+
 export interface GroupOption {
   label: string;
   value: GroupBy;
@@ -38,4 +48,5 @@ export interface HoldingDefaults {
   readonly hideEmpty: boolean;
   readonly groupBy: GroupOption;
   setGroupBy(value: GroupOption): void;
+  // groupOptions: GroupOption[];
 }

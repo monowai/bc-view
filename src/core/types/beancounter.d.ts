@@ -111,7 +111,7 @@ export interface PortfolioInput {
 // Server side contract
 interface HoldingContract {
   portfolio: Portfolio;
-  mixedCurrencies: boolean; // Mixed trade currencies?
+  isMixedCurrencies: boolean; // Mixed trade currencies?
   asAt: string;
   positions: Position[string];
 }

@@ -1,14 +1,21 @@
-import { valuationOptions } from "@core/components/valueIn";
-import { defaultGroupBy } from "@core/components/groupBy";
 import { hookstate, useHookstate } from "@hookstate/core";
 import { devtools } from "@hookstate/devtools";
 import { GroupOption, HoldingDefaults, ValuationOption } from "@core/types/app";
+import { GroupBy, ValueIn } from "@core/types/constants";
+import { useValuationOptions } from "@core/components/valueIn";
+import { useGroupOptions } from "@core/components/groupBy";
 
 const holdingDefaults = hookstate(
   {
     hideEmpty: true,
-    valueIn: valuationOptions()[0],
-    groupBy: defaultGroupBy,
+    valueIn: {
+      value: ValueIn.PORTFOLIO,
+      label: "",
+    },
+    groupBy: {
+      value: GroupBy.ASSET_CLASS,
+      label: "",
+    },
   },
   devtools({ key: "holdings" })
 );
@@ -19,6 +26,19 @@ const holdingDefaults = hookstate(
 
 export function useHoldingState(): HoldingDefaults {
   const state = useHookstate(holdingDefaults);
+  const { valuationDefault } = useValuationOptions();
+  const { groupDefault } = useGroupOptions();
+
+  // Can't use t in Global State
+  // Not sure if this is the best way to centralise and establish
+  // default, but it works well.
+  if (state.valueIn.get().label === "") {
+    state.valueIn.set(valuationDefault);
+  }
+
+  if (state.groupBy.get().label === "") {
+    state.groupBy.set(groupDefault);
+  }
 
   return {
     get hideEmpty(): boolean {

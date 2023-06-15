@@ -2,13 +2,15 @@ import { useUser } from "@auth0/nextjs-auth0/client";
 import Image from "next/image";
 import { GetServerSideProps } from "next";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
+import { rootLoader } from "@core/common/PageLoader";
+import { useTranslation } from "next-i18next";
 
 export default function Profile(): JSX.Element {
   const { user, error, isLoading } = useUser();
-
-  if (isLoading) return <div>Loading...</div>;
+  const { t, ready } = useTranslation("common");
+  if (isLoading || !ready) return rootLoader(t("loading"));
   if (error) return <div>{error.message}</div>;
-  if (!user) return <div>User does not exist</div>;
+  if (!user) return <div>t("user.notfound")</div>;
 
   return (
     <div>
