@@ -5,7 +5,7 @@ orbs:
 jobs:
   build-view:
     docker:
-      - image: cimg/node:20.2
+      - image: cimg/node:18.16
     resource_class: large
     environment:
       IMAGE_NAME: bc-view
@@ -17,7 +17,6 @@ jobs:
       - run:
           name: Install Dependencies
           command: |
-            yarn cache dir
             yarn install --frozen-lockfile --cache-folder ~/.cache/yarn
       - run:
           name: Test with coverage
