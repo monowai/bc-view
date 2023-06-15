@@ -20,6 +20,7 @@
   "cost": "Cost",
   "weight": "Weight",
   "summary.title": "Summary",
+  "summary.currency": "Value Currency",
   "summary.value": "Value",
   "summary.cash": "Cash on Hand",
   "summary.purchases": "Purchases",

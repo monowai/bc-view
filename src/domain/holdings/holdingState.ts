@@ -6,6 +6,7 @@ import { useGroupOptions } from "@core/components/groupBy";
 
 const holdingDefaults = hookstate(
   {
+    hideEmpty: true
   } as HoldingDefaults,
   devtools({ key: "holdings" })
 );
@@ -21,7 +22,7 @@ export function useHoldingState(): HoldingDefaults {
 
   return {
     get hideEmpty(): boolean {
-      return state.hideEmpty.get() || true;
+      return state.hideEmpty.get();
     },
     toggleHideEmpty(): void {
       state.hideEmpty.set((hide) => !hide);

@@ -63,8 +63,8 @@ export default withPageAuthRequired(function Holdings(): React.ReactElement {
           <HideEmpty />
         </div>
       </div>
-      <div className={"stats-container"}>
-        <table>
+      <div>
+        <table className={"stats-container"}>
           <SummaryHeader {...holdingResults.portfolio} />
           <SummaryRow
             portfolio={holdingResults.portfolio}
