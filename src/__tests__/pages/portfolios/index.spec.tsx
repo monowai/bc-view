@@ -15,8 +15,27 @@ jest.mock("react-i18next", () => ({
   useTranslation: () => ({ ready: true, t: (key: string) => key }),
 }));
 
+jest.mock('next/router', () => ({
+  useRouter() {
+    return ({
+      route: '/',
+      pathname: '',
+      query: '',
+      asPath: '',
+      push: jest.fn(),
+      events: {
+        on: jest.fn(),
+        off: jest.fn()
+      },
+      beforePopState: jest.fn(() => null),
+      prefetch: jest.fn(() => null)
+    });
+  },
+}));
+
 describe("<Portfolios />", () => {
   test("Portfolio List Renders", async () => {
+    // const useRouter = jest.spyOn(require("next/router"), "useRouter");
     fetchMock.mockResponse(
       JSON.stringify({
         data: [

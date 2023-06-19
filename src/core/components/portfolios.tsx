@@ -5,12 +5,12 @@ import { rootLoader } from "@core/common/PageLoader";
 import useSwr from "swr";
 import { portfoliosKey, simpleFetcher } from "@core/api/fetchHelper";
 import { Portfolio } from "@core/types/beancounter";
-import {useRouter} from "next/router";
+import { useRouter } from "next/router";
 
 export function Portfolios(selectedPortfolio: Portfolio): JSX.Element {
   const { data } = useSwr(portfoliosKey, simpleFetcher(portfoliosKey));
   const { t, ready } = useTranslation("common");
-  const router = useRouter()
+  const router = useRouter();
   if (!ready || !data) {
     return rootLoader(t("loading"));
   }

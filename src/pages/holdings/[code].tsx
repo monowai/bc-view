@@ -1,6 +1,4 @@
 import React from "react";
-import { ValueInOption } from "@core/components/valueIn";
-import { GroupByOption } from "@core/components/groupBy";
 import { SubTotal } from "@domain/holdings/SubTotal";
 import { calculate } from "@domain/holdings/calculate";
 import { Holdings } from "@core/types/beancounter";
@@ -17,10 +15,9 @@ import { useTranslation } from "next-i18next";
 import useSwr from "swr";
 import { holdingKey, simpleFetcher } from "@core/api/fetchHelper";
 import errorOut from "@core/errors/ErrorOut";
-import { HideEmpty } from "@core/components/hideEmpty";
 import { useHoldingState } from "@domain/holdings/holdingState";
+import { HoldingOptions } from "@domain/holdings/HoldingOptions";
 
-// import { TrnDropZone } from "../../domain/portfolio/DropZone";
 export default withPageAuthRequired(function Holdings(): React.ReactElement {
   const router = useRouter();
   const { data, error, isLoading } = useSwr(
@@ -49,20 +46,7 @@ export default withPageAuthRequired(function Holdings(): React.ReactElement {
   ) as Holdings;
   return (
     <div className="page-box">
-      <div className="filter-columns">
-        <div className="filter-label">{t("holdings.valueIn")}</div>
-        <div className="filter-column">
-          <ValueInOption />
-        </div>
-        <div className="filter-label">{t("holdings.groupBy")}</div>
-        <div className="filter-column">
-          <GroupByOption />
-        </div>
-        <div className="filter-label">{t("holdings.openOnly")}</div>
-        <div className="filter-column">
-          <HideEmpty />
-        </div>
-      </div>
+      <HoldingOptions {...holdingResults.portfolio} />
       <div>
         <table className={"stats-container"}>
           <SummaryHeader {...holdingResults.portfolio} />

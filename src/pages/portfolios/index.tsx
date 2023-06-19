@@ -10,9 +10,11 @@ import { portfoliosKey, simpleFetcher } from "@core/api/fetchHelper";
 import errorOut from "@core/errors/ErrorOut";
 import { rootLoader } from "@core/common/PageLoader";
 import { deletePortfolio } from "@domain/trns/apiHelper";
+import { useRouter } from "next/router";
 
 export default withPageAuthRequired(function Portfolios(): React.ReactElement {
   const { t, ready } = useTranslation("common");
+  const router = useRouter();
   const { data, error } = useSwr(portfoliosKey, simpleFetcher(portfoliosKey));
   if (error) {
     return errorOut(t("portfolios.error.retrieve"), error);
@@ -29,7 +31,7 @@ export default withPageAuthRequired(function Portfolios(): React.ReactElement {
             <button
               className="navbar-item button is-link is-small"
               onClick={() => {
-                //
+                router.push(`/portfolios/__NEW__`);
               }}
             >
               {t("portfolio.create")}

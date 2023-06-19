@@ -6,7 +6,7 @@ import { useGroupOptions } from "@core/components/groupBy";
 
 const holdingDefaults = hookstate(
   {
-    hideEmpty: true
+    hideEmpty: true,
   } as HoldingDefaults,
   devtools({ key: "holdings" })
 );
