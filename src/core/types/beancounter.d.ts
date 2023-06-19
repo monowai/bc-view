@@ -95,6 +95,13 @@ export interface Portfolio {
   owner?: SystemUser;
 }
 
+export interface CurrencySelectorOptions {
+  defaultValue: Currency;
+  placeHolder: string | "Select a currency";
+  xFunc: function | undefined;
+  currencyOptions: any;
+}
+
 export interface PortfolioSummary {
   portfolio: Portfolio;
   moneyValues: MoneyValues[ValueIn];

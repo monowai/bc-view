@@ -4,6 +4,14 @@ import handleResponse, { fetchError } from "@core/api/response-writer";
 import { Portfolio } from "@core/types/beancounter";
 import { getDataUrl } from "@core/api/bc-config";
 const baseUrl = getDataUrl("/portfolios");
+
+const defaultPortfolio: Portfolio = {
+  id: "",
+  code: "",
+  name: "",
+  currency: { id: "USD", code: "USD", symbol: "$" },
+  base: { id: "USD", code: "USD", symbol: "$" },
+};
 export default withApiAuthRequired(async function portfoliosById(req, res) {
   try {
     const {
@@ -14,13 +22,24 @@ export default withApiAuthRequired(async function portfoliosById(req, res) {
     console.log(`${method} for portfolio ${id}`);
     switch (method) {
       case "GET": {
-        const response = await fetch(
-          `${baseUrl}/${id}`,
-          requestInit(accessToken)
-        );
+        if (id === "__NEW__") {
+          res.status(200).json(defaultPortfolio);
+          break;
+        } else {
+          const response = await fetch(
+            `${baseUrl}/${id}`,
+            requestInit(accessToken)
+          );
+          await handleResponse<Portfolio>(response, res);
+          break;
+        }
+      }
+      case "POST": {
+        const response = await fetch(`${baseUrl}`, requestInit(accessToken));
         await handleResponse<Portfolio>(response, res);
         break;
       }
+
       case "DELETE": {
         const response = await fetch(
           `${baseUrl}/${id}`,
