@@ -1,11 +1,11 @@
 import { ValueInOption } from "@core/components/ValueIn";
 import { GroupByOption } from "@core/components/GroupBy";
 import { HideEmpty } from "@core/components/HideEmpty";
-import React from "react";
+import React, {ReactElement} from "react";
 import { useTranslation } from "next-i18next";
 import { useRouter } from "next/router";
 
-export function HoldingOptions(): JSX.Element {
+export function HoldingOptions(): ReactElement {
   const { t } = useTranslation("common");
   const router = useRouter();
   return (

@@ -1,4 +1,4 @@
-import React from "react";
+import React, {ReactElement} from "react";
 import { FormatNumber } from "@core/types/app";
 import { NumericFormat } from "react-number-format";
 
@@ -7,7 +7,7 @@ export function FormatValue({
   scale,
   multiplier,
   defaultValue = " ",
-}: FormatNumber): JSX.Element {
+}: FormatNumber): ReactElement {
   if (value) {
     return (
       <NumericFormat

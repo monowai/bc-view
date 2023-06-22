@@ -1,6 +1,6 @@
-import React from "react";
+import React, {ReactElement} from "react";
 
-export default function errorOut(key: string, error: Error): JSX.Element {
+export default function errorOut(key: string, error: Error): ReactElement {
   return (
     <>
       <pre style={{ color: "red" }}>

@@ -1,10 +1,10 @@
-import React from "react";
+import React, {ReactElement} from "react";
 import { Portfolio, PortfolioSummary } from "@core/types/beancounter";
 import { FormatValue } from "@core/common/MoneyUtils";
 import { useTranslation } from "next-i18next";
 import { Portfolios } from "@core/components/Portfolios";
 
-export default function SummaryHeader(portfolio: Portfolio): JSX.Element {
+export default function SummaryHeader(portfolio: Portfolio): ReactElement {
   const { t } = useTranslation("common");
   return (
     <tbody key={portfolio.code}>
@@ -26,7 +26,7 @@ export function SummaryRow({
   portfolio,
   moneyValues,
   valueIn,
-}: PortfolioSummary): JSX.Element {
+}: PortfolioSummary): ReactElement {
   const holdingValue = moneyValues[valueIn];
   const currencyTotals = holdingValue !== undefined;
   const displayCurrency = !currencyTotals

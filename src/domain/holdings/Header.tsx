@@ -1,8 +1,8 @@
-import React from "react";
+import React, {ReactElement} from "react";
 import { GroupKey } from "@core/types/beancounter";
 import { useTranslation } from "next-i18next";
 
-export function Header({ groupKey }: GroupKey): JSX.Element {
+export function Header({ groupKey }: GroupKey): ReactElement {
   const { t } = useTranslation("common");
   return (
     <tbody className={"table-header"}>
