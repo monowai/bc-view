@@ -1,7 +1,7 @@
 import React, { FC, useContext } from "react";
-import classNames from "classnames";
 import { TabId } from "./Tabs";
 import { TabsContext } from "./TabsContext";
+import classNames from "classnames";
 
 type TabCssProps = {
   isActive?: boolean;

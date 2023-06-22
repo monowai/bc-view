@@ -1,4 +1,4 @@
-import React from "react";
+import React, {ReactElement} from "react";
 import { Currency, CurrencySelectorOptions } from "@core/types/beancounter";
 import Select from "react-select";
 
@@ -7,7 +7,7 @@ export function CurrencySelector({
   placeHolder,
   xFunc,
   currencyOptions,
-}: CurrencySelectorOptions): JSX.Element {
+}: CurrencySelectorOptions): ReactElement {
   return (
     <Select
       options={currencyOptions}

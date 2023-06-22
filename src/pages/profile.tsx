@@ -4,8 +4,9 @@ import { GetServerSideProps } from "next";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 import { rootLoader } from "@core/common/PageLoader";
 import { useTranslation } from "next-i18next";
+import { ReactElement } from "react";
 
-export function getAvatar(user: UserProfile, size: number) {
+export function getAvatar(user: UserProfile, size: number): ReactElement {
   return (
     <Image
       src={user.picture as string}
@@ -23,7 +24,7 @@ export function getAvatar(user: UserProfile, size: number) {
   );
 }
 
-export default function Profile(): JSX.Element {
+export default function Profile(): ReactElement {
   const { user, error, isLoading } = useUser();
   const { t, ready } = useTranslation("common");
   if (isLoading || !ready) return rootLoader(t("loading"));

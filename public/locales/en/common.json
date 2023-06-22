@@ -74,6 +74,7 @@
   "portfolios.error.retrieve": "Error retrieving portfolios",
   "portfolios.error.empty": "You have no portfolios",
   "trn.amount.trade": "Amount",
+  "trade.title": "Add Trade",
   "trade.onmarket": "On Market",
   "trade.offmarket": "Off Market",
   "trn.rate.tb": "T/B Rate",

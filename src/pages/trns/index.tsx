@@ -12,7 +12,7 @@ export default withPageAuthRequired(function AddTrade(): React.ReactElement {
 
   // On/Off market
   // On ->
-  //    Market, Asset, details, category
+  //    Market, Asset, details, (category)
   // Off ->
   //    Generic Cash
   //        Deposit/Withdrawal/Balance
@@ -21,7 +21,7 @@ export default withPageAuthRequired(function AddTrade(): React.ReactElement {
   //
   return (
     <section className="section">
-      <h1 className="title">Add a Trade</h1>
+      <h1 className="title">{t("trade.title")}</h1>
 
       <Tabs defaultTabId="onMarket">
         <Tabs.TabList isSize="medium">

@@ -1,6 +1,6 @@
-import React from "react";
+import React, {ReactElement} from "react";
 
-export function rootLoader(message: string, show = true): JSX.Element {
+export function rootLoader(message: string, show = true): ReactElement {
   if (!show) {
     return <div />;
   }

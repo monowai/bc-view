@@ -1,5 +1,5 @@
 import Select from "react-select";
-import React from "react";
+import React, {ReactElement} from "react";
 import { useHoldingState } from "@domain/holdings/holdingState";
 import { GroupBy } from "@core/types/constants";
 import { GroupOption, GroupOptions } from "@core/types/app";
@@ -30,7 +30,7 @@ export function useGroupOptions(): GroupOptions {
   };
 }
 
-export function GroupByOption(): JSX.Element {
+export function GroupByOption(): ReactElement {
   const holdingState = useHoldingState();
   const groupOptions = useGroupOptions();
   const { t, ready } = useTranslation("common");
