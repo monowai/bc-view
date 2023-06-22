@@ -23,11 +23,13 @@ export function simpleFetcher(key: string): any {
 export const ccyKey = "/api/currencies";
 
 export const portfoliosKey = "/api/portfolios";
+
+export const trnsKey = "/api/trns";
 export const assetKey = (assetId: string): string => `/api/assets/${assetId}`;
 export const tradeKey = (portfolioId: string, assetId: string): string =>
-  `/api/trns/trades/${portfolioId}/${assetId}`;
+  `${trnsKey}/trades/${portfolioId}/${assetId}`;
 export const eventKey = (portfolioId: string, assetId: string): string =>
-  `/api/trns/events/${portfolioId}/${assetId}`;
+  `${trnsKey}/events/${portfolioId}/${assetId}`;
 
 export const holdingKey = (portfolioCode: string): string =>
   `/api/holdings/${portfolioCode}`;

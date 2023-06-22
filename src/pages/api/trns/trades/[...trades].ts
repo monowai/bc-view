@@ -1,10 +1,9 @@
 import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0";
 import handleResponse, { fetchError } from "@core/api/response-writer";
 import { Transaction } from "@core/types/beancounter";
-import { getDataUrl } from "@core/api/bc-config";
 import { requestInit } from "@core/api/fetchHelper";
+import { baseUrl } from "@pages/api/trns";
 
-const baseUrl = getDataUrl("/trns");
 export default withApiAuthRequired(async function tradeTrns(req, res) {
   try {
     const { trades } = req.query;

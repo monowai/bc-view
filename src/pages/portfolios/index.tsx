@@ -9,7 +9,6 @@ import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 import { portfoliosKey, simpleFetcher } from "@core/api/fetchHelper";
 import errorOut from "@core/errors/ErrorOut";
 import { rootLoader } from "@core/common/PageLoader";
-import { deletePortfolio } from "@domain/trns/apiHelper";
 import { useRouter } from "next/router";
 
 export default withPageAuthRequired(function Portfolios(): React.ReactElement {
@@ -94,6 +93,16 @@ export default withPageAuthRequired(function Portfolios(): React.ReactElement {
   }
   return <div id="root">{t("error.portfolios.empty")}</div>;
 });
+
+function deletePortfolio(
+  portfolioId: string,
+  message: string
+): Promise<void> | any {
+  if (confirm(message))
+    return fetch(`/api/portfolios/${portfolioId}`, {
+      method: "DELETE",
+    });
+}
 
 export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
   props: {

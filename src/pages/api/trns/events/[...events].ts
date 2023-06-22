@@ -2,8 +2,7 @@ import { withApiAuthRequired, getAccessToken } from "@auth0/nextjs-auth0";
 import { requestInit } from "@core/api/fetchHelper";
 import handleResponse, { fetchError } from "@core/api/response-writer";
 import { Transaction } from "@core/types/beancounter";
-import { getDataUrl } from "@core/api/bc-config";
-const baseUrl = getDataUrl("/trns");
+import { baseUrl } from "@pages/api/trns";
 export default withApiAuthRequired(async function eventTrns(req, res) {
   try {
     const { events } = req.query;

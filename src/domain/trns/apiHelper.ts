@@ -4,13 +4,3 @@ export function deleteTrn(trnId: string, message: string): Promise<void> | any {
       method: "DELETE",
     });
 }
-
-export function deletePortfolio(
-  portfolioId: string,
-  message: string
-): Promise<void> | any {
-  if (confirm(message))
-    return fetch(`/api/portfolios/${portfolioId}`, {
-      method: "DELETE",
-    });
-}
