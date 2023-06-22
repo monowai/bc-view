@@ -1,4 +1,4 @@
-import { Portfolio } from "./beancounter";
+import { Market, Portfolio, TrnInput } from "./beancounter";
 import { GroupBy, ValueIn } from "@types/constants";
 
 interface TransactionUpload {
@@ -41,6 +41,14 @@ export interface GroupOption {
   value: GroupBy;
 }
 
+export interface TradeDefaults {
+  readonly onMarket: boolean;
+  setOffMarket(value: boolean);
+  readonly market: Market;
+  setMarket(market: Market): void;
+  readonly trnInput: TrnInput;
+  setTrnInput(value: TrnInput): void;
+}
 export interface HoldingDefaults {
   toggleHideEmpty(): void;
   readonly valueIn: ValuationOption;
