@@ -4,6 +4,7 @@ import Link from "next/link";
 import { GetServerSideProps } from "next";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 import { useTranslation } from "next-i18next";
+import { getAvatar } from "@pages/profile";
 
 export default function HeaderUserControls(): React.ReactElement {
   const { user, error, isLoading } = useUser();
@@ -35,7 +36,7 @@ export default function HeaderUserControls(): React.ReactElement {
       <div className="navbar-item has-dropdown is-hoverable">
         <div className="navbar-link">
           {loggedIn}
-          {user.email}
+          {getAvatar(user, 25)}
         </div>
       </div>
     </div>
