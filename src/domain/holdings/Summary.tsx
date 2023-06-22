@@ -2,7 +2,7 @@ import React from "react";
 import { Portfolio, PortfolioSummary } from "@core/types/beancounter";
 import { FormatValue } from "@core/common/MoneyUtils";
 import { useTranslation } from "next-i18next";
-import { Portfolios } from "@core/components/portfolios";
+import { Portfolios } from "@core/components/Portfolios";
 
 export default function SummaryHeader(portfolio: Portfolio): JSX.Element {
   const { t } = useTranslation("common");
@@ -36,7 +36,10 @@ export function SummaryRow({
     <tbody>
       <tr className={"stats-row"}>
         <td>
-          <Portfolios {...portfolio} />
+          {/* Figure out best way to style this component */}
+          <div style={{ fontSize: 14 }}>
+            <Portfolios {...portfolio} />
+          </div>
         </td>
         <td>{displayCurrency}</td>
         <td align={"right"}>
