@@ -1,8 +1,8 @@
 import { hookstate, useHookstate } from "@hookstate/core";
 import { devtools } from "@hookstate/devtools";
 import { GroupOption, HoldingDefaults, ValuationOption } from "@core/types/app";
-import { useValuationOptions } from "@core/components/valueIn";
-import { useGroupOptions } from "@core/components/groupBy";
+import { useValuationOptions } from "@core/components/ValueIn";
+import { useGroupOptions } from "@core/components/GroupBy";
 
 const holdingDefaults = hookstate(
   {
