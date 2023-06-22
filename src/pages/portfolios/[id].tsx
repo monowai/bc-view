@@ -12,7 +12,7 @@ import Link from "next/link";
 import { rootLoader } from "@core/common/PageLoader";
 import errorOut from "@core/errors/ErrorOut";
 import useSwr from "swr";
-import { currencyOptions, CurrencySelector } from "@core/components/currency";
+import { currencyOptions, CurrencySelector } from "@core/components/Currency";
 
 export default withPageAuthRequired(function Manage(): React.ReactElement {
   const { register } = useForm<PortfolioInput>();

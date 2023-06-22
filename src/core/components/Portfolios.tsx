@@ -20,10 +20,19 @@ export function Portfolios(selectedPortfolio: Portfolio): JSX.Element {
     <Select
       options={portfolios}
       defaultValue={selectedPortfolio}
-      getOptionLabel={(portfolio) => portfolio.code}
+      getOptionLabel={(portfolio) => portfolio.name}
       getOptionValue={(portfolio) => portfolio.code}
       isSearchable={false}
       isClearable={false}
+      theme={(theme) => ({
+        ...theme,
+        borderRadius: 3,
+        colors: {
+          ...theme.colors,
+          //primary25: 'hotpink',
+          //primary: 'black',
+        },
+      })}
       onChange={(e) => {
         router.push(`${e!!.code}`).then();
       }}
