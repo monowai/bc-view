@@ -1,5 +1,5 @@
 import Select from "react-select";
-import React, {ReactElement} from "react";
+import React, { ReactElement } from "react";
 import { useHoldingState } from "@domain/holdings/holdingState";
 import { GroupBy } from "@core/types/constants";
 import { GroupOption, GroupOptions } from "@core/types/app";

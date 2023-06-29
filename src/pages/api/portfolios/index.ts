@@ -9,8 +9,23 @@ const baseUrl = getDataUrl("/portfolios");
 export default withApiAuthRequired(async function portfolios(req, res) {
   try {
     const { accessToken } = await getAccessToken(req, res);
-    const response = await fetch(`${baseUrl}`, requestInit(accessToken));
-    await handleResponse<Portfolio[]>(response, res);
+    const { method } = req;
+    console.log(`${method} / portfolios`);
+    switch (method?.toUpperCase()) {
+      case "GET": {
+        const response = await fetch(`${baseUrl}`, requestInit(accessToken));
+        await handleResponse<Portfolio[]>(response, res);
+        break;
+      }
+      case "POST": {
+        const response = await fetch(
+          `${baseUrl}`,
+          requestInit(accessToken, method)
+        );
+        await handleResponse<Portfolio>(response, res);
+        break;
+      }
+    }
   } catch (error: any) {
     fetchError(res, req, error);
   }

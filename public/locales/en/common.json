@@ -12,6 +12,7 @@
   "home.welcome": "Welcome !",
   "error-global-oops": "Doh!",
   "error-global": "That shouldn't have happened",
+  "error.portfolios.empty": "You have no portfolios",
   "tagline": "Wealth management for the rest of us",
   "quantity": "Quantity",
   "asset.price": "Price",

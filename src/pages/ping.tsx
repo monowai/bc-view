@@ -1,7 +1,7 @@
 import { GetServerSideProps } from "next";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 import { useTranslation } from "next-i18next";
-import {ReactNode} from "react";
+import { ReactNode } from "react";
 
 export default function Ping(): ReactNode {
   const { t } = useTranslation("common");

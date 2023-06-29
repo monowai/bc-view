@@ -1,4 +1,4 @@
-import React, {ReactElement} from "react";
+import React, { ReactElement } from "react";
 import { Portfolio, PortfolioSummary } from "@core/types/beancounter";
 import { FormatValue } from "@core/common/MoneyUtils";
 import { useTranslation } from "next-i18next";

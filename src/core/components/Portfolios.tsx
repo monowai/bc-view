@@ -1,5 +1,5 @@
 import Select from "react-select";
-import React, {ReactElement} from "react";
+import React, { ReactElement } from "react";
 import { useTranslation } from "next-i18next";
 import { rootLoader } from "@core/common/PageLoader";
 import useSwr from "swr";

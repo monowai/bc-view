@@ -1,4 +1,4 @@
-import React, {ReactElement} from "react";
+import React, { ReactElement } from "react";
 import "@styles/bc.sass";
 import type { AppProps } from "next/app";
 import { appWithTranslation } from "next-i18next";

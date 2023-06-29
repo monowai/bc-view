@@ -1,7 +1,7 @@
 import { Asset, HoldingValues, PriceData } from "@core/types/beancounter";
 import { NumericFormat } from "react-number-format";
 import { FormatValue } from "@core/common/MoneyUtils";
-import React, {ReactElement} from "react";
+import React, { ReactElement } from "react";
 import { displayName, isCashRelated } from "@domain/assets/assetUtils";
 import Link from "next/link";
 
@@ -30,7 +30,7 @@ export function Rows({
                   : ""
               }
             >
-              {moneyValues[valueIn].currency.id}
+              {moneyValues[valueIn].currency.code}
               {moneyValues[valueIn].currency.symbol}
               <FormatValue
                 value={

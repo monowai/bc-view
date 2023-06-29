@@ -8,7 +8,6 @@ export interface Market {
 }
 
 export interface Currency {
-  id: string;
   code: string;
   symbol: string;
 }
@@ -98,7 +97,6 @@ export interface Portfolio {
 export interface CurrencySelectorOptions {
   defaultValue: Currency;
   placeHolder: string | "Select a currency";
-  xFunc: function | undefined;
   currencyOptions: any;
 }
 
@@ -111,8 +109,13 @@ export interface PortfolioSummary {
 export interface PortfolioInput {
   code: string;
   name: string;
-  currency: string;
-  base: string;
+  currency: CurrencyOption;
+  base: CurrencyOption;
+}
+
+export interface CurrencyOption {
+  label: string;
+  value: string;
 }
 
 // Server side contract

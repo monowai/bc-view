@@ -1,13 +1,15 @@
 import { ValueInOption } from "@core/components/ValueIn";
 import { GroupByOption } from "@core/components/GroupBy";
 import { HideEmpty } from "@core/components/HideEmpty";
-import React, {ReactElement} from "react";
+import React, { ReactElement } from "react";
 import { useTranslation } from "next-i18next";
 import { useRouter } from "next/router";
+import { GroupOption } from "@core/types/app";
 
 export function HoldingOptions(): ReactElement {
   const { t } = useTranslation("common");
   const router = useRouter();
+  let onChange;
   return (
     <div className="filter-columns">
       <div className="filter-label">{t("holdings.valueIn")}</div>
