@@ -5,13 +5,6 @@ import { Portfolio } from "@core/types/beancounter";
 import { getDataUrl } from "@core/api/bc-config";
 const baseUrl = getDataUrl("/portfolios");
 
-const defaultPortfolio: Portfolio = {
-  id: "",
-  code: "",
-  name: "",
-  currency: { id: "USD", code: "USD", symbol: "$" },
-  base: { id: "USD", code: "USD", symbol: "$" },
-};
 export default withApiAuthRequired(async function portfoliosById(req, res) {
   try {
     const {
@@ -20,9 +13,18 @@ export default withApiAuthRequired(async function portfoliosById(req, res) {
     } = req;
     const { accessToken } = await getAccessToken(req, res);
     console.log(`${method} for portfolio ${id}`);
-    switch (method) {
+    switch (method?.toUpperCase()) {
       case "GET": {
         if (id === "__NEW__") {
+          const defaultPortfolio = {
+            data: {
+              id: "",
+              code: "",
+              name: "",
+              currency: { id: "USD", code: "USD", symbol: "$" },
+              base: { id: "USD", code: "USD", symbol: "$" },
+            },
+          };
           res.status(200).json(defaultPortfolio);
           break;
         } else {
@@ -35,7 +37,10 @@ export default withApiAuthRequired(async function portfoliosById(req, res) {
         }
       }
       case "POST": {
-        const response = await fetch(`${baseUrl}`, requestInit(accessToken));
+        const response = await fetch(
+          `${baseUrl}`,
+          requestInit(accessToken, method)
+        );
         await handleResponse<Portfolio>(response, res);
         break;
       }

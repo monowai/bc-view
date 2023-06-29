@@ -36,7 +36,8 @@ export default function HeaderUserControls(): React.ReactElement {
       <div className="navbar-item has-dropdown is-hoverable">
         <div className="navbar-link">
           {loggedIn}
-          {getAvatar(user, 30)} <div className={"simple-padding"}>{user.nickname}</div>
+          {getAvatar(user, 30)}{" "}
+          <div className={"simple-padding"}>{user.nickname}</div>
         </div>
       </div>
     </div>

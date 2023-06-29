@@ -3,7 +3,7 @@ import Select from "react-select";
 import { useHoldingState } from "@domain/holdings/holdingState";
 import { ValuationOption, ValuationOptions } from "@core/types/app";
 import { useTranslation } from "next-i18next";
-import {ReactElement} from "react";
+import { ReactElement } from "react";
 
 export function useValuationOptions(): ValuationOptions {
   const { t } = useTranslation("common");

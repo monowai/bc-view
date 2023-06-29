@@ -1,4 +1,4 @@
-import React, {ReactElement} from "react";
+import React, { ReactElement } from "react";
 import { GroupedSubtotals } from "@core/types/beancounter";
 import { FormatValue } from "@core/common/MoneyUtils";
 

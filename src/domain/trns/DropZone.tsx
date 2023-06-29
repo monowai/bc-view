@@ -1,4 +1,4 @@
-import React, {ReactElement, useCallback} from "react";
+import React, { ReactElement, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { TransactionImport } from "@core/types/beancounter";
 import { DelimitedImport } from "@core/types/app";

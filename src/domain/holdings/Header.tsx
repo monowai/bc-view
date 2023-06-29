@@ -1,4 +1,4 @@
-import React, {ReactElement} from "react";
+import React, { ReactElement } from "react";
 import { GroupKey } from "@core/types/beancounter";
 import { useTranslation } from "next-i18next";
 

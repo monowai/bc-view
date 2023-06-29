@@ -12,17 +12,25 @@ import { rootLoader } from "@core/common/PageLoader";
 import { useRouter } from "next/router";
 
 export default withPageAuthRequired(function Portfolios(): React.ReactElement {
-  const { t, ready } = useTranslation("common");
-  const router = useRouter();
-  const { data, error } = useSwr(portfoliosKey, simpleFetcher(portfoliosKey));
-  if (error) {
-    return errorOut(t("portfolios.error.retrieve"), error);
+  function noPortfolios(): React.ReactElement {
+    return (
+      <nav className="container has-background-grey-lighter">
+        <div id="root">{t("error.portfolios.empty")}</div>
+        <div className="column is-left">
+          <button
+            className="navbar-item button is-link is-small"
+            onClick={() => {
+              router.push(`/portfolios/__NEW__`).then();
+            }}
+          >
+            {t("portfolio.create")}
+          </button>
+        </div>
+      </nav>
+    );
   }
-  if (!data || !ready) {
-    return rootLoader(t("loading"));
-  }
-  const portfolios: Portfolio[] = data.data;
-  if (portfolios && portfolios.length > 0) {
+
+  function listPortfolios(): React.ReactElement {
     return (
       <div>
         <nav className="container has-background-grey-lighter">
@@ -91,7 +99,22 @@ export default withPageAuthRequired(function Portfolios(): React.ReactElement {
       </div>
     );
   }
-  return <div id="root">{t("error.portfolios.empty")}</div>;
+
+  const { t, ready } = useTranslation("common");
+  const router = useRouter();
+  const { data, error } = useSwr(portfoliosKey, simpleFetcher(portfoliosKey));
+  if (error) {
+    return errorOut(t("portfolios.error.retrieve"), error);
+  }
+  if (!data || !ready) {
+    return rootLoader(t("loading"));
+  }
+  const portfolios: Portfolio[] = data.data;
+
+  if (portfolios && portfolios.length == 0) {
+    return noPortfolios();
+  }
+  return listPortfolios();
 });
 
 function deletePortfolio(
