@@ -1,7 +1,7 @@
 import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0";
 import { requestInit } from "@core/api/fetchHelper";
 import handleResponse, { fetchError } from "@core/api/response-writer";
-import { Portfolio, PortfolioResponses } from "@core/types/beancounter";
+import { Portfolio, PortfolioResponse } from "@core/types/beancounter";
 import { getDataUrl } from "@core/api/bc-config";
 
 const baseUrl = getDataUrl("/portfolios");
@@ -57,7 +57,7 @@ export default withApiAuthRequired(async function portfoliosById(req, res) {
             "Content-Type": "application/json",
           },
         });
-        await handleResponse<PortfolioResponses>(response, res);
+        await handleResponse<PortfolioResponse>(response, res);
         break;
       }
 
