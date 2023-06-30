@@ -1,6 +1,12 @@
 import React, { useState } from "react";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
-import { Portfolio, PortfolioInput } from "@core/types/beancounter";
+import {
+  Portfolio,
+  PortfolioInput,
+  PortfolioRequest,
+  PortfolioRequests,
+} from "@core/types/beancounter";
+import { portfolioInputSchema } from "@domain/portfolio/schema";
 import { ccyKey, portfolioKey, simpleFetcher } from "@core/api/fetchHelper";
 import { useRouter } from "next/router";
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client";
@@ -18,15 +24,53 @@ import {
   toCurrencyOption,
 } from "@core/components/currency";
 import ReactSelect from "react-select";
-import { portfolioInputSchema } from "@domain/portfolio/schema";
 import { yupResolver } from "@hookform/resolvers/yup";
+import { validateInput } from "@core/errors/validator";
 
 export default withPageAuthRequired(function Manage(): React.ReactElement {
+  function toPortfolioRequest(portfolio: PortfolioInput): PortfolioRequest {
+    return {
+      code: portfolio.code,
+      name: portfolio.name,
+      currency: portfolio.currency.value,
+      base: portfolio.base.value,
+    };
+  }
+
+  function toPortfolioRequests(portfolio: PortfolioInput): PortfolioRequests {
+    return {
+      data: [toPortfolioRequest(portfolio)],
+    };
+  }
+
   const handleSubmit: SubmitHandler<PortfolioInput> = (portfolioInput) => {
-    console.log(errors?.code?.message);
-    console.log(
-      `${portfolioInput.currency.value} / ${portfolioInput.base.value}`
-    );
+    validateInput(portfolioInputSchema, portfolioInput)
+      .then(() => {
+        // This all looks a bit messy but too many other priorities to fix right now.
+        // PATCH can only update a single resource
+        // POST will create a collection of portfolios.
+        const post = router.query.id === "__NEW__";
+        fetch(key, {
+          method: post ? "POST" : "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: post
+            ? JSON.stringify(toPortfolioRequests(portfolioInput))
+            : JSON.stringify(toPortfolioRequest(portfolioInput)),
+        })
+          .catch((err) => {
+            throw err;
+          })
+          .then((response) => response.json())
+          .then((data) => {
+            const route = post
+              ? `/portfolios/${data.data[0].id}`
+              : `/portfolios/${data.data.id}`;
+            router.push(route).then(() => {});
+          });
+      })
+      .catch((e) => {
+        console.error(`Some error ${e.message}`);
+      });
   };
 
   const router = useRouter();
@@ -50,7 +94,7 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
   if (error) {
     return errorOut(t("portfolio.error.retrieve"), error);
   }
-  if (!ready || !data || !ccyResponse.data) {
+  if (!ready || !data || ccyResponse.isLoading) {
     return rootLoader(t("loading"));
   }
   const portfolio: Portfolio = data.data;
@@ -132,7 +176,7 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
             className="control button is-link is-light"
             onClick={(e) => {
               e.preventDefault(); // We want router to handle this
-              router.back();
+              router.push("/portfolios").then();
             }}
           >
             {t("form.cancel")}

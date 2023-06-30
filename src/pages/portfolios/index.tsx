@@ -30,6 +30,24 @@ export default withPageAuthRequired(function Portfolios(): React.ReactElement {
     );
   }
 
+  function deletePortfolio(
+    portfolioId: string,
+    message: string
+  ): Promise<void> | any {
+    if (confirm(message))
+      fetch(`/api/portfolios/${portfolioId}`, {
+        method: "DELETE",
+      }).then(() => {
+        mutate({ ...data }).then(() =>
+          router
+            .push("/portfolios", "/portfolios", {
+              shallow: true,
+            })
+            .then()
+        );
+      });
+  }
+
   function listPortfolios(): React.ReactElement {
     return (
       <div>
@@ -102,7 +120,10 @@ export default withPageAuthRequired(function Portfolios(): React.ReactElement {
 
   const { t, ready } = useTranslation("common");
   const router = useRouter();
-  const { data, error } = useSwr(portfoliosKey, simpleFetcher(portfoliosKey));
+  const { data, mutate, error } = useSwr(
+    portfoliosKey,
+    simpleFetcher(portfoliosKey)
+  );
   if (error) {
     return errorOut(t("portfolios.error.retrieve"), error);
   }
@@ -116,16 +137,6 @@ export default withPageAuthRequired(function Portfolios(): React.ReactElement {
   }
   return listPortfolios();
 });
-
-function deletePortfolio(
-  portfolioId: string,
-  message: string
-): Promise<void> | any {
-  if (confirm(message))
-    return fetch(`/api/portfolios/${portfolioId}`, {
-      method: "DELETE",
-    });
-}
 
 export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
   props: {

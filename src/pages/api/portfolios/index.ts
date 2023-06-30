@@ -17,14 +17,6 @@ export default withApiAuthRequired(async function portfolios(req, res) {
         await handleResponse<Portfolio[]>(response, res);
         break;
       }
-      case "POST": {
-        const response = await fetch(
-          `${baseUrl}`,
-          requestInit(accessToken, method)
-        );
-        await handleResponse<Portfolio>(response, res);
-        break;
-      }
     }
   } catch (error: any) {
     fetchError(res, req, error);

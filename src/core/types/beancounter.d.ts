@@ -94,12 +94,19 @@ export interface Portfolio {
   owner?: SystemUser;
 }
 
-export interface CurrencySelectorOptions {
-  defaultValue: Currency;
-  placeHolder: string | "Select a currency";
-  currencyOptions: any;
+export interface PortfolioResponses {
+  data: Portfolio;
 }
 
+export interface PortfolioRequest {
+  code: string;
+  name: string;
+  currency: string;
+  base: string;
+}
+export interface PortfolioRequests {
+  data: PortfolioRequest[];
+}
 export interface PortfolioSummary {
   portfolio: Portfolio;
   moneyValues: MoneyValues[ValueIn];

@@ -1,8 +1,9 @@
-import { withApiAuthRequired, getAccessToken } from "@auth0/nextjs-auth0";
+import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0";
 import { requestInit } from "@core/api/fetchHelper";
 import handleResponse, { fetchError } from "@core/api/response-writer";
-import { Portfolio } from "@core/types/beancounter";
+import { Portfolio, PortfolioResponses } from "@core/types/beancounter";
 import { getDataUrl } from "@core/api/bc-config";
+
 const baseUrl = getDataUrl("/portfolios");
 
 export default withApiAuthRequired(async function portfoliosById(req, res) {
@@ -13,6 +14,7 @@ export default withApiAuthRequired(async function portfoliosById(req, res) {
     } = req;
     const { accessToken } = await getAccessToken(req, res);
     console.log(`${method} for portfolio ${id}`);
+    const byId = `${baseUrl}/${id}`;
     switch (method?.toUpperCase()) {
       case "GET": {
         if (id === "__NEW__") {
@@ -28,28 +30,39 @@ export default withApiAuthRequired(async function portfoliosById(req, res) {
           res.status(200).json(defaultPortfolio);
           break;
         } else {
-          const response = await fetch(
-            `${baseUrl}/${id}`,
-            requestInit(accessToken)
-          );
+          const response = await fetch(byId, requestInit(accessToken));
           await handleResponse<Portfolio>(response, res);
           break;
         }
       }
-      case "POST": {
-        const response = await fetch(
-          `${baseUrl}`,
-          requestInit(accessToken, method)
-        );
+      case "PATCH": {
+        const response = await fetch(byId, {
+          method,
+          body: JSON.stringify(req.body),
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        });
         await handleResponse<Portfolio>(response, res);
         break;
       }
 
+      case "POST": {
+        const response = await fetch(`${baseUrl}`, {
+          method,
+          body: JSON.stringify(req.body),
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        });
+        await handleResponse<PortfolioResponses>(response, res);
+        break;
+      }
+
       case "DELETE": {
-        const response = await fetch(
-          `${baseUrl}/${id}`,
-          requestInit(accessToken, method)
-        );
+        const response = await fetch(byId, requestInit(accessToken, method));
         await handleResponse<void>(response, res);
         break;
       }
