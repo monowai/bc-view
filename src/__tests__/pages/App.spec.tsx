@@ -1,7 +1,7 @@
 import Home from "@pages/index";
 import React from "react";
 import { screen, render } from "@testing-library/react";
-import { mockUser, registrationSuccess, withUserProvider } from "../fixtures";
+import { mockUserProfile, registrationSuccess, withUserProvider } from "../fixtures";
 import fetchMock, { enableFetchMocks } from "jest-fetch-mock";
 enableFetchMocks();
 jest.mock("react-i18next", () => ({
@@ -17,8 +17,8 @@ afterEach(() => {
 describe("<Home />", () => {
   test("renders for authorised user", async () => {
     fetchMock.mockResponseOnce(JSON.stringify(registrationSuccess));
-    render(<Home user={mockUser} />, {
-      wrapper: withUserProvider({ user: mockUser }),
+    render(<Home user={mockUserProfile} />, {
+      wrapper: withUserProvider({ user: mockUserProfile }),
     });
     expect(await screen.findByTestId("loading")).toBeInTheDocument();
     const heading = screen.getByText("home.welcome");
