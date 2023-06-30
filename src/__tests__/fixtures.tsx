@@ -1,6 +1,10 @@
 import { UserProfile, UserProvider } from "@auth0/nextjs-auth0/client";
 import React, { ReactNode } from "react";
 import { ConfigContext } from "@auth0/nextjs-auth0/dist/client/use-config";
+import {
+  PortfolioResponses,
+  RegistrationResponse,
+} from "@core/types/beancounter";
 
 export const mockUser = {
   email: "foo@example.com",
@@ -10,6 +14,40 @@ export const mockUser = {
   picture: "foo.jpg",
   sub: "1",
   updated_at: null,
+};
+export const registrationSuccess: RegistrationResponse = {
+  data: {
+    id: "ownerId",
+    email: "mike@bc.com",
+    active: true,
+    since: "2020-03-03",
+  },
+};
+
+export const portfolioResult: PortfolioResponses = {
+  data: [
+    {
+      id: "someId",
+      code: "TEST",
+      name: "Test Portfolio",
+      currency: {
+        code: "EUR",
+        name: "Euro",
+        symbol: "€",
+      },
+      base: {
+        code: "USD",
+        name: "Dollar",
+        symbol: "$",
+      },
+      owner: {
+        id: "ownerId",
+        email: "mike@bc.com",
+        active: true,
+        since: "2020-03-03",
+      },
+    },
+  ],
 };
 export const withUserProvider = (user: UserProfile = {}) => {
   return (

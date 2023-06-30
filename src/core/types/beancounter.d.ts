@@ -9,6 +9,7 @@ export interface Market {
 
 export interface Currency {
   code: string;
+  name: string;
   symbol: string;
 }
 
@@ -94,8 +95,12 @@ export interface Portfolio {
   owner?: SystemUser;
 }
 
-export interface PortfolioResponses {
+export interface PortfolioResponse {
   data: Portfolio;
+}
+
+export interface PortfolioResponses {
+  data: Portfolio[];
 }
 
 export interface PortfolioRequest {
@@ -165,6 +170,7 @@ interface SystemUser {
   id: string;
   active: boolean;
   email: string | undefined;
+  since: string;
 }
 
 interface TrnInput {
@@ -217,4 +223,8 @@ interface Registration {
   email: string;
   active: boolean;
   since: string;
+}
+
+export interface RegistrationResponse {
+  data: Registration;
 }

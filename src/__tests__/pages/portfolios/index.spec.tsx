@@ -1,6 +1,6 @@
 import React from "react";
 import { screen, render } from "@testing-library/react";
-import { mockUser, withUserProvider } from "../../fixtures";
+import { mockUser, portfolioResult, withUserProvider } from "../../fixtures";
 import Portfolios from "@pages/portfolios";
 import fetchMock from "jest-fetch-mock";
 import { enableFetchMocks } from "jest-fetch-mock";
@@ -36,33 +36,7 @@ jest.mock("next/router", () => ({
 describe("<Portfolios />", () => {
   test("Portfolio List Renders", async () => {
     // const useRouter = jest.spyOn(require("next/router"), "useRouter");
-    fetchMock.mockResponse(
-      JSON.stringify({
-        data: [
-          {
-            id: "someId",
-            code: "TEST",
-            name: "Test Portfolio",
-            currency: {
-              code: "EUR",
-              name: "Euro",
-              symbol: "€",
-            },
-            base: {
-              code: "USD",
-              name: "Dollar",
-              symbol: "$",
-            },
-            owner: {
-              id: "ownerId",
-              email: "mike@bc.com",
-              active: true,
-              since: "2020-03-03",
-            },
-          },
-        ],
-      })
-    );
+    fetchMock.mockResponse(JSON.stringify(portfolioResult));
     render(<Portfolios user={mockUser} />, {
       wrapper: withUserProvider({ user: mockUser }),
     });
