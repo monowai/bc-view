@@ -45,10 +45,10 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
   const { data, error } = useSwr(key, simpleFetcher(key));
   const ccyResponse = useSwr(ccyKey, simpleFetcher(ccyKey));
   if (ccyResponse.error) {
-    return errorOut(t("events.error.retrieve"), ccyResponse.error);
+    return errorOut(t("portfolio.error.retrieve"), ccyResponse.error);
   }
-  if (error && !data.data) {
-    return errorOut(t("events.error.retrieve"), error);
+  if (error) {
+    return errorOut(t("portfolio.error.retrieve"), error);
   }
   if (!ready || !data || !ccyResponse.data) {
     return rootLoader(t("loading"));

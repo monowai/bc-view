@@ -204,3 +204,10 @@ interface Transaction {
   tax: number;
   comments: string;
 }
+
+interface Registration {
+  id: string;
+  email: string;
+  active: boolean;
+  since: string;
+}
