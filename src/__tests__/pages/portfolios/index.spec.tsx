@@ -1,6 +1,6 @@
 import React from "react";
 import { screen, render } from "@testing-library/react";
-import { mockUser, portfolioResult, withUserProvider } from "../../fixtures";
+import { mockUserProfile, portfolioResult, withUserProvider } from "../../fixtures";
 import Portfolios from "@pages/portfolios";
 import fetchMock from "jest-fetch-mock";
 import { enableFetchMocks } from "jest-fetch-mock";
@@ -37,8 +37,8 @@ describe("<Portfolios />", () => {
   test("Portfolio List Renders", async () => {
     // const useRouter = jest.spyOn(require("next/router"), "useRouter");
     fetchMock.mockResponse(JSON.stringify(portfolioResult));
-    render(<Portfolios user={mockUser} />, {
-      wrapper: withUserProvider({ user: mockUser }),
+    render(<Portfolios user={mockUserProfile} />, {
+      wrapper: withUserProvider({ user: mockUserProfile }),
     });
     expect(await screen.findByTestId("loading")).toBeInTheDocument();
     expect(await screen.getByText("portfolio.code")).toBeInTheDocument();

@@ -6,7 +6,7 @@ import {
   RegistrationResponse,
 } from "@core/types/beancounter";
 
-export const mockUser = {
+export const mockUserProfile: UserProfile = {
   email: "foo@example.com",
   email_verified: true,
   name: "foo",
