@@ -6,6 +6,7 @@ export function requestInit(
     method,
     headers: {
       Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
     },
   };
 }
@@ -16,7 +17,6 @@ export function simpleFetcher(requestInfo: RequestInfo): any {
     if (!res.ok) {
       throw await res.json();
     }
-    console.log("About to return");
     return res.json();
   };
 }
