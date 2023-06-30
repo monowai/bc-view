@@ -1,4 +1,4 @@
-export function getDataUrl(path: string): string {
+export function getDataUrl(path: string = ""): string {
   return `${process.env.BC_DATA}${path}`;
 }
 

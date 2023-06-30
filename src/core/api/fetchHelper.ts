@@ -10,12 +10,13 @@ export function requestInit(
   };
 }
 
-export function simpleFetcher(key: string): any {
+export function simpleFetcher(requestInfo: RequestInfo): any {
   return async () => {
-    const res = await fetch(key);
+    const res = await fetch(requestInfo);
     if (!res.ok) {
       throw await res.json();
     }
+    console.log("About to return");
     return res.json();
   };
 }

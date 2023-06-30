@@ -5,11 +5,15 @@ import { useTranslation } from "next-i18next";
 import { GetServerSideProps } from "next";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 import { rootLoader } from "@core/common/PageLoader";
-
+import useSwr from "swr";
+import { simpleFetcher } from "@core/api/fetchHelper";
+const key = "/api/register";
 export default withPageAuthRequired(function Home(): React.ReactElement {
   const { user, error, isLoading } = useUser();
   const { t } = useTranslation("common");
-  if (isLoading) return rootLoader(t("loading"));
+
+  const registration = useSwr(key, simpleFetcher(key));
+  if (isLoading || registration.isLoading) return rootLoader(t("loading"));
   if (error) return <div>{error.message}</div>;
   if (user) {
     // noinspection HtmlUnknownTarget
