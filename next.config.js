@@ -6,7 +6,7 @@ const path = require("path");
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ["s.gravatar.com", "cdn.auth0.com"],
+    domains: ["s.gravatar.com", "cdn.auth0.com", "lh3.googleusercontent.com"],
   },
   sassOptions: {
     includePaths: [path.join(__dirname, "styles")],
