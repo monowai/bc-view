@@ -10,7 +10,7 @@ function HeaderBrand(): React.ReactElement {
       <a
         className="navbar-item"
         onClick={() => {
-          router.push("/");
+          router.push("/portfolios");
         }}
       >
         Holds<i>worth</i>
