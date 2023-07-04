@@ -20,20 +20,20 @@ export function simpleFetcher(requestInfo: RequestInfo): any {
     return res.json();
   };
 }
+const apiRoot = "/api"
+export const ccyKey = `${apiRoot}/currencies`;
 
-export const ccyKey = "/api/currencies";
+export const portfoliosKey = `${apiRoot}/portfolios`;
 
-export const portfoliosKey = "/api/portfolios";
-
-export const trnsKey = "/api/trns";
-export const assetKey = (assetId: string): string => `/api/assets/${assetId}`;
+export const trnsKey = `${apiRoot}/trns`;
+export const assetKey = (assetId: string): string => `${apiRoot}/assets/${assetId}`;
 export const tradeKey = (portfolioId: string, assetId: string): string =>
   `${trnsKey}/trades/${portfolioId}/${assetId}`;
 export const eventKey = (portfolioId: string, assetId: string): string =>
   `${trnsKey}/events/${portfolioId}/${assetId}`;
 
 export const holdingKey = (portfolioCode: string): string =>
-  `/api/holdings/${portfolioCode}`;
+  `${apiRoot}/holdings/${portfolioCode}`;
 
 export const portfolioKey = (portfolioId: string): string =>
   `${portfoliosKey}/${portfolioId}`;

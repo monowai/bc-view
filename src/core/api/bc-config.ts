@@ -2,7 +2,7 @@ export function getDataUrl(path: string = ""): string {
   return `${process.env.BC_DATA}${path}`;
 }
 
-export function getPositionsUrl(path: string): string {
+export function getPositionsUrl(path: string = ""): string {
   return `${process.env.BC_POSITION}${path}`;
 }
 

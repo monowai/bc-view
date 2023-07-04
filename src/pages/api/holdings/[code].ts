@@ -4,7 +4,7 @@ import handleResponse, { fetchError } from "@core/api/response-writer";
 import { HoldingContract } from "@core/types/beancounter";
 import { getPositionsUrl } from "@core/api/bc-config";
 
-const baseUrl = getPositionsUrl("");
+const baseUrl = getPositionsUrl();
 export default withApiAuthRequired(async function holdingsByCode(req, res) {
   try {
     const { accessToken } = await getAccessToken(req, res);
