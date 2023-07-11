@@ -22,12 +22,12 @@ afterEach(() => {
 describe("<Home />", () => {
   test("renders for authorised user", async () => {
     fetchMock.mockResponseOnce(JSON.stringify(registrationSuccess));
-    const {getByText, findByText} = await act(() => {
-      return render(<Home/>, {
+    const { getByText, findByText } = await act(() => {
+      return render(<Home />, {
         wrapper: withUserProvider({ user: mockUserProfile }),
       }) as RenderResult;
     });
-    await expect(findByText(`${mockUserProfile.email}`));
+    expect(findByText(`${mockUserProfile.email}`));
     const heading = getByText("home.welcome");
     expect(heading).toBeInTheDocument();
     expect(getByText("home.portfolios")).toBeInTheDocument();
