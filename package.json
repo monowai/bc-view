@@ -44,7 +44,7 @@
     "yup": "^1.0.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.22.1",
+    "@babel/core": "^7.22.8",
     "@hookform/resolvers": "^2.9",
     "@next/eslint-plugin-next": "^13.4",
     "@testing-library/dom": "^9.3.0",
