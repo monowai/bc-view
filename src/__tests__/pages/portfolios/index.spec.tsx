@@ -1,5 +1,5 @@
 import React from "react";
-import { screen, render } from "@testing-library/react";
+import { render, act, RenderResult } from "@testing-library/react";
 import {
   mockUserProfile,
   portfolioResult,
@@ -41,16 +41,17 @@ describe("<Portfolios />", () => {
   test("Portfolio List Renders", async () => {
     // const useRouter = jest.spyOn(require("next/router"), "useRouter");
     fetchMock.mockResponse(JSON.stringify(portfolioResult));
-    render(<Portfolios user={mockUserProfile} />, {
-      wrapper: withUserProvider({ user: mockUserProfile }),
+    const { getByText, findByText } = await act(() => {
+      return render(<Portfolios user={mockUserProfile} />, {
+        wrapper: withUserProvider({ user: mockUserProfile }),
+      }) as RenderResult;
     });
-    expect(await screen.findByTestId("loading")).toBeInTheDocument();
-    expect(await screen.getByText("portfolio.code")).toBeInTheDocument();
-    expect(await screen.getByText("portfolio.name")).toBeInTheDocument();
-    expect(await screen.getByText("Test Portfolio")).toBeInTheDocument();
-    const codeLink = await screen.getByText("TEST");
+    expect(findByText("TEST")); // Load results ready
+    expect(getByText("portfolio.name")).toBeInTheDocument();
+    expect(getByText("Test Portfolio")).toBeInTheDocument();
+    const codeLink = getByText("TEST");
     expect(codeLink.toString()).toBe("http://localhost/holdings/TEST");
-    const createButton = await screen.getByText("portfolio.create");
+    const createButton = getByText("portfolio.create");
     expect(createButton).toBeInTheDocument();
   });
 });

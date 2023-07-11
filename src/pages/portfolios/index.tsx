@@ -56,7 +56,7 @@ export default withPageAuthRequired(function Portfolios(): React.ReactElement {
             <button
               className="navbar-item button is-link is-small"
               onClick={() => {
-                router.push(`/portfolios/__NEW__`);
+                router.push(`/portfolios/__NEW__`).then();
               }}
             >
               {t("portfolio.create")}
