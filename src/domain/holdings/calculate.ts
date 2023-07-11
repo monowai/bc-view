@@ -60,7 +60,9 @@ function total(
   } else {
     total.purchases += position.moneyValues[valueIn].purchases;
     total.sales += position.moneyValues[valueIn].sales;
-    total.gainOnDay += position.moneyValues[valueIn].gainOnDay;
+    if (position.moneyValues[valueIn].priceData.changePercent) {
+      total.gainOnDay += position.moneyValues[valueIn].gainOnDay;
+    }
   }
   return total;
 }

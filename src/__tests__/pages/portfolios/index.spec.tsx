@@ -1,6 +1,10 @@
 import React from "react";
 import { screen, render } from "@testing-library/react";
-import { mockUserProfile, portfolioResult, withUserProvider } from "../../fixtures";
+import {
+  mockUserProfile,
+  portfolioResult,
+  withUserProvider,
+} from "../../fixtures";
 import Portfolios from "@pages/portfolios";
 import fetchMock from "jest-fetch-mock";
 import { enableFetchMocks } from "jest-fetch-mock";

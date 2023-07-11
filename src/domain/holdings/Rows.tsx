@@ -43,7 +43,7 @@ export function Rows({
           )}
         </td>
         <td align={"right"}>
-          {hideValue(asset, moneyValues[valueIn].priceData) ? (
+          {hideValue(asset, moneyValues[valueIn].priceData && moneyValues[valueIn].priceData.changePercent) ? (
             " "
           ) : (
             <span
@@ -63,7 +63,7 @@ export function Rows({
           )}
         </td>
         <td align={"right"}>
-          {hideValue(asset, moneyValues[valueIn].priceData) ? (
+          {hideValue(asset, moneyValues[valueIn].priceData ) || !moneyValues[valueIn].priceData.changePercent ? (
             " "
           ) : (
             <FormatValue value={moneyValues[valueIn].gainOnDay} />

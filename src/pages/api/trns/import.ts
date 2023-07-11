@@ -1,6 +1,6 @@
 import { TransactionUpload } from "@core/types/app";
 import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0";
-import { Kafka, RecordMetadata } from "kafkajs";
+import {Kafka, Partitioners, RecordMetadata} from "kafkajs";
 import {
   getKafkaClient,
   getKafkaHosts,
@@ -26,7 +26,7 @@ async function writeTrn(
   const producer = await new Kafka({
     clientId,
     brokers,
-  }).producer({ allowAutoTopicCreation: true });
+  }).producer({ allowAutoTopicCreation: true, createPartitioner: Partitioners.LegacyPartitioner });
   await producer.connect();
   const messages = [
     {
