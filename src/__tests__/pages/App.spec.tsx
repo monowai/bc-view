@@ -1,8 +1,13 @@
 import Home from "@pages/index";
 import React from "react";
-import { screen, render } from "@testing-library/react";
-import { mockUserProfile, registrationSuccess, withUserProvider } from "../fixtures";
+import { act, render, RenderResult } from "@testing-library/react";
+import {
+  mockUserProfile,
+  registrationSuccess,
+  withUserProvider,
+} from "../fixtures";
 import fetchMock, { enableFetchMocks } from "jest-fetch-mock";
+
 enableFetchMocks();
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({ ready: true, t: (key: string) => key }),
@@ -17,13 +22,15 @@ afterEach(() => {
 describe("<Home />", () => {
   test("renders for authorised user", async () => {
     fetchMock.mockResponseOnce(JSON.stringify(registrationSuccess));
-    render(<Home user={mockUserProfile} />, {
-      wrapper: withUserProvider({ user: mockUserProfile }),
+    const {getByText, findByText} = await act(() => {
+      return render(<Home/>, {
+        wrapper: withUserProvider({ user: mockUserProfile }),
+      }) as RenderResult;
     });
-    expect(await screen.findByTestId("loading")).toBeInTheDocument();
-    const heading = screen.getByText("home.welcome");
+    await expect(findByText(`${mockUserProfile.email}`));
+    const heading = getByText("home.welcome");
     expect(heading).toBeInTheDocument();
-    expect(screen.getByText("home.portfolios")).toBeInTheDocument();
-    expect(screen.getByText("user.logout")).toBeInTheDocument();
+    expect(getByText("home.portfolios")).toBeInTheDocument();
+    expect(getByText("user.logout")).toBeInTheDocument();
   });
 });
