@@ -1,8 +1,8 @@
-import { Asset, HoldingValues, PriceData } from "@core/types/beancounter";
+import { HoldingValues, PriceData } from "@core/types/beancounter";
 import { NumericFormat } from "react-number-format";
 import { FormatValue } from "@core/common/MoneyUtils";
 import React, { ReactElement } from "react";
-import { displayName, isCashRelated } from "@domain/assets/assetUtils";
+import {displayName, isCashRelated} from "@domain/assets/assetUtils";
 import Link from "next/link";
 
 export function Rows({
@@ -11,8 +11,8 @@ export function Rows({
   groupBy,
   valueIn,
 }: HoldingValues): ReactElement {
-  function hideValue(asset: Asset, priceData: PriceData | undefined): boolean {
-    return isCashRelated(asset) || !priceData;
+  function hideValue(priceData: PriceData | undefined): boolean {
+    return !priceData;
   }
   // eslint-disable-next-line complexity
   const holdings = holdingGroup.positions.map(
@@ -20,7 +20,7 @@ export function Rows({
       <tr key={groupBy + index} className={"holding-row"}>
         <td className={"asset"}>{displayName(asset)}</td>
         <td className={"price"} align={"right"}>
-          {hideValue(asset, moneyValues[valueIn].priceData) ? (
+          {hideValue(moneyValues[valueIn].priceData) ? (
             " "
           ) : (
             <span
@@ -44,7 +44,6 @@ export function Rows({
         </td>
         <td align={"right"}>
           {hideValue(
-            asset,
             moneyValues[valueIn].priceData &&
               moneyValues[valueIn].priceData.changePercent
           ) ? (
@@ -67,7 +66,7 @@ export function Rows({
           )}
         </td>
         <td align={"right"}>
-          {hideValue(asset, moneyValues[valueIn].priceData) ||
+          {hideValue(moneyValues[valueIn].priceData) ||
           !moneyValues[valueIn].priceData.changePercent ? (
             " "
           ) : (
@@ -75,7 +74,7 @@ export function Rows({
           )}
         </td>
         <td align={"right"}>
-          {hideValue(asset, moneyValues[valueIn].priceData) ? (
+          {isCashRelated(asset) || hideValue(moneyValues[valueIn].priceData) ? (
             " "
           ) : (
             <NumericFormat
@@ -92,7 +91,7 @@ export function Rows({
           <FormatValue value={moneyValues[valueIn].costValue} />
         </td>
         <td align={"right"}>
-          {hideValue(asset, moneyValues[valueIn]) ? (
+          {hideValue(moneyValues[valueIn]) ? (
             " "
           ) : (
             <FormatValue value={moneyValues[valueIn].averageCost} />

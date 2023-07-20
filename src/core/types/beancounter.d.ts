@@ -113,7 +113,6 @@ export interface PortfolioRequests {
   data: PortfolioRequest[];
 }
 export interface PortfolioSummary {
-  portfolio: Portfolio;
   moneyValues: MoneyValues[ValueIn];
   valueIn: ValueIn;
 }
