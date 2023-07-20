@@ -51,7 +51,6 @@ export default withPageAuthRequired(function Holdings(): React.ReactElement {
         <table className={"stats-container"}>
           <SummaryHeader {...holdingResults.portfolio} />
           <SummaryRow
-            portfolio={holdingResults.portfolio}
             moneyValues={holdings.totals}
             valueIn={holdingState.valueIn.value}
           />

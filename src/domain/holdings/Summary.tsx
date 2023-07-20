@@ -2,7 +2,7 @@ import React, { ReactElement } from "react";
 import { Portfolio, PortfolioSummary } from "@core/types/beancounter";
 import { FormatValue } from "@core/common/MoneyUtils";
 import { useTranslation } from "next-i18next";
-import { Portfolios } from "@core/components/Portfolios";
+import {ValueInOption} from "@core/components/ValueIn";
 
 export default function SummaryHeader(portfolio: Portfolio): ReactElement {
   const { t } = useTranslation("common");
@@ -23,7 +23,6 @@ export default function SummaryHeader(portfolio: Portfolio): ReactElement {
 }
 
 export function SummaryRow({
-  portfolio,
   moneyValues,
   valueIn,
 }: PortfolioSummary): ReactElement {
@@ -36,9 +35,9 @@ export function SummaryRow({
     <tbody>
       <tr className={"stats-row"}>
         <td>
-          {/* Figure out best way to style this component */}
-          <div style={{ fontSize: 14 }}>
-            <Portfolios {...portfolio} />
+          {/* Figure out a better way to style this component */}
+          <div className="filter-column">
+            <ValueInOption />
           </div>
         </td>
         <td>{displayCurrency}</td>
