@@ -9,6 +9,7 @@ jobs:
     resource_class: large
     environment:
       IMAGE_NAME: bc-view
+      STACK_VER: << pipeline.number >>
     steps:
       - checkout
       - restore_cache:
@@ -51,7 +52,7 @@ jobs:
                   docker buildx build --push \
                                       --platform linux/arm64/v8,linux/amd64 \
                                       -t "monowai/$IMAGE_NAME:latest" \
-                                      -t "monowai/$IMAGE_NAME:${CIRCLE_BUILD_NUM}" \
+                                      -t "monowai/$IMAGE_NAME:${STACK_VER}" \
                                        ~/project/.
 
 workflows:
