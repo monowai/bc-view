@@ -4,7 +4,7 @@ import React, { ReactElement } from "react";
 import { useTranslation } from "next-i18next";
 import { useRouter } from "next/router";
 import { Portfolios } from "@core/components/Portfolios";
-import {Portfolio} from "@core/types/beancounter";
+import { Portfolio } from "@core/types/beancounter";
 import Link from "next/link";
 
 export function HoldingOptions(portfolio: Portfolio): ReactElement {
