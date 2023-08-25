@@ -79,7 +79,7 @@ export default withPageAuthRequired(function Portfolios(): React.ReactElement {
                 {portfolios.map((portfolio) => (
                   <tr key={portfolio.id}>
                     <td>
-                      <Link href={`/holdings/${portfolio.code}`}>
+                      <Link rel="preload" href={`/holdings/${portfolio.code}`}>
                         {portfolio.code}
                       </Link>
                     </td>
