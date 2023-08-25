@@ -18,7 +18,7 @@ import errorOut from "@core/errors/ErrorOut";
 import { useHoldingState } from "@domain/holdings/holdingState";
 import { HoldingOptions } from "@domain/holdings/HoldingOptions";
 
-export default withPageAuthRequired(function Holdings(): React.ReactElement {
+function HoldingsPage(): React.ReactElement {
   const router = useRouter();
   const { data, error, isLoading } = useSwr(
     holdingKey(`${router.query.code}`),
@@ -83,7 +83,9 @@ export default withPageAuthRequired(function Holdings(): React.ReactElement {
       </div>
     </div>
   );
-});
+}
+
+export default withPageAuthRequired(HoldingsPage);
 
 export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
   props: {
