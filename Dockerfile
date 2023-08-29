@@ -5,10 +5,12 @@ FROM base AS deps
 WORKDIR /app
 
 COPY package.json yarn.lock ./
-RUN yarn install --frozen-lockfile
+RUN rm -rf node_modules
+RUN yarn install --production --frozen-lockfile --ignore-scripts --prefer-offline
 
 # Rebuild the source code only when needed
 FROM base AS builder
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -18,12 +20,10 @@ COPY . .
 # Uncomment the following line in case you want to disable telemetry during the build.
 # ENV NEXT_TELEMETRY_DISABLED 1
 
-#RUN --mount=type=cache,target=/usr/local/share/.cache/yarn/v6,sharing=locked yarn install --frozen-lockfile
 RUN yarn build
 
 # Production image, copy all the files and run next
 FROM base AS runner
-ENV NODE_ENV production
 WORKDIR /app
 
 RUN addgroup --system --gid 1001 nodejs
@@ -35,8 +35,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
-
 ENV PORT 3000
 EXPOSE 3000
+ENV HOST=0.0.0.0 PORT=3000 NODE_ENV=production
 
 CMD ["node", "server.js"]
