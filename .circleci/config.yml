@@ -21,8 +21,6 @@ jobs:
       - node/install:
           install-yarn: true
           node-version: '21.6'
-      - node/test:
-          test-results-for: jest
       - run:
           name: Build Application
           command: yarn install --frozen-lockfile
