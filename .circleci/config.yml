@@ -8,11 +8,7 @@ orbs:
   # See the Node orb documentation here: https://circleci.com/developer/orbs/orb/circleci/node
   node: circleci/node@5.2
 jobs:
-  build-and-package:
-    node:
-      version: '21.6'
-      # If you are using yarn, change the line below from "npm" to "yarn"
-      pkg-manager: yarn
+  build-view:
     steps:
       - checkout
       - node/install:  # Use node orb to install Node.js and dependencies
@@ -24,7 +20,7 @@ jobs:
 
       - run:
           name: Build Application
-          command: yarn build  # Assuming a build script using yarn
+          command: yarn install --frozen-lockfile --cache-folder ~/.cache/yarn # Assuming a build script using yarn
 
       - setup_remote_docker:
           version: 20.10.18
@@ -48,6 +44,6 @@ jobs:
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/workflows/ & https://circleci.com/docs/configuration-reference/#workflows
 workflows:
-  build_and_deploy:
+  build_and_package:
     jobs:
-      - build-and-package
+      - build-view
