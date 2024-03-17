@@ -5,7 +5,7 @@ orbs:
 jobs:
   build-view:
     docker:
-      - image: cimg/node:18.16
+      - image: cimg/node:21.6
     resource_class: large
     environment:
       IMAGE_NAME: bc-view
@@ -29,8 +29,6 @@ jobs:
           key: yarn-cache2-{{ checksum "yarn.lock" }}
           paths:
             - ~/.cache/yarn
-      #            - ./yarn/cache
-      #            - ./yarn/unplugged
       - store_test_results:
           path: reports/junit
       - store_artifacts:
