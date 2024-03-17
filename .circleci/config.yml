@@ -7,7 +7,7 @@ version: 2.1
 orbs:
   # See the Node orb documentation here: https://circleci.com/developer/orbs/orb/circleci/node
   node: circleci/node@5.2
-workflows:
+jobs:
   build-and-package:
     node:
       version: '21.6'
