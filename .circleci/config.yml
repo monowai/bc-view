@@ -9,6 +9,8 @@ orbs:
   node: circleci/node@5.2
 jobs:
   build-view:
+    docker:
+      - image: cimg/node:<< pipeline.parameters.node_version >>
     resource_class: large
     environment:
       IMAGE_NAME: bc-view
