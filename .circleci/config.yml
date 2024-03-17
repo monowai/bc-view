@@ -7,17 +7,47 @@ version: 2.1
 orbs:
   # See the Node orb documentation here: https://circleci.com/developer/orbs/orb/circleci/node
   node: circleci/node@5.2
-
-# Orchestrate jobs using workflows
-# See: https://circleci.com/docs/workflows/ & https://circleci.com/docs/configuration-reference/#workflows
-workflows:
-  sample: # This is the name of the workflow, feel free to change it to better match your workflow.
-    # Inside the workflow, you define the jobs you want to run.
-    jobs:
-      - node/test:
-          # This is the node version to use for the `cimg/node` tag
-          # Relevant tags can be found on the CircleCI Developer Hub
-          # https://circleci.com/developer/images/image/cimg/node
+jobs:
+  build-and-package:
+    node:
+      version: '21.6'
+      # If you are using yarn, change the line below from "npm" to "yarn"
+      pkg-manager: yarn
+    steps:
+      - checkout
+      - node/install:  # Use node orb to install Node.js and dependencies
           version: '21.6'
           # If you are using yarn, change the line below from "npm" to "yarn"
           pkg-manager: yarn
+          node_version: << pipeline.parameters.node_version >>
+          cache_directory: ~/.cache/yarn  # Optional: Cache yarn dependencies
+
+      - run:
+          name: Build Application
+          command: yarn build  # Assuming a build script using yarn
+
+      - setup_remote_docker:
+          version: 20.10.18
+          docker_layer_caching: true
+      - when:
+          condition:
+            equal: [master, << pipeline.git.branch >>]
+          steps:
+            - run:
+                name: Package BC-VIEW
+                command: |
+                  docker buildx create --use
+                  docker buildx inspect
+                  docker run --rm --privileged tonistiigi/binfmt --install arm64
+                  echo "$DOCKER_PASS" | docker login -u $DOCKER_USER --password-stdin
+                  docker buildx build --push \
+                                      --platform linux/arm64/v8,linux/amd64 \
+                                      -t "monowai/$IMAGE_NAME:latest" \
+                                      -t "monowai/$IMAGE_NAME:${STACK_VER}" \
+                                       ~/project/.
+# Orchestrate jobs using workflows
+# See: https://circleci.com/docs/workflows/ & https://circleci.com/docs/configuration-reference/#workflows
+workflows:
+  build_and_deploy:
+    jobs:
+      - build-and-package
