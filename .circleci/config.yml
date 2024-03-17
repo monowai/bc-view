@@ -10,7 +10,7 @@ orbs:
 jobs:
   build-view:
     docker:
-      - image: cimg/node:<< pipeline.parameters.node_version >>
+      - image: cimg/node:21.6
     resource_class: large
     environment:
       IMAGE_NAME: bc-view
