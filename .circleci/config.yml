@@ -18,13 +18,9 @@ jobs:
 
     steps:
       - checkout
-      - node/install:  # Use node orb to install Node.js and dependencies
-          version: '21.6'
-          # If you are using yarn, change the line below from "npm" to "yarn"
-          pkg-manager: yarn
-          node_version: 21.6
-          cache_directory: ~/.cache/yarn  # Optional: Cache yarn dependencies
-
+      - node/install:
+          install-yarn: true
+          node-version: '21.6'
       - run:
           name: Build Application
           command: yarn install --frozen-lockfile --cache-folder ~/.cache/yarn # Assuming a build script using yarn
