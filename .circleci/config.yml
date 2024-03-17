@@ -20,13 +20,13 @@ jobs:
       - checkout
       - node/install:
           install-yarn: true
-          node-version: '21.6'
+          node-version: '24'
       - run:
           name: Build Application
-          command: yarn install --frozen-lockfile --cache-folder ~/.cache/yarn # Assuming a build script using yarn
+          command: yarn install --frozen-lockfile # Assuming a build script using yarn
 
       - setup_remote_docker:
-          version: 20.10.18
+          version: 24
           docker_layer_caching: true
       - when:
           condition:
