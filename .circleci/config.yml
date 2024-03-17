@@ -9,6 +9,11 @@ orbs:
   node: circleci/node@5.2
 jobs:
   build-view:
+    resource_class: large
+    environment:
+      IMAGE_NAME: bc-view
+      STACK_VER: << pipeline.number >>
+
     steps:
       - checkout
       - node/install:  # Use node orb to install Node.js and dependencies
