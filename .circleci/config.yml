@@ -22,7 +22,7 @@ jobs:
           version: '21.6'
           # If you are using yarn, change the line below from "npm" to "yarn"
           pkg-manager: yarn
-          node_version: << pipeline.parameters.node_version >>
+          node_version: 21.6
           cache_directory: ~/.cache/yarn  # Optional: Cache yarn dependencies
 
       - run:
