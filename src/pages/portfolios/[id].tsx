@@ -6,7 +6,6 @@ import {
   PortfolioRequest,
   PortfolioRequests,
 } from "@core/types/beancounter";
-import { portfolioInputSchema } from "@domain/portfolio/schema";
 import { ccyKey, portfolioKey, simpleFetcher } from "@core/api/fetchHelper";
 import { useRouter } from "next/router";
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client";
@@ -26,6 +25,7 @@ import {
 import ReactSelect from "react-select";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { validateInput } from "@core/errors/validator";
+import {portfolioInputSchema} from "@domain/portfolio/schema";
 
 export default withPageAuthRequired(function Manage(): React.ReactElement {
   function toPortfolioRequest(portfolio: PortfolioInput): PortfolioRequest {
