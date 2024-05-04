@@ -46,7 +46,7 @@ function HoldingsPage(): React.ReactElement {
   ) as Holdings;
   return (
     <div className="page-box">
-      <HoldingOptions {...holdingResults.portfolio} />
+      <HoldingOptions portfolio={holdingResults.portfolio} />
       <div>
         <table className={"stats-container"}>
           <SummaryHeader {...holdingResults.portfolio} />

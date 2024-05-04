@@ -26,6 +26,7 @@ jobs:
           name: Build Application
           command: | 
             yarn install --frozen-lockfile
+            yarn test:ci
       - setup_remote_docker:
           # version: '24'
           docker_layer_caching: true
