@@ -5,27 +5,27 @@ import {
   PortfolioInput,
   PortfolioRequest,
   PortfolioRequests,
-} from "@core/types/beancounter";
-import { ccyKey, portfolioKey, simpleFetcher } from "@core/api/fetchHelper";
+} from "@components/types/beancounter";
+import { ccyKey, portfolioKey, simpleFetcher } from "@utils/api/fetchHelper";
 import { useRouter } from "next/router";
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client";
 import { useTranslation } from "next-i18next";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 import { GetServerSideProps } from "next";
-import { TrnDropZone } from "@domain/trns/DropZone";
 import Link from "next/link";
-import { rootLoader } from "@core/common/PageLoader";
-import errorOut from "@core/errors/ErrorOut";
+import { rootLoader } from "@components/PageLoader";
+import errorOut from "@components/errors/ErrorOut";
 import useSwr from "swr";
 import {
   currencyOptions,
   toCurrency,
   toCurrencyOption,
-} from "@core/components/currency";
+} from "@components/currency";
 import ReactSelect from "react-select";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { validateInput } from "@core/errors/validator";
-import {portfolioInputSchema} from "@domain/portfolio/schema";
+import { validateInput } from "@components/errors/validator";
+import { portfolioInputSchema } from "@utils/portfolio/schema";
+import TrnDropZone from "@components/DropZone";
 
 export default withPageAuthRequired(function Manage(): React.ReactElement {
   function toPortfolioRequest(portfolio: PortfolioInput): PortfolioRequest {

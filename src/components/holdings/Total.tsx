@@ -1,6 +1,6 @@
-import { HoldingsInCurrency } from "@core/types/beancounter";
+import { HoldingsInCurrency } from "@components/types/beancounter";
 import React, { ReactElement } from "react";
-import { FormatValue } from "@core/common/MoneyUtils";
+import { FormatValue } from "@components/MoneyUtils";
 import { useTranslation } from "next-i18next";
 
 export default function Total({

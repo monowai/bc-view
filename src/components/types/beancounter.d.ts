@@ -1,4 +1,3 @@
-import { ValueIn } from "@types/core/components/valueIn";
 
 export type TrnType = "BUY" | "SELL" | "DIVI" | "SPLIT";
 

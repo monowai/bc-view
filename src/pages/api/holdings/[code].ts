@@ -1,8 +1,8 @@
 import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0";
-import { requestInit } from "@core/api/fetchHelper";
-import handleResponse, { fetchError } from "@core/api/response-writer";
-import { HoldingContract } from "@core/types/beancounter";
-import { getPositionsUrl } from "@core/api/bc-config";
+import { requestInit } from "@utils/api/fetchHelper";
+import handleResponse, { fetchError } from "@utils/api/response-writer";
+import { HoldingContract } from "@components/types/beancounter";
+import { getPositionsUrl } from "@utils/api/bc-config";
 
 const baseUrl = getPositionsUrl();
 export default withApiAuthRequired(async function holdingsByCode(req, res) {

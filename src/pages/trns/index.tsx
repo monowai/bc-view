@@ -3,7 +3,7 @@ import React from "react";
 import { useTranslation } from "next-i18next";
 import { GetServerSideProps } from "next";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
-import { Tabs } from "@core/components/tabs/Tabs";
+import { Tabs } from "@components/tabs/Tabs";
 
 export default withPageAuthRequired(function AddTrade(): React.ReactElement {
   const { t } = useTranslation("common");

@@ -1,7 +1,7 @@
 import { hookstate, useHookstate } from "@hookstate/core";
 import { devtools } from "@hookstate/devtools";
-import { TradeDefaults } from "@core/types/app";
-import { Market, TrnInput } from "@core/types/beancounter";
+import { TradeDefaults } from "@components/types/app";
+import { Market, TrnInput } from "@components/types/beancounter";
 
 const tradeDefaults = hookstate(
   { onMarket: true } as TradeDefaults,

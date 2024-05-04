@@ -6,12 +6,12 @@ import { withPageAuthRequired } from "@auth0/nextjs-auth0/client";
 import { useRouter } from "next/router";
 import { useTranslation } from "next-i18next";
 import Link from "next/link";
-import { Transaction } from "@core/types/beancounter";
+import { Transaction } from "@components/types/beancounter";
 import useSwr from "swr";
-import errorOut from "@core/errors/ErrorOut";
-import { assetKey, eventKey, simpleFetcher } from "@core/api/fetchHelper";
-import { rootLoader } from "@core/common/PageLoader";
-import { deleteTrn } from "@domain/trns/apiHelper";
+import errorOut from "@components/errors/ErrorOut";
+import { assetKey, eventKey, simpleFetcher } from "@utils/api/fetchHelper";
+import {rootLoader} from "@components/PageLoader";
+import { deleteTrn } from "@utils/trns/apiHelper";
 
 export default withPageAuthRequired(function Events(): React.ReactElement {
   const router = useRouter();

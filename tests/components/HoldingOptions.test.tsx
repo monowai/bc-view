@@ -2,22 +2,22 @@ import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { useRouter } from "next/router";
 import "@testing-library/jest-dom";
-import { HoldingOptions } from "@domain/holdings/HoldingOptions";
+import { HoldingOptions } from "@pages/holdings/HoldingOptions";
 
 jest.mock("next/router", () => ({
   useRouter: jest.fn(),
 }));
 
 // Mocking your internal components
-jest.mock("@core/components/Portfolios", () => ({
+jest.mock("@components/Portfolios", () => ({
   Portfolios: () => <div>MockPortfolios</div>,
 }));
 
-jest.mock("@core/components/GroupBy", () => ({
+jest.mock("@components/GroupBy", () => ({
   GroupByOption: () => <div>MockGroupByOption</div>,
 }));
 
-jest.mock("@core/components/HideEmpty", () => ({
+jest.mock("@components/HideEmpty", () => ({
   HideEmpty: () => <div>MockHideEmpty</div>,
 }));
 
@@ -54,5 +54,4 @@ describe("<HoldingOptions />", () => {
     fireEvent.click(screen.getByText("trn.add"));
     expect(mockPush).toHaveBeenCalledWith("/trns");
   });
-
 });

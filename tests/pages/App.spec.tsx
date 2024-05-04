@@ -24,7 +24,6 @@ describe("<Home />", () => {
       expect(screen.getByText("home.welcome")).toBeInTheDocument();
     });
 
-
     expect(screen.getByText("home.portfolios")).toBeInTheDocument();
     expect(screen.getByText("user.logout")).toBeInTheDocument();
   });

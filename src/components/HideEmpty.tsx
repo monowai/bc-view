@@ -1,6 +1,6 @@
 import Switch from "react-switch";
 import React, { ReactElement } from "react";
-import { useHoldingState } from "@domain/holdings/holdingState";
+import { useHoldingState } from "@utils/holdings/holdingState";
 
 export function HideEmpty(): ReactElement {
   const holdingState = useHoldingState();

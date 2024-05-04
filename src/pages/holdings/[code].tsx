@@ -1,22 +1,22 @@
 import React from "react";
-import { SubTotal } from "@domain/holdings/SubTotal";
-import { calculate } from "@domain/holdings/calculate";
-import { Holdings } from "@core/types/beancounter";
-import Total from "@domain/holdings/Total";
-import SummaryHeader, { SummaryRow } from "@domain/holdings/Summary";
-import { Rows } from "@domain/holdings/Rows";
-import { Header } from "@domain/holdings/Header";
-import { rootLoader } from "@core/common/PageLoader";
+import { calculate } from "@utils/holdings/calculate";
+import { Holdings } from "@components/types/beancounter";
+import { rootLoader } from "@components/PageLoader";
 import { useRouter } from "next/router";
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 import { GetServerSideProps } from "next";
 import { useTranslation } from "next-i18next";
 import useSwr from "swr";
-import { holdingKey, simpleFetcher } from "@core/api/fetchHelper";
-import errorOut from "@core/errors/ErrorOut";
-import { useHoldingState } from "@domain/holdings/holdingState";
-import { HoldingOptions } from "@domain/holdings/HoldingOptions";
+import { holdingKey, simpleFetcher } from "@utils/api/fetchHelper";
+import errorOut from "@components/errors/ErrorOut";
+import { useHoldingState } from "@utils/holdings/holdingState";
+import { HoldingOptions } from "@components/HoldingOptions";
+import SummaryHeader, { SummaryRow } from "@components/holdings/Summary";
+import Rows from "@components/holdings/Rows";
+import SubTotal from "@components/holdings/SubTotal";
+import Total from "@components/holdings/Total";
+import Header from "@components/holdings/Header";
 
 function HoldingsPage(): React.ReactElement {
   const router = useRouter();

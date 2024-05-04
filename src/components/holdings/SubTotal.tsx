@@ -1,8 +1,8 @@
 import React, { ReactElement } from "react";
-import { GroupedSubtotals } from "@core/types/beancounter";
-import { FormatValue } from "@core/common/MoneyUtils";
+import { GroupedSubtotals } from "@components/types/beancounter";
+import { FormatValue } from "@components/MoneyUtils";
 
-export function SubTotal({
+export default function SubTotal({
   groupBy,
   subTotals,
   valueIn,

@@ -1,8 +1,8 @@
 import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0";
-import { requestInit } from "@core/api/fetchHelper";
-import handleResponse, { fetchError } from "@core/api/response-writer";
-import { Portfolio } from "@core/types/beancounter";
-import { getDataUrl } from "@core/api/bc-config";
+import { requestInit } from "@utils/api/fetchHelper";
+import handleResponse, { fetchError } from "@utils/api/response-writer";
+import { Portfolio } from "@components/types/beancounter";
+import { getDataUrl } from "@utils/api/bc-config";
 
 const baseUrl = getDataUrl("/portfolios");
 
