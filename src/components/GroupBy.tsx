@@ -1,10 +1,10 @@
 import Select from "react-select";
 import React, { ReactElement } from "react";
-import { useHoldingState } from "@domain/holdings/holdingState";
-import { GroupBy } from "@core/types/constants";
-import { GroupOption, GroupOptions } from "@core/types/app";
+import { useHoldingState } from "@utils/holdings/holdingState";
+import { GroupBy } from "@components/types/constants";
+import { GroupOption, GroupOptions } from "@components/types/app";
 import { useTranslation } from "next-i18next";
-import { rootLoader } from "@core/common/PageLoader";
+import { rootLoader } from "@components/PageLoader";
 
 export function useGroupOptions(): GroupOptions {
   const { t } = useTranslation("common");

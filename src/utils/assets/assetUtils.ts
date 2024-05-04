@@ -1,4 +1,4 @@
-import { Asset } from "@core/types/beancounter";
+import { Asset } from "@components/types/beancounter";
 
 export function isCashRelated(asset: Asset): boolean {
   return asset.assetCategory.id === "RE" || isCash(asset);

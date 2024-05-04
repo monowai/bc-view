@@ -1,9 +1,9 @@
-import { ValueIn } from "@core/types/constants";
 import Select from "react-select";
-import { useHoldingState } from "@domain/holdings/holdingState";
-import { ValuationOption, ValuationOptions } from "@core/types/app";
+import { useHoldingState } from "@utils/holdings/holdingState";
 import { useTranslation } from "next-i18next";
 import { ReactElement } from "react";
+import { ValueIn } from "@components/types/constants";
+import {ValuationOption, ValuationOptions} from "@components/types/app";
 
 export function useValuationOptions(): ValuationOptions {
   const { t } = useTranslation("common");

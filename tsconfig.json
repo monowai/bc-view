@@ -22,8 +22,9 @@
     ],
     "paths": {
       "@pages/*": ["src/pages/*"],
-      "@domain/*": ["src/domain/*"],
-      "@core/*": ["src/core/*"],
+      "@utils/*": ["src/utils/*"],
+      "@components/*": ["src/components/*"],
+      "@types/*": ["src/types/*"],
       "@styles/*": ["styles/*"]
     }
   },

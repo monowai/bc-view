@@ -2,16 +2,18 @@ import React, { ReactElement } from "react";
 import { useTranslation } from "next-i18next";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { GroupByOption } from "@core/components/GroupBy";
-import { HideEmpty } from "@core/components/HideEmpty";
-import { Portfolios } from "@core/components/Portfolios";
-import { Portfolio } from "@core/types/beancounter";
+import { GroupByOption } from "@components/GroupBy";
+import { HideEmpty } from "@components/HideEmpty";
+import { Portfolios } from "@components/Portfolios";
+import { Portfolio } from "@components/types/beancounter";
 
 interface HoldingOptionsProps {
   portfolio: Portfolio;
 }
 
-export const HoldingOptions: React.FC<HoldingOptionsProps> = ({ portfolio }): ReactElement => {
+export const HoldingOptions: React.FC<HoldingOptionsProps> = ({
+  portfolio,
+}): ReactElement => {
   const { t } = useTranslation("common");
   const router = useRouter();
 

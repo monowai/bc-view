@@ -3,9 +3,9 @@ import {
   Holdings,
   MoneyValues,
   Position,
-} from "@core/types/beancounter";
-import { isCashRelated } from "@domain/assets/assetUtils";
-import { GroupBy, ValueIn } from "@core/types/constants";
+} from "@components/types/beancounter";
+import { isCashRelated } from "@utils/assets/assetUtils";
+import { GroupBy, ValueIn } from "@components/types/constants";
 
 function getPath(path: string, position: Position): string {
   return path

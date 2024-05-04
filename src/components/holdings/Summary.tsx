@@ -1,8 +1,8 @@
 import React, { ReactElement } from "react";
-import { Portfolio, PortfolioSummary } from "@core/types/beancounter";
-import { FormatValue } from "@core/common/MoneyUtils";
+import { Portfolio, PortfolioSummary } from "@components/types/beancounter";
+import { FormatValue } from "@components/MoneyUtils";
 import { useTranslation } from "next-i18next";
-import { ValueInOption } from "@core/components/ValueIn";
+import { ValueInOption } from "@components/ValueIn";
 
 export default function SummaryHeader(portfolio: Portfolio): ReactElement {
   const { t } = useTranslation("common");

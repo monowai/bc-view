@@ -4,9 +4,9 @@ import React from "react";
 import { useTranslation } from "next-i18next";
 import { GetServerSideProps } from "next";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
-import { rootLoader } from "@core/common/PageLoader";
+import {rootLoader} from "@components/PageLoader";
 import useSwr from "swr";
-import { simpleFetcher } from "@core/api/fetchHelper";
+import { simpleFetcher } from "@utils/api/fetchHelper";
 const key = "/api/register";
 export default withPageAuthRequired(function Home(): React.ReactElement {
   const { user, error, isLoading } = useUser();

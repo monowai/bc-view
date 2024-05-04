@@ -1,11 +1,11 @@
-import { HoldingValues, PriceData } from "@core/types/beancounter";
+import { HoldingValues, PriceData } from "@components/types/beancounter";
 import { NumericFormat } from "react-number-format";
-import { FormatValue } from "@core/common/MoneyUtils";
+import { FormatValue } from "@components/MoneyUtils";
 import React, { ReactElement } from "react";
-import { displayName, isCashRelated } from "@domain/assets/assetUtils";
+import { displayName, isCashRelated } from "@utils/assets/assetUtils";
 import Link from "next/link";
 
-export function Rows({
+export default function Rows({
   portfolio,
   holdingGroup,
   groupBy,

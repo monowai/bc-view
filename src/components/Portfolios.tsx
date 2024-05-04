@@ -1,11 +1,11 @@
 import Select from "react-select";
 import React, { ReactElement } from "react";
 import { useTranslation } from "next-i18next";
-import { rootLoader } from "@core/common/PageLoader";
 import useSwr from "swr";
-import { portfoliosKey, simpleFetcher } from "@core/api/fetchHelper";
-import { Portfolio } from "@core/types/beancounter";
+import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper";
+import { Portfolio } from "@components/types/beancounter";
 import { useRouter } from "next/router";
+import {rootLoader} from "@components/PageLoader";
 
 export function Portfolios(selectedPortfolio: Portfolio): ReactElement {
   const { data } = useSwr(portfoliosKey, simpleFetcher(portfoliosKey));

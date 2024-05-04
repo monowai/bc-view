@@ -9,7 +9,6 @@ orbs:
   node: circleci/node@5.2
 jobs:
   build-view:
-
     docker:
       - image: cimg/node:21.6
     resource_class: large
@@ -21,10 +20,10 @@ jobs:
       - checkout
       - node/install:
           install-yarn: true
-          node-version: '21.6'
+          node-version: "21.6"
       - run:
           name: Build Application
-          command: | 
+          command: |
             yarn install --frozen-lockfile
             yarn test:ci
       - setup_remote_docker:
