@@ -1,5 +1,4 @@
 import { Market, Portfolio, TrnInput } from "./beancounter";
-import { GroupBy, ValueIn } from "@components/types/constants";
 
 interface TransactionUpload {
   portfolio: Portfolio;

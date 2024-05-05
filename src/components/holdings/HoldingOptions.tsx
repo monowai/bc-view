@@ -2,10 +2,10 @@ import React, { ReactElement } from "react";
 import { useTranslation } from "next-i18next";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { GroupByOption } from "@components/GroupBy";
 import { HideEmpty } from "@components/HideEmpty";
 import { Portfolios } from "@components/Portfolios";
 import { Portfolio } from "@components/types/beancounter";
+import GroupByOptions from "@components/holdings/GroupByOptions";
 
 interface HoldingOptionsProps {
   portfolio: Portfolio;
@@ -32,7 +32,7 @@ export const HoldingOptions: React.FC<HoldingOptionsProps> = ({
       </div>
       <div className="filter-label">{t("holdings.groupBy")}</div>
       <div className="filter-column">
-        <GroupByOption />
+        <GroupByOptions />
       </div>
       <div className="filter-label">{t("holdings.openOnly")}</div>
       <div className="filter-column">

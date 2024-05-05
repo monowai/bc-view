@@ -1,9 +1,9 @@
 import Select from "react-select";
 import { useHoldingState } from "@utils/holdings/holdingState";
 import { useTranslation } from "next-i18next";
-import { ReactElement } from "react";
-import { ValueIn } from "@components/types/constants";
 import { ValuationOption, ValuationOptions } from "@components/types/app";
+import { ValueIn } from "@components/holdings/GroupByOptions";
+import React from "react";
 
 export function useValuationOptions(): ValuationOptions {
   const { t } = useTranslation("common");
@@ -17,22 +17,23 @@ export function useValuationOptions(): ValuationOptions {
   };
 }
 
-export function ValueInOption(): ReactElement {
+export const ValueInOption: React.FC = () => {
   const { valueIn, setValueIn } = useHoldingState();
   const valuationOptions = useValuationOptions();
 
-  const handleChange = (option: ValuationOption | null) => {
+  const handleChange = (option: ValuationOption | null): void => {
     if (option !== null) {
       setValueIn(option);
     }
   };
+
   return (
-    <Select
-      options={valuationOptions.values}
-      defaultValue={valueIn}
-      isSearchable={false}
-      isClearable={false}
-      onChange={handleChange}
-    />
+      <Select
+          options={valuationOptions.values}
+          defaultValue={valueIn}
+          isSearchable={false}
+          isClearable={false}
+          onChange={handleChange}
+      />
   );
-}
+};

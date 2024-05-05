@@ -74,6 +74,8 @@
     "lint-staged": "^13",
     "prettier": "^2.8",
     "sass": "^1.57.0",
+    "ts-jest": "^29.1.2",
+    "tsconfig-paths-jest": "^0.0.1",
     "typescript": "5.2.2"
   },
   "lint-staged": {

@@ -1,5 +1,5 @@
 import React from "react";
-import { calculate } from "@utils/holdings/calculate";
+import { calculateHoldings } from "@utils/holdings/calculateHoldings";
 import { Holdings } from "@components/types/beancounter";
 import { rootLoader } from "@components/PageLoader";
 import { useRouter } from "next/router";
@@ -11,7 +11,7 @@ import useSwr from "swr";
 import { holdingKey, simpleFetcher } from "@utils/api/fetchHelper";
 import errorOut from "@components/errors/ErrorOut";
 import { useHoldingState } from "@utils/holdings/holdingState";
-import { HoldingOptions } from "@components/HoldingOptions";
+import { HoldingOptions } from "@components/holdings/HoldingOptions";
 import SummaryHeader, { SummaryRow } from "@components/holdings/Summary";
 import Rows from "@components/holdings/Rows";
 import SubTotal from "@components/holdings/SubTotal";
@@ -39,7 +39,7 @@ function HoldingsPage(): React.ReactElement {
   }
   const holdingResults = data.data;
   // Render where we are in the initialization process
-  const holdings = calculate(
+  const holdings = calculateHoldings(
     holdingResults,
     holdingState.hideEmpty,
     holdingState.valueIn.value,

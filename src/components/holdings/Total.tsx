@@ -29,7 +29,7 @@ export default function Total({
       <tr key={valueIn}>
         <td colSpan={3} align={"right"}>
           {currencyTotals ? (
-            <div>{t("holdings.valuein", { valueIn })}</div>
+            <div>{t("holdings.valueTitle", { valueIn })}</div>
           ) : (
             <div>{t("holdings.mixed")}</div>
           )}
