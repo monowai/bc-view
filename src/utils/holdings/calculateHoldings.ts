@@ -12,7 +12,7 @@ function getPath(path: string, position: Position): string {
   return path
     .split(".")
     .reduce(
-      (p, path: string) => (p && p[path]) || "undefined",
+      (p: any, path: string) => (p && p[path]) || "undefined",
       position
     ) as unknown as string;
 }
@@ -43,7 +43,7 @@ function updateTotal(
 }
 
 function total(
-  total: MoneyValues,
+  total: MoneyValues | undefined,
   position: Position,
   valueIn: ValueIn
 ): MoneyValues {
@@ -61,6 +61,7 @@ function total(
       sales: 0,
       tax: 0,
       weight: 0,
+      roi: 0,
       costBasis: 0,
       gainOnDay: 0,
       priceData: {
@@ -79,25 +80,28 @@ function total(
 }
 
 function subTotal(
-  totals: MoneyValues[],
+  totals: Record<ValueIn, MoneyValues>,
   position: Position,
   valueIn: ValueIn
-): MoneyValues[] {
-  if (!totals) {
-    totals = [];
-  }
-  // @ts-ignore
+): Record<ValueIn, MoneyValues> {
   totals[valueIn] = total(totals[valueIn], position, valueIn);
   return totals;
 }
+
 function createHoldingGroup(
   _groupKey: string,
   position: Position,
   valueIn: ValueIn
 ): HoldingGroup {
+  const initialTotals: Record<ValueIn, MoneyValues> = {
+    [ValueIn.PORTFOLIO]: total(undefined, position, ValueIn.PORTFOLIO),
+    [ValueIn.BASE]: total(undefined, position, ValueIn.BASE),
+    [ValueIn.TRADE]: total(undefined, position, ValueIn.TRADE),
+  };
+
   return {
     positions: [],
-    subTotals: subTotal([], position, valueIn),
+    subTotals: subTotal(initialTotals, position, valueIn),
   };
 }
 
