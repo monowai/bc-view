@@ -2,7 +2,11 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import Portfolios from "@pages/portfolios";
 import useSWR from "swr";
-import {mockUserProfile, portfolioResult, withUserProvider} from "../../fixtures";
+import {
+  mockUserProfile,
+  portfolioResult,
+  withUserProvider,
+} from "../../fixtures";
 
 // Mock useSWR with specific data setup
 jest.mock("swr", () => ({

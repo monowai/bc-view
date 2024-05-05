@@ -1,4 +1,3 @@
-
 export type TrnType = "BUY" | "SELL" | "DIVI" | "SPLIT";
 
 export interface Market {
