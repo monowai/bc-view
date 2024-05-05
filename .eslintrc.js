@@ -24,13 +24,6 @@ module.exports = {
       1,
       { accessibility: "no-public" },
     ],
-    "max-len": [
-      "error",
-      {
-        comments: 100,
-        code: 90,
-      },
-    ],
     "require-await": "error",
     "no-func-assign": "error",
     "object-shorthand": [

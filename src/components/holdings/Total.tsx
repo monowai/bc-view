@@ -12,6 +12,18 @@ export default function Total({
   if (!holdings.totals[valueIn]) return <div />;
 
   const currencyTotals = holdings.totals[valueIn] !== undefined;
+
+  const data = [
+    { value: holdings.totals[valueIn].gainOnDay, colSpan: 1 },
+    { value: holdings.totals[valueIn].costValue, colSpan: 2 },
+    { value: holdings.totals[valueIn].marketValue, colSpan: 2 },
+    { value: holdings.totals[valueIn].unrealisedGain, colSpan: 1 },
+    { value: null, colSpan: 1 },
+    { value: holdings.totals[valueIn].dividends, colSpan: 1 },
+    { value: holdings.totals[valueIn].realisedGain, colSpan: 1 },
+    { value: holdings.totals[valueIn].totalGain, colSpan: 1 },
+  ];
+
   return (
     <tbody className={"totals-row"} key={holdings.portfolio.code + "totals"}>
       <tr key={valueIn}>
@@ -22,52 +34,15 @@ export default function Total({
             <div>{t("holdings.mixed")}</div>
           )}
         </td>
-        <td colSpan={1} align={"right"}>
-          <FormatValue value={holdings.totals[valueIn].gainOnDay} />
-        </td>
-        <td colSpan={2} align={"right"}>
-          {currencyTotals ? (
-            <FormatValue value={holdings.totals[valueIn].costValue} />
-          ) : (
-            <div>-</div>
-          )}
-        </td>
-        <td colSpan={2} align={"right"}>
-          {currencyTotals ? (
-            <FormatValue value={holdings.totals[valueIn].marketValue} />
-          ) : (
-            <div>-</div>
-          )}
-        </td>
-        <td colSpan={1} align={"right"}>
-          {currencyTotals ? (
-            <FormatValue value={holdings.totals[valueIn].unrealisedGain} />
-          ) : (
-            <div>-</div>
-          )}
-        </td>
-        <td />
-        <td align={"right"}>
-          {currencyTotals ? (
-            <FormatValue value={holdings.totals[valueIn].dividends} />
-          ) : (
-            <div>-</div>
-          )}
-        </td>
-        <td align={"right"}>
-          {currencyTotals ? (
-            <FormatValue value={holdings.totals[valueIn].realisedGain} />
-          ) : (
-            <div>-</div>
-          )}
-        </td>
-        <td align={"right"}>
-          {currencyTotals ? (
-            <FormatValue value={holdings.totals[valueIn].totalGain} />
-          ) : (
-            <div>-</div>
-          )}
-        </td>
+        {data.map((item, index) => (
+          <td key={index} colSpan={item.colSpan} align={"right"}>
+            {currencyTotals ? (
+              <FormatValue value={item.value} defaultValue="-" />
+            ) : (
+              <div>-</div>
+            )}
+          </td>
+        ))}
       </tr>
     </tbody>
   );
