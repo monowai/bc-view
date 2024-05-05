@@ -1,854 +1,460 @@
 {
-  "portfolio": {
-    "id": "test",
-    "code": "test",
-    "name": "Test Portfolio",
-    "currency": {
-      "code": "NZD",
-      "name": "Dollar",
-      "symbol": "$"
-    },
-    "base": {
-      "code": "USD",
-      "name": "Dollar",
-      "symbol": "$"
-    },
-    "owner": {
-      "id": "5ac08a35-0055-4db4-987c-b5b8fad87a70",
-      "email": "test@test.com",
-      "active": true,
-      "since": "2021-05-06"
-    }
-  },
-  "asAt": "today",
-  "positions": {
-    "NZD:CASH": {
-      "asset": {
-        "code": "NZD",
-        "id": "QwmDhIldQTKoBkDvligkNQ",
-        "name": "NZD Balance",
-        "assetCategory": {
-          "id": "CASH",
-          "name": "Cash"
-        },
-        "market": {
-          "code": "CASH",
-          "currencyId": "USD",
-          "timezoneId": "UTC",
-          "priceTime": "19:00",
-          "daysToSubtract": 1,
-          "enricher": "ECHO",
-          "multiplier": 1.0,
-          "type": "Internal",
-          "timezone": "UTC",
-          "currency": {
-            "code": "USD",
-            "name": "Dollar",
-            "symbol": "$"
-          }
-        },
-        "priceSymbol": "NZD",
-        "version": "1",
-        "status": "Active"
-      },
-      "quantityValues": {
-        "sold": -10000.0,
-        "purchased": 10000.0,
-        "adjustment": 0,
-        "precision": 0,
-        "total": 0.0
-      },
-      "dateValues": {
-        "opened": "2021-11-16",
-        "last": "2021-11-16",
-        "closed": null,
-        "lastDividend": null
-      },
-      "moneyValues": {
-        "TRADE": {
-          "currency": {
-            "code": "NZD",
-            "name": "Dollar",
-            "symbol": "$"
-          },
-          "dividends": 0,
-          "costValue": 1,
-          "costBasis": 0.0,
-          "fees": 0,
-          "purchases": 0,
-          "sales": 0,
-          "marketValue": 0,
-          "weight": null,
-          "priceData": {
-            "priceDate": "2021-12-02",
-            "open": null,
-            "close": 1.0,
-            "low": null,
-            "high": null,
-            "previousClose": null,
-            "change": null,
-            "changePercent": null,
-            "volume": null
-          },
-          "averageCost": 1,
-          "realisedGain": 0,
-          "unrealisedGain": 0,
-          "totalGain": 0
-        },
-        "PORTFOLIO": {
-          "currency": {
-            "code": "USD",
-            "name": "Dollar",
-            "symbol": "$"
-          },
-          "dividends": 0,
-          "costValue": 0.698971,
-          "costBasis": -3010.29,
-          "fees": 0,
-          "purchases": 0,
-          "sales": 0,
-          "marketValue": 0,
-          "weight": null,
-          "priceData": {
-            "priceDate": "2021-12-02",
-            "open": null,
-            "close": 1.0,
-            "low": null,
-            "high": null,
-            "previousClose": null,
-            "change": null,
-            "changePercent": null,
-            "volume": null
-          },
-          "averageCost": 0.698971,
-          "realisedGain": 0,
-          "unrealisedGain": 0,
-          "totalGain": 0
-        },
-        "BASE": {
-          "currency": {
-            "code": "NZD",
-            "name": "Dollar",
-            "symbol": "$"
-          },
-          "dividends": 0,
-          "costValue": 1,
-          "costBasis": 0.0,
-          "fees": 0,
-          "purchases": 0,
-          "sales": 0,
-          "marketValue": 0,
-          "weight": null,
-          "priceData": {
-            "priceDate": "2021-12-02",
-            "open": null,
-            "close": 1.47,
-            "low": null,
-            "high": null,
-            "previousClose": null,
-            "change": null,
-            "changePercent": null,
-            "volume": null
-          },
-          "averageCost": 1,
-          "realisedGain": 0,
-          "unrealisedGain": 0,
-          "totalGain": 0
-        }
-      }
-    },
-    "QQQ:NYSE": {
-      "asset": {
-        "code": "QQQ",
-        "id": "BdfztTW2RP6Z_aGdf7bgVA",
-        "name": "Invesco QQQ Trust Series 1",
-        "assetCategory": {
-          "id": "ETF",
-          "name": "Exchange Traded Fund"
-        },
-        "market": {
-          "code": "NYSE",
-          "currencyId": "USD",
-          "timezoneId": "US/Eastern",
-          "priceTime": "19:00",
-          "daysToSubtract": 1,
-          "aliases": {
-            "SHARESIGHT": "NYS",
-            "FIGI": "US"
-          },
-          "multiplier": 1.0,
-          "type": "Public",
-          "timezone": "US/Eastern",
-          "currency": {
-            "code": "USD",
-            "name": "Dollar",
-            "symbol": "$"
-          }
-        },
-        "priceSymbol": "QQQ",
-        "version": "1",
-        "status": "Active"
-      },
-      "quantityValues": {
-        "sold": 0,
-        "purchased": 8.0,
-        "adjustment": 0,
-        "precision": 0,
-        "total": 8.0
-      },
-      "dateValues": {
-        "opened": "2021-10-06",
-        "last": "2021-11-16",
-        "closed": null,
-        "lastDividend": null
-      },
-      "moneyValues": {
-        "TRADE": {
-          "currency": {
-            "code": "USD",
-            "name": "Dollar",
-            "symbol": "$"
-          },
-          "dividends": 0,
-          "costValue": 2975.76,
-          "costBasis": 2975.76,
-          "fees": 0,
-          "purchases": 2975.76,
-          "sales": 0,
-          "marketValue": 3096.96,
-          "weight": 0.356474,
-          "priceData": {
-            "priceDate": "2021-12-01",
-            "open": 398.28,
-            "close": 387.12,
-            "low": 386.64,
-            "high": 400.48,
-            "previousClose": 393.82,
-            "change": 6.7,
-            "changePercent": -0.017,
-            "volume": 77503396
-          },
-          "averageCost": 371.97,
-          "realisedGain": 0,
-          "unrealisedGain": 121.2,
-          "totalGain": 121.2
-        },
-        "PORTFOLIO": {
-          "currency": {
-            "code": "USD",
-            "name": "Dollar",
-            "symbol": "$"
-          },
-          "dividends": 0,
-          "costValue": 2975.76,
-          "costBasis": 2975.76,
-          "fees": 0,
-          "purchases": 2975.76,
-          "sales": 0,
-          "marketValue": 3096.96,
-          "weight": 0.356474,
-          "priceData": {
-            "priceDate": "2021-12-01",
-            "open": 398.28,
-            "close": 387.12,
-            "low": 386.64,
-            "high": 400.48,
-            "previousClose": 393.82,
-            "change": 6.7,
-            "changePercent": -0.017,
-            "volume": 77503396
-          },
-          "averageCost": 371.97,
-          "realisedGain": 0,
-          "unrealisedGain": 121.2,
-          "totalGain": 121.2
-        },
-        "BASE": {
-          "currency": {
-            "code": "NZD",
-            "name": "Dollar",
-            "symbol": "$"
-          },
-          "dividends": 0,
-          "costValue": 3928.14,
-          "costBasis": 3928.14,
-          "fees": 0,
-          "purchases": 3928.14,
-          "sales": 0,
-          "marketValue": 4537.12,
-          "weight": 0.356224,
-          "priceData": {
-            "priceDate": "2021-12-01",
-            "open": 583.49,
-            "close": 567.14,
-            "low": 566.43,
-            "high": 586.71,
-            "previousClose": 576.95,
-            "change": -9.81,
-            "changePercent": -0.0173,
-            "volume": 77503396
-          },
-          "averageCost": 491.0175,
-          "realisedGain": 0,
-          "unrealisedGain": 608.98,
-          "totalGain": 608.98
-        }
-      }
-    },
-    "SMH:NASDAQ": {
-      "asset": {
-        "code": "SMH",
-        "id": "iA5Cuge_ROWF42rpRqovFw",
-        "name": "VanEck Vectors Semiconductor ETF",
-        "assetCategory": {
-          "id": "ETF",
-          "name": "Exchange Traded Fund"
-        },
-        "market": {
-          "code": "NASDAQ",
-          "currencyId": "USD",
-          "timezoneId": "US/Eastern",
-          "priceTime": "19:00",
-          "daysToSubtract": 1,
-          "aliases": {
-            "SHARESIGHT": "NAS",
-            "FIGI": "US"
-          },
-          "multiplier": 1.0,
-          "type": "Public",
-          "timezone": "US/Eastern",
-          "currency": {
-            "code": "USD",
-            "name": "Dollar",
-            "symbol": "$"
-          }
-        },
-        "priceSymbol": "SMH",
-        "version": "1",
-        "status": "Active"
-      },
-      "quantityValues": {
-        "sold": 0,
-        "purchased": 4.0,
-        "adjustment": 0,
-        "precision": 0,
-        "total": 4.0
-      },
-      "dateValues": {
-        "opened": "2021-10-06",
-        "last": "2021-10-06",
-        "closed": null,
-        "lastDividend": null
-      },
-      "moneyValues": {
-        "TRADE": {
-          "currency": {
-            "code": "USD",
-            "name": "Dollar",
-            "symbol": "$"
-          },
-          "dividends": 0,
-          "costValue": 1001.07,
-          "costBasis": 1001.07,
-          "fees": 0,
-          "purchases": 1001.07,
-          "sales": 0,
-          "marketValue": 1215.28,
-          "weight": 0.139884,
-          "priceData": {
-            "priceDate": "2021-12-01",
-            "open": 310.65,
-            "close": 303.82,
-            "low": 303.56,
-            "high": 315.57,
-            "previousClose": 304.9,
-            "change": 1.08,
-            "changePercent": -0.0035,
-            "volume": 7094869
-          },
-          "averageCost": 250.2675,
-          "realisedGain": 0,
-          "unrealisedGain": 214.21,
-          "totalGain": 214.21
-        },
-        "PORTFOLIO": {
-          "currency": {
-            "code": "USD",
-            "name": "Dollar",
-            "symbol": "$"
-          },
-          "dividends": 0,
-          "costValue": 1001.07,
-          "costBasis": 1001.07,
-          "fees": 0,
-          "purchases": 1001.07,
-          "sales": 0,
-          "marketValue": 1215.28,
-          "weight": 0.139884,
-          "priceData": {
-            "priceDate": "2021-12-01",
-            "open": 310.65,
-            "close": 303.82,
-            "low": 303.56,
-            "high": 315.57,
-            "previousClose": 304.9,
-            "change": 1.08,
-            "changePercent": -0.0035,
-            "volume": 7094869
-          },
-          "averageCost": 250.2675,
-          "realisedGain": 0,
-          "unrealisedGain": 214.21,
-          "totalGain": 214.21
-        },
-        "BASE": {
-          "currency": {
-            "code": "NZD",
-            "name": "Dollar",
-            "symbol": "$"
-          },
-          "dividends": 0,
-          "costValue": 1437.04,
-          "costBasis": 1437.04,
-          "fees": 0,
-          "purchases": 1437.04,
-          "sales": 0,
-          "marketValue": 1780.4,
-          "weight": 0.139785,
-          "priceData": {
-            "priceDate": "2021-12-01",
-            "open": 455.11,
-            "close": 445.1,
-            "low": 444.72,
-            "high": 462.31,
-            "previousClose": 446.68,
-            "change": -1.58,
-            "changePercent": -0.0035,
-            "volume": 7094869
-          },
-          "averageCost": 359.26,
-          "realisedGain": 0,
-          "unrealisedGain": 343.36,
-          "totalGain": 343.36
-        }
-      }
-    },
-    "SPHD:NYSE": {
-      "asset": {
-        "code": "SPHD",
-        "id": "_0GbNH2-R1GvF2eCg0C4PQ",
-        "name": "Invesco S&P 500 High Dividend Low Volatility ETF",
-        "assetCategory": {
-          "id": "ETF",
-          "name": "Exchange Traded Fund"
-        },
-        "market": {
-          "code": "NYSE",
-          "currencyId": "USD",
-          "timezoneId": "US/Eastern",
-          "priceTime": "19:00",
-          "daysToSubtract": 1,
-          "aliases": {
-            "SHARESIGHT": "NYS",
-            "FIGI": "US"
-          },
-          "multiplier": 1.0,
-          "type": "Public",
-          "timezone": "US/Eastern",
-          "currency": {
-            "code": "USD",
-            "name": "Dollar",
-            "symbol": "$"
-          }
-        },
-        "priceSymbol": "SPHD",
-        "version": "1",
-        "status": "Active"
-      },
-      "quantityValues": {
-        "sold": 0,
-        "purchased": 40.0,
-        "adjustment": 0,
-        "precision": 0,
-        "total": 40.0
-      },
-      "dateValues": {
-        "opened": "2021-10-06",
-        "last": "2021-10-06",
-        "closed": null,
-        "lastDividend": null
-      },
-      "moneyValues": {
-        "TRADE": {
-          "currency": {
-            "code": "USD",
-            "name": "Dollar",
-            "symbol": "$"
-          },
-          "dividends": 0,
-          "costValue": 1710.47,
-          "costBasis": 1710.47,
-          "fees": 0,
-          "purchases": 1710.47,
-          "sales": 0,
-          "marketValue": 1662.0,
-          "weight": 0.191303,
-          "priceData": {
-            "priceDate": "2021-12-01",
-            "open": 42.15,
-            "close": 41.55,
-            "low": 41.53,
-            "high": 42.64,
-            "previousClose": 41.78,
-            "change": 0.23,
-            "changePercent": -0.0055,
-            "volume": 772896
-          },
-          "averageCost": 42.76175,
-          "realisedGain": 0,
-          "unrealisedGain": -48.47,
-          "totalGain": -48.47
-        },
-        "PORTFOLIO": {
-          "currency": {
-            "code": "USD",
-            "name": "Dollar",
-            "symbol": "$"
-          },
-          "dividends": 0,
-          "costValue": 1710.47,
-          "costBasis": 1710.47,
-          "fees": 0,
-          "purchases": 1710.47,
-          "sales": 0,
-          "marketValue": 1662.0,
-          "weight": 0.191303,
-          "priceData": {
-            "priceDate": "2021-12-01",
-            "open": 42.15,
-            "close": 41.55,
-            "low": 41.53,
-            "high": 42.64,
-            "previousClose": 41.78,
-            "change": 0.23,
-            "changePercent": -0.0055,
-            "volume": 772896
-          },
-          "averageCost": 42.76175,
-          "realisedGain": 0,
-          "unrealisedGain": -48.47,
-          "totalGain": -48.47
-        },
-        "BASE": {
-          "currency": {
-            "code": "NZD",
-            "name": "Dollar",
-            "symbol": "$"
-          },
-          "dividends": 0,
-          "costValue": 2455.38,
-          "costBasis": 2455.38,
-          "fees": 0,
-          "purchases": 2455.38,
-          "sales": 0,
-          "marketValue": 2434.8,
-          "weight": 0.191164,
-          "priceData": {
-            "priceDate": "2021-12-01",
-            "open": 61.75,
-            "close": 60.87,
-            "low": 60.84,
-            "high": 62.47,
-            "previousClose": 61.21,
-            "change": -0.34,
-            "changePercent": -0.0056,
-            "volume": 772896
-          },
-          "averageCost": 61.3845,
-          "realisedGain": 0,
-          "unrealisedGain": -20.58,
-          "totalGain": -20.58
-        }
-      }
-    },
-    "SPY:NYSE": {
-      "asset": {
-        "code": "SPY",
-        "id": "jw0FkpdmRgmtKCrnkK1_Tw",
-        "name": "S&P 500 ETF TRUST ETF",
-        "assetCategory": {
-          "id": "ETF",
-          "name": "Exchange Traded Fund"
-        },
-        "market": {
-          "code": "NYSE",
-          "currencyId": "USD",
-          "timezoneId": "US/Eastern",
-          "priceTime": "19:00",
-          "daysToSubtract": 1,
-          "aliases": {
-            "SHARESIGHT": "NYS",
-            "FIGI": "US"
-          },
-          "multiplier": 1.0,
-          "type": "Public",
-          "timezone": "US/Eastern",
-          "currency": {
-            "code": "USD",
-            "name": "Dollar",
-            "symbol": "$"
-          }
-        },
-        "priceSymbol": "SPY",
-        "version": "1",
-        "status": "Active"
-      },
-      "quantityValues": {
-        "sold": 0,
-        "purchased": 2.0,
-        "adjustment": 0,
-        "precision": 0,
-        "total": 2.0
-      },
-      "dateValues": {
-        "opened": "2021-10-06",
-        "last": "2021-10-06",
-        "closed": null,
-        "lastDividend": null
-      },
-      "moneyValues": {
-        "TRADE": {
-          "currency": {
-            "code": "USD",
-            "name": "Dollar",
-            "symbol": "$"
-          },
-          "dividends": 0,
-          "costValue": 859.6,
-          "costBasis": 859.6,
-          "fees": 0,
-          "purchases": 859.6,
-          "sales": 0,
-          "marketValue": 901.0,
-          "weight": 0.103709,
-          "priceData": {
-            "priceDate": "2021-12-01",
-            "open": 461.64,
-            "close": 450.5,
-            "low": 450.29,
-            "high": 464.67,
-            "previousClose": 455.56,
-            "change": 5.06,
-            "changePercent": -0.0111,
-            "volume": 130751840
-          },
-          "averageCost": 429.8,
-          "realisedGain": 0,
-          "unrealisedGain": 41.4,
-          "totalGain": 41.4
-        },
-        "PORTFOLIO": {
-          "currency": {
-            "code": "USD",
-            "name": "Dollar",
-            "symbol": "$"
-          },
-          "dividends": 0,
-          "costValue": 859.6,
-          "costBasis": 859.6,
-          "fees": 0,
-          "purchases": 859.6,
-          "sales": 0,
-          "marketValue": 901.0,
-          "weight": 0.103709,
-          "priceData": {
-            "priceDate": "2021-12-01",
-            "open": 461.64,
-            "close": 450.5,
-            "low": 450.29,
-            "high": 464.67,
-            "previousClose": 455.56,
-            "change": 5.06,
-            "changePercent": -0.0111,
-            "volume": 130751840
-          },
-          "averageCost": 429.8,
-          "realisedGain": 0,
-          "unrealisedGain": 41.4,
-          "totalGain": 41.4
-        },
-        "BASE": {
-          "currency": {
-            "code": "NZD",
-            "name": "Dollar",
-            "symbol": "$"
-          },
-          "dividends": 0,
-          "costValue": 1233.96,
-          "costBasis": 1233.96,
-          "fees": 0,
-          "purchases": 1233.96,
-          "sales": 0,
-          "marketValue": 1319.98,
-          "weight": 0.103636,
-          "priceData": {
-            "priceDate": "2021-12-01",
-            "open": 676.31,
-            "close": 659.99,
-            "low": 659.68,
-            "high": 680.75,
-            "previousClose": 667.4,
-            "change": -7.41,
-            "changePercent": -0.0112,
-            "volume": 130751840
-          },
-          "averageCost": 616.98,
-          "realisedGain": 0,
-          "unrealisedGain": 86.02,
-          "totalGain": 86.02
-        }
-      }
-    },
-    "USD:CASH": {
-      "asset": {
+  "data": {
+    "portfolio": {
+      "id": "TEST",
+      "code": "TEST",
+      "name": "TEST",
+      "currency": {
         "code": "USD",
-        "id": "tAocoEIDTv6xOzFEjvRPBw",
-        "name": "USD Balance",
-        "assetCategory": {
-          "id": "CASH",
-          "name": "Cash"
+        "name": "Dollar",
+        "symbol": "$"
+      },
+      "base": {
+        "code": "NZD",
+        "name": "Dollar",
+        "symbol": "$"
+      },
+      "owner": {
+        "id": "2xstJu-9QzaiX_Ou1U2Ssw",
+        "email": "test@nowhere.com",
+        "active": true,
+        "auth0": "auth0|e",
+        "googleId": "",
+        "since": "2023-11-28"
+      }
+    },
+    "asAt": "today",
+    "positions": {
+      "QQQ:US": {
+        "asset": {
+          "code": "QQQ",
+          "id": "kIQY_p2gQOeXPFaTl3suIQ",
+          "name": "Invesco QQQ Trust Series 1",
+          "market": {
+            "code": "US",
+            "currencyId": "USD",
+            "timezoneId": "US/Eastern",
+            "timezone": "US/Eastern",
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "priceTime": "19:00",
+            "daysToSubtract": 1,
+            "multiplier": 1.0
+          },
+          "priceSymbol": "QQQ",
+          "assetCategory": {
+            "id": "ETF",
+            "name": "Exchange Traded Fund"
+          },
+          "systemUser": null,
+          "status": "Active",
+          "version": "1"
         },
-        "market": {
-          "code": "CASH",
-          "currencyId": "USD",
-          "timezoneId": "UTC",
-          "priceTime": "19:00",
-          "daysToSubtract": 1,
-          "enricher": "ECHO",
-          "multiplier": 1.0,
-          "type": "Internal",
-          "timezone": "UTC",
-          "currency": {
-            "code": "USD",
-            "name": "Dollar",
-            "symbol": "$"
+        "quantityValues": {
+          "sold": -4.0,
+          "purchased": 3.0,
+          "adjustment": 0,
+          "precision": 0,
+          "total": -1.0
+        },
+        "dateValues": {
+          "opened": "2021-10-06",
+          "last": "2023-12-07",
+          "closed": null,
+          "lastDividend": null
+        },
+        "moneyValues": {
+          "TRADE": {
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "dividends": 0,
+            "costValue": -333.33,
+            "costBasis": 1000.0,
+            "fees": 0,
+            "purchases": 1000.0,
+            "sales": 1601.09,
+            "marketValue": -435.48,
+            "weight": -0.155157,
+            "roi": 0.30645306,
+            "priceData": {
+              "priceDate": "2024-05-03",
+              "open": 434.44,
+              "close": 435.48,
+              "low": 432.62,
+              "high": 436.48,
+              "previousClose": 426.9,
+              "change": 8.58,
+              "changePercent": 0.0201,
+              "volume": 48245958
+            },
+            "averageCost": 333.3333333,
+            "realisedGain": 267.76,
+            "unrealisedGain": -102.15,
+            "totalGain": 165.61,
+            "gainOnDay": -8.58
+          },
+          "PORTFOLIO": {
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "dividends": 0,
+            "costValue": -333.33,
+            "costBasis": 1000.0,
+            "fees": 0,
+            "purchases": 1000.0,
+            "sales": 1601.09,
+            "marketValue": -435.48,
+            "weight": -0.155157,
+            "roi": 0,
+            "priceData": {
+              "priceDate": "2024-05-03",
+              "open": 434.44,
+              "close": 435.48,
+              "low": 432.62,
+              "high": 436.48,
+              "previousClose": 426.9,
+              "change": 8.58,
+              "changePercent": 0.0201,
+              "volume": 48245958
+            },
+            "averageCost": 333.3333333,
+            "realisedGain": 267.76,
+            "unrealisedGain": -102.15,
+            "totalGain": 165.61,
+            "gainOnDay": -8.58
+          },
+          "BASE": {
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "dividends": 0,
+            "costValue": -333.33,
+            "costBasis": 1000.0,
+            "fees": 0,
+            "purchases": 1000.0,
+            "sales": 1601.09,
+            "marketValue": -435.48,
+            "weight": -0.155157,
+            "roi": 0,
+            "priceData": {
+              "priceDate": "2024-05-03",
+              "open": 434.44,
+              "close": 435.48,
+              "low": 432.62,
+              "high": 436.48,
+              "previousClose": 426.9,
+              "change": 8.58,
+              "changePercent": 0.0201,
+              "volume": 48245958
+            },
+            "averageCost": 333.3333333,
+            "realisedGain": 267.76,
+            "unrealisedGain": -102.15,
+            "totalGain": 165.61,
+            "gainOnDay": -8.58
           }
-        },
-        "priceSymbol": "USD",
-        "version": "1",
-        "status": "Active"
+        }
       },
-      "quantityValues": {
-        "sold": -6546.9,
-        "purchased": 8359.43,
-        "adjustment": 0,
-        "precision": 3,
-        "total": 1812.53
-      },
-      "dateValues": {
-        "opened": "2021-10-06",
-        "last": "2021-11-16",
-        "closed": null,
-        "lastDividend": null
-      },
-      "moneyValues": {
-        "TRADE": {
-          "currency": {
-            "code": "USD",
-            "name": "Dollar",
-            "symbol": "$"
+      "SMH:US": {
+        "asset": {
+          "code": "SMH",
+          "id": "Pi7CwpHMSayDxJITV-7Q7A",
+          "name": "VanEck Semiconductor ETF",
+          "market": {
+            "code": "US",
+            "currencyId": "USD",
+            "timezoneId": "US/Eastern",
+            "timezone": "US/Eastern",
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "priceTime": "19:00",
+            "daysToSubtract": 1,
+            "multiplier": 1.0
           },
-          "dividends": 0,
-          "costValue": 1812.53,
-          "costBasis": 1812.53,
-          "fees": 0,
-          "purchases": 0,
-          "sales": 0,
-          "marketValue": 1812.53,
-          "weight": 0.20863,
-          "priceData": {
-            "priceDate": "2021-12-02",
-            "open": null,
-            "close": 1.0,
-            "low": null,
-            "high": null,
-            "previousClose": null,
-            "change": null,
-            "changePercent": null,
-            "volume": null
+          "priceSymbol": "SMH",
+          "assetCategory": {
+            "id": "ETF",
+            "name": "Exchange Traded Fund"
           },
-          "averageCost": 1,
-          "realisedGain": 0,
-          "unrealisedGain": 0,
-          "totalGain": 0
+          "systemUser": null,
+          "status": "Active",
+          "version": "1"
         },
-        "PORTFOLIO": {
-          "currency": {
-            "code": "USD",
-            "name": "Dollar",
-            "symbol": "$"
-          },
-          "dividends": 0,
-          "costValue": 1812.53,
-          "costBasis": 1812.53,
-          "fees": 0,
-          "purchases": 0,
-          "sales": 0,
-          "marketValue": 1812.53,
-          "weight": 0.20863,
-          "priceData": {
-            "priceDate": "2021-12-02",
-            "open": null,
-            "close": 1.0,
-            "low": null,
-            "high": null,
-            "previousClose": null,
-            "change": null,
-            "changePercent": null,
-            "volume": null
-          },
-          "averageCost": 1,
-          "realisedGain": 0,
-          "unrealisedGain": 0,
-          "totalGain": 0
+        "quantityValues": {
+          "sold": 0,
+          "purchased": 0,
+          "adjustment": 0,
+          "precision": 0,
+          "total": 0
         },
-        "BASE": {
-          "currency": {
-            "code": "NZD",
-            "name": "Dollar",
-            "symbol": "$"
+        "dateValues": {
+          "opened": "2021-10-06",
+          "last": "2023-12-07",
+          "closed": null,
+          "lastDividend": null
+        },
+        "moneyValues": {
+          "TRADE": {
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "dividends": 0,
+            "costValue": 0,
+            "costBasis": 0,
+            "fees": 0,
+            "purchases": 1000.0,
+            "sales": 641.09,
+            "marketValue": 0,
+            "weight": 0,
+            "roi": 0,
+            "priceData": {
+              "priceDate": "2024-05-03",
+              "open": 215.92,
+              "close": 217.73,
+              "low": 215.15,
+              "high": 218.36,
+              "previousClose": 212.03,
+              "change": 5.7,
+              "changePercent": 0.0269,
+              "volume": 6156537
+            },
+            "averageCost": 0,
+            "realisedGain": -358.91,
+            "unrealisedGain": 0,
+            "totalGain": -358.91,
+            "gainOnDay": 0
           },
-          "dividends": 0,
-          "costValue": -695.09,
-          "costBasis": -695.09,
-          "fees": 0,
-          "purchases": 0,
-          "sales": 0,
-          "marketValue": 2664.42,
-          "weight": 0.209192,
-          "priceData": {
-            "priceDate": "2021-12-02",
-            "open": null,
-            "close": 1.47,
-            "low": null,
-            "high": null,
-            "previousClose": null,
-            "change": null,
-            "changePercent": null,
-            "volume": null
+          "PORTFOLIO": {
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "dividends": 0,
+            "costValue": 0,
+            "costBasis": 0,
+            "fees": 0,
+            "purchases": 1000.0,
+            "sales": 641.09,
+            "marketValue": 0,
+            "weight": 0,
+            "roi": 0,
+            "priceData": {
+              "priceDate": "2024-05-03",
+              "open": 215.92,
+              "close": 217.73,
+              "low": 215.15,
+              "high": 218.36,
+              "previousClose": 212.03,
+              "change": 5.7,
+              "changePercent": 0.0269,
+              "volume": 6156537
+            },
+            "averageCost": 0,
+            "realisedGain": -358.91,
+            "unrealisedGain": 0,
+            "totalGain": -358.91,
+            "gainOnDay": 0
           },
-          "averageCost": -0.3834915836,
-          "realisedGain": 0,
-          "unrealisedGain": 0,
-          "totalGain": 0
+          "BASE": {
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "dividends": 0,
+            "costValue": 0,
+            "costBasis": 0,
+            "fees": 0,
+            "purchases": 1000.0,
+            "sales": 641.09,
+            "marketValue": 0,
+            "weight": 0,
+            "roi": 0,
+            "priceData": {
+              "priceDate": "2024-05-03",
+              "open": 215.92,
+              "close": 217.73,
+              "low": 215.15,
+              "high": 218.36,
+              "previousClose": 212.03,
+              "change": 5.7,
+              "changePercent": 0.0269,
+              "volume": 6156537
+            },
+            "averageCost": 0,
+            "realisedGain": -358.91,
+            "unrealisedGain": 0,
+            "totalGain": -358.91,
+            "gainOnDay": 0
+          }
+        }
+      },
+      "USD:CASH": {
+        "asset": {
+          "code": "USD",
+          "id": "sC8rodv8Tw6l-XVQbwiapw",
+          "name": "USD Balance",
+          "market": {
+            "code": "CASH",
+            "currencyId": "USD",
+            "timezoneId": "UTC",
+            "timezone": "UTC",
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "priceTime": "19:00",
+            "daysToSubtract": 1,
+            "enricher": "DEFAULT",
+            "multiplier": 1.0
+          },
+          "priceSymbol": "USD",
+          "assetCategory": {
+            "id": "CASH",
+            "name": "Cash"
+          },
+          "systemUser": null,
+          "status": "Active",
+          "version": "1"
+        },
+        "quantityValues": {
+          "sold": -2000.0,
+          "purchased": 5242.18,
+          "adjustment": 0,
+          "precision": 2,
+          "total": 3242.18
+        },
+        "dateValues": {
+          "opened": "2021-10-06",
+          "last": "2023-12-07",
+          "closed": null,
+          "lastDividend": null
+        },
+        "moneyValues": {
+          "TRADE": {
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "dividends": 0,
+            "costValue": 3242.18,
+            "costBasis": 3242.18,
+            "fees": 0,
+            "purchases": 5242.18,
+            "sales": -2000.0,
+            "marketValue": 3242.18,
+            "weight": 1.155157,
+            "roi": 0e-8,
+            "priceData": {
+              "priceDate": "2024-05-05",
+              "open": 0,
+              "close": 1.0,
+              "low": 0,
+              "high": 0,
+              "previousClose": 0,
+              "change": 0,
+              "changePercent": 0,
+              "volume": 0
+            },
+            "averageCost": 1,
+            "realisedGain": 0,
+            "unrealisedGain": 0.0,
+            "totalGain": 0.0,
+            "gainOnDay": 0
+          },
+          "PORTFOLIO": {
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "dividends": 0,
+            "costValue": 3242.18,
+            "costBasis": 3242.18,
+            "fees": 0,
+            "purchases": 5242.18,
+            "sales": -2000.0,
+            "marketValue": 3242.18,
+            "weight": 1.155157,
+            "roi": 0,
+            "priceData": {
+              "priceDate": "2024-05-05",
+              "open": 0,
+              "close": 1.0,
+              "low": 0,
+              "high": 0,
+              "previousClose": 0,
+              "change": 0,
+              "changePercent": 0,
+              "volume": 0
+            },
+            "averageCost": 1,
+            "realisedGain": 0,
+            "unrealisedGain": 0.0,
+            "totalGain": 0.0,
+            "gainOnDay": 0
+          },
+          "BASE": {
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "dividends": 0,
+            "costValue": 3242.18,
+            "costBasis": 3242.18,
+            "fees": 0,
+            "purchases": 5242.18,
+            "sales": -2000.0,
+            "marketValue": 3242.18,
+            "weight": 1.155157,
+            "roi": 0,
+            "priceData": {
+              "priceDate": "2024-05-05",
+              "open": 0,
+              "close": 1.0,
+              "low": 0,
+              "high": 0,
+              "previousClose": 0,
+              "change": 0,
+              "changePercent": 0,
+              "volume": 0
+            },
+            "averageCost": 1,
+            "realisedGain": 0,
+            "unrealisedGain": 0.0,
+            "totalGain": 0.0,
+            "gainOnDay": 0
+          }
         }
       }
-    }
-  },
-  "totals": {
-    "BASE": {
-      "total": 12736.72
-    }
-  },
-  "isMixedCurrencies": false
+    },
+    "totals": {
+      "PORTFOLIO": {
+        "total": 2806.7
+      },
+      "BASE": {
+        "total": 2806.7
+      }
+    },
+    "isMixedCurrencies": false
+  }
 }

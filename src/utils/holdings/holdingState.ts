@@ -6,7 +6,7 @@ import {
   ValuationOption,
 } from "@components/types/app";
 import { useValuationOptions } from "@components/ValueIn";
-import { useGroupOptions } from "@components/GroupBy";
+import { useGroupOptions } from "@components/holdings/GroupByOptions";
 
 const holdingDefaults = hookstate(
   {
