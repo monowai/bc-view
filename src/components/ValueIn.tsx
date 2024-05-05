@@ -28,12 +28,12 @@ export const ValueInOption: React.FC = () => {
   };
 
   return (
-      <Select
-          options={valuationOptions.values}
-          defaultValue={valueIn}
-          isSearchable={false}
-          isClearable={false}
-          onChange={handleChange}
-      />
+    <Select
+      options={valuationOptions.values}
+      defaultValue={valueIn}
+      isSearchable={false}
+      isClearable={false}
+      onChange={handleChange}
+    />
   );
 };

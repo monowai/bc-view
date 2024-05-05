@@ -21,7 +21,7 @@ export default function Total({
     { value: null, colSpan: 1 },
     { value: holdings.totals[valueIn].dividends, colSpan: 1 },
     { value: holdings.totals[valueIn].realisedGain, colSpan: 1 },
-    { value: holdings.totals[valueIn].totalGain, colSpan: 1 },
+    { value: holdings.totals[valueIn].totalGain, colSpan: 2 },
   ];
 
   return (

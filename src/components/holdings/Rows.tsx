@@ -133,6 +133,11 @@ export default function Rows({
         <td align={"right"}>
           <FormatValue value={moneyValues[valueIn].realisedGain} />
         </td>
+
+        <td align={"right"}>
+          <FormatValue value={moneyValues[valueIn].roi} multiplier={100} />%
+        </td>
+
         <td align={"right"}>
           <FormatValue value={moneyValues[valueIn].totalGain} />
         </td>

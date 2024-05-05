@@ -32,6 +32,7 @@ export default function SubTotal({
         <td align={"right"}>
           <FormatValue value={subTotals[valueIn].realisedGain} />
         </td>
+        <td />
         <td align={"right"}>
           <FormatValue value={subTotals[valueIn].totalGain} />
         </td>

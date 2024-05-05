@@ -1,3 +1,5 @@
+import { ValueIn } from "@components/holdings/GroupByOptions";
+
 export type TrnType = "BUY" | "SELL" | "DIVI" | "SPLIT";
 
 export interface Market {
@@ -45,6 +47,7 @@ export interface MoneyValues {
   currency: Currency;
   valueIn: ValuationCcy;
   weight: number;
+  roi: number;
 }
 
 export interface PriceData {
@@ -63,12 +66,13 @@ export interface QuantityValues {
 }
 
 export interface Position {
-  [index: string]: any; // ToDo this shouldn't use any
+  [index: string]: ValueIn;
   asset: Asset;
   moneyValues: MoneyValues[ValueIn];
   quantityValues: QuantityValues;
   dateValues: DateValues;
   lastTradeDate: string;
+  roi: number;
 }
 
 export interface GroupedSubtotals {
@@ -132,7 +136,7 @@ interface HoldingContract {
   portfolio: Portfolio;
   isMixedCurrencies: boolean; // Mixed trade currencies?
   asAt: string;
-  positions: Position[string];
+  positions: Record<string, Position>;
 }
 
 interface TransactionImport {

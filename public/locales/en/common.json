@@ -15,6 +15,7 @@
   "error.portfolios.empty": "You have no portfolios",
   "tagline": "Wealth management for the rest of us",
   "quantity": "Quantity",
+  "roi": "ROI",
   "asset.price": "Price",
   "asset.change": "Change",
   "cost.avg": "Avg",

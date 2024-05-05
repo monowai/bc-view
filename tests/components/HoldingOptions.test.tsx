@@ -2,7 +2,7 @@ import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { useRouter } from "next/router";
 import "@testing-library/jest-dom";
-import {HoldingOptions} from "@components/holdings/HoldingOptions";
+import { HoldingOptions } from "@components/holdings/HoldingOptions";
 
 jest.mock("next/router", () => ({
   useRouter: jest.fn(),
