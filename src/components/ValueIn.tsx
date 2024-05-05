@@ -18,17 +18,21 @@ export function useValuationOptions(): ValuationOptions {
 }
 
 export function ValueInOption(): ReactElement {
-  const holdingState = useHoldingState();
+  const { valueIn, setValueIn } = useHoldingState();
   const valuationOptions = useValuationOptions();
+
+  const handleChange = (option: ValuationOption | null) => {
+    if (option !== null) {
+      setValueIn(option);
+    }
+  };
   return (
     <Select
       options={valuationOptions.values}
-      defaultValue={holdingState.valueIn}
+      defaultValue={valueIn}
       isSearchable={false}
       isClearable={false}
-      onChange={(e) => {
-        holdingState.setValueIn(e as ValuationOption);
-      }}
+      onChange={handleChange}
     />
   );
 }

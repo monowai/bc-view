@@ -28,6 +28,7 @@ function HoldingsPage(): React.ReactElement {
   const holdingState = useHoldingState();
 
   if (error && ready) {
+    console.error(error); // Log the error for debugging
     return errorOut(
       t("holdings.error.retrieve", { code: router.query.code }),
       error
@@ -44,6 +45,7 @@ function HoldingsPage(): React.ReactElement {
     holdingState.valueIn.value,
     holdingState.groupBy.value
   ) as Holdings;
+
   return (
     <div className="page-box">
       <HoldingOptions portfolio={holdingResults.portfolio} />

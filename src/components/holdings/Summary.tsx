@@ -4,19 +4,31 @@ import { FormatValue } from "@components/MoneyUtils";
 import { useTranslation } from "next-i18next";
 import { ValueInOption } from "@components/ValueIn";
 
+export const headers = [
+  "summary.title",
+  "summary.currency",
+  "summary.value",
+  "summary.purchases",
+  "summary.sales",
+  "summary.cash",
+  "summary.dividends",
+  "summary.gain",
+];
+
 export default function SummaryHeader(portfolio: Portfolio): ReactElement {
   const { t } = useTranslation("common");
+
   return (
     <tbody key={portfolio.code}>
       <tr className={"stats-header"}>
-        <th align={"left"}>{t("summary.title")}</th>
-        <th align={"left"}>{t("summary.currency")}</th>
-        <th align={"right"}>{t("summary.value")}</th>
-        <th align={"right"}>{t("summary.purchases")}</th>
-        <th align={"right"}>{t("summary.sales")}</th>
-        <th align={"right"}>{t("summary.cash")}</th>
-        <th align={"right"}>{t("summary.dividends")}</th>
-        <th align={"right"}>{t("summary.gain")}</th>
+        {headers.map((header) => (
+          <th
+            key={header}
+            align={header === "summary.title" ? "left" : "right"}
+          >
+            {t(header)}
+          </th>
+        ))}
       </tr>
     </tbody>
   );
@@ -31,58 +43,52 @@ export function SummaryRow({
   const displayCurrency = !currencyTotals
     ? "Mixed"
     : holdingValue.currency.code;
+
+  const data = [
+    <div className="filter-column">
+      <ValueInOption />
+    </div>,
+    displayCurrency,
+    currencyTotals ? (
+      <FormatValue value={holdingValue.marketValue} defaultValue="-" />
+    ) : (
+      <div>-</div>
+    ),
+    currencyTotals ? (
+      <FormatValue value={holdingValue.purchases} defaultValue="-" />
+    ) : (
+      <div>-</div>
+    ),
+    currencyTotals ? (
+      <FormatValue value={holdingValue.sales} defaultValue="-" />
+    ) : (
+      <div>-</div>
+    ),
+    currencyTotals ? (
+      <FormatValue value={holdingValue.cash} defaultValue="-" />
+    ) : (
+      <div>-</div>
+    ),
+    currencyTotals ? (
+      <FormatValue value={holdingValue.dividends} defaultValue="-" />
+    ) : (
+      <div>-</div>
+    ),
+    currencyTotals ? (
+      <FormatValue value={holdingValue.totalGain} defaultValue="-" />
+    ) : (
+      <div>-</div>
+    ),
+  ];
+
   return (
     <tbody>
       <tr className={"stats-row"}>
-        <td>
-          {/* Figure out a better way to style this component */}
-          <div className="filter-column">
-            <ValueInOption />
-          </div>
-        </td>
-        <td>{displayCurrency}</td>
-        <td align={"right"}>
-          {currencyTotals ? (
-            <FormatValue value={holdingValue.marketValue} defaultValue="-" />
-          ) : (
-            <div>-</div>
-          )}
-        </td>
-        <td align={"right"}>
-          {currencyTotals ? (
-            <FormatValue value={holdingValue.purchases} defaultValue="-" />
-          ) : (
-            <div>-</div>
-          )}
-        </td>
-        <td align={"right"}>
-          {currencyTotals ? (
-            <FormatValue value={holdingValue.sales} defaultValue="-" />
-          ) : (
-            <div>-</div>
-          )}
-        </td>
-        <td align={"right"}>
-          {currencyTotals ? (
-            <FormatValue value={holdingValue.cash} defaultValue="-" />
-          ) : (
-            <div>-</div>
-          )}
-        </td>
-        <td align={"right"}>
-          {currencyTotals ? (
-            <FormatValue value={holdingValue.dividends} defaultValue="-" />
-          ) : (
-            <div>-</div>
-          )}
-        </td>
-        <td align={"right"}>
-          {currencyTotals ? (
-            <FormatValue value={holdingValue.totalGain} defaultValue="-" />
-          ) : (
-            <div>-</div>
-          )}
-        </td>
+        {data.map((item, index) => (
+          <td key={index} align={index === 0 ? "left" : "right"}>
+            {item}
+          </td>
+        ))}
       </tr>
     </tbody>
   );
