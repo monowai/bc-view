@@ -3,7 +3,7 @@ import { useHoldingState } from "@utils/holdings/holdingState";
 import { useTranslation } from "next-i18next";
 import { ReactElement } from "react";
 import { ValueIn } from "@components/types/constants";
-import {ValuationOption, ValuationOptions} from "@components/types/app";
+import { ValuationOption, ValuationOptions } from "@components/types/app";
 
 export function useValuationOptions(): ValuationOptions {
   const { t } = useTranslation("common");

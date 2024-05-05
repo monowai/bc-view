@@ -4,7 +4,7 @@ import React from "react";
 import { useTranslation } from "next-i18next";
 import { GetServerSideProps } from "next";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
-import {rootLoader} from "@components/PageLoader";
+import { rootLoader } from "@components/PageLoader";
 import useSwr from "swr";
 import { simpleFetcher } from "@utils/api/fetchHelper";
 const key = "/api/register";

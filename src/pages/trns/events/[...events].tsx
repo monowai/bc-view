@@ -10,7 +10,7 @@ import { Transaction } from "@components/types/beancounter";
 import useSwr from "swr";
 import errorOut from "@components/errors/ErrorOut";
 import { assetKey, eventKey, simpleFetcher } from "@utils/api/fetchHelper";
-import {rootLoader} from "@components/PageLoader";
+import { rootLoader } from "@components/PageLoader";
 import { deleteTrn } from "@utils/trns/apiHelper";
 
 export default withPageAuthRequired(function Events(): React.ReactElement {

@@ -2,7 +2,7 @@ import { UserProfile, useUser } from "@auth0/nextjs-auth0/client";
 import Image from "next/image";
 import { GetServerSideProps } from "next";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
-import {rootLoader} from "@components/PageLoader";
+import { rootLoader } from "@components/PageLoader";
 import { useTranslation } from "next-i18next";
 import { ReactElement } from "react";
 
