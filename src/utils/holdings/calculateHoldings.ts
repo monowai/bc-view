@@ -79,19 +79,9 @@ function total(
   return updateTotal(total, position, valueIn);
 }
 
-function subTotal(
-  totals: Record<ValueIn, MoneyValues>,
-  position: Position,
-  valueIn: ValueIn
-): Record<ValueIn, MoneyValues> {
-  totals[valueIn] = total(totals[valueIn], position, valueIn);
-  return totals;
-}
-
 function createHoldingGroup(
   _groupKey: string,
-  position: Position,
-  valueIn: ValueIn
+  position: Position
 ): HoldingGroup {
   const initialTotals: Record<ValueIn, MoneyValues> = {
     [ValueIn.PORTFOLIO]: total(undefined, position, ValueIn.PORTFOLIO),
@@ -101,7 +91,7 @@ function createHoldingGroup(
 
   return {
     positions: [],
-    subTotals: subTotal(initialTotals, position, valueIn),
+    subTotals: initialTotals,
   };
 }
 
@@ -117,7 +107,7 @@ export function calculateHoldings(
       const groupKey = getPath(groupBy, position);
       results.holdingGroups[groupKey] =
         results.holdingGroups[groupKey] ||
-        createHoldingGroup(groupKey, position, valueIn);
+        createHoldingGroup(groupKey, position);
 
       // Only add the position to the array if hideEmpty is false or total is not 0
       if (!hideEmpty || position.quantityValues.total !== 0) {
