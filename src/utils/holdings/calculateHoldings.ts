@@ -1,4 +1,5 @@
 import {
+  Currency,
   HoldingContract,
   HoldingGroup,
   Holdings,
@@ -16,67 +17,68 @@ function getPath(path: string, position: Position): string {
       position
     ) as unknown as string;
 }
+
 // Helper function to update total
-function updateTotal(
-  total: MoneyValues,
+function updateSubTotal(
+  subTotal: MoneyValues,
   position: Position,
   valueIn: ValueIn
 ): MoneyValues {
-  total.marketValue += position.moneyValues[valueIn].marketValue;
-  total.costValue += position.moneyValues[valueIn].costValue;
-  total.dividends += position.moneyValues[valueIn].dividends;
-  total.realisedGain += position.moneyValues[valueIn].realisedGain;
-  total.unrealisedGain += position.moneyValues[valueIn].unrealisedGain;
-  total.totalGain += position.moneyValues[valueIn].totalGain;
+  const keys: (keyof MoneyValues)[] = [
+    "marketValue",
+    "costValue",
+    "dividends",
+    "realisedGain",
+    "unrealisedGain",
+    "totalGain",
+  ];
+  keys.forEach((key) => {
+    if (typeof position.moneyValues[valueIn][key] === "number") {
+      subTotal[key] += position.moneyValues[valueIn][key];
+    }
+  });
   if (isCashRelated(position.asset)) {
-    total.cash += position.moneyValues[valueIn].marketValue;
+    subTotal.cash += position.moneyValues[valueIn].marketValue;
   } else {
-    total.purchases += position.moneyValues[valueIn].purchases;
-    total.sales += position.moneyValues[valueIn].sales;
+    subTotal.purchases += position.moneyValues[valueIn].purchases;
+    subTotal.sales += position.moneyValues[valueIn].sales;
     if (position.moneyValues[valueIn].priceData) {
       if (position.moneyValues[valueIn].priceData.changePercent) {
-        total.gainOnDay += position.moneyValues[valueIn].gainOnDay;
+        subTotal.gainOnDay += position.moneyValues[valueIn].gainOnDay;
       }
     }
   }
-  return total;
+  return subTotal;
 }
 
-function total(
-  total: MoneyValues | undefined,
-  position: Position,
-  valueIn: ValueIn
-): MoneyValues {
-  if (!total) {
-    total = {
-      costValue: 0,
-      dividends: 0,
-      marketValue: 0,
-      realisedGain: 0,
-      totalGain: 0,
-      unrealisedGain: 0,
-      fees: 0,
-      cash: 0,
-      purchases: 0,
-      sales: 0,
-      tax: 0,
-      weight: 0,
-      roi: 0,
-      costBasis: 0,
-      gainOnDay: 0,
-      priceData: {
-        close: 0,
-        change: 0,
-        changePercent: 0,
-        priceDate: "",
-        previousClose: 0,
-      },
-      valueIn: valueIn,
-      averageCost: 0,
-      currency: position.moneyValues[valueIn].currency,
+function zeroTotal(currency: Currency, valueIn: ValueIn) {
+    return {
+        costValue: 0,
+        dividends: 0,
+        marketValue: 0,
+        realisedGain: 0,
+        totalGain: 0,
+        unrealisedGain: 0,
+        fees: 0,
+        cash: 0,
+        purchases: 0,
+        sales: 0,
+        tax: 0,
+        weight: 0,
+        roi: 0,
+        costBasis: 0,
+        gainOnDay: 0,
+        priceData: {
+            close: 0,
+            change: 0,
+            changePercent: 0,
+            priceDate: "",
+            previousClose: 0,
+        },
+        valueIn: valueIn,
+        averageCost: 0,
+        currency: currency,
     };
-  }
-  return updateTotal(total, position, valueIn);
 }
 
 function createHoldingGroup(
@@ -84,9 +86,18 @@ function createHoldingGroup(
   position: Position
 ): HoldingGroup {
   const initialTotals: Record<ValueIn, MoneyValues> = {
-    [ValueIn.PORTFOLIO]: total(undefined, position, ValueIn.PORTFOLIO),
-    [ValueIn.BASE]: total(undefined, position, ValueIn.BASE),
-    [ValueIn.TRADE]: total(undefined, position, ValueIn.TRADE),
+    [ValueIn.PORTFOLIO]: zeroTotal(
+      position.moneyValues[ValueIn.PORTFOLIO].currency,
+      ValueIn.PORTFOLIO
+    ),
+    [ValueIn.BASE]: zeroTotal(
+      position.moneyValues[ValueIn.BASE].currency,
+      ValueIn.BASE
+    ),
+    [ValueIn.TRADE]: zeroTotal(
+      position.moneyValues[ValueIn.TRADE].currency,
+      ValueIn.TRADE
+    ),
   };
 
   return {
@@ -95,13 +106,40 @@ function createHoldingGroup(
   };
 }
 
+function addSubtotalPosition(
+  subTotals: Record<ValueIn, MoneyValues>,
+  position: Position,
+  valueIn: ValueIn
+): Record<ValueIn, MoneyValues> {
+  subTotals[ValueIn.BASE] = updateSubTotal(
+    subTotals[ValueIn.BASE],
+    position,
+    valueIn
+  );
+  subTotals[ValueIn.PORTFOLIO] = updateSubTotal(
+    subTotals[ValueIn.PORTFOLIO],
+    position,
+    valueIn
+  );
+  subTotals[ValueIn.TRADE] = updateSubTotal(
+    subTotals[ValueIn.TRADE],
+    position,
+    valueIn
+  );
+  return subTotals;
+}
+
 export function calculateHoldings(
   contract: HoldingContract,
   hideEmpty: boolean,
   valueIn: ValueIn,
   groupBy: GroupBy
 ): Holdings {
-  return Object.keys(contract.positions).reduce(
+  const filteredPositions = Object.keys(contract.positions).filter(
+    (key) => !(hideEmpty && contract.positions[key].quantityValues.total === 0)
+  );
+
+  return filteredPositions.reduce(
     (results: Holdings, group) => {
       const position = contract.positions[group] as Position;
       const groupKey = getPath(groupBy, position);
@@ -109,32 +147,12 @@ export function calculateHoldings(
         results.holdingGroups[groupKey] ||
         createHoldingGroup(groupKey, position);
 
-      // Only add the position to the array if hideEmpty is false or total is not 0
-      if (!hideEmpty || position.quantityValues.total !== 0) {
-        results.holdingGroups[groupKey].positions.push(position);
-      }
-
-      results.totals[ValueIn.PORTFOLIO] = total(
-        results.totals[ValueIn.PORTFOLIO],
+      results.holdingGroups[groupKey].positions.push(position);
+      results.holdingGroups[groupKey].subTotals = addSubtotalPosition(
+        results.holdingGroups[groupKey].subTotals,
         position,
-        ValueIn.PORTFOLIO
+        valueIn
       );
-
-      // Totalling mixed trade currencies makes no sense, so don't do it
-      if (!contract.isMixedCurrencies) {
-        results.totals[ValueIn.TRADE] = total(
-          results.totals[ValueIn.TRADE],
-          position,
-          ValueIn.TRADE
-        );
-      }
-
-      results.totals[ValueIn.BASE] = total(
-        results.totals[ValueIn.BASE],
-        position,
-        ValueIn.BASE
-      );
-
       results.valueIn = valueIn;
       return results;
     },
