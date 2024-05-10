@@ -80,7 +80,7 @@ function HoldingsPage(): React.ReactElement {
                 </React.Fragment>
               );
             })}
-          <Total holdings={holdings} valueIn={holdingState.valueIn.value} />
+          {/*<Total holdings={holdings} valueIn={holdingState.valueIn.value} />*/}
         </table>
       </div>
     </div>

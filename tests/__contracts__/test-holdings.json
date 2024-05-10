@@ -3,7 +3,7 @@
     "portfolio": {
       "id": "TEST",
       "code": "TEST",
-      "name": "TEST",
+      "name": "Unit Tests",
       "currency": {
         "code": "USD",
         "name": "Dollar",
@@ -15,16 +15,296 @@
         "symbol": "$"
       },
       "owner": {
-        "id": "anyId",
-        "email": "mike@nowhere.com",
+        "id": "2xstJu-9QzaiX_Ou1U2Ssw",
+        "email": "mike",
         "active": true,
-        "auth0": "auth0|dfadfe",
+        "auth0": "auth0|6fb2fe",
         "googleId": "",
         "since": "2023-11-28"
       }
     },
     "asAt": "today",
     "positions": {
+      "BKNG:US": {
+        "asset": {
+          "code": "BKNG",
+          "id": "E56ci76uTaqGBO0D994h9A",
+          "name": "Booking Holdings Inc",
+          "market": {
+            "code": "US",
+            "currencyId": "USD",
+            "timezoneId": "US/Eastern",
+            "timezone": "US/Eastern",
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "priceTime": "19:00",
+            "daysToSubtract": 1,
+            "multiplier": 1.0
+          },
+          "priceSymbol": "BKNG",
+          "assetCategory": {
+            "id": "EQUITY",
+            "name": "Equity"
+          },
+          "systemUser": null,
+          "status": "Active",
+          "version": "1"
+        },
+        "quantityValues": {
+          "sold": 0,
+          "purchased": 1.0,
+          "adjustment": 0,
+          "precision": 0,
+          "total": 1.0
+        },
+        "dateValues": {
+          "opened": "2023-06-08",
+          "last": "2023-06-08",
+          "closed": null,
+          "lastDividend": null
+        },
+        "moneyValues": {
+          "TRADE": {
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "dividends": 0,
+            "costValue": 2701.0,
+            "costBasis": 2701.0,
+            "fees": 0,
+            "purchases": 2701.0,
+            "sales": 0,
+            "marketValue": 3780.03,
+            "weight": 0.342585,
+            "roi": 0.399493,
+            "priceData": {
+              "priceDate": "2024-05-09",
+              "open": 3640.0,
+              "close": 3780.03,
+              "low": 3640.0,
+              "high": 3800.52,
+              "previousClose": 3660.0,
+              "change": 120.03,
+              "changePercent": 0.0328,
+              "volume": 437008
+            },
+            "averageCost": 2701,
+            "realisedGain": 0,
+            "unrealisedGain": 1079.03,
+            "totalGain": 1079.03,
+            "gainOnDay": 120.03
+          },
+          "PORTFOLIO": {
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "dividends": 0,
+            "costValue": 2701.0,
+            "costBasis": 2701.0,
+            "fees": 0,
+            "purchases": 2701.0,
+            "sales": 0,
+            "marketValue": 3780.03,
+            "weight": 0.342585,
+            "roi": 0.399493,
+            "priceData": {
+              "priceDate": "2024-05-09",
+              "open": 3640.0,
+              "close": 3780.03,
+              "low": 3640.0,
+              "high": 3800.52,
+              "previousClose": 3660.0,
+              "change": 120.03,
+              "changePercent": 0.0328,
+              "volume": 437008
+            },
+            "averageCost": 2701,
+            "realisedGain": 0,
+            "unrealisedGain": 1079.03,
+            "totalGain": 1079.03,
+            "gainOnDay": 120.03
+          },
+          "BASE": {
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "dividends": 0,
+            "costValue": 2701.0,
+            "costBasis": 2701.0,
+            "fees": 0,
+            "purchases": 2701.0,
+            "sales": 0,
+            "marketValue": 3780.03,
+            "weight": 0.342585,
+            "roi": 0.399493,
+            "priceData": {
+              "priceDate": "2024-05-09",
+              "open": 3640.0,
+              "close": 3780.03,
+              "low": 3640.0,
+              "high": 3800.52,
+              "previousClose": 3660.0,
+              "change": 120.03,
+              "changePercent": 0.0328,
+              "volume": 437008
+            },
+            "averageCost": 2701,
+            "realisedGain": 0,
+            "unrealisedGain": 1079.03,
+            "totalGain": 1079.03,
+            "gainOnDay": 120.03
+          }
+        }
+      },
+      "MCD:US": {
+        "asset": {
+          "code": "MCD",
+          "id": "7oZVorWdTcijU0VlWQhBSg",
+          "name": "McDonald`s Corp",
+          "market": {
+            "code": "US",
+            "currencyId": "USD",
+            "timezoneId": "US/Eastern",
+            "timezone": "US/Eastern",
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "priceTime": "19:00",
+            "daysToSubtract": 1,
+            "multiplier": 1.0
+          },
+          "priceSymbol": "MCD",
+          "assetCategory": {
+            "id": "EQUITY",
+            "name": "Equity"
+          },
+          "systemUser": null,
+          "status": "Active",
+          "version": "1"
+        },
+        "quantityValues": {
+          "sold": 0,
+          "purchased": 4.0,
+          "adjustment": 0,
+          "precision": 0,
+          "total": 4.0
+        },
+        "dateValues": {
+          "opened": "2022-10-21",
+          "last": "2022-10-21",
+          "closed": null,
+          "lastDividend": null
+        },
+        "moneyValues": {
+          "TRADE": {
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "dividends": 0,
+            "costValue": 1000.0,
+            "costBasis": 1000.0,
+            "fees": 0,
+            "purchases": 1000.0,
+            "sales": 0,
+            "marketValue": 1071.8,
+            "weight": 0.097137,
+            "roi": 0.0718,
+            "priceData": {
+              "priceDate": "2024-05-09",
+              "open": 268.24,
+              "close": 267.95,
+              "low": 267.02,
+              "high": 268.46,
+              "previousClose": 268.49,
+              "change": 0.54,
+              "changePercent": -0.002,
+              "volume": 3139641
+            },
+            "averageCost": 2.5e2,
+            "realisedGain": 0,
+            "unrealisedGain": 71.8,
+            "totalGain": 71.8,
+            "gainOnDay": -2.16
+          },
+          "PORTFOLIO": {
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "dividends": 0,
+            "costValue": 1000.0,
+            "costBasis": 1000.0,
+            "fees": 0,
+            "purchases": 1000.0,
+            "sales": 0,
+            "marketValue": 1071.8,
+            "weight": 0.097137,
+            "roi": 0.0718,
+            "priceData": {
+              "priceDate": "2024-05-09",
+              "open": 268.24,
+              "close": 267.95,
+              "low": 267.02,
+              "high": 268.46,
+              "previousClose": 268.49,
+              "change": 0.54,
+              "changePercent": -0.002,
+              "volume": 3139641
+            },
+            "averageCost": 2.5e2,
+            "realisedGain": 0,
+            "unrealisedGain": 71.8,
+            "totalGain": 71.8,
+            "gainOnDay": -2.16
+          },
+          "BASE": {
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "dividends": 0,
+            "costValue": 1000.0,
+            "costBasis": 1000.0,
+            "fees": 0,
+            "purchases": 1000.0,
+            "sales": 0,
+            "marketValue": 1071.8,
+            "weight": 0.097137,
+            "roi": 0.0718,
+            "priceData": {
+              "priceDate": "2024-05-09",
+              "open": 268.24,
+              "close": 267.95,
+              "low": 267.02,
+              "high": 268.46,
+              "previousClose": 268.49,
+              "change": 0.54,
+              "changePercent": -0.002,
+              "volume": 3139641
+            },
+            "averageCost": 2.5e2,
+            "realisedGain": 0,
+            "unrealisedGain": 71.8,
+            "totalGain": 71.8,
+            "gainOnDay": -2.16
+          }
+        }
+      },
       "QQQ:US": {
         "asset": {
           "code": "QQQ",
@@ -54,11 +334,11 @@
           "version": "1"
         },
         "quantityValues": {
-          "sold": -2.000000,
-          "purchased": 3.000000,
+          "sold": -2.0,
+          "purchased": 3.0,
           "adjustment": 0,
           "precision": 0,
-          "total": 1.000000
+          "total": 1.0
         },
         "dateValues": {
           "opened": "2021-10-06",
@@ -75,29 +355,29 @@
             },
             "dividends": 0,
             "costValue": 333.33,
-            "costBasis": 1000.00,
+            "costBasis": 1000.0,
             "fees": 0,
-            "purchases": 1000.00,
-            "sales": 801.09,
-            "marketValue": 440.06,
-            "weight": 0.152680,
-            "roi": 0.320193,
+            "purchases": 1000.0,
+            "sales": 801.0,
+            "marketValue": 441.02,
+            "weight": 0.03997,
+            "roi": 0.323073,
             "priceData": {
-              "priceDate": "2024-05-08",
-              "open": 437.67,
-              "close": 440.06,
-              "low": 437.55,
-              "high": 441.48,
-              "previousClose": 440.32,
-              "change": 0.26,
-              "changePercent": -0.0006,
-              "volume": 24685057
+              "priceDate": "2024-05-09",
+              "open": 440.29,
+              "close": 441.02,
+              "low": 438.46,
+              "high": 441.6,
+              "previousClose": 440.06,
+              "change": 0.96,
+              "changePercent": 0.0022,
+              "volume": 24497016
             },
             "averageCost": 333.3333333,
-            "realisedGain": 134.42,
-            "unrealisedGain": 106.73,
-            "totalGain": 241.15,
-            "gainOnDay": -0.26000000
+            "realisedGain": 134.33,
+            "unrealisedGain": 107.69,
+            "totalGain": 242.02,
+            "gainOnDay": 0.96
           },
           "PORTFOLIO": {
             "currency": {
@@ -107,29 +387,29 @@
             },
             "dividends": 0,
             "costValue": 333.33,
-            "costBasis": 1000.00,
+            "costBasis": 1000.0,
             "fees": 0,
-            "purchases": 1000.00,
-            "sales": 801.09,
-            "marketValue": 440.06,
-            "weight": 0.152680,
-            "roi": 0.320193,
+            "purchases": 1000.0,
+            "sales": 801.0,
+            "marketValue": 441.02,
+            "weight": 0.03997,
+            "roi": 0.323073,
             "priceData": {
-              "priceDate": "2024-05-08",
-              "open": 437.67,
-              "close": 440.06,
-              "low": 437.55,
-              "high": 441.48,
-              "previousClose": 440.32,
-              "change": 0.26,
-              "changePercent": -0.0006,
-              "volume": 24685057
+              "priceDate": "2024-05-09",
+              "open": 440.29,
+              "close": 441.02,
+              "low": 438.46,
+              "high": 441.6,
+              "previousClose": 440.06,
+              "change": 0.96,
+              "changePercent": 0.0022,
+              "volume": 24497016
             },
             "averageCost": 333.3333333,
-            "realisedGain": 134.42,
-            "unrealisedGain": 106.73,
-            "totalGain": 241.15,
-            "gainOnDay": -0.26000000
+            "realisedGain": 134.33,
+            "unrealisedGain": 107.69,
+            "totalGain": 242.02,
+            "gainOnDay": 0.96
           },
           "BASE": {
             "currency": {
@@ -139,29 +419,29 @@
             },
             "dividends": 0,
             "costValue": 333.33,
-            "costBasis": 1000.00,
+            "costBasis": 1000.0,
             "fees": 0,
-            "purchases": 1000.00,
-            "sales": 801.09,
-            "marketValue": 440.06,
-            "weight": 0.152680,
-            "roi": 0.320193,
+            "purchases": 1000.0,
+            "sales": 801.0,
+            "marketValue": 441.02,
+            "weight": 0.03997,
+            "roi": 0.323073,
             "priceData": {
-              "priceDate": "2024-05-08",
-              "open": 437.67,
-              "close": 440.06,
-              "low": 437.55,
-              "high": 441.48,
-              "previousClose": 440.32,
-              "change": 0.26,
-              "changePercent": -0.0006,
-              "volume": 24685057
+              "priceDate": "2024-05-09",
+              "open": 440.29,
+              "close": 441.02,
+              "low": 438.46,
+              "high": 441.6,
+              "previousClose": 440.06,
+              "change": 0.96,
+              "changePercent": 0.0022,
+              "volume": 24497016
             },
             "averageCost": 333.3333333,
-            "realisedGain": 134.42,
-            "unrealisedGain": 106.73,
-            "totalGain": 241.15,
-            "gainOnDay": -0.26000000
+            "realisedGain": 134.33,
+            "unrealisedGain": 107.69,
+            "totalGain": 242.02,
+            "gainOnDay": 0.96
           }
         }
       },
@@ -217,26 +497,26 @@
             "costValue": 0,
             "costBasis": 0,
             "fees": 0,
-            "purchases": 1000.00,
-            "sales": 641.09,
+            "purchases": 1000.0,
+            "sales": 641.0,
             "marketValue": 0,
             "weight": 0,
             "roi": 0,
             "priceData": {
-              "priceDate": "2024-05-08",
-              "open": 218.95,
-              "close": 221.40,
-              "low": 218.70,
-              "high": 221.86,
-              "previousClose": 220.73,
-              "change": 0.67,
-              "changePercent": 0.0030,
-              "volume": 5401646
+              "priceDate": "2024-05-09",
+              "open": 221.49,
+              "close": 219.98,
+              "low": 218.89,
+              "high": 221.77,
+              "previousClose": 221.4,
+              "change": 1.42,
+              "changePercent": -0.0064,
+              "volume": 4022711
             },
             "averageCost": 0,
-            "realisedGain": -358.91,
+            "realisedGain": -359.0,
             "unrealisedGain": 0,
-            "totalGain": -358.91,
+            "totalGain": -359.0,
             "gainOnDay": 0
           },
           "PORTFOLIO": {
@@ -249,26 +529,26 @@
             "costValue": 0,
             "costBasis": 0,
             "fees": 0,
-            "purchases": 1000.00,
-            "sales": 641.09,
+            "purchases": 1000.0,
+            "sales": 641.0,
             "marketValue": 0,
             "weight": 0,
             "roi": 0,
             "priceData": {
-              "priceDate": "2024-05-08",
-              "open": 218.95,
-              "close": 221.40,
-              "low": 218.70,
-              "high": 221.86,
-              "previousClose": 220.73,
-              "change": 0.67,
-              "changePercent": 0.0030,
-              "volume": 5401646
+              "priceDate": "2024-05-09",
+              "open": 221.49,
+              "close": 219.98,
+              "low": 218.89,
+              "high": 221.77,
+              "previousClose": 221.4,
+              "change": 1.42,
+              "changePercent": -0.0064,
+              "volume": 4022711
             },
             "averageCost": 0,
-            "realisedGain": -358.91,
+            "realisedGain": -359.0,
             "unrealisedGain": 0,
-            "totalGain": -358.91,
+            "totalGain": -359.0,
             "gainOnDay": 0
           },
           "BASE": {
@@ -281,26 +561,26 @@
             "costValue": 0,
             "costBasis": 0,
             "fees": 0,
-            "purchases": 1000.00,
-            "sales": 641.09,
+            "purchases": 1000.0,
+            "sales": 641.0,
             "marketValue": 0,
             "weight": 0,
             "roi": 0,
             "priceData": {
-              "priceDate": "2024-05-08",
-              "open": 218.95,
-              "close": 221.40,
-              "low": 218.70,
-              "high": 221.86,
-              "previousClose": 220.73,
-              "change": 0.67,
-              "changePercent": 0.0030,
-              "volume": 5401646
+              "priceDate": "2024-05-09",
+              "open": 221.49,
+              "close": 219.98,
+              "low": 218.89,
+              "high": 221.77,
+              "previousClose": 221.4,
+              "change": 1.42,
+              "changePercent": -0.0064,
+              "volume": 4022711
             },
             "averageCost": 0,
-            "realisedGain": -358.91,
+            "realisedGain": -359.0,
             "unrealisedGain": 0,
-            "totalGain": -358.91,
+            "totalGain": -359.0,
             "gainOnDay": 0
           }
         }
@@ -335,11 +615,11 @@
           "version": "1"
         },
         "quantityValues": {
-          "sold": -2000.00,
-          "purchased": 4442.180000,
+          "sold": -5701.0,
+          "purchased": 11442.0,
           "adjustment": 0,
           "precision": 2,
-          "total": 2442.180000
+          "total": 5741.0
         },
         "dateValues": {
           "opened": "2021-10-06",
@@ -355,18 +635,18 @@
               "symbol": "$"
             },
             "dividends": 0,
-            "costValue": 2442.18,
-            "costBasis": 2442.18,
+            "costValue": 5741.0,
+            "costBasis": 5741.0,
             "fees": 0,
-            "purchases": 4442.18,
-            "sales": -2000.00,
-            "marketValue": 2442.18,
-            "weight": 0.847320,
-            "roi": 0.000000,
+            "purchases": 11442.0,
+            "sales": -5701.0,
+            "marketValue": 5741.0,
+            "weight": 0.520308,
+            "roi": 0.0,
             "priceData": {
-              "priceDate": "2024-05-09",
+              "priceDate": "2024-05-10",
               "open": 0,
-              "close": 1.00,
+              "close": 1.0,
               "low": 0,
               "high": 0,
               "previousClose": 0,
@@ -376,8 +656,8 @@
             },
             "averageCost": 1,
             "realisedGain": 0,
-            "unrealisedGain": 0.00,
-            "totalGain": 0.00,
+            "unrealisedGain": 0.0,
+            "totalGain": 0.0,
             "gainOnDay": 0
           },
           "PORTFOLIO": {
@@ -387,18 +667,18 @@
               "symbol": "$"
             },
             "dividends": 0,
-            "costValue": 2442.18,
-            "costBasis": 2442.18,
+            "costValue": 5741.0,
+            "costBasis": 5741.0,
             "fees": 0,
-            "purchases": 4442.18,
-            "sales": -2000.00,
-            "marketValue": 2442.18,
-            "weight": 0.847320,
-            "roi": 0.000000,
+            "purchases": 11442.0,
+            "sales": -5701.0,
+            "marketValue": 5741.0,
+            "weight": 0.520308,
+            "roi": 0.0,
             "priceData": {
-              "priceDate": "2024-05-09",
+              "priceDate": "2024-05-10",
               "open": 0,
-              "close": 1.00,
+              "close": 1.0,
               "low": 0,
               "high": 0,
               "previousClose": 0,
@@ -408,8 +688,8 @@
             },
             "averageCost": 1,
             "realisedGain": 0,
-            "unrealisedGain": 0.00,
-            "totalGain": 0.00,
+            "unrealisedGain": 0.0,
+            "totalGain": 0.0,
             "gainOnDay": 0
           },
           "BASE": {
@@ -419,18 +699,18 @@
               "symbol": "$"
             },
             "dividends": 0,
-            "costValue": 2442.18,
-            "costBasis": 2442.18,
+            "costValue": 5741.0,
+            "costBasis": 5741.0,
             "fees": 0,
-            "purchases": 4442.18,
-            "sales": -2000.00,
-            "marketValue": 2442.18,
-            "weight": 0.847320,
-            "roi": 0.000000,
+            "purchases": 11442.0,
+            "sales": -5701.0,
+            "marketValue": 5741.0,
+            "weight": 0.520308,
+            "roi": 0.0,
             "priceData": {
-              "priceDate": "2024-05-09",
+              "priceDate": "2024-05-10",
               "open": 0,
-              "close": 1.00,
+              "close": 1.0,
               "low": 0,
               "high": 0,
               "previousClose": 0,
@@ -440,8 +720,8 @@
             },
             "averageCost": 1,
             "realisedGain": 0,
-            "unrealisedGain": 0.00,
-            "totalGain": 0.00,
+            "unrealisedGain": 0.0,
+            "totalGain": 0.0,
             "gainOnDay": 0
           }
         }
@@ -449,10 +729,10 @@
     },
     "totals": {
       "PORTFOLIO": {
-        "total": 2882.24
+        "total": 11033.85
       },
       "BASE": {
-        "total": 2882.24
+        "total": 11033.85
       }
     },
     "isMixedCurrencies": false
