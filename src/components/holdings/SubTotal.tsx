@@ -25,7 +25,9 @@ export default function SubTotal({
         <td colSpan={1} align={"right"}>
           <FormatValue value={subTotals[valueIn].unrealisedGain} />
         </td>
-        <td />
+        <td align={"right"}>
+          <FormatValue value={subTotals[valueIn].weight} multiplier={100} />%
+        </td>
         <td align={"right"}>
           <FormatValue value={subTotals[valueIn].dividends} />
         </td>
