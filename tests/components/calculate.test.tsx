@@ -1,4 +1,8 @@
-import {HoldingContract, HoldingGroup, Holdings} from "@components/types/beancounter";
+import {
+  HoldingContract,
+  HoldingGroup,
+  Holdings,
+} from "@components/types/beancounter";
 import * as path from "node:path";
 import * as fs from "node:fs";
 import { GroupBy, ValueIn } from "@components/holdings/GroupByOptions";
@@ -15,7 +19,7 @@ function validateTotals(result: Holdings): void {
 function validateEtfGains(etfs: HoldingGroup): void {
   const expectedGain = 107.69;
   expect(etfs.subTotals[ValueIn.PORTFOLIO].unrealisedGain).toEqual(
-      expectedGain
+    expectedGain
   );
   expect(etfs.subTotals[ValueIn.BASE].unrealisedGain).toEqual(expectedGain);
   expect(etfs.subTotals[ValueIn.TRADE].unrealisedGain).toEqual(expectedGain);
@@ -29,7 +33,12 @@ describe("calculate function", () => {
   it("including all exited positions should compute sub totals", () => {
     const hideEmpty = false;
 
-    const holdings = calculateHoldings(mockContract, hideEmpty, valueIn, groupBy);
+    const holdings = calculateHoldings(
+      mockContract,
+      hideEmpty,
+      valueIn,
+      groupBy
+    );
     expect(holdings.portfolio).toEqual(mockContract.portfolio);
     expect(holdings.holdingGroups["Cash"].positions.length).toEqual(1);
     const equities = holdings.holdingGroups["Equity"];
@@ -41,7 +50,6 @@ describe("calculate function", () => {
     expect(etfs.positions.length).toEqual(2);
     validateEtfGains(etfs);
     validateTotals(holdings);
-
   });
 
   it("should compute totals when showing exited positions", () => {
