@@ -3,11 +3,14 @@ import { requestInit } from "@utils/api/fetchHelper";
 import handleResponse, { fetchError } from "@utils/api/response-writer";
 import { Portfolio } from "@components/types/beancounter";
 import { getDataUrl } from "@utils/api/bc-config";
-import {NextApiRequest, NextApiResponse} from "next";
+import { NextApiRequest, NextApiResponse } from "next";
 
 const baseUrl = getDataUrl("/portfolios");
 
-export default withApiAuthRequired(async function portfolios(req: NextApiRequest, res: NextApiResponse) {
+export default withApiAuthRequired(async function portfolios(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   try {
     const { accessToken } = await getAccessToken(req, res);
     const { method } = req;
