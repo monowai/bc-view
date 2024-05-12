@@ -3,7 +3,8 @@ import { requestInit } from "@utils/api/fetchHelper";
 import handleResponse, { fetchError } from "@utils/api/response-writer";
 import { Transaction } from "@components/types/beancounter";
 import { baseUrl } from "@pages/api/trns";
-export default withApiAuthRequired(async function eventTrns(req, res) {
+import {NextApiRequest, NextApiResponse} from "next";
+export default withApiAuthRequired(async function eventTrns(req: NextApiRequest, res: NextApiResponse) {
   try {
     const { events } = req.query;
     const { accessToken } = await getAccessToken(req, res);

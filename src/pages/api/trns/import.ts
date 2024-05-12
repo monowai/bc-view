@@ -6,8 +6,9 @@ import {
   getKafkaHosts,
   getTrnTopic,
 } from "@utils/api/bc-config";
+import {NextApiRequest, NextApiResponse} from "next";
 
-export default withApiAuthRequired(async function writeRows(req, res) {
+export default withApiAuthRequired(async function writeRows(req: NextApiRequest, res: NextApiResponse) {
   await getAccessToken(req, res);
   await writeTrn({ portfolio: req.body.portfolio, row: req.body.row }).catch(
     console.error,
