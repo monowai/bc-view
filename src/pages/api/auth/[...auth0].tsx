@@ -1,6 +1,6 @@
 import { handleAuth, handleLogin } from "@auth0/nextjs-auth0";
 import { fetchError } from "@utils/api/response-writer";
-import {NextApiRequest, NextApiResponse} from "next";
+import { NextApiRequest, NextApiResponse } from "next";
 
 /* eslint max-len: ["error", { "ignoreComments": true }] */
 /*
