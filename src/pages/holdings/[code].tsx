@@ -54,8 +54,7 @@ function HoldingsPage(): React.ReactElement {
           <SummaryHeader {...holdingResults.portfolio} />
           <SummaryRow
             totals={holdings.totals}
-            valueIn={holdingState.valueIn.value}
-            currency={holdings.viewTotals.currency}
+            currency={holdings.currency}
           />
         </table>
       </div>

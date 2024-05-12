@@ -168,28 +168,30 @@ export function calculateHoldings(
                 position,
                 valueIn
             );
-            results.valueIn = valueIn;
             return results;
         },
         {
             portfolio: contract.portfolio,
             holdingGroups: {}, // Initialize as an empty object
             valueIn: valueIn,
+            currency: {"code": "", "symbol": ""} as Currency,
             totals: zeroTotal(contract.totals[valueIn].currency),
             viewTotals: zeroMoneyValues(contract.portfolio.currency, valueIn),
         }
     );
 
-    // Post processing.
+    // Post process results now that all positions have been processed
+    results.valueIn = valueIn;
+    results.currency = contract.totals[valueIn].currency!!;
     results.totals = contract.totals[valueIn];
-    // Call calculateViewTotal after all holdingGroups have been computed
     results.viewTotals = calculateSummaryTotals(results, valueIn);
     return results;
 }
 
+// Call calculateViewTotal after all holdingGroups have been computed
 function calculateSummaryTotals(holdings: Holdings, valueIn: ValueIn): MoneyValues {
-    // Initialize viewTotals with zero values. We don't care about currency.
-    const viewTotals = zeroMoneyValues(holdings.portfolio.currency, valueIn);
+    // Initialize viewTotals with zero values.
+    const viewTotals = zeroMoneyValues(holdings.currency!, valueIn);
     Object.values(holdings.holdingGroups).forEach((group: HoldingGroup) => {
         // Update viewTotals for each group
         viewTotals.marketValue += group.subTotals[valueIn].marketValue;

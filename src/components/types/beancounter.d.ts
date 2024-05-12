@@ -13,9 +13,10 @@ interface HoldingContract {
 
 // The payload we render in the UI
 interface Holdings {
-    holdingGroups: Record<string,HoldingGroup>;
+    holdingGroups: Record<string, HoldingGroup>;
+    currency: Currency;
     portfolio: Portfolio;
-    valueIn: ValuationCcy;
+    valueIn: ValueIn;
     viewTotals: MoneyValues
     totals: Total;
 }
@@ -126,7 +127,6 @@ export interface PortfolioRequests {
 
 export interface PortfolioSummary {
     totals: Total;
-    valueIn: ValueIn;
     currency: Currency;
 }
 
