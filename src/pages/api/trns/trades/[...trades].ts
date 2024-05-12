@@ -3,8 +3,9 @@ import handleResponse, { fetchError } from "@utils/api/response-writer";
 import { Transaction } from "@components/types/beancounter";
 import { requestInit } from "@utils/api/fetchHelper";
 import { baseUrl } from "@pages/api/trns";
+import {NextApiRequest, NextApiResponse} from "next";
 
-export default withApiAuthRequired(async function tradeTrns(req, res) {
+export default withApiAuthRequired(async function tradeTrns(req: NextApiRequest, res: NextApiResponse) {
   try {
     const { trades } = req.query;
     const { method } = req;

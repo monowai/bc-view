@@ -3,10 +3,11 @@ import { requestInit } from "@utils/api/fetchHelper";
 import handleResponse from "@utils/api/response-writer";
 import { HoldingContract } from "@components/types/beancounter";
 import { getPositionsUrl } from "@utils/api/bc-config";
+import {NextApiRequest, NextApiResponse} from "next";
 
 const baseUrl = getPositionsUrl();
 
-export default withApiAuthRequired(async function holdingsByCode(req, res) {
+export default withApiAuthRequired(async function holdingsByCode(req: NextApiRequest, res: NextApiResponse) {
   try {
     const { accessToken } = await getAccessToken(req, res);
     const {
