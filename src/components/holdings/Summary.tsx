@@ -36,7 +36,6 @@ export default function SummaryHeader(portfolio: Portfolio): ReactElement {
 
 export function SummaryRow({
                                totals,
-                               valueIn,
                                currency,
                            }: PortfolioSummary): ReactElement {
     // const total = totals[valueIn];
