@@ -135,12 +135,12 @@ export default function Rows({
         </td>
 
         <td align={"right"}>
-            {!isCashRelated(asset) && (
-                <>
-                    <FormatValue value={moneyValues[valueIn].roi} multiplier={100} />
-                    {'%'}
-                </>
-            )}
+          {!isCashRelated(asset) && (
+            <>
+              <FormatValue value={moneyValues[valueIn].roi} multiplier={100} />
+              {"%"}
+            </>
+          )}
         </td>
 
         <td align={"right"}>

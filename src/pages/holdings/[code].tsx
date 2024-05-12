@@ -52,10 +52,7 @@ function HoldingsPage(): React.ReactElement {
       <div>
         <table className={"stats-container"}>
           <SummaryHeader {...holdingResults.portfolio} />
-          <SummaryRow
-            totals={holdings.totals}
-            currency={holdings.currency}
-          />
+          <SummaryRow totals={holdings.totals} currency={holdings.currency} />
         </table>
       </div>
       <div className={"all-getData"}>
