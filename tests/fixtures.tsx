@@ -55,6 +55,6 @@ export const withUserProvider = (user: UserProfile = {}) => {
       user?: UserProfile | undefined;
       profileUrl?: string | undefined;
       fetcher?: ((url: string) => Promise<UserProfile | undefined>) | undefined;
-    } & ConfigContext & { children?: ReactNode }
+    } & ConfigContext & { children?: ReactNode },
   ) => <UserProvider {...props} user={user} profileUrl="profile.url" />;
 };

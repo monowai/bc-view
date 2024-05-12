@@ -8,7 +8,7 @@ export async function handleErrors(response: Response): Promise<void> {
       response.status,
       "Auth error",
       response.statusText,
-      result.path
+      result.path,
     );
   } else {
     throw new BcApiError(
@@ -16,7 +16,7 @@ export async function handleErrors(response: Response): Promise<void> {
       result.message,
       response.statusText,
       result.path,
-      result.message
+      result.message,
     );
   }
 }
@@ -24,14 +24,14 @@ export async function handleErrors(response: Response): Promise<void> {
 export function fetchError(
   res: NextApiResponse,
   req: NextApiRequest,
-  error: any
+  error: any,
 ): void {
   const apiError = new BcApiError(
     error.statusCode,
     error.message,
     error.code,
     req.url,
-    error.stack
+    error.stack,
   );
   console.error(apiError);
   res.status(apiError.statusCode).json(apiError);
@@ -43,7 +43,7 @@ export function hasError(response: Response): boolean {
 
 export default async function handleResponse<T>(
   response: Response,
-  res: NextApiResponse
+  res: NextApiResponse,
 ): Promise<void> {
   if (hasError(response)) {
     await handleErrors(response);

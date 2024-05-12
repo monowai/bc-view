@@ -9,7 +9,7 @@ export const trnEditSchema = yup.object().shape({
     .test(
       "quantity",
       "Quantity can only have 5 digits or less after decimal",
-      (value) => /^\d+(\.\d{1,5})?$/.test("" + value)
+      (value) => /^\d+(\.\d{1,5})?$/.test("" + value),
     ),
 
   tradeAmount: yup
@@ -17,7 +17,7 @@ export const trnEditSchema = yup.object().shape({
     .test(
       "tradeAmount",
       "Trade amount can only have 2 digits or less after decimal",
-      (value) => /^\d+(\.\d{1,2})?$/.test("" + value)
+      (value) => /^\d+(\.\d{1,2})?$/.test("" + value),
     ),
 
   cashAmount: yup
@@ -25,7 +25,7 @@ export const trnEditSchema = yup.object().shape({
     .test(
       "cashAmount",
       "Cash amount can only have 2 digits or less after decimal",
-      (value) => /^-?\d+(\.\d{1,2})?$/.test("" + value)
+      (value) => /^-?\d+(\.\d{1,2})?$/.test("" + value),
     ),
 
   fees: yup
@@ -33,12 +33,12 @@ export const trnEditSchema = yup.object().shape({
     .test(
       "fees",
       "Fees can only have 2 digits or less after decimal",
-      (value) => /^\d+(\.\d{1,2})?$/.test("" + value)
+      (value) => /^\d+(\.\d{1,2})?$/.test("" + value),
     ),
   tax: yup
     .number()
     .test("fees", "Tax can only have 2 digits or less after decimal", (value) =>
-      /^\d+(\.\d{1,2})?$/.test("" + value)
+      /^\d+(\.\d{1,2})?$/.test("" + value),
     ),
 
   price: yup
@@ -46,14 +46,14 @@ export const trnEditSchema = yup.object().shape({
     .test(
       "price",
       "Price can only have 4 digits or less after decimal",
-      (value) => /^\d+(\.\d{1,4})?$/.test("" + value)
+      (value) => /^\d+(\.\d{1,4})?$/.test("" + value),
     ),
   tradeBaseRate: yup
     .number()
     .test(
       "maxDigitsAfterDecimal",
       "Rate field can only have 5 digits or less after decimal",
-      (value) => /^\d+(\.\d{1,5})?$/.test("" + value)
+      (value) => /^\d+(\.\d{1,5})?$/.test("" + value),
     ),
 
   tradeCashRate: yup
@@ -61,13 +61,13 @@ export const trnEditSchema = yup.object().shape({
     .test(
       "maxDigitsAfterDecimal",
       "Rate field can only have 5 digits or less after decimal",
-      (value) => /^\d+(\.\d{1,5})?$/.test("" + value)
+      (value) => /^\d+(\.\d{1,5})?$/.test("" + value),
     ),
   tradePortfolioRate: yup
     .number()
     .test(
       "maxDigitsAfterDecimal",
       "Rate field can only have 5 digits or less after decimal",
-      (value) => /^\d+(\.\d{1,5})?$/.test("" + value)
+      (value) => /^\d+(\.\d{1,5})?$/.test("" + value),
     ),
 });

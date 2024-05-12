@@ -45,7 +45,7 @@ export default function Rows({
         <td align={"right"}>
           {hideValue(
             moneyValues[valueIn].priceData &&
-              moneyValues[valueIn].priceData.changePercent
+              moneyValues[valueIn].priceData.changePercent,
           ) ? (
             " "
           ) : (
@@ -147,7 +147,7 @@ export default function Rows({
           <FormatValue value={moneyValues[valueIn].totalGain} />
         </td>
       </tr>
-    )
+    ),
   );
   return <tbody>{holdings}</tbody>;
 }

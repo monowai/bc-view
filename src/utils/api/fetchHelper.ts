@@ -1,6 +1,6 @@
 export function requestInit(
   accessToken: string | undefined,
-  method: string = "GET"
+  method: string = "GET",
 ): RequestInit {
   return {
     method,

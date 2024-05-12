@@ -23,7 +23,7 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
   const asset = useSwr(assetKey(assetId), simpleFetcher(assetKey(assetId)));
   const events = useSwr(
     eventKey(portfolioId, assetId),
-    simpleFetcher(eventKey(portfolioId, assetId))
+    simpleFetcher(eventKey(portfolioId, assetId)),
   );
   if (events.error) {
     return errorOut(t("events.error.retrieve"), events.error);

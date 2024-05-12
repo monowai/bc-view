@@ -19,7 +19,7 @@ function validateTotals(result: Holdings): void {
 function validateEtfGains(etfs: HoldingGroup): void {
   const expectedGain = 107.69;
   expect(etfs.subTotals[ValueIn.PORTFOLIO].unrealisedGain).toEqual(
-    expectedGain
+    expectedGain,
   );
   expect(etfs.subTotals[ValueIn.BASE].unrealisedGain).toEqual(expectedGain);
   expect(etfs.subTotals[ValueIn.TRADE].unrealisedGain).toEqual(expectedGain);
@@ -37,7 +37,7 @@ describe("calculate function", () => {
       mockContract,
       hideEmpty,
       valueIn,
-      groupBy
+      groupBy,
     );
     expect(holdings.portfolio).toEqual(mockContract.portfolio);
     expect(holdings.holdingGroups["Cash"].positions.length).toEqual(1);

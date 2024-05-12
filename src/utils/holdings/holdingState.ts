@@ -12,7 +12,7 @@ const holdingDefaults = hookstate(
   {
     hideEmpty: true,
   } as HoldingDefaults,
-  devtools({ key: "holdings" })
+  devtools({ key: "holdings" }),
 );
 
 // This function wraps the state by an interface,

@@ -5,7 +5,7 @@ import { Market, TrnInput } from "@components/types/beancounter";
 
 const tradeDefaults = hookstate(
   { onMarket: true } as TradeDefaults,
-  devtools({ key: "trade" })
+  devtools({ key: "trade" }),
 );
 
 // This function wraps the state by an interface,
