@@ -48,7 +48,7 @@ export default function TrnDropZone({
       });
       console.log(`Sent ${rows} rows`);
     },
-    [portfolio, purge]
+    [portfolio, purge],
   );
   const { getRootProps, getInputProps } = useDropzone({ onDrop });
 

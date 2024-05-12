@@ -22,7 +22,7 @@ function HoldingsPage(): React.ReactElement {
   const router = useRouter();
   const { data, error, isLoading } = useSwr(
     holdingKey(`${router.query.code}`),
-    simpleFetcher(holdingKey(`${router.query.code}`))
+    simpleFetcher(holdingKey(`${router.query.code}`)),
   );
   const { t, ready } = useTranslation("common");
   const holdingState = useHoldingState();
@@ -31,7 +31,7 @@ function HoldingsPage(): React.ReactElement {
     console.error(error); // Log the error for debugging
     return errorOut(
       t("holdings.error.retrieve", { code: router.query.code }),
-      error
+      error,
     );
   }
   if (isLoading) {
@@ -43,7 +43,7 @@ function HoldingsPage(): React.ReactElement {
     holdingResults,
     holdingState.hideEmpty,
     holdingState.valueIn.value,
-    holdingState.groupBy.value
+    holdingState.groupBy.value,
   ) as Holdings;
 
   return (

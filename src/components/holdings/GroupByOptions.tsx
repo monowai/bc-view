@@ -52,7 +52,7 @@ const GroupByOptions = (): ReactElement => {
         holdingState.setGroupBy(selectedOption);
       }
     },
-    [holdingState]
+    [holdingState],
   );
 
   if (!ready) {

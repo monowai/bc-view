@@ -10,7 +10,7 @@ export class BcApiError extends ApiError {
     message: string,
     code: string,
     path: string | undefined,
-    stack: string | undefined = undefined
+    stack: string | undefined = undefined,
   ) {
     super(status || 500, message);
     this.devMessage = message;

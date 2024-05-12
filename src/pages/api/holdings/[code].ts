@@ -15,7 +15,7 @@ export default withApiAuthRequired(async function holdingsByCode(req, res) {
 
     const response = await fetch(
       `${baseUrl}/${code}/today`,
-      requestInit(accessToken)
+      requestInit(accessToken),
     );
 
     if (!response.ok) {

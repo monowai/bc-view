@@ -24,7 +24,7 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
   const asset = useSwr(assetKey(assetId), simpleFetcher(assetKey(assetId)));
   const trades = useSwr(
     tradeKey(portfolioId, assetId),
-    simpleFetcher(tradeKey(portfolioId, assetId))
+    simpleFetcher(tradeKey(portfolioId, assetId)),
   );
   if (trades.error) {
     return errorOut(t("trades.error.retrieve"), trades.error);

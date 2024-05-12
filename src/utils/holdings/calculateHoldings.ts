@@ -15,7 +15,7 @@ function getPath(path: string, position: Position): string {
     .split(".")
     .reduce(
       (p: any, path: string) => (p && p[path]) || "undefined",
-      position
+      position,
     ) as unknown as string;
 }
 
@@ -23,7 +23,7 @@ function getPath(path: string, position: Position): string {
 function updateSubTotal(
   subTotal: MoneyValues,
   position: Position,
-  valueIn: ValueIn
+  valueIn: ValueIn,
 ): MoneyValues {
   const keys: (keyof MoneyValues)[] = [
     "marketValue",
@@ -98,20 +98,20 @@ function zeroMoneyValues(currency: Currency, valueIn: ValueIn): MoneyValues {
 
 function createHoldingGroup(
   _groupKey: string,
-  position: Position
+  position: Position,
 ): HoldingGroup {
   const initialTotals: Record<ValueIn, MoneyValues> = {
     [ValueIn.PORTFOLIO]: zeroMoneyValues(
       position.moneyValues[ValueIn.PORTFOLIO].currency,
-      ValueIn.PORTFOLIO
+      ValueIn.PORTFOLIO,
     ),
     [ValueIn.BASE]: zeroMoneyValues(
       position.moneyValues[ValueIn.BASE].currency,
-      ValueIn.BASE
+      ValueIn.BASE,
     ),
     [ValueIn.TRADE]: zeroMoneyValues(
       position.moneyValues[ValueIn.TRADE].currency,
-      ValueIn.TRADE
+      ValueIn.TRADE,
     ),
   };
 
@@ -124,22 +124,22 @@ function createHoldingGroup(
 function addSubtotalPosition(
   subTotals: Record<ValueIn, MoneyValues>,
   position: Position,
-  valueIn: ValueIn
+  valueIn: ValueIn,
 ): Record<ValueIn, MoneyValues> {
   subTotals[ValueIn.BASE] = updateSubTotal(
     subTotals[ValueIn.BASE],
     position,
-    valueIn
+    valueIn,
   );
   subTotals[ValueIn.PORTFOLIO] = updateSubTotal(
     subTotals[ValueIn.PORTFOLIO],
     position,
-    valueIn
+    valueIn,
   );
   subTotals[ValueIn.TRADE] = updateSubTotal(
     subTotals[ValueIn.TRADE],
     position,
-    valueIn
+    valueIn,
   );
   return subTotals;
 }
@@ -148,10 +148,10 @@ export function calculateHoldings(
   contract: HoldingContract,
   hideEmpty: boolean,
   valueIn: ValueIn,
-  groupBy: GroupBy
+  groupBy: GroupBy,
 ): Holdings {
   const filteredPositions = Object.keys(contract.positions).filter(
-    (key) => !(hideEmpty && contract.positions[key].quantityValues.total === 0)
+    (key) => !(hideEmpty && contract.positions[key].quantityValues.total === 0),
   );
 
   const results = filteredPositions.reduce(
@@ -166,7 +166,7 @@ export function calculateHoldings(
       results.holdingGroups[groupKey].subTotals = addSubtotalPosition(
         results.holdingGroups[groupKey].subTotals,
         position,
-        valueIn
+        valueIn,
       );
       return results;
     },
@@ -177,7 +177,7 @@ export function calculateHoldings(
       currency: { code: "", symbol: "" } as Currency,
       totals: zeroTotal(contract.totals[valueIn].currency),
       viewTotals: zeroMoneyValues(contract.portfolio.currency, valueIn),
-    }
+    },
   );
 
   // Post process results now that all positions have been processed
@@ -191,7 +191,7 @@ export function calculateHoldings(
 // Call calculateViewTotal after all holdingGroups have been computed
 function calculateSummaryTotals(
   holdings: Holdings,
-  valueIn: ValueIn
+  valueIn: ValueIn,
 ): MoneyValues {
   // Initialize viewTotals with zero values.
   const viewTotals = zeroMoneyValues(holdings.currency!, valueIn);

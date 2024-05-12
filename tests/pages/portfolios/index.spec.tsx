@@ -36,13 +36,13 @@ describe("Portfolios Page", () => {
     expect(
       screen.getByText((content, element) => {
         return element?.textContent === "$USD";
-      })
+      }),
     ).toBeInTheDocument();
 
     expect(
       screen.getByText((content, element) => {
         return element?.textContent === "€EUR";
-      })
+      }),
     ).toBeInTheDocument();
   });
 

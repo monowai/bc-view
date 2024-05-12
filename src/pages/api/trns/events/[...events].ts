@@ -11,7 +11,7 @@ export default withApiAuthRequired(async function eventTrns(req, res) {
       console.log(`Looking up events for ${events[0]} / ${events[1]}`);
       const response = await fetch(
         `${baseUrl}/${events[0]}/asset/${events[1]}/events`,
-        requestInit(accessToken)
+        requestInit(accessToken),
       );
       await handleResponse<Transaction[]>(response, res);
     }

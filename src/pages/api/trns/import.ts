@@ -10,7 +10,7 @@ import {
 export default withApiAuthRequired(async function writeRows(req, res) {
   await getAccessToken(req, res);
   await writeTrn({ portfolio: req.body.portfolio, row: req.body.row }).catch(
-    console.error
+    console.error,
   );
   res.status(200).json("ok");
 });
@@ -20,7 +20,7 @@ const brokers = getKafkaHosts();
 const clientId = getKafkaClient();
 
 async function writeTrn(
-  transactionUpload: TransactionUpload
+  transactionUpload: TransactionUpload,
 ): Promise<RecordMetadata[] | void> {
   console.log(`brokers: ${brokers}, clientId: ${clientId}, topic: ${topic}`);
   const producer = await new Kafka({

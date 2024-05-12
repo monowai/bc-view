@@ -32,7 +32,7 @@ export default withPageAuthRequired(function Portfolios(): React.ReactElement {
 
   function deletePortfolio(
     portfolioId: string,
-    message: string
+    message: string,
   ): Promise<void> | any {
     if (confirm(message))
       fetch(`/api/portfolios/${portfolioId}`, {
@@ -43,7 +43,7 @@ export default withPageAuthRequired(function Portfolios(): React.ReactElement {
             .push("/portfolios", "/portfolios", {
               shallow: true,
             })
-            .then()
+            .then(),
         );
       });
   }
@@ -102,7 +102,7 @@ export default withPageAuthRequired(function Portfolios(): React.ReactElement {
                         onClick={() =>
                           deletePortfolio(
                             portfolio.id,
-                            t("portfolio.delete", { code: portfolio.code })
+                            t("portfolio.delete", { code: portfolio.code }),
                           )
                         }
                         className="simple-padding far fa-trash-alt"
@@ -122,7 +122,7 @@ export default withPageAuthRequired(function Portfolios(): React.ReactElement {
   const router = useRouter();
   const { data, mutate, error } = useSwr(
     portfoliosKey,
-    simpleFetcher(portfoliosKey)
+    simpleFetcher(portfoliosKey),
   );
   if (error) {
     return errorOut(t("portfolios.error.retrieve"), error);

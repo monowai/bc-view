@@ -14,6 +14,6 @@ const App: React.FC<AppProps> = ({ Component, pageProps }) => {
       </div>
     </UserProvider>
   );
-}
+};
 
 export default appWithTranslation(App);
