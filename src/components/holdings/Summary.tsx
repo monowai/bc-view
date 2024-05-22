@@ -12,6 +12,7 @@ export const headers = [
   "summary.sales",
   "summary.cash",
   "summary.dividends",
+  "summary.irr",
   "summary.gain",
 ];
 
@@ -72,6 +73,20 @@ export function SummaryRow({
     ) : (
       <div>-</div>
     ),
+    currencyTotals ? (
+      <>
+        <FormatValue
+          value={totals.irr}
+          defaultValue="-"
+          multiplier={100}
+          scale={2}
+        />
+        {"%"}
+      </>
+    ) : (
+      <div>-</div>
+    ),
+
     currencyTotals ? (
       <FormatValue value={totals.gain} defaultValue="-" />
     ) : (

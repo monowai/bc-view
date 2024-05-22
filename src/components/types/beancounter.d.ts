@@ -38,6 +38,7 @@ interface Total {
   cash: number;
   income: number;
   gain: number;
+  irr: number;
   currency: Currency | undefined;
 }
 
@@ -70,6 +71,7 @@ export interface MoneyValues {
   valueIn: ValuationCcy;
   weight: number;
   roi: number;
+  irr: number;
 }
 
 export interface QuantityValues {

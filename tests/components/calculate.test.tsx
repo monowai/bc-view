@@ -7,6 +7,7 @@ import * as path from "node:path";
 import * as fs from "node:fs";
 import { GroupBy, ValueIn } from "@components/holdings/GroupByOptions";
 import { calculateHoldings } from "@utils/holdings/calculateHoldings";
+import { expect, describe } from "@jest/globals";
 
 const dataPath = path.resolve(__dirname, "../__contracts__/test-holdings.json");
 const data = fs.readFileSync(dataPath, "utf-8");

@@ -14,7 +14,7 @@ export const headers = [
   "weight",
   "summary.dividends",
   "gain.realised",
-  "roi",
+  "irr",
   "gain",
 ];
 

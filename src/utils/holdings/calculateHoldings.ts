@@ -31,6 +31,7 @@ function updateSubTotal(
     "dividends",
     "realisedGain",
     "unrealisedGain",
+    "irr",
     "totalGain",
   ];
   keys.forEach((key) => {
@@ -62,6 +63,7 @@ function zeroTotal(currency: Currency | undefined): Total {
     cash: 0,
     income: 0,
     gain: 0,
+    irr: 0,
     currency: currency,
   };
 }
@@ -81,6 +83,7 @@ function zeroMoneyValues(currency: Currency, valueIn: ValueIn): MoneyValues {
     tax: 0,
     weight: 0,
     roi: 0,
+    irr: 0,
     costBasis: 0,
     gainOnDay: 0,
     priceData: {
