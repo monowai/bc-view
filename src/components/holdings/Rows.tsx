@@ -14,6 +14,7 @@ export default function Rows({
   function hideValue(priceData: PriceData | undefined): boolean {
     return !priceData;
   }
+
   // eslint-disable-next-line complexity
   const holdings = holdingGroup.positions.map(
     ({ asset, moneyValues, quantityValues, dateValues }, index) => (
@@ -137,8 +138,15 @@ export default function Rows({
         <td align={"right"}>
           {!isCashRelated(asset) && (
             <>
-              <FormatValue value={moneyValues[valueIn].roi} multiplier={100} />
-              {"%"}
+              <span
+                data-tooltip={`ROI: ${(moneyValues[valueIn].roi * 100).toFixed(2)}%`}
+              >
+                <FormatValue
+                  value={moneyValues[valueIn].irr}
+                  multiplier={100}
+                />
+                {"%"}
+              </span>
             </>
           )}
         </td>
