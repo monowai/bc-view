@@ -1,9 +1,15 @@
-import * as Yup from "yup";
-import { string } from "yup";
+import * as yup from "yup";
 
-export const portfolioInputSchema = Yup.object().shape({
-  code: Yup.string().label("Code").trim().required().min(3).max(6),
-  name: Yup.string().label("Name").trim().required().min(5).max(50),
-  currency: Yup.object({ value: string(), label: string() }).required(),
-  base: Yup.object({ value: string(), label: string() }).required(),
+const CurrencyOptionSchema = yup.object().shape({
+  label: yup.string().required(),
+  value: yup.string().required(),
 });
+
+export const portfolioInputSchema = yup
+  .object({
+    code: yup.string().trim().required().min(3).max(6),
+    name: yup.string().trim().required().min(5).max(50),
+    currency: CurrencyOptionSchema.required(),
+    base: CurrencyOptionSchema.required(),
+  })
+  .required();

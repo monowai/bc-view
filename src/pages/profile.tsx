@@ -1,3 +1,4 @@
+import React from "react";
 import { UserProfile, useUser } from "@auth0/nextjs-auth0/client";
 import Image from "next/image";
 import { GetServerSideProps } from "next";
@@ -28,7 +29,7 @@ export default function Profile(): ReactElement {
   const { t, ready } = useTranslation("common");
   if (isLoading || !ready) return rootLoader(t("loading"));
   if (error) return <div>{error.message}</div>;
-  if (!user) return <div>t("user.notfound")</div>;
+  if (!user) return <div>t(user.notfound)</div>;
 
   return (
     <div className={"box"}>

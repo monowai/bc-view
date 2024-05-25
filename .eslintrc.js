@@ -1,7 +1,7 @@
 module.exports = {
   parser: "@typescript-eslint/parser", // Specifies the ESLint parser
   plugins: ["@typescript-eslint", "react-hooks"],
-  extends: ["plugin:@next/next/recommended"],
+  extends: ["plugin:@next/next/recommended", "plugin:react/recommended"],
   settings: {
     react: {
       version: "detect",
@@ -17,6 +17,7 @@ module.exports = {
   },
 
   rules: {
+    'react/prop-types': 'off',
     strict: "error",
     "react/no-multi-comp": 0,
     "@typescript-eslint/ban-ts-comment": "warn",

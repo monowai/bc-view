@@ -44,7 +44,7 @@ export function SummaryRow({
   const displayCurrency = !currencyTotals ? "Mixed" : currency.code;
 
   const data = [
-    <div className="filter-column">
+    <div key={currency.code} className="filter-column">
       <ValueInOption />
     </div>,
     displayCurrency,
