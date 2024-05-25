@@ -1,5 +1,5 @@
 # Use an official Node.js runtime as a parent image
-FROM node:21-alpine AS base
+FROM node:20-alpine AS base
 WORKDIR /app
 RUN apk add --no-cache libc6-compat && rm -rf /var/cache/apk/*
 
