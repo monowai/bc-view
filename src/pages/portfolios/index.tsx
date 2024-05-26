@@ -1,6 +1,6 @@
 import React from "react";
 import useSwr from "swr";
-import { withPageAuthRequired } from "@auth0/nextjs-auth0/client";
+import { UserProfile, withPageAuthRequired } from "@auth0/nextjs-auth0/client";
 import { useTranslation } from "next-i18next";
 import { Portfolio } from "@components/types/beancounter";
 import Link from "next/link";
@@ -11,56 +11,74 @@ import errorOut from "@components/errors/ErrorOut";
 import { useRouter } from "next/router";
 import { rootLoader } from "@components/PageLoader";
 
-export default withPageAuthRequired(function Portfolios(): React.ReactElement {
-  function noPortfolios(): React.ReactElement {
-    return (
-      <nav className="container has-background-grey-lighter">
-        <div id="root">{t("error.portfolios.empty")}</div>
-        <div className="column is-left">
-          <button
-            className="navbar-item button is-link is-small"
-            onClick={() => {
-              router.push(`/portfolios/__NEW__`).then();
-            }}
-          >
-            {t("portfolio.create")}
-          </button>
-        </div>
-      </nav>
-    );
+const CreatePortfolioButton = (): React.ReactElement<HTMLButtonElement> => {
+  const router = useRouter();
+  const { t } = useTranslation("common");
+
+  return (
+    <button
+      className="navbar-item button is-link is-small"
+      onClick={async () => {
+        await router.push(`/portfolios/__NEW__`);
+      }}
+    >
+      {t("portfolio.create")}
+    </button>
+  );
+};
+
+export default withPageAuthRequired(function Portfolios({
+  user,
+}: UserProfile): React.ReactElement {
+  const { t, ready } = useTranslation("common");
+  const router = useRouter();
+  const { data, mutate, error } = useSwr(
+    portfoliosKey,
+    simpleFetcher(portfoliosKey),
+  );
+  if (error) {
+    return errorOut(t("portfolios.error.retrieve"), error);
   }
 
-  function deletePortfolio(
+  if (!user) {
+    return rootLoader(t("loading"));
+  }
+
+  async function deletePortfolio(
     portfolioId: string,
     message: string,
-  ): Promise<void> | any {
-    if (confirm(message))
-      fetch(`/api/portfolios/${portfolioId}`, {
-        method: "DELETE",
-      }).then(() => {
-        mutate({ ...data }).then(() =>
-          router
-            .push("/portfolios", "/portfolios", {
-              shallow: true,
-            })
-            .then(),
-        );
-      });
+  ): Promise<void> {
+    if (window.confirm(message)) {
+      try {
+        await fetch(`/api/portfolios/${portfolioId}`, {
+          method: "DELETE",
+        });
+        await mutate({ ...data });
+        await router.push("/portfolios", "/portfolios", {
+          shallow: true,
+        });
+      } catch (error) {
+        console.error("Failed to delete portfolio:", error);
+      }
+    }
   }
 
-  function listPortfolios(): React.ReactElement {
+  function listPortfolios(portfolios: Portfolio[]): React.ReactElement {
+    if (!portfolios || portfolios.length == 0) {
+      return (
+        <nav className="container has-background-grey-lighter">
+          <div id="root">{t("error.portfolios.empty")}</div>
+          <div className="column is-left">
+            <CreatePortfolioButton />
+          </div>
+        </nav>
+      );
+    }
     return (
       <div>
         <nav className="container has-background-grey-lighter">
           <div className="column is-left">
-            <button
-              className="navbar-item button is-link is-small"
-              onClick={() => {
-                router.push(`/portfolios/__NEW__`).then();
-              }}
-            >
-              {t("portfolio.create")}
-            </button>
+            <CreatePortfolioButton />
           </div>
         </nav>
         <div className="page-box is-primary has-background-light">
@@ -118,24 +136,11 @@ export default withPageAuthRequired(function Portfolios(): React.ReactElement {
     );
   }
 
-  const { t, ready } = useTranslation("common");
-  const router = useRouter();
-  const { data, mutate, error } = useSwr(
-    portfoliosKey,
-    simpleFetcher(portfoliosKey),
-  );
-  if (error) {
-    return errorOut(t("portfolios.error.retrieve"), error);
-  }
   if (!data || !ready) {
     return rootLoader(t("loading"));
   }
-  const portfolios: Portfolio[] = data.data;
-
-  if (portfolios && portfolios.length == 0) {
-    return noPortfolios();
-  }
-  return listPortfolios();
+  // Use the user variable somewhere in your component
+  return listPortfolios(data.data);
 });
 
 export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({

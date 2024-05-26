@@ -1,7 +1,9 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
+import "@testing-library/jest-dom";
 import Portfolios from "@pages/portfolios";
 import useSWR from "swr";
+import { beforeEach, describe, it } from "@jest/globals";
 import {
   mockUserProfile,
   portfolioResult,
