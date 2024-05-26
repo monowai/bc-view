@@ -27,13 +27,21 @@ jobs:
       - save_cache:
           paths:
             - node_modules
+            - ~/.cache/yarn
           key: v1-dependencies-{{ checksum "package.json" }}
+      - persist_to_workspace:
+          root: .
+          paths:
+            - node_modules
+            - ~/.cache/yarn
       - setup_remote_docker:
           docker_layer_caching: true
       - when:
           condition:
             equal: [master, << pipeline.git.branch >>]
           steps:
+            - attach_workspace:
+                at: .
             - run:
                 name: Package BC-VIEW
                 command: |
