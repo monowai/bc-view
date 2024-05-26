@@ -63,7 +63,7 @@
     "@typescript-eslint/typescript-estree": "^7",
     "babel-jest": "^29.5.0",
     "eslint": "^8.x",
-    "eslint-config-next": "^14.x",
+    "eslint-config-next": "^13.x",
     "eslint-config-prettier": "^9",
     "eslint-plugin-jest": "^28.5",
     "eslint-plugin-jest-dom": "^5.4",
