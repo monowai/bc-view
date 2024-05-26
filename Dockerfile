@@ -6,11 +6,12 @@ RUN apk add --no-cache libc6-compat && rm -rf /var/cache/apk/*
 # Install production dependencies.
 FROM base AS deps
 COPY package.json yarn.lock ./
-RUN yarn install --production --frozen-lockfile --ignore-scripts --prefer-offline
+RUN yarn install --production --frozen-lockfile --ignore-scripts --prefer-offline && cp -R $(yarn cache dir) ./ycache
 
 # Copy project files and build your app
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/ycache /usr/local/share/.cache/yarn/v6
 COPY . .
 RUN yarn build
 

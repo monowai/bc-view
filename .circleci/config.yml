@@ -4,7 +4,7 @@ orbs:
 jobs:
   build-view:
     docker:
-      - image: cimg/node:21.6
+      - image: cimg/node:20.12
     resource_class: large
     environment:
       IMAGE_NAME: bc-view
@@ -18,7 +18,7 @@ jobs:
             - v1-dependencies-
       - node/install:
           install-yarn: true
-          node-version: "21.6"
+          node-version: "20.12"
       - run:
           name: Build Application
           command: |
