@@ -17,7 +17,7 @@ module.exports = {
   },
 
   rules: {
-    'react/prop-types': 'off',
+    "react/prop-types": "off",
     strict: "error",
     "react/no-multi-comp": 0,
     "@typescript-eslint/ban-ts-comment": "warn",
