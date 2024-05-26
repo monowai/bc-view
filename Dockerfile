@@ -13,7 +13,7 @@ FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/ycache /usr/local/share/.cache/yarn/v6
 COPY . .
-RUN yarn build
+RUN yarn build --verbose
 
 # Create final image
 FROM base AS runner
