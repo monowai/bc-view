@@ -16,7 +16,7 @@ import SummaryHeader, { SummaryRow } from "@components/holdings/Summary";
 import Rows from "@components/holdings/Rows";
 import SubTotal from "@components/holdings/SubTotal";
 import Header from "@components/holdings/Header";
-import Total from "@components/holdings/Total";
+import GrandTotal from "@components/holdings/GrandTotal";
 
 function HoldingsPage(): React.ReactElement {
   const router = useRouter();
@@ -77,7 +77,10 @@ function HoldingsPage(): React.ReactElement {
                 </React.Fragment>
               );
             })}
-          <Total holdings={holdings} valueIn={holdingState.valueIn.value} />
+          <GrandTotal
+            holdings={holdings}
+            valueIn={holdingState.valueIn.value}
+          />
         </table>
       </div>
     </div>

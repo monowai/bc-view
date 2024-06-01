@@ -8,7 +8,6 @@ export const headers = [
   "gain.onday",
   "quantity",
   "cost",
-  "cost.avg",
   "summary.value",
   "gain.unrealised",
   "weight",

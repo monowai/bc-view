@@ -4,7 +4,7 @@ import { FormatValue } from "@components/MoneyUtils";
 import { useTranslation } from "next-i18next";
 
 // Totals all subtotal values.
-export default function Total({
+export default function GrandTotal({
   holdings,
   valueIn,
 }: HoldingsInCurrency): ReactElement {
@@ -15,7 +15,7 @@ export default function Total({
   const data = [
     { value: holdings.viewTotals.gainOnDay, colSpan: 1 },
     { value: holdings.viewTotals.costValue, colSpan: 2 },
-    { value: holdings.viewTotals.marketValue, colSpan: 2 },
+    { value: holdings.viewTotals.marketValue, colSpan: 1 },
     { value: holdings.viewTotals.unrealisedGain, colSpan: 1 },
     { value: holdings.viewTotals.weight, colSpan: 1 },
     { value: holdings.viewTotals.dividends, colSpan: 1 },
