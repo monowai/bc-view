@@ -89,14 +89,11 @@ export default function Rows({
           {/*)}*/}
         </td>
         <td align={"right"}>
-          <FormatValue value={moneyValues[valueIn].costValue} />
-        </td>
-        <td align={"right"}>
-          {hideValue(moneyValues[valueIn]) ? (
-            " "
-          ) : (
-            <FormatValue value={moneyValues[valueIn].averageCost} />
-          )}
+          <span
+            data-tooltip={`Average: ${moneyValues[valueIn].averageCost.toLocaleString()}`}
+          >
+            <FormatValue value={moneyValues[valueIn].costValue} />
+          </span>
         </td>
         <td align={"right"}>
           <Link
