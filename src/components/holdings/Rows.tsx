@@ -46,7 +46,7 @@ export default function Rows({
         <td align={"right"}>
           {hideValue(
             moneyValues[valueIn].priceData &&
-              moneyValues[valueIn].priceData.changePercent,
+            moneyValues[valueIn].priceData.changePercent,
           ) ? (
             " "
           ) : (
@@ -67,14 +67,6 @@ export default function Rows({
           )}
         </td>
         <td align={"right"}>
-          {hideValue(moneyValues[valueIn].priceData) ||
-          !moneyValues[valueIn].priceData.changePercent ? (
-            " "
-          ) : (
-            <FormatValue value={moneyValues[valueIn].gainOnDay} />
-          )}
-        </td>
-        <td align={"right"}>
           {isCashRelated(asset) || hideValue(moneyValues[valueIn].priceData) ? (
             " "
           ) : (
@@ -92,7 +84,7 @@ export default function Rows({
           <span
             data-tooltip={`Average: ${moneyValues[valueIn].averageCost.toLocaleString()}`}
           >
-            <FormatValue value={moneyValues[valueIn].costValue} />
+            <FormatValue value={moneyValues[valueIn].costValue}/>
           </span>
         </td>
         <td align={"right"}>
@@ -107,10 +99,18 @@ export default function Rows({
           </Link>
         </td>
         <td align={"right"}>
-          <FormatValue value={moneyValues[valueIn].unrealisedGain} />
+          {hideValue(moneyValues[valueIn].priceData) ||
+          !moneyValues[valueIn].priceData.changePercent ? (
+            " "
+          ) : (
+            <FormatValue value={moneyValues[valueIn].gainOnDay}/>
+          )}
         </td>
         <td align={"right"}>
-          <FormatValue value={moneyValues[valueIn].weight} multiplier={100} />%
+          <FormatValue value={moneyValues[valueIn].unrealisedGain}/>
+        </td>
+        <td align={"right"}>
+          <FormatValue value={moneyValues[valueIn].realisedGain}/>
         </td>
         <td align={"right"}>
           {
@@ -123,15 +123,11 @@ export default function Rows({
                 href={`/trns/events`}
                 as={`/trns/events/${portfolio.id}/${asset.id}`}
               >
-                {<FormatValue value={moneyValues[valueIn].dividends} />}
+                {<FormatValue value={moneyValues[valueIn].dividends}/>}
               </Link>
             </span>
           }
         </td>
-        <td align={"right"}>
-          <FormatValue value={moneyValues[valueIn].realisedGain} />
-        </td>
-
         <td align={"right"}>
           {!isCashRelated(asset) && (
             <>
@@ -147,9 +143,11 @@ export default function Rows({
             </>
           )}
         </td>
-
         <td align={"right"}>
-          <FormatValue value={moneyValues[valueIn].totalGain} />
+          <FormatValue value={moneyValues[valueIn].weight} multiplier={100}/>%
+        </td>
+        <td align={"right"}>
+          <FormatValue value={moneyValues[valueIn].totalGain}/>
         </td>
       </tr>
     ),

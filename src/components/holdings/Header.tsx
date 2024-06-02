@@ -5,15 +5,15 @@ import { useTranslation } from "next-i18next";
 export const headers = [
   "asset.price",
   "asset.change",
-  "gain.onday",
   "quantity",
   "cost",
   "summary.value",
+  "gain.onday",
   "gain.unrealised",
-  "weight",
-  "summary.dividends",
   "gain.realised",
+  "summary.dividends",
   "irr",
+  "weight",
   "gain",
 ];
 
