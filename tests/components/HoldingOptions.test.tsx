@@ -13,9 +13,53 @@ jest.mock("@components/Portfolios", () => ({
   Portfolios: () => <div>MockPortfolios</div>,
 }));
 
-// jest.mock("@components/GroupByOptions", () => ({
-//   GroupByOptions: () => <div>MockGroupByOption</div>,
-// }));
+jest.mock("swr", () => ({
+  __esModule: true, // this property makes it work like an es module
+  default: jest.fn(() => ({
+    data: {
+      data: [
+        {
+          code: "AUD",
+          name: "Dollar",
+          symbol: "$",
+        },
+        {
+          code: "EUR",
+          name: "Euro",
+          symbol: "€",
+        },
+        {
+          code: "GBP",
+          name: "Pound",
+          symbol: "£",
+        },
+        {
+          code: "MYR",
+          name: "Ringgit",
+          symbol: "RM",
+        },
+        {
+          code: "NZD",
+          name: "Dollar",
+          symbol: "$",
+        },
+        {
+          code: "SGD",
+          name: "Dollar",
+          symbol: "$",
+        },
+        {
+          code: "USD",
+          name: "Dollar",
+          symbol: "$",
+        },
+      ],
+    },
+    error: null,
+    mutate: jest.fn(),
+    isLoading: false,
+  })),
+}));
 
 jest.mock("@components/HideEmpty", () => ({
   HideEmpty: () => <div>MockHideEmpty</div>,
@@ -42,7 +86,6 @@ describe("<HoldingOptions />", () => {
     expect(screen.getByText("option.portfolio")).toBeInTheDocument();
     expect(screen.getByText("MockPortfolios")).toBeInTheDocument();
     expect(screen.getByText("holdings.groupBy")).toBeInTheDocument();
-    // expect(screen.getByText("MockGroupByOption")).toBeInTheDocument();
     expect(screen.getByText("holdings.openOnly")).toBeInTheDocument();
     expect(screen.getByText("MockHideEmpty")).toBeInTheDocument();
     expect(screen.getByText("trn.add")).toBeInTheDocument();
@@ -52,6 +95,6 @@ describe("<HoldingOptions />", () => {
     render(<HoldingOptions portfolio={portfolio} />);
 
     fireEvent.click(screen.getByText("trn.add"));
-    expect(mockPush).toHaveBeenCalledWith("/trns");
+    expect(screen.getByText("Add Transaction")).toBeInTheDocument();
   });
 });

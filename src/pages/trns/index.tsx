@@ -3,7 +3,6 @@ import React from "react";
 import { useTranslation } from "next-i18next";
 import { GetServerSideProps } from "next";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
-import { Tabs } from "@components/tabs/Tabs";
 
 export default withPageAuthRequired(function AddTrade(): React.ReactElement {
   const { t } = useTranslation("common");
@@ -22,27 +21,9 @@ export default withPageAuthRequired(function AddTrade(): React.ReactElement {
   return (
     <section className="section">
       <h1 className="title">{t("trade.title")}</h1>
-
-      <Tabs defaultTabId="onMarket">
-        <Tabs.TabList isSize="medium">
-          <Tabs.Tab tabId="onMarket">{t("trade.onmarket")}</Tabs.Tab>
-          <Tabs.Tab tabId="offMarket">{t("trade.offmarket")}</Tabs.Tab>
-        </Tabs.TabList>
-
-        <Tabs.TabPanel tabId="onMarket">{onMarketForm()}</Tabs.TabPanel>
-        <Tabs.TabPanel tabId="offMarket">{offMarketForm()}</Tabs.TabPanel>
-      </Tabs>
     </section>
   );
 });
-
-function onMarketForm(): React.ReactElement {
-  return <div className="box">OnMarket</div>;
-}
-
-function offMarketForm(): React.ReactElement {
-  return <div className="box">OffMarket</div>;
-}
 
 export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
   props: {
