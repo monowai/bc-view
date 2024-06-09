@@ -24,7 +24,6 @@ $tooltip-background-color: $bcxdark
 
 .link
   color: black
-
 .link:hover
   color: black
 .alert
@@ -33,6 +32,9 @@ $tooltip-background-color: $bcxdark
   padding: 10px 15px
   background-color: $bclight
 
+.empty-control
+  display: block
+
 // Simple space
 .simple-padding
   padding-left: .5em
@@ -40,6 +42,26 @@ $tooltip-background-color: $bcxdark
 .page-title
   background-color: $bcdark !important
   color: white !important
+
+.form-columns
+  display: flex
+  flex-basis: 200px
+  width: 75%
+  justify-content: space-between
+  font-size: small
+  padding-top: 7.5px
+  padding-bottom: 7.5px
+
+.form-column:first-child
+  text-align: left
+  min-width: 25%
+  flex: 2
+
+.form-column:last-child
+  padding-left: 20px
+  text-align: left
+  min-width: 15%
+  flex: 1
 
 .hero-body
   background-color: $bclight

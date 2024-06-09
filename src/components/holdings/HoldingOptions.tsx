@@ -1,4 +1,4 @@
-import React, { ReactElement } from "react";
+import React, { ReactElement, useState } from "react";
 import { useTranslation } from "next-i18next";
 import { useRouter } from "next/router";
 import Link from "next/link";
@@ -6,6 +6,7 @@ import { HideEmpty } from "@components/HideEmpty";
 import { Portfolios } from "@components/Portfolios";
 import { Portfolio } from "@components/types/beancounter";
 import GroupByOptions from "@components/holdings/GroupByOptions";
+import TrnInputForm from "@pages/trns/input";
 
 interface HoldingOptionsProps {
   portfolio: Portfolio;
@@ -16,10 +17,7 @@ export const HoldingOptions: React.FC<HoldingOptionsProps> = ({
 }): ReactElement => {
   const { t } = useTranslation("common");
   const router = useRouter();
-
-  const handleAddTransaction = async (): Promise<void> => {
-    await router.push("/trns");
-  };
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
     <div className="filter-columns">
@@ -39,12 +37,11 @@ export const HoldingOptions: React.FC<HoldingOptionsProps> = ({
         <HideEmpty />
       </div>
       <div className="filter-column">
-        <button
-          className="navbar-item button is-link is-small"
-          onClick={handleAddTransaction}
-        >
-          {t("trn.add")}
-        </button>
+        <TrnInputForm
+          portfolio={portfolio}
+          isOpen={isModalOpen}
+          closeModal={() => setIsModalOpen(false)}
+        />
       </div>
     </div>
   );

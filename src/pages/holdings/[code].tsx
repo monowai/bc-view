@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { calculateHoldings } from "@utils/holdings/calculateHoldings";
 import { Holdings } from "@components/types/beancounter";
 import { rootLoader } from "@components/PageLoader";
@@ -17,7 +17,7 @@ import Rows from "@components/holdings/Rows";
 import SubTotal from "@components/holdings/SubTotal";
 import Header from "@components/holdings/Header";
 import GrandTotal from "@components/holdings/GrandTotal";
-import {isCash} from "@utils/assets/assetUtils";
+import { isCash } from "@utils/assets/assetUtils";
 
 function HoldingsPage(): React.ReactElement {
   const router = useRouter();
@@ -60,8 +60,12 @@ function HoldingsPage(): React.ReactElement {
         <table className={"table is-striped is-hoverable"}>
           {Object.keys(holdings.holdingGroups)
             .sort((a, b) => {
-              const aIsCash = isCash(holdings.holdingGroups[a].positions[0].asset);
-              const bIsCash = isCash(holdings.holdingGroups[b].positions[0].asset);
+              const aIsCash = isCash(
+                holdings.holdingGroups[a].positions[0].asset,
+              );
+              const bIsCash = isCash(
+                holdings.holdingGroups[b].positions[0].asset,
+              );
               if (aIsCash && !bIsCash) {
                 return 1;
               }

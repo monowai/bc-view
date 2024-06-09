@@ -27,7 +27,7 @@ async function writeTrn(
   transactionUpload: TransactionUpload,
 ): Promise<RecordMetadata[] | void> {
   console.log(`brokers: ${brokers}, clientId: ${clientId}, topic: ${topic}`);
-  const producer = await new Kafka({
+  const producer = new Kafka({
     clientId,
     brokers,
   }).producer({

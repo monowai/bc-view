@@ -1,6 +1,6 @@
 import * as yup from "yup";
 
-const CurrencyOptionSchema = yup.object().shape({
+export const CurrencyOptionSchema = yup.object().shape({
   label: yup.string().required(),
   value: yup.string().required(),
 });
