@@ -15,12 +15,12 @@ export default function GrandTotal({
   const data = [
     { value: holdings.viewTotals.costValue, colSpan: 2 },
     { value: holdings.viewTotals.marketValue, colSpan: 1 },
-    { value: holdings.viewTotals.unrealisedGain, colSpan: 1 },
     { value: holdings.viewTotals.gainOnDay, colSpan: 1 },
-    { value: holdings.viewTotals.weight, colSpan: 1 },
     { value: holdings.viewTotals.realisedGain, colSpan: 1 },
+    { value: holdings.viewTotals.unrealisedGain, colSpan: 1 },
     { value: holdings.viewTotals.dividends, colSpan: 1 },
-    { value: holdings.viewTotals.totalGain, colSpan: 2 },
+    { value: holdings.viewTotals.weight, colSpan: 2 },
+    { value: holdings.viewTotals.totalGain, colSpan: 1 },
   ];
 
   return (
@@ -34,7 +34,7 @@ export default function GrandTotal({
             <FormatValue
               value={item.value}
               defaultValue="-"
-              multiplier={index === 4 ? 100 : 1}
+              multiplier={index === 6 ? 100 : 1}
             />
           </td>
         ))}
