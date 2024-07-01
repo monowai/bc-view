@@ -20,7 +20,7 @@
     "@hookstate/core": "^4.0.1",
     "@serverless-jwt/next": "^0.2.1",
     "@types/react-modal": "^3.16.3",
-    "bulma": "^0.9.3",
+    "bulma": "^1.0.1",
     "bulma-pageloader": "^0.3.0",
     "bulma-spacing": "^2.1.5",
     "classnames": "^2.3.2",
