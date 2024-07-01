@@ -41,7 +41,7 @@
     "react-number-format": "^5.x",
     "react-select": "^5.x",
     "react-switch": "^7.x",
-    "sharp": "^0.32",
+    "sharp": "^0.33",
     "swr": "^2.x",
     "yup": "^1.x"
   },
