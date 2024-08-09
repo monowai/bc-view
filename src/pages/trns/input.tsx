@@ -24,13 +24,24 @@ interface TrnInputFormProps {
   closeModal: () => void;
 }
 
+const defaultValues = {
+  tradeAmount: 0,
+  price: 0,
+  quantity: 0,
+  tradeDate: new Date().toISOString().split("T")[0],
+  asset: "",
+  market: "US",
+  fees: 0,
+  tax: 0,
+};
+
 // Define validation schema with Yup
 const schema = yup.object().shape({
   type: yup
     .object()
     .shape({
-      value: yup.string().required(),
-      label: yup.string().required(),
+      value: yup.string().required().default("BUY"),
+      label: yup.string().required().default("BUY"),
     })
     .required(),
   asset: yup.string().required(),
@@ -49,7 +60,9 @@ const schema = yup.object().shape({
   tax: yup.number().required().default(0),
 });
 
-const TrnInputForm: React.FC<TrnInputFormProps> = ({ portfolio }) => {
+const TrnInputForm: React.FC<TrnInputFormProps> = ({
+  portfolio,
+}) => {
   const TrnTypeValues = ["BUY", "SELL", "DIVI", "SPLIT"] as const;
 
   const {
@@ -60,7 +73,16 @@ const TrnInputForm: React.FC<TrnInputFormProps> = ({ portfolio }) => {
     formState: { errors },
   } = useForm({
     resolver: yupResolver(schema),
-    defaultValues: { price: 0, quantity: 0 },
+    defaultValues: {
+      tradeAmount: defaultValues.tradeAmount,
+      price: defaultValues.price,
+      quantity: defaultValues.quantity,
+      tradeDate: defaultValues.tradeDate,
+      asset: defaultValues.asset,
+      market: defaultValues.market,
+      fees: defaultValues.fees,
+      tax: defaultValues.tax,
+    },
   });
   const ccyResponse = useSwr(ccyKey, simpleFetcher(ccyKey));
   const options = TrnTypeValues.map((value) => ({ value, label: value }));
@@ -80,6 +102,7 @@ const TrnInputForm: React.FC<TrnInputFormProps> = ({ portfolio }) => {
   }, [quantity, price, tax, fees, setValue]);
 
   const onSubmit = (data: any): void => {
+    console.log("Form submitted with data:", data);
     data.cashCurrency = data.tradeCurrency;
     const date = new Date();
     const year = date.getFullYear();
@@ -135,7 +158,7 @@ const TrnInputForm: React.FC<TrnInputFormProps> = ({ portfolio }) => {
               <Controller
                 name="asset"
                 control={control}
-                defaultValue=""
+                defaultValue={defaultValues.asset}
                 render={({ field }) => (
                   <input
                     {...field}
@@ -167,6 +190,7 @@ const TrnInputForm: React.FC<TrnInputFormProps> = ({ portfolio }) => {
               {t("quantity")}
               <Controller
                 name="quantity"
+                defaultValue={defaultValues.quantity}
                 control={control}
                 render={({ field }) => (
                   <input {...field} type={"number"} className={"input is-1"} />
@@ -192,7 +216,7 @@ const TrnInputForm: React.FC<TrnInputFormProps> = ({ portfolio }) => {
               <Controller
                 name="market"
                 control={control}
-                defaultValue="US"
+                defaultValue={defaultValues.market}
                 render={({ field }) => (
                   <input
                     {...field}
@@ -210,6 +234,7 @@ const TrnInputForm: React.FC<TrnInputFormProps> = ({ portfolio }) => {
           <Controller
             name="price"
             control={control}
+            defaultValue={defaultValues.price}
             render={({ field }) => (
               <input {...field} type={"number"} className={"input is-1"} />
             )}
@@ -217,7 +242,7 @@ const TrnInputForm: React.FC<TrnInputFormProps> = ({ portfolio }) => {
           {t("trn.amount.charges")}
           <Controller
             name="fees"
-            defaultValue={0}
+            defaultValue={defaultValues.fees}
             control={control}
             render={({ field }) => (
               <input {...field} type={"number"} className={"input is-3"} />
@@ -226,7 +251,7 @@ const TrnInputForm: React.FC<TrnInputFormProps> = ({ portfolio }) => {
           {t("trn.amount.tax")}
           <Controller
             name="tax"
-            defaultValue={0}
+            defaultValue={defaultValues.tax}
             control={control}
             render={({ field }) => (
               <input {...field} type={"number"} className={"input is-3"} />
@@ -235,6 +260,7 @@ const TrnInputForm: React.FC<TrnInputFormProps> = ({ portfolio }) => {
           {t("trn.amount.trade")}
           <Controller
             name="tradeAmount"
+            defaultValue={defaultValues.tradeAmount}
             control={control}
             render={({ field }) => (
               <input {...field} type={"number"} className={"input is-3"} />
