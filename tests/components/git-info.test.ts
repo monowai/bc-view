@@ -1,6 +1,9 @@
-import { NextApiRequest, NextApiResponse } from "next";
+import {NextApiRequest, NextApiResponse} from "next";
 import handler from "../../src/pages/api/git-info";
+import {enableFetchMocks} from "jest-fetch-mock";
+import "../setupTests";
 
+enableFetchMocks();
 jest.mock("simple-git", () => {
   return () => ({
     revparse: jest
