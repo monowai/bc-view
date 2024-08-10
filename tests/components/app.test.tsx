@@ -2,9 +2,11 @@ import Home from "@pages/index";
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import { registrationSuccess, withUserProvider } from "__mocks__/fixtures";
-import fetchMock, { enableFetchMocks } from "jest-fetch-mock";
+import "../setupTests";
+import {enableFetchMocks} from "jest-fetch-mock";
 
 enableFetchMocks();
+
 jest.mock("simple-git", () => {
   return () => ({
     revparse: jest
@@ -14,15 +16,10 @@ jest.mock("simple-git", () => {
   });
 });
 
-afterEach(() => {
-  jest.clearAllMocks();
-  jest.restoreAllMocks();
-  jest.resetModules();
-  fetchMock.resetMocks();
-});
 
 describe("<Home />", () => {
   test("renders for authorised user with Footer", async () => {
+
     fetchMock.mockResponseOnce(JSON.stringify(registrationSuccess));
     fetchMock.mockResponseOnce(
       JSON.stringify({
