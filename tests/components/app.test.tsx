@@ -4,22 +4,14 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { registrationSuccess, withUserProvider } from "__mocks__/fixtures";
 import "../setupTests";
 import {enableFetchMocks} from "jest-fetch-mock";
+import simpleGit from "../../__mocks__/simple-git";
+
 
 enableFetchMocks();
 
-jest.mock("simple-git", () => {
-  return () => ({
-    revparse: jest
-      .fn()
-      .mockResolvedValueOnce("mock-branch")
-      .mockResolvedValueOnce("mock-commit"),
-  });
-});
-
-
 describe("<Home />", () => {
   test("renders for authorised user with Footer", async () => {
-
+    const git = simpleGit();
     fetchMock.mockResponseOnce(JSON.stringify(registrationSuccess));
     fetchMock.mockResponseOnce(
       JSON.stringify({
