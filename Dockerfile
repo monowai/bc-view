@@ -3,6 +3,14 @@ FROM node:20-alpine AS base
 WORKDIR /app
 RUN apk add --no-cache libc6-compat && rm -rf /var/cache/apk/*
 
+ARG GIT_BRANCH
+ARG GIT_COMMIT
+ARG GIT_REMOTE
+
+ENV GIT_BRANCH=$GIT_BRANCH
+ENV GIT_COMMIT=$GIT_COMMIT
+ENV GIT_REMOTE=$GIT_REMOTE
+
 # Install production dependencies.
 FROM base AS deps
 COPY package.json yarn.lock ./

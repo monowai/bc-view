@@ -60,9 +60,7 @@ const schema = yup.object().shape({
   tax: yup.number().required().default(0),
 });
 
-const TrnInputForm: React.FC<TrnInputFormProps> = ({
-  portfolio,
-}) => {
+const TrnInputForm: React.FC<TrnInputFormProps> = ({ portfolio }) => {
   const TrnTypeValues = ["BUY", "SELL", "DIVI", "SPLIT"] as const;
 
   const {
