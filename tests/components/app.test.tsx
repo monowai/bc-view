@@ -14,10 +14,14 @@ jest.mock("simple-git", () => {
   });
 });
 
+afterEach(() => {
+  jest.clearAllMocks();
+  jest.restoreAllMocks();
+  jest.resetModules();
+  fetchMock.resetMocks();
+});
+
 describe("<Home />", () => {
-  beforeEach(() => {
-    fetchMock.resetMocks();
-  });
   test("renders for authorised user with Footer", async () => {
     fetchMock.mockResponseOnce(JSON.stringify(registrationSuccess));
     fetchMock.mockResponseOnce(
