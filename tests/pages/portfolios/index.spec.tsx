@@ -8,7 +8,7 @@ import {
   mockUserProfile,
   portfolioResult,
   withUserProvider,
-} from "../../fixtures";
+} from "__mocks__/fixtures";
 
 // Mock useSWR with specific data setup
 jest.mock("swr", () => ({

@@ -9,6 +9,8 @@ jobs:
     environment:
       IMAGE_NAME: bc-view
       STACK_VER: << pipeline.number >>
+      GIT_BRANCH: << pipeline.git.branch >>
+      GIT_COMMIT: << pipeline.git.revision >>
 
     steps:
       - checkout
@@ -37,15 +39,18 @@ jobs:
             - run:
                 name: Package BC-VIEW
                 command: |
+                  SHORT_COMMIT=$(git rev-parse --short $GIT_COMMIT)
                   docker buildx create --use
                   docker buildx inspect
                   docker run --rm --privileged tonistiigi/binfmt --install arm64
                   echo "$DOCKER_PASS" | docker login -u $DOCKER_USER --password-stdin
                   docker buildx build --push \
                                       --platform linux/arm64/v8,linux/amd64 \
+                                      --build-arg GIT_BRANCH=$GIT_BRANCH \
+                                      --build-arg GIT_COMMIT=$SHORT_COMMIT \
                                       -t "monowai/$IMAGE_NAME:latest" \
                                       -t "monowai/$IMAGE_NAME:${STACK_VER}" \
-                                       ~/project/.
+                                      ~/project/.
 workflows:
   build_and_package:
     jobs:
