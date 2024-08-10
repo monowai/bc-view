@@ -5,11 +5,11 @@ RUN apk add --no-cache libc6-compat && rm -rf /var/cache/apk/*
 
 ARG GIT_BRANCH
 ARG GIT_COMMIT
-ARG GIT_REMOTE
+ARG BUILD_ID
 
 ENV GIT_BRANCH=$GIT_BRANCH
 ENV GIT_COMMIT=$GIT_COMMIT
-ENV GIT_REMOTE=$GIT_REMOTE
+ENV BUILD_ID=$BUILD_ID
 
 # Install production dependencies.
 FROM base AS deps

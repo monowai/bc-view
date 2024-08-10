@@ -48,6 +48,7 @@ jobs:
                                       --platform linux/arm64/v8,linux/amd64 \
                                       --build-arg GIT_BRANCH=$GIT_BRANCH \
                                       --build-arg GIT_COMMIT=$SHORT_COMMIT \
+                                      --build-arg BUILD_ID=$STACK_VER \
                                       -t "monowai/$IMAGE_NAME:latest" \
                                       -t "monowai/$IMAGE_NAME:${STACK_VER}" \
                                       ~/project/.
