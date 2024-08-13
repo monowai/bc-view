@@ -8,6 +8,7 @@ import GroupByOptions from "@components/holdings/GroupByOptions";
 import TrnInputForm from "@pages/trns/input";
 import { useForm, Controller } from "react-hook-form";
 import { useHoldingState } from "@utils/holdings/holdingState";
+import {getTodayDate} from "@components/dateutils";
 
 interface HoldingOptionsProps {
   portfolio: Portfolio;
@@ -80,7 +81,7 @@ export const HoldingOptions: React.FC<HoldingOptionsProps> = ({
                   <input
                     {...field}
                     type="date"
-                    defaultValue={holdingState.asAt}
+                    defaultValue={getTodayDate(holdingState.asAt)}
                     className="input"
                     onChange={handleDateChange(field)}
                   />
