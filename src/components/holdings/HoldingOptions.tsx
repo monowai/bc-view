@@ -7,7 +7,7 @@ import { Portfolio } from "@components/types/beancounter";
 import GroupByOptions from "@components/holdings/GroupByOptions";
 import TrnInputForm from "@pages/trns/input";
 import { useForm, Controller } from "react-hook-form";
-import {useHoldingState} from "@utils/holdings/holdingState";
+import { useHoldingState } from "@utils/holdings/holdingState";
 
 interface HoldingOptionsProps {
   portfolio: Portfolio;
@@ -22,7 +22,7 @@ export const HoldingOptions: React.FC<HoldingOptionsProps> = ({
   const holdingState = useHoldingState();
 
   const onSubmit = (data: any) => {
-    holdingState.setAsAt(data.date)
+    holdingState.setAsAt(data.date);
     setIsModalOpen(false);
   };
 
@@ -35,47 +35,74 @@ export const HoldingOptions: React.FC<HoldingOptionsProps> = ({
   };
 
   return (
-    <div className="filter-columns">
-      <div className="filter-label">{t("option.portfolio")}</div>
-      <div style={{ fontSize: "14px" }}>
-        <Portfolios {...portfolio} />
+    <div className="columns is-align-items-flex-start">
+      <div className="column is-narrow">
+        <div className="field">
+          <label className="label">{t("option.portfolio")}</label>
+          <div className="control">
+            <Portfolios {...portfolio} />
+          </div>
+        </div>
       </div>
-      <div className="filter-label">
-        <Link href={`/portfolios/${portfolio.id}`} className="far fa-edit" />
+      <div className="column is-narrow">
+        <div className="field ">
+          <div className="label hidden-value">Edit</div>
+          <div className="control">
+            <Link href={`/portfolios/${portfolio.id}`} className="far fa-edit"/>
+          </div>
+        </div>
       </div>
-      <div className="filter-label">{t("holdings.groupBy")}</div>
-      <div className="filter-column">
-        <GroupByOptions />
+      <div className="column is-narrow">
+        <div className="field">
+          <label className="label">{t("holdings.groupBy")}</label>
+          <div className="control">
+            <GroupByOptions/>
+          </div>
+        </div>
       </div>
-      <div className="filter-label">{t("holdings.openOnly")}</div>
-      <div className="filter-column">
-        <HideEmpty />
+      <div className="column is-narrow">
+        <div className="field">
+          <label className="label">{t("holdings.openOnly")}</label>
+          <div className="control">
+            <HideEmpty/>
+          </div>
+        </div>
       </div>
-      <div className="filter-column">
-        <TrnInputForm
-          portfolio={portfolio}
-          isOpen={isModalOpen}
-          closeModal={() => setIsModalOpen(false)}
-        />
-      </div>
-      <div className="filter-label">{t("holdings.date")}</div>
-      <div className="filter-column">
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <Controller
-            name="date"
-            control={control}
-            render={({ field }) => (
-              <input
-                {...field}
-                type="date"
-                defaultValue={holdingState.asAt}
-                className="input is-3"
-                onChange={handleDateChange(field)}
+      <div className="column is-narrow">
+        <div className="field">
+          <label className="label">{t("holdings.date")}</label>
+          <div className="control">
+            <form onSubmit={handleSubmit(onSubmit)}>
+              <Controller
+                name="date"
+                control={control}
+                render={({field}) => (
+                  <input
+                    {...field}
+                    type="date"
+                    defaultValue={holdingState.asAt}
+                    className="input"
+                    onChange={handleDateChange(field)}
+                  />
+                )}
               />
-            )}
-          />
-        </form>
+            </form>
+          </div>
+        </div>
       </div>
+      <div className="column is-narrow">
+        <div className="field">
+          <div className="label hidden-value">x</div>
+          <div className="control">
+            <TrnInputForm
+              portfolio={portfolio}
+              isOpen={isModalOpen}
+              closeModal={() => setIsModalOpen(false)}
+            />
+          </div>
+        </div>
+      </div>
+
     </div>
   );
 };
