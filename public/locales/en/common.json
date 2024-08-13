@@ -51,6 +51,7 @@
   "event.amount": "Amount",
   "event.quantity": "Affected Quantity",
   "event.price": "Per Unit",
+  "holdings.date": "As At",
   "holdings.valueTitle": "Grand Total in {{valueIn}} currency",
   "holdings.mixed": "Mixed Trade Currencies",
   "holdings.groupBy": "Group By",

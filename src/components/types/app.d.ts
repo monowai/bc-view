@@ -55,5 +55,6 @@ export interface HoldingDefaults {
   setValueIn(value: ValuationOption): void;
   readonly hideEmpty: boolean;
   setGroupBy(value: GroupOption): void;
-  // groupOptions: GroupOption[];
+  setAsAt(value: string): void;
+  readonly asAt: string;
 }

@@ -21,12 +21,12 @@ import { isCash } from "@utils/assets/assetUtils";
 
 function HoldingsPage(): React.ReactElement {
   const router = useRouter();
-  const { data, error, isLoading } = useSwr(
-    holdingKey(`${router.query.code}`),
-    simpleFetcher(holdingKey(`${router.query.code}`)),
-  );
   const { t, ready } = useTranslation("common");
   const holdingState = useHoldingState();
+  const { data, error, isLoading } = useSwr(
+    holdingKey(`${router.query.code}`, `${holdingState.asAt}`),
+    simpleFetcher(holdingKey(`${router.query.code}`, `${holdingState.asAt}`)),
+  );
 
   if (error && ready) {
     console.error(error); // Log the error for debugging

@@ -1,18 +1,15 @@
-import { hookstate, useHookstate } from "@hookstate/core";
-import { devtools } from "@hookstate/devtools";
-import {
-  GroupOption,
-  HoldingDefaults,
-  ValuationOption,
-} from "@components/types/app";
-import { useValuationOptions } from "@components/ValueIn";
-import { useGroupOptions } from "@components/holdings/GroupByOptions";
+import {hookstate, useHookstate} from "@hookstate/core";
+import {devtools} from "@hookstate/devtools";
+import {GroupOption, HoldingDefaults, ValuationOption,} from "@components/types/app";
+import {useValuationOptions} from "@components/ValueIn";
+import {useGroupOptions} from "@components/holdings/GroupByOptions";
 
 const holdingDefaults = hookstate(
   {
     hideEmpty: true,
+    asAt: "today",
   } as HoldingDefaults,
-  devtools({ key: "holdings" }),
+  devtools({key: "holdings"}),
 );
 
 // This function wraps the state by an interface,
@@ -21,8 +18,8 @@ const holdingDefaults = hookstate(
 
 export function useHoldingState(): HoldingDefaults {
   const state = useHookstate(holdingDefaults);
-  const { valuationDefault } = useValuationOptions();
-  const { groupDefault } = useGroupOptions();
+  const {valuationDefault} = useValuationOptions();
+  const {groupDefault} = useGroupOptions();
 
   return {
     get hideEmpty(): boolean {
@@ -43,5 +40,11 @@ export function useHoldingState(): HoldingDefaults {
     setGroupBy(value: GroupOption): void {
       state.groupBy.set(value);
     },
+    setAsAt(value: string) {
+      state.asAt.set(value)
+    },
+    get asAt(): string {
+      return state.asAt.get() || "today";
+    }
   };
 }
