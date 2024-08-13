@@ -21,7 +21,7 @@ export const HoldingOptions: React.FC<HoldingOptionsProps> = ({
   const { control, handleSubmit } = useForm();
   const holdingState = useHoldingState();
 
-  const onSubmit = (data: any) => {
+  const onSubmit = (data: any): void => {
     holdingState.setAsAt(data.date);
     setIsModalOpen(false);
   };
