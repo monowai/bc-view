@@ -7,18 +7,18 @@ import { NextApiRequest, NextApiResponse } from "next";
 
 const baseUrl = getPositionsUrl();
 
-export default withApiAuthRequired(async function holdingsByCode(
+export default withApiAuthRequired(async function holdingsByCodeAsAt(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
   try {
     const { accessToken } = await getAccessToken(req, res);
     const {
-      query: { code },
+      query: { code, asAt },
     } = req;
 
     const response = await fetch(
-      `${baseUrl}/${code}/today`,
+      `${baseUrl}/${code}/${asAt}`,
       requestInit(accessToken),
     );
 
