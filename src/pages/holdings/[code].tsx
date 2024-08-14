@@ -46,7 +46,7 @@ function HoldingsPage(): React.ReactElement {
     holdingState.valueIn.value,
     holdingState.groupBy.value,
   ) as Holdings;
-
+  const sortOrder = ["Equity", "Exchange Traded Fund", "Cash"];
   return (
     <div className="page-box">
       <HoldingOptions portfolio={holdingResults.portfolio} />
@@ -60,19 +60,7 @@ function HoldingsPage(): React.ReactElement {
         <table className={"table is-striped is-hoverable"}>
           {Object.keys(holdings.holdingGroups)
             .sort((a, b) => {
-              const aIsCash = isCash(
-                holdings.holdingGroups[a].positions[0].asset,
-              );
-              const bIsCash = isCash(
-                holdings.holdingGroups[b].positions[0].asset,
-              );
-              if (aIsCash && !bIsCash) {
-                return 1;
-              }
-              if (!aIsCash && bIsCash) {
-                return -1;
-              }
-              return 0;
+              return sortOrder.indexOf(a) - sortOrder.indexOf(b);
             })
             .map((groupKey) => {
               return (
