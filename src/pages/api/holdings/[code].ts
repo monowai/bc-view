@@ -23,10 +23,11 @@ export default withApiAuthRequired(async function holdingsByCodeAsAt(
     );
 
     if (!response.ok) {
-      console.error(`Failed to fetch holdings: ${response.statusText}`); // Log the error for debugging
-      res.status(500).json({
+      const msg = `Failed to fetch holdings: ${response.status}`
+      console.error(msg); // Log the error for debugging
+      res.status(response.status).json({
         status: "error",
-        message: `Failed to fetch holdings: ${response.statusText}`,
+        message: `${msg}`,
       });
       return;
     }
@@ -34,7 +35,7 @@ export default withApiAuthRequired(async function holdingsByCodeAsAt(
     await handleResponse<HoldingContract>(response, res);
   } catch (error: any) {
     console.error(error); // Log the error for debugging
-    res.status(500).json({
+    res.status(error.status).json({
       status: "error",
       message:
         error.message ||
