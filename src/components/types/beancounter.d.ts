@@ -105,6 +105,8 @@ export interface Portfolio {
   currency: Currency;
   base: Currency;
   owner?: SystemUser;
+  marketValue: number;
+  irr: number;
 }
 
 export interface PortfolioResponse {

@@ -62,6 +62,8 @@
   "portfolio.code": "Code",
   "portfolio.code.hint": "Unique short identifier",
   "portfolio.name": "Name",
+  "portfolio.marketvalue": "Market Value",
+  "portfolio.irr": "IRR",
   "portfolio.name.hint": "Descriptive name",
   "portfolio.currency.report": "Report",
   "portfolio.currency.base": "Base",
