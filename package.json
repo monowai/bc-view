@@ -65,7 +65,7 @@
     "@types/react-dom": "^18.x",
     "@typescript-eslint/eslint-plugin": "^7.x",
     "@typescript-eslint/parser": "^7.x",
-    "@typescript-eslint/typescript-estree": "^7.x",
+    "@typescript-eslint/typescript-estree": "^8.x",
     "babel-jest": "^29.x",
     "eslint": "^8.x",
     "eslint-config-next": "^13.x",
