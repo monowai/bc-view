@@ -1,31 +1,31 @@
-import React, { useState } from "react";
-import { Controller, SubmitHandler, useForm } from "react-hook-form";
+import React, { useState } from "react"
+import { Controller, SubmitHandler, useForm } from "react-hook-form"
 import {
   Portfolio,
   PortfolioInput,
   PortfolioRequest,
   PortfolioRequests,
-} from "@components/types/beancounter";
-import { ccyKey, portfolioKey, simpleFetcher } from "@utils/api/fetchHelper";
-import { useRouter } from "next/router";
-import { withPageAuthRequired } from "@auth0/nextjs-auth0/client";
-import { useTranslation } from "next-i18next";
-import { serverSideTranslations } from "next-i18next/serverSideTranslations";
-import { GetServerSideProps } from "next";
-import Link from "next/link";
-import { rootLoader } from "@components/PageLoader";
-import errorOut from "@components/errors/ErrorOut";
-import useSwr from "swr";
+} from "@components/types/beancounter"
+import { ccyKey, portfolioKey, simpleFetcher } from "@utils/api/fetchHelper"
+import { useRouter } from "next/router"
+import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
+import { useTranslation } from "next-i18next"
+import { serverSideTranslations } from "next-i18next/serverSideTranslations"
+import { GetServerSideProps } from "next"
+import Link from "next/link"
+import { rootLoader } from "@components/PageLoader"
+import errorOut from "@components/errors/ErrorOut"
+import useSwr from "swr"
 import {
   currencyOptions,
   toCurrency,
   toCurrencyOption,
-} from "@components/currency";
-import ReactSelect from "react-select";
-import { yupResolver } from "@hookform/resolvers/yup";
-import { validateInput } from "@components/errors/validator";
-import { portfolioInputSchema } from "@utils/portfolio/schema";
-import TrnDropZone from "@components/DropZone";
+} from "@components/currency"
+import ReactSelect from "react-select"
+import { yupResolver } from "@hookform/resolvers/yup"
+import { validateInput } from "@components/errors/validator"
+import { portfolioInputSchema } from "@utils/portfolio/schema"
+import TrnDropZone from "@components/DropZone"
 
 export default withPageAuthRequired(function Manage(): React.ReactElement {
   function toPortfolioRequest(portfolio: PortfolioInput): PortfolioRequest {
@@ -34,13 +34,13 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
       name: portfolio.name,
       currency: portfolio.currency.value,
       base: portfolio.base.value,
-    };
+    }
   }
 
   function toPortfolioRequests(portfolio: PortfolioInput): PortfolioRequests {
     return {
       data: [toPortfolioRequest(portfolio)],
-    };
+    }
   }
 
   const handleSubmit: SubmitHandler<PortfolioInput> = (portfolioInput) => {
@@ -49,7 +49,7 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
         // This all looks a bit messy but too many other priorities to fix right now.
         // PATCH can only update a single resource
         // POST will create a collection of portfolios.
-        const post = router.query.id === "__NEW__";
+        const post = router.query.id === "__NEW__"
         fetch(key, {
           method: post ? "POST" : "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -58,24 +58,24 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
             : JSON.stringify(toPortfolioRequest(portfolioInput)),
         })
           .catch((err) => {
-            throw err;
+            throw err
           })
           .then((response) => response.json())
           .then((data) => {
             const route = post
               ? `/portfolios/${data.data[0].id}`
-              : `/portfolios/${data.data.id}`;
-            router.push(route).then(() => {});
-          });
+              : `/portfolios/${data.data.id}`
+            router.push(route).then(() => {})
+          })
       })
       .catch((e) => {
-        console.error(`Some error ${e.message}`);
-      });
-  };
+        console.error(`Some error ${e.message}`)
+      })
+  }
 
-  const router = useRouter();
-  const { t, ready } = useTranslation("common");
-  const [purgeTrn, setPurgeTrn] = useState(false);
+  const router = useRouter()
+  const { t, ready } = useTranslation("common")
+  const [purgeTrn, setPurgeTrn] = useState(false)
   const {
     formState: { errors },
     control,
@@ -84,22 +84,22 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
   } = useForm<PortfolioInput>({
     resolver: yupResolver(portfolioInputSchema),
     mode: "onChange",
-  });
-  const key = portfolioKey(`${router.query.id}`);
-  const { data, error } = useSwr(key, simpleFetcher(key));
-  const ccyResponse = useSwr(ccyKey, simpleFetcher(ccyKey));
+  })
+  const key = portfolioKey(`${router.query.id}`)
+  const { data, error } = useSwr(key, simpleFetcher(key))
+  const ccyResponse = useSwr(ccyKey, simpleFetcher(ccyKey))
   if (ccyResponse.error) {
-    return errorOut(t("portfolio.error.retrieve"), ccyResponse.error);
+    return errorOut(t("portfolio.error.retrieve"), ccyResponse.error)
   }
   if (error) {
-    return errorOut(t("portfolio.error.retrieve"), error);
+    return errorOut(t("portfolio.error.retrieve"), error)
   }
   if (!ready || !data || ccyResponse.isLoading) {
-    return rootLoader(t("loading"));
+    return rootLoader(t("loading"))
   }
-  const portfolio: Portfolio = data.data;
-  const ccyOptions = currencyOptions(ccyResponse.data.data);
-  const currencies = ccyResponse.data.data;
+  const portfolio: Portfolio = data.data
+  const ccyOptions = currencyOptions(ccyResponse.data.data)
+  const currencies = ccyResponse.data.data
   return (
     <div className="container columns is-mobile is-centered">
       <form className="column is-5-tablet is-4-desktop is-3-widescreen">
@@ -134,7 +134,7 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
               defaultValue={toCurrencyOption(portfolio.currency)}
               options={ccyOptions}
               onChange={(event) => {
-                field.onChange(toCurrency(event!!.value, currencies));
+                field.onChange(toCurrency(event!!.value, currencies))
               }}
             />
           )}
@@ -152,7 +152,7 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
               defaultValue={toCurrencyOption(portfolio.base)}
               options={ccyOptions}
               onChange={(event) => {
-                field.onChange(toCurrency(event!!.value, currencies));
+                field.onChange(toCurrency(event!!.value, currencies))
               }}
             />
           )}
@@ -166,8 +166,8 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
             value="submit"
             className="button is-link control"
             onClick={(e) => {
-              e.preventDefault();
-              handleSubmit(getValues() as PortfolioInput);
+              e.preventDefault()
+              handleSubmit(getValues() as PortfolioInput)
             }}
           >
             {t("form.submit")}
@@ -175,8 +175,8 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
           <button
             className="control button is-link is-light"
             onClick={(e) => {
-              e.preventDefault(); // We want router to handle this
-              router.push("/portfolios").then();
+              e.preventDefault() // We want router to handle this
+              router.push("/portfolios").then()
             }}
           >
             {t("form.cancel")}
@@ -192,11 +192,11 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
         <div>{transactionUpload(portfolio)}</div>
       </div>
     </div>
-  );
+  )
 
   function transactionUpload(portfolio: Portfolio): React.ReactElement {
     if (!portfolio.id) {
-      return <></>;
+      return <></>
     }
     return (
       <>
@@ -214,12 +214,12 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
           </label>
         </div>
       </>
-    );
+    )
   }
-});
+})
 
 export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
   props: {
     ...(await serverSideTranslations(locale as string, ["common"])),
   },
-});
+})

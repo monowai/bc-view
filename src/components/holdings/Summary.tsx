@@ -1,8 +1,8 @@
-import React, { ReactElement } from "react";
-import { Portfolio, PortfolioSummary } from "@components/types/beancounter";
-import { FormatValue } from "@components/MoneyUtils";
-import { useTranslation } from "next-i18next";
-import { ValueInOption } from "@components/ValueIn";
+import React, { ReactElement } from "react"
+import { Portfolio, PortfolioSummary } from "@components/types/beancounter"
+import { FormatValue } from "@components/MoneyUtils"
+import { useTranslation } from "next-i18next"
+import { ValueInOption } from "@components/ValueIn"
 
 export const headers = [
   "summary.title",
@@ -14,10 +14,10 @@ export const headers = [
   "summary.dividends",
   "summary.irr",
   "summary.gain",
-];
+]
 
 export default function SummaryHeader(portfolio: Portfolio): ReactElement {
-  const { t } = useTranslation("common");
+  const { t } = useTranslation("common")
 
   return (
     <tbody key={portfolio.code}>
@@ -32,7 +32,7 @@ export default function SummaryHeader(portfolio: Portfolio): ReactElement {
         ))}
       </tr>
     </tbody>
-  );
+  )
 }
 
 export function SummaryRow({
@@ -40,8 +40,8 @@ export function SummaryRow({
   currency,
 }: PortfolioSummary): ReactElement {
   // const total = totals[valueIn];
-  const currencyTotals = totals !== undefined;
-  const displayCurrency = !currencyTotals ? "Mixed" : currency.code;
+  const currencyTotals = totals !== undefined
+  const displayCurrency = !currencyTotals ? "Mixed" : currency.code
 
   const data = [
     <div key={currency.code} className="filter-column">
@@ -92,7 +92,7 @@ export function SummaryRow({
     ) : (
       <div>-</div>
     ),
-  ];
+  ]
 
   return (
     <tbody>
@@ -104,5 +104,5 @@ export function SummaryRow({
         ))}
       </tr>
     </tbody>
-  );
+  )
 }

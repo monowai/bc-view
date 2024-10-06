@@ -1,9 +1,9 @@
-import * as yup from "yup";
+import * as yup from "yup"
 
 export const CurrencyOptionSchema = yup.object().shape({
   label: yup.string().required(),
   value: yup.string().required(),
-});
+})
 
 export const portfolioInputSchema = yup
   .object({
@@ -12,4 +12,4 @@ export const portfolioInputSchema = yup
     currency: CurrencyOptionSchema.required(),
     base: CurrencyOptionSchema.required(),
   })
-  .required();
+  .required()

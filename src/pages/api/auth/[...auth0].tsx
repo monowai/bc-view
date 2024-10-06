@@ -1,6 +1,6 @@
-import { handleAuth, handleLogin } from "@auth0/nextjs-auth0";
-import { fetchError } from "@utils/api/response-writer";
-import { NextApiRequest, NextApiResponse } from "next";
+import { handleAuth, handleLogin } from "@auth0/nextjs-auth0"
+import { fetchError } from "@utils/api/response-writer"
+import { NextApiRequest, NextApiResponse } from "next"
 
 /* eslint max-len: ["error", { "ignoreComments": true }] */
 /*
@@ -15,9 +15,9 @@ export default handleAuth({
           scope:
             "openid profile email offline_access beancounter beancounter:user",
         },
-      });
+      })
     } catch (error: any) {
-      fetchError(res, req, error);
+      fetchError(res, req, error)
     }
   },
-});
+})

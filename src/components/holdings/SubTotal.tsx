@@ -1,6 +1,6 @@
-import React, { ReactElement } from "react";
-import { GroupedSubtotals } from "@components/types/beancounter";
-import { FormatValue } from "@components/MoneyUtils";
+import React, { ReactElement } from "react"
+import { GroupedSubtotals } from "@components/types/beancounter"
+import { FormatValue } from "@components/MoneyUtils"
 
 export default function SubTotal({
   groupBy,
@@ -40,5 +40,5 @@ export default function SubTotal({
         </td>
       </tr>
     </tbody>
-  );
+  )
 }

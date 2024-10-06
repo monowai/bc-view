@@ -1,10 +1,10 @@
-import { UserProfile, UserProvider } from "@auth0/nextjs-auth0/client";
-import React, { ReactNode } from "react";
-import { ConfigContext } from "@auth0/nextjs-auth0/dist/client/use-config";
+import { UserProfile, UserProvider } from "@auth0/nextjs-auth0/client"
+import React, { ReactNode } from "react"
+import { ConfigContext } from "@auth0/nextjs-auth0/dist/client/use-config"
 import {
   PortfolioResponses,
   RegistrationResponse,
-} from "@components/types/beancounter";
+} from "@components/types/beancounter"
 
 export const mockUserProfile: UserProfile = {
   email: "foo@example.com",
@@ -14,7 +14,7 @@ export const mockUserProfile: UserProfile = {
   picture: "foo.jpg",
   sub: "1",
   updated_at: null,
-};
+}
 export const registrationSuccess: RegistrationResponse = {
   data: {
     id: "ownerId",
@@ -22,7 +22,7 @@ export const registrationSuccess: RegistrationResponse = {
     active: true,
     since: "2020-03-03",
   },
-};
+}
 
 export const portfolioResult: PortfolioResponses = {
   data: [
@@ -48,13 +48,13 @@ export const portfolioResult: PortfolioResponses = {
       },
     },
   ],
-};
+}
 export const withUserProvider = (user: UserProfile = {}) => {
   return (
     props: React.Attributes & {
-      user?: UserProfile | undefined;
-      profileUrl?: string | undefined;
-      fetcher?: ((url: string) => Promise<UserProfile | undefined>) | undefined;
+      user?: UserProfile | undefined
+      profileUrl?: string | undefined
+      fetcher?: ((url: string) => Promise<UserProfile | undefined>) | undefined
     } & ConfigContext & { children?: ReactNode },
-  ) => <UserProvider {...props} user={user} profileUrl="profile.url" />;
-};
+  ) => <UserProvider {...props} user={user} profileUrl="profile.url" />
+}

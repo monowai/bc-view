@@ -1,12 +1,12 @@
-import Select from "react-select";
-import { useHoldingState } from "@utils/holdings/holdingState";
-import { useTranslation } from "next-i18next";
-import { ValuationOption, ValuationOptions } from "@components/types/app";
-import { ValueIn } from "@components/holdings/GroupByOptions";
-import React from "react";
+import Select from "react-select"
+import { useHoldingState } from "@utils/holdings/holdingState"
+import { useTranslation } from "next-i18next"
+import { ValuationOption, ValuationOptions } from "@components/types/app"
+import { ValueIn } from "@components/holdings/GroupByOptions"
+import React from "react"
 
 export function useValuationOptions(): ValuationOptions {
-  const { t } = useTranslation("common");
+  const { t } = useTranslation("common")
   return {
     values: [
       { value: ValueIn.PORTFOLIO, label: t("in.portfolio") },
@@ -14,18 +14,18 @@ export function useValuationOptions(): ValuationOptions {
       { value: ValueIn.TRADE, label: t("in.trade") },
     ],
     valuationDefault: { value: ValueIn.PORTFOLIO, label: t("in.portfolio") },
-  };
+  }
 }
 
 export const ValueInOption: React.FC = () => {
-  const { valueIn, setValueIn } = useHoldingState();
-  const valuationOptions = useValuationOptions();
+  const { valueIn, setValueIn } = useHoldingState()
+  const valuationOptions = useValuationOptions()
 
   const handleChange = (option: ValuationOption | null): void => {
     if (option !== null) {
-      setValueIn(option);
+      setValueIn(option)
     }
-  };
+  }
 
   return (
     <Select
@@ -35,5 +35,5 @@ export const ValueInOption: React.FC = () => {
       isClearable={false}
       onChange={handleChange}
     />
-  );
-};
+  )
+}

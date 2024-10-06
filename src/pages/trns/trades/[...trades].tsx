@@ -1,43 +1,41 @@
-import React from "react";
-import { NumericFormat } from "react-number-format";
-import { GetServerSideProps } from "next";
-import { serverSideTranslations } from "next-i18next/serverSideTranslations";
-import { withPageAuthRequired } from "@auth0/nextjs-auth0/client";
-import { useRouter } from "next/router";
-import { assetKey, simpleFetcher, tradeKey } from "@utils/api/fetchHelper";
-import { useTranslation } from "next-i18next";
-import Link from "next/link";
-import { Transaction } from "@components/types/beancounter";
-import { rootLoader } from "@components/PageLoader";
-import errorOut from "@components/errors/ErrorOut";
-import useSwr from "swr";
-import { deleteTrn } from "@utils/trns/apiHelper";
+import React from "react"
+import { NumericFormat } from "react-number-format"
+import { GetServerSideProps } from "next"
+import { serverSideTranslations } from "next-i18next/serverSideTranslations"
+import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
+import { useRouter } from "next/router"
+import { assetKey, simpleFetcher, tradeKey } from "@utils/api/fetchHelper"
+import { useTranslation } from "next-i18next"
+import Link from "next/link"
+import { Transaction } from "@components/types/beancounter"
+import { rootLoader } from "@components/PageLoader"
+import errorOut from "@components/errors/ErrorOut"
+import useSwr from "swr"
+import { deleteTrn } from "@utils/trns/apiHelper"
 
 export default withPageAuthRequired(function Events(): React.ReactElement {
-  const { t } = useTranslation("common");
+  const { t } = useTranslation("common")
 
-  const router = useRouter();
-  const portfolioId = router.query.trades
-    ? router.query.trades[0]
-    : "undefined";
-  const assetId = router.query.trades ? router.query.trades[1] : "undefined";
-  const asset = useSwr(assetKey(assetId), simpleFetcher(assetKey(assetId)));
+  const router = useRouter()
+  const portfolioId = router.query.trades ? router.query.trades[0] : "undefined"
+  const assetId = router.query.trades ? router.query.trades[1] : "undefined"
+  const asset = useSwr(assetKey(assetId), simpleFetcher(assetKey(assetId)))
   const trades = useSwr(
     tradeKey(portfolioId, assetId),
     simpleFetcher(tradeKey(portfolioId, assetId)),
-  );
+  )
   if (trades.error) {
-    return errorOut(t("trades.error.retrieve"), trades.error);
+    return errorOut(t("trades.error.retrieve"), trades.error)
   }
   if (asset.error) {
-    return errorOut(t("assets.error.retrieve"), asset.error);
+    return errorOut(t("assets.error.retrieve"), asset.error)
   }
   if (asset.isLoading || trades.isLoading) {
-    return rootLoader(t("loading"));
+    return rootLoader(t("loading"))
   }
-  const trnResults = trades.data.data;
+  const trnResults = trades.data.data
   if (!trnResults || trnResults.length === 0) {
-    return <div id="root">{t("trn.noTransactions")}</div>;
+    return <div id="root">{t("trn.noTransactions")}</div>
   }
   return (
     <div>
@@ -174,11 +172,11 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
         </div>
       </div>
     </div>
-  );
-});
+  )
+})
 
 export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
   props: {
     ...(await serverSideTranslations(locale as string, ["common"])),
   },
-});
+})

@@ -1,9 +1,9 @@
-import Switch from "react-switch";
-import React, { ReactElement } from "react";
-import { useHoldingState } from "@utils/holdings/holdingState";
+import Switch from "react-switch"
+import React, { ReactElement } from "react"
+import { useHoldingState } from "@utils/holdings/holdingState"
 
 export function HideEmpty(): ReactElement {
-  const holdingState = useHoldingState();
+  const holdingState = useHoldingState()
   return (
     <Switch
       className="react-switch"
@@ -12,5 +12,5 @@ export function HideEmpty(): ReactElement {
       checked={holdingState.hideEmpty}
       required
     />
-  );
+  )
 }

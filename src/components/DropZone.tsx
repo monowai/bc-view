@@ -1,25 +1,25 @@
-import React, { ReactElement, useCallback } from "react";
-import { useDropzone } from "react-dropzone";
-import { TransactionImport, Portfolio } from "@components/types/beancounter";
-import { DelimitedImport } from "@components/types/app";
-import Papa from "papaparse";
+import React, { ReactElement, useCallback } from "react"
+import { useDropzone } from "react-dropzone"
+import { TransactionImport, Portfolio } from "@components/types/beancounter"
+import { DelimitedImport } from "@components/types/app"
+import Papa from "papaparse"
 
 // Function to read and parse file
 function readFile(file: Blob): Promise<string[][]> {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onabort = () => reject("File reading was aborted");
-    reader.onerror = () => reject("File reading has failed");
+    const reader = new FileReader()
+    reader.onabort = () => reject("File reading was aborted")
+    reader.onerror = () => reject("File reading has failed")
     reader.onload = () => {
       if (typeof reader.result === "string") {
-        const results = Papa.parse(reader.result).data as string[][];
-        resolve(results);
+        const results = Papa.parse(reader.result).data as string[][]
+        resolve(results)
       } else {
-        reject("File content is not a string");
+        reject("File content is not a string")
       }
-    };
-    reader.readAsText(file, "utf-8");
-  });
+    }
+    reader.readAsText(file, "utf-8")
+  })
 }
 
 // Function to post data to API
@@ -40,16 +40,16 @@ export async function postData(
       purge: purge,
       row,
     } as unknown as DelimitedImport),
-  });
+  })
 }
 
 // DropZone component
 function DropZone({
   onDrop,
 }: {
-  onDrop: (acceptedFiles: Blob[]) => void;
+  onDrop: (acceptedFiles: Blob[]) => void
 }): React.ReactElement {
-  const { getRootProps, getInputProps } = useDropzone({ onDrop });
+  const { getRootProps, getInputProps } = useDropzone({ onDrop })
   return (
     <div {...getRootProps()}>
       <input {...getInputProps()} />
@@ -57,7 +57,7 @@ function DropZone({
         <i className="far fa-arrow-alt-circle-up fa-3x" />
       </span>
     </div>
-  );
+  )
 }
 
 export default function TrnDropZone({
@@ -66,32 +66,32 @@ export default function TrnDropZone({
 }: TransactionImport): ReactElement {
   const onDrop = useCallback(
     async (acceptedFiles: Blob[]) => {
-      let rows = 0;
+      let rows = 0
       for (const file of acceptedFiles) {
         try {
-          const results = await readFile(file);
-          let headerSkipped = false;
+          const results = await readFile(file)
+          let headerSkipped = false
           for (const row of results) {
             if (headerSkipped) {
               if (row && row.length > 1 && !row[0].startsWith("#")) {
-                console.log("Posting import request");
+                console.log("Posting import request")
                 await postData(portfolio, purge, row)
                   .then(() => rows++)
-                  .then();
+                  .then()
               }
-            } else headerSkipped = true;
+            } else headerSkipped = true
           }
         } catch (error) {
-          console.error(error);
+          console.error(error)
         }
       }
-      console.log(`Sent ${rows} rows`);
+      console.log(`Sent ${rows} rows`)
     },
     [portfolio, purge],
-  );
+  )
 
   if (portfolio.id === "new") {
-    return <div />;
+    return <div />
   }
-  return <DropZone onDrop={onDrop} />;
+  return <DropZone onDrop={onDrop} />
 }
