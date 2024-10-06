@@ -1,9 +1,9 @@
-import { HoldingValues, PriceData } from "@components/types/beancounter";
-import { NumericFormat } from "react-number-format";
-import { FormatValue } from "@components/MoneyUtils";
-import React, { ReactElement } from "react";
-import { displayName, isCashRelated } from "@utils/assets/assetUtils";
-import Link from "next/link";
+import { HoldingValues, PriceData } from "@components/types/beancounter"
+import { NumericFormat } from "react-number-format"
+import { FormatValue } from "@components/MoneyUtils"
+import React, { ReactElement } from "react"
+import { displayName, isCashRelated } from "@utils/assets/assetUtils"
+import Link from "next/link"
 
 export default function Rows({
   portfolio,
@@ -12,7 +12,7 @@ export default function Rows({
   valueIn,
 }: HoldingValues): ReactElement {
   function hideValue(priceData: PriceData | undefined): boolean {
-    return !priceData;
+    return !priceData
   }
 
   // eslint-disable-next-line complexity
@@ -151,6 +151,6 @@ export default function Rows({
         </td>
       </tr>
     ),
-  );
-  return <tbody>{holdings}</tbody>;
+  )
+  return <tbody>{holdings}</tbody>
 }

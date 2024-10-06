@@ -6,9 +6,9 @@ import {
   MoneyValues,
   Position,
   Total,
-} from "@components/types/beancounter";
-import { isCashRelated } from "@utils/assets/assetUtils";
-import { GroupBy, ValueIn } from "@components/holdings/GroupByOptions";
+} from "@components/types/beancounter"
+import { isCashRelated } from "@utils/assets/assetUtils"
+import { GroupBy, ValueIn } from "@components/holdings/GroupByOptions"
 
 function getPath(path: string, position: Position): string {
   return path
@@ -16,7 +16,7 @@ function getPath(path: string, position: Position): string {
     .reduce(
       (p: any, path: string) => (p && p[path]) || "undefined",
       position,
-    ) as unknown as string;
+    ) as unknown as string
 }
 
 // Helper function to update total
@@ -33,26 +33,26 @@ function updateSubTotal(
     "unrealisedGain",
     "irr",
     "totalGain",
-  ];
+  ]
   keys.forEach((key) => {
     if (typeof position.moneyValues[valueIn][key] === "number") {
-      subTotal[key] += position.moneyValues[valueIn][key];
+      subTotal[key] += position.moneyValues[valueIn][key]
     }
-  });
+  })
   if (isCashRelated(position.asset)) {
-    subTotal.cash += position.moneyValues[valueIn].marketValue;
-    subTotal.weight += position.moneyValues[valueIn].weight;
+    subTotal.cash += position.moneyValues[valueIn].marketValue
+    subTotal.weight += position.moneyValues[valueIn].weight
   } else {
-    subTotal.purchases += position.moneyValues[valueIn].purchases;
-    subTotal.sales += position.moneyValues[valueIn].sales;
-    subTotal.weight += position.moneyValues[valueIn].weight;
+    subTotal.purchases += position.moneyValues[valueIn].purchases
+    subTotal.sales += position.moneyValues[valueIn].sales
+    subTotal.weight += position.moneyValues[valueIn].weight
     if (position.moneyValues[valueIn].priceData) {
       if (position.moneyValues[valueIn].priceData.changePercent) {
-        subTotal.gainOnDay += position.moneyValues[valueIn].gainOnDay;
+        subTotal.gainOnDay += position.moneyValues[valueIn].gainOnDay
       }
     }
   }
-  return subTotal;
+  return subTotal
 }
 
 function zeroTotal(currency: Currency | undefined): Total {
@@ -65,7 +65,7 @@ function zeroTotal(currency: Currency | undefined): Total {
     gain: 0,
     irr: 0,
     currency: currency,
-  };
+  }
 }
 
 function zeroMoneyValues(currency: Currency, valueIn: ValueIn): MoneyValues {
@@ -96,7 +96,7 @@ function zeroMoneyValues(currency: Currency, valueIn: ValueIn): MoneyValues {
     valueIn: valueIn,
     averageCost: 0,
     currency: currency,
-  };
+  }
 }
 
 function createHoldingGroup(
@@ -116,12 +116,12 @@ function createHoldingGroup(
       position.moneyValues[ValueIn.TRADE].currency,
       ValueIn.TRADE,
     ),
-  };
+  }
 
   return {
     positions: [],
     subTotals: initialTotals,
-  };
+  }
 }
 
 function addSubtotalPosition(
@@ -133,18 +133,18 @@ function addSubtotalPosition(
     subTotals[ValueIn.BASE],
     position,
     valueIn,
-  );
+  )
   subTotals[ValueIn.PORTFOLIO] = updateSubTotal(
     subTotals[ValueIn.PORTFOLIO],
     position,
     valueIn,
-  );
+  )
   subTotals[ValueIn.TRADE] = updateSubTotal(
     subTotals[ValueIn.TRADE],
     position,
     valueIn,
-  );
-  return subTotals;
+  )
+  return subTotals
 }
 
 export function calculateHoldings(
@@ -155,23 +155,23 @@ export function calculateHoldings(
 ): Holdings {
   const filteredPositions = Object.keys(contract.positions).filter(
     (key) => !(hideEmpty && contract.positions[key].quantityValues.total === 0),
-  );
+  )
 
   const results = filteredPositions.reduce(
     (results: Holdings, group) => {
-      const position = contract.positions[group] as Position;
-      const groupKey = getPath(groupBy, position);
+      const position = contract.positions[group] as Position
+      const groupKey = getPath(groupBy, position)
       results.holdingGroups[groupKey] =
         results.holdingGroups[groupKey] ||
-        createHoldingGroup(groupKey, position);
+        createHoldingGroup(groupKey, position)
 
-      results.holdingGroups[groupKey].positions.push(position);
+      results.holdingGroups[groupKey].positions.push(position)
       results.holdingGroups[groupKey].subTotals = addSubtotalPosition(
         results.holdingGroups[groupKey].subTotals,
         position,
         valueIn,
-      );
-      return results;
+      )
+      return results
     },
     {
       portfolio: contract.portfolio,
@@ -181,14 +181,14 @@ export function calculateHoldings(
       totals: zeroTotal(contract.totals[valueIn].currency),
       viewTotals: zeroMoneyValues(contract.portfolio.currency, valueIn),
     },
-  );
+  )
 
   // Post process results now that all positions have been processed
-  results.valueIn = valueIn;
-  results.currency = contract.totals[valueIn].currency!!;
-  results.totals = contract.totals[valueIn];
-  results.viewTotals = calculateSummaryTotals(results, valueIn);
-  return results;
+  results.valueIn = valueIn
+  results.currency = contract.totals[valueIn].currency!!
+  results.totals = contract.totals[valueIn]
+  results.viewTotals = calculateSummaryTotals(results, valueIn)
+  return results
 }
 
 // Call calculateViewTotal after all holdingGroups have been computed
@@ -197,21 +197,21 @@ function calculateSummaryTotals(
   valueIn: ValueIn,
 ): MoneyValues {
   // Initialize viewTotals with zero values.
-  const viewTotals = zeroMoneyValues(holdings.currency!, valueIn);
+  const viewTotals = zeroMoneyValues(holdings.currency!, valueIn)
   Object.values(holdings.holdingGroups).forEach((group: HoldingGroup) => {
     // Update viewTotals for each group
-    viewTotals.marketValue += group.subTotals[valueIn].marketValue;
-    viewTotals.weight += group.subTotals[valueIn].weight;
-    viewTotals.purchases += group.subTotals[valueIn].purchases;
-    viewTotals.sales += group.subTotals[valueIn].sales;
-    viewTotals.dividends += group.subTotals[valueIn].dividends;
-    viewTotals.gainOnDay += group.subTotals[valueIn].gainOnDay;
-    viewTotals.realisedGain += group.subTotals[valueIn].realisedGain;
-    viewTotals.unrealisedGain += group.subTotals[valueIn].unrealisedGain;
-    viewTotals.totalGain += group.subTotals[valueIn].totalGain;
-    viewTotals.costValue += group.subTotals[valueIn].costValue;
-  });
+    viewTotals.marketValue += group.subTotals[valueIn].marketValue
+    viewTotals.weight += group.subTotals[valueIn].weight
+    viewTotals.purchases += group.subTotals[valueIn].purchases
+    viewTotals.sales += group.subTotals[valueIn].sales
+    viewTotals.dividends += group.subTotals[valueIn].dividends
+    viewTotals.gainOnDay += group.subTotals[valueIn].gainOnDay
+    viewTotals.realisedGain += group.subTotals[valueIn].realisedGain
+    viewTotals.unrealisedGain += group.subTotals[valueIn].unrealisedGain
+    viewTotals.totalGain += group.subTotals[valueIn].totalGain
+    viewTotals.costValue += group.subTotals[valueIn].costValue
+  })
 
   // Return the updated viewTotals after the loop
-  return viewTotals;
+  return viewTotals
 }

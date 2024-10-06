@@ -1,4 +1,4 @@
-import React, { ReactElement } from "react";
+import React, { ReactElement } from "react"
 
 export default function errorOut(key: string, error: Error): ReactElement {
   return (
@@ -8,5 +8,5 @@ export default function errorOut(key: string, error: Error): ReactElement {
         {JSON.stringify(error, null, 2)}
       </pre>
     </>
-  );
+  )
 }

@@ -1,6 +1,6 @@
-import React, { ReactElement } from "react";
-import { GroupKey } from "@components/types/beancounter";
-import { useTranslation } from "next-i18next";
+import React, { ReactElement } from "react"
+import { GroupKey } from "@components/types/beancounter"
+import { useTranslation } from "next-i18next"
 
 export const headers = [
   "asset.price",
@@ -15,10 +15,10 @@ export const headers = [
   "irr",
   "weight",
   "gain",
-];
+]
 
 export default function Header({ groupKey }: GroupKey): ReactElement {
-  const { t } = useTranslation("common");
+  const { t } = useTranslation("common")
 
   return (
     <tbody className={"table-header"}>
@@ -31,5 +31,5 @@ export default function Header({ groupKey }: GroupKey): ReactElement {
         ))}
       </tr>
     </tbody>
-  );
+  )
 }

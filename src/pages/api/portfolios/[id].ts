@@ -1,11 +1,11 @@
-import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0";
-import { requestInit } from "@utils/api/fetchHelper";
-import handleResponse, { fetchError } from "@utils/api/response-writer";
-import { Portfolio, PortfolioResponse } from "@components/types/beancounter";
-import { getDataUrl } from "@utils/api/bc-config";
-import { NextApiRequest, NextApiResponse } from "next";
+import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0"
+import { requestInit } from "@utils/api/fetchHelper"
+import handleResponse, { fetchError } from "@utils/api/response-writer"
+import { Portfolio, PortfolioResponse } from "@components/types/beancounter"
+import { getDataUrl } from "@utils/api/bc-config"
+import { NextApiRequest, NextApiResponse } from "next"
 
-const baseUrl = getDataUrl("/portfolios");
+const baseUrl = getDataUrl("/portfolios")
 
 export default withApiAuthRequired(async function portfoliosById(
   req: NextApiRequest,
@@ -15,10 +15,10 @@ export default withApiAuthRequired(async function portfoliosById(
     const {
       method,
       query: { id },
-    } = req;
-    const { accessToken } = await getAccessToken(req, res);
-    console.log(`${method} for portfolio ${id}`);
-    const byId = `${baseUrl}/${id}`;
+    } = req
+    const { accessToken } = await getAccessToken(req, res)
+    console.log(`${method} for portfolio ${id}`)
+    const byId = `${baseUrl}/${id}`
     switch (method?.toUpperCase()) {
       case "GET": {
         if (id === "__NEW__") {
@@ -30,13 +30,13 @@ export default withApiAuthRequired(async function portfoliosById(
               currency: { id: "USD", code: "USD", symbol: "$" },
               base: { id: "USD", code: "USD", symbol: "$" },
             },
-          };
-          res.status(200).json(defaultPortfolio);
-          break;
+          }
+          res.status(200).json(defaultPortfolio)
+          break
         } else {
-          const response = await fetch(byId, requestInit(accessToken));
-          await handleResponse<Portfolio>(response, res);
-          break;
+          const response = await fetch(byId, requestInit(accessToken))
+          await handleResponse<Portfolio>(response, res)
+          break
         }
       }
       case "PATCH": {
@@ -47,9 +47,9 @@ export default withApiAuthRequired(async function portfoliosById(
             Authorization: `Bearer ${accessToken}`,
             "Content-Type": "application/json",
           },
-        });
-        await handleResponse<Portfolio>(response, res);
-        break;
+        })
+        await handleResponse<Portfolio>(response, res)
+        break
       }
 
       case "POST": {
@@ -60,18 +60,18 @@ export default withApiAuthRequired(async function portfoliosById(
             Authorization: `Bearer ${accessToken}`,
             "Content-Type": "application/json",
           },
-        });
-        await handleResponse<PortfolioResponse>(response, res);
-        break;
+        })
+        await handleResponse<PortfolioResponse>(response, res)
+        break
       }
 
       case "DELETE": {
-        const response = await fetch(byId, requestInit(accessToken, method));
-        await handleResponse<void>(response, res);
-        break;
+        const response = await fetch(byId, requestInit(accessToken, method))
+        await handleResponse<void>(response, res)
+        break
       }
     }
   } catch (error: any) {
-    fetchError(res, req, error);
+    fetchError(res, req, error)
   }
-});
+})

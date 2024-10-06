@@ -1,4 +1,4 @@
-import * as yup from "yup";
+import * as yup from "yup"
 
 export const trnEditSchema = yup.object().shape({
   trnType: yup.string().required(),
@@ -70,4 +70,4 @@ export const trnEditSchema = yup.object().shape({
       "Rate field can only have 5 digits or less after decimal",
       (value) => /^\d+(\.\d{1,5})?$/.test("" + value),
     ),
-});
+})

@@ -1,9 +1,9 @@
-import React, { ReactElement, useCallback } from "react";
-import Select from "react-select";
-import { useHoldingState } from "@utils/holdings/holdingState";
-import { GroupOption, GroupOptions } from "@components/types/app";
-import { useTranslation } from "next-i18next";
-import { rootLoader } from "@components/PageLoader";
+import React, { ReactElement, useCallback } from "react"
+import Select from "react-select"
+import { useHoldingState } from "@utils/holdings/holdingState"
+import { GroupOption, GroupOptions } from "@components/types/app"
+import { useTranslation } from "next-i18next"
+import { rootLoader } from "@components/PageLoader"
 
 export enum GroupBy {
   MARKET_CURRENCY = "asset.market.currency.code",
@@ -18,7 +18,7 @@ export enum ValueIn {
 }
 
 export function useGroupOptions(): GroupOptions {
-  const { t } = useTranslation("common");
+  const { t } = useTranslation("common")
   return {
     values: [
       {
@@ -38,25 +38,25 @@ export function useGroupOptions(): GroupOptions {
       value: GroupBy.ASSET_CLASS,
       label: t("by.class"),
     },
-  };
+  }
 }
 
 const GroupByOptions = (): ReactElement => {
-  const holdingState = useHoldingState();
-  const groupOptions = useGroupOptions();
-  const { t, ready } = useTranslation("common");
+  const holdingState = useHoldingState()
+  const groupOptions = useGroupOptions()
+  const { t, ready } = useTranslation("common")
 
   const handleSelectChange = useCallback(
     (selectedOption: GroupOption | null) => {
       if (selectedOption) {
-        holdingState.setGroupBy(selectedOption);
+        holdingState.setGroupBy(selectedOption)
       }
     },
     [holdingState],
-  );
+  )
 
   if (!ready) {
-    return rootLoader(t("loading"));
+    return rootLoader(t("loading"))
   }
 
   return (
@@ -67,7 +67,7 @@ const GroupByOptions = (): ReactElement => {
       isClearable={false}
       onChange={handleSelectChange}
     />
-  );
-};
+  )
+}
 
-export default React.memo(GroupByOptions);
+export default React.memo(GroupByOptions)

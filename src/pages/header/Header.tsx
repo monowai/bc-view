@@ -1,9 +1,9 @@
-import React from "react";
-import HeaderBrand from "@pages/header/HeaderBrand";
-import HeaderUserControls from "@pages/header/HeaderUserControls";
-import { t } from "i18next";
-import { GetServerSideProps } from "next";
-import { serverSideTranslations } from "next-i18next/serverSideTranslations";
+import React from "react"
+import HeaderBrand from "@pages/header/HeaderBrand"
+import HeaderUserControls from "@pages/header/HeaderUserControls"
+import { t } from "i18next"
+import { GetServerSideProps } from "next"
+import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 
 export default function Header(): React.ReactElement {
   return (
@@ -23,11 +23,11 @@ export default function Header(): React.ReactElement {
         </div>
       </nav>
     </header>
-  );
+  )
 }
 
 export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
   props: {
     ...(await serverSideTranslations(locale as string, ["common"])),
   },
-});
+})

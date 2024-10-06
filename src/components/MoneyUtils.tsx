@@ -1,6 +1,6 @@
-import React, { ReactElement } from "react";
-import { FormatNumber } from "@components/types/app";
-import { NumericFormat } from "react-number-format";
+import React, { ReactElement } from "react"
+import { FormatNumber } from "@components/types/app"
+import { NumericFormat } from "react-number-format"
 
 export function FormatValue({
   value,
@@ -17,7 +17,7 @@ export function FormatValue({
         fixedDecimalScale={true}
         thousandSeparator={true}
       />
-    );
+    )
   }
-  return <span>{defaultValue}</span>;
+  return <span>{defaultValue}</span>
 }

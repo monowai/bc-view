@@ -2,11 +2,11 @@
 
 // Used for __tests__/testing-library.js
 // Learn more: https://github.com/testing-library/jest-dom
-import "@testing-library/jest-dom";
+import "@testing-library/jest-dom"
 
 module.exports = {
   setupFilesAfterEnv: ["./jest.setup.js"],
-};
+}
 
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -16,7 +16,7 @@ jest.mock("react-i18next", () => ({
       changeLanguage: jest.fn(),
     },
   }),
-}));
+}))
 
 jest.mock("next/router", () => ({
   useRouter() {
@@ -32,6 +32,6 @@ jest.mock("next/router", () => ({
       },
       beforePopState: jest.fn(() => null),
       prefetch: jest.fn(() => null),
-    };
+    }
   },
-}));
+}))

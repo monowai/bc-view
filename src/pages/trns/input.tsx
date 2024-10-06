@@ -1,27 +1,27 @@
-import React, { useEffect, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { yupResolver } from "@hookform/resolvers/yup";
-import * as yup from "yup";
-import Modal from "react-modal";
-import { Portfolio } from "@components/types/beancounter";
-import { useTranslation } from "next-i18next";
-import useSwr from "swr";
-import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper";
+import React, { useEffect, useState } from "react"
+import { Controller, useForm } from "react-hook-form"
+import { yupResolver } from "@hookform/resolvers/yup"
+import * as yup from "yup"
+import Modal from "react-modal"
+import { Portfolio } from "@components/types/beancounter"
+import { useTranslation } from "next-i18next"
+import useSwr from "swr"
+import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper"
 import {
   currencyOptions,
   toCurrency,
   toCurrencyOption,
-} from "@components/currency";
-import ReactSelect from "react-select";
-import { rootLoader } from "@components/PageLoader";
-import { CurrencyOptionSchema } from "@utils/portfolio/schema";
-import { postData } from "@components/DropZone";
-import TradeTypeController from "@components/TradeTypeController";
+} from "@components/currency"
+import ReactSelect from "react-select"
+import { rootLoader } from "@components/PageLoader"
+import { CurrencyOptionSchema } from "@utils/portfolio/schema"
+import { postData } from "@components/DropZone"
+import TradeTypeController from "@components/TradeTypeController"
 
 interface TrnInputFormProps {
-  portfolio: Portfolio;
-  isOpen: boolean;
-  closeModal: () => void;
+  portfolio: Portfolio
+  isOpen: boolean
+  closeModal: () => void
 }
 
 const defaultValues = {
@@ -33,7 +33,7 @@ const defaultValues = {
   market: "US",
   fees: 0,
   tax: 0,
-};
+}
 
 // Define validation schema with Yup
 const schema = yup.object().shape({
@@ -58,10 +58,10 @@ const schema = yup.object().shape({
   tradeCashRate: yup.number(),
   fees: yup.number().required().default(0),
   tax: yup.number().required().default(0),
-});
+})
 
 const TrnInputForm: React.FC<TrnInputFormProps> = ({ portfolio }) => {
-  const TrnTypeValues = ["BUY", "SELL", "DIVI", "SPLIT"] as const;
+  const TrnTypeValues = ["BUY", "SELL", "DIVI", "SPLIT"] as const
 
   const {
     control,
@@ -81,48 +81,48 @@ const TrnInputForm: React.FC<TrnInputFormProps> = ({ portfolio }) => {
       fees: defaultValues.fees,
       tax: defaultValues.tax,
     },
-  });
-  const ccyResponse = useSwr(ccyKey, simpleFetcher(ccyKey));
-  const options = TrnTypeValues.map((value) => ({ value, label: value }));
-  const { t } = useTranslation("common");
-  const [modalIsOpen, setModalIsOpen] = useState(false);
+  })
+  const ccyResponse = useSwr(ccyKey, simpleFetcher(ccyKey))
+  const options = TrnTypeValues.map((value) => ({ value, label: value }))
+  const { t } = useTranslation("common")
+  const [modalIsOpen, setModalIsOpen] = useState(false)
 
-  const quantity = watch("quantity");
-  const price = watch("price");
-  const tax = watch("tax");
-  const fees = watch("fees");
+  const quantity = watch("quantity")
+  const price = watch("price")
+  const tax = watch("tax")
+  const fees = watch("fees")
 
   useEffect(() => {
     if (quantity && price) {
-      const tradeAmount = quantity * price - tax - fees;
-      setValue("tradeAmount", tradeAmount);
+      const tradeAmount = quantity * price - tax - fees
+      setValue("tradeAmount", tradeAmount)
     }
-  }, [quantity, price, tax, fees, setValue]);
+  }, [quantity, price, tax, fees, setValue])
 
   const onSubmit = (data: any): void => {
-    console.log("Form submitted with data:", data);
-    data.cashCurrency = data.tradeCurrency;
-    const date = new Date();
-    const year = date.getFullYear();
-    const month = ("0" + (date.getMonth() + 1)).slice(-2); // Months are 0-based in JavaScript
-    const day = ("0" + date.getDate()).slice(-2);
-    const formattedDate = `${year}${month}${day}`;
-    const row = `${formattedDate},,${data.type.value},${data.market},${data.asset},,,${data.cashCurrency.value},${data.tradeDate},${data.quantity},,${data.tradeCurrency.value},${data.price},${data.fees},,,,`;
-    alert(row);
-    postData(portfolio, false, row.split(",")).then((r) => console.log(r));
-    setModalIsOpen(false);
-  };
-  if (ccyResponse.isLoading) {
-    return rootLoader(t("loading"));
+    console.log("Form submitted with data:", data)
+    data.cashCurrency = data.tradeCurrency
+    const date = new Date()
+    const year = date.getFullYear()
+    const month = ("0" + (date.getMonth() + 1)).slice(-2) // Months are 0-based in JavaScript
+    const day = ("0" + date.getDate()).slice(-2)
+    const formattedDate = `${year}${month}${day}`
+    const row = `${formattedDate},,${data.type.value},${data.market},${data.asset},,,${data.cashCurrency.value},${data.tradeDate},${data.quantity},,${data.tradeCurrency.value},${data.price},${data.fees},,,,`
+    alert(row)
+    postData(portfolio, false, row.split(",")).then((r) => console.log(r))
+    setModalIsOpen(false)
   }
-  const ccyOptions = currencyOptions(ccyResponse.data.data);
-  const currencies = ccyResponse.data.data;
-  let errorString = "";
+  if (ccyResponse.isLoading) {
+    return rootLoader(t("loading"))
+  }
+  const ccyOptions = currencyOptions(ccyResponse.data.data)
+  const currencies = ccyResponse.data.data
+  let errorString = ""
   Object.values(errors).forEach((error) => {
     if (error?.message) {
-      errorString += error.message + " ";
+      errorString += error.message + " "
     }
-  });
+  })
   return (
     <div>
       <button
@@ -162,8 +162,8 @@ const TrnInputForm: React.FC<TrnInputFormProps> = ({ portfolio }) => {
                     {...field}
                     className={"input is-1"}
                     onChange={(event) => {
-                      event.target.value = event.target.value.toUpperCase();
-                      field.onChange(event);
+                      event.target.value = event.target.value.toUpperCase()
+                      field.onChange(event)
                     }}
                   />
                 )}
@@ -180,7 +180,7 @@ const TrnInputForm: React.FC<TrnInputFormProps> = ({ portfolio }) => {
                     defaultValue={toCurrencyOption(portfolio.currency)}
                     options={ccyOptions}
                     onChange={(event) => {
-                      field.onChange(toCurrency(event!!.value, currencies));
+                      field.onChange(toCurrency(event!!.value, currencies))
                     }}
                   />
                 )}
@@ -219,8 +219,8 @@ const TrnInputForm: React.FC<TrnInputFormProps> = ({ portfolio }) => {
                   <input
                     {...field}
                     onChange={(event) => {
-                      event.target.value = event.target.value.toUpperCase();
-                      field.onChange(event);
+                      event.target.value = event.target.value.toUpperCase()
+                      field.onChange(event)
                     }}
                     className={"input is-1"}
                   />
@@ -283,7 +283,7 @@ const TrnInputForm: React.FC<TrnInputFormProps> = ({ portfolio }) => {
         </form>
       </Modal>
     </div>
-  );
-};
+  )
+}
 
-export default TrnInputForm;
+export default TrnInputForm

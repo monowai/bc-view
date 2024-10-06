@@ -1,60 +1,60 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react"
 
 interface GitInfoData {
-  branch: string;
-  commit: string;
-  build: string;
+  branch: string
+  commit: string
+  build: string
 }
 
 interface GitInfoProps {
-  alwaysVisible?: boolean;
+  alwaysVisible?: boolean
 }
 
 const GitInfo: React.FC<GitInfoProps> = ({ alwaysVisible = false }) => {
-  const [gitInfo, setGitInfo] = useState<GitInfoData | null>(null);
-  const [visible, setVisible] = useState(alwaysVisible);
+  const [gitInfo, setGitInfo] = useState<GitInfoData | null>(null)
+  const [visible, setVisible] = useState(alwaysVisible)
 
   useEffect(() => {
     const fetchGitInfo = async (): Promise<void> => {
-      const response = await fetch("/api/git-info");
+      const response = await fetch("/api/git-info")
       if (!response.ok) {
-        throw new Error("Network response was not ok");
+        throw new Error("Network response was not ok")
       }
-      const data: GitInfoData = await response.json();
-      setGitInfo(data);
-    };
+      const data: GitInfoData = await response.json()
+      setGitInfo(data)
+    }
 
-    fetchGitInfo().then();
-  }, []);
+    fetchGitInfo().then()
+  }, [])
 
   useEffect(() => {
-    let timeout: NodeJS.Timeout;
+    let timeout: NodeJS.Timeout
 
     if (!alwaysVisible) {
       const handleMouseMove = (event: MouseEvent): void => {
         if (event.clientY >= window.innerHeight - 10) {
-          timeout = setTimeout(() => setVisible(true), 2000);
+          timeout = setTimeout(() => setVisible(true), 2000)
         } else {
-          clearTimeout(timeout);
-          setVisible(false);
+          clearTimeout(timeout)
+          setVisible(false)
         }
-      };
+      }
 
-      window.addEventListener("mousemove", handleMouseMove);
+      window.addEventListener("mousemove", handleMouseMove)
 
       return () => {
-        window.removeEventListener("mousemove", handleMouseMove);
-        clearTimeout(timeout);
-      };
+        window.removeEventListener("mousemove", handleMouseMove)
+        clearTimeout(timeout)
+      }
     }
 
     return (): void => {
-      clearTimeout(timeout);
-    };
-  }, [alwaysVisible]);
+      clearTimeout(timeout)
+    }
+  }, [alwaysVisible])
 
   if (!gitInfo) {
-    return <div>Loading...</div>;
+    return <div>Loading...</div>
   }
 
   return (
@@ -76,7 +76,7 @@ const GitInfo: React.FC<GitInfoProps> = ({ alwaysVisible = false }) => {
       <span>Commit: {gitInfo.commit}</span>
       <span>Build: {gitInfo.build}</span>
     </footer>
-  );
-};
+  )
+}
 
-export default GitInfo;
+export default GitInfo

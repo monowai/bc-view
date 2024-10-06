@@ -1,20 +1,20 @@
-import Select from "react-select";
-import React, { ReactElement } from "react";
-import { useTranslation } from "next-i18next";
-import useSwr from "swr";
-import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper";
-import { Portfolio } from "@components/types/beancounter";
-import { useRouter } from "next/router";
-import { rootLoader } from "@components/PageLoader";
+import Select from "react-select"
+import React, { ReactElement } from "react"
+import { useTranslation } from "next-i18next"
+import useSwr from "swr"
+import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
+import { Portfolio } from "@components/types/beancounter"
+import { useRouter } from "next/router"
+import { rootLoader } from "@components/PageLoader"
 
 export function Portfolios(selectedPortfolio: Portfolio): ReactElement {
-  const { data } = useSwr(portfoliosKey, simpleFetcher(portfoliosKey));
-  const { t, ready } = useTranslation("common");
-  const router = useRouter();
+  const { data } = useSwr(portfoliosKey, simpleFetcher(portfoliosKey))
+  const { t, ready } = useTranslation("common")
+  const router = useRouter()
   if (!ready || !data) {
-    return rootLoader(t("loading"));
+    return rootLoader(t("loading"))
   }
-  const portfolios: Portfolio[] = data.data;
+  const portfolios: Portfolio[] = data.data
 
   return (
     <Select
@@ -34,8 +34,8 @@ export function Portfolios(selectedPortfolio: Portfolio): ReactElement {
         },
       })}
       onChange={(e) => {
-        router.push(`${e!!.code}`).then();
+        router.push(`${e!!.code}`).then()
       }}
     />
-  );
+  )
 }

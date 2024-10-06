@@ -1,11 +1,11 @@
-import React from "react";
-import { UserProfile, useUser } from "@auth0/nextjs-auth0/client";
-import Image from "next/image";
-import { GetServerSideProps } from "next";
-import { serverSideTranslations } from "next-i18next/serverSideTranslations";
-import { rootLoader } from "@components/PageLoader";
-import { useTranslation } from "next-i18next";
-import { ReactElement } from "react";
+import React from "react"
+import { UserProfile, useUser } from "@auth0/nextjs-auth0/client"
+import Image from "next/image"
+import { GetServerSideProps } from "next"
+import { serverSideTranslations } from "next-i18next/serverSideTranslations"
+import { rootLoader } from "@components/PageLoader"
+import { useTranslation } from "next-i18next"
+import { ReactElement } from "react"
 
 export function getAvatar(user: UserProfile, size: number): ReactElement {
   return (
@@ -21,15 +21,15 @@ export function getAvatar(user: UserProfile, size: number): ReactElement {
       width={size}
       height={size}
     />
-  );
+  )
 }
 
 export default function Profile(): ReactElement {
-  const { user, error, isLoading } = useUser();
-  const { t, ready } = useTranslation("common");
-  if (isLoading || !ready) return rootLoader(t("loading"));
-  if (error) return <div>{error.message}</div>;
-  if (!user) return <div>t(user.notfound)</div>;
+  const { user, error, isLoading } = useUser()
+  const { t, ready } = useTranslation("common")
+  if (isLoading || !ready) return rootLoader(t("loading"))
+  if (error) return <div>{error.message}</div>
+  if (!user) return <div>t(user.notfound)</div>
 
   return (
     <div className={"box"}>
@@ -38,11 +38,11 @@ export default function Profile(): ReactElement {
       </h1>
       {getAvatar(user, 50)}
     </div>
-  );
+  )
 }
 
 export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
   props: {
     ...(await serverSideTranslations(locale as string, ["common"])),
   },
-});
+})
