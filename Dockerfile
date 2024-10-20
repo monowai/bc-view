@@ -14,6 +14,7 @@ ENV BUILD_ID=$BUILD_ID
 # Install production dependencies.
 FROM base AS deps
 COPY package.json yarn.lock ./
+COPY sentry.*.ts ./
 RUN yarn install --production --frozen-lockfile --ignore-scripts --prefer-offline && cp -R $(yarn cache dir) ./ycache
 
 # Copy project files and build your app
