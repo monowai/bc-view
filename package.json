@@ -18,6 +18,7 @@
     "@creativebulma/bulma-tooltip": "^1.2.0",
     "@fortawesome/fontawesome-free": "^6.4.0",
     "@hookstate/core": "^4.0.1",
+    "@sentry/nextjs": "^8",
     "@serverless-jwt/next": "^0.2.1",
     "@types/react-modal": "^3.16.3",
     "bulma": "^0.9.3",
