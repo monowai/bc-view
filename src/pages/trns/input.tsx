@@ -100,7 +100,10 @@ const TrnInputForm: React.FC<TrnInputFormProps> = ({ portfolio }) => {
 
   useEffect(() => {
     if (quantity && price) {
-      setValue("tradeAmount", quantity * price - tax - fees)
+      setValue(
+        "tradeAmount",
+        parseFloat((quantity * price - tax - fees).toFixed(2)),
+      )
     }
   }, [quantity, price, tax, fees, type, setValue])
 
