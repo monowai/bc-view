@@ -1,0 +1,791 @@
+{
+  "data": {
+    "portfolio": {
+      "id": "6yD40hsNQw2A6GEsGY7UXw",
+      "code": "TEST2",
+      "name": "Delete Me",
+      "currency": {
+        "code": "USD",
+        "name": "Dollar",
+        "symbol": "$"
+      },
+      "base": {
+        "code": "USD",
+        "name": "Dollar",
+        "symbol": "$"
+      },
+      "owner": {
+        "id": "2xstJu-9QzaiX_Ou1U2Ssw",
+        "email": "mike@monowai.com",
+        "active": true,
+        "auth0": "auth0|61fe1cd0ee82eb00729fb2fe",
+        "googleId": "",
+        "since": "2023-11-28"
+      }
+    },
+    "asAt": "today",
+    "positions": {
+      "BITO:US": {
+        "asset": {
+          "code": "BITO",
+          "id": "AsFDnaGeSfG5EmRJ9KIFHA",
+          "name": "ProShares Bitcoin Strategy ETF",
+          "market": {
+            "code": "US",
+            "currencyId": "USD",
+            "timezoneId": "US/Eastern",
+            "timezone": "US/Eastern",
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "priceTime": "19:00",
+            "daysToSubtract": 1,
+            "multiplier": 1.0
+          },
+          "priceSymbol": "BITO",
+          "assetCategory": {
+            "id": "ETF",
+            "name": "Exchange Traded Fund"
+          },
+          "systemUser": null,
+          "status": "Active",
+          "version": "1"
+        },
+        "quantityValues": {
+          "sold": 0,
+          "purchased": 18.0,
+          "adjustment": 0,
+          "precision": 0,
+          "total": 18.0
+        },
+        "dateValues": {
+          "opened": "2021-10-22",
+          "last": "2021-10-22",
+          "closed": null,
+          "lastDividend": null
+        },
+        "moneyValues": {
+          "TRADE": {
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "dividends": 0,
+            "costValue": 749.58,
+            "costBasis": 749.58,
+            "fees": 0,
+            "purchases": 749.58,
+            "sales": 0,
+            "marketValue": 356.4,
+            "weight": 0.005028,
+            "irr": -0.232201918395456730070947060085018165409564971923828125,
+            "roi": -0.524534,
+            "priceData": {
+              "priceDate": "2024-08-13",
+              "open": 19.16,
+              "close": 19.8,
+              "low": 19.15,
+              "high": 20.06,
+              "previousClose": 19.2,
+              "change": 0.6,
+              "changePercent": 0.0313,
+              "volume": 5470906
+            },
+            "averageCost": 41.64333333,
+            "realisedGain": 0,
+            "unrealisedGain": -393.18,
+            "totalGain": -393.18,
+            "gainOnDay": 10.8
+          },
+          "PORTFOLIO": {
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "dividends": 0,
+            "costValue": 749.58,
+            "costBasis": 749.58,
+            "fees": 0,
+            "purchases": 749.58,
+            "sales": 0,
+            "marketValue": 356.4,
+            "weight": 0.005028,
+            "irr": -0.232201918395456730070947060085018165409564971923828125,
+            "roi": -0.524534,
+            "priceData": {
+              "priceDate": "2024-08-13",
+              "open": 19.16,
+              "close": 19.8,
+              "low": 19.15,
+              "high": 20.06,
+              "previousClose": 19.2,
+              "change": 0.6,
+              "changePercent": 0.0313,
+              "volume": 5470906
+            },
+            "averageCost": 41.64333333,
+            "realisedGain": 0,
+            "unrealisedGain": -393.18,
+            "totalGain": -393.18,
+            "gainOnDay": 10.8
+          },
+          "BASE": {
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "dividends": 0,
+            "costValue": 1544.69,
+            "costBasis": 1544.69,
+            "fees": 0,
+            "purchases": 1544.69,
+            "sales": 0,
+            "marketValue": 356.4,
+            "weight": 0.005028,
+            "irr": -0.232201918395456730070947060085018165409564971923828125,
+            "roi": -0.524534,
+            "priceData": {
+              "priceDate": "2024-08-13",
+              "open": 19.16,
+              "close": 19.8,
+              "low": 19.15,
+              "high": 20.06,
+              "previousClose": 19.2,
+              "change": 0.6,
+              "changePercent": 0.0313,
+              "volume": 5470906
+            },
+            "averageCost": 85.81611111,
+            "realisedGain": 0,
+            "unrealisedGain": -1188.29,
+            "totalGain": -1188.29,
+            "gainOnDay": 10.8
+          }
+        }
+      },
+      "BRK.B:US": {
+        "asset": {
+          "code": "BRK.B",
+          "id": "148_OBRVTziEJUdnLKsSlA",
+          "name": "Berkshire Hathaway Inc - Class B",
+          "market": {
+            "code": "US",
+            "currencyId": "USD",
+            "timezoneId": "US/Eastern",
+            "timezone": "US/Eastern",
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "priceTime": "19:00",
+            "daysToSubtract": 1,
+            "multiplier": 1.0
+          },
+          "priceSymbol": "BRK-B",
+          "assetCategory": {
+            "id": "EQUITY",
+            "name": "Equity"
+          },
+          "systemUser": null,
+          "status": "Active",
+          "version": "1"
+        },
+        "quantityValues": {
+          "sold": 0,
+          "purchased": 2.0,
+          "adjustment": 0,
+          "precision": 0,
+          "total": 2.0
+        },
+        "dateValues": {
+          "opened": "2024-08-08",
+          "last": "2024-08-08",
+          "closed": null,
+          "lastDividend": null
+        },
+        "moneyValues": {
+          "TRADE": {
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "dividends": 0,
+            "costValue": 855.0,
+            "costBasis": 855.0,
+            "fees": 0,
+            "purchases": 855.0,
+            "sales": 0,
+            "marketValue": 864.82,
+            "weight": 0.0122,
+            "irr": 0.022970760233918245674100688802354852668941020965576171875,
+            "roi": 0.011485,
+            "priceData": {
+              "priceDate": "2024-08-13",
+              "open": 431.83,
+              "close": 432.41,
+              "low": 425.9,
+              "high": 432.81,
+              "previousClose": 430.39,
+              "change": 2.02,
+              "changePercent": 0.0047,
+              "volume": 3298694
+            },
+            "averageCost": 427.5,
+            "realisedGain": 0,
+            "unrealisedGain": 9.82,
+            "totalGain": 9.82,
+            "gainOnDay": 4.04
+          },
+          "PORTFOLIO": {
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "dividends": 0,
+            "costValue": 855.0,
+            "costBasis": 855.0,
+            "fees": 0,
+            "purchases": 855.0,
+            "sales": 0,
+            "marketValue": 864.82,
+            "weight": 0.0122,
+            "irr": 0.022970760233918245674100688802354852668941020965576171875,
+            "roi": 0.011485,
+            "priceData": {
+              "priceDate": "2024-08-13",
+              "open": 431.83,
+              "close": 432.41,
+              "low": 425.9,
+              "high": 432.81,
+              "previousClose": 430.39,
+              "change": 2.02,
+              "changePercent": 0.0047,
+              "volume": 3298694
+            },
+            "averageCost": 427.5,
+            "realisedGain": 0,
+            "unrealisedGain": 9.82,
+            "totalGain": 9.82,
+            "gainOnDay": 4.04
+          },
+          "BASE": {
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "dividends": 0,
+            "costValue": -65.5,
+            "costBasis": -65.5,
+            "fees": 0,
+            "purchases": -65.5,
+            "sales": 0,
+            "marketValue": 864.82,
+            "weight": 0.0122,
+            "irr": 0.022970760233918245674100688802354852668941020965576171875,
+            "roi": 0.011485,
+            "priceData": {
+              "priceDate": "2024-08-13",
+              "open": 431.83,
+              "close": 432.41,
+              "low": 425.9,
+              "high": 432.81,
+              "previousClose": 430.39,
+              "change": 2.02,
+              "changePercent": 0.0047,
+              "volume": 3298694
+            },
+            "averageCost": -32.75,
+            "realisedGain": 0,
+            "unrealisedGain": 930.32,
+            "totalGain": 930.32,
+            "gainOnDay": 4.04
+          }
+        }
+      },
+      "NVDA:US": {
+        "asset": {
+          "code": "NVDA",
+          "id": "bHHW_pXPQZu9k4AYQI8jXg",
+          "name": "NVIDIA Corp",
+          "market": {
+            "code": "US",
+            "currencyId": "USD",
+            "timezoneId": "US/Eastern",
+            "timezone": "US/Eastern",
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "priceTime": "19:00",
+            "daysToSubtract": 1,
+            "multiplier": 1.0
+          },
+          "priceSymbol": "NVDA",
+          "assetCategory": {
+            "id": "EQUITY",
+            "name": "Equity"
+          },
+          "systemUser": null,
+          "status": "Active",
+          "version": "1"
+        },
+        "quantityValues": {
+          "sold": 0,
+          "purchased": 6.0,
+          "adjustment": 540.0,
+          "precision": 0,
+          "total": 546.0
+        },
+        "dateValues": {
+          "opened": "2024-06-03",
+          "last": "2024-06-10",
+          "closed": null,
+          "lastDividend": null
+        },
+        "moneyValues": {
+          "TRADE": {
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "dividends": 0,
+            "costValue": 6824.82,
+            "costBasis": 6824.82,
+            "fees": 0,
+            "purchases": 6824.82,
+            "sales": 0,
+            "marketValue": 63412.44,
+            "weight": 0.894533,
+            "irr": 16.5828900982003943909148802049458026885986328125,
+            "roi": 8.291445,
+            "priceData": {
+              "priceDate": "2024-08-13",
+              "open": 112.44,
+              "close": 116.14,
+              "low": 111.58,
+              "high": 116.23,
+              "previousClose": 109.02,
+              "change": 7.12,
+              "changePercent": 0.0653,
+              "volume": 307501719
+            },
+            "averageCost": 12.49967033,
+            "realisedGain": 0,
+            "unrealisedGain": 56587.62,
+            "totalGain": 56587.62,
+            "gainOnDay": 3887.52
+          },
+          "PORTFOLIO": {
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "dividends": 0,
+            "costValue": 6824.82,
+            "costBasis": 6824.82,
+            "fees": 0,
+            "purchases": 6824.82,
+            "sales": 0,
+            "marketValue": 63412.44,
+            "weight": 0.894533,
+            "irr": 16.5828900982003943909148802049458026885986328125,
+            "roi": 8.291445,
+            "priceData": {
+              "priceDate": "2024-08-13",
+              "open": 112.44,
+              "close": 116.14,
+              "low": 111.58,
+              "high": 116.23,
+              "previousClose": 109.02,
+              "change": 7.12,
+              "changePercent": 0.0653,
+              "volume": 307501719
+            },
+            "averageCost": 12.49967033,
+            "realisedGain": 0,
+            "unrealisedGain": 56587.62,
+            "totalGain": 56587.62,
+            "gainOnDay": 3887.52
+          },
+          "BASE": {
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "dividends": 0,
+            "costValue": -118017.61,
+            "costBasis": -118017.61,
+            "fees": 0,
+            "purchases": -118017.61,
+            "sales": 0,
+            "marketValue": 63412.44,
+            "weight": 0.894533,
+            "irr": 16.5828900982003943909148802049458026885986328125,
+            "roi": 8.291445,
+            "priceData": {
+              "priceDate": "2024-08-13",
+              "open": 112.44,
+              "close": 116.14,
+              "low": 111.58,
+              "high": 116.23,
+              "previousClose": 109.02,
+              "change": 7.12,
+              "changePercent": 0.0653,
+              "volume": 307501719
+            },
+            "averageCost": -216.1494689,
+            "realisedGain": 0,
+            "unrealisedGain": 181430.05,
+            "totalGain": 181430.05,
+            "gainOnDay": 3887.52
+          }
+        }
+      },
+      "SMH:US": {
+        "asset": {
+          "code": "SMH",
+          "id": "Pi7CwpHMSayDxJITV-7Q7A",
+          "name": "VanEck Semiconductor ETF",
+          "market": {
+            "code": "US",
+            "currencyId": "USD",
+            "timezoneId": "US/Eastern",
+            "timezone": "US/Eastern",
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "priceTime": "19:00",
+            "daysToSubtract": 1,
+            "multiplier": 1.0
+          },
+          "priceSymbol": "SMH",
+          "assetCategory": {
+            "id": "ETF",
+            "name": "Exchange Traded Fund"
+          },
+          "systemUser": null,
+          "status": "Active",
+          "version": "1"
+        },
+        "quantityValues": {
+          "sold": 0,
+          "purchased": 15.0,
+          "adjustment": 30.0,
+          "precision": 0,
+          "total": 45.0
+        },
+        "dateValues": {
+          "opened": "2020-02-12",
+          "last": "2023-05-05",
+          "closed": null,
+          "lastDividend": null
+        },
+        "moneyValues": {
+          "TRADE": {
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "dividends": 0,
+            "costValue": 2278.44,
+            "costBasis": 2278.44,
+            "fees": 0,
+            "purchases": 2278.44,
+            "sales": 0,
+            "marketValue": 10628.55,
+            "weight": 0.149933,
+            "irr": 0.40699355043828078226653133242507465183734893798828125,
+            "roi": 3.664836,
+            "priceData": {
+              "priceDate": "2024-08-13",
+              "open": 230.55,
+              "close": 236.19,
+              "low": 228.87,
+              "high": 236.3,
+              "previousClose": 226.96,
+              "change": 9.23,
+              "changePercent": 0.0407,
+              "volume": 7460730
+            },
+            "averageCost": 50.632,
+            "realisedGain": 0,
+            "unrealisedGain": 8350.11,
+            "totalGain": 8350.11,
+            "gainOnDay": 415.35
+          },
+          "PORTFOLIO": {
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "dividends": 0,
+            "costValue": 2278.44,
+            "costBasis": 2278.44,
+            "fees": 0,
+            "purchases": 2278.44,
+            "sales": 0,
+            "marketValue": 10628.55,
+            "weight": 0.149933,
+            "irr": 0.40699355043828078226653133242507465183734893798828125,
+            "roi": 3.664836,
+            "priceData": {
+              "priceDate": "2024-08-13",
+              "open": 230.55,
+              "close": 236.19,
+              "low": 228.87,
+              "high": 236.3,
+              "previousClose": 226.96,
+              "change": 9.23,
+              "changePercent": 0.0407,
+              "volume": 7460730
+            },
+            "averageCost": 50.632,
+            "realisedGain": 0,
+            "unrealisedGain": 8350.11,
+            "totalGain": 8350.11,
+            "gainOnDay": 415.35
+          },
+          "BASE": {
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "dividends": 0,
+            "costValue": 1468.66,
+            "costBasis": 1468.66,
+            "fees": 0,
+            "purchases": 1468.66,
+            "sales": 0,
+            "marketValue": 10628.55,
+            "weight": 0.149933,
+            "irr": 0.40699355043828078226653133242507465183734893798828125,
+            "roi": 3.664836,
+            "priceData": {
+              "priceDate": "2024-08-13",
+              "open": 230.55,
+              "close": 236.19,
+              "low": 228.87,
+              "high": 236.3,
+              "previousClose": 226.96,
+              "change": 9.23,
+              "changePercent": 0.0407,
+              "volume": 7460730
+            },
+            "averageCost": 32.63688889,
+            "realisedGain": 0,
+            "unrealisedGain": 9159.89,
+            "totalGain": 9159.89,
+            "gainOnDay": 415.35
+          }
+        }
+      },
+      "USD:CASH": {
+        "asset": {
+          "code": "USD",
+          "id": "sC8rodv8Tw6l-XVQbwiapw",
+          "name": "USD Balance",
+          "market": {
+            "code": "CASH",
+            "currencyId": "USD",
+            "timezoneId": "UTC",
+            "timezone": "UTC",
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "priceTime": "19:00",
+            "daysToSubtract": 1,
+            "enricher": "DEFAULT",
+            "multiplier": 1.0
+          },
+          "priceSymbol": "USD",
+          "assetCategory": {
+            "id": "CASH",
+            "name": "Cash"
+          },
+          "systemUser": null,
+          "status": "Active",
+          "version": "1"
+        },
+        "quantityValues": {
+          "sold": -10707.84,
+          "purchased": 6334.47,
+          "adjustment": 0,
+          "precision": 2,
+          "total": -4373.37
+        },
+        "dateValues": {
+          "opened": "2020-02-12",
+          "last": "2024-08-08",
+          "closed": null,
+          "lastDividend": null
+        },
+        "moneyValues": {
+          "TRADE": {
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "dividends": 0,
+            "costValue": -4373.37,
+            "costBasis": -4373.37,
+            "fees": 0,
+            "purchases": 6334.47,
+            "sales": -10707.84,
+            "marketValue": -4373.37,
+            "weight": -0.061693,
+            "irr": 0,
+            "roi": 0,
+            "priceData": {
+              "priceDate": "2024-08-14",
+              "open": 0,
+              "close": 1.0,
+              "low": 0,
+              "high": 0,
+              "previousClose": 0,
+              "change": 0,
+              "changePercent": 0,
+              "volume": 0
+            },
+            "averageCost": 1,
+            "realisedGain": 0,
+            "unrealisedGain": 0.0,
+            "totalGain": 0.0,
+            "gainOnDay": 0
+          },
+          "PORTFOLIO": {
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "dividends": 0,
+            "costValue": -4373.37,
+            "costBasis": -4373.37,
+            "fees": 0,
+            "purchases": 6334.47,
+            "sales": -10707.84,
+            "marketValue": -4373.37,
+            "weight": -0.061693,
+            "irr": 0,
+            "roi": 0,
+            "priceData": {
+              "priceDate": "2024-08-14",
+              "open": 0,
+              "close": 1.0,
+              "low": 0,
+              "high": 0,
+              "previousClose": 0,
+              "change": 0,
+              "changePercent": 0,
+              "volume": 0
+            },
+            "averageCost": 1,
+            "realisedGain": 0,
+            "unrealisedGain": 0.0,
+            "totalGain": 0.0,
+            "gainOnDay": 0
+          },
+          "BASE": {
+            "currency": {
+              "code": "USD",
+              "name": "Dollar",
+              "symbol": "$"
+            },
+            "dividends": 0,
+            "costValue": -368.5,
+            "costBasis": -368.5,
+            "fees": 0,
+            "purchases": 9827.11,
+            "sales": -10195.61,
+            "marketValue": -4373.37,
+            "weight": -0.061693,
+            "irr": 0,
+            "roi": 0,
+            "priceData": {
+              "priceDate": "2024-08-14",
+              "open": 0,
+              "close": 1.0,
+              "low": 0,
+              "high": 0,
+              "previousClose": 0,
+              "change": 0,
+              "changePercent": 0,
+              "volume": 0
+            },
+            "averageCost": 0.08425996428,
+            "realisedGain": 0,
+            "unrealisedGain": -4004.87,
+            "totalGain": -4004.87,
+            "gainOnDay": 0
+          }
+        }
+      }
+    },
+    "totals": {
+      "TRADE": {
+        "currency": {
+          "code": "USD",
+          "name": "Dollar",
+          "symbol": "$"
+        },
+        "marketValue": 70888.84,
+        "purchases": 10707.84,
+        "sales": 0,
+        "cash": -4373.37,
+        "income": 0,
+        "gain": 64554.37,
+        "irr": 1.0714579002845852073733112774789333343505859375
+      },
+      "PORTFOLIO": {
+        "currency": {
+          "code": "USD",
+          "name": "Dollar",
+          "symbol": "$"
+        },
+        "marketValue": 70888.84,
+        "purchases": 10707.84,
+        "sales": 0,
+        "cash": -4373.37,
+        "income": 0,
+        "gain": 64554.37,
+        "irr": 1.0714579002845852073733112774789333343505859375
+      },
+      "BASE": {
+        "currency": {
+          "code": "USD",
+          "name": "Dollar",
+          "symbol": "$"
+        },
+        "marketValue": 70888.84,
+        "purchases": -115069.76,
+        "sales": 0,
+        "cash": -4373.37,
+        "income": 0,
+        "gain": 190331.97,
+        "irr": 1.0714579002845852073733112774789333343505859375
+      }
+    },
+    "isMixedCurrencies": false
+  }
+}
