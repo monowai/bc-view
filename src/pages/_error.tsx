@@ -1,11 +1,21 @@
+import React from "react"
 import * as Sentry from "@sentry/nextjs"
 import Error from "next/error"
+import { NextPageContext } from "next"
 
-const CustomErrorComponent = (props) => {
-  return <Error statusCode={props.statusCode} />
+interface CustomErrorComponentProps {
+  statusCode: number
 }
 
-CustomErrorComponent.getInitialProps = async (contextData) => {
+const CustomErrorComponent = ({
+  statusCode,
+}: CustomErrorComponentProps): JSX.Element => {
+  return <Error statusCode={statusCode} />
+}
+
+CustomErrorComponent.getInitialProps = async (
+  contextData: NextPageContext,
+): Promise<{ statusCode: number }> => {
   // In case this is running in a serverless function, await this in order to give Sentry
   // time to send the error before the lambda exits
   await Sentry.captureUnderscoreErrorException(contextData)
