@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React from "react"
 import { calculateHoldings } from "@utils/holdings/calculateHoldings"
 import { Holdings } from "@components/types/beancounter"
 import { rootLoader } from "@components/PageLoader"
@@ -17,7 +17,7 @@ import Rows from "@components/holdings/Rows"
 import SubTotal from "@components/holdings/SubTotal"
 import Header from "@components/holdings/Header"
 import GrandTotal from "@components/holdings/GrandTotal"
-import { isCash } from "@utils/assets/assetUtils"
+import Input from "@pages/trns/input"
 
 function HoldingsPage(): React.ReactElement {
   const router = useRouter()
@@ -39,6 +39,21 @@ function HoldingsPage(): React.ReactElement {
     return rootLoader("Crunching data...")
   }
   const holdingResults = data.data
+  if (Object.keys(holdingResults.positions).length === 0) {
+    return (
+      <div>
+        No Holdings for {holdingResults.portfolio.code}
+        <Input
+          portfolio={holdingResults.portfolio}
+          isOpen={false}
+          closeModal={function (): void {
+            throw new Error("Function not implemented.")
+          }}
+        />
+      </div>
+    )
+  }
+
   // Render where we are in the initialization process
   const holdings = calculateHoldings(
     holdingResults,
