@@ -17,3 +17,11 @@ export function getKafkaHosts(): string[] {
 export function getKafkaClient(): string {
   return `${process.env.KAFKA_CLIENT}`
 }
+
+export function getSentryDsn(): string {
+  return `${process.env.SENTRY_DSN}`
+}
+
+export function getSentryTracesSampleRate(): string {
+  return `${process.env.SENTRY_TRACE_SAMPLE_RATE}`
+}
