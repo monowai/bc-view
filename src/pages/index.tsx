@@ -8,6 +8,7 @@ import { rootLoader } from "@components/PageLoader"
 import useSwr from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import GitInfo from "@components/GitInfo"
+
 const key = "/api/register"
 export default withPageAuthRequired(function Home(): React.ReactElement {
   const { user, error, isLoading } = useUser()

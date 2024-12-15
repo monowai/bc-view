@@ -6,7 +6,7 @@ import { Portfolios } from "@components/Portfolios"
 import { Portfolio } from "@components/types/beancounter"
 import GroupByOptions from "@components/holdings/GroupByOptions"
 import TrnInputForm from "@pages/trns/input"
-import { useForm, Controller } from "react-hook-form"
+import { Controller, useForm } from "react-hook-form"
 import { useHoldingState } from "@utils/holdings/holdingState"
 import { getTodayDate } from "@components/dateutils"
 
