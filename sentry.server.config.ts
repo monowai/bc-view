@@ -3,14 +3,21 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import * as Sentry from "@sentry/nextjs"
-import { getSentryDsn, getSentryTracesSampleRate } from "@utils/api/bc-config"
+import {
+  getSentryDebug,
+  getSentryDsn,
+  getSentryEnabled,
+  getSentryTracesSampleRate,
+} from "@utils/api/bc-config"
 
 Sentry.init({
   dsn: getSentryDsn(),
 
   // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
-  tracesSampleRate: Number(getSentryTracesSampleRate()),
+  tracesSampleRate: getSentryTracesSampleRate(),
+
+  enabled: getSentryEnabled(),
 
   // Setting this option to true will print useful information to the console while you're setting up Sentry.
-  debug: false,
+  debug: getSentryDebug(),
 })

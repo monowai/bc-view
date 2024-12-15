@@ -19,9 +19,17 @@ export function getKafkaClient(): string {
 }
 
 export function getSentryDsn(): string {
-  return `${process.env.SENTRY_DSN}`
+  return process.env.SENTRY_DSN || ""
 }
 
-export function getSentryTracesSampleRate(): string {
-  return `${process.env.SENTRY_TRACE_SAMPLE_RATE}`
+export function getSentryDebug(): boolean | undefined {
+  return Boolean(process.env.SENTRY_DEBUG || false).valueOf()
+}
+
+export function getSentryEnabled(): boolean | undefined {
+  return Boolean(process.env.SENTRY_ENABLED || false).valueOf()
+}
+
+export function getSentryTracesSampleRate(): number {
+  return Number(process.env.SENTRY_TRACE_SAMPLE_RATE || 1)
 }
