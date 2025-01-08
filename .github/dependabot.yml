@@ -5,6 +5,6 @@ updates:
     schedule:
       interval: weekly
       time: "21:00"
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 20
     ignore:
       - dependency-name: husky
