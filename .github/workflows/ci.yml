@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - master
+      - react-issues
   pull_request:
     branches:
       - main
