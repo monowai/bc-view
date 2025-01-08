@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - master
+      - react-issues
   pull_request:
     branches:
       - main
@@ -47,7 +48,7 @@ jobs:
         run: yarn build
 
       - name: Run tests
-        run: yarn test
+        run: yarn test:ci
 
       - name: Build Docker image
         run: docker build -t bc-view .

@@ -32,26 +32,22 @@ jobs:
           key: v1-dependencies-{{ checksum "package.json" }}
       - setup_remote_docker:
           docker_layer_caching: true
-      - when:
-          condition:
-            equal: [master, << pipeline.git.branch >>]
-          steps:
-            - run:
-                name: Package BC-VIEW
-                command: |
-                  SHORT_COMMIT=$(git rev-parse --short $GIT_COMMIT)
-                  docker buildx create --use
-                  docker buildx inspect
-                  docker run --rm --privileged tonistiigi/binfmt --install arm64
-                  echo "$DOCKER_PASS" | docker login -u $DOCKER_USER --password-stdin
-                  docker buildx build --push \
-                                      --platform linux/arm64/v8,linux/amd64 \
-                                      --build-arg GIT_BRANCH=$GIT_BRANCH \
-                                      --build-arg GIT_COMMIT=$SHORT_COMMIT \
-                                      --build-arg BUILD_ID=$STACK_VER \
-                                      -t "monowai/$IMAGE_NAME:latest" \
-                                      -t "monowai/$IMAGE_NAME:${STACK_VER}" \
-                                      ~/project/.
+      - run:
+          name: Package BC-VIEW
+          command: |
+            SHORT_COMMIT=$(git rev-parse --short $GIT_COMMIT)
+            docker buildx create --use
+            docker buildx inspect
+            docker run --rm --privileged tonistiigi/binfmt --install arm64
+            echo "$DOCKER_PASS" | docker login -u $DOCKER_USER --password-stdin
+            docker buildx build --push \
+                                --platform linux/arm64/v8,linux/amd64 \
+                                --build-arg GIT_BRANCH=$GIT_BRANCH \
+                                --build-arg GIT_COMMIT=$SHORT_COMMIT \
+                                --build-arg BUILD_ID=$STACK_VER \
+                                -t "monowai/$IMAGE_NAME:latest" \
+                                -t "monowai/$IMAGE_NAME:${STACK_VER}" \
+                                ~/project/.
 workflows:
   build_and_package:
     jobs:
