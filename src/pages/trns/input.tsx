@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
 import * as yup from "yup"
-import Modal from "react-modal"
 import { Portfolio } from "@components/types/beancounter"
 import { useTranslation } from "next-i18next"
 import useSwr from "swr"
@@ -27,21 +26,18 @@ interface TrnInputFormProps {
 const TrnTypeValues = ["BUY", "SELL", "DIVI", "SPLIT"] as const
 
 const defaultValues = {
-  type: {
-    value: TrnTypeValues[0],
-    label: TrnTypeValues[0],
-  },
-  tradeAmount: 0,
-  price: 0,
-  quantity: 0,
-  tradeDate: new Date().toISOString().split("T")[0],
+  type: { value: "BUY", label: "BUY" },
   asset: "",
   market: "US",
+  tradeDate: new Date().toISOString().split("T")[0],
+  quantity: 0,
+  price: 0,
+  tradeCurrency: { value: "USD", label: "USD" },
+  tradeAmount: 0,
   fees: 0,
   tax: 0,
 }
 
-// Define validation schema with Yup
 const schema = yup.object().shape({
   type: yup
     .object()
@@ -57,13 +53,13 @@ const schema = yup.object().shape({
   price: yup.number().required().default(0),
   tradeAmount: yup.number(),
   tradeCurrency: CurrencyOptionSchema.required(),
-  tradeBaseRate: yup.number(),
-  tradePortfolioRate: yup.number(),
-  cashCurrency: yup.string(),
   cashAmount: yup.number(),
   tradeCashRate: yup.number(),
   fees: yup.number().required().default(defaultValues.fees),
   tax: yup.number().required().default(defaultValues.tax),
+  tradeBaseRate: yup.number(),
+  tradePortfolioRate: yup.number(),
+  cashCurrency: yup.string(),
 })
 
 const TrnInputForm: React.FC<TrnInputFormProps> = ({ portfolio }) => {
@@ -104,13 +100,9 @@ const TrnInputForm: React.FC<TrnInputFormProps> = ({ portfolio }) => {
       const prc = Number(price)
       const tx = Number(tax)
       const fee = Number(fees)
-
       const tradeAmount =
-        type.value === "SELL"
-          ? parseFloat((qty * prc - tx - fee).toFixed(2))
-          : parseFloat((qty * prc + fee + tx).toFixed(2))
-
-      setValue("tradeAmount", tradeAmount)
+        type.value === "SELL" ? qty * prc - tx - fee : qty * prc + fee + tx
+      setValue("tradeAmount", parseFloat(tradeAmount.toFixed(2)))
     }
   }, [quantity, price, tax, fees, type, setValue])
 
@@ -118,26 +110,22 @@ const TrnInputForm: React.FC<TrnInputFormProps> = ({ portfolio }) => {
     console.log("Form submitted with data:", data)
     data.cashCurrency = data.tradeCurrency
     const date = new Date()
-    const year = date.getFullYear()
-    const month = ("0" + (date.getMonth() + 1)).slice(-2) // Months are 0-based in JavaScript
-    const day = ("0" + date.getDate()).slice(-2)
-    const formattedDate = `${year}${month}${day}`
+    const formattedDate = `${date.getFullYear()}${("0" + (date.getMonth() + 1)).slice(-2)}${("0" + date.getDate()).slice(-2)}`
     const row = `${formattedDate},,${data.type.value},${data.market},${data.asset},,,${data.cashCurrency.value},${data.tradeDate},${data.quantity},,${data.tradeCurrency.value},${data.price},${data.fees},,,,`
     alert(row)
     postData(portfolio, false, row.split(",")).then((r) => console.log(r))
     setModalIsOpen(false)
   }
-  if (ccyResponse.isLoading) {
-    return rootLoader(t("loading"))
-  }
+
+  if (ccyResponse.isLoading) return rootLoader(t("loading"))
+
   const ccyOptions = currencyOptions(ccyResponse.data.data)
   const currencies = ccyResponse.data.data
   let errorString = ""
   Object.values(errors).forEach((error) => {
-    if (error?.message) {
-      errorString += error.message + " "
-    }
+    if (error?.message) errorString += error.message + " "
   })
+
   return (
     <div>
       <button
@@ -147,224 +135,227 @@ const TrnInputForm: React.FC<TrnInputFormProps> = ({ portfolio }) => {
         {t("trn.add")}
       </button>
 
-      <Modal
-        appElement={
-          document.getElementById("root") || document.createElement("div")
-        }
-        isOpen={modalIsOpen}
-        onRequestClose={() => setModalIsOpen(false)}
-      >
-        <header className="modal-card-head">
-          <p className="modal-card-title">Add Transaction</p>
-        </header>
-        <form onSubmit={handleSubmit(onSubmit)} style={{ marginTop: "10px" }}>
-          <div
-            className="form-columns"
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: "1rem",
-            }}
-          >
-            <div
-              className="form-column"
-              style={{
-                flex: 1,
-                minWidth: "300px",
-              }}
-            >
-              <div className="form-group" style={{ marginBottom: "1rem" }}>
-                {t("trn.type")}
-                <TradeTypeController
-                  name="type"
-                  control={control}
-                  options={options}
-                />
-              </div>
-              <div className="form-group" style={{ marginBottom: "1rem" }}>
-                {t("trn.asset.code")}
-                {errors.asset && (
-                  <p className="error">{errors.asset.message}</p>
-                )}
-                <Controller
-                  name="asset"
-                  control={control}
-                  defaultValue={defaultValues.asset}
-                  render={({ field }) => (
-                    <input
-                      {...field}
-                      className="input is-1"
-                      onFocus={(event) => event.target.select()}
-                      onChange={(event) => {
-                        event.target.value = event.target.value.toUpperCase()
-                        field.onChange(event)
-                      }}
+      <div className={`modal ${modalIsOpen ? "is-active" : ""}`}>
+        <div
+          className="modal-background"
+          onClick={() => setModalIsOpen(false)}
+        ></div>
+        <div className="modal-card">
+          <header className="modal-card-head">
+            <p className="modal-card-title">Add Transaction</p>
+            <button
+              className="delete"
+              aria-label="close"
+              onClick={() => setModalIsOpen(false)}
+            ></button>
+          </header>
+          <section className="modal-card-body">
+            <form onSubmit={handleSubmit(onSubmit)} className="form">
+              <div className="form-columns">
+                <div className="form-column">
+                  <div className="form-group">
+                    <label>{t("trn.type")}</label>
+                    <TradeTypeController
+                      name="type"
+                      control={control}
+                      options={options}
                     />
-                  )}
-                />
-              </div>
-              <div className="form-group" style={{ marginBottom: "1rem" }}>
-                {t("trn.currency")}
-                <Controller
-                  name="tradeCurrency"
-                  control={control}
-                  defaultValue={toCurrencyOption(portfolio.currency)}
-                  rules={{ required: true }}
-                  render={({ field }) => (
-                    <ReactSelect
-                      {...field}
+                  </div>
+                  <div className="form-group">
+                    <label>{t("trn.tradeDate")}</label>
+                    {errors.tradeDate && (
+                      <p className="error">{errors.tradeDate.message}</p>
+                    )}
+                    <Controller
+                      name="tradeDate"
+                      control={control}
+                      render={({ field }) => (
+                        <input
+                          {...field}
+                          type="date"
+                          className="input"
+                          tabIndex={2}
+                        />
+                      )}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>{t("trn.asset.code")}</label>
+                    {errors.asset && (
+                      <p className="error">{errors.asset.message}</p>
+                    )}
+                    <Controller
+                      name="asset"
+                      control={control}
+                      defaultValue={defaultValues.asset}
+                      render={({ field }) => (
+                        <input
+                          {...field}
+                          className="input"
+                          onFocus={(event) => event.target.select()}
+                          onChange={(event) => {
+                            event.target.value =
+                              event.target.value.toUpperCase()
+                            field.onChange(event)
+                          }}
+                          tabIndex={3}
+                        />
+                      )}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>{t("trn.market.code")}</label>
+                    {errors.market && (
+                      <p className="error">{errors.market.message}</p>
+                    )}
+                    <Controller
+                      name="market"
+                      control={control}
+                      defaultValue={defaultValues.market}
+                      render={({ field }) => (
+                        <input
+                          {...field}
+                          onFocus={(event) => event.target.select()}
+                          onChange={(event) => {
+                            event.target.value =
+                              event.target.value.toUpperCase()
+                            field.onChange(event)
+                          }}
+                          className="input"
+                          tabIndex={4}
+                        />
+                      )}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>{t("trn.currency")}</label>
+                    <Controller
+                      name="tradeCurrency"
+                      control={control}
                       defaultValue={toCurrencyOption(portfolio.currency)}
-                      options={ccyOptions}
-                      onChange={(event) => {
-                        field.onChange(toCurrency(event!!.value, currencies))
-                      }}
+                      rules={{ required: true }}
+                      render={({ field }) => (
+                        <ReactSelect
+                          {...field}
+                          defaultValue={toCurrencyOption(portfolio.currency)}
+                          options={ccyOptions}
+                          onChange={(event) => {
+                            field.onChange(
+                              toCurrency(event!!.value, currencies),
+                            )
+                          }}
+                          tabIndex={5}
+                        />
+                      )}
                     />
-                  )}
-                />
-              </div>
-              <div className="form-group" style={{ marginBottom: "1rem" }}>
-                {t("quantity")}
-                <Controller
-                  name="quantity"
-                  defaultValue={defaultValues.quantity}
-                  control={control}
-                  render={({ field }) => (
-                    <input
-                      {...field}
-                      type="number"
-                      className="input is-1"
-                      onFocus={(event) => event.target.select()}
+                  </div>
+                </div>
+                <div className="form-column">
+                  <div className="form-group">
+                    <label>{t("quantity")}</label>
+                    <Controller
+                      name="quantity"
+                      defaultValue={defaultValues.quantity}
+                      control={control}
+                      render={({ field }) => (
+                        <input
+                          {...field}
+                          type="number"
+                          className="input"
+                          onFocus={(event) => event.target.select()}
+                          tabIndex={6}
+                        />
+                      )}
                     />
-                  )}
-                />
-              </div>
-            </div>
-            <div
-              className="form-column"
-              style={{
-                flex: 1,
-                minWidth: "300px",
-              }}
-            >
-              <div className="form-group" style={{ marginBottom: "1rem" }}>
-                {t("trn.tradeDate")}
-                {errors.tradeDate && (
-                  <p className="error">{errors.tradeDate.message}</p>
-                )}
-                <Controller
-                  name="tradeDate"
-                  control={control}
-                  render={({ field }) => (
-                    <input {...field} type="date" className="input is-3" />
-                  )}
-                />
-              </div>
-              <div className="form-group" style={{ marginBottom: "1rem" }}>
-                {t("trn.market.code")}
-                {errors.market && (
-                  <p className="error">{errors.market.message}</p>
-                )}
-                <Controller
-                  name="market"
-                  control={control}
-                  defaultValue={defaultValues.market}
-                  render={({ field }) => (
-                    <input
-                      {...field}
-                      onFocus={(event) => event.target.select()}
-                      onChange={(event) => {
-                        event.target.value = event.target.value.toUpperCase()
-                        field.onChange(event)
-                      }}
-                      className="input is-1"
+                  </div>
+                  <div className="form-group">
+                    <label>{t("trn.price")}</label>
+                    <Controller
+                      name="price"
+                      control={control}
+                      defaultValue={defaultValues.price}
+                      render={({ field }) => (
+                        <input
+                          {...field}
+                          type="number"
+                          className="input"
+                          onFocus={(event) => event.target.select()}
+                          tabIndex={7}
+                        />
+                      )}
                     />
-                  )}
-                />
+                  </div>
+                  <div className="form-group">
+                    <label>{t("trn.amount.charges")}</label>
+                    <Controller
+                      name="fees"
+                      defaultValue={defaultValues.fees}
+                      control={control}
+                      render={({ field }) => (
+                        <input
+                          {...field}
+                          type="number"
+                          className="input"
+                          onFocus={(event) => event.target.select()}
+                          tabIndex={8}
+                        />
+                      )}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>{t("trn.amount.tax")}</label>
+                    <Controller
+                      name="tax"
+                      defaultValue={defaultValues.tax}
+                      control={control}
+                      render={({ field }) => (
+                        <input
+                          {...field}
+                          type="number"
+                          className="input"
+                          onFocus={(event) => event.target.select()}
+                          tabIndex={9}
+                        />
+                      )}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>{t("trn.amount.trade")}</label>
+                    <Controller
+                      name="tradeAmount"
+                      defaultValue={defaultValues.tradeAmount}
+                      control={control}
+                      render={({ field }) => (
+                        <input
+                          {...field}
+                          type="number"
+                          className="input"
+                          onFocus={(event) => event.target.select()}
+                          tabIndex={10}
+                        />
+                      )}
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-          <div className="form-group" style={{ marginBottom: "1rem" }}>
-            {t("trn.price")}
-            <Controller
-              name="price"
-              control={control}
-              defaultValue={defaultValues.price}
-              render={({ field }) => (
-                <input
-                  {...field}
-                  type="number"
-                  className="input is-1"
-                  onFocus={(event) => event.target.select()}
-                />
-              )}
-            />
-          </div>
-          <div className="form-group" style={{ marginBottom: "1rem" }}>
-            {t("trn.amount.charges")}
-            <Controller
-              name="fees"
-              defaultValue={defaultValues.fees}
-              control={control}
-              render={({ field }) => (
-                <input
-                  {...field}
-                  type="number"
-                  className="input is-3"
-                  onFocus={(event) => event.target.select()}
-                />
-              )}
-            />
-          </div>
-          <div className="form-group" style={{ marginBottom: "1rem" }}>
-            {t("trn.amount.tax")}
-            <Controller
-              name="tax"
-              defaultValue={defaultValues.tax}
-              control={control}
-              render={({ field }) => (
-                <input
-                  {...field}
-                  type="number"
-                  className="input is-3"
-                  onFocus={(event) => event.target.select()}
-                />
-              )}
-            />
-          </div>
-          <div className="form-group" style={{ marginBottom: "1rem" }}>
-            {t("trn.amount.trade")}
-            <Controller
-              name="tradeAmount"
-              defaultValue={defaultValues.tradeAmount}
-              control={control}
-              render={({ field }) => (
-                <input
-                  {...field}
-                  type="number"
-                  className="input is-3"
-                  onFocus={(event) => event.target.select()}
-                />
-              )}
-            />
-          </div>
-          <div className="space-top" />
-          <div className="field has-margin-top-10">
-            <div className="field is-grouped is-grouped-right">
-              <button type="submit" className="button is-link">
-                Submit
-              </button>
-              <button
-                type="button"
-                className="button is-link is-light"
-                onClick={() => setModalIsOpen(false)}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-          <div>{errorString}</div>
-        </form>
-      </Modal>
+              <div className="form-actions">
+                <button type="submit" className="button is-link" tabIndex={11}>
+                  Submit
+                </button>
+                <button
+                  type="button"
+                  className="button is-link is-light"
+                  onClick={() => setModalIsOpen(false)}
+                  tabIndex={12}
+                >
+                  Cancel
+                </button>
+              </div>
+              <div>{errorString}</div>
+            </form>
+          </section>
+        </div>
+      </div>
     </div>
   )
 }
