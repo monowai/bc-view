@@ -40,7 +40,7 @@
     "react-dom": "^18.x",
     "react-dropzone": "^14.x",
     "react-hook-form": "^7.43.0",
-    "react-i18next": "^14.1",
+    "react-i18next": "^15.4",
     "react-number-format": "^5.x",
     "react-select": "^5.x",
     "react-switch": "7.1.0",
