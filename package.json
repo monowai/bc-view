@@ -84,7 +84,7 @@
     "jest-junit": "^16.x",
     "lint-staged": "^15.2.4",
     "prettier": "^3.x",
-    "sass": "^1.77.0",
+    "sass": "^1.83.4",
     "ts-jest": "^29.1.2",
     "tsconfig-paths-jest": "^0.0.1",
     "typescript": "5.x"
