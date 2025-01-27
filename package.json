@@ -59,7 +59,7 @@
     "@testing-library/dom": "^10.1",
     "@testing-library/jest-dom": "^6.4.5",
     "@testing-library/react": "^16.2.0",
-    "@testing-library/user-event": "^14.4.3",
+    "@testing-library/user-event": "^14.6.1",
     "@types/cors": "^2.x",
     "@types/jest": "^29.x",
     "@types/node": "^22.10.5",
