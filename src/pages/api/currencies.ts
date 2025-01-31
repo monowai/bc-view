@@ -1,5 +1,5 @@
 import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0"
-import { Currency } from "@components/types/beancounter"
+import { Currency } from "types/beancounter"
 import handleResponse, { fetchError } from "@utils/api/response-writer"
 import { getDataUrl } from "@utils/api/bc-config"
 import { NextApiRequest, NextApiResponse } from "next"

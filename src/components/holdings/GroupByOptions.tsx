@@ -1,7 +1,6 @@
 import React, { ReactElement, useCallback } from "react"
-import Select from "react-select"
 import { useHoldingState } from "@utils/holdings/holdingState"
-import { GroupOption, GroupOptions } from "@components/types/app"
+import { GroupOption, GroupOptions } from "types/app"
 import { useTranslation } from "next-i18next"
 import { rootLoader } from "@components/PageLoader"
 
@@ -41,18 +40,23 @@ export function useGroupOptions(): GroupOptions {
   }
 }
 
-const GroupByOptions = (): ReactElement => {
+interface GroupByOptionsProps {
+  onOptionSelect: () => void
+}
+
+const GroupByOptions: React.FC<GroupByOptionsProps> = ({
+  onOptionSelect,
+}): ReactElement => {
   const holdingState = useHoldingState()
   const groupOptions = useGroupOptions()
   const { t, ready } = useTranslation("common")
 
   const handleSelectChange = useCallback(
-    (selectedOption: GroupOption | null) => {
-      if (selectedOption) {
-        holdingState.setGroupBy(selectedOption)
-      }
+    (selectedOption: GroupOption) => {
+      holdingState.setGroupBy(selectedOption)
+      onOptionSelect()
     },
-    [holdingState],
+    [holdingState, onOptionSelect],
   )
 
   if (!ready) {
@@ -60,14 +64,21 @@ const GroupByOptions = (): ReactElement => {
   }
 
   return (
-    <Select
-      options={groupOptions.values}
-      defaultValue={holdingState.groupBy}
-      isSearchable={false}
-      isClearable={false}
-      onChange={handleSelectChange}
-    />
+    <ul className="menu-list">
+      {groupOptions.values.map((option) => (
+        <li
+          key={option.value}
+          className="menu-item"
+          onClick={() => handleSelectChange(option)}
+        >
+          {option.label}
+          {holdingState.groupBy.value === option.value && (
+            <span className="check-mark">&#10003;</span>
+          )}
+        </li>
+      ))}
+    </ul>
   )
 }
 
-export default React.memo(GroupByOptions)
+export default GroupByOptions

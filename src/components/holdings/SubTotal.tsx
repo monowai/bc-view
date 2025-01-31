@@ -1,5 +1,5 @@
 import React, { ReactElement } from "react"
-import { GroupedSubtotals } from "@components/types/beancounter"
+import { GroupedSubtotals } from "types/beancounter"
 import { FormatValue } from "@components/MoneyUtils"
 
 export default function SubTotal({
@@ -8,34 +8,40 @@ export default function SubTotal({
   valueIn,
 }: GroupedSubtotals): ReactElement {
   return (
-    <tbody className={"holding-totals-row"}>
-      <tr key={groupBy} className={"holding-footer"}>
-        <td colSpan={3} align={"right"}>
+    <tbody className="holding-totals-row">
+      <tr>
+        <td colSpan={13} className="border-t-2 border-gray-300"></td>
+      </tr>
+      <tr key={groupBy} className="holding-footer text-sm">
+        <td colSpan={1} className="text-right px-4 py-1">
           Total - {subTotals[valueIn].currency.code}
         </td>
-        <td colSpan={2} align={"right"}>
+        <td colSpan={1} />
+        <td colSpan={1} />
+        <td colSpan={1} />
+        <td className="text-right px-4 py-1">
           <FormatValue value={subTotals[valueIn].costValue} />
         </td>
-        <td colSpan={1} align={"right"}>
+        <td className="text-right px-4 py-1">
           <FormatValue value={subTotals[valueIn].marketValue} />
         </td>
-        <td align={"right"}>
+        <td className="text-right px-4 py-1">
           <FormatValue value={subTotals[valueIn].gainOnDay} />
         </td>
-        <td colSpan={1} align={"right"}>
+        <td className="text-right px-4 py-1">
           <FormatValue value={subTotals[valueIn].unrealisedGain} />
         </td>
-        <td align={"right"}>
+        <td className="text-right px-4 py-1">
           <FormatValue value={subTotals[valueIn].realisedGain} />
         </td>
-        <td align={"right"}>
+        <td className="text-right px-4 py-1">
           <FormatValue value={subTotals[valueIn].dividends} />
         </td>
-        <td />
-        <td align={"right"}>
+        <td colSpan={1} />
+        <td className="text-right px-4 py-1">
           <FormatValue value={subTotals[valueIn].weight} multiplier={100} />%
         </td>
-        <td align={"right"}>
+        <td className="text-right px-4 py-1">
           <FormatValue value={subTotals[valueIn].totalGain} />
         </td>
       </tr>

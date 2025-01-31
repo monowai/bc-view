@@ -59,18 +59,9 @@ const GitInfo: React.FC<GitInfoProps> = ({ alwaysVisible = false }) => {
 
   return (
     <footer
-      style={{
-        position: "fixed",
-        bottom: 0,
-        width: "100%",
-        backgroundColor: "#f1f1f1",
-        fontSize: "12px",
-        padding: "10px",
-        display: "flex",
-        justifyContent: "space-between",
-        transition: "transform 0.3s",
-        transform: visible ? "translateY(0)" : "translateY(100%)",
-      }}
+      className={`fixed bottom-0 w-full bg-gray-200 text-xs p-2 flex justify-between transition-transform duration-300 ${
+        visible ? "translate-y-0" : "translate-y-full"
+      }`}
     >
       <span>Branch: {gitInfo.branch}</span>
       <span>Commit: {gitInfo.commit}</span>

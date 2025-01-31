@@ -1,75 +1,124 @@
-import React, { ReactElement } from "react"
-import { Portfolio, PortfolioSummary } from "@components/types/beancounter"
-import { FormatValue } from "@components/MoneyUtils"
-import { useTranslation } from "next-i18next"
-import { ValueInOption } from "@components/ValueIn"
+import React, {ReactElement, useCallback} from "react"
+import {Portfolio, PortfolioSummary} from "types/beancounter"
+import {FormatValue} from "@components/MoneyUtils"
+import {useTranslation} from "next-i18next"
+import {Controller, useForm} from "react-hook-form"
+import {useHoldingState} from "@utils/holdings/holdingState"
+import {getTodayDate} from "@components/dateutils"
+import Link from "next/link"
 
 export const headers = [
-  "summary.title",
-  "summary.currency",
-  "summary.value",
-  "summary.purchases",
-  "summary.sales",
-  "summary.cash",
-  "summary.dividends",
-  "summary.irr",
-  "summary.gain",
+  {key: "summary.currency", align: "right" as "right"},
+  {key: "summary.value", align: "right" as "right"},
+  {key: "summary.purchases", align: "right" as "right"},
+  {key: "summary.sales", align: "right" as "right"},
+  {key: "summary.cash", align: "right" as "right"},
+  {key: "summary.dividends", align: "right" as "right"},
+  {key: "summary.irr", align: "right" as "right"},
+  {key: "summary.gain", align: "right" as "right"},
 ]
 
 export default function SummaryHeader(portfolio: Portfolio): ReactElement {
-  const { t } = useTranslation("common")
+  const {t} = useTranslation("common")
+  const {control, handleSubmit} = useForm()
+  const holdingState = useHoldingState()
+
+  const onSubmit = useCallback(
+    (data: any): void => {
+      holdingState.setAsAt(data.date)
+    },
+    [holdingState],
+  )
+
+  const handleDateChange = useCallback(
+    (field: any) => (event: React.ChangeEvent<HTMLInputElement>) => {
+      field.onChange(event)
+      const date = new Date(event.target.value)
+      if (!isNaN(date.getTime())) {
+        handleSubmit(onSubmit)()
+      }
+    },
+    [handleSubmit, onSubmit],
+  )
 
   return (
-    <tbody key={portfolio.code}>
-      <tr className={"stats-header"}>
-        {headers.map((header) => (
-          <th
-            key={header}
-            align={header === "summary.title" ? "left" : "right"}
-          >
-            {t(header)}
-          </th>
-        ))}
-      </tr>
-    </tbody>
+    <thead>
+    <tr className="bg-gray-200">
+      <th className="px-2 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm">
+        <div className="flex justify-between">
+            <span className="text-right">
+              {portfolio.name}
+              <Link
+                href={`/portfolios/${portfolio.id}`}
+                className="far fa-edit text-gray-500 hover:text-gray-700 ml-2"
+              />
+              <div className="mt-1 flex items-center"></div>
+            </span>
+          <span className="text-left">
+              <form onSubmit={handleSubmit(onSubmit)}>
+                <Controller
+                  name="date"
+                  control={control}
+                  render={({field}) => (
+                    <input
+                      {...field}
+                      type="date"
+                      defaultValue={getTodayDate(holdingState.asAt)}
+                      className="input"
+                      onChange={handleDateChange(field)}
+                    />
+                  )}
+                />
+              </form>
+            </span>
+        </div>
+      </th>
+      {headers.map((header) => (
+        <th
+          key={header.key}
+          align={header.align}
+          className="px-2 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm"
+        >
+          {t(header.key)}
+        </th>
+      ))}
+    </tr>
+    </thead>
   )
 }
 
 export function SummaryRow({
-  totals,
-  currency,
-}: PortfolioSummary): ReactElement {
-  // const total = totals[valueIn];
+                             totals,
+                             currency,
+                           }: PortfolioSummary): ReactElement {
   const currencyTotals = totals !== undefined
   const displayCurrency = !currencyTotals ? "Mixed" : currency.code
 
   const data = [
-    <div key={currency.code} className="filter-column">
-      <ValueInOption />
-    </div>,
+    <div></div>,
     displayCurrency,
     currencyTotals ? (
-      <FormatValue value={totals.marketValue} defaultValue="-" />
+      <FormatValue value={totals.marketValue} defaultValue="-"/>
     ) : (
       <div>-</div>
     ),
     currencyTotals ? (
-      <FormatValue value={totals.purchases} defaultValue="-" />
+      <FormatValue value={totals.purchases} defaultValue="-"/>
     ) : (
       <div>-</div>
     ),
     currencyTotals ? (
-      <FormatValue value={totals.sales} defaultValue="-" />
+      <FormatValue value={totals.sales} defaultValue="-"/>
     ) : (
       <div>-</div>
     ),
     currencyTotals ? (
-      <FormatValue value={totals.cash} defaultValue="-" />
+      <FormatValue value={totals.cash} defaultValue="-"/>
     ) : (
       <div>-</div>
     ),
     currencyTotals ? (
-      <FormatValue value={totals.income} defaultValue="-" />
+      <FormatValue value={totals.income} defaultValue="-"/>
     ) : (
       <div>-</div>
     ),
@@ -86,9 +135,8 @@ export function SummaryRow({
     ) : (
       <div>-</div>
     ),
-
     currencyTotals ? (
-      <FormatValue value={totals.gain} defaultValue="-" />
+      <FormatValue value={totals.gain} defaultValue="-"/>
     ) : (
       <div>-</div>
     ),
@@ -96,13 +144,17 @@ export function SummaryRow({
 
   return (
     <tbody>
-      <tr className={"stats-row"}>
-        {data.map((item, index) => (
-          <td key={index} align={index === 0 ? "left" : "right"}>
-            {item}
-          </td>
-        ))}
-      </tr>
+    <tr className="bg-white">
+      {data.map((item, index) => (
+        <td
+          key={index}
+          align="right"
+          className="px-2 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm"
+        >
+          {item}
+        </td>
+      ))}
+    </tr>
     </tbody>
   )
 }

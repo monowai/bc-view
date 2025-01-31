@@ -5,7 +5,7 @@ import {
   PortfolioInput,
   PortfolioRequest,
   PortfolioRequests,
-} from "@components/types/beancounter"
+} from "types/beancounter"
 import { ccyKey, portfolioKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { useRouter } from "next/router"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
@@ -46,9 +46,6 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
   const handleSubmit: SubmitHandler<PortfolioInput> = (portfolioInput) => {
     validateInput(portfolioInputSchema, portfolioInput)
       .then(() => {
-        // This all looks a bit messy but too many other priorities to fix right now.
-        // PATCH can only update a single resource
-        // POST will create a collection of portfolios.
         const post = router.query.id === "__NEW__"
         fetch(key, {
           method: post ? "POST" : "PATCH",
@@ -101,28 +98,38 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
   const ccyOptions = currencyOptions(ccyResponse.data.data)
   const currencies = ccyResponse.data.data
   return (
-    <div className="container columns is-mobile is-centered">
-      <form className="column is-5-tablet is-4-desktop is-3-widescreen">
-        <label className="label ">{t("portfolio.code")}</label>
+    <div className="container mx-auto p-4">
+      <form className="max-w-lg mx-auto bg-white p-6 rounded shadow-md">
+        <label className="block text-gray-700 text-sm font-bold mb-2">
+          {t("portfolio.code")}
+        </label>
         <input
           {...register("code")}
           type="text"
-          className={"input is-3"}
+          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
           autoFocus={true}
           placeholder={t("portfolio.code.hint")!!}
           defaultValue={portfolio.code}
         />
-        <div className="alert">{errors?.code?.message}</div>
-        <label className="label">{t("portfolio.name")}</label>
+        <div className="text-red-500 text-xs italic">
+          {errors?.code?.message}
+        </div>
+        <label className="block text-gray-700 text-sm font-bold mb-2">
+          {t("portfolio.name")}
+        </label>
         <input
           {...register("name", { required: true, maxLength: 100 })}
-          className="control input is-3"
+          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
           type="text"
           placeholder={t("portfolio.name.hint")!!}
           defaultValue={portfolio.name}
         />
-        <div className="alert">{errors?.name?.message}</div>
-        <label className="label">{t("portfolio.currency.reporting")}</label>
+        <div className="text-red-500 text-xs italic">
+          {errors?.name?.message}
+        </div>
+        <label className="block text-gray-700 text-sm font-bold mb-2">
+          {t("portfolio.currency.reporting")}
+        </label>
         <Controller
           name="currency"
           control={control}
@@ -140,7 +147,9 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
           )}
         />
 
-        <label className="label">{t("portfolio.currency.base.label")}</label>
+        <label className="block text-gray-700 text-sm font-bold mb-2">
+          {t("portfolio.currency.base.label")}
+        </label>
         <Controller
           name="base"
           control={control}
@@ -157,14 +166,12 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
             />
           )}
         />
-        <div>
-          <p></p>
-        </div>
-        <div className="field is-grouped has-padding-5 has-margin-top-5">
+        <div className="mt-4"></div>
+        <div className="flex items-center justify-between mt-4">
           <button
             type="submit"
             value="submit"
-            className="button is-link control"
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
             onClick={(e) => {
               e.preventDefault()
               handleSubmit(getValues() as PortfolioInput)
@@ -173,15 +180,15 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
             {t("form.submit")}
           </button>
           <button
-            className="control button is-link is-light"
+            className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
             onClick={(e) => {
-              e.preventDefault() // We want router to handle this
+              e.preventDefault()
               router.push("/portfolios").then()
             }}
           >
             {t("form.cancel")}
           </button>
-          <button className="button is-link is-light control">
+          <button className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
             <Link href={`/holdings/${portfolio.code}`}>
               {t("form.holdings")}
             </Link>
@@ -189,33 +196,21 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
         </div>
       </form>
       <div>
-        <div>{transactionUpload(portfolio)}</div>
-      </div>
-    </div>
-  )
-
-  function transactionUpload(portfolio: Portfolio): React.ReactElement {
-    if (!portfolio.id) {
-      return <></>
-    }
-    return (
-      <>
-        <div className="field has-margin-top-100">
+        <div className="flex justify-center items-center mt-10">
           <TrnDropZone portfolio={portfolio} purge={purgeTrn} />
-        </div>
-        <div className="field">
-          <label className="checkbox">
+          <label className="inline-flex items-center ml-4">
             <input
               type="checkbox"
+              className="form-checkbox"
               checked={purgeTrn}
               onChange={() => setPurgeTrn(!purgeTrn)}
             />
-            &nbsp;{t("portfolio.delete.trns")}
+            <span className="ml-2">{t("portfolio.delete.trns")}</span>
           </label>
         </div>
-      </>
-    )
-  }
+      </div>
+    </div>
+  )
 })
 
 export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({

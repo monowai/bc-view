@@ -1,7 +1,7 @@
 import React, { ReactElement, useCallback } from "react"
 import { useDropzone } from "react-dropzone"
-import { Portfolio, TransactionImport } from "@components/types/beancounter"
-import { DelimitedImport } from "@components/types/app"
+import { Portfolio, TransactionImport } from "types/beancounter"
+import { DelimitedImport } from "types/app"
 import Papa from "papaparse"
 
 // Function to read and parse file

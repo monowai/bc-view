@@ -25,7 +25,7 @@ jobs:
           name: Build Application
           command: |
             yarn install --frozen-lockfile
-            yarn test:ci
+            yarn test
       - save_cache:
           paths:
             - node_modules

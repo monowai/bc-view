@@ -10,7 +10,18 @@ interface CustomErrorComponentProps {
 const CustomErrorComponent = ({
   statusCode,
 }: CustomErrorComponentProps): JSX.Element => {
-  return <Error statusCode={statusCode} />
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      <div className="bg-white p-6 rounded-lg shadow-lg text-center">
+        <Error statusCode={statusCode} />
+        <p className="mt-4 text-gray-600">
+          {statusCode
+            ? `An error ${statusCode} occurred on server`
+            : "An error occurred on client"}
+        </p>
+      </div>
+    </div>
+  )
 }
 
 CustomErrorComponent.getInitialProps = async (
