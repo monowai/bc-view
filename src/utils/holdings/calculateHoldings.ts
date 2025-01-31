@@ -6,7 +6,7 @@ import {
   MoneyValues,
   Position,
   Total,
-} from "@components/types/beancounter"
+} from "types/beancounter"
 import { isCashRelated } from "@utils/assets/assetUtils"
 import { GroupBy, ValueIn } from "@components/holdings/GroupByOptions"
 

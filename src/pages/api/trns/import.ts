@@ -1,4 +1,4 @@
-import { TransactionUpload } from "@components/types/app"
+import { TransactionUpload } from "types/app"
 import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0"
 import { Kafka, Partitioners, RecordMetadata } from "kafkajs"
 import {

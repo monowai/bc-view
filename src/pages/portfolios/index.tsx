@@ -2,7 +2,7 @@ import React from "react"
 import useSwr from "swr"
 import { UserProfile, withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useTranslation } from "next-i18next"
-import { Portfolio } from "@components/types/beancounter"
+import { Portfolio } from "types/beancounter"
 import Link from "next/link"
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
@@ -18,7 +18,7 @@ const CreatePortfolioButton = (): React.ReactElement<HTMLButtonElement> => {
 
   return (
     <button
-      className="navbar-item button is-link is-small"
+      className="bg-blue-500 text-white py-2 px-4 rounded"
       onClick={async () => {
         await router.push(`/portfolios/__NEW__`)
       }}
@@ -67,9 +67,9 @@ export default withPageAuthRequired(function Portfolios({
   function listPortfolios(portfolios: Portfolio[]): React.ReactElement {
     if (!portfolios || portfolios.length == 0) {
       return (
-        <nav className="container has-background-grey-lighter">
+        <nav className="container bg-gray-200 p-4">
           <div id="root">{t("error.portfolios.empty")}</div>
-          <div className="column is-left">
+          <div className="mt-4">
             <CreatePortfolioButton />
           </div>
         </nav>
@@ -77,60 +77,67 @@ export default withPageAuthRequired(function Portfolios({
     }
     return (
       <div>
-        <nav className="container has-background-grey-lighter">
-          <div className="column is-left">
+        <nav className="container p-4">
+          <div className="mt-1">
             <CreatePortfolioButton />
           </div>
         </nav>
-        <div className="page-box is-primary has-background-light">
+        <div className="bg-gray-100 p-4 rounded">
           <div className="container">
-            <table className={"table is-striped is-hoverable"}>
-              <thead>
+            <table className="table-auto w-full bg-white shadow-md rounded">
+              <thead className="bg-gray-800 text-white">
                 <tr>
-                  <th>{t("portfolio.code")}</th>
-                  <th>{t("portfolio.name")}</th>
-                  <th>{t("portfolio.currency.report")}</th>
-                  <th>{t("portfolio.currency.base")}</th>
-                  <th align={"right"}>{t("portfolio.marketvalue")}</th>
-                  <th align={"right"}>{t("portfolio.irr")}</th>
-                  <th>{t("portfolio.actions")}</th>
+                  <th className="px-4 py-2 text-left">{t("portfolio.code")}</th>
+                  <th className="px-4 py-2 text-left">{t("portfolio.name")}</th>
+                  <th className="px-4 py-2 text-left">
+                    {t("portfolio.currency.report")}
+                  </th>
+                  <th className="px-4 py-2 text-left">
+                    {t("portfolio.currency.base")}
+                  </th>
+                  <th className="px-4 py-2 text-right">
+                    {t("portfolio.marketvalue")}
+                  </th>
+                  <th className="px-4 py-2 text-right">{t("portfolio.irr")}</th>
+                  <th className="px-4 py-2 text-center">
+                    {t("portfolio.actions")}
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {portfolios.map((portfolio) => (
-                  <tr key={portfolio.id}>
-                    <td>
+                  <tr key={portfolio.id} className="border-t hover:bg-gray-100">
+                    <td className="px-4 py-2">
                       <Link rel="preload" href={`/holdings/${portfolio.code}`}>
                         {portfolio.code}
                       </Link>
                     </td>
-                    <td>{portfolio.name}</td>
-                    <td>
+                    <td className="px-4 py-2">{portfolio.name}</td>
+                    <td className="px-4 py-2">
                       {portfolio.currency.symbol}
                       {portfolio.currency.code}
                     </td>
-                    <td>
+                    <td className="px-4 py-2">
                       {portfolio.base.symbol}
                       {portfolio.base.code}
                     </td>
-                    <td align={"right"}>
+                    <td className="px-4 py-2 text-right">
                       <FormatValue
                         value={
                           portfolio.marketValue ? portfolio.marketValue : " "
                         }
                       />
                     </td>
-                    <td align={"right"}>
+                    <td className="px-4 py-2 text-right">
                       <FormatValue value={portfolio.irr} multiplier={100} />
                       {"%"}
                     </td>
-
-                    <td>
+                    <td className="px-4 py-2 flex items-center justify-center">
                       <Link
                         href={`/portfolios/${portfolio.id}`}
-                        className="far fa-edit"
+                        className="far fa-edit text-blue-500 hover:text-blue-700"
                       ></Link>
-                      <span> </span>
+                      <span className="mx-2"></span>
                       <a
                         onClick={() =>
                           deletePortfolio(
@@ -138,7 +145,7 @@ export default withPageAuthRequired(function Portfolios({
                             t("portfolio.delete", { code: portfolio.code }),
                           )
                         }
-                        className="simple-padding far fa-trash-alt"
+                        className="far fa-trash-alt text-red-500 hover:text-red-700 cursor-pointer"
                       ></a>
                     </td>
                   </tr>

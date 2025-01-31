@@ -1,4 +1,4 @@
-import { HoldingsInCurrency } from "@components/types/beancounter"
+import { HoldingsInCurrency } from "types/beancounter"
 import React, { ReactElement } from "react"
 import { FormatValue } from "@components/MoneyUtils"
 import { useTranslation } from "next-i18next"
@@ -19,23 +19,30 @@ export default function GrandTotal({
     { value: holdings.viewTotals.unrealisedGain, colSpan: 1 },
     { value: holdings.viewTotals.realisedGain, colSpan: 1 },
     { value: holdings.viewTotals.dividends, colSpan: 1 },
-    { value: holdings.viewTotals.weight, colSpan: 2 },
+    { value: holdings.viewTotals.irr, colSpan: 1, multiplier: 100 },
+    { value: holdings.viewTotals.weight, colSpan: 1, multiplier: 100 },
     { value: holdings.viewTotals.totalGain, colSpan: 1 },
   ]
 
   return (
-    <tbody className={"totals-row"} key={holdings.portfolio.code + "totals"}>
-      <tr key={valueIn}>
-        <td colSpan={3} align={"right"}>
+    <tbody className="grand-totals" key={holdings.portfolio.code + "totals"}>
+      <tr key={valueIn} className="holding-footer text-sm">
+        <td colSpan={1} className="text-right px-4 py-1">
           <div>{t("holdings.valueTitle", { valueIn })}</div>
         </td>
+        <td colSpan={2} />
         {data.map((item, index) => (
-          <td key={index} colSpan={item.colSpan} align={"right"}>
+          <td
+            key={index}
+            colSpan={item.colSpan}
+            className="text-right px-4 py-1"
+          >
             <FormatValue
               value={item.value}
               defaultValue="-"
-              multiplier={index === 6 ? 100 : 1}
+              multiplier={index === 7 ? 100 : 1}
             />
+            {index === 7 && "%"}
           </td>
         ))}
       </tr>

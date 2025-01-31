@@ -1,9 +1,11 @@
+@import "tailwindcss";
+@tailwind utilities;
 html,
 body {
   padding: 0;
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
-    Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+  font-family: Helvetica Neue, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
+    Ubuntu, Cantarell, Fira Sans, Droid Sans,  sans-serif;
 }
 
 a {
@@ -13,4 +15,48 @@ a {
 
 * {
   box-sizing: border-box;
+}
+.tooltip {
+  width: 90px; /* Adjust this value as needed */
+  max-width: 100px; /* Adjust this value as needed */
+}
+
+.menu-list {
+  position: relative;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-family: Helvetica Neue, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, sans-serif;
+}
+
+.menu-item {
+  padding: 10px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: inherit;
+  font-size: 14px; /* Adjust this value to match the title text size */
+}
+
+.menu-item:hover {
+  background-color: #f0f0f0;
+}
+
+.check-mark {
+  margin-left: 10px;
+}
+
+.flyout-menu {
+  display: none;
+  position: absolute;
+  left: 100%;
+  top: 0;
+  background-color: white;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  z-index: 1000; /* Set a higher z-index value */
 }

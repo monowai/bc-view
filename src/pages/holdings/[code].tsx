@@ -1,6 +1,6 @@
-import React from "react"
+import React, { useState, useEffect } from "react"
 import { calculateHoldings } from "@utils/holdings/calculateHoldings"
-import { Holdings } from "@components/types/beancounter"
+import { Holdings } from "types/beancounter"
 import { rootLoader } from "@components/PageLoader"
 import { useRouter } from "next/router"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
@@ -11,13 +11,13 @@ import useSwr from "swr"
 import { holdingKey, simpleFetcher } from "@utils/api/fetchHelper"
 import errorOut from "@components/errors/ErrorOut"
 import { useHoldingState } from "@utils/holdings/holdingState"
-import { HoldingOptions } from "@components/holdings/HoldingOptions"
+import HoldingMenu from "@components/holdings/HoldingMenu"
 import SummaryHeader, { SummaryRow } from "@components/holdings/Summary"
 import Rows from "@components/holdings/Rows"
 import SubTotal from "@components/holdings/SubTotal"
 import Header from "@components/holdings/Header"
 import GrandTotal from "@components/holdings/GrandTotal"
-import Input from "@pages/trns/input"
+import TradeInputForm from "@pages/trns/trade"
 
 function HoldingsPage(): React.ReactElement {
   const router = useRouter()
@@ -27,6 +27,21 @@ function HoldingsPage(): React.ReactElement {
     holdingKey(`${router.query.code}`, `${holdingState.asAt}`),
     simpleFetcher(holdingKey(`${router.query.code}`, `${holdingState.asAt}`)),
   )
+
+  const [tradeModalOpen, setTradeModalOpen] = useState(false)
+
+  useEffect(() => {
+    if (router.query.action === "trade") {
+      setTradeModalOpen(true)
+    }
+  }, [router.query.action])
+
+  const closeModal = (): void => {
+    setTradeModalOpen(false)
+    router
+      .push(`/holdings/${router.query.code}`, undefined, { shallow: true })
+      .then()
+  }
 
   if (error && ready) {
     console.error(error) // Log the error for debugging
@@ -40,18 +55,15 @@ function HoldingsPage(): React.ReactElement {
   }
   const holdingResults = data.data
   if (Object.keys(holdingResults.positions).length === 0) {
-    return (
-      <div>
-        No Holdings for {holdingResults.portfolio.code}
-        <Input
+    return <div>
+      <div className="flex justify-end py-1">
+        <TradeInputForm
           portfolio={holdingResults.portfolio}
-          isOpen={false}
-          closeModal={function (): void {
-            throw new Error("Function not implemented.")
-          }}
+          isOpen={tradeModalOpen}
+          closeModal={closeModal}
         />
       </div>
-    )
+      No Holdings for {holdingResults.portfolio.code}</div>
   }
 
   // Render where we are in the initialization process
@@ -63,43 +75,52 @@ function HoldingsPage(): React.ReactElement {
   ) as Holdings
   const sortOrder = ["Equity", "Exchange Traded Fund", "Cash"]
   return (
-    <div className="page-box">
-      <HoldingOptions portfolio={holdingResults.portfolio} />
-      <div>
-        <table className={"stats-container"}>
-          <SummaryHeader {...holdingResults.portfolio} />
-          <SummaryRow totals={holdings.totals} currency={holdings.currency} />
-        </table>
+    <div className="w-full py-4">
+      <HoldingMenu portfolio={holdingResults.portfolio} />
+      <div className="flex justify-end py-1">
+        <TradeInputForm
+          portfolio={holdingResults.portfolio}
+          isOpen={tradeModalOpen}
+          closeModal={closeModal}
+        />
       </div>
-      <div className={"all-getData"}>
-        <table className={"table is-striped is-hoverable"}>
-          {Object.keys(holdings.holdingGroups)
-            .sort((a, b) => {
-              return sortOrder.indexOf(a) - sortOrder.indexOf(b)
-            })
-            .map((groupKey) => {
-              return (
-                <React.Fragment key={groupKey}>
-                  <Header groupKey={groupKey} />
-                  <Rows
-                    portfolio={holdingResults.portfolio}
-                    groupBy={groupKey}
-                    holdingGroup={holdings.holdingGroups[groupKey]}
-                    valueIn={holdingState.valueIn.value}
-                  />
-                  <SubTotal
-                    groupBy={groupKey}
-                    subTotals={holdings.holdingGroups[groupKey].subTotals}
-                    valueIn={holdingState.valueIn.value}
-                  />
-                </React.Fragment>
-              )
-            })}
-          <GrandTotal
-            holdings={holdings}
-            valueIn={holdingState.valueIn.value}
-          />
-        </table>
+      <div className="grid grid-cols-1 gap-3">
+        <div>
+          <table className="min-w-full bg-white">
+            <SummaryHeader {...holdingResults.portfolio} />
+            <SummaryRow totals={holdings.totals} currency={holdings.currency} />
+          </table>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full bg-white">
+            {Object.keys(holdings.holdingGroups)
+              .sort((a, b) => {
+                return sortOrder.indexOf(a) - sortOrder.indexOf(b)
+              })
+              .map((groupKey) => {
+                return (
+                  <React.Fragment key={groupKey}>
+                    <Header groupKey={groupKey} />
+                    <Rows
+                      portfolio={holdingResults.portfolio}
+                      groupBy={groupKey}
+                      holdingGroup={holdings.holdingGroups[groupKey]}
+                      valueIn={holdingState.valueIn.value}
+                    />
+                    <SubTotal
+                      groupBy={groupKey}
+                      subTotals={holdings.holdingGroups[groupKey].subTotals}
+                      valueIn={holdingState.valueIn.value}
+                    />
+                  </React.Fragment>
+                )
+              })}
+            <GrandTotal
+              holdings={holdings}
+              valueIn={holdingState.valueIn.value}
+            />
+          </table>
+        </div>
       </div>
     </div>
   )

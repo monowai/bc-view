@@ -5,8 +5,11 @@ export function rootLoader(message: string, show = true): ReactElement {
     return <div />
   }
   return (
-    <div className="pageloader is-active is-dark" data-testid={"loading"}>
-      <span className="title">{message}</span>
+    <div
+      className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-75 z-50 h-screen w-screen"
+      data-testid={"loading"}
+    >
+      <span className="text-white text-lg font-bold">{message}</span>
     </div>
   )
 }

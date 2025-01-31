@@ -181,6 +181,22 @@ interface TrnInput {
   tax: number
 }
 
+interface TradeFormData {
+  type: { value: string; label: string };
+  asset: string;
+  market: string;
+  tradeDate: string;
+  quantity: number;
+  price: number;
+  tradeCurrency: { value: string; label: string };
+  cashCurrency?: { value: string; label: string };
+  tradeAmount?: number;
+  cashAmount?: number;
+  fees: number;
+  tax: number;
+  comments: string | undefined;
+}
+
 interface CallerRef {
   provider: string
   batch: string

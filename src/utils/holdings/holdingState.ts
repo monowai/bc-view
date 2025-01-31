@@ -4,7 +4,7 @@ import {
   GroupOption,
   HoldingDefaults,
   ValuationOption,
-} from "@components/types/app"
+} from "types/app"
 import { useValuationOptions } from "@components/ValueIn"
 import { useGroupOptions } from "@components/holdings/GroupByOptions"
 

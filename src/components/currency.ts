@@ -1,4 +1,4 @@
-import { Currency, CurrencyOption } from "@components/types/beancounter"
+import { Currency, CurrencyOption } from "types/beancounter"
 
 // export const usd: CurrencyOption = { value: "USD", label: "USD" };
 export function currencyOptions(currencies: Currency[]): CurrencyOption[] {

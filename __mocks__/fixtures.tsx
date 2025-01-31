@@ -4,7 +4,7 @@ import { ConfigContext } from "@auth0/nextjs-auth0/dist/client/use-config"
 import {
   PortfolioResponses,
   RegistrationResponse,
-} from "@components/types/beancounter"
+} from "types/beancounter"
 
 export const mockUserProfile: UserProfile = {
   email: "foo@example.com",
@@ -46,6 +46,8 @@ export const portfolioResult: PortfolioResponses = {
         active: true,
         since: "2020-03-03",
       },
+      marketValue: 0,
+      irr: 0,
     },
   ],
 }

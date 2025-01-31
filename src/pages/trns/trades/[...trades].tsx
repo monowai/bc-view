@@ -7,7 +7,7 @@ import { useRouter } from "next/router"
 import { assetKey, simpleFetcher, tradeKey } from "@utils/api/fetchHelper"
 import { useTranslation } from "next-i18next"
 import Link from "next/link"
-import { Transaction } from "@components/types/beancounter"
+import { Transaction } from "types/beancounter"
 import { rootLoader } from "@components/PageLoader"
 import errorOut from "@components/errors/ErrorOut"
 import useSwr from "swr"
@@ -39,40 +39,44 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
   }
   return (
     <div>
-      <nav className="container">
-        <div className={"page-title"}>
-          <div className={"column page-title subtitle is-6"}>
+      <nav className="container mx-auto p-4">
+        <div className="flex justify-between items-center">
+          <div className="text-lg font-semibold">
             {asset.data.data.name}:{asset.data.data.market.code}
           </div>
         </div>
       </nav>
-      <div className="page-box is-primary has-background-light">
-        <div className="container">
-          <table className={"table is-striped is-hoverable"}>
+      <div className="bg-gray-100 p-4 rounded-lg shadow-md">
+        <div className="container mx-auto">
+          <table className="min-w-full bg-white">
             <thead>
               <tr>
-                <th>{t("trn.type")}</th>
-                <th>{t("trn.currency")}</th>
-                <th>{t("trn.tradeDate")}</th>
-                <th align={"right"}>{t("quantity")}</th>
-                <th align={"right"}>{t("trn.price")}</th>
-                <th align={"right"}>{t("trn.amount.trade")}</th>
-                <th align={"right"}>{t("trn.rate.tb")}</th>
-                <th align={"right"}>{t("trn.rate.tc")}</th>
-                <th align={"right"}>{t("trn.rate.tp")}</th>
-                <th align={"right"}>{t("trn.amount.cash")}</th>
-                <th align={"right"}>{t("trn.amount.tax")}</th>
-                <th align={"right"}>{t("trn.amount.charges")}</th>
-                <th align={"right"}>{t("trn.action")}</th>
+                <th className="px-4 py-2">{t("trn.type")}</th>
+                <th className="px-4 py-2">{t("trn.currency")}</th>
+                <th className="px-4 py-2">{t("trn.tradeDate")}</th>
+                <th className="px-4 py-2 text-right">{t("quantity")}</th>
+                <th className="px-4 py-2 text-right">{t("trn.price")}</th>
+                <th className="px-4 py-2 text-right">
+                  {t("trn.amount.trade")}
+                </th>
+                <th className="px-4 py-2 text-right">{t("trn.rate.tb")}</th>
+                <th className="px-4 py-2 text-right">{t("trn.rate.tc")}</th>
+                <th className="px-4 py-2 text-right">{t("trn.rate.tp")}</th>
+                <th className="px-4 py-2 text-right">{t("trn.amount.cash")}</th>
+                <th className="px-4 py-2 text-right">{t("trn.amount.tax")}</th>
+                <th className="px-4 py-2 text-right">
+                  {t("trn.amount.charges")}
+                </th>
+                <th className="px-4 py-2 text-right">{t("trn.action")}</th>
               </tr>
             </thead>
             <tbody>
               {trnResults.map((trn: Transaction) => (
                 <tr key={trn.id}>
-                  <td>{trn.trnType}</td>
-                  <td>{trn.tradeCurrency.code}</td>
-                  <td>{trn.tradeDate}</td>
-                  <td align={"right"}>
+                  <td className="px-4 py-2">{trn.trnType}</td>
+                  <td className="px-4 py-2">{trn.tradeCurrency.code}</td>
+                  <td className="px-4 py-2">{trn.tradeDate}</td>
+                  <td className="px-4 py-2 text-right">
                     <NumericFormat
                       value={trn.quantity}
                       displayType={"text"}
@@ -81,7 +85,7 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                       thousandSeparator={true}
                     />
                   </td>
-                  <td align={"right"}>
+                  <td className="px-4 py-2 text-right">
                     <NumericFormat
                       value={trn.price}
                       displayType={"text"}
@@ -90,7 +94,7 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                       thousandSeparator={true}
                     />
                   </td>
-                  <td align={"right"}>
+                  <td className="px-4 py-2 text-right">
                     <NumericFormat
                       value={trn.tradeAmount}
                       displayType={"text"}
@@ -99,7 +103,7 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                       thousandSeparator={true}
                     />
                   </td>
-                  <td align={"right"}>
+                  <td className="px-4 py-2 text-right">
                     <NumericFormat
                       value={trn.tradeBaseRate}
                       displayType={"text"}
@@ -108,7 +112,7 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                       thousandSeparator={true}
                     />
                   </td>
-                  <td align={"right"}>
+                  <td className="px-4 py-2 text-right">
                     <NumericFormat
                       value={trn.tradeCashRate}
                       displayType={"text"}
@@ -117,7 +121,7 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                       thousandSeparator={true}
                     />
                   </td>
-                  <td align={"right"}>
+                  <td className="px-4 py-2 text-right">
                     <NumericFormat
                       value={trn.tradePortfolioRate}
                       displayType={"text"}
@@ -126,8 +130,7 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                       thousandSeparator={true}
                     />
                   </td>
-
-                  <td align={"right"}>
+                  <td className="px-4 py-2 text-right">
                     <NumericFormat
                       value={trn.cashAmount}
                       displayType={"text"}
@@ -136,8 +139,7 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                       thousandSeparator={true}
                     />
                   </td>
-
-                  <td align={"right"}>
+                  <td className="px-4 py-2 text-right">
                     <NumericFormat
                       value={trn.tax}
                       displayType={"text"}
@@ -146,7 +148,7 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                       thousandSeparator={true}
                     />
                   </td>
-                  <td align={"right"}>
+                  <td className="px-4 py-2 text-right">
                     <NumericFormat
                       value={trn.fees}
                       displayType={"text"}
@@ -155,15 +157,19 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                       thousandSeparator={true}
                     />
                   </td>
-                  <td align={"left"}>
+                  <td className="px-4 py-2 text-left">
                     <Link
                       href={`/trns/trades/edit/${trn.portfolio.id}/${trn.id}`}
-                      className="fa fa-edit"
-                    ></Link>
-                    <text
+                      className="text-blue-500 hover:text-blue-700"
+                    >
+                      <i className="fa fa-edit"></i>
+                    </Link>
+                    <button
                       onClick={() => deleteTrn(trn.id, t("trn.delete"))}
-                      className="simple-padding fa fa-trash-can"
-                    ></text>
+                      className="ml-2 text-red-500 hover:text-red-700"
+                    >
+                      <i className="fa fa-trash-can"></i>
+                    </button>
                   </td>
                 </tr>
               ))}

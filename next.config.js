@@ -26,7 +26,6 @@ module.exports = withSentryConfig(module.exports, {
 
   org: "monowai-developments-ltd",
   project: "bc-view",
-
   // Only print logs for uploading source maps in CI
   silent: !process.env.CI,
 
@@ -39,6 +38,10 @@ module.exports = withSentryConfig(module.exports, {
   // Automatically annotate React components to show their full name in breadcrumbs and session replay
   reactComponentAnnotation: {
     enabled: true,
+  },
+
+  sourcemaps: {
+    deleteSourcemapsAfterUpload: true,
   },
 
   // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.

@@ -1,7 +1,7 @@
 import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0"
 import { requestInit } from "@utils/api/fetchHelper"
 import handleResponse, { fetchError } from "@utils/api/response-writer"
-import { Portfolio } from "@components/types/beancounter"
+import { Portfolio } from "types/beancounter"
 import { getDataUrl } from "@utils/api/bc-config"
 import { NextApiRequest, NextApiResponse } from "next"
 

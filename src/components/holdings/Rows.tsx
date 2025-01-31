@@ -1,4 +1,4 @@
-import { HoldingValues, PriceData } from "@components/types/beancounter"
+import { HoldingValues, PriceData } from "types/beancounter"
 import { NumericFormat } from "react-number-format"
 import { FormatValue } from "@components/MoneyUtils"
 import React, { ReactElement } from "react"
@@ -11,146 +11,138 @@ export default function Rows({
   groupBy,
   valueIn,
 }: HoldingValues): ReactElement {
-  function hideValue(priceData: PriceData | undefined): boolean {
-    return !priceData
-  }
+  const hideValue = (priceData: PriceData | undefined): boolean => !priceData
 
-  // eslint-disable-next-line complexity
-  const holdings = holdingGroup.positions.map(
-    ({ asset, moneyValues, quantityValues, dateValues }, index) => (
-      <tr key={groupBy + index} className={"holding-row"}>
-        <td className={"asset"}>{displayName(asset)}</td>
-        <td className={"price"} align={"right"}>
-          {hideValue(moneyValues[valueIn].priceData) ? (
-            " "
-          ) : (
-            <span
-              data-tooltip={
-                moneyValues[valueIn].priceData
-                  ? moneyValues[valueIn].priceData.priceDate
-                  : ""
-              }
-            >
-              {moneyValues[valueIn].currency.code}
-              {moneyValues[valueIn].currency.symbol}
-              <FormatValue
-                value={
-                  moneyValues[valueIn].priceData
-                    ? moneyValues[valueIn].priceData.close
-                    : " "
-                }
-              />
-            </span>
-          )}
-        </td>
-        <td align={"right"}>
-          {hideValue(
-            moneyValues[valueIn].priceData &&
-              moneyValues[valueIn].priceData.changePercent,
-          ) ? (
-            " "
-          ) : (
-            <span
-              className={
-                moneyValues[valueIn].priceData.changePercent < 0
-                  ? "negative-gain"
-                  : "positive-gain"
-              }
-              data-tooltip={
-                `Previous ${moneyValues[valueIn].currency.symbol}` +
-                " " +
-                moneyValues[valueIn].priceData.previousClose
-              }
-            >
-              {(moneyValues[valueIn].priceData.changePercent * 100).toFixed(2)}%
-            </span>
-          )}
-        </td>
-        <td align={"right"}>
-          {isCashRelated(asset) || hideValue(moneyValues[valueIn].priceData) ? (
-            " "
-          ) : (
-            <NumericFormat
-              value={quantityValues.total}
-              displayType={"text"}
-              decimalScale={quantityValues.precision}
-              fixedDecimalScale={true}
-              thousandSeparator={true}
-            />
-          )}
-          {/*)}*/}
-        </td>
-        <td align={"right"}>
-          <span
-            data-tooltip={`Average: ${moneyValues[valueIn].averageCost.toLocaleString()}`}
-          >
-            <FormatValue value={moneyValues[valueIn].costValue} />
-          </span>
-        </td>
-        <td align={"right"}>
-          <Link
-            href={`/trns/trades`}
-            as={`/trns/trades/${portfolio.id}/${asset.id}`}
-          >
-            <FormatValue
-              value={moneyValues[valueIn].marketValue}
-              defaultValue="0"
-            />
-          </Link>
-        </td>
-        <td align={"right"}>
-          {hideValue(moneyValues[valueIn].priceData) ||
-          !moneyValues[valueIn].priceData.changePercent ? (
-            " "
-          ) : (
-            <FormatValue value={moneyValues[valueIn].gainOnDay} />
-          )}
-        </td>
-        <td align={"right"}>
-          <FormatValue value={moneyValues[valueIn].unrealisedGain} />
-        </td>
-        <td align={"right"}>
-          <FormatValue value={moneyValues[valueIn].realisedGain} />
-        </td>
-        <td align={"right"}>
-          {
-            <span
-              data-tooltip={
-                dateValues ? `Last Event: ${dateValues.lastDividend}` : "N/A"
-              }
-            >
+  return (
+    <tbody>
+      {holdingGroup.positions.map(
+        ({ asset, moneyValues, quantityValues, dateValues }, index) => (
+          <tr key={groupBy + index} className="holding-row text-sm">
+            <td className="px-4 py-1 text-ellipsis">{displayName(asset)}</td>
+            <td className="text-right px-4 py-1">
+              {hideValue(moneyValues[valueIn].priceData) ? (
+                " "
+              ) : (
+                <span className="relative group">
+                  {moneyValues[valueIn].currency.code}
+                  {moneyValues[valueIn].currency.symbol}
+                  <FormatValue
+                    value={moneyValues[valueIn].priceData?.close || " "}
+                  />
+                  <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full bg-gray-700 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 tooltip">
+                    {moneyValues[valueIn].priceData.priceDate}
+                  </span>
+                </span>
+              )}
+            </td>
+            <td className="text-right px-4 py-1">
+              {hideValue(moneyValues[valueIn].priceData?.changePercent) ? (
+                " "
+              ) : (
+                <span
+                  className={`relative group ${
+                    moneyValues[valueIn].priceData.changePercent < 0
+                      ? "text-red-500"
+                      : "text-green-500"
+                  }`}
+                >
+                  {(moneyValues[valueIn].priceData.changePercent * 100).toFixed(
+                    2,
+                  )}
+                  %
+                  <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full bg-gray-700 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 tooltip">
+                    Previous {moneyValues[valueIn].currency.symbol}{" "}
+                    {moneyValues[valueIn].priceData.previousClose}
+                  </span>
+                </span>
+              )}
+            </td>
+            <td className="text-right px-4 py-1">
+              {isCashRelated(asset) ||
+              hideValue(moneyValues[valueIn].priceData) ? (
+                " "
+              ) : (
+                <NumericFormat
+                  value={quantityValues.total}
+                  displayType="text"
+                  decimalScale={quantityValues.precision}
+                  fixedDecimalScale
+                  thousandSeparator
+                />
+              )}
+            </td>
+            <td className="text-right px-4 py-1">
+              <span className="relative group">
+                <FormatValue value={moneyValues[valueIn].costValue} />
+                <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full bg-gray-700 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 tooltip">
+                  Average: {moneyValues[valueIn].averageCost.toLocaleString()}
+                </span>
+              </span>
+            </td>
+            <td className="text-right px-4 py-1">
               <Link
-                href={`/trns/events`}
-                as={`/trns/events/${portfolio.id}/${asset.id}`}
-              >
-                {<FormatValue value={moneyValues[valueIn].dividends} />}
-              </Link>
-            </span>
-          }
-        </td>
-        <td align={"right"}>
-          {!isCashRelated(asset) && (
-            <>
-              <span
-                data-tooltip={`ROI: ${(moneyValues[valueIn].roi * 100).toFixed(2)}%`}
+                href={`/trns/trades`}
+                as={`/trns/trades/${portfolio.id}/${asset.id}`}
               >
                 <FormatValue
-                  value={moneyValues[valueIn].irr}
-                  multiplier={100}
+                  value={moneyValues[valueIn].marketValue}
+                  defaultValue="0"
                 />
-                {"%"}
+              </Link>
+            </td>
+            <td className="text-right px-4 py-1">
+              {hideValue(moneyValues[valueIn].priceData?.changePercent) ? (
+                " "
+              ) : (
+                <FormatValue value={moneyValues[valueIn].gainOnDay} />
+              )}
+            </td>
+            <td className="text-right px-4 py-1">
+              <FormatValue value={moneyValues[valueIn].unrealisedGain} />
+            </td>
+            <td className="text-right px-4 py-1">
+              <FormatValue value={moneyValues[valueIn].realisedGain} />
+            </td>
+            <td className="text-right px-4 py-1">
+              <span className="relative group">
+                <Link
+                  href={`/trns/events`}
+                  as={`/trns/events/${portfolio.id}/${asset.id}`}
+                >
+                  <FormatValue value={moneyValues[valueIn].dividends} />
+                </Link>
+                <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full bg-gray-700 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 tooltip">
+                  Last Event: {dateValues?.lastDividend || "N/A"}
+                </span>
               </span>
-            </>
-          )}
-        </td>
-        <td align={"right"}>
-          <FormatValue value={moneyValues[valueIn].weight} multiplier={100} />%
-        </td>
-        <td align={"right"}>
-          <FormatValue value={moneyValues[valueIn].totalGain} />
-        </td>
-      </tr>
-    ),
+            </td>
+            <td className="text-right px-4 py-1">
+              {!isCashRelated(asset) && (
+                <span className="relative group">
+                  <FormatValue
+                    value={moneyValues[valueIn].irr}
+                    multiplier={100}
+                  />
+                  {"%"}
+                  <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full bg-gray-700 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 tooltip">
+                    ROI: {(moneyValues[valueIn].roi * 100).toFixed(2)}%
+                  </span>
+                </span>
+              )}
+            </td>
+            <td className="text-right px-4 py-1">
+              <FormatValue
+                value={moneyValues[valueIn].weight}
+                multiplier={100}
+              />
+              %
+            </td>
+            <td className="text-right px-4 py-1">
+              <FormatValue value={moneyValues[valueIn].totalGain} />
+            </td>
+          </tr>
+        ),
+      )}
+    </tbody>
   )
-  return <tbody>{holdings}</tbody>
 }

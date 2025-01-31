@@ -13,8 +13,9 @@ export function getAvatar(user: UserProfile, size: number): ReactElement {
       alt={user.name as string}
       style={{
         borderRadius: "50%",
-        width: "auto",
-        height: "auto",
+        width: `${size}px`,
+        height: `${size}px`,
+        objectFit: "cover",
         display: "block",
       }}
       width={size}
