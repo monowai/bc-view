@@ -95,7 +95,7 @@ export function SummaryRow({
   const displayCurrency = !currencyTotals ? "Mixed" : currency.code
 
   const data = [
-    <div></div>,
+    undefined,
     displayCurrency,
     currencyTotals ? (
       <FormatValue value={totals.marketValue} defaultValue="-"/>
