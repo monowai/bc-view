@@ -17,6 +17,9 @@ a {
   box-sizing: border-box;
 }
 
+.input-height {
+  height: 40px; /* Adjust this value to match the height of the ReactSelect component */
+}
 .tooltip {
   width: 90px; /* Adjust this value as needed */
   max-width: 100px; /* Adjust this value as needed */
