@@ -8,7 +8,6 @@ import { useTranslation } from "next-i18next";
 import useSwr from "swr";
 import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper";
 import { currencyOptions, toCurrencyOption } from "@components/currency";
-import ReactSelect from "react-select";
 import { rootLoader } from "@components/PageLoader";
 import { CurrencyOptionSchema } from "@utils/portfolio/schema";
 import { postData } from "@components/DropZone";
@@ -111,7 +110,13 @@ const TradeInputForm: React.FC<{ portfolio: Portfolio }> = ({ portfolio }) => {
                     {[
                       { name: "type", label: t("trn.type"), component: <TradeTypeController name="type" control={control} options={TradeTypeValues.map(value => ({ value, label: value }))} className="input-height" /> },
                       { name: "tradeDate", label: t("trn.tradeDate"), component: <Controller name="tradeDate" control={control} render={({ field }) => <input {...field} type="date" className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height" />} /> },
-                      { name: "cashCurrency", label: t("trn.currency.cash"), component: <Controller name="cashCurrency" control={control} defaultValue={toCurrencyOption(portfolio.currency)} render={({ field }) => <ReactSelect {...field} options={ccyOptions} className="mt-1 input-height" />} /> },
+                      { name: "cashCurrency", label: t("trn.currency.cash"), component: <Controller name="cashCurrency" control={control} defaultValue={toCurrencyOption(portfolio.currency)} render={({ field }) => (
+                            <select {...field} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height">
+                              {ccyOptions.map(option => (
+                                  <option key={option.value} value={option.value}>{option.label}</option>
+                              ))}
+                            </select>
+                        )} /> },
                       { name: "cashAmount", label: t("trn.amount.cash"), component: <Controller name="cashAmount" control={control} render={({ field }) => <input {...field} type="number" className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height" />} /> },
                       { name: "asset", label: t("trn.asset.code"), component: <Controller name="asset" control={control} render={({ field }) => <input {...field} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height" />} /> },
                       { name: "market", label: t("trn.market.code"), component: <Controller name="market" control={control} render={({ field }) => <input {...field} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height" />} /> },
