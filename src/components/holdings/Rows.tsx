@@ -29,7 +29,7 @@ export default function Rows({
                   <FormatValue
                     value={moneyValues[valueIn].priceData?.close || " "}
                   />
-                  <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full bg-gray-700 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 tooltip">
+                  <span className="absolute tooltip">
                     {moneyValues[valueIn].priceData.priceDate}
                   </span>
                 </span>
@@ -50,7 +50,7 @@ export default function Rows({
                     2,
                   )}
                   %
-                  <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full bg-gray-700 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 tooltip">
+                  <span className="absolute tooltip">
                     Previous {moneyValues[valueIn].currency.symbol}{" "}
                     {moneyValues[valueIn].priceData.previousClose}
                   </span>
@@ -74,7 +74,7 @@ export default function Rows({
             <td className="text-right px-4 py-1">
               <span className="relative group">
                 <FormatValue value={moneyValues[valueIn].costValue} />
-                <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full bg-gray-700 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 tooltip">
+                <span className="absolute tooltip">
                   Average: {moneyValues[valueIn].averageCost.toLocaleString()}
                 </span>
               </span>

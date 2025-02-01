@@ -16,9 +16,27 @@ a {
 * {
   box-sizing: border-box;
 }
+
 .tooltip {
   width: 90px; /* Adjust this value as needed */
   max-width: 100px; /* Adjust this value as needed */
+  background-color: rgba(0, 0, 0, 0.5); /* 50% translucent background */
+  color: white;
+  text-align: left;
+  border-radius: 4px;
+  padding: 5px;
+  position: absolute;
+  z-index: 1;
+  left: 100%; /* Position the tooltip to the right of the text */
+  top: 50%; /* Center the tooltip vertically */
+  transform: translateY(-50%) translateX(10px); /* Adjust the position slightly */
+  opacity: 0;
+  transition: opacity 0.3s;
+  font-weight: bolder;
+}
+
+.group:hover .tooltip {
+  opacity: 1;
 }
 
 .menu-list {

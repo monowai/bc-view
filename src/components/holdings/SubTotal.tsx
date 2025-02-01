@@ -8,7 +8,7 @@ export default function SubTotal({
   valueIn,
 }: GroupedSubtotals): ReactElement {
   return (
-    <tbody className="holding-totals-row">
+    <tbody className="font-medium">
       <tr>
         <td colSpan={13} className="border-t-2 border-gray-300"></td>
       </tr>
