@@ -31,12 +31,16 @@ a {
   top: 50%; /* Center the tooltip vertically */
   transform: translateY(-50%) translateX(10px); /* Adjust the position slightly */
   opacity: 0;
-  transition: opacity 0.3s;
+  transition: opacity 0.3s ease .5s;
   font-weight: bolder;
 }
 
 .group:hover .tooltip {
   opacity: 1;
+}
+
+.holding-row:hover {
+  background-color: #f0f0f0; /* Adjust this color as needed */
 }
 
 .menu-list {
