@@ -1,10 +1,7 @@
 import { UserProfile, UserProvider } from "@auth0/nextjs-auth0/client"
 import React, { ReactNode } from "react"
 import { ConfigContext } from "@auth0/nextjs-auth0/dist/client/use-config"
-import {
-  PortfolioResponses,
-  RegistrationResponse,
-} from "types/beancounter"
+import { PortfolioResponses, RegistrationResponse } from "types/beancounter"
 
 export const mockUserProfile: UserProfile = {
   email: "foo@example.com",
