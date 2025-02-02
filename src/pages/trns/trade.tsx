@@ -3,15 +3,15 @@ import { Controller, useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { Portfolio } from "types/beancounter";
-import { calculateTradeAmount, getTradeRow } from "@utils/trns/tradeUtils";
+import { calculateTradeAmount } from "@utils/trns/tradeUtils";
 import { useTranslation } from "next-i18next";
 import useSwr from "swr";
 import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper";
 import { currencyOptions, toCurrencyOption } from "@components/currency";
 import { rootLoader } from "@components/PageLoader";
 import { CurrencyOptionSchema } from "@utils/portfolio/schema";
-import { postData } from "@components/DropZone";
 import TradeTypeController from "@components/TradeTypeController";
+import { onSubmit } from "@utils/trns/formUtils";
 
 const TradeTypeValues = ["BUY", "SELL", "DIVI", "SPLIT"] as const;
 
@@ -50,7 +50,7 @@ const schema = yup.object().shape({
 });
 
 const TradeInputForm: React.FC<{ portfolio: Portfolio }> = ({ portfolio }) => {
-  const { control, handleSubmit, setValue, watch, formState: { errors } } = useForm({
+  const { control, handleSubmit, setValue, watch, formState: { errors, isDirty } } = useForm({
     resolver: yupResolver(schema),
     defaultValues,
   });
@@ -71,19 +71,24 @@ const TradeInputForm: React.FC<{ portfolio: Portfolio }> = ({ portfolio }) => {
     }
   }, [quantity, price, tax, fees, type, setValue]);
 
-  const onSubmit = (data: any): void => {
-    if (Object.keys(errors).length > 0) {
-      console.log("Validation errors:", errors);
-      return;
-    }
-    const row = getTradeRow(data);
-    if (window.confirm(`Do you want to submit the transaction?`)) {
-      postData(portfolio, false, row.split(",")).then(console.log);
-      setTradeModalOpen(false);
-    } else {
-      console.log("Transaction submission canceled");
-    }
-  };
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        if (isDirty) {
+          if (window.confirm("You have unsaved changes. Do you really want to close?")) {
+            setTradeModalOpen(false);
+          }
+        } else {
+          setTradeModalOpen(false);
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [isDirty]);
 
   if (isLoading) return rootLoader(t("loading"));
 
@@ -92,7 +97,7 @@ const TradeInputForm: React.FC<{ portfolio: Portfolio }> = ({ portfolio }) => {
   return (
       <div>
         <button className="bg-blue-500 text-white px-4 py-1 rounded" onClick={() => setTradeModalOpen(true)}>
-          {t("trn.trade")}
+          {t("trade.market")}
         </button>
 
         {tradeModalOpen && (
@@ -100,12 +105,12 @@ const TradeInputForm: React.FC<{ portfolio: Portfolio }> = ({ portfolio }) => {
               <div className="fixed inset-0 bg-black opacity-50" onClick={() => setTradeModalOpen(false)}></div>
               <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl mx-auto p-6 z-50" onClick={(e) => e.stopPropagation()}>
                 <header className="flex justify-between items-center border-b pb-2 mb-4">
-                  <h2 className="text-xl font-semibold">{t("trade.title")}</h2>
+                  <h2 className="text-xl font-semibold">{t("trade.market.title")}</h2>
                   <button className="text-gray-500 hover:text-gray-700" onClick={() => setTradeModalOpen(false)}>
                     &times;
                   </button>
                 </header>
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                <form onSubmit={handleSubmit((data) => onSubmit(portfolio, errors, data, setTradeModalOpen))} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {[
                       { name: "type", label: t("trn.type"), component: <TradeTypeController name="type" control={control} options={TradeTypeValues.map(value => ({ value, label: value }))} className="input-height" /> },
