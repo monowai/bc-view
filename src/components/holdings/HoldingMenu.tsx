@@ -41,7 +41,6 @@ const HoldingMenu: React.FC<HoldingMenuOptions> = ({
             </label>
             <div className="mt-1 flex items-center">
               <Portfolios {...portfolio} />
-
             </div>
           </div>
           <div className="mb-4">
