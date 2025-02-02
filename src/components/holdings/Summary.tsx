@@ -1,26 +1,26 @@
-import React, {ReactElement, useCallback} from "react"
-import {Portfolio, PortfolioSummary} from "types/beancounter"
-import {FormatValue} from "@components/MoneyUtils"
-import {useTranslation} from "next-i18next"
-import {Controller, useForm} from "react-hook-form"
-import {useHoldingState} from "@utils/holdings/holdingState"
-import {getTodayDate} from "@components/dateutils"
+import React, { ReactElement, useCallback } from "react"
+import { Portfolio, PortfolioSummary } from "types/beancounter"
+import { FormatValue } from "@components/MoneyUtils"
+import { useTranslation } from "next-i18next"
+import { Controller, useForm } from "react-hook-form"
+import { useHoldingState } from "@utils/holdings/holdingState"
+import { getTodayDate } from "@components/dateutils"
 import Link from "next/link"
 
 export const headers = [
-  {key: "summary.currency", align: "right" as "right"},
-  {key: "summary.value", align: "right" as "right"},
-  {key: "summary.purchases", align: "right" as "right"},
-  {key: "summary.sales", align: "right" as "right"},
-  {key: "summary.cash", align: "right" as "right"},
-  {key: "summary.dividends", align: "right" as "right"},
-  {key: "summary.irr", align: "right" as "right"},
-  {key: "summary.gain", align: "right" as "right"},
+  { key: "summary.currency", align: "right" as "right" },
+  { key: "summary.value", align: "right" as "right" },
+  { key: "summary.purchases", align: "right" as "right" },
+  { key: "summary.sales", align: "right" as "right" },
+  { key: "summary.cash", align: "right" as "right" },
+  { key: "summary.dividends", align: "right" as "right" },
+  { key: "summary.irr", align: "right" as "right" },
+  { key: "summary.gain", align: "right" as "right" },
 ]
 
 export default function SummaryHeader(portfolio: Portfolio): ReactElement {
-  const {t} = useTranslation("common")
-  const {control, handleSubmit} = useForm()
+  const { t } = useTranslation("common")
+  const { control, handleSubmit } = useForm()
   const holdingState = useHoldingState()
 
   const onSubmit = useCallback(
@@ -43,9 +43,9 @@ export default function SummaryHeader(portfolio: Portfolio): ReactElement {
 
   return (
     <thead>
-    <tr className="bg-gray-200">
-      <th className="px-2 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm">
-        <div className="flex justify-between">
+      <tr className="bg-gray-200">
+        <th className="px-2 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm">
+          <div className="flex justify-between">
             <span className="text-right">
               {portfolio.name}
               <Link
@@ -54,12 +54,12 @@ export default function SummaryHeader(portfolio: Portfolio): ReactElement {
               />
               <div className="mt-1 flex items-center"></div>
             </span>
-          <span className="text-left">
+            <span className="text-left">
               <form onSubmit={handleSubmit(onSubmit)}>
                 <Controller
                   name="date"
                   control={control}
-                  render={({field}) => (
+                  render={({ field }) => (
                     <input
                       {...field}
                       type="date"
@@ -71,26 +71,26 @@ export default function SummaryHeader(portfolio: Portfolio): ReactElement {
                 />
               </form>
             </span>
-        </div>
-      </th>
-      {headers.map((header) => (
-        <th
-          key={header.key}
-          align={header.align}
-          className="px-2 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm"
-        >
-          {t(header.key)}
+          </div>
         </th>
-      ))}
-    </tr>
+        {headers.map((header) => (
+          <th
+            key={header.key}
+            align={header.align}
+            className="px-2 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm"
+          >
+            {t(header.key)}
+          </th>
+        ))}
+      </tr>
     </thead>
   )
 }
 
 export function SummaryRow({
-                             totals,
-                             currency,
-                           }: PortfolioSummary): ReactElement {
+  totals,
+  currency,
+}: PortfolioSummary): ReactElement {
   const currencyTotals = totals !== undefined
   const displayCurrency = !currencyTotals ? "Mixed" : currency.code
 
@@ -98,27 +98,27 @@ export function SummaryRow({
     undefined,
     displayCurrency,
     currencyTotals ? (
-      <FormatValue value={totals.marketValue} defaultValue="-"/>
+      <FormatValue value={totals.marketValue} defaultValue="-" />
     ) : (
       <div>-</div>
     ),
     currencyTotals ? (
-      <FormatValue value={totals.purchases} defaultValue="-"/>
+      <FormatValue value={totals.purchases} defaultValue="-" />
     ) : (
       <div>-</div>
     ),
     currencyTotals ? (
-      <FormatValue value={totals.sales} defaultValue="-"/>
+      <FormatValue value={totals.sales} defaultValue="-" />
     ) : (
       <div>-</div>
     ),
     currencyTotals ? (
-      <FormatValue value={totals.cash} defaultValue="-"/>
+      <FormatValue value={totals.cash} defaultValue="-" />
     ) : (
       <div>-</div>
     ),
     currencyTotals ? (
-      <FormatValue value={totals.income} defaultValue="-"/>
+      <FormatValue value={totals.income} defaultValue="-" />
     ) : (
       <div>-</div>
     ),
@@ -136,7 +136,7 @@ export function SummaryRow({
       <div>-</div>
     ),
     currencyTotals ? (
-      <FormatValue value={totals.gain} defaultValue="-"/>
+      <FormatValue value={totals.gain} defaultValue="-" />
     ) : (
       <div>-</div>
     ),
@@ -144,17 +144,17 @@ export function SummaryRow({
 
   return (
     <tbody>
-    <tr className="bg-white">
-      {data.map((item, index) => (
-        <td
-          key={index}
-          align="right"
-          className="px-2 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm"
-        >
-          {item}
-        </td>
-      ))}
-    </tr>
+      <tr className="bg-white">
+        {data.map((item, index) => (
+          <td
+            key={index}
+            align="right"
+            className="px-2 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm"
+          >
+            {item}
+          </td>
+        ))}
+      </tr>
     </tbody>
   )
 }

@@ -1,8 +1,4 @@
-import {
-  HoldingContract,
-  HoldingGroup,
-  Holdings,
-} from "types/beancounter"
+import { HoldingContract, HoldingGroup, Holdings } from "types/beancounter"
 import * as path from "node:path"
 import * as fs from "node:fs"
 import { GroupBy, ValueIn } from "@components/holdings/GroupByOptions"

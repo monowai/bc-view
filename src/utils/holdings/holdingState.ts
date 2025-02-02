@@ -1,10 +1,6 @@
 import { hookstate, useHookstate } from "@hookstate/core"
 import { devtools } from "@hookstate/devtools"
-import {
-  GroupOption,
-  HoldingDefaults,
-  ValuationOption,
-} from "types/app"
+import { GroupOption, HoldingDefaults, ValuationOption } from "types/app"
 import { useValuationOptions } from "@components/ValueIn"
 import { useGroupOptions } from "@components/holdings/GroupByOptions"
 
