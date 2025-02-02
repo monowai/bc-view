@@ -1,21 +1,24 @@
 module.exports = {
   parser: "@typescript-eslint/parser", // Specifies the ESLint parser
   plugins: ["@typescript-eslint", "react-hooks"],
-  extends: ["plugin:@next/next/recommended", "plugin:react/recommended"],
+  extends: [
+    "plugin:@next/next/recommended",
+    "plugin:react/recommended",
+    "plugin:@typescript-eslint/recommended",
+    "prettier",
+  ],
   settings: {
     react: {
       version: "detect",
     },
   },
-
   parserOptions: {
     ecmaFeatures: {
       jsx: true, // Allows for the parsing of JSX
     },
-    ecmaVersion: 2021, // Allows for the parsing of modern ECMAScript features
+    ecmaVersion: 2023, // Allows for the parsing of modern ECMAScript features
     sourceType: "module", // Allows for the use of imports
   },
-
   rules: {
     "react/prop-types": "off",
     strict: "error",
