@@ -1,28 +1,13 @@
-import {
-  HoldingContract,
-  HoldingGroup,
-  Holdings,
-} from "types/beancounter"
+import {HoldingContract} from "types/beancounter"
 import * as path from "node:path"
 import * as fs from "node:fs"
-import { GroupBy, ValueIn } from "@components/holdings/GroupByOptions"
-import { calculateHoldings } from "@utils/holdings/calculateHoldings"
-import { describe, expect, it } from "@jest/globals"
+import {GroupBy, ValueIn} from "@components/holdings/GroupByOptions"
+import {calculateHoldings} from "@utils/holdings/calculateHoldings"
+import {describe, expect, it} from "@jest/globals"
 
 const dataPath = path.resolve(__dirname, "../__contracts__/sort-holdings.json")
 const data = fs.readFileSync(dataPath, "utf-8")
 
-function validateTotals(result: Holdings): void {
-  const totalGain = 1033.85
-  expect(result.totals.gain).toEqual(totalGain)
-}
-
-function validateEtfGains(etfs: HoldingGroup): void {
-  const expectedGain = 107.69
-  expect(etfs.subTotals[ValueIn.PORTFOLIO].unrealisedGain).toEqual(expectedGain)
-  expect(etfs.subTotals[ValueIn.BASE].unrealisedGain).toEqual(expectedGain)
-  expect(etfs.subTotals[ValueIn.TRADE].unrealisedGain).toEqual(expectedGain)
-}
 
 describe("calculate function", () => {
   const mockContract: HoldingContract = JSON.parse(data).data
