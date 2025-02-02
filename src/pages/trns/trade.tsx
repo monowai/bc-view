@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
@@ -11,7 +11,7 @@ import { currencyOptions, toCurrencyOption } from "@components/currency";
 import { rootLoader } from "@components/PageLoader";
 import { CurrencyOptionSchema } from "@utils/portfolio/schema";
 import TradeTypeController from "@components/TradeTypeController";
-import { onSubmit } from "@utils/trns/formUtils";
+import { onSubmit, useEscapeHandler } from "@utils/trns/formUtils";
 
 const TradeTypeValues = ["BUY", "SELL", "DIVI", "SPLIT"] as const;
 
@@ -49,14 +49,13 @@ const schema = yup.object().shape({
   comment: yup.string().notRequired(),
 });
 
-const TradeInputForm: React.FC<{ portfolio: Portfolio }> = ({ portfolio }) => {
+const TradeInputForm: React.FC<{ portfolio: Portfolio, modalOpen: boolean, setModalOpen: (open: boolean) => void }> = ({ portfolio, modalOpen, setModalOpen }) => {
   const { control, handleSubmit, setValue, watch, formState: { errors, isDirty } } = useForm({
     resolver: yupResolver(schema),
     defaultValues,
   });
   const { data: ccyData, isLoading } = useSwr(ccyKey, simpleFetcher(ccyKey));
   const { t } = useTranslation("common");
-  const [tradeModalOpen, setTradeModalOpen] = useState(false);
 
   const quantity = watch("quantity");
   const price = watch("price");
@@ -71,52 +70,31 @@ const TradeInputForm: React.FC<{ portfolio: Portfolio }> = ({ portfolio }) => {
     }
   }, [quantity, price, tax, fees, type, setValue]);
 
-  useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        if (isDirty) {
-          if (window.confirm("You have unsaved changes. Do you really want to close?")) {
-            setTradeModalOpen(false);
-          }
-        } else {
-          setTradeModalOpen(false);
-        }
-      }
-    };
-
-    document.addEventListener("keydown", handleEscape);
-    return () => {
-      document.removeEventListener("keydown", handleEscape);
-    };
-  }, [isDirty]);
+  useEscapeHandler(isDirty, setModalOpen);
 
   if (isLoading) return rootLoader(t("loading"));
 
   const ccyOptions = currencyOptions(ccyData.data);
 
   return (
-      <div>
-        <button className="bg-blue-500 text-white px-4 py-1 rounded" onClick={() => setTradeModalOpen(true)}>
-          {t("trade.market")}
-        </button>
-
-        {tradeModalOpen && (
+      <>
+        {modalOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center">
-              <div className="fixed inset-0 bg-black opacity-50" onClick={() => setTradeModalOpen(false)}></div>
+              <div className="fixed inset-0 bg-black opacity-50" onClick={() => setModalOpen(false)}></div>
               <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl mx-auto p-6 z-50" onClick={(e) => e.stopPropagation()}>
                 <header className="flex justify-between items-center border-b pb-2 mb-4">
                   <h2 className="text-xl font-semibold">{t("trade.market.title")}</h2>
-                  <button className="text-gray-500 hover:text-gray-700" onClick={() => setTradeModalOpen(false)}>
+                  <button className="text-gray-500 hover:text-gray-700" onClick={() => setModalOpen(false)}>
                     &times;
                   </button>
                 </header>
-                <form onSubmit={handleSubmit((data) => onSubmit(portfolio, errors, data, setTradeModalOpen))} className="space-y-4">
+                <form onSubmit={handleSubmit((data) => onSubmit(portfolio, errors, data, setModalOpen))} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {[
-                      { name: "type", label: t("trn.type"), component: <TradeTypeController name="type" control={control} options={TradeTypeValues.map(value => ({ value, label: value }))} className="input-height" /> },
+                      { name: "type", label: t("trn.type"), component: <TradeTypeController name="type" control={control} options={TradeTypeValues.map(value => ({ value, label: value }))} /> },
                       { name: "tradeDate", label: t("trn.tradeDate"), component: <Controller name="tradeDate" control={control} render={({ field }) => <input {...field} type="date" className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height" />} /> },
                       { name: "cashCurrency", label: t("trn.currency.cash"), component: <Controller name="cashCurrency" control={control} defaultValue={toCurrencyOption(portfolio.currency)} render={({ field }) => (
-                            <select {...field} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height">
+                            <select {...field} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height" value={field.value.value}>
                               {ccyOptions.map(option => (
                                   <option key={option.value} value={option.value}>{option.label}</option>
                               ))}
@@ -130,11 +108,11 @@ const TradeInputForm: React.FC<{ portfolio: Portfolio }> = ({ portfolio }) => {
                       { name: "fees", label: t("trn.amount.charges"), component: <Controller name="fees" control={control} render={({ field }) => <input {...field} type="number" className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height" />} /> },
                       { name: "tax", label: t("trn.amount.tax"), component: <Controller name="tax" control={control} render={({ field }) => <input {...field} type="number" className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height" />} /> },
                       { name: "tradeAmount", label: t("trn.amount.trade"), component: <Controller name="tradeAmount" control={control} render={({ field }) => <input {...field} type="number" className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height" />} /> },
-                      { name: "comment", label: t("trn.comments"), component: <Controller name="comment" control={control} render={({ field }) => <input {...field} type="text" className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height" />} /> },
+                      { name: "comment", label: t("trn.comments"), component: <Controller name="comment" control={control} render={({ field }) => <input {...field} type="text" className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height" value={field.value || ""} />} /> },
                     ].map(({ name, label, component }) => (
                         <div key={name}>
                           <label className="block text-sm font-medium text-gray-700">{label}</label>
-                          {errors[name] && <p className="text-red-500 text-xs">{errors[name]?.message}</p>}
+                          {errors[name as keyof typeof errors] && <p className="text-red-500 text-xs">{errors[name as keyof typeof errors]?.message}</p>}
                           {component}
                         </div>
                     ))}
@@ -142,13 +120,13 @@ const TradeInputForm: React.FC<{ portfolio: Portfolio }> = ({ portfolio }) => {
                   <div className="text-red-500 text-xs">{Object.values(errors).map(error => error?.message).join(" ")}</div>
                   <div className="flex justify-end space-x-2">
                     <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded">Submit</button>
-                    <button type="button" className="bg-gray-300 text-gray-700 px-4 py-2 rounded" onClick={() => setTradeModalOpen(false)}>Cancel</button>
+                    <button type="button" className="bg-gray-300 text-gray-700 px-4 py-2 rounded" onClick={() => setModalOpen(false)}>Cancel</button>
                   </div>
                 </form>
               </div>
             </div>
         )}
-      </div>
+      </>
   );
 };
 

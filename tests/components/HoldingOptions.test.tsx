@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react"
 import { useRouter } from "next/router"
 import "@testing-library/jest-dom"
 import HoldingMenu from "@components/holdings/HoldingMenu"
-import { Portfolio } from "@components/types/beancounter"
+import { Portfolio } from "types/beancounter"
 
 jest.mock("next/router", () => ({
   useRouter: jest.fn(),
