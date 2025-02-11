@@ -83,7 +83,7 @@
     "lint-staged": "^15.4.3",
     "postcss": "^8.5.1",
     "prettier": "^3.x",
-    "sass": "^1.83.4",
+    "sass": "^1.84.0",
     "tailwindcss": "^4.0.6",
     "ts-jest": "^29.1.2",
     "tsconfig-paths-jest": "^0.0.1",
