@@ -39,7 +39,7 @@ interface Total {
   income: number
   gain: number
   irr: number
-  currency: Currency | undefined
+  currency: Currency
 }
 
 export interface HoldingValues {

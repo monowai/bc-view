@@ -55,7 +55,7 @@ function updateSubTotal(
   return subTotal
 }
 
-function zeroTotal(currency: Currency | undefined): Total {
+function zeroTotal(currency: Currency): Total {
   return {
     marketValue: 0,
     purchases: 0,
@@ -185,7 +185,7 @@ export function calculateHoldings(
 
   // Post process results now that all positions have been processed
   results.valueIn = valueIn
-  results.currency = contract.totals[valueIn].currency!!
+  results.currency = contract.totals[valueIn].currency
   results.totals = contract.totals[valueIn]
   results.viewTotals = calculateSummaryTotals(results, valueIn)
   return results

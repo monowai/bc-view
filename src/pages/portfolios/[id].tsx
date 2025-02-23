@@ -108,7 +108,7 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
           type="text"
           className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
           autoFocus={true}
-          placeholder={t("portfolio.code.hint")!!}
+          placeholder={t("portfolio.code.hint")}
           defaultValue={portfolio.code}
         />
         <div className="text-red-500 text-xs italic">
@@ -121,7 +121,7 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
           {...register("name", { required: true, maxLength: 100 })}
           className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
           type="text"
-          placeholder={t("portfolio.name.hint")!!}
+          placeholder={t("portfolio.name.hint")}
           defaultValue={portfolio.name}
         />
         <div className="text-red-500 text-xs italic">
@@ -141,7 +141,9 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
               defaultValue={toCurrencyOption(portfolio.currency)}
               options={ccyOptions}
               onChange={(event) => {
-                field.onChange(toCurrency(event!!.value, currencies))
+                if (event) {
+                  field.onChange(toCurrency(event.value, currencies))
+                }
               }}
             />
           )}
@@ -161,7 +163,9 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
               defaultValue={toCurrencyOption(portfolio.base)}
               options={ccyOptions}
               onChange={(event) => {
-                field.onChange(toCurrency(event!!.value, currencies))
+                if (event) {
+                  field.onChange(toCurrency(event.value, currencies))
+                }
               }}
             />
           )}
