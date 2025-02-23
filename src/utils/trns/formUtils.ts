@@ -15,7 +15,8 @@ export const onSubmit = (
   }
   const row = getTradeRow(data)
   if (window.confirm(`Do you want to submit the transaction?`)) {
-    postData(portfolio, false, row.split(",")).then(console.log)
+    console.log(row)
+    postData(portfolio, false, row.split(",")).then()
     setTradeModalOpen(false)
   } else {
     console.log("Transaction submission canceled")
