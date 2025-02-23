@@ -74,7 +74,7 @@ export default function Rows({
             <td className="text-right px-4 py-1">
               <span className="relative group">
                 <FormatValue value={moneyValues[valueIn].costValue} />
-                <span className="absolute tooltip">
+                <span className="absolute tooltip pointer-events-none">
                   Average: {moneyValues[valueIn].averageCost.toLocaleString()}
                 </span>
               </span>
@@ -111,7 +111,7 @@ export default function Rows({
                 >
                   <FormatValue value={moneyValues[valueIn].dividends} />
                 </Link>
-                <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full bg-gray-700 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 tooltip">
+                <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full bg-gray-700 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 tooltip pointer-events-none">
                   Last Event: {dateValues?.lastDividend || "N/A"}
                 </span>
               </span>
