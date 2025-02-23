@@ -8,14 +8,14 @@ import { getTodayDate } from "@components/dateutils"
 import Link from "next/link"
 
 export const headers = [
-  { key: "summary.currency", align: "right" as "right" },
-  { key: "summary.value", align: "right" as "right" },
-  { key: "summary.purchases", align: "right" as "right" },
-  { key: "summary.sales", align: "right" as "right" },
-  { key: "summary.cash", align: "right" as "right" },
-  { key: "summary.dividends", align: "right" as "right" },
-  { key: "summary.irr", align: "right" as "right" },
-  { key: "summary.gain", align: "right" as "right" },
+  { key: "summary.currency", align: "right" as const },
+  { key: "summary.value", align: "right" as const },
+  { key: "summary.purchases", align: "right" as const },
+  { key: "summary.sales", align: "right" as const },
+  { key: "summary.cash", align: "right" as const },
+  { key: "summary.dividends", align: "right" as const },
+  { key: "summary.irr", align: "right" as const },
+  { key: "summary.gain", align: "right" as const },
 ]
 
 export default function SummaryHeader(portfolio: Portfolio): ReactElement {

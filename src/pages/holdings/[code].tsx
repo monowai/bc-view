@@ -37,16 +37,7 @@ function HoldingsPage(): React.ReactElement {
     } else if (router.query.action === "cash") {
       setCashModalOpen(true)
     }
-  }, [router.query.action])
-
-  const closeModal = (): void => {
-    setTradeModalOpen(false)
-    setCashModalOpen(false)
-
-    router
-      .push(`/holdings/${router.query.code}`, undefined, { shallow: true })
-      .then()
-  }
+  }, [router.query.action, cashModalOpen, tradeModalOpen])
 
   if (error && ready) {
     console.error(error) // Log the error for debugging
