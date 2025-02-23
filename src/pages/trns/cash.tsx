@@ -13,7 +13,7 @@ import { CurrencyOptionSchema } from "@utils/portfolio/schema"
 import { onSubmit, useEscapeHandler } from "@utils/trns/formUtils"
 import TradeTypeController from "@components/TradeTypeController"
 
-const TradeTypeValues = ["DEPOSIT", "WITHDRAW", "DIVI"] as const
+const TradeTypeValues = ["DEPOSIT", "WITHDRAW", "FX"] as const
 
 const defaultValues = {
   type: { value: "DEPOSIT", label: "DEPOSIT" },
