@@ -140,6 +140,7 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                     <Link
                       href={`/trns/trades/edit/${trn.portfolio.id}/${trn.id}`}
                       className="text-blue-500 hover:text-blue-700"
+                      legacyBehavior
                     >
                       <i className="fa fa-edit"></i>
                     </Link>
