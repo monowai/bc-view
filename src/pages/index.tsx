@@ -23,16 +23,24 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
       <div>
         {t("home.welcome")}
         <div>
-          <Link href="/portfolios">{t("home.portfolios")}</Link>
+          <Link href="/portfolios" legacyBehavior>
+            {t("home.portfolios")}
+          </Link>
         </div>
         <div>
-          <Link href="/api/auth/logout">{t("user.logout")}</Link>
+          <Link href="/api/auth/logout" legacyBehavior>
+            {t("user.logout")}
+          </Link>
         </div>
         <GitInfo />
       </div>
     )
   }
-  return <Link href={"/api/auth/login"}>{t("user.login")}</Link>
+  return (
+    <Link href={"/api/auth/login"} legacyBehavior>
+      {t("user.login")}
+    </Link>
+  )
 })
 
 export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({

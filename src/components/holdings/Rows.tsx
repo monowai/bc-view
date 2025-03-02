@@ -83,6 +83,7 @@ export default function Rows({
               <Link
                 href={`/trns/trades`}
                 as={`/trns/trades/${portfolio.id}/${asset.id}`}
+                legacyBehavior
               >
                 <FormatValue
                   value={moneyValues[valueIn].marketValue}
@@ -108,6 +109,7 @@ export default function Rows({
                 <Link
                   href={`/trns/events`}
                   as={`/trns/events/${portfolio.id}/${asset.id}`}
+                  legacyBehavior
                 >
                   <FormatValue value={moneyValues[valueIn].dividends} />
                 </Link>

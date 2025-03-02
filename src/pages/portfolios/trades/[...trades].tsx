@@ -159,6 +159,7 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                     <Link
                       href={`/trns/trades/edit/${trn.portfolio.id}/${trn.id}`}
                       className="fa fa-edit"
+                      legacyBehavior
                     ></Link>
                     <a
                       onClick={() => deleteTrn(trn.id, t("trn.delete"))}
