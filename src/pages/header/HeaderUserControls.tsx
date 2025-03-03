@@ -16,9 +16,7 @@ export default function HeaderUserControls(): React.ReactElement {
   if (!user)
     return (
       <div>
-        <Link href="/api/auth/login" legacyBehavior>
-          {t("user.login")}
-        </Link>
+        <Link href="/api/auth/login">{t("user.login")}</Link>
       </div>
     )
 
@@ -38,7 +36,6 @@ export default function HeaderUserControls(): React.ReactElement {
           <Link
             href="/api/auth/logout"
             className="block px-4 py-2 text-black hover:bg-black-200"
-            legacyBehavior
           >
             {t("user.logout")}
           </Link>

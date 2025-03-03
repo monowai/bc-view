@@ -193,7 +193,7 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
             {t("form.cancel")}
           </button>
           <button className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-            <Link href={`/holdings/${portfolio.code}`} legacyBehavior>
+            <Link href={`/holdings/${portfolio.code}`}>
               {t("form.holdings")}
             </Link>
           </button>

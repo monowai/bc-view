@@ -108,11 +108,7 @@ export default withPageAuthRequired(function Portfolios({
                 {portfolios.map((portfolio) => (
                   <tr key={portfolio.id} className="border-t hover:bg-gray-100">
                     <td className="px-4 py-2">
-                      <Link
-                        rel="preload"
-                        href={`/holdings/${portfolio.code}`}
-                        legacyBehavior
-                      >
+                      <Link rel="preload" href={`/holdings/${portfolio.code}`}>
                         {portfolio.code}
                       </Link>
                     </td>
@@ -140,7 +136,6 @@ export default withPageAuthRequired(function Portfolios({
                       <Link
                         href={`/portfolios/${portfolio.id}`}
                         className="far fa-edit text-blue-500 hover:text-blue-700"
-                        legacyBehavior
                       ></Link>
                       <span className="mx-2"></span>
                       <a

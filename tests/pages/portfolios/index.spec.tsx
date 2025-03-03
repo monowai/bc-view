@@ -16,12 +16,6 @@ jest.mock("swr", () => ({
   default: jest.fn(), // This ensures the default export is a mock function
 }))
 
-jest.mock("next/link", () => {
-  return ({ children }: { children: React.ReactNode }) => {
-    return children
-  }
-})
-
 // Setup the mock data for useSWR as needed before each test
 
 describe("Portfolios Page", () => {
