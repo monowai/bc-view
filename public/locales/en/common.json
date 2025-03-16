@@ -77,7 +77,7 @@
   "portfolio.error.retrieve": "Error retrieving portfolio {{id}}",
   "portfolio.select.currency": "Select a Currency",
   "portfolio.currency.reporting": "Portfolio Reporting Currency",
-  "portfolio.currency.base.label": "Cross Portfolio Base Currency",
+  "portfolio.currency.base.label": "Cost Currency",
   "portfolio.delete.trns": "Delete existing transactions",
   "portfolios.error.retrieve": "Error retrieving portfolios",
   "portfolios.error.empty": "You have no portfolios",
@@ -85,7 +85,8 @@
   "trade.cash": "Cash",
   "trade.market.title": "Market Trade",
   "trade.cash.title": "Cash Transaction",
-
+  "trade.cash.asset": "Currency",
+  "trade.cash.counterAsset": "Currency",
   "trn.amount.trade": "Amount",
   "trn.asset.code": "Asset",
   "trn.market.code": "Market",

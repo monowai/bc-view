@@ -1,5 +1,5 @@
 import { Portfolio } from "types/beancounter"
-import { getTradeRow } from "@utils/trns/tradeUtils"
+import { convert } from "@utils/trns/tradeUtils"
 import { useEffect } from "react"
 import { postData } from "@components/DropZone"
 
@@ -13,8 +13,8 @@ export const onSubmit = (
     console.log("Validation errors:", errors)
     return
   }
-  const row = getTradeRow(data)
-  if (window.confirm(`Do you want to submit the transaction?`)) {
+  const row = convert(data)
+  if (window.confirm(`Do you want to submit the transaction? \r\n${row}`)) {
     console.log(row)
     postData(portfolio, false, row.split(",")).then()
     setTradeModalOpen(false)
