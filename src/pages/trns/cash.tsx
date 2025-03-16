@@ -7,20 +7,23 @@ import { calculateTradeAmount } from "@utils/trns/tradeUtils"
 import { useTranslation } from "next-i18next"
 import useSwr from "swr"
 import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper"
-import { currencyOptions, toCurrencyOption } from "@components/currency"
+import { currencyOptions } from "@components/currency"
 import { rootLoader } from "@components/PageLoader"
 import { CurrencyOptionSchema } from "@utils/portfolio/schema"
 import { onSubmit, useEscapeHandler } from "@utils/trns/formUtils"
 import TradeTypeController from "@components/TradeTypeController"
 
-const TradeTypeValues = ["DEPOSIT", "WITHDRAW", "FX"] as const
+const TradeTypeValues = ["DEPOSIT", "WITHDRAWAL", "FX"] as const
 
 const defaultValues = {
   type: { value: "DEPOSIT", label: "DEPOSIT" },
-  asset: "",
-  market: "US",
+  asset: "USD",
+  market: "CASH",
   tradeDate: new Date().toISOString().split("T")[0],
+  tradeCurrency: { value: "USD", label: "USD" },
   cashCurrency: { value: "USD", label: "USD" },
+  quantity: 0,
+  price: 1,
   tradeAmount: 0,
   cashAmount: 0,
   fees: 0,
@@ -36,10 +39,12 @@ const cashSchema = yup.object().shape({
       label: yup.string().required().default(defaultValues.type.label),
     })
     .required(),
-  asset: yup.string().notRequired(),
+  asset: yup.string().required(),
   market: yup.string().notRequired(),
   tradeDate: yup.string().required(),
   tradeAmount: yup.number(),
+  quantity: yup.number().required().default(defaultValues.quantity),
+  tradeCurrency: CurrencyOptionSchema.required(),
   cashCurrency: CurrencyOptionSchema.required(),
   cashAmount: yup.number(),
   fees: yup.number().required().default(defaultValues.fees),
@@ -68,11 +73,21 @@ const CashInputForm: React.FC<{
   const tax = watch("tax")
   const fees = watch("fees")
   const type = watch("type")
+  const qty = watch("quantity")
+
   useEscapeHandler(isDirty, setModalOpen)
 
   useEffect(() => {
-    const tradeAmount = calculateTradeAmount(0, 0, tax, fees, type.value)
+    const asset = watch("asset")
+    if (asset) {
+      setValue("tradeCurrency", { value: asset, label: asset })
+      setValue("cashCurrency", { value: asset, label: asset })
+    }
+  }, [watch("asset"), setValue])
+  useEffect(() => {
+    const tradeAmount = calculateTradeAmount(qty, 1, tax, fees, type.value)
     setValue("tradeAmount", parseFloat(tradeAmount.toFixed(2)))
+    setValue("cashAmount", parseFloat(tradeAmount.toFixed(2)))
   }, [tax, fees, type, setValue])
 
   if (isLoading) return rootLoader(t("loading"))
@@ -140,18 +155,18 @@ const CashInputForm: React.FC<{
                     ),
                   },
                   {
-                    name: "cashCurrency",
-                    label: t("trn.currency.cash"),
+                    name: "asset",
+                    label: t("trade.cash.asset"),
                     component: (
                       <Controller
-                        name="cashCurrency"
+                        name="asset"
                         control={control}
-                        defaultValue={toCurrencyOption(portfolio.currency)}
+                        defaultValue={portfolio.currency.code}
                         render={({ field }) => (
                           <select
                             {...field}
                             className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
-                            value={field.value.value}
+                            value={field.value}
                           >
                             {ccyOptions.map((option) => (
                               <option key={option.value} value={option.value}>
@@ -163,18 +178,19 @@ const CashInputForm: React.FC<{
                       />
                     ),
                   },
+
                   {
-                    name: "market",
-                    label: t("trn.market.code"),
+                    name: "quantity",
+                    label: t("trn.amount.trade"),
                     component: (
                       <Controller
-                        name="market"
+                        name="quantity"
                         control={control}
                         render={({ field }) => (
                           <input
                             {...field}
+                            type="number"
                             className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
-                            value={field.value || ""}
                           />
                         )}
                       />
@@ -203,23 +219,6 @@ const CashInputForm: React.FC<{
                     component: (
                       <Controller
                         name="tax"
-                        control={control}
-                        render={({ field }) => (
-                          <input
-                            {...field}
-                            type="number"
-                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
-                          />
-                        )}
-                      />
-                    ),
-                  },
-                  {
-                    name: "tradeAmount",
-                    label: t("trn.amount.trade"),
-                    component: (
-                      <Controller
-                        name="tradeAmount"
                         control={control}
                         render={({ field }) => (
                           <input
