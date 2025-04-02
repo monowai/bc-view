@@ -15,7 +15,7 @@ export const onSubmit = (
   }
   const row = convert(data)
   if (window.confirm(`Do you want to submit the transaction? \r\n${row}`)) {
-    console.log(row)
+    alert(row)
     postData(portfolio, false, row.split(",")).then()
     setTradeModalOpen(false)
   } else {

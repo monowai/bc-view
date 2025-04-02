@@ -83,12 +83,12 @@ const CashInputForm: React.FC<{
       setValue("tradeCurrency", { value: asset, label: asset })
       setValue("cashCurrency", { value: asset, label: asset })
     }
-  }, [watch("asset"), setValue])
+  }, [watch, setValue])
   useEffect(() => {
     const tradeAmount = calculateTradeAmount(qty, 1, tax, fees, type.value)
     setValue("tradeAmount", parseFloat(tradeAmount.toFixed(2)))
     setValue("cashAmount", parseFloat(tradeAmount.toFixed(2)))
-  }, [tax, fees, type, setValue])
+  }, [tax, fees, type, qty, setValue])
 
   if (isLoading) return rootLoader(t("loading"))
 
