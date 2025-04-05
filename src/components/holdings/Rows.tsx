@@ -1,16 +1,45 @@
+import React, { useEffect, useMemo } from "react"
 import { HoldingValues, PriceData } from "types/beancounter"
 import { NumericFormat } from "react-number-format"
 import { FormatValue } from "@components/MoneyUtils"
-import React, { ReactElement } from "react"
 import { displayName, isCashRelated } from "@utils/assets/assetUtils"
 import Link from "next/link"
+
+interface RowsProps extends HoldingValues {
+  onColumnsChange: (columns: string[]) => void
+}
 
 export default function Rows({
   portfolio,
   holdingGroup,
   groupBy,
   valueIn,
-}: HoldingValues): ReactElement {
+  onColumnsChange,
+}: RowsProps): React.ReactElement {
+  const columns = useMemo(
+    () => [
+      "Asset Code",
+      "Asset Name",
+      "Price",
+      "Change Percent",
+      "Quantity",
+      "Cost Value",
+      "Market Value",
+      "Gain On Day",
+      "Unrealised Gain",
+      "Realised Gain",
+      "Dividends",
+      "IRR",
+      "Weight",
+      "Total Gain",
+    ],
+    [],
+  )
+
+  useEffect(() => {
+    onColumnsChange(columns)
+  }, [columns, onColumnsChange])
+
   const hideValue = (priceData: PriceData | undefined): boolean => !priceData
 
   return (

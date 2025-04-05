@@ -30,6 +30,7 @@ function HoldingsPage(): React.ReactElement {
 
   const [tradeModalOpen, setTradeModalOpen] = useState(false)
   const [cashModalOpen, setCashModalOpen] = useState(false)
+  const [columns, setColumns] = useState<string[]>([])
 
   useEffect(() => {
     if (router.query.action === "trade") {
@@ -53,7 +54,11 @@ function HoldingsPage(): React.ReactElement {
   if (Object.keys(holdingResults.positions).length === 0) {
     return (
       <div>
-        <HoldingActions portfolio={holdingResults.portfolio} />
+        <HoldingActions
+          holdingResults={holdingResults}
+          columns={columns}
+          valueIn={holdingState.valueIn.value}
+        />
         No Holdings for {holdingResults.portfolio.code}
       </div>
     )
@@ -67,10 +72,15 @@ function HoldingsPage(): React.ReactElement {
     holdingState.groupBy.value,
   ) as Holdings
   const sortOrder = ["Equity", "Exchange Traded Fund", "Cash"]
+
   return (
     <div className="w-full py-4">
       <HoldingMenu portfolio={holdingResults.portfolio} />
-      <HoldingActions portfolio={holdingResults.portfolio} />
+      <HoldingActions
+        holdingResults={holdingResults}
+        columns={columns}
+        valueIn={holdingState.valueIn.value}
+      />
       <div className="grid grid-cols-1 gap-3">
         <div>
           <table className="min-w-full bg-white">
@@ -93,6 +103,7 @@ function HoldingsPage(): React.ReactElement {
                       groupBy={groupKey}
                       holdingGroup={holdings.holdingGroups[groupKey]}
                       valueIn={holdingState.valueIn.value}
+                      onColumnsChange={setColumns}
                     />
                     <SubTotal
                       groupBy={groupKey}
