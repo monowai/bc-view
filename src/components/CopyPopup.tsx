@@ -66,8 +66,29 @@ const CopyPopup: React.FC<CopyPopupProps> = ({
         .join("\t"),
     )
     const clipboardData = [selectedColumns.join("\t"), ...rows].join("\n")
-    navigator.clipboard.writeText(clipboardData).then()
-    onClose()
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(clipboardData).then(() => {
+        onClose()
+      }).catch((err) => {
+        console.error("Failed to copy text: ", err)
+      })
+    } else {
+      // Fallback for unsupported environments
+      const textarea = document.createElement("textarea")
+      textarea.value = clipboardData
+      textarea.style.position = "fixed" // Prevent scrolling to bottom
+      document.body.appendChild(textarea)
+      textarea.focus()
+      textarea.select()
+      try {
+        document.execCommand("copy")
+        onClose()
+      } catch (err) {
+        console.error("Fallback: Failed to copy text: ", err)
+      }
+      document.body.removeChild(textarea)
+    }
   }
 
   if (!modalOpen) {
