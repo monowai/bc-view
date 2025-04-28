@@ -14,7 +14,7 @@
     "precommit": "lint-staged"
   },
   "dependencies": {
-    "@auth0/nextjs-auth0": "^3.6",
+    "@auth0/nextjs-auth0": "^4.5",
     "@fortawesome/fontawesome-free": "^6.4.0",
     "@hookstate/core": "^4.0.1",
     "@opentelemetry/api": "^1.9.0",
