@@ -27,44 +27,46 @@ const CopyPopup: React.FC<CopyPopupProps> = ({
   }
 
   const handleCopy = (): void => {
-    const rows = Object.values(data).map((row) =>
-      selectedColumns
-        .map((col) => {
-          switch (col) {
-            case "Asset Code":
-              return row.asset.code
-            case "Asset Name":
-              return row.asset.name
-            case "Price":
-              return row.moneyValues[valueIn].priceData?.close || ""
-            case "Change Percent":
-              return row.moneyValues[valueIn].priceData?.changePercent || ""
-            case "Quantity":
-              return row.quantityValues.total
-            case "Cost Value":
-              return row.moneyValues[valueIn].costValue
-            case "Market Value":
-              return row.moneyValues[valueIn].marketValue
-            case "Gain On Day":
-              return row.moneyValues[valueIn].gainOnDay
-            case "Unrealised Gain":
-              return row.moneyValues[valueIn].unrealisedGain
-            case "Realised Gain":
-              return row.moneyValues[valueIn].realisedGain
-            case "Dividends":
-              return row.moneyValues[valueIn].dividends
-            case "IRR":
-              return row.moneyValues[valueIn].irr
-            case "Weight":
-              return row.moneyValues[valueIn].weight
-            case "Total Gain":
-              return row.moneyValues[valueIn].totalGain
-            default:
-              return ""
-          }
-        })
-        .join("\t"),
-    )
+    const rows = Object.values(data)
+      .filter((row) => row.quantityValues.total !== 0) // Exclude rows with undefined quantityValues or total === 0
+      .map((row) =>
+        selectedColumns
+          .map((col) => {
+            switch (col) {
+              case "Asset Code":
+                return row.asset.code
+              case "Asset Name":
+                return row.asset.name
+              case "Price":
+                return row.moneyValues[valueIn].priceData?.close || ""
+              case "Change Percent":
+                return row.moneyValues[valueIn].priceData?.changePercent || ""
+              case "Quantity":
+                return row.quantityValues?.total || ""
+              case "Cost Value":
+                return row.moneyValues[valueIn].costValue
+              case "Market Value":
+                return row.moneyValues[valueIn].marketValue
+              case "Gain On Day":
+                return row.moneyValues[valueIn].gainOnDay
+              case "Unrealised Gain":
+                return row.moneyValues[valueIn].unrealisedGain
+              case "Realised Gain":
+                return row.moneyValues[valueIn].realisedGain
+              case "Dividends":
+                return row.moneyValues[valueIn].dividends
+              case "IRR":
+                return row.moneyValues[valueIn].irr
+              case "Weight":
+                return row.moneyValues[valueIn].weight
+              case "Total Gain":
+                return row.moneyValues[valueIn].totalGain
+              default:
+                return ""
+            }
+          })
+          .join("\t"),
+      )
     const clipboardData = [selectedColumns.join("\t"), ...rows].join("\n")
 
     if (navigator.clipboard && navigator.clipboard.writeText) {
