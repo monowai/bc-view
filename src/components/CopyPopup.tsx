@@ -10,12 +10,12 @@ interface CopyPopupProps {
 }
 
 const CopyPopup: React.FC<CopyPopupProps> = ({
-                                               columns,
-                                               data,
-                                               valueIn,
-                                               modalOpen,
-                                               onClose,
-                                             }) => {
+  columns,
+  data,
+  valueIn,
+  modalOpen,
+  onClose,
+}) => {
   const [selectedColumns, setSelectedColumns] = useState<string[]>([])
 
   const handleColumnChange = (column: string): void => {
@@ -70,11 +70,14 @@ const CopyPopup: React.FC<CopyPopupProps> = ({
     const clipboardData = [selectedColumns.join("\t"), ...rows].join("\n")
 
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(clipboardData).then(() => {
-        onClose()
-      }).catch((err) => {
-        console.error("Failed to copy text: ", err)
-      })
+      navigator.clipboard
+        .writeText(clipboardData)
+        .then(() => {
+          onClose()
+        })
+        .catch((err) => {
+          console.error("Failed to copy text: ", err)
+        })
     } else {
       // Fallback for unsupported environments
       const textarea = document.createElement("textarea")
