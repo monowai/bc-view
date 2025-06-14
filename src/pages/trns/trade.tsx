@@ -167,11 +167,14 @@ const TradeInputForm: React.FC<{
                         defaultValue={toCurrencyOption(portfolio.currency)}
                         render={({ field }) => (
                           <select
-                            {...field}
                             className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
                             value={field.value.value}
+                            onChange={e => {
+                              const selected = ccyOptions.find(opt => opt.value === e.target.value)
+                              field.onChange(selected)
+                            }}
                           >
-                            {ccyOptions.map((option) => (
+                            {ccyOptions.map(option => (
                               <option key={option.value} value={option.value}>
                                 {option.label}
                               </option>
