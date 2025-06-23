@@ -54,7 +54,7 @@ const GitInfo: React.FC<GitInfoProps> = ({ alwaysVisible = false }) => {
   }, [alwaysVisible])
 
   if (!gitInfo) {
-    return <div>Loading...</div>
+    return <div/>
   }
 
   return (
