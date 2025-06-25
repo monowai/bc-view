@@ -4,8 +4,8 @@ import { FormatValue } from "@components/MoneyUtils"
 import { useTranslation } from "next-i18next"
 import { Controller, useForm } from "react-hook-form"
 import { useHoldingState } from "@utils/holdings/holdingState"
-import { getTodayDate } from "@components/dateutils"
 import Link from "next/link"
+import { getTodayDate } from "@utils/dateutils"
 
 export const headers = [
   { key: "summary.currency", align: "right" as const },

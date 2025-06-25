@@ -20,7 +20,7 @@ import {
   currencyOptions,
   toCurrency,
   toCurrencyOption,
-} from "@components/currency"
+} from "@utils/currency"
 import ReactSelect from "react-select"
 import { yupResolver } from "@hookform/resolvers/yup"
 import { validateInput } from "@components/errors/validator"

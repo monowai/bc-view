@@ -1,5 +1,6 @@
 // src/components/dateutils.test.ts
-import { getTodayDate } from "@components/dateutils"
+
+import { getTodayDate } from "@utils/dateutils"
 
 describe("getTodayDate", () => {
   it('should return today\'s date when input is "today"', () => {

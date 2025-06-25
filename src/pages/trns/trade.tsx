@@ -7,11 +7,11 @@ import { calculateTradeAmount } from "@utils/trns/tradeUtils"
 import { useTranslation } from "next-i18next"
 import useSwr from "swr"
 import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper"
-import { currencyOptions, toCurrencyOption } from "@components/currency"
 import { rootLoader } from "@components/PageLoader"
 import { CurrencyOptionSchema } from "@utils/portfolio/schema"
 import TradeTypeController from "@components/TradeTypeController"
 import { onSubmit, useEscapeHandler } from "@utils/trns/formUtils"
+import {currencyOptions, toCurrencyOption} from "@utils/currency"
 
 const TradeTypeValues = ["BUY", "SELL", "DIVI", "SPLIT"] as const
 
