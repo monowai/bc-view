@@ -2,16 +2,16 @@ import React, { useEffect } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
 import * as yup from "yup"
-import { Portfolio } from "types/beancounter"
+import { CurrencyOption, Portfolio } from "types/beancounter"
 import { calculateTradeAmount } from "@utils/trns/tradeUtils"
 import { useTranslation } from "next-i18next"
 import useSwr from "swr"
 import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper"
-import { currencyOptions } from "@components/currency"
 import { rootLoader } from "@components/PageLoader"
 import { CurrencyOptionSchema } from "@utils/portfolio/schema"
 import { onSubmit, useEscapeHandler } from "@utils/trns/formUtils"
 import TradeTypeController from "@components/TradeTypeController"
+import { currencyOptions } from "@utils/currency"
 
 const TradeTypeValues = ["DEPOSIT", "WITHDRAWAL", "FX"] as const
 
@@ -168,7 +168,7 @@ const CashInputForm: React.FC<{
                             className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
                             value={field.value}
                           >
-                            {ccyOptions.map((option) => (
+                            {ccyOptions.map((option: CurrencyOption) => (
                               <option key={option.value} value={option.value}>
                                 {option.label}
                               </option>
