@@ -282,4 +282,23 @@ describe("TradeUtils", () => {
       `${batchId},,WITHDRAWAL,CASH,SGD,,,SGD,2023-01-01,-1000,,SGD,100,2,,,-1000,Test comment`,
     )
   })
+
+  test("tradeCurrency defaults to cashCurrency if missing", () => {
+    const data: TradeFormData = {
+      type: { value: "DIVI", label: "Dividend" },
+      asset: "Asset1",
+      market: "Market1",
+      tradeDate: "2023-01-01",
+      quantity: 10,
+      price: 1,
+      cashCurrency: { value: "USD", label: "USD" },
+      cashAmount: 10,
+      fees: 0,
+      tax: 0,
+      comments: undefined,
+    }
+    const result = convertToTradeImport(data)
+    expect(result.tradeCurrency).toBe("USD")
+    expect(result.cashCurrency).toBe("USD")
+  })
 })

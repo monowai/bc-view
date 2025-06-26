@@ -32,34 +32,34 @@ const CopyPopup: React.FC<CopyPopupProps> = ({
       .map((row) =>
         selectedColumns
           .map((col) => {
-            switch (col) {
-              case "Asset Code":
+            switch (col.toLowerCase()) {
+              case "asset code":
                 return row.asset.code
-              case "Asset Name":
+              case "asset name":
                 return row.asset.name
-              case "Price":
+              case "price":
                 return row.moneyValues[valueIn].priceData?.close || ""
-              case "Change Percent":
+              case "change %":
                 return row.moneyValues[valueIn].priceData?.changePercent || ""
-              case "Quantity":
-                return row.quantityValues?.total || ""
-              case "Cost Value":
-                return row.moneyValues[valueIn].costValue
-              case "Market Value":
-                return row.moneyValues[valueIn].marketValue
-              case "Gain On Day":
+              case "change on day":
                 return row.moneyValues[valueIn].gainOnDay
-              case "Unrealised Gain":
+              case "quantity":
+                return row.quantityValues?.total || ""
+              case "cost value":
+                return row.moneyValues[valueIn].costValue
+              case "market value":
+                return row.moneyValues[valueIn].marketValue
+              case "unrealised gain":
                 return row.moneyValues[valueIn].unrealisedGain
-              case "Realised Gain":
+              case "realised gain":
                 return row.moneyValues[valueIn].realisedGain
-              case "Dividends":
+              case "dividends":
                 return row.moneyValues[valueIn].dividends
-              case "IRR":
+              case "irr":
                 return row.moneyValues[valueIn].irr
-              case "Weight":
+              case "weight":
                 return row.moneyValues[valueIn].weight
-              case "Total Gain":
+              case "total gain":
                 return row.moneyValues[valueIn].totalGain
               default:
                 return ""

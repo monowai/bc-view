@@ -5,10 +5,10 @@ import { useTranslation } from "next-i18next"
 export const headers = [
   { key: "asset.price", align: "left" },
   { key: "asset.change", align: "right" },
+  { key: "gain.onday", align: "right" },
   { key: "quantity", align: "right" },
   { key: "cost", align: "right" },
   { key: "summary.value", align: "right" },
-  { key: "gain.onday", align: "right" },
   { key: "gain.unrealised", align: "right" },
   { key: "gain.realised", align: "right" },
   { key: "summary.dividends", align: "right" },
