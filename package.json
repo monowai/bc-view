@@ -3,7 +3,7 @@
   "private": true,
   "license": "GPL-3.0-or-later",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --turbopack",
     "node-debug": "NODE_OPTIONS='--inspect' next dev",
     "prettier": "prettier --write '**/*.{ts*,json,md,yml,js}' && yarn lint",
     "build": "next build",

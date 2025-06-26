@@ -18,15 +18,16 @@ export default function SubTotal({
         </td>
         <td colSpan={1} />
         <td colSpan={1} />
+        <td className="text-right px-4 py-1">
+          <FormatValue value={subTotals[valueIn].gainOnDay} />
+        </td>
         <td colSpan={1} />
+
         <td className="text-right px-4 py-1">
           <FormatValue value={subTotals[valueIn].costValue} />
         </td>
         <td className="text-right px-4 py-1">
           <FormatValue value={subTotals[valueIn].marketValue} />
-        </td>
-        <td className="text-right px-4 py-1">
-          <FormatValue value={subTotals[valueIn].gainOnDay} />
         </td>
         <td className="text-right px-4 py-1">
           <FormatValue value={subTotals[valueIn].unrealisedGain} />

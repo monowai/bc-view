@@ -21,11 +21,11 @@ export default function Rows({
       "Asset Code",
       "Asset Name",
       "Price",
-      "Change Percent",
+      "Change %",
+      "Change on Day",
       "Quantity",
       "Cost Value",
       "Market Value",
-      "Gain On Day",
       "Unrealised Gain",
       "Realised Gain",
       "Dividends",
@@ -87,6 +87,14 @@ export default function Rows({
               )}
             </td>
             <td className="text-right px-4 py-1">
+              {hideValue(moneyValues[valueIn].priceData?.changePercent) ? (
+                " "
+              ) : (
+                <FormatValue value={moneyValues[valueIn].gainOnDay} />
+              )}
+            </td>
+
+            <td className="text-right px-4 py-1">
               {isCashRelated(asset) ||
               hideValue(moneyValues[valueIn].priceData) ? (
                 " "
@@ -118,13 +126,6 @@ export default function Rows({
                   defaultValue="0"
                 />
               </Link>
-            </td>
-            <td className="text-right px-4 py-1">
-              {hideValue(moneyValues[valueIn].priceData?.changePercent) ? (
-                " "
-              ) : (
-                <FormatValue value={moneyValues[valueIn].gainOnDay} />
-              )}
             </td>
             <td className="text-right px-4 py-1">
               <FormatValue value={moneyValues[valueIn].unrealisedGain} />
