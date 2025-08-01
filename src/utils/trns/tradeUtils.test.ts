@@ -223,18 +223,18 @@ describe("TradeUtils", () => {
 
   test("getCashRow", () => {
     const data: TradeFormData = {
-      type: {value: "WITHDRAWAL", label: "Withdrawal"},
+      type: { value: "WITHDRAWAL", label: "Withdrawal" },
       market: "CASH",
-      cashCurrency: {value: "USD", label: "USD"},
+      cashCurrency: { value: "USD", label: "USD" },
       tradeDate: "2023-01-01",
       quantity: 1000,
       price: 100,
-      tradeCurrency: {value: "USD", label: "USD"},
+      tradeCurrency: { value: "USD", label: "USD" },
       cashAmount: 1000,
       fees: 2,
       tax: 5,
       comments: "Test comment",
-      asset: ""
+      asset: "",
     }
     const result = getCashRow(data)
     const batchId = generateBatchId(new Date())
@@ -265,18 +265,18 @@ describe("TradeUtils", () => {
 
   test("convert function for cash", () => {
     const data: TradeFormData = {
-      type: {value: "WITHDRAWAL", label: "Withdrawal"},
+      type: { value: "WITHDRAWAL", label: "Withdrawal" },
       market: "CASH",
       tradeDate: "2023-01-01",
       quantity: 1000,
       price: 100,
-      tradeCurrency: {value: "SGD", label: "SGD"},
-      cashCurrency: {value: "SGD", label: "SGD"},
+      tradeCurrency: { value: "SGD", label: "SGD" },
+      cashCurrency: { value: "SGD", label: "SGD" },
       cashAmount: 1000,
       fees: 2,
       tax: 5,
       comments: "Test comment",
-      asset: ""
+      asset: "",
     }
     const result = convert(data)
     const batchId = generateBatchId(new Date())
@@ -287,21 +287,21 @@ describe("TradeUtils", () => {
 
   test("tradeCurrency defaults to cashCurrency if missing", () => {
     const data: TradeFormData = {
-      type: {value: "DIVI", label: "Dividend"},
+      type: { value: "DIVI", label: "Dividend" },
       asset: "Asset1",
       market: "Market1",
       tradeDate: "2023-01-01",
       quantity: 10,
       price: 1,
-      cashCurrency: {value: "USD", label: "USD"},
+      cashCurrency: { value: "USD", label: "USD" },
       cashAmount: 10,
       fees: 0,
       tax: 0,
       comments: undefined,
       tradeCurrency: {
         value: "",
-        label: ""
-      }
+        label: "",
+      },
     }
     const result = convertToTradeImport(data)
     expect(result.tradeCurrency).toBe("USD")

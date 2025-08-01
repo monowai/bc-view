@@ -11,7 +11,7 @@ import { rootLoader } from "@components/PageLoader"
 import { CurrencyOptionSchema } from "@utils/portfolio/schema"
 import TradeTypeController from "@components/TradeTypeController"
 import { onSubmit, useEscapeHandler } from "@utils/trns/formUtils"
-import {currencyOptions, toCurrencyOption} from "@utils/currency"
+import { currencyOptions, toCurrencyOption } from "@utils/currency"
 
 const TradeTypeValues = ["BUY", "SELL", "DIVI", "SPLIT"] as const
 
