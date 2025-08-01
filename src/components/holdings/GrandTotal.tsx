@@ -13,12 +13,12 @@ export default function GrandTotal({
   if (!holdings.viewTotals) return <div />
 
   const data = [
+    { value: holdings.viewTotals.gainOnDay, colSpan: 1 },
     { value: holdings.viewTotals.costValue, colSpan: 2 },
     { value: holdings.viewTotals.marketValue, colSpan: 1 },
-    { value: holdings.viewTotals.gainOnDay, colSpan: 1 },
+    { value: holdings.viewTotals.dividends, colSpan: 1 },
     { value: holdings.viewTotals.unrealisedGain, colSpan: 1 },
     { value: holdings.viewTotals.realisedGain, colSpan: 1 },
-    { value: holdings.viewTotals.dividends, colSpan: 1 },
     { value: holdings.viewTotals.irr, colSpan: 1, multiplier: 100 },
     { value: holdings.viewTotals.weight, colSpan: 1, multiplier: 100 },
     { value: holdings.viewTotals.totalGain, colSpan: 1 },
