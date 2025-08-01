@@ -16,11 +16,7 @@ import Link from "next/link"
 import { rootLoader } from "@components/PageLoader"
 import errorOut from "@components/errors/ErrorOut"
 import useSwr from "swr"
-import {
-  currencyOptions,
-  toCurrency,
-  toCurrencyOption,
-} from "@utils/currency"
+import { currencyOptions, toCurrency, toCurrencyOption } from "@utils/currency"
 import ReactSelect from "react-select"
 import { yupResolver } from "@hookform/resolvers/yup"
 import { validateInput } from "@components/errors/validator"

@@ -13,4 +13,4 @@ export function toCurrencyOption(currency: Currency): CurrencyOption {
 export function toCurrency(id: string, currencies: Currency[]): CurrencyOption {
   const currency = currencies.filter((option) => option.code === id)
   return toCurrencyOption(currency[0])
-} 
+}

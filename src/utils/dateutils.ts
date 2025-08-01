@@ -7,4 +7,4 @@ export const getTodayDate = (date: string): string => {
     return `${yyyy}-${mm}-${dd}`
   }
   return date
-} 
+}
