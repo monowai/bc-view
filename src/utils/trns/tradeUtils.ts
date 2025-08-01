@@ -49,17 +49,14 @@ export const generateBatchId = (date: Date = new Date()): string => {
 export const convertToTradeImport = (data: TradeFormData): TradeImport => {
   const batchDate = new Date()
   const batchId = generateBatchId(batchDate)
-  // Determine tradeCurrency, defaulting to cashCurrency if missing/empty
-  let tradeCurrency = data.tradeCurrency && data.tradeCurrency.value ? data.tradeCurrency.value : ""
-  const cashCurrency = data.cashCurrency && data.cashCurrency.value ? data.cashCurrency.value : ""
-  if (!tradeCurrency && cashCurrency) {
-    tradeCurrency = cashCurrency
-  }
+  const tradeCurrency = data.tradeCurrency ? data.tradeCurrency.value : ""
   const comments = data.comments ? data.comments : ""
-  const finalCashCurrency = cashCurrency || tradeCurrency
+  const cashCurrency = data.cashCurrency
+    ? data.cashCurrency.value
+    : tradeCurrency
   const cashAmount = calculateCashAmount(data)
   const asset: string =
-    data.market === "CASH" ? (data.tradeCurrency && data.tradeCurrency.value ? data.tradeCurrency.value : "") : data.asset
+    data.market === "CASH" ? data.tradeCurrency.value : data.asset
 
   const qty: number =
     data.market === "CASH" ? (data.cashAmount ?? 0) : (data.quantity ?? 0)
@@ -69,7 +66,7 @@ export const convertToTradeImport = (data: TradeFormData): TradeImport => {
     type: data.type.value,
     market: data.market,
     asset: asset,
-    cashCurrency: finalCashCurrency,
+    cashCurrency,
     tradeDate: data.tradeDate,
     quantity: qty,
     tradeCurrency,
