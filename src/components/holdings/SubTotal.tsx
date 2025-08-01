@@ -30,13 +30,13 @@ export default function SubTotal({
           <FormatValue value={subTotals[valueIn].marketValue} />
         </td>
         <td className="text-right px-4 py-1">
-          <FormatValue value={subTotals[valueIn].dividends} />
-        </td>
-        <td className="text-right px-4 py-1">
           <FormatValue value={subTotals[valueIn].unrealisedGain} />
         </td>
         <td className="text-right px-4 py-1">
           <FormatValue value={subTotals[valueIn].realisedGain} />
+        </td>
+        <td className="text-right px-4 py-1">
+          <FormatValue value={subTotals[valueIn].dividends} />
         </td>
         <td colSpan={1} />
         <td className="text-right px-4 py-1">
