@@ -128,12 +128,6 @@ export default function Rows({
               </Link>
             </td>
             <td className="text-right px-4 py-1">
-              <FormatValue value={moneyValues[valueIn].unrealisedGain} />
-            </td>
-            <td className="text-right px-4 py-1">
-              <FormatValue value={moneyValues[valueIn].realisedGain} />
-            </td>
-            <td className="text-right px-4 py-1">
               <span className="relative group">
                 <Link
                   href={`/trns/events`}
@@ -145,6 +139,12 @@ export default function Rows({
                   Last Event: {dateValues?.lastDividend || "N/A"}
                 </span>
               </span>
+            </td>
+            <td className="text-right px-4 py-1">
+              <FormatValue value={moneyValues[valueIn].unrealisedGain} />
+            </td>
+            <td className="text-right px-4 py-1">
+              <FormatValue value={moneyValues[valueIn].realisedGain} />
             </td>
             <td className="text-right px-4 py-1">
               {!isCashRelated(asset) && (
