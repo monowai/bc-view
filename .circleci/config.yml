@@ -2,60 +2,36 @@ version: 2.1
 orbs:
   node: circleci/node@5.2
 
+# Global variables
+variables:
+  node_version: &node_version "20.12"
+  node_image: &node_image "cimg/node:20.12"
+  resource_class: &resource_class "medium"
+
 # Define reusable commands for better network resilience
 commands:
   install-dependencies:
     description: "Install dependencies with retry logic"
     steps:
       - run:
-          name: Install Dependencies
+          name: NPM Dependencies
           command: |
             # Configure yarn for better performance
             yarn config set network-timeout 60000
             yarn config set prefer-offline true
-            
+
             # Install dependencies with smart cache handling
             echo "Installing dependencies..."
-            
+
             # Only clear cache if @types/node is missing
             if [ ! -d "node_modules/@types/node" ]; then
               echo "❌ @types/node missing, clearing cache..."
               rm -rf node_modules
               yarn cache clean
             fi
-            
+
             if yarn install --frozen-lockfile --prefer-offline --network-concurrency 8 --production=false; then
-              echo "Dependencies installed successfully"
-              # Verify critical dependencies are installed
-              echo "Verifying @types packages installation..."
-              missing_types=()
-              
-              if [ ! -d "node_modules/@types/node" ]; then
-                missing_types+=("@types/node@^20.0.0")
-              fi
-              
-              if [ ! -d "node_modules/@types/papaparse" ]; then
-                missing_types+=("@types/papaparse@^5.3.15")
-              fi
-              
-              if [ ${#missing_types[@]} -gt 0 ]; then
-                echo "❌ Missing type packages: ${missing_types[*]}"
-                echo "Installing missing type packages..."
-                yarn add --dev "${missing_types[@]}"
-                
-                # Verify installation
-                for type_pkg in "${missing_types[@]}"; do
-                  pkg_name=$(echo "$type_pkg" | cut -d'@' -f1)
-                  if [ ! -d "node_modules/$pkg_name" ]; then
-                    echo "❌ Failed to install $pkg_name"
-                    exit 1
-                  else
-                    echo "✅ $pkg_name installed successfully"
-                  fi
-                done
-              else
-                echo "✅ All required @types packages are installed"
-              fi
+              echo "✅ Dependencies installed successfully"
             else
               echo "❌ yarn install failed!"
               exit 1
@@ -65,11 +41,11 @@ commands:
     description: "Build application with retry logic"
     steps:
       - run:
-          name: Build Application
+          name: Yarn Build
           command: |
             # Set Node.js memory limits for CI
             export NODE_OPTIONS="--max-old-space-size=4096"
-            
+
             # Retry build with exponential backoff
             for i in {1..2}; do
               echo "Attempt $i of 2: Building application..."
@@ -92,8 +68,8 @@ commands:
 jobs:
   install-dependencies:
     docker:
-      - image: cimg/node:20.12
-    resource_class: large
+      - image: *node_image
+    resource_class: *resource_class
     steps:
       - checkout
       - restore_cache:
@@ -102,7 +78,7 @@ jobs:
             - v2-dependencies-
       - node/install:
           install-yarn: true
-          node-version: "20.12"
+          node-version: *node_version
       - install-dependencies
       - save_cache:
           paths:
@@ -111,8 +87,8 @@ jobs:
 
   test:
     docker:
-      - image: cimg/node:20.12
-    resource_class: large
+      - image: *node_image
+    resource_class: *resource_class
     steps:
       - checkout
       - restore_cache:
@@ -121,7 +97,7 @@ jobs:
             - v2-dependencies-
       - node/install:
           install-yarn: true
-          node-version: "20.12"
+          node-version: *node_version
       - install-dependencies
       - restore_cache:
           keys:
@@ -136,8 +112,8 @@ jobs:
 
   build:
     docker:
-      - image: cimg/node:20.12
-    resource_class: large
+      - image: *node_image
+    resource_class: *resource_class
     environment:
       IMAGE_NAME: bc-view
       STACK_VER: << pipeline.number >>
@@ -153,7 +129,7 @@ jobs:
             - v2-dependencies-
       - node/install:
           install-yarn: true
-          node-version: "20.12"
+          node-version: *node_version
       - install-dependencies
       - restore_cache:
           keys:
@@ -172,7 +148,7 @@ jobs:
             echo "@types/node exists: $([ -d "node_modules/@types/node" ] && echo "✅" || echo "❌")"
             echo "@types/papaparse exists: $([ -d "node_modules/@types/papaparse" ] && echo "✅" || echo "❌")"
             echo "typescript exists: $([ -d "node_modules/typescript" ] && echo "✅" || echo "❌")"
-            
+
             # Check for missing type packages
             missing_types=()
             if [ ! -d "node_modules/@types/node" ]; then
@@ -181,13 +157,13 @@ jobs:
             if [ ! -d "node_modules/@types/papaparse" ]; then
               missing_types+=("@types/papaparse@^5.3.15")
             fi
-            
+
             if [ ${#missing_types[@]} -gt 0 ]; then
               echo "❌ Missing type packages: ${missing_types[*]}"
               echo "Installing missing type packages..."
               yarn add --dev "${missing_types[@]}"
             fi
-            
+
             # Final verification
             if [ ! -d "node_modules/@types/node" ] || [ ! -d "node_modules/@types/papaparse" ]; then
               echo "❌ Type packages still missing after install attempt!"
@@ -207,8 +183,8 @@ jobs:
       platform:
         type: string
     docker:
-      - image: cimg/node:20.12
-    resource_class: large
+      - image: *node_image
+    resource_class: *resource_class
     environment:
       DOCKER_BUILDKIT: 1
       IMAGE_NAME: bc-view
@@ -229,7 +205,7 @@ jobs:
             - v2-build-cache-{{ checksum "yarn.lock" }}-{{ checksum "next.config.js" }}
       - node/install:
           install-yarn: true
-          node-version: "20.12"
+          node-version: *node_version
       - install-dependencies
       - build-application
       - run:
@@ -251,10 +227,10 @@ jobs:
           command: |
             SHORT_COMMIT=$(git rev-parse --short $GIT_COMMIT)
             PLATFORM_TAG=$(echo "<< parameters.platform >>" | sed 's/\//-/g')
-            
+
             # Login to GitHub Container Registry
             echo "$GH_GCR" | docker login ghcr.io -u "$DOCKER_USER" --password-stdin
-            
+
             # Build and push using buildx with attestations disabled
             for i in {1..3}; do
               echo "Attempt $i of 3: Building and pushing Docker image for << parameters.platform >>..."
