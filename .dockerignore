@@ -1,5 +1,5 @@
 # Dependencies
-node_modules
+# node_modules  # Allow node_modules from CI
 npm-debug.log*
 yarn-debug.log*
 
@@ -12,7 +12,7 @@ tests/
 *.test.jsx
 
 # Next.js
-.next/
+# .next/  # Allow .next from CI
 
 # Misc
 .DS_Store
