@@ -145,32 +145,7 @@ jobs:
             echo "Files in current directory: $(ls -la)"
             echo "Checking critical dependencies..."
             echo "node_modules exists: $([ -d "node_modules" ] && echo "✅" || echo "❌")"
-            echo "@types/node exists: $([ -d "node_modules/@types/node" ] && echo "✅" || echo "❌")"
-            echo "@types/papaparse exists: $([ -d "node_modules/@types/papaparse" ] && echo "✅" || echo "❌")"
-            echo "typescript exists: $([ -d "node_modules/typescript" ] && echo "✅" || echo "❌")"
 
-            # Check for missing type packages
-            missing_types=()
-            if [ ! -d "node_modules/@types/node" ]; then
-              missing_types+=("@types/node@^20.0.0")
-            fi
-            if [ ! -d "node_modules/@types/papaparse" ]; then
-              missing_types+=("@types/papaparse@^5.3.15")
-            fi
-
-            if [ ${#missing_types[@]} -gt 0 ]; then
-              echo "❌ Missing type packages: ${missing_types[*]}"
-              echo "Installing missing type packages..."
-              yarn add --dev "${missing_types[@]}"
-            fi
-
-            # Final verification
-            if [ ! -d "node_modules/@types/node" ] || [ ! -d "node_modules/@types/papaparse" ]; then
-              echo "❌ Type packages still missing after install attempt!"
-              echo "Clearing node_modules and reinstalling..."
-              rm -rf node_modules
-              yarn install --frozen-lockfile --production=false
-            fi
       - build-application
       - save_cache:
           paths:
@@ -249,14 +224,14 @@ jobs:
                 --tag "ghcr.io/monowai/$IMAGE_NAME:${STACK_VER}" \
                 --push \
                 ~/project/.; then
-                echo "Docker build and push completed successfully for << parameters.platform >>"
+                echo "✅ Docker build and push completed successfully for << parameters.platform >>"
                 break
               else
                 echo "Attempt $i failed for << parameters.platform >>, waiting before retry..."
                 if [ $i -lt 3 ]; then
                   sleep $((i * 20))
                 else
-                  echo "All Docker build attempts failed for << parameters.platform >>. Exiting."
+                  echo "❌ All Docker build attempts failed for << parameters.platform >>. Failing."
                   exit 1
                 fi
               fi
