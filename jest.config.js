@@ -18,6 +18,23 @@ const customJestConfig = {
   transform: {
     "^.+\\.(ts|tsx)$": "ts-jest",
   },
+  // Performance optimizations
+  cache: true,
+  cacheDirectory: ".jest-cache",
+  maxWorkers: "50%",
+  workerIdleMemoryLimit: "512MB",
+  // Faster test execution
+  bail: false,
+  verbose: false,
+  // Coverage optimizations
+  collectCoverageFrom: [
+    "src/**/*.{js,jsx,ts,tsx}",
+    "!src/**/*.d.ts",
+    "!src/**/*.stories.{js,jsx,ts,tsx}",
+    "!src/**/*.test.{js,jsx,ts,tsx}",
+  ],
+  coverageReporters: ["text", "lcov", "html"],
+  coverageDirectory: "coverage",
 }
 
 module.exports = createJestConfig(customJestConfig)

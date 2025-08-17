@@ -12,6 +12,8 @@ import { CurrencyOptionSchema } from "@utils/portfolio/schema"
 import TradeTypeController from "@components/TradeTypeController"
 import { onSubmit, useEscapeHandler } from "@utils/trns/formUtils"
 import { currencyOptions, toCurrencyOption } from "@utils/currency"
+import { GetServerSideProps } from "next"
+import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 
 const TradeTypeValues = ["BUY", "SELL", "DIVI", "SPLIT"] as const
 
@@ -381,3 +383,9 @@ const TradeInputForm: React.FC<{
 }
 
 export default TradeInputForm
+
+export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
+  props: {
+    ...(await serverSideTranslations(locale ?? "en", ["common"])),
+  },
+})

@@ -1,8 +1,138 @@
 version: 2.1
 orbs:
   node: circleci/node@5.2
+
+# Define reusable commands for better network resilience
+commands:
+  install-dependencies:
+    description: "Install dependencies with retry logic"
+    steps:
+      - run:
+          name: Install Dependencies
+          command: |
+            # Configure yarn for better performance
+            yarn config set network-timeout 60000
+            yarn config set prefer-offline true
+            
+            # Install dependencies with smart cache handling
+            echo "Installing dependencies..."
+            
+            # Only clear cache if @types/node is missing
+            if [ ! -d "node_modules/@types/node" ]; then
+              echo "❌ @types/node missing, clearing cache..."
+              rm -rf node_modules
+              yarn cache clean
+            fi
+            
+            if yarn install --frozen-lockfile --prefer-offline --network-concurrency 8 --production=false; then
+              echo "Dependencies installed successfully"
+              # Verify critical dependencies are installed
+              echo "Verifying @types packages installation..."
+              missing_types=()
+              
+              if [ ! -d "node_modules/@types/node" ]; then
+                missing_types+=("@types/node@^20.0.0")
+              fi
+              
+              if [ ! -d "node_modules/@types/papaparse" ]; then
+                missing_types+=("@types/papaparse@^5.3.15")
+              fi
+              
+              if [ ${#missing_types[@]} -gt 0 ]; then
+                echo "❌ Missing type packages: ${missing_types[*]}"
+                echo "Installing missing type packages..."
+                yarn add --dev "${missing_types[@]}"
+                
+                # Verify installation
+                for type_pkg in "${missing_types[@]}"; do
+                  pkg_name=$(echo "$type_pkg" | cut -d'@' -f1)
+                  if [ ! -d "node_modules/$pkg_name" ]; then
+                    echo "❌ Failed to install $pkg_name"
+                    exit 1
+                  else
+                    echo "✅ $pkg_name installed successfully"
+                  fi
+                done
+              else
+                echo "✅ All required @types packages are installed"
+              fi
+            else
+              echo "❌ yarn install failed!"
+              exit 1
+            fi
+
+  build-application:
+    description: "Build application with retry logic"
+    steps:
+      - run:
+          name: Build Application
+          command: |
+            # Set Node.js memory limits for CI
+            export NODE_OPTIONS="--max-old-space-size=4096"
+            
+            # Retry build with exponential backoff
+            for i in {1..2}; do
+              echo "Attempt $i of 2: Building application..."
+              if yarn build; then
+                echo "Build completed successfully"
+                break
+              else
+                echo "Attempt $i failed, waiting before retry..."
+                if [ $i -lt 2 ]; then
+                  sleep 10
+                else
+                  echo "All build attempts failed. Exiting."
+                  exit 1
+                fi
+              fi
+            done
+
 jobs:
-  build-view:
+  install-dependencies:
+    docker:
+      - image: cimg/node:20.12
+    resource_class: large
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v2-dependencies-{{ checksum "yarn.lock" }}
+            - v2-dependencies-
+      - node/install:
+          install-yarn: true
+          node-version: "20.12"
+      - install-dependencies
+      - save_cache:
+          paths:
+            - node_modules
+          key: v2-dependencies-{{ checksum "yarn.lock" }}
+
+  test:
+    docker:
+      - image: cimg/node:20.12
+    resource_class: large
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v2-dependencies-{{ checksum "yarn.lock" }}
+            - v2-dependencies-
+      - node/install:
+          install-yarn: true
+          node-version: "20.12"
+      - install-dependencies
+      - restore_cache:
+          keys:
+            - v2-test-results-{{ checksum "yarn.lock" }}
+      - run:
+          name: Run Tests
+          command: yarn test
+      - save_cache:
+          paths:
+            - .jest-cache
+          key: v2-test-results-{{ checksum "yarn.lock" }}
+
+  build:
     docker:
       - image: cimg/node:20.12
     resource_class: large
@@ -11,44 +141,149 @@ jobs:
       STACK_VER: << pipeline.number >>
       GIT_BRANCH: << pipeline.git.branch >>
       GIT_COMMIT: << pipeline.git.revision >>
-
+      # SENTRY_AUTH_TOKEN: ${SENTRY_AUTH_TOKEN}  # Temporarily disabled until token is configured
+      CI: true
     steps:
       - checkout
       - restore_cache:
           keys:
-            - v1-dependencies-{{ checksum "package.json" }}
-            - v1-dependencies-
+            - v2-dependencies-{{ checksum "yarn.lock" }}
+            - v2-dependencies-
       - node/install:
           install-yarn: true
           node-version: "20.12"
+      - install-dependencies
+      - restore_cache:
+          keys:
+            - v2-build-cache-{{ checksum "yarn.lock" }}-{{ checksum "next.config.js" }}
       - run:
-          name: Build Application
+          name: Debug Build Environment
           command: |
-            yarn install --frozen-lockfile
-            yarn test
+            echo "Node version: $(node --version)"
+            echo "Yarn version: $(yarn --version)"
+            echo "Available memory: $(free -h)"
+            echo "Disk space: $(df -h)"
+            echo "Current directory: $(pwd)"
+            echo "Files in current directory: $(ls -la)"
+            echo "Checking critical dependencies..."
+            echo "node_modules exists: $([ -d "node_modules" ] && echo "✅" || echo "❌")"
+            echo "@types/node exists: $([ -d "node_modules/@types/node" ] && echo "✅" || echo "❌")"
+            echo "@types/papaparse exists: $([ -d "node_modules/@types/papaparse" ] && echo "✅" || echo "❌")"
+            echo "typescript exists: $([ -d "node_modules/typescript" ] && echo "✅" || echo "❌")"
+            
+            # Check for missing type packages
+            missing_types=()
+            if [ ! -d "node_modules/@types/node" ]; then
+              missing_types+=("@types/node@^20.0.0")
+            fi
+            if [ ! -d "node_modules/@types/papaparse" ]; then
+              missing_types+=("@types/papaparse@^5.3.15")
+            fi
+            
+            if [ ${#missing_types[@]} -gt 0 ]; then
+              echo "❌ Missing type packages: ${missing_types[*]}"
+              echo "Installing missing type packages..."
+              yarn add --dev "${missing_types[@]}"
+            fi
+            
+            # Final verification
+            if [ ! -d "node_modules/@types/node" ] || [ ! -d "node_modules/@types/papaparse" ]; then
+              echo "❌ Type packages still missing after install attempt!"
+              echo "Clearing node_modules and reinstalling..."
+              rm -rf node_modules
+              yarn install --frozen-lockfile --production=false
+            fi
+      - build-application
       - save_cache:
           paths:
-            - node_modules
-          key: v1-dependencies-{{ checksum "package.json" }}
+            - .next
+            - .next/cache
+          key: v2-build-cache-{{ checksum "yarn.lock" }}-{{ checksum "next.config.js" }}
+
+  docker-build:
+    docker:
+      - image: cimg/node:20.12
+    resource_class: large
+    environment:
+      DOCKER_BUILDKIT: 1
+      IMAGE_NAME: bc-view
+      STACK_VER: << pipeline.number >>
+      GIT_BRANCH: << pipeline.git.branch >>
+      GIT_COMMIT: << pipeline.git.revision >>
+      # SENTRY_AUTH_TOKEN: ${SENTRY_AUTH_TOKEN}  # Temporarily disabled until token is configured
+      CI: true
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v2-dependencies-{{ checksum "yarn.lock" }}
+            - v2-dependencies-
+      - restore_cache:
+          keys:
+            - v2-build-cache-{{ checksum "yarn.lock" }}-{{ checksum "next.config.js" }}
+      - node/install:
+          install-yarn: true
+          node-version: "20.12"
+      - install-dependencies
+      - build-application
       - setup_remote_docker:
           docker_layer_caching: true
+      - run:
+          name: Setup Docker Buildx
+          command: |
+            # Create and use a new builder instance
+            docker buildx create --name multiarch --driver docker-container --use
+            docker buildx inspect --bootstrap
       - run:
           name: Package BC-VIEW
           command: |
             SHORT_COMMIT=$(git rev-parse --short $GIT_COMMIT)
-            docker buildx create --use
-            docker buildx inspect
-            docker run --rm --privileged tonistiigi/binfmt --install arm64
+            
+            # Login to GitHub Container Registry
             echo "$GH_GCR" | docker login ghcr.io -u "$DOCKER_USER" --password-stdin
-            docker buildx build --push \
-                                --platform linux/arm64/v8,linux/amd64 \
-                                --build-arg GIT_BRANCH=$GIT_BRANCH \
-                                --build-arg GIT_COMMIT=$SHORT_COMMIT \
-                                --build-arg BUILD_ID=$STACK_VER \
-                                -t "ghcr.io/monowai/$IMAGE_NAME:latest" \
-                                -t "ghcr.io/monowai/$IMAGE_NAME:${STACK_VER}" \
-                                ~/project/.
+            
+            # Build and push multi-platform image with optimized caching
+            # Use single platform for faster builds (comment out for multi-platform)
+            PLATFORMS="linux/amd64"
+            # PLATFORMS="linux/amd64,linux/arm64"  # Uncomment for multi-platform
+            
+            for i in {1..3}; do
+              echo "Attempt $i of 3: Building and pushing Docker image..."
+              if docker buildx build \
+                --platform $PLATFORMS \
+                --build-arg GIT_BRANCH=$GIT_BRANCH \
+                --build-arg GIT_COMMIT=$SHORT_COMMIT \
+                --build-arg BUILD_ID=$STACK_VER \
+                --cache-from type=gha \
+                --cache-to type=gha,mode=max \
+                --tag "ghcr.io/monowai/$IMAGE_NAME:latest" \
+                --tag "ghcr.io/monowai/$IMAGE_NAME:${STACK_VER}" \
+                --push \
+                ~/project/.; then
+                echo "Docker build and push completed successfully"
+                break
+              else
+                echo "Attempt $i failed, waiting before retry..."
+                if [ $i -lt 3 ]; then
+                  sleep $((i * 20))
+                else
+                  echo "All Docker build attempts failed. Exiting."
+                  exit 1
+                fi
+              fi
+            done
+
 workflows:
   build_and_package:
     jobs:
-      - build-view
+      - install-dependencies
+      - test:
+          requires:
+            - install-dependencies
+      - build:
+          requires:
+            - install-dependencies
+      - docker-build:
+          requires:
+            - test
+            - build

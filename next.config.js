@@ -13,6 +13,41 @@ const nextConfig = {
   },
   i18n,
   output: "standalone",
+  // Performance optimizations
+  experimental: {
+    // Enable faster builds
+    optimizeCss: true,
+  },
+  // Optimize webpack
+  webpack: (config, { dev, isServer }) => {
+    // Optimize for production builds
+    if (!dev && !isServer) {
+      config.optimization.splitChunks = {
+        chunks: 'all',
+        cacheGroups: {
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            chunks: 'all',
+          },
+        },
+      }
+    }
+    return config
+  },
+  // Enable compression
+  compress: true,
+  // Optimize bundle analyzer (optional - for debugging)
+  ...(process.env.ANALYZE === 'true' && {
+    webpack: (config) => {
+      config.plugins.push(
+        new (require('@next/bundle-analyzer'))({
+          enabled: true,
+        })
+      )
+      return config
+    },
+  }),
 }
 module.exports = nextConfig
 
@@ -28,6 +63,9 @@ module.exports = withSentryConfig(module.exports, {
   project: "bc-view",
   // Only print logs for uploading source maps in CI
   silent: !process.env.CI,
+  // Disable Sentry plugins if no auth token is provided
+  disableServerWebpackPlugin: !process.env.SENTRY_AUTH_TOKEN || process.env.SENTRY_AUTH_TOKEN === 'undefined',
+  disableClientWebpackPlugin: !process.env.SENTRY_AUTH_TOKEN || process.env.SENTRY_AUTH_TOKEN === 'undefined',
 
   // For all available options, see:
   // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
