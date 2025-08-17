@@ -15,16 +15,25 @@ ENV BUILD_ID=$BUILD_ID
 ENV HOSTNAME="0.0.0.0"
 ENV PORT=3000
 
-# Install dependencies stage (includes dev dependencies for building)
-FROM base AS deps
-COPY package.json yarn.lock ./
-RUN yarn install --frozen-lockfile --prefer-offline --production=false
-
-# Build stage (uses dev dependencies to build the app)
+# Build stage - copy pre-built artifacts from CI
 FROM base AS builder
-COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN yarn build
+
+# If node_modules exists from CI, use it; otherwise install
+RUN if [ -d "node_modules" ]; then \
+      echo "Using pre-built node_modules from CI"; \
+    else \
+      echo "Installing dependencies in Docker"; \
+      yarn install --frozen-lockfile --prefer-offline --production=false; \
+    fi
+
+# If .next exists from CI, use it; otherwise build
+RUN if [ -d ".next" ]; then \
+      echo "Using pre-built .next from CI"; \
+    else \
+      echo "Building application in Docker"; \
+      yarn build; \
+    fi
 
 # Production stage (only production dependencies)
 FROM base AS runner

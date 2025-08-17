@@ -87,6 +87,8 @@ commands:
               fi
             done
 
+
+
 jobs:
   install-dependencies:
     docker:
@@ -201,6 +203,9 @@ jobs:
           key: v2-build-cache-{{ checksum "yarn.lock" }}-{{ checksum "next.config.js" }}
 
   docker-build:
+    parameters:
+      platform:
+        type: string
     docker:
       - image: cimg/node:20.12
     resource_class: large
@@ -210,6 +215,7 @@ jobs:
       STACK_VER: << pipeline.number >>
       GIT_BRANCH: << pipeline.git.branch >>
       GIT_COMMIT: << pipeline.git.revision >>
+      PLATFORM: << parameters.platform >>
       # SENTRY_AUTH_TOKEN: ${SENTRY_AUTH_TOKEN}  # Temporarily disabled until token is configured
       CI: true
     steps:
@@ -226,6 +232,12 @@ jobs:
           node-version: "20.12"
       - install-dependencies
       - build-application
+      - run:
+          name: Prepare Docker Context
+          command: |
+            # Copy built artifacts to reduce Docker build time
+            echo "Copying pre-built node_modules and .next to Docker context..."
+            # These will be available in the Docker build context
       - setup_remote_docker:
           docker_layer_caching: true
       - run:
@@ -235,39 +247,40 @@ jobs:
             docker buildx create --name multiarch --driver docker-container --use
             docker buildx inspect --bootstrap
       - run:
-          name: Package BC-VIEW
+          name: Package BC-VIEW (<< parameters.platform >>)
           command: |
             SHORT_COMMIT=$(git rev-parse --short $GIT_COMMIT)
+            PLATFORM_TAG=$(echo "<< parameters.platform >>" | sed 's/\//-/g')
             
             # Login to GitHub Container Registry
             echo "$GH_GCR" | docker login ghcr.io -u "$DOCKER_USER" --password-stdin
             
-            # Build and push multi-platform image with optimized caching
-            # Use single platform for faster builds (comment out for multi-platform)
-            PLATFORMS="linux/amd64"
-            # PLATFORMS="linux/amd64,linux/arm64"  # Uncomment for multi-platform
-            
+            # Build and push using buildx with attestations disabled
             for i in {1..3}; do
-              echo "Attempt $i of 3: Building and pushing Docker image..."
+              echo "Attempt $i of 3: Building and pushing Docker image for << parameters.platform >>..."
               if docker buildx build \
-                --platform $PLATFORMS \
+                --platform << parameters.platform >> \
                 --build-arg GIT_BRANCH=$GIT_BRANCH \
                 --build-arg GIT_COMMIT=$SHORT_COMMIT \
                 --build-arg BUILD_ID=$STACK_VER \
                 --cache-from type=gha \
                 --cache-to type=gha,mode=max \
+                --provenance=false \
+                --sbom=false \
+                --tag "ghcr.io/monowai/$IMAGE_NAME:latest-$PLATFORM_TAG" \
+                --tag "ghcr.io/monowai/$IMAGE_NAME:${STACK_VER}-$PLATFORM_TAG" \
                 --tag "ghcr.io/monowai/$IMAGE_NAME:latest" \
                 --tag "ghcr.io/monowai/$IMAGE_NAME:${STACK_VER}" \
                 --push \
                 ~/project/.; then
-                echo "Docker build and push completed successfully"
+                echo "Docker build and push completed successfully for << parameters.platform >>"
                 break
               else
-                echo "Attempt $i failed, waiting before retry..."
+                echo "Attempt $i failed for << parameters.platform >>, waiting before retry..."
                 if [ $i -lt 3 ]; then
                   sleep $((i * 20))
                 else
-                  echo "All Docker build attempts failed. Exiting."
+                  echo "All Docker build attempts failed for << parameters.platform >>. Exiting."
                   exit 1
                 fi
               fi
@@ -284,6 +297,9 @@ workflows:
           requires:
             - install-dependencies
       - docker-build:
+          matrix:
+            parameters:
+              platform: ["linux/amd64", "linux/arm64"]
           requires:
             - test
             - build
