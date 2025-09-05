@@ -29,7 +29,7 @@
     "i18next": "^24.x",
     "i18next-fs-backend": "^2.x",
     "kafkajs": "^2.x",
-    "next": "^15.x",
+    "next": "^15.4.7",
     "next-i18next": "^15.x",
     "papaparse": "^5.5.2",
     "ramda": "^0.30",
