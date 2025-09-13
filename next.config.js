@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 /**
  * @type {import('next').NextConfig}
  */
@@ -15,12 +16,23 @@ const nextConfig = {
   output: "standalone",
   // Performance optimizations
   experimental: {
-    // Enable faster builds
+    // Enable faster builds with optimizeCss
     optimizeCss: true,
   },
-  // Optimize webpack
+  // Turbopack configuration (for dev mode with --turbopack)
+  turbopack: {
+    rules: {
+      // Configure Turbopack loaders if needed
+      "*.svg": {
+        loaders: ["@svgr/webpack"],
+        as: "*.js",
+      },
+    },
+  },
+  // Optimize webpack (production only - dev uses Turbopack)
   webpack: (config, { dev, isServer }) => {
-    // Optimize for production builds
+    // Only apply webpack optimizations for production builds
+    // Dev mode uses Turbopack via --turbopack flag
     if (!dev && !isServer) {
       config.optimization.splitChunks = {
         chunks: "all",
@@ -41,6 +53,7 @@ const nextConfig = {
   ...(process.env.ANALYZE === "true" && {
     webpack: (config) => {
       config.plugins.push(
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
         new (require("@next/bundle-analyzer"))({
           enabled: true,
         }),
@@ -53,6 +66,7 @@ module.exports = nextConfig
 
 // Injected content via Sentry wizard below
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const { withSentryConfig } = require("@sentry/nextjs")
 
 module.exports = withSentryConfig(module.exports, {
