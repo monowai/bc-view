@@ -1,0 +1,68 @@
+---
+# Codacy configuration file
+# See: https://docs.codacy.com/repositories-configure/codacy-configuration-file/
+
+engines:
+  # Enable ESLint engine
+  eslint:
+    enabled: true
+    exclude_paths:
+      - ".next/**"
+      - "node_modules/**"
+      - "build/**"
+      - "dist/**"
+      - "coverage/**"
+      - "**/*.d.ts"
+      - "**/*.config.js"
+      - "**/*.min.js"
+
+  # Enable TypeScript support
+  tslint:
+    enabled: false  # Using ESLint instead
+
+  # Enable Metrics for complexity analysis
+  metrics:
+    enabled: true
+
+exclude_paths:
+  # Build and generated files
+  - ".next/**"
+  - "node_modules/**"
+  - "build/**"
+  - "dist/**"
+  - "coverage/**"
+  
+  # Configuration files
+  - "*.config.js"
+  - "*.config.ts"
+  - "next-env.d.ts"
+  - "jest.setup.js"
+  
+  # Test files (analyze separately if needed)
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+  - "**/*.spec.ts"
+  - "**/*.spec.tsx"
+  - "__mocks__/**"
+  - "tests/**"
+  
+  # Documentation
+  - "*.md"
+  - "docs/**"
+
+# Coverage settings
+coverage:
+  exclude_paths:
+    - ".next/**"
+    - "node_modules/**"
+    - "build/**"
+    - "dist/**"
+    - "**/*.d.ts"
+    - "**/*.config.js"
+    - "**/*.test.ts"
+    - "**/*.test.tsx"
+    - "**/*.spec.ts" 
+    - "**/*.spec.tsx"
+    - "__mocks__/**"
+    - "tests/**"
+    - "jest.setup.js"

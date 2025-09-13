@@ -69,3 +69,6 @@ reports/
 
 # Husky git hooks
 .husky/
+
+# Code quality tools
+codacy-coverage-reporter
