@@ -4,21 +4,14 @@ import React from "react"
 import { useTranslation } from "next-i18next"
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
-import { rootLoader } from "@components/ui/PageLoader"
-import useSwr from "swr"
-import { simpleFetcher } from "@lib/api/fetchHelper"
-import GitInfo from "@components/ui/GitInfo"
 
-const key = "/api/register"
 export default withPageAuthRequired(function Home(): React.ReactElement {
   const { user, error, isLoading } = useUser()
   const { t } = useTranslation("common")
 
-  const registration = useSwr(key, simpleFetcher(key))
-  if (isLoading || registration.isLoading) return rootLoader(t("loading"))
+  if (isLoading) return <div>Loading...</div>
   if (error) return <div>{error.message}</div>
   if (user) {
-    // noinspection HtmlUnknownTarget
     return (
       <div>
         {t("home.welcome")}
@@ -28,7 +21,6 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
         <div>
           <Link href="/api/auth/logout">{t("user.logout")}</Link>
         </div>
-        <GitInfo />
       </div>
     )
   }

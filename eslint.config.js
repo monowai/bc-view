@@ -14,7 +14,7 @@ module.exports = [
   {
     ignores: [
       ".next/**",
-      "build/**", 
+      "build/**",
       "dist/**",
       "node_modules/**",
       "**/*.d.ts",
@@ -23,15 +23,15 @@ module.exports = [
       "eslint.config.js",
       ".lintstagedrc.js",
       "__mocks__/**",
-      "**/*.min.js"
-    ]
+      "**/*.min.js",
+    ],
   },
   // Use FlatCompat to convert legacy extends
   ...compat.extends(
     "plugin:@next/next/recommended",
-    "plugin:react/recommended", 
+    "plugin:react/recommended",
     "plugin:@typescript-eslint/recommended",
-    "prettier"
+    "prettier",
   ),
   {
     plugins: {
@@ -59,7 +59,7 @@ module.exports = [
         global: "readonly",
         setTimeout: "readonly",
         clearTimeout: "readonly",
-        setInterval: "readonly", 
+        setInterval: "readonly",
         clearInterval: "readonly",
         jest: "readonly",
         describe: "readonly",

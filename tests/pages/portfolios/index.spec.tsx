@@ -4,11 +4,7 @@ import "@testing-library/jest-dom"
 import Portfolios from "@pages/portfolios"
 import useSWR from "swr"
 import { beforeEach, describe, it } from "@jest/globals"
-import {
-  mockUserProfile,
-  portfolioResult,
-  withUserProvider,
-} from "__mocks__/fixtures"
+import { portfolioResult } from "__mocks__/fixtures"
 
 // Mock useSWR with specific data setup
 jest.mock("swr", () => ({
@@ -29,9 +25,7 @@ describe("Portfolios Page", () => {
   })
 
   it("renders the portfolios table when data is available", () => {
-    render(<Portfolios user={mockUserProfile} />, {
-      wrapper: withUserProvider({ user: mockUserProfile }),
-    })
+    render(<Portfolios />)
     expect(screen.getByText("portfolio.code")).toBeInTheDocument()
     expect(screen.getByText("P123")).toBeInTheDocument()
     expect(screen.getByText("Portfolio 1")).toBeInTheDocument()
@@ -55,9 +49,7 @@ describe("Portfolios Page", () => {
       mutate: jest.fn(),
     })
     ;(useSWR as jest.Mock).mockImplementation(() => mockUseSWR())
-    render(<Portfolios user={mockUserProfile} />, {
-      wrapper: withUserProvider({ user: mockUserProfile }),
-    })
+    render(<Portfolios />)
 
     expect(screen.getByText("error.portfolios.empty")).toBeInTheDocument()
   })

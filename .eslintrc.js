@@ -1,28 +1,7 @@
 module.exports = {
-  parser: "@typescript-eslint/parser", // Specifies the ESLint parser
-  plugins: ["@typescript-eslint", "react-hooks"],
-  extends: [
-    "plugin:@next/next/recommended",
-    "plugin:react/recommended",
-    "plugin:@typescript-eslint/recommended",
-    "prettier",
-  ],
-  settings: {
-    react: {
-      version: "detect",
-    },
-  },
-  parserOptions: {
-    ecmaFeatures: {
-      jsx: true, // Allows for the parsing of JSX
-    },
-    ecmaVersion: 2023, // Allows for the parsing of modern ECMAScript features
-    sourceType: "module", // Allows for the use of imports
-  },
+  extends: ["next/core-web-vitals", "next/typescript"],
   rules: {
     "react/prop-types": "off",
-    strict: "error",
-    "react/no-multi-comp": 0,
     "@typescript-eslint/ban-ts-comment": "warn",
     "@typescript-eslint/explicit-member-accessibility": [
       1,
@@ -54,14 +33,5 @@ module.exports = {
       },
     ],
     "@typescript-eslint/no-explicit-any": "off",
-    "@typescript-eslint/ban-ts-ignore": "off",
-    "react-hooks/rules-of-hooks": "error",
-    "react-hooks/exhaustive-deps": "warn",
-  },
-  env: {
-    es6: true,
-    browser: true,
-    node: true,
-    jest: true,
   },
 }

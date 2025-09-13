@@ -21,6 +21,7 @@ const customJestConfig = {
   testPathIgnorePatterns: ["<rootDir>/tests/fixtures.tsx"],
   // Ignore standalone build files
   modulePathIgnorePatterns: ["<rootDir>/.next/standalone/"],
+  transformIgnorePatterns: ["node_modules/(?!(@auth0|jose)/)"],
   transform: {
     "^.+\\.(ts|tsx)$": "ts-jest",
   },

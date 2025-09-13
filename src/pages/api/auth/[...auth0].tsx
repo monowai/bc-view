@@ -1,6 +1,6 @@
 import { handleAuth, handleLogin, handleLogout } from "@auth0/nextjs-auth0"
-import { fetchError } from "@lib/api/responseWriter"
 import { NextApiRequest, NextApiResponse } from "next"
+import { fetchError } from "@lib/api/responseWriter"
 
 /* eslint max-len: ["error", { "ignoreComments": true }] */
 /*
@@ -11,7 +11,7 @@ export default handleAuth({
     try {
       await handleLogin(req, res, {
         authorizationParams: {
-          scope: 
+          scope:
             "openid profile email offline_access beancounter beancounter:user",
           // Add additional security parameters
           prompt: "login", // Force re-authentication for sensitive apps

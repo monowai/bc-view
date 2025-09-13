@@ -9,17 +9,19 @@ export default function HeaderUserControls(): React.ReactElement {
   const { t } = useTranslation("common")
   const [dropdownOpen, setDropdownOpen] = useState(false)
 
-  if (isLoading) return (
-    <div className="animate-pulse flex space-x-4">
-      <div className="rounded-full bg-gray-300 h-8 w-8"></div>
-      <div className="bg-gray-300 h-4 w-20 rounded"></div>
-    </div>
-  )
-  if (error) return (
-    <div className="text-red-500 text-sm">
-      {t("auth.error")}: {error.message}
-    </div>
-  )
+  if (isLoading)
+    return (
+      <div className="animate-pulse flex space-x-4">
+        <div className="rounded-full bg-gray-300 h-8 w-8"></div>
+        <div className="bg-gray-300 h-4 w-20 rounded"></div>
+      </div>
+    )
+  if (error)
+    return (
+      <div className="text-red-500 text-sm">
+        {t("auth.error")}: {error.message}
+      </div>
+    )
   if (!user)
     return (
       <div>

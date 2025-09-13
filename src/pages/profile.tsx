@@ -24,7 +24,13 @@ export function getAvatar(user: UserProfile, size: number): ReactElement {
   )
 }
 
-function Profile(): ReactElement {
+export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
+  props: {
+    ...(await serverSideTranslations(locale as string, ["common"])),
+  },
+})
+
+export default withPageAuthRequired(function Profile(): ReactElement {
   const { user, error, isLoading } = useUser()
   const { t, ready } = useTranslation("common")
   if (isLoading || !ready) return rootLoader(t("loading"))
@@ -39,12 +45,4 @@ function Profile(): ReactElement {
       {getAvatar(user, 50)}
     </div>
   )
-}
-
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
-  props: {
-    ...(await serverSideTranslations(locale as string, ["common"])),
-  },
 })
-
-export default withPageAuthRequired(Profile)
