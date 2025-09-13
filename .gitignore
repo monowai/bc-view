@@ -59,4 +59,13 @@ cache
 
 # Sentry Config File
 .env.sentry-build-plugin
-.jest-cache
+
+# Testing and cache
+.jest-cache/
+reports/
+
+# Claude Code & AI tools
+.claude/
+
+# Husky git hooks
+.husky/
