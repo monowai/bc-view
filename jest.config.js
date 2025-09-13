@@ -19,6 +19,8 @@ const customJestConfig = {
   },
   testEnvironment: "jest-environment-jsdom",
   testPathIgnorePatterns: ["<rootDir>/tests/fixtures.tsx"],
+  // Ignore standalone build files
+  modulePathIgnorePatterns: ["<rootDir>/.next/standalone/"],
   transform: {
     "^.+\\.(ts|tsx)$": "ts-jest",
   },
