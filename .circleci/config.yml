@@ -105,6 +105,22 @@ jobs:
       - run:
           name: Run Tests
           command: yarn test
+      - run:
+          name: Upload Coverage to Codacy
+          command: |
+            # Install Codacy coverage reporter
+            curl -Ls -o codacy-coverage-reporter "$(curl -Ls https://api.github.com/repos/codacy/codacy-coverage-reporter/releases/latest | jq -r '.assets | map({name, browser_download_url} | select(.name | contains("codacy-coverage-reporter-linux"))) | .[0].browser_download_url')"
+            chmod +x codacy-coverage-reporter
+            
+            # Upload coverage report if CODACY_PROJECT_TOKEN is set
+            if [ -n "$CODACY_PROJECT_TOKEN" ]; then
+              echo "Uploading coverage to Codacy..."
+              ./codacy-coverage-reporter report -l TypeScript -r coverage/lcov.info --commit-uuid $CIRCLE_SHA1
+              echo "✅ Coverage uploaded successfully"
+            else
+              echo "⚠️  CODACY_PROJECT_TOKEN not set, skipping coverage upload"
+            fi
+          when: always
       - save_cache:
           paths:
             - .jest-cache
