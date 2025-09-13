@@ -1,0 +1,32 @@
+name: Renovate
+on:
+  schedule:
+    # Run every Monday at 6:00 AM Pacific/Auckland time (UTC+12/+13)
+    - cron: "0 18 * * 0" # Sunday 6 PM UTC = Monday 6 AM NZST
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: "Override default log level"
+        required: false
+        default: "info"
+        type: choice
+        options:
+          - info
+          - debug
+          - trace
+
+jobs:
+  renovate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Self-hosted Renovate
+        uses: renovatebot/github-action@v40.3.2
+        with:
+          configurationFile: renovate.json
+          token: ${{ secrets.RENOVATE_TOKEN || secrets.GITHUB_TOKEN }}
+          renovate-version: "latest"
+        env:
+          LOG_LEVEL: ${{ inputs.logLevel || 'info' }}
