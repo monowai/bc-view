@@ -20,6 +20,6 @@ describe("calculate function", () => {
     expect(equities.positions.length).toEqual(2)
     const etfs = result.holdingGroups["Exchange Traded Fund"]
     expect(etfs.positions.length).toEqual(2)
-    result.holdingGroups
+    // result.holdingGroups - removed unused expression
   })
 })

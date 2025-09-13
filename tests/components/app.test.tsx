@@ -11,6 +11,7 @@ enableFetchMocks()
 describe("<Home />", () => {
   test("renders for authorised user with Footer", async () => {
     const git = simpleGit()
+    expect(git)
     fetchMock.mockResponseOnce(JSON.stringify(registrationSuccess))
     fetchMock.mockResponseOnce(
       JSON.stringify({
@@ -35,7 +36,7 @@ describe("<Home />", () => {
       expect(
         screen.getByText((content, element) => {
           return (
-            element!!.tagName.toLowerCase() === "span" &&
+            element!.tagName.toLowerCase() === "span" &&
             content.includes("mock-commit")
           )
         }),
