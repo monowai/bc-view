@@ -19,9 +19,12 @@
     "paths": {
       "@components/*": ["src/components/*"],
       "@pages/*": ["src/pages/*"],
-      "@utils/*": ["src/utils/*"],
+      "@lib/*": ["src/lib/utils/*"],
       "@hooks/*": ["src/hooks/*"],
-      "@styles/*": ["styles/*"]
+      "@styles/*": ["styles/*"],
+      "@constants/*": ["src/constants/*"],
+      "@providers/*": ["src/providers/*"],
+      "@types/*": ["types/*"]
     },
     "allowJs": true,
     "skipLibCheck": true,

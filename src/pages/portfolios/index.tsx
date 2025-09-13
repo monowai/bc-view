@@ -6,11 +6,11 @@ import { Portfolio } from "types/beancounter"
 import Link from "next/link"
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
-import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
+import { portfoliosKey, simpleFetcher } from "@lib/api/fetchHelper"
 import errorOut from "@components/errors/ErrorOut"
 import { useRouter } from "next/router"
-import { rootLoader } from "@components/PageLoader"
-import { FormatValue } from "@components/MoneyUtils"
+import { rootLoader } from "@components/ui/PageLoader"
+import { FormatValue } from "@components/ui/MoneyUtils"
 
 const CreatePortfolioButton = (): React.ReactElement<HTMLButtonElement> => {
   const router = useRouter()

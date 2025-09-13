@@ -1,4 +1,4 @@
-import { ValueIn } from "@components/holdings/GroupByOptions"
+import { ValueIn } from "@components/features/holdings/GroupByOptions"
 
 export type TrnType = "BUY" | "SELL" | "DIVI" | "SPLIT"
 

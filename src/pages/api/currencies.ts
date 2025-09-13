@@ -1,7 +1,7 @@
 import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0"
 import { Currency } from "types/beancounter"
-import handleResponse, { fetchError } from "@utils/api/response-writer"
-import { getDataUrl } from "@utils/api/bc-config"
+import handleResponse, { fetchError } from "@lib/api/responseWriter"
+import { getDataUrl } from "@lib/api/bcConfig"
 import { NextApiRequest, NextApiResponse } from "next"
 
 const baseUrl = getDataUrl("/currencies")

@@ -1,5 +1,5 @@
 import React, { useState } from "react"
-import { Position } from "../../types/beancounter"
+import { Position } from "types/beancounter"
 
 interface CopyPopupProps {
   columns: string[]

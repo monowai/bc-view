@@ -7,8 +7,8 @@ import {
   Position,
   Total,
 } from "types/beancounter"
-import { isCashRelated } from "@utils/assets/assetUtils"
-import { GroupBy, ValueIn } from "@components/holdings/GroupByOptions"
+import { isCashRelated } from "@lib/assets/assetUtils"
+import { GroupBy, ValueIn } from "@components/features/holdings/GroupByOptions"
 
 function getPath(path: string, position: Position): string {
   return path

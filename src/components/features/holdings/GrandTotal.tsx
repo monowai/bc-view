@@ -1,6 +1,6 @@
 import { HoldingsInCurrency } from "types/beancounter"
 import React, { ReactElement } from "react"
-import { FormatValue } from "@components/MoneyUtils"
+import { FormatValue } from "@components/ui/MoneyUtils"
 import { useTranslation } from "next-i18next"
 
 // Totals all subtotal values.

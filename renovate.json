@@ -1,0 +1,82 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:base",
+    "schedule:earlyMondays",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    ":separatePatchReleases"
+  ],
+  "timezone": "Pacific/Auckland",
+  "labels": ["dependencies"],
+  "assignees": ["@mikeh"],
+  "reviewers": ["@mikeh"],
+  "packageRules": [
+    {
+      "description": "Auto-merge patch updates for non-major dependencies",
+      "matchUpdateTypes": ["patch", "pin", "digest"],
+      "excludePackagePatterns": ["^next$", "^react$", "^typescript$"],
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
+      "description": "Group type definitions together",
+      "matchPackagePatterns": ["^@types/"],
+      "groupName": "type definitions",
+      "automerge": true
+    },
+    {
+      "description": "Group ESLint packages together",
+      "matchPackagePatterns": ["eslint", "@typescript-eslint/"],
+      "groupName": "ESLint packages"
+    },
+    {
+      "description": "Group testing packages together",
+      "matchPackagePatterns": ["jest", "@testing-library/", "babel-jest"],
+      "groupName": "testing packages"
+    },
+    {
+      "description": "Group OpenTelemetry packages together",
+      "matchPackagePatterns": ["^@opentelemetry/"],
+      "groupName": "OpenTelemetry packages"
+    },
+    {
+      "description": "Separate major updates for critical packages",
+      "matchPackageNames": [
+        "next",
+        "react",
+        "react-dom",
+        "typescript",
+        "@auth0/nextjs-auth0",
+        "@sentry/nextjs"
+      ],
+      "separateMajorMinor": true,
+      "separateMinorPatch": true
+    },
+    {
+      "description": "Auto-merge minor and patch updates for dev dependencies",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "excludePackagePatterns": ["^typescript$", "^@typescript-eslint/"],
+      "automerge": true
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "assignees": ["@mikeh"],
+    "labels": ["security"]
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on Monday"]
+  },
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "commitMessagePrefix": "chore:",
+  "commitMessageAction": "update",
+  "commitMessageTopic": "{{depName}}",
+  "commitMessageExtra": "to {{newVersion}}",
+  "prTitle": "{{commitMessagePrefix}} {{commitMessageAction}} {{commitMessageTopic}} {{commitMessageExtra}}",
+  "prBodyTemplate": "This PR updates {{depName}} from `{{currentVersion}}` to `{{newVersion}}`.\n\n{{#if hasReleaseNotes}}**Release Notes:**\n{{{releaseNotes}}}{{/if}}\n\n{{#if hasChangelog}}**Changelog:**\n{{{changelog}}}{{/if}}\n\n---\n*This PR was generated automatically by Renovate Bot.*",
+  "rangeStrategy": "bump"
+}

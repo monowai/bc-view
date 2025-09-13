@@ -1,8 +1,8 @@
 import React, { ReactElement, useCallback } from "react"
-import { useHoldingState } from "@utils/holdings/holdingState"
+import { useHoldingState } from "@lib/holdings/holdingState"
 import { ValuationOption, ValuationOptions } from "types/app"
 import { useTranslation } from "next-i18next"
-import { rootLoader } from "@components/PageLoader"
+import { rootLoader } from "@components/ui/PageLoader"
 
 export enum ValueIn {
   PORTFOLIO = "PORTFOLIO",

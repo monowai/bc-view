@@ -1,7 +1,7 @@
 import React, { useState } from "react"
 import TradeInputForm from "@pages/trns/trade"
 import CashInputForm from "@pages/trns/cash"
-import CopyPopup from "@components/CopyPopup"
+import CopyPopup from "@components/ui/CopyPopup"
 import { HoldingContract } from "types/beancounter"
 
 interface HoldingActionsProps {

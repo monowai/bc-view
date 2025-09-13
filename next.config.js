@@ -23,12 +23,12 @@ const nextConfig = {
     // Optimize for production builds
     if (!dev && !isServer) {
       config.optimization.splitChunks = {
-        chunks: 'all',
+        chunks: "all",
         cacheGroups: {
           vendor: {
             test: /[\\/]node_modules[\\/]/,
-            name: 'vendors',
-            chunks: 'all',
+            name: "vendors",
+            chunks: "all",
           },
         },
       }
@@ -38,12 +38,12 @@ const nextConfig = {
   // Enable compression
   compress: true,
   // Optimize bundle analyzer (optional - for debugging)
-  ...(process.env.ANALYZE === 'true' && {
+  ...(process.env.ANALYZE === "true" && {
     webpack: (config) => {
       config.plugins.push(
-        new (require('@next/bundle-analyzer'))({
+        new (require("@next/bundle-analyzer"))({
           enabled: true,
-        })
+        }),
       )
       return config
     },
@@ -64,8 +64,12 @@ module.exports = withSentryConfig(module.exports, {
   // Only print logs for uploading source maps in CI
   silent: !process.env.CI,
   // Disable Sentry plugins if no auth token is provided
-  disableServerWebpackPlugin: !process.env.SENTRY_AUTH_TOKEN || process.env.SENTRY_AUTH_TOKEN === 'undefined',
-  disableClientWebpackPlugin: !process.env.SENTRY_AUTH_TOKEN || process.env.SENTRY_AUTH_TOKEN === 'undefined',
+  disableServerWebpackPlugin:
+    !process.env.SENTRY_AUTH_TOKEN ||
+    process.env.SENTRY_AUTH_TOKEN === "undefined",
+  disableClientWebpackPlugin:
+    !process.env.SENTRY_AUTH_TOKEN ||
+    process.env.SENTRY_AUTH_TOKEN === "undefined",
 
   // For all available options, see:
   // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/

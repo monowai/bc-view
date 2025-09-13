@@ -1,8 +1,8 @@
 import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0"
-import { requestInit } from "@utils/api/fetchHelper"
-import handleResponse from "@utils/api/response-writer"
+import { requestInit } from "@lib/api/fetchHelper"
+import handleResponse from "@lib/api/responseWriter"
 import { HoldingContract } from "types/beancounter"
-import { getPositionsUrl } from "@utils/api/bc-config"
+import { getPositionsUrl } from "@lib/api/bcConfig"
 import { NextApiRequest, NextApiResponse } from "next"
 
 const baseUrl = getPositionsUrl()

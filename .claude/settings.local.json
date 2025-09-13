@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(mv:*)",
+      "Bash(rmdir:*)",
+      "Bash(find:*)",
+      "Bash(yarn test)",
+      "Bash(yarn tsc:*)",
+      "Bash(npx tsc:*)",
+      "Bash(yarn lint)",
+      "Bash(yarn typecheck)",
+      "Bash(xargs sed:*)",
+      "Bash(yarn build)",
+      "Bash(chmod:*)",
+      "Bash(yarn install)",
+      "Bash(git add:*)",
+      "Bash(yarn outdated)",
+      "Bash(yarn upgrade:*)",
+      "Bash(yarn list:*)",
+      "Bash(yarn remove:*)",
+      "Bash(yarn add:*)",
+      "Bash(yarn info:*)",
+      "Bash(npm view:*)",
+      "Bash(timeout 10 yarn dev)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

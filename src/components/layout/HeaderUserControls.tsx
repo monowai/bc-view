@@ -1,8 +1,6 @@
 import React, { useState } from "react"
 import { useUser } from "@auth0/nextjs-auth0/client"
 import Link from "next/link"
-import { GetServerSideProps } from "next"
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { useTranslation } from "next-i18next"
 import { getAvatar } from "@pages/profile"
 
@@ -44,9 +42,3 @@ export default function HeaderUserControls(): React.ReactElement {
     </div>
   )
 }
-
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
-  props: {
-    ...(await serverSideTranslations(locale as string, ["common"])),
-  },
-})

@@ -4,10 +4,10 @@ import React from "react"
 import { useTranslation } from "next-i18next"
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
-import { rootLoader } from "@components/PageLoader"
+import { rootLoader } from "@components/ui/PageLoader"
 import useSwr from "swr"
-import { simpleFetcher } from "@utils/api/fetchHelper"
-import GitInfo from "@components/GitInfo"
+import { simpleFetcher } from "@lib/api/fetchHelper"
+import GitInfo from "@components/ui/GitInfo"
 
 const key = "/api/register"
 export default withPageAuthRequired(function Home(): React.ReactElement {
