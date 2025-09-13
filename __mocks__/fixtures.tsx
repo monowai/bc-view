@@ -1,6 +1,5 @@
 import { UserProfile, UserProvider } from "@auth0/nextjs-auth0/client"
 import React, { ReactNode } from "react"
-import { ConfigContext } from "@auth0/nextjs-auth0/dist/client/use-config"
 import { PortfolioResponses, RegistrationResponse } from "types/beancounter"
 
 export const mockUserProfile: UserProfile = {
@@ -48,12 +47,8 @@ export const portfolioResult: PortfolioResponses = {
     },
   ],
 }
-export const withUserProvider = (user: UserProfile = {}) => {
-  return (
-    props: React.Attributes & {
-      user?: UserProfile | undefined
-      profileUrl?: string | undefined
-      fetcher?: ((url: string) => Promise<UserProfile | undefined>) | undefined
-    } & ConfigContext & { children?: ReactNode },
-  ) => <UserProvider {...props} user={user} profileUrl="profile.url" />
+export const withUserProvider = (user: UserProfile = mockUserProfile) => {
+  return ({ children }: { children: ReactNode }) => (
+    <UserProvider>{children}</UserProvider>
+  )
 }

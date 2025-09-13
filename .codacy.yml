@@ -18,7 +18,7 @@ engines:
 
   # Enable TypeScript support
   tslint:
-    enabled: false  # Using ESLint instead
+    enabled: false # Using ESLint instead
 
   # Enable Metrics for complexity analysis
   metrics:
@@ -31,13 +31,13 @@ exclude_paths:
   - "build/**"
   - "dist/**"
   - "coverage/**"
-  
+
   # Configuration files
   - "*.config.js"
   - "*.config.ts"
   - "next-env.d.ts"
   - "jest.setup.js"
-  
+
   # Test files (analyze separately if needed)
   - "**/*.test.ts"
   - "**/*.test.tsx"
@@ -45,7 +45,7 @@ exclude_paths:
   - "**/*.spec.tsx"
   - "__mocks__/**"
   - "tests/**"
-  
+
   # Documentation
   - "*.md"
   - "docs/**"
@@ -61,7 +61,7 @@ coverage:
     - "**/*.config.js"
     - "**/*.test.ts"
     - "**/*.test.tsx"
-    - "**/*.spec.ts" 
+    - "**/*.spec.ts"
     - "**/*.spec.tsx"
     - "__mocks__/**"
     - "tests/**"

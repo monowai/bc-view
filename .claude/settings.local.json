@@ -26,7 +26,12 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:auth0.com)",
       "WebFetch(domain:auth0.github.io)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(yarn jest:*)",
+      "Bash(yarn lint:*)",
+      "Bash(npx next lint:*)",
+      "Bash(npx @next/codemod@canary next-lint-to-eslint-cli:*)",
+      "Bash(pkill:*)"
     ],
     "deny": [],
     "ask": []
