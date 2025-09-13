@@ -1,8 +1,8 @@
 import { HoldingContract } from "types/beancounter"
 import * as path from "node:path"
 import * as fs from "node:fs"
-import { GroupBy, ValueIn } from "@components/holdings/GroupByOptions"
-import { calculateHoldings } from "@utils/holdings/calculateHoldings"
+import { GroupBy, ValueIn } from "@components/features/holdings/GroupByOptions"
+import { calculateHoldings } from "@lib/holdings/calculateHoldings"
 import { describe, expect, it } from "@jest/globals"
 
 const dataPath = path.resolve(__dirname, "../__contracts__/sort-holdings.json")

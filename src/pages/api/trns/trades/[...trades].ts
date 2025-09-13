@@ -1,7 +1,7 @@
 import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0"
-import handleResponse, { fetchError } from "@utils/api/response-writer"
+import handleResponse, { fetchError } from "@lib/api/responseWriter"
 import { Transaction } from "types/beancounter"
-import { requestInit } from "@utils/api/fetchHelper"
+import { requestInit } from "@lib/api/fetchHelper"
 import { baseUrl } from "@pages/api/trns"
 import { NextApiRequest, NextApiResponse } from "next"
 

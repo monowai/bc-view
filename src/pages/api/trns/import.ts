@@ -1,11 +1,7 @@
 import { TransactionUpload } from "types/app"
 import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0"
 import { Kafka, Partitioners, RecordMetadata } from "kafkajs"
-import {
-  getKafkaClient,
-  getKafkaHosts,
-  getTrnTopic,
-} from "@utils/api/bc-config"
+import { getKafkaClient, getKafkaHosts, getTrnTopic } from "@lib/api/bcConfig"
 import { NextApiRequest, NextApiResponse } from "next"
 
 export default withApiAuthRequired(async function writeRows(

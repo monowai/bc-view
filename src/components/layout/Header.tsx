@@ -1,11 +1,11 @@
 import React from "react"
-import HeaderBrand from "@pages/header/HeaderBrand"
-import HeaderUserControls from "@pages/header/HeaderUserControls"
-import { t } from "i18next"
-import { GetServerSideProps } from "next"
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
+import HeaderBrand from "@components/layout/HeaderBrand"
+import HeaderUserControls from "@components/layout/HeaderUserControls"
+import { useTranslation } from "next-i18next"
 
 export default function Header(): React.ReactElement {
+  const { t } = useTranslation("common")
+
   return (
     <header>
       <nav className="flex flex-col sm:flex-row items-center justify-between p-3 bg-gray-800 text-white">
@@ -28,9 +28,3 @@ export default function Header(): React.ReactElement {
     </header>
   )
 }
-
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
-  props: {
-    ...(await serverSideTranslations(locale as string, ["common"])),
-  },
-})

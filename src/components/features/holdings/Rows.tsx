@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo } from "react"
 import { HoldingValues, PriceData } from "types/beancounter"
 import { NumericFormat } from "react-number-format"
-import { FormatValue } from "@components/MoneyUtils"
-import { displayName, isCashRelated } from "@utils/assets/assetUtils"
+import { FormatValue } from "@components/ui/MoneyUtils"
+import { displayName, isCashRelated } from "@lib/assets/assetUtils"
 import Link from "next/link"
 
 interface RowsProps extends HoldingValues {
@@ -87,7 +87,7 @@ export default function Rows({
               )}
             </td>
             <td className="text-right px-4 py-1">
-              {hideValue(moneyValues[valueIn].priceData?.changePercent) ? (
+              {hideValue(moneyValues[valueIn].priceData) ? (
                 " "
               ) : (
                 <FormatValue value={moneyValues[valueIn].gainOnDay} />

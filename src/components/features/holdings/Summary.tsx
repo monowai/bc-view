@@ -1,11 +1,11 @@
 import React, { ReactElement, useCallback } from "react"
 import { Portfolio, PortfolioSummary } from "types/beancounter"
-import { FormatValue } from "@components/MoneyUtils"
+import { FormatValue } from "@components/ui/MoneyUtils"
 import { useTranslation } from "next-i18next"
 import { Controller, useForm } from "react-hook-form"
-import { useHoldingState } from "@utils/holdings/holdingState"
+import { useHoldingState } from "@lib/holdings/holdingState"
 import Link from "next/link"
-import { getTodayDate } from "@utils/dateutils"
+import { getTodayDate } from "@lib/dateUtils"
 
 export const headers = [
   { key: "summary.currency", align: "right" as const },

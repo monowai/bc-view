@@ -6,22 +6,22 @@ import {
   PortfolioRequest,
   PortfolioRequests,
 } from "types/beancounter"
-import { ccyKey, portfolioKey, simpleFetcher } from "@utils/api/fetchHelper"
+import { ccyKey, portfolioKey, simpleFetcher } from "@lib/api/fetchHelper"
 import { useRouter } from "next/router"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useTranslation } from "next-i18next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { GetServerSideProps } from "next"
 import Link from "next/link"
-import { rootLoader } from "@components/PageLoader"
+import { rootLoader } from "@components/ui/PageLoader"
 import errorOut from "@components/errors/ErrorOut"
 import useSwr from "swr"
-import { currencyOptions, toCurrency, toCurrencyOption } from "@utils/currency"
+import { currencyOptions, toCurrency, toCurrencyOption } from "@lib/currency"
 import ReactSelect from "react-select"
 import { yupResolver } from "@hookform/resolvers/yup"
 import { validateInput } from "@components/errors/validator"
-import { portfolioInputSchema } from "@utils/portfolio/schema"
-import TrnDropZone from "@components/DropZone"
+import { portfolioInputSchema } from "@lib/portfolio/schema"
+import TrnDropZone from "@components/ui/DropZone"
 
 export default withPageAuthRequired(function Manage(): React.ReactElement {
   function toPortfolioRequest(portfolio: PortfolioInput): PortfolioRequest {

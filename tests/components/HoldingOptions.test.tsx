@@ -2,7 +2,7 @@ import React from "react"
 import { render, screen } from "@testing-library/react"
 import { useRouter } from "next/router"
 import "@testing-library/jest-dom"
-import HoldingMenu from "@components/holdings/HoldingMenu"
+import HoldingMenu from "@components/features/holdings/HoldingMenu"
 import { Portfolio } from "types/beancounter"
 
 jest.mock("next/router", () => ({
@@ -10,7 +10,7 @@ jest.mock("next/router", () => ({
 }))
 
 // Mocking your internal components
-jest.mock("@components/Portfolios", () => ({
+jest.mock("@components/features/portfolios/Portfolios", () => ({
   Portfolios: () => <div>MockPortfolios</div>,
 }))
 
@@ -62,7 +62,7 @@ jest.mock("swr", () => ({
   })),
 }))
 
-jest.mock("@components/HideEmpty", () => ({
+jest.mock("@components/ui/HideEmpty", () => ({
   HideEmpty: () => <div>MockHideEmpty</div>,
 }))
 

@@ -4,14 +4,14 @@ import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useRouter } from "next/router"
-import { assetKey, simpleFetcher, tradeKey } from "@utils/api/fetchHelper"
+import { assetKey, simpleFetcher, tradeKey } from "@lib/api/fetchHelper"
 import { useTranslation } from "next-i18next"
 import Link from "next/link"
 import { Transaction } from "types/beancounter"
-import { rootLoader } from "@components/PageLoader"
+import { rootLoader } from "@components/ui/PageLoader"
 import errorOut from "@components/errors/ErrorOut"
 import useSwr from "swr"
-import { deleteTrn } from "@utils/trns/apiHelper"
+import { deleteTrn } from "@lib/trns/apiHelper"
 
 export default withPageAuthRequired(function Events(): React.ReactElement {
   const { t } = useTranslation("common")

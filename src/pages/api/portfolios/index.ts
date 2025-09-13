@@ -1,8 +1,8 @@
 import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0"
-import { requestInit } from "@utils/api/fetchHelper"
-import handleResponse, { fetchError } from "@utils/api/response-writer"
+import { requestInit } from "@lib/api/fetchHelper"
+import handleResponse, { fetchError } from "@lib/api/responseWriter"
 import { Portfolio } from "types/beancounter"
-import { getDataUrl } from "@utils/api/bc-config"
+import { getDataUrl } from "@lib/api/bcConfig"
 import { NextApiRequest, NextApiResponse } from "next"
 
 const baseUrl = getDataUrl("/portfolios")

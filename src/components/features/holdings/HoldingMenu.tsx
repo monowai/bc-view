@@ -1,10 +1,10 @@
 import React, { ReactElement, useState, useCallback } from "react"
 import { useTranslation } from "next-i18next"
-import { HideEmpty } from "@components/HideEmpty"
-import { Portfolios } from "@components/Portfolios"
+import { HideEmpty } from "@components/ui/HideEmpty"
+import { Portfolios } from "@components/features/portfolios/Portfolios"
 import { Portfolio } from "types/beancounter"
-import GroupByOptions from "@components/holdings/GroupByOptions"
-import ValueInOption from "@components/ValueIn"
+import GroupByOptions from "@components/features/holdings/GroupByOptions"
+import ValueInOption from "@components/ui/ValueIn"
 
 interface HoldingMenuOptions {
   portfolio: Portfolio

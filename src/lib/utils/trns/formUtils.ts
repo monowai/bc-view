@@ -1,7 +1,7 @@
 import { Portfolio } from "types/beancounter"
-import { convert } from "@utils/trns/tradeUtils"
+import { convert } from "@lib/trns/tradeUtils"
 import { useEffect } from "react"
-import { postData } from "@components/DropZone"
+import { postData } from "@components/ui/DropZone"
 
 export const onSubmit = (
   portfolio: Portfolio,

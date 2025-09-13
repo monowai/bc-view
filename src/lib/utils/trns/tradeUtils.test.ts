@@ -6,7 +6,7 @@ import {
   generateBatchId,
   getCashRow,
   getTradeRow,
-} from "@utils/trns/tradeUtils"
+} from "./tradeUtils"
 import { TradeFormData } from "types/beancounter"
 
 describe("TradeUtils", () => {
