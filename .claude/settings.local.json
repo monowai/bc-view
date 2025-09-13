@@ -22,7 +22,11 @@
       "Bash(yarn add:*)",
       "Bash(yarn info:*)",
       "Bash(npm view:*)",
-      "Bash(timeout 10 yarn dev)"
+      "Bash(timeout 10 yarn dev)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:auth0.com)",
+      "WebFetch(domain:auth0.github.io)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []
