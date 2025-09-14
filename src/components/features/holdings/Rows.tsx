@@ -105,7 +105,7 @@ export default function Rows({
                   <FormatValue
                     value={moneyValues[valueIn].priceData?.close || " "}
                   />
-                  <span className="absolute tooltip">
+                  <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full mb-1 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap z-50">
                     {moneyValues[valueIn].priceData.priceDate}
                   </span>
                 </span>
@@ -126,7 +126,7 @@ export default function Rows({
                     2,
                   )}
                   %
-                  <span className="absolute tooltip">
+                  <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full mb-1 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap z-50">
                     Previous {moneyValues[valueIn].currency.symbol}{" "}
                     {moneyValues[valueIn].priceData.previousClose}
                   </span>
@@ -158,7 +158,7 @@ export default function Rows({
             <td className={getCellClasses(4)}>
               <span className="relative group">
                 <FormatValue value={moneyValues[valueIn].costValue} />
-                <span className="absolute tooltip pointer-events-none">
+                <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full mb-1 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap z-50">
                   Average: {moneyValues[valueIn].averageCost.toLocaleString()}
                 </span>
               </span>
@@ -184,7 +184,7 @@ export default function Rows({
                 >
                   <FormatValue value={moneyValues[valueIn].dividends} />
                 </Link>
-                <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full bg-gray-700 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 tooltip pointer-events-none">
+                <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full mb-1 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap z-50">
                   Last Event: {dateValues?.lastDividend || "N/A"}
                 </span>
               </span>
@@ -203,7 +203,7 @@ export default function Rows({
                     multiplier={100}
                   />
                   {"%"}
-                  <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full bg-gray-700 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 tooltip">
+                  <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full mb-1 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap z-50">
                     ROI: {(moneyValues[valueIn].roi * 100).toFixed(2)}%
                   </span>
                 </span>
