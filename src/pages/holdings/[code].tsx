@@ -45,7 +45,7 @@ function HoldingsPage(): React.ReactElement {
   }, [router.query.action, cashModalOpen, tradeModalOpen])
 
   // Handle sorting
-  const handleSort = (key: string) => {
+  const handleSort = (key: string): void => {
     setSortConfig(prevConfig => {
       if (prevConfig.key === key) {
         // Toggle direction for the same column
@@ -65,7 +65,7 @@ function HoldingsPage(): React.ReactElement {
 
   // Calculate holdings and apply sorting - moved before conditional returns
   const holdings = useMemo(() => {
-    if (!data?.data) return null
+    if (!data) return null
 
     const calculatedHoldings = calculateHoldings(
       data.data,
@@ -90,7 +90,7 @@ function HoldingsPage(): React.ReactElement {
       }
     }
     return calculatedHoldings
-  }, [data.data, holdingState.hideEmpty, holdingState.valueIn.value, holdingState.groupBy.value, sortConfig])
+  }, [data, holdingState.hideEmpty, holdingState.valueIn.value, holdingState.groupBy.value, sortConfig])
 
   if (error && ready) {
     console.error(error) // Log the error for debugging
