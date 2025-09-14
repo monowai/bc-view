@@ -8,14 +8,39 @@ import Link from "next/link"
 import { getTodayDate } from "@lib/dateUtils"
 
 export const headers = [
-  { key: "summary.currency", align: "right" as const },
-  { key: "summary.value", align: "right" as const },
-  { key: "summary.purchases", align: "right" as const },
-  { key: "summary.sales", align: "right" as const },
-  { key: "summary.cash", align: "right" as const },
-  { key: "summary.dividends", align: "right" as const },
-  { key: "summary.irr", align: "right" as const },
-  { key: "summary.gain", align: "right" as const },
+  {
+    key: "summary.currency",
+    align: "right" as const,
+    mobile: true,
+    medium: true,
+  },
+  { key: "summary.value", align: "right" as const, mobile: true, medium: true },
+  {
+    key: "summary.purchases",
+    align: "right" as const,
+    mobile: false,
+    medium: true,
+  },
+  {
+    key: "summary.sales",
+    align: "right" as const,
+    mobile: false,
+    medium: true,
+  },
+  {
+    key: "summary.cash",
+    align: "right" as const,
+    mobile: false,
+    medium: false,
+  },
+  {
+    key: "summary.dividends",
+    align: "right" as const,
+    mobile: false,
+    medium: false,
+  },
+  { key: "summary.irr", align: "right" as const, mobile: true, medium: true },
+  { key: "summary.gain", align: "right" as const, mobile: true, medium: true },
 ]
 
 export default function SummaryHeader(portfolio: Portfolio): ReactElement {
@@ -73,15 +98,26 @@ export default function SummaryHeader(portfolio: Portfolio): ReactElement {
             </span>
           </div>
         </th>
-        {headers.map((header) => (
-          <th
-            key={header.key}
-            align={header.align}
-            className="px-2 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm"
-          >
-            {t(header.key)}
-          </th>
-        ))}
+        {headers.map((header) => {
+          let visibility
+          if (header.mobile) {
+            visibility = ""
+          } else if (header.medium) {
+            visibility = "hidden md:table-cell"
+          } else {
+            visibility = "hidden xl:table-cell"
+          }
+
+          return (
+            <th
+              key={header.key}
+              align={header.align}
+              className={`px-1 py-2 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-${header.align} ${visibility}`}
+            >
+              {t(header.key)}
+            </th>
+          )
+        })}
       </tr>
     </thead>
   )
@@ -94,66 +130,107 @@ export function SummaryRow({
   const currencyTotals = totals !== undefined
   const displayCurrency = !currencyTotals ? "Mixed" : currency.code
 
-  const data = [
-    undefined,
-    displayCurrency,
-    currencyTotals ? (
-      <FormatValue value={totals.marketValue} defaultValue="-" />
-    ) : (
-      <div>-</div>
-    ),
-    currencyTotals ? (
-      <FormatValue value={totals.purchases} defaultValue="-" />
-    ) : (
-      <div>-</div>
-    ),
-    currencyTotals ? (
-      <FormatValue value={totals.sales} defaultValue="-" />
-    ) : (
-      <div>-</div>
-    ),
-    currencyTotals ? (
-      <FormatValue value={totals.cash} defaultValue="-" />
-    ) : (
-      <div>-</div>
-    ),
-    currencyTotals ? (
-      <FormatValue value={totals.income} defaultValue="-" />
-    ) : (
-      <div>-</div>
-    ),
-    currencyTotals ? (
-      <>
-        <FormatValue
-          value={totals.irr}
-          defaultValue="-"
-          multiplier={100}
-          scale={2}
-        />
-        {"%"}
-      </>
-    ) : (
-      <div>-</div>
-    ),
-    currencyTotals ? (
-      <FormatValue value={totals.gain} defaultValue="-" />
-    ) : (
-      <div>-</div>
-    ),
+  // Data array that matches the headers structure exactly
+  const dataWithVisibility = [
+    { content: displayCurrency, mobile: true, medium: true }, // summary.currency
+    {
+      content: currencyTotals ? (
+        <FormatValue value={totals.marketValue} defaultValue="-" />
+      ) : (
+        <div>-</div>
+      ),
+      mobile: true,
+      medium: true,
+    }, // summary.value
+    {
+      content: currencyTotals ? (
+        <FormatValue value={totals.purchases} defaultValue="-" />
+      ) : (
+        <div>-</div>
+      ),
+      mobile: false,
+      medium: true,
+    }, // summary.purchases
+    {
+      content: currencyTotals ? (
+        <FormatValue value={totals.sales} defaultValue="-" />
+      ) : (
+        <div>-</div>
+      ),
+      mobile: false,
+      medium: true,
+    }, // summary.sales
+    {
+      content: currencyTotals ? (
+        <FormatValue value={totals.cash} defaultValue="-" />
+      ) : (
+        <div>-</div>
+      ),
+      mobile: false,
+      medium: false,
+    }, // summary.cash
+    {
+      content: currencyTotals ? (
+        <FormatValue value={totals.income} defaultValue="-" />
+      ) : (
+        <div>-</div>
+      ),
+      mobile: false,
+      medium: false,
+    }, // summary.dividends (income)
+    {
+      content: currencyTotals ? (
+        <>
+          <FormatValue
+            value={totals.irr}
+            defaultValue="-"
+            multiplier={100}
+            scale={2}
+          />
+          {"%"}
+        </>
+      ) : (
+        <div>-</div>
+      ),
+      mobile: true,
+      medium: true,
+    }, // summary.irr
+    {
+      content: currencyTotals ? (
+        <FormatValue value={totals.gain} defaultValue="-" />
+      ) : (
+        <div>-</div>
+      ),
+      mobile: true,
+      medium: true,
+    }, // summary.gain
   ]
 
   return (
     <tbody>
       <tr className="bg-white">
-        {data.map((item, index) => (
-          <td
-            key={index}
-            align="right"
-            className="px-2 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm"
-          >
-            {item}
-          </td>
-        ))}
+        <td className="px-1 py-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-left">
+          {/* Portfolio name column - matches the header */}
+        </td>
+        {dataWithVisibility.map((item, index) => {
+          let visibility
+          if (item.mobile) {
+            visibility = ""
+          } else if (item.medium) {
+            visibility = "hidden md:table-cell"
+          } else {
+            visibility = "hidden xl:table-cell"
+          }
+
+          return (
+            <td
+              key={index}
+              className={`px-1 py-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right ${visibility}`}
+            >
+              {item.content}
+            </td>
+          )
+        })}
       </tr>
     </tbody>
   )

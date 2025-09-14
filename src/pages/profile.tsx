@@ -1,5 +1,9 @@
 import React, { ReactElement } from "react"
-import { UserProfile, useUser, withPageAuthRequired } from "@auth0/nextjs-auth0/client"
+import {
+  UserProfile,
+  useUser,
+  withPageAuthRequired,
+} from "@auth0/nextjs-auth0/client"
 import Image from "next/image"
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"

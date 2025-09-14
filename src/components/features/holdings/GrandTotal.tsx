@@ -26,7 +26,13 @@ export default function GrandTotal({
 
   return (
     <tbody className="grand-totals" key={holdings.portfolio.code + "totals"}>
-      <tr key={valueIn} className="holding-footer text-sm">
+      <tr>
+        <td colSpan={13} className="border-t-2 border-gray-600"></td>
+      </tr>
+      <tr
+        key={valueIn}
+        className="holding-footer text-sm bg-gray-100 border-b-2 border-gray-600"
+      >
         <td colSpan={1} className="text-right px-4 py-1">
           <div>{t("holdings.valueTitle", { valueIn })}</div>
         </td>
@@ -35,7 +41,7 @@ export default function GrandTotal({
           <td
             key={index}
             colSpan={item.colSpan}
-            className="text-right px-4 py-1"
+            className={`text-right px-4 py-1 ${index === 0 && item.value < 0 ? "text-red-500" : index === 0 && item.value > 0 ? "text-green-500" : ""}`}
           >
             <FormatValue
               value={item.value}
