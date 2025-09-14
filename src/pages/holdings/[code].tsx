@@ -24,6 +24,7 @@ import SubTotal from "@components/features/holdings/SubTotal"
 import Header from "@components/features/holdings/Header"
 import GrandTotal from "@components/features/holdings/GrandTotal"
 import HoldingActions from "@components/features/holdings/HoldingActions"
+import PerformanceHeatmap from "@components/ui/PerformanceHeatmap"
 
 function HoldingsPage(): React.ReactElement {
   const router = useRouter()
@@ -37,6 +38,7 @@ function HoldingsPage(): React.ReactElement {
   const [tradeModalOpen, setTradeModalOpen] = useState(false)
   const [cashModalOpen, setCashModalOpen] = useState(false)
   const [columns, setColumns] = useState<string[]>([])
+  const [viewMode, setViewMode] = useState<"table" | "heatmap">("table")
   const [sortConfig, setSortConfig] = useState<SortConfig>({
     key: "assetName",
     direction: "asc",
@@ -114,7 +116,15 @@ function HoldingsPage(): React.ReactElement {
     return (
       <div className="w-full py-4">
         <HoldingMenu
-          portfolio={{ code: router.query.code as string, name: "Loading..." }}
+          portfolio={{
+            id: "",
+            code: router.query.code as string,
+            name: "Loading...",
+            currency: { code: "", symbol: "", name: "" },
+            base: { code: "", symbol: "", name: "" },
+            marketValue: 0,
+            irr: 0,
+          }}
         />
         <SummarySkeletonLoader />
         <TableSkeletonLoader rows={8} />
@@ -149,54 +159,126 @@ function HoldingsPage(): React.ReactElement {
   return (
     <div className="w-full py-4">
       <HoldingMenu portfolio={holdingResults.portfolio} />
-      <HoldingActions
-        holdingResults={holdingResults}
-        columns={columns}
-        valueIn={holdingState.valueIn.value}
-      />
-      <div className="grid grid-cols-1 gap-3">
-        <div>
-          <table className="min-w-full bg-white">
-            <SummaryHeader {...holdingResults.portfolio} />
-            <SummaryRow totals={holdings.totals} currency={holdings.currency} />
-          </table>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-white">
-            {Object.keys(holdings.holdingGroups)
-              .sort((a, b) => {
-                return sortOrder.indexOf(a) - sortOrder.indexOf(b)
-              })
-              .map((groupKey) => {
-                return (
-                  <React.Fragment key={groupKey}>
-                    <Header
-                      groupKey={groupKey}
-                      sortConfig={sortConfig}
-                      onSort={handleSort}
-                    />
-                    <Rows
-                      portfolio={holdingResults.portfolio}
-                      groupBy={groupKey}
-                      holdingGroup={holdings.holdingGroups[groupKey]}
-                      valueIn={holdingState.valueIn.value}
-                      onColumnsChange={setColumns}
-                    />
-                    <SubTotal
-                      groupBy={groupKey}
-                      subTotals={holdings.holdingGroups[groupKey].subTotals}
-                      valueIn={holdingState.valueIn.value}
-                    />
-                  </React.Fragment>
-                )
-              })}
-            <GrandTotal
-              holdings={holdings}
-              valueIn={holdingState.valueIn.value}
-            />
-          </table>
+      <div className="flex justify-between items-center mb-4">
+        <HoldingActions
+          holdingResults={holdingResults}
+          columns={columns}
+          valueIn={holdingState.valueIn.value}
+        />
+        <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
+          <button
+            onClick={() => setViewMode("table")}
+            className={`flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+              viewMode === "table"
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 4h18M3 10h18M3 16h18"
+              />
+            </svg>
+            <span>Table</span>
+          </button>
+          <button
+            onClick={() => setViewMode("heatmap")}
+            className={`flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+              viewMode === "heatmap"
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"
+              />
+            </svg>
+            <span>Heatmap</span>
+          </button>
         </div>
       </div>
+
+      {viewMode === "table" ? (
+        <div className="grid grid-cols-1 gap-3">
+          <div>
+            <table className="min-w-full bg-white">
+              <SummaryHeader {...holdingResults.portfolio} />
+              <SummaryRow
+                totals={holdings.totals}
+                currency={holdings.currency}
+              />
+            </table>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white">
+              {Object.keys(holdings.holdingGroups)
+                .sort((a, b) => {
+                  return sortOrder.indexOf(a) - sortOrder.indexOf(b)
+                })
+                .map((groupKey) => {
+                  return (
+                    <React.Fragment key={groupKey}>
+                      <Header
+                        groupKey={groupKey}
+                        sortConfig={sortConfig}
+                        onSort={handleSort}
+                      />
+                      <Rows
+                        portfolio={holdingResults.portfolio}
+                        groupBy={groupKey}
+                        holdingGroup={holdings.holdingGroups[groupKey]}
+                        valueIn={holdingState.valueIn.value}
+                        onColumnsChange={setColumns}
+                      />
+                      <SubTotal
+                        groupBy={groupKey}
+                        subTotals={holdings.holdingGroups[groupKey].subTotals}
+                        valueIn={holdingState.valueIn.value}
+                      />
+                    </React.Fragment>
+                  )
+                })}
+              <GrandTotal
+                holdings={holdings}
+                valueIn={holdingState.valueIn.value}
+              />
+            </table>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-3">
+          <div>
+            <table className="min-w-full bg-white">
+              <SummaryHeader {...holdingResults.portfolio} />
+              <SummaryRow
+                totals={holdings.totals}
+                currency={holdings.currency}
+              />
+            </table>
+          </div>
+          <PerformanceHeatmap
+            holdingGroups={holdings.holdingGroups}
+            valueIn={holdingState.valueIn.value}
+          />
+        </div>
+      )}
     </div>
   )
 }
