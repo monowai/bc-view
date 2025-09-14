@@ -5,6 +5,7 @@ import { FormatValue } from "@components/ui/MoneyUtils"
 import { isCashRelated, isCash } from "@lib/assets/assetUtils"
 import { headers } from "./Header"
 import Link from "next/link"
+import { WeightProgress } from "@components/ui/ProgressBar"
 
 interface RowsProps extends HoldingValues {
   onColumnsChange: (columns: string[]) => void
@@ -210,11 +211,10 @@ export default function Rows({
               )}
             </td>
             <td className="text-right px-1 py-1 md:px-2 xl:px-4 hidden xl:table-cell">
-              <FormatValue
-                value={moneyValues[valueIn].weight}
-                multiplier={100}
+              <WeightProgress
+                weight={moneyValues[valueIn].weight}
+                className="min-w-[120px]"
               />
-              %
             </td>
             <td className={getCellClasses(11)}>
               <FormatValue value={moneyValues[valueIn].totalGain} />

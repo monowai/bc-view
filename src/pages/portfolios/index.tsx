@@ -14,7 +14,7 @@ import { FormatValue } from "@components/ui/MoneyUtils"
 
 type SortConfig = {
   key: string | null
-  direction: 'asc' | 'desc'
+  direction: "asc" | "desc"
 }
 
 const CreatePortfolioButton = (): React.ReactElement<HTMLButtonElement> => {
@@ -42,24 +42,27 @@ export default withPageAuthRequired(function Portfolios({
     portfoliosKey,
     simpleFetcher(portfoliosKey),
   )
-  
+
   // Sort configuration state
-  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'code', direction: 'asc' })
+  const [sortConfig, setSortConfig] = useState<SortConfig>({
+    key: "code",
+    direction: "asc",
+  })
 
   // Handle sorting
   const handleSort = (key: string): void => {
-    setSortConfig(prevConfig => {
+    setSortConfig((prevConfig) => {
       if (prevConfig.key === key) {
         // Toggle direction for the same column
         return {
           key,
-          direction: prevConfig.direction === 'asc' ? 'desc' : 'asc'
+          direction: prevConfig.direction === "asc" ? "desc" : "asc",
         }
       }
       // New column clicked - start with DESC for better UX (except for code which should be ASC)
       return {
         key,
-        direction: key === 'code' ? 'asc' : 'desc'
+        direction: key === "code" ? "asc" : "desc",
       }
     })
   }
@@ -67,7 +70,7 @@ export default withPageAuthRequired(function Portfolios({
   // Sort portfolios
   const sortedPortfolios = useMemo(() => {
     if (!data?.data) return []
-    
+
     const portfolios = [...data.data]
     if (!sortConfig.key) return portfolios
 
@@ -76,27 +79,27 @@ export default withPageAuthRequired(function Portfolios({
       let bValue: string | number = ""
 
       switch (sortConfig.key) {
-        case 'code':
+        case "code":
           aValue = a.code.toLowerCase()
           bValue = b.code.toLowerCase()
           break
-        case 'name':
+        case "name":
           aValue = a.name.toLowerCase()
           bValue = b.name.toLowerCase()
           break
-        case 'currency':
+        case "currency":
           aValue = a.currency.code.toLowerCase()
           bValue = b.currency.code.toLowerCase()
           break
-        case 'base':
+        case "base":
           aValue = a.base.code.toLowerCase()
           bValue = b.base.code.toLowerCase()
           break
-        case 'marketValue':
+        case "marketValue":
           aValue = a.marketValue || 0
           bValue = b.marketValue || 0
           break
-        case 'irr':
+        case "irr":
           aValue = a.irr || 0
           bValue = b.irr || 0
           break
@@ -104,12 +107,12 @@ export default withPageAuthRequired(function Portfolios({
           return 0
       }
 
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
+      if (typeof aValue === "string" && typeof bValue === "string") {
         const result = aValue.localeCompare(bValue)
-        return sortConfig.direction === 'asc' ? result : -result
+        return sortConfig.direction === "asc" ? result : -result
       }
       const result = (aValue as number) - (bValue as number)
-      return sortConfig.direction === 'asc' ? result : -result
+      return sortConfig.direction === "asc" ? result : -result
     })
   }, [data?.data, sortConfig.key, sortConfig.direction])
 
@@ -145,9 +148,11 @@ export default withPageAuthRequired(function Portfolios({
     if (!sortConfig || sortConfig.key !== headerKey) {
       return <span className="ml-1 text-gray-400">↕</span>
     }
-    return sortConfig.direction === 'asc' 
-      ? <span className="ml-1 text-blue-300">↑</span>
-      : <span className="ml-1 text-blue-300">↓</span>
+    return sortConfig.direction === "asc" ? (
+      <span className="ml-1 text-blue-300">↑</span>
+    ) : (
+      <span className="ml-1 text-blue-300">↓</span>
+    )
   }
 
   function listPortfolios(portfolios: Portfolio[]): React.ReactElement {
@@ -155,76 +160,80 @@ export default withPageAuthRequired(function Portfolios({
       return (
         <div className="w-full py-4">
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
-            <div className="text-gray-600 mb-4">{t("error.portfolios.empty")}</div>
+            <div className="text-gray-600 mb-4">
+              {t("error.portfolios.empty")}
+            </div>
             <CreatePortfolioButton />
           </div>
         </div>
       )
     }
-    
+
     return (
       <div className="w-full py-4">
         <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold text-gray-900">{t("portfolios.title", "Portfolios")}</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {t("portfolios.title", "Portfolios")}
+          </h1>
           <CreatePortfolioButton />
         </div>
-        
+
         <div className="bg-white shadow-sm border border-gray-200 rounded-lg overflow-hidden">
           <table className="min-w-full">
             <thead className="bg-gray-100">
               <tr className="border-b border-gray-200">
-                <th 
+                <th
                   className="px-4 py-3 text-left text-xs sm:text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors select-none"
-                  onClick={() => handleSort('code')}
+                  onClick={() => handleSort("code")}
                 >
                   <div className="flex items-center">
                     {t("portfolio.code")}
-                    {getSortIcon('code')}
+                    {getSortIcon("code")}
                   </div>
                 </th>
-                <th 
+                <th
                   className="px-4 py-3 text-left text-xs sm:text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors select-none"
-                  onClick={() => handleSort('name')}
+                  onClick={() => handleSort("name")}
                 >
                   <div className="flex items-center">
                     {t("portfolio.name")}
-                    {getSortIcon('name')}
+                    {getSortIcon("name")}
                   </div>
                 </th>
-                <th 
+                <th
                   className="px-4 py-3 text-left text-xs sm:text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors select-none hidden md:table-cell"
-                  onClick={() => handleSort('currency')}
+                  onClick={() => handleSort("currency")}
                 >
                   <div className="flex items-center">
                     {t("portfolio.currency.report")}
-                    {getSortIcon('currency')}
+                    {getSortIcon("currency")}
                   </div>
                 </th>
-                <th 
+                <th
                   className="px-4 py-3 text-left text-xs sm:text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors select-none hidden lg:table-cell"
-                  onClick={() => handleSort('base')}
+                  onClick={() => handleSort("base")}
                 >
                   <div className="flex items-center">
                     {t("portfolio.currency.base")}
-                    {getSortIcon('base')}
+                    {getSortIcon("base")}
                   </div>
                 </th>
-                <th 
+                <th
                   className="px-4 py-3 text-right text-xs sm:text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors select-none"
-                  onClick={() => handleSort('marketValue')}
+                  onClick={() => handleSort("marketValue")}
                 >
                   <div className="flex items-center justify-end">
                     {t("portfolio.marketvalue")}
-                    {getSortIcon('marketValue')}
+                    {getSortIcon("marketValue")}
                   </div>
                 </th>
-                <th 
+                <th
                   className="px-4 py-3 text-right text-xs sm:text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors select-none hidden sm:table-cell"
-                  onClick={() => handleSort('irr')}
+                  onClick={() => handleSort("irr")}
                 >
                   <div className="flex items-center justify-end">
                     {t("portfolio.irr")}
-                    {getSortIcon('irr')}
+                    {getSortIcon("irr")}
                   </div>
                 </th>
                 <th className="px-4 py-3 text-center text-xs sm:text-sm font-medium text-gray-700">
@@ -234,12 +243,12 @@ export default withPageAuthRequired(function Portfolios({
             </thead>
             <tbody className="divide-y divide-gray-200">
               {portfolios.map((portfolio) => (
-                <tr 
-                  key={portfolio.id} 
+                <tr
+                  key={portfolio.id}
                   className="hover:!bg-slate-200 transition-colors duration-200 cursor-pointer"
                   onClick={(e) => {
                     // Don't navigate if clicking on action buttons
-                    if (!(e.target as HTMLElement).closest('.action-buttons')) {
+                    if (!(e.target as HTMLElement).closest(".action-buttons")) {
                       router.push(`/holdings/${portfolio.code}`)
                     }
                   }}
@@ -251,10 +260,12 @@ export default withPageAuthRequired(function Portfolios({
                   </td>
                   <td className="px-4 py-3 text-gray-900">{portfolio.name}</td>
                   <td className="px-4 py-3 text-gray-600 hidden md:table-cell">
-                    {portfolio.currency.symbol}{portfolio.currency.code}
+                    {portfolio.currency.symbol}
+                    {portfolio.currency.code}
                   </td>
                   <td className="px-4 py-3 text-gray-600 hidden lg:table-cell">
-                    {portfolio.base.symbol}{portfolio.base.code}
+                    {portfolio.base.symbol}
+                    {portfolio.base.code}
                   </td>
                   <td className="px-4 py-3 text-right font-medium text-gray-900">
                     <FormatValue

@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useMemo } from "react"
 import { calculateHoldings } from "@lib/holdings/calculateHoldings"
 import { Holdings } from "types/beancounter"
-import { rootLoader } from "@components/ui/PageLoader"
+import {
+  TableSkeletonLoader,
+  SummarySkeletonLoader,
+} from "@components/ui/SkeletonLoader"
 import { useRouter } from "next/router"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
@@ -34,7 +37,10 @@ function HoldingsPage(): React.ReactElement {
   const [tradeModalOpen, setTradeModalOpen] = useState(false)
   const [cashModalOpen, setCashModalOpen] = useState(false)
   const [columns, setColumns] = useState<string[]>([])
-  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'assetName', direction: 'asc' })
+  const [sortConfig, setSortConfig] = useState<SortConfig>({
+    key: "assetName",
+    direction: "asc",
+  })
 
   useEffect(() => {
     if (router.query.action === "trade") {
@@ -46,20 +52,19 @@ function HoldingsPage(): React.ReactElement {
 
   // Handle sorting
   const handleSort = (key: string): void => {
-    setSortConfig(prevConfig => {
+    setSortConfig((prevConfig) => {
       if (prevConfig.key === key) {
         // Toggle direction for the same column
         return {
           key,
-          direction: prevConfig.direction === 'asc' ? 'desc' : 'asc'
+          direction: prevConfig.direction === "asc" ? "desc" : "asc",
         }
       }
-        // New column clicked - start with DESC for better UX
-        return {
-          key,
-          direction: 'desc'
-        }
-
+      // New column clicked - start with DESC for better UX
+      return {
+        key,
+        direction: "desc",
+      }
     })
   }
 
@@ -77,20 +82,26 @@ function HoldingsPage(): React.ReactElement {
     // Apply sorting to each holding group
     if (sortConfig.key) {
       const sortedHoldingGroups = { ...calculatedHoldings.holdingGroups }
-      Object.keys(sortedHoldingGroups).forEach(groupKey => {
+      Object.keys(sortedHoldingGroups).forEach((groupKey) => {
         sortedHoldingGroups[groupKey] = sortPositions(
           sortedHoldingGroups[groupKey],
           sortConfig,
-          holdingState.valueIn.value
+          holdingState.valueIn.value,
         )
       })
       return {
         ...calculatedHoldings,
-        holdingGroups: sortedHoldingGroups
+        holdingGroups: sortedHoldingGroups,
       }
     }
     return calculatedHoldings
-  }, [data, holdingState.hideEmpty, holdingState.valueIn.value, holdingState.groupBy.value, sortConfig])
+  }, [
+    data,
+    holdingState.hideEmpty,
+    holdingState.valueIn.value,
+    holdingState.groupBy.value,
+    sortConfig,
+  ])
 
   if (error && ready) {
     console.error(error) // Log the error for debugging
@@ -100,7 +111,15 @@ function HoldingsPage(): React.ReactElement {
     )
   }
   if (isLoading) {
-    return rootLoader("Crunching data...")
+    return (
+      <div className="w-full py-4">
+        <HoldingMenu
+          portfolio={{ code: router.query.code as string, name: "Loading..." }}
+        />
+        <SummarySkeletonLoader />
+        <TableSkeletonLoader rows={8} />
+      </div>
+    )
   }
   const holdingResults = data.data
   if (Object.keys(holdingResults.positions).length === 0) {
@@ -118,7 +137,13 @@ function HoldingsPage(): React.ReactElement {
   const sortOrder = ["Equity", "Exchange Traded Fund", "Cash"]
 
   if (!holdings) {
-    return rootLoader("Processing holdings...")
+    return (
+      <div className="w-full py-4">
+        <HoldingMenu portfolio={holdingResults.portfolio} />
+        <SummarySkeletonLoader />
+        <TableSkeletonLoader rows={8} />
+      </div>
+    )
   }
 
   return (
@@ -145,7 +170,11 @@ function HoldingsPage(): React.ReactElement {
               .map((groupKey) => {
                 return (
                   <React.Fragment key={groupKey}>
-                    <Header groupKey={groupKey} sortConfig={sortConfig} onSort={handleSort} />
+                    <Header
+                      groupKey={groupKey}
+                      sortConfig={sortConfig}
+                      onSort={handleSort}
+                    />
                     <Rows
                       portfolio={holdingResults.portfolio}
                       groupBy={groupKey}

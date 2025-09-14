@@ -26,14 +26,20 @@ export default function SubTotal({
   const data = [
     "-", // asset.price column
     "-", // asset.change
-    <span key="gainOnDay" className={`${subTotals[valueIn].gainOnDay < 0 ? "text-red-500" : subTotals[valueIn].gainOnDay > 0 ? "text-green-500" : ""}`}>
+    <span
+      key="gainOnDay"
+      className={`${subTotals[valueIn].gainOnDay < 0 ? "text-red-500" : subTotals[valueIn].gainOnDay > 0 ? "text-green-500" : ""}`}
+    >
       <FormatValue value={subTotals[valueIn].gainOnDay} />
     </span>, // gain.onday
     "-", // quantityInc
     <FormatValue key="costValue" value={subTotals[valueIn].costValue} />, // cost
     <FormatValue key="marketValue" value={subTotals[valueIn].marketValue} />, // summary.value
     <FormatValue key="dividends" value={subTotals[valueIn].dividends} />, // summary.dividends
-    <FormatValue key="unrealisedGain" value={subTotals[valueIn].unrealisedGain} />, // gain.unrealised
+    <FormatValue
+      key="unrealisedGain"
+      value={subTotals[valueIn].unrealisedGain}
+    />, // gain.unrealised
     <FormatValue key="realisedGain" value={subTotals[valueIn].realisedGain} />, // gain.realised
     "-", // irr
     <span key="weight">
