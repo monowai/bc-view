@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useState, useMemo } from "react"
 import useSwr from "swr"
 import { UserProfile, withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useTranslation } from "next-i18next"
@@ -11,6 +11,11 @@ import errorOut from "@components/errors/ErrorOut"
 import { useRouter } from "next/router"
 import { rootLoader } from "@components/ui/PageLoader"
 import { FormatValue } from "@components/ui/MoneyUtils"
+
+type SortConfig = {
+  key: string | null
+  direction: 'asc' | 'desc'
+}
 
 const CreatePortfolioButton = (): React.ReactElement<HTMLButtonElement> => {
   const router = useRouter()
@@ -37,6 +42,77 @@ export default withPageAuthRequired(function Portfolios({
     portfoliosKey,
     simpleFetcher(portfoliosKey),
   )
+  
+  // Sort configuration state
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'code', direction: 'asc' })
+
+  // Handle sorting
+  const handleSort = (key: string): void => {
+    setSortConfig(prevConfig => {
+      if (prevConfig.key === key) {
+        // Toggle direction for the same column
+        return {
+          key,
+          direction: prevConfig.direction === 'asc' ? 'desc' : 'asc'
+        }
+      }
+      // New column clicked - start with DESC for better UX (except for code which should be ASC)
+      return {
+        key,
+        direction: key === 'code' ? 'asc' : 'desc'
+      }
+    })
+  }
+
+  // Sort portfolios
+  const sortedPortfolios = useMemo(() => {
+    if (!data?.data) return []
+    
+    const portfolios = [...data.data]
+    if (!sortConfig.key) return portfolios
+
+    return portfolios.sort((a, b) => {
+      let aValue: string | number = ""
+      let bValue: string | number = ""
+
+      switch (sortConfig.key) {
+        case 'code':
+          aValue = a.code.toLowerCase()
+          bValue = b.code.toLowerCase()
+          break
+        case 'name':
+          aValue = a.name.toLowerCase()
+          bValue = b.name.toLowerCase()
+          break
+        case 'currency':
+          aValue = a.currency.code.toLowerCase()
+          bValue = b.currency.code.toLowerCase()
+          break
+        case 'base':
+          aValue = a.base.code.toLowerCase()
+          bValue = b.base.code.toLowerCase()
+          break
+        case 'marketValue':
+          aValue = a.marketValue || 0
+          bValue = b.marketValue || 0
+          break
+        case 'irr':
+          aValue = a.irr || 0
+          bValue = b.irr || 0
+          break
+        default:
+          return 0
+      }
+
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        const result = aValue.localeCompare(bValue)
+        return sortConfig.direction === 'asc' ? result : -result
+      }
+      const result = (aValue as number) - (bValue as number)
+      return sortConfig.direction === 'asc' ? result : -result
+    })
+  }, [data?.data, sortConfig.key, sortConfig.direction])
+
   if (error) {
     return errorOut(t("portfolios.error.retrieve"), error)
   }
@@ -64,95 +140,159 @@ export default withPageAuthRequired(function Portfolios({
     }
   }
 
+  // Sort icon component
+  const getSortIcon = (headerKey: string): React.ReactElement => {
+    if (!sortConfig || sortConfig.key !== headerKey) {
+      return <span className="ml-1 text-gray-400">↕</span>
+    }
+    return sortConfig.direction === 'asc' 
+      ? <span className="ml-1 text-blue-300">↑</span>
+      : <span className="ml-1 text-blue-300">↓</span>
+  }
+
   function listPortfolios(portfolios: Portfolio[]): React.ReactElement {
     if (!portfolios || portfolios.length == 0) {
       return (
-        <nav className="container bg-gray-200 p-4">
-          <div id="root">{t("error.portfolios.empty")}</div>
-          <div className="mt-4">
+        <div className="w-full py-4">
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
+            <div className="text-gray-600 mb-4">{t("error.portfolios.empty")}</div>
             <CreatePortfolioButton />
           </div>
-        </nav>
+        </div>
       )
     }
+    
     return (
-      <div>
-        <nav className="container p-4">
-          <div className="mt-1">
-            <CreatePortfolioButton />
-          </div>
-        </nav>
-        <div className="bg-gray-100 p-4 rounded">
-          <div className="container">
-            <table className="table-auto w-full bg-white shadow-md rounded">
-              <thead className="bg-gray-800 text-white">
-                <tr>
-                  <th className="px-4 py-2 text-left">{t("portfolio.code")}</th>
-                  <th className="px-4 py-2 text-left">{t("portfolio.name")}</th>
-                  <th className="px-4 py-2 text-left">
+      <div className="w-full py-4">
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-bold text-gray-900">{t("portfolios.title", "Portfolios")}</h1>
+          <CreatePortfolioButton />
+        </div>
+        
+        <div className="bg-white shadow-sm border border-gray-200 rounded-lg overflow-hidden">
+          <table className="min-w-full">
+            <thead className="bg-gray-100">
+              <tr className="border-b border-gray-200">
+                <th 
+                  className="px-4 py-3 text-left text-xs sm:text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors select-none"
+                  onClick={() => handleSort('code')}
+                >
+                  <div className="flex items-center">
+                    {t("portfolio.code")}
+                    {getSortIcon('code')}
+                  </div>
+                </th>
+                <th 
+                  className="px-4 py-3 text-left text-xs sm:text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors select-none"
+                  onClick={() => handleSort('name')}
+                >
+                  <div className="flex items-center">
+                    {t("portfolio.name")}
+                    {getSortIcon('name')}
+                  </div>
+                </th>
+                <th 
+                  className="px-4 py-3 text-left text-xs sm:text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors select-none hidden md:table-cell"
+                  onClick={() => handleSort('currency')}
+                >
+                  <div className="flex items-center">
                     {t("portfolio.currency.report")}
-                  </th>
-                  <th className="px-4 py-2 text-left">
+                    {getSortIcon('currency')}
+                  </div>
+                </th>
+                <th 
+                  className="px-4 py-3 text-left text-xs sm:text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors select-none hidden lg:table-cell"
+                  onClick={() => handleSort('base')}
+                >
+                  <div className="flex items-center">
                     {t("portfolio.currency.base")}
-                  </th>
-                  <th className="px-4 py-2 text-right">
+                    {getSortIcon('base')}
+                  </div>
+                </th>
+                <th 
+                  className="px-4 py-3 text-right text-xs sm:text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors select-none"
+                  onClick={() => handleSort('marketValue')}
+                >
+                  <div className="flex items-center justify-end">
                     {t("portfolio.marketvalue")}
-                  </th>
-                  <th className="px-4 py-2 text-right">{t("portfolio.irr")}</th>
-                  <th className="px-4 py-2 text-center">
-                    {t("portfolio.actions")}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {portfolios.map((portfolio) => (
-                  <tr key={portfolio.id} className="border-t hover:bg-gray-100">
-                    <td className="px-4 py-2">
-                      <Link rel="preload" href={`/holdings/${portfolio.code}`}>
-                        {portfolio.code}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-2">{portfolio.name}</td>
-                    <td className="px-4 py-2">
-                      {portfolio.currency.symbol}
-                      {portfolio.currency.code}
-                    </td>
-                    <td className="px-4 py-2">
-                      {portfolio.base.symbol}
-                      {portfolio.base.code}
-                    </td>
-                    <td className="px-4 py-2 text-right">
-                      <FormatValue
-                        value={
-                          portfolio.marketValue ? portfolio.marketValue : " "
-                        }
-                      />
-                    </td>
-                    <td className="px-4 py-2 text-right">
-                      <FormatValue value={portfolio.irr} multiplier={100} />
-                      {"%"}
-                    </td>
-                    <td className="px-4 py-2 flex items-center justify-center">
+                    {getSortIcon('marketValue')}
+                  </div>
+                </th>
+                <th 
+                  className="px-4 py-3 text-right text-xs sm:text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors select-none hidden sm:table-cell"
+                  onClick={() => handleSort('irr')}
+                >
+                  <div className="flex items-center justify-end">
+                    {t("portfolio.irr")}
+                    {getSortIcon('irr')}
+                  </div>
+                </th>
+                <th className="px-4 py-3 text-center text-xs sm:text-sm font-medium text-gray-700">
+                  {t("portfolio.actions")}
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {portfolios.map((portfolio) => (
+                <tr 
+                  key={portfolio.id} 
+                  className="hover:!bg-slate-200 transition-colors duration-200 cursor-pointer"
+                  onClick={(e) => {
+                    // Don't navigate if clicking on action buttons
+                    if (!(e.target as HTMLElement).closest('.action-buttons')) {
+                      router.push(`/holdings/${portfolio.code}`)
+                    }
+                  }}
+                >
+                  <td className="px-4 py-3">
+                    <span className="text-blue-600 font-medium">
+                      {portfolio.code}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-gray-900">{portfolio.name}</td>
+                  <td className="px-4 py-3 text-gray-600 hidden md:table-cell">
+                    {portfolio.currency.symbol}{portfolio.currency.code}
+                  </td>
+                  <td className="px-4 py-3 text-gray-600 hidden lg:table-cell">
+                    {portfolio.base.symbol}{portfolio.base.code}
+                  </td>
+                  <td className="px-4 py-3 text-right font-medium text-gray-900">
+                    <FormatValue
+                      value={portfolio.marketValue ? portfolio.marketValue : 0}
+                    />
+                  </td>
+                  <td className="px-4 py-3 text-right font-medium text-gray-900 hidden sm:table-cell">
+                    <FormatValue value={portfolio.irr} multiplier={100} />%
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="action-buttons flex items-center justify-center space-x-2">
                       <Link
                         href={`/portfolios/${portfolio.id}`}
-                        className="far fa-edit text-blue-500 hover:text-blue-700"
-                      ></Link>
-                      <span className="mx-2"></span>
-                      <a
-                        onClick={() =>
+                        className="text-blue-500 hover:text-blue-700 transition-colors"
+                        title={t("portfolio.edit", "Edit Portfolio")}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <span className="far fa-edit text-lg"></span>
+                      </Link>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
                           deletePortfolio(
                             portfolio.id,
                             t("portfolio.delete", { code: portfolio.code }),
                           )
-                        }
-                        className="far fa-trash-alt text-red-500 hover:text-red-700 cursor-pointer"
-                      ></a>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                        }}
+                        className="text-red-500 hover:text-red-700 transition-colors"
+                        title={t("portfolio.delete.title", "Delete Portfolio")}
+                      >
+                        <span className="far fa-trash-alt text-lg"></span>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     )
@@ -162,7 +302,7 @@ export default withPageAuthRequired(function Portfolios({
     return rootLoader(t("loading"))
   }
   // Use the user variable somewhere in your component
-  return listPortfolios(data.data)
+  return listPortfolios(sortedPortfolios)
 })
 
 export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({

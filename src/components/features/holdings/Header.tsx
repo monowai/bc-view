@@ -30,7 +30,7 @@ export const headers = [
 export default function Header({ groupKey, sortConfig, onSort }: HeaderProps): ReactElement {
   const { t } = useTranslation("common")
   
-  const getSortIcon = (headerKey: string) => {
+  const getSortIcon = (headerKey: string): React.ReactElement => {
     if (!sortConfig || sortConfig.key !== headerKey) {
       return <span className="ml-1 text-gray-400">↕</span>
     }
