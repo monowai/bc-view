@@ -6,7 +6,7 @@ import {
   PortfolioRequest,
   PortfolioRequests,
 } from "types/beancounter"
-import { ccyKey, portfolioKey, simpleFetcher } from "@lib/api/fetchHelper"
+import { ccyKey, portfolioKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { useRouter } from "next/router"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useTranslation } from "next-i18next"

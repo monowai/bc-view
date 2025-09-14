@@ -31,7 +31,9 @@
       "Bash(yarn lint:*)",
       "Bash(npx next lint:*)",
       "Bash(npx @next/codemod@canary next-lint-to-eslint-cli:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(sed:*)",
+      "Bash(yarn check-imports:*)"
     ],
     "deny": [],
     "ask": []

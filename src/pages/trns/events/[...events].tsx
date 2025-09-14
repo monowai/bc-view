@@ -9,7 +9,7 @@ import Link from "next/link"
 import { Transaction } from "types/beancounter"
 import useSwr from "swr"
 import errorOut from "@components/errors/ErrorOut"
-import { assetKey, eventKey, simpleFetcher } from "@lib/api/fetchHelper"
+import { assetKey, eventKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { rootLoader } from "@components/ui/PageLoader"
 import { deleteTrn } from "@lib/trns/apiHelper"
 

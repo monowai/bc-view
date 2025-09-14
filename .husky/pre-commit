@@ -1,4 +1,11 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
+echo "🔧 Running pre-commit checks..."
 
-yarn precommit
+# 1. Import path regression check
+echo "🔍 Checking for import path regressions..."
+node scripts/check-imports.js || exit 1
+
+# 2. Run lint-staged (existing functionality)  
+echo "🎨 Running code formatting..."
+yarn precommit || exit 1
+
+echo "✅ All pre-commit checks passed!"
