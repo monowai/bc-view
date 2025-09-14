@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import { calculateHoldings } from "@lib/holdings/calculateHoldings"
 import { Holdings } from "types/beancounter"
 import { rootLoader } from "@components/ui/PageLoader"
@@ -11,6 +11,7 @@ import useSwr from "swr"
 import { holdingKey, simpleFetcher } from "@utils/api/fetchHelper"
 import errorOut from "@components/errors/ErrorOut"
 import { useHoldingState } from "@lib/holdings/holdingState"
+import { sortPositions, SortConfig } from "@lib/holdings/sortHoldings"
 import HoldingMenu from "@components/features/holdings/HoldingMenu"
 import SummaryHeader, {
   SummaryRow,
@@ -33,6 +34,7 @@ function HoldingsPage(): React.ReactElement {
   const [tradeModalOpen, setTradeModalOpen] = useState(false)
   const [cashModalOpen, setCashModalOpen] = useState(false)
   const [columns, setColumns] = useState<string[]>([])
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'assetName', direction: 'asc' })
 
   useEffect(() => {
     if (router.query.action === "trade") {
@@ -41,6 +43,54 @@ function HoldingsPage(): React.ReactElement {
       setCashModalOpen(true)
     }
   }, [router.query.action, cashModalOpen, tradeModalOpen])
+
+  // Handle sorting
+  const handleSort = (key: string) => {
+    setSortConfig(prevConfig => {
+      if (prevConfig.key === key) {
+        // Toggle direction for the same column
+        return {
+          key,
+          direction: prevConfig.direction === 'asc' ? 'desc' : 'asc'
+        }
+      }
+        // New column clicked - start with DESC for better UX
+        return {
+          key,
+          direction: 'desc'
+        }
+
+    })
+  }
+
+  // Calculate holdings and apply sorting - moved before conditional returns
+  const holdings = useMemo(() => {
+    if (!data?.data) return null
+
+    const calculatedHoldings = calculateHoldings(
+      data.data,
+      holdingState.hideEmpty,
+      holdingState.valueIn.value,
+      holdingState.groupBy.value,
+    ) as Holdings
+
+    // Apply sorting to each holding group
+    if (sortConfig.key) {
+      const sortedHoldingGroups = { ...calculatedHoldings.holdingGroups }
+      Object.keys(sortedHoldingGroups).forEach(groupKey => {
+        sortedHoldingGroups[groupKey] = sortPositions(
+          sortedHoldingGroups[groupKey],
+          sortConfig,
+          holdingState.valueIn.value
+        )
+      })
+      return {
+        ...calculatedHoldings,
+        holdingGroups: sortedHoldingGroups
+      }
+    }
+    return calculatedHoldings
+  }, [data.data, holdingState.hideEmpty, holdingState.valueIn.value, holdingState.groupBy.value, sortConfig])
 
   if (error && ready) {
     console.error(error) // Log the error for debugging
@@ -65,15 +115,11 @@ function HoldingsPage(): React.ReactElement {
       </div>
     )
   }
-
-  // Render where we are in the initialization process
-  const holdings = calculateHoldings(
-    holdingResults,
-    holdingState.hideEmpty,
-    holdingState.valueIn.value,
-    holdingState.groupBy.value,
-  ) as Holdings
   const sortOrder = ["Equity", "Exchange Traded Fund", "Cash"]
+
+  if (!holdings) {
+    return rootLoader("Processing holdings...")
+  }
 
   return (
     <div className="w-full py-4">
@@ -99,7 +145,7 @@ function HoldingsPage(): React.ReactElement {
               .map((groupKey) => {
                 return (
                   <React.Fragment key={groupKey}>
-                    <Header groupKey={groupKey} />
+                    <Header groupKey={groupKey} sortConfig={sortConfig} onSort={handleSort} />
                     <Rows
                       portfolio={holdingResults.portfolio}
                       groupBy={groupKey}

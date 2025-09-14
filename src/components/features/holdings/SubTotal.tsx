@@ -49,7 +49,7 @@ export default function SubTotal({
       </tr>
       <tr
         key={groupBy}
-        className="holding-footer text-xs sm:text-sm bg-gray-50"
+        className="holding-footer text-xs sm:text-sm bg-gray-50 hover:!bg-slate-200 transition-colors duration-200"
       >
         <td className="px-2 py-1 sm:px-4 text-left font-semibold">
           Sub Total - {subTotals[valueIn].currency.code}

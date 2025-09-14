@@ -31,7 +31,7 @@ export default function GrandTotal({
       </tr>
       <tr
         key={valueIn}
-        className="holding-footer text-sm bg-gray-100 border-b-2 border-gray-600"
+        className="holding-footer text-sm bg-gray-100 border-b-2 border-gray-600 hover:!bg-slate-200 transition-colors duration-200"
       >
         <td colSpan={1} className="text-right px-4 py-1">
           <div>{t("holdings.valueTitle", { valueIn })}</div>
