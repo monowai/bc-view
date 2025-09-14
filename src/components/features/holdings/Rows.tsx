@@ -2,11 +2,32 @@ import React, { useEffect, useMemo } from "react"
 import { HoldingValues, PriceData } from "types/beancounter"
 import { NumericFormat } from "react-number-format"
 import { FormatValue } from "@components/ui/MoneyUtils"
-import { displayName, isCashRelated } from "@lib/assets/assetUtils"
+import { isCashRelated, isCash } from "@lib/assets/assetUtils"
+import { headers } from "./Header"
 import Link from "next/link"
 
 interface RowsProps extends HoldingValues {
   onColumnsChange: (columns: string[]) => void
+}
+
+// Helper function to generate responsive classes for table cells
+const getCellClasses = (headerIndex: number): string => {
+  const header = headers[headerIndex]
+  let visibility
+  if (header.mobile) {
+    visibility = ""
+  } else if (header.medium) {
+    visibility = "hidden md:table-cell"
+  } else {
+    visibility = "hidden xl:table-cell"
+  }
+  return `text-right px-1 py-1 md:px-2 xl:px-4 ${visibility}`
+}
+
+// Helper function to truncate text with ellipsis
+const truncateText = (text: string, maxLength: number): string => {
+  if (text.length <= maxLength) return text
+  return text.substring(0, maxLength) + "..."
 }
 
 export default function Rows({
@@ -46,15 +67,41 @@ export default function Rows({
     <tbody>
       {holdingGroup.positions.map(
         ({ asset, moneyValues, quantityValues, dateValues }, index) => (
-          <tr key={groupBy + index} className="holding-row text-sm">
-            <td className="px-4 py-1 text-ellipsis">{displayName(asset)}</td>
-            <td className="text-right px-4 py-1">
+          <tr
+            key={groupBy + index}
+            className="holding-row text-xs sm:text-sm hover:bg-gray-50"
+          >
+            <td className="px-2 py-1 sm:px-4 text-ellipsis min-w-0">
+              {/* Unified layout: code on top, name below for both mobile and desktop */}
+              <div>
+                <div
+                  className="font-semibold text-sm sm:text-base"
+                  title={asset.code}
+                >
+                  {isCash(asset)
+                    ? asset.name
+                    : asset.code.indexOf(".") > 0
+                      ? asset.code.substring(asset.code.indexOf(".") + 1)
+                      : asset.code}
+                </div>
+                {!isCash(asset) && (
+                  <div
+                    className="text-xs sm:text-sm text-gray-600"
+                    title={asset.name}
+                  >
+                    {truncateText(asset.name, 30)}
+                  </div>
+                )}
+              </div>
+            </td>
+            <td className={getCellClasses(0)}>
               {hideValue(moneyValues[valueIn].priceData) ? (
                 " "
               ) : (
                 <span className="relative group">
-                  {moneyValues[valueIn].currency.code}
-                  {moneyValues[valueIn].currency.symbol}
+                  <span className="text-xs text-gray-500">
+                    {moneyValues[valueIn].currency.symbol}
+                  </span>
                   <FormatValue
                     value={moneyValues[valueIn].priceData?.close || " "}
                   />
@@ -64,7 +111,7 @@ export default function Rows({
                 </span>
               )}
             </td>
-            <td className="text-right px-4 py-1">
+            <td className="text-right px-1 py-1 md:px-2 xl:px-4 hidden xl:table-cell">
               {hideValue(moneyValues[valueIn].priceData?.changePercent) ? (
                 " "
               ) : (
@@ -86,7 +133,7 @@ export default function Rows({
                 </span>
               )}
             </td>
-            <td className="text-right px-4 py-1">
+            <td className="text-right px-1 py-1 md:px-2 xl:px-4 hidden xl:table-cell">
               {hideValue(moneyValues[valueIn].priceData) ? (
                 " "
               ) : (
@@ -94,7 +141,7 @@ export default function Rows({
               )}
             </td>
 
-            <td className="text-right px-4 py-1">
+            <td className={getCellClasses(3)}>
               {isCashRelated(asset) ||
               hideValue(moneyValues[valueIn].priceData) ? (
                 " "
@@ -108,7 +155,7 @@ export default function Rows({
                 />
               )}
             </td>
-            <td className="text-right px-4 py-1">
+            <td className={getCellClasses(4)}>
               <span className="relative group">
                 <FormatValue value={moneyValues[valueIn].costValue} />
                 <span className="absolute tooltip pointer-events-none">
@@ -116,10 +163,11 @@ export default function Rows({
                 </span>
               </span>
             </td>
-            <td className="text-right px-4 py-1">
+            <td className={getCellClasses(5)}>
               <Link
                 href={`/trns/trades`}
                 as={`/trns/trades/${portfolio.id}/${asset.id}`}
+                className="text-blue-600 hover:text-blue-800"
               >
                 <FormatValue
                   value={moneyValues[valueIn].marketValue}
@@ -127,11 +175,12 @@ export default function Rows({
                 />
               </Link>
             </td>
-            <td className="text-right px-4 py-1">
+            <td className="text-right px-1 py-1 md:px-2 xl:px-4 hidden xl:table-cell">
               <span className="relative group">
                 <Link
                   href={`/trns/events`}
                   as={`/trns/events/${portfolio.id}/${asset.id}`}
+                  className="text-blue-600 hover:text-blue-800"
                 >
                   <FormatValue value={moneyValues[valueIn].dividends} />
                 </Link>
@@ -140,13 +189,13 @@ export default function Rows({
                 </span>
               </span>
             </td>
-            <td className="text-right px-4 py-1">
+            <td className={getCellClasses(7)}>
               <FormatValue value={moneyValues[valueIn].unrealisedGain} />
             </td>
-            <td className="text-right px-4 py-1">
+            <td className="text-right px-1 py-1 md:px-2 xl:px-4 hidden xl:table-cell">
               <FormatValue value={moneyValues[valueIn].realisedGain} />
             </td>
-            <td className="text-right px-4 py-1">
+            <td className="text-right px-1 py-1 md:px-2 xl:px-4 hidden xl:table-cell">
               {!isCashRelated(asset) && (
                 <span className="relative group">
                   <FormatValue
@@ -160,14 +209,14 @@ export default function Rows({
                 </span>
               )}
             </td>
-            <td className="text-right px-4 py-1">
+            <td className="text-right px-1 py-1 md:px-2 xl:px-4 hidden xl:table-cell">
               <FormatValue
                 value={moneyValues[valueIn].weight}
                 multiplier={100}
               />
               %
             </td>
-            <td className="text-right px-4 py-1">
+            <td className={getCellClasses(11)}>
               <FormatValue value={moneyValues[valueIn].totalGain} />
             </td>
           </tr>

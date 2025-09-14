@@ -204,6 +204,7 @@ function calculateSummaryTotals(
     viewTotals.weight += group.subTotals[valueIn].weight
     viewTotals.purchases += group.subTotals[valueIn].purchases
     viewTotals.sales += group.subTotals[valueIn].sales
+    viewTotals.cash += group.subTotals[valueIn].cash
     viewTotals.dividends += group.subTotals[valueIn].dividends
     viewTotals.gainOnDay += group.subTotals[valueIn].gainOnDay
     viewTotals.realisedGain += group.subTotals[valueIn].realisedGain

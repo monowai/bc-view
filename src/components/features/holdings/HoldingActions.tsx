@@ -20,24 +20,27 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
   const [copyModalOpen, setCopyModalOpen] = useState(false)
 
   return (
-    <div className="flex flex-col sm:flex-row justify-end py-0 sm:py-2 space-y-2 sm:space-y-0 sm:space-x-2 mb-4">
+    <div className="flex flex-col sm:flex-row justify-end py-2 space-y-2 sm:space-y-0 sm:space-x-2 mb-4">
       <button
-        className="bg-blue-500 text-white px-4 py-1 rounded"
+        className="w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center"
         onClick={() => setCopyModalOpen(true)}
       >
-        Copy
+        <i className="fas fa-copy mr-2"></i>
+        Copy Data
       </button>
       <button
-        className="bg-blue-500 text-white px-4 py-1 rounded"
+        className="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center"
         onClick={() => setTradeModalOpen(true)}
       >
-        Trade
+        <i className="fas fa-chart-line mr-2"></i>
+        Add Trade
       </button>
       <button
-        className="bg-blue-500 text-white px-4 py-1 rounded"
+        className="w-full sm:w-auto bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center"
         onClick={() => setCashModalOpen(true)}
       >
-        Cash
+        <i className="fas fa-dollar-sign mr-2"></i>
+        Add Cash
       </button>
       <TradeInputForm
         portfolio={holdingResults.portfolio}
