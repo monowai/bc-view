@@ -69,7 +69,7 @@ export default function Rows({
         ({ asset, moneyValues, quantityValues, dateValues }, index) => (
           <tr
             key={groupBy + index}
-            className="holding-row text-xs sm:text-sm hover:bg-gray-50"
+            className="holding-row text-xs sm:text-sm bg-white hover:!bg-slate-200 transition-colors duration-200 cursor-pointer"
           >
             <td className="px-2 py-1 sm:px-4 text-ellipsis min-w-0">
               {/* Unified layout: code on top, name below for both mobile and desktop */}
