@@ -1,0 +1,33 @@
+name: Import Path Regression Check
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  import-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "yarn"
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Run import path regression check
+        run: yarn check-imports
+
+      - name: TypeScript compilation check
+        run: yarn typecheck
+
+      - name: Build check
+        run: yarn build

@@ -8,7 +8,7 @@ import {
   getSentryDsn,
   getSentryEnabled,
   getSentryTracesSampleRate,
-} from "@lib/api/bcConfig"
+} from "@utils/api/bcConfig"
 
 Sentry.init({
   dsn: getSentryDsn(),

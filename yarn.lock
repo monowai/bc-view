@@ -31,7 +31,7 @@
     "@csstools/css-tokenizer" "^3.0.3"
     lru-cache "^10.4.3"
 
-"@auth0/nextjs-auth0@^3.0.0":
+"@auth0/nextjs-auth0@^3.8.0":
   version "3.8.0"
   resolved "https://registry.yarnpkg.com/@auth0/nextjs-auth0/-/nextjs-auth0-3.8.0.tgz#419e8b3d01d1e5e8a8966ca9db94aaf2dae358ab"
   integrity sha512-xMzpkCuJAZ7tquJOZr7W4Jm9155EDotAACtdd9R9t4ATZgNGUzDQfPMogYJ2O14WB86sZSrp3rpJo4cspQYcSA==

@@ -38,6 +38,7 @@ yarn test:watch    # Watch mode for development
 # Code quality
 yarn lint          # ESLint + TypeScript checks
 yarn prettier     # Format code and run linting
+yarn check-imports # Import path regression check (prevents 500 errors)
 
 # Debug mode
 yarn node-debug   # Start with Node.js inspector

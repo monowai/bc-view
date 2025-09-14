@@ -1,6 +1,6 @@
 import { withApiAuthRequired } from "@auth0/nextjs-auth0"
-import { getDataUrl } from "@lib/api/bcConfig"
-import { fetchError } from "@lib/api/responseWriter"
+import { getDataUrl } from "@utils/api/bcConfig"
+import { fetchError } from "@utils/api/responseWriter"
 import { NextApiRequest, NextApiResponse } from "next"
 
 export const baseUrl = getDataUrl("/trns")
