@@ -14,7 +14,8 @@ const getCellClasses = (headerIndex: number): string => {
   } else {
     visibility = "hidden xl:table-cell"
   }
-  return `px-1 py-1 md:px-2 xl:px-4 text-right ${visibility}`
+  const align = header.align === "center" ? "text-center" : "text-right"
+  return `px-1 py-1 md:px-2 xl:px-3 ${align} ${visibility}`
 }
 
 export default function SubTotal({
@@ -42,6 +43,7 @@ export default function SubTotal({
     />, // gain.unrealised
     <FormatValue key="realisedGain" value={subTotals[valueIn].realisedGain} />, // gain.realised
     "-", // irr
+    "-", // alpha
     <span key="weight">
       <FormatValue value={subTotals[valueIn].weight} multiplier={100} />%
     </span>, // weight
@@ -51,13 +53,13 @@ export default function SubTotal({
   return (
     <tbody className="font-medium">
       <tr>
-        <td colSpan={13} className="border-t-2 border-gray-400"></td>
+        <td colSpan={14} className="border-t-2 border-gray-400"></td>
       </tr>
       <tr
         key={groupBy}
         className="holding-footer text-xs sm:text-sm bg-gray-50 hover:!bg-slate-200 transition-colors duration-200"
       >
-        <td className="px-2 py-1 sm:px-4 text-left font-semibold">
+        <td className="px-2 py-1 sm:px-3 text-left font-semibold">
           Sub Total - {subTotals[valueIn].currency.code}
         </td>
         {data.map((item, index) => (

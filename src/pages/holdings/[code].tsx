@@ -226,7 +226,7 @@ function HoldingsPage(): React.ReactElement {
               />
             </table>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto overflow-y-visible">
             <table className="min-w-full bg-white">
               {Object.keys(holdings.holdingGroups)
                 .sort((a, b) => {

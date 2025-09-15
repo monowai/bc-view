@@ -92,6 +92,13 @@ export interface Position {
   roi: number
 }
 
+export interface DateValues {
+  opened
+  last
+  closed
+  lastDividend
+}
+
 export interface GroupedSubtotals {
   groupBy: string
   subTotals: Record<ValueIn, MoneyValues>

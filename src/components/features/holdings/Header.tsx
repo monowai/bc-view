@@ -94,6 +94,14 @@ export const headers = [
     sortKey: "irr",
   },
   {
+    key: "alpha",
+    align: "center",
+    mobile: false,
+    medium: false,
+    sortable: false,
+    sortKey: "",
+  },
+  {
     key: "weight",
     align: "right",
     mobile: false,
@@ -133,7 +141,7 @@ export default function Header({
     <thead className="bg-gray-100">
       <tr className="border-t-2 border-b-2 border-gray-400">
         <th
-          className={`px-2 py-2 sm:px-4 text-left text-xs sm:text-sm font-medium ${
+          className={`px-2 py-1 sm:px-3 text-left text-xs sm:text-sm font-medium ${
             onSort
               ? "cursor-pointer hover:bg-gray-200 transition-colors select-none"
               : ""
@@ -158,7 +166,13 @@ export default function Header({
           return (
             <th
               key={header.key}
-              className={`px-1 py-2 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-${header.align} ${visibility} ${
+              className={`px-1 py-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium ${
+                header.align === "right"
+                  ? "text-right"
+                  : header.align === "center"
+                    ? "text-center"
+                    : "text-left"
+              } ${visibility} ${
                 header.sortable && onSort
                   ? "cursor-pointer hover:bg-gray-200 transition-colors select-none"
                   : ""
@@ -169,7 +183,15 @@ export default function Header({
                   : undefined
               }
             >
-              <div className="flex items-center justify-${header.align === 'left' ? 'start' : 'end'}">
+              <div
+                className={`flex items-center ${
+                  header.align === "right"
+                    ? "justify-end"
+                    : header.align === "center"
+                      ? "justify-center"
+                      : "justify-start"
+                }`}
+              >
                 {t(header.key)}
                 {header.sortable && onSort && getSortIcon(header.sortKey)}
               </div>
