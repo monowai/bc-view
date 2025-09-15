@@ -23,6 +23,7 @@
   "cost.avg": "Avg",
   "cost": "Cost",
   "weight": "Weight",
+  "alpha": "Alpha",
   "summary.title": "Summary",
   "summary.currency": "Value Currency",
   "summary.value": "Value",
