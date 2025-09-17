@@ -12,7 +12,7 @@ export default function GrandTotal({
   if (!ready) return <div />
   if (!holdings.viewTotals) return <div />
 
-  const data = [
+  const data: { value: number | null; colSpan: number; multiplier?: number }[] = [
     { value: holdings.viewTotals.gainOnDay, colSpan: 1 },
     { value: holdings.viewTotals.costValue, colSpan: 2 },
     { value: holdings.viewTotals.marketValue, colSpan: 1 },
@@ -20,6 +20,7 @@ export default function GrandTotal({
     { value: holdings.viewTotals.unrealisedGain, colSpan: 1 },
     { value: holdings.viewTotals.realisedGain, colSpan: 1 },
     { value: holdings.viewTotals.irr, colSpan: 1, multiplier: 100 },
+    { value: null, colSpan: 1 }, // Alpha column placeholder
     { value: holdings.viewTotals.weight, colSpan: 1, multiplier: 100 },
     { value: holdings.viewTotals.totalGain, colSpan: 1 },
   ]
@@ -27,7 +28,7 @@ export default function GrandTotal({
   return (
     <tbody className="grand-totals" key={holdings.portfolio.code + "totals"}>
       <tr>
-        <td colSpan={13} className="border-t-2 border-gray-600"></td>
+        <td colSpan={14} className="border-t-2 border-gray-600"></td>
       </tr>
       <tr
         key={valueIn}
@@ -41,14 +42,20 @@ export default function GrandTotal({
           <td
             key={index}
             colSpan={item.colSpan}
-            className={`text-right px-4 py-1 ${index === 0 && item.value < 0 ? "text-red-500" : index === 0 && item.value > 0 ? "text-green-500" : ""}`}
+            className={`text-right px-4 py-1 ${index === 0 && item.value && item.value < 0 ? "text-red-500" : index === 0 && item.value && item.value > 0 ? "text-green-500" : ""}`}
           >
-            <FormatValue
-              value={item.value}
-              defaultValue="-"
-              multiplier={index === 7 ? 100 : 1}
-            />
-            {index === 7 && "%"}
+            {item.value !== null ? (
+              <>
+                <FormatValue
+                  value={item.value}
+                  defaultValue="-"
+                  multiplier={index === 8 ? 100 : 1}
+                />
+                {index === 8 && "%"}
+              </>
+            ) : (
+              "-"
+            )}
           </td>
         ))}
       </tr>
