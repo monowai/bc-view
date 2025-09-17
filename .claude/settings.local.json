@@ -33,7 +33,9 @@
       "Bash(npx @next/codemod@canary next-lint-to-eslint-cli:*)",
       "Bash(pkill:*)",
       "Bash(sed:*)",
-      "Bash(yarn check-imports:*)"
+      "Bash(yarn check-imports:*)",
+      "Bash(NODE_ENV=production node -e \"console.log(''Production mode check:'', process.env.NODE_ENV === ''development'')\")",
+      "Bash(yarn test:*)"
     ],
     "deny": [],
     "ask": []

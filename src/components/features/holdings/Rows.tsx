@@ -22,7 +22,25 @@ const getCellClasses = (headerIndex: number): string => {
   } else {
     visibility = "hidden xl:table-cell"
   }
-  return `text-right px-1 py-1 md:px-2 xl:px-3 ${visibility}`
+
+  // Reduce padding for mobile-visible columns to maximize space
+  const isChangeColumn = headerIndex === 1
+  const isGainOnDayColumn = headerIndex === 2
+  const isQuantityColumn = headerIndex === 3
+  const isMarketValueColumn = headerIndex === 5
+  const isIrrColumn = headerIndex === 9
+  const isTotalGainColumn = headerIndex === 12
+
+  let padding
+  if (isQuantityColumn) {
+    padding = "px-0 py-1 md:px-2 xl:px-3" // No horizontal padding on mobile for quantity
+  } else if (isChangeColumn || isGainOnDayColumn || isMarketValueColumn || isIrrColumn || isTotalGainColumn) {
+    padding = "px-0.5 py-1 md:px-2 xl:px-3" // Minimal padding for mobile-visible columns
+  } else {
+    padding = "px-1 py-1 md:px-2 xl:px-3" // Normal padding for other columns
+  }
+
+  return `text-right ${padding} ${visibility}`
 }
 
 // Helper function to truncate text with ellipsis
@@ -73,7 +91,7 @@ export default function Rows({
             key={groupBy + index}
             className="holding-row text-xs sm:text-sm bg-white hover:!bg-slate-200 transition-colors duration-200 cursor-pointer"
           >
-            <td className="px-2 py-1 sm:px-3 text-ellipsis min-w-0">
+            <td className="px-1 py-1 sm:px-3 text-ellipsis min-w-0">
               {/* Unified layout: code on top, name below for both mobile and desktop */}
               <div>
                 <div
@@ -88,10 +106,10 @@ export default function Rows({
                 </div>
                 {!isCash(asset) && (
                   <div
-                    className="text-xs sm:text-sm text-gray-600"
+                    className="text-[10px] xl:text-xs text-gray-600"
                     title={asset.name}
                   >
-                    {truncateText(asset.name, 30)}
+                    {truncateText(asset.name, 20)}
                   </div>
                 )}
               </div>
@@ -113,7 +131,7 @@ export default function Rows({
                 </span>
               )}
             </td>
-            <td className="text-right px-1 py-1 md:px-2 xl:px-3 hidden xl:table-cell">
+            <td className={getCellClasses(1)}>
               {hideValue(moneyValues[valueIn].priceData?.changePercent) ? (
                 " "
               ) : (
@@ -135,7 +153,7 @@ export default function Rows({
                 </span>
               )}
             </td>
-            <td className="text-right px-1 py-1 md:px-2 xl:px-3 hidden xl:table-cell">
+            <td className={getCellClasses(2)}>
               {hideValue(moneyValues[valueIn].priceData) ? (
                 " "
               ) : (
@@ -177,7 +195,7 @@ export default function Rows({
                 />
               </Link>
             </td>
-            <td className="text-right px-1 py-1 md:px-2 xl:px-3 hidden xl:table-cell">
+            <td className={getCellClasses(6)}>
               <span className="relative group">
                 <Link
                   href={`/trns/events`}
@@ -194,10 +212,10 @@ export default function Rows({
             <td className={getCellClasses(7)}>
               <FormatValue value={moneyValues[valueIn].unrealisedGain} />
             </td>
-            <td className="text-right px-1 py-1 md:px-2 xl:px-3 hidden xl:table-cell">
+            <td className={getCellClasses(8)}>
               <FormatValue value={moneyValues[valueIn].realisedGain} />
             </td>
-            <td className="text-right px-1 py-1 md:px-2 xl:px-3 hidden xl:table-cell">
+            <td className={getCellClasses(9)}>
               {!isCashRelated(asset) && (
                 <span className="relative group">
                   <FormatValue
@@ -211,14 +229,14 @@ export default function Rows({
                 </span>
               )}
             </td>
-            <td className="text-center px-1 py-1 md:px-2 xl:px-3 hidden xl:table-cell relative overflow-visible">
+            <td className={`${getCellClasses(10)} relative overflow-visible`}>
               <AlphaProgress
                 irr={moneyValues[valueIn].irr}
                 lastTradeDate={dateValues?.opened || undefined}
                 className="min-w-[120px]"
               />
             </td>
-            <td className="text-right px-1 py-1 md:px-2 xl:px-3 hidden xl:table-cell">
+            <td className={getCellClasses(11)}>
               <FormatValue
                 value={moneyValues[valueIn].weight}
                 multiplier={100}

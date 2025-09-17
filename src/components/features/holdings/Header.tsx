@@ -2,6 +2,23 @@ import React, { ReactElement } from "react"
 import { GroupKey } from "types/beancounter"
 import { useTranslation } from "next-i18next"
 
+// Header column indices for consistent mapping
+export const HEADER_INDICES = {
+  PRICE: 0,           // asset.price
+  CHANGE: 1,          // asset.change
+  GAIN_ON_DAY: 2,     // gain.onday
+  QUANTITY: 3,        // quantity
+  COST: 4,            // cost
+  MARKET_VALUE: 5,    // summary.value
+  DIVIDENDS: 6,       // summary.dividends
+  UNREALISED_GAIN: 7, // gain.unrealised
+  REALISED_GAIN: 8,   // gain.realised
+  IRR: 9,             // irr
+  ALPHA: 10,          // alpha
+  WEIGHT: 11,         // weight
+  TOTAL_GAIN: 12,     // gain
+} as const
+
 type SortConfig = {
   key: string | null
   direction: "asc" | "desc"
@@ -24,16 +41,16 @@ export const headers = [
   {
     key: "asset.change",
     align: "right",
-    mobile: false,
-    medium: false,
+    mobile: true,
+    medium: true,
     sortable: true,
     sortKey: "changePercent",
   },
   {
     key: "gain.onday",
     align: "right",
-    mobile: false,
-    medium: false,
+    mobile: true,
+    medium: true,
     sortable: true,
     sortKey: "gainOnDay",
   },
@@ -65,14 +82,14 @@ export const headers = [
     key: "summary.dividends",
     align: "right",
     mobile: false,
-    medium: false,
+    medium: true,
     sortable: true,
     sortKey: "dividends",
   },
   {
     key: "gain.unrealised",
     align: "right",
-    mobile: true,
+    mobile: false,
     medium: true,
     sortable: true,
     sortKey: "unrealisedGain",
@@ -81,15 +98,15 @@ export const headers = [
     key: "gain.realised",
     align: "right",
     mobile: false,
-    medium: false,
+    medium: true,
     sortable: true,
     sortKey: "realisedGain",
   },
   {
     key: "irr",
     align: "right",
-    mobile: false,
-    medium: false,
+    mobile: true,
+    medium: true,
     sortable: true,
     sortKey: "irr",
   },
@@ -137,11 +154,30 @@ export default function Header({
     )
   }
 
+  // Get optimized header padding to match data cell padding for mobile space efficiency
+  const getHeaderPadding = (headerIndex: number): string => {
+    // Apply same logic as data cells for mobile-visible columns
+    const isChangeColumn = headerIndex === 1
+    const isGainOnDayColumn = headerIndex === 2
+    const isQuantityColumn = headerIndex === 3
+    const isMarketValueColumn = headerIndex === 5
+    const isIrrColumn = headerIndex === 9
+    const isTotalGainColumn = headerIndex === 12
+
+    if (isQuantityColumn) {
+      return "px-0 py-1 md:px-2 xl:px-3" // No horizontal padding on mobile for quantity
+    }
+    if (isChangeColumn || isGainOnDayColumn || isMarketValueColumn || isIrrColumn || isTotalGainColumn) {
+      return "px-0.5 py-1 md:px-2 xl:px-3" // Minimal padding for mobile-visible columns
+    }
+    return "px-1 py-1 md:px-2 xl:px-3" // Normal padding for other columns
+  }
+
   return (
     <thead className="bg-gray-100">
       <tr className="border-t-2 border-b-2 border-gray-400">
         <th
-          className={`px-2 py-1 sm:px-3 text-left text-xs sm:text-sm font-medium ${
+          className={`px-1 py-1 sm:px-3 text-left text-xs sm:text-sm font-medium ${
             onSort
               ? "cursor-pointer hover:bg-gray-200 transition-colors select-none"
               : ""
@@ -153,7 +189,7 @@ export default function Header({
             {onSort && getSortIcon("assetName")}
           </div>
         </th>
-        {headers.map((header) => {
+        {headers.map((header, index) => {
           let visibility
           if (header.mobile) {
             visibility = ""
@@ -166,7 +202,7 @@ export default function Header({
           return (
             <th
               key={header.key}
-              className={`px-1 py-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium ${
+              className={`${getHeaderPadding(index)} text-xs md:text-sm font-medium ${
                 header.align === "right"
                   ? "text-right"
                   : header.align === "center"
