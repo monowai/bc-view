@@ -4,7 +4,7 @@ import "@testing-library/jest-dom"
 import Portfolios from "@pages/portfolios"
 import useSWR from "swr"
 import { beforeEach, describe, it } from "@jest/globals"
-import { portfolioResult } from "__mocks__/fixtures"
+import { portfolioResult } from "../../__fixtures__/fixtures"
 
 // Mock useSWR with specific data setup
 jest.mock("swr", () => ({

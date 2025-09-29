@@ -5,7 +5,7 @@ import { GroupBy, ValueIn } from "@components/features/holdings/GroupByOptions"
 import { calculateHoldings } from "@lib/holdings/calculateHoldings"
 import { describe, expect, it } from "@jest/globals"
 
-const dataPath = path.resolve(__dirname, "../__contracts__/sort-holdings.json")
+const dataPath = path.resolve(__dirname, "./__fixtures__/sort-holdings.json")
 const data = fs.readFileSync(dataPath, "utf-8")
 
 describe("calculate function", () => {

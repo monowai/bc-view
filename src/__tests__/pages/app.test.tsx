@@ -1,10 +1,9 @@
 import Home from "@pages/index"
 import React from "react"
 import { render, screen, waitFor } from "@testing-library/react"
-import { registrationSuccess } from "__mocks__/fixtures"
-import "../setupTests"
+import { registrationSuccess } from "../../__fixtures__/fixtures"
 import { enableFetchMocks } from "jest-fetch-mock"
-import simpleGit from "../../__mocks__/simple-git"
+import simpleGit from "../../../__mocks__/simple-git"
 
 enableFetchMocks()
 

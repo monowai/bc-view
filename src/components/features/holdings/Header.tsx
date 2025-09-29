@@ -4,19 +4,19 @@ import { useTranslation } from "next-i18next"
 
 // Header column indices for consistent mapping
 export const HEADER_INDICES = {
-  PRICE: 0,           // asset.price
-  CHANGE: 1,          // asset.change
-  GAIN_ON_DAY: 2,     // gain.onday
-  QUANTITY: 3,        // quantity
-  COST: 4,            // cost
-  MARKET_VALUE: 5,    // summary.value
-  DIVIDENDS: 6,       // summary.dividends
+  PRICE: 0, // asset.price
+  CHANGE: 1, // asset.change
+  GAIN_ON_DAY: 2, // gain.onday
+  QUANTITY: 3, // quantity
+  COST: 4, // cost
+  MARKET_VALUE: 5, // summary.value
+  DIVIDENDS: 6, // summary.dividends
   UNREALISED_GAIN: 7, // gain.unrealised
-  REALISED_GAIN: 8,   // gain.realised
-  IRR: 9,             // irr
-  ALPHA: 10,          // alpha
-  WEIGHT: 11,         // weight
-  TOTAL_GAIN: 12,     // gain
+  REALISED_GAIN: 8, // gain.realised
+  IRR: 9, // irr
+  ALPHA: 10, // alpha
+  WEIGHT: 11, // weight
+  TOTAL_GAIN: 12, // gain
 } as const
 
 type SortConfig = {
@@ -167,7 +167,13 @@ export default function Header({
     if (isQuantityColumn) {
       return "px-0 py-1 md:px-2 xl:px-3" // No horizontal padding on mobile for quantity
     }
-    if (isChangeColumn || isGainOnDayColumn || isMarketValueColumn || isIrrColumn || isTotalGainColumn) {
+    if (
+      isChangeColumn ||
+      isGainOnDayColumn ||
+      isMarketValueColumn ||
+      isIrrColumn ||
+      isTotalGainColumn
+    ) {
       return "px-0.5 py-1 md:px-2 xl:px-3" // Minimal padding for mobile-visible columns
     }
     return "px-1 py-1 md:px-2 xl:px-3" // Normal padding for other columns

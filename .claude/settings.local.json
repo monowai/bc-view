@@ -35,7 +35,10 @@
       "Bash(sed:*)",
       "Bash(yarn check-imports:*)",
       "Bash(NODE_ENV=production node -e \"console.log(''Production mode check:'', process.env.NODE_ENV === ''development'')\")",
-      "Bash(yarn test:*)"
+      "Bash(yarn test:*)",
+      "Bash(git checkout:*)",
+      "Bash(yarn eslint:*)",
+      "Bash(yarn prettier:*)"
     ],
     "deny": [],
     "ask": []

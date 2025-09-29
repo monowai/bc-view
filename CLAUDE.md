@@ -178,3 +178,108 @@ export default withApiAuthRequired(async function handler(req, res) {
 - **Pre-commit Hooks**: Automatic code formatting and linting via Husky + lint-staged
 - **Authentication**: All meaningful endpoints require Auth0 JWT tokens
 - **Proxy Architecture**: Next.js API routes proxy authenticated requests to backend services
+
+# Test-Driven Development (TDD) Approach
+
+## Mandatory TDD Workflow
+
+When implementing new features or fixing bugs, ALWAYS follow this strict TDD cycle:
+
+### 1. Understand Requirements First
+
+- Clarify the feature/fix requirements before writing any code
+- Ask questions if specifications are ambiguous
+- Identify edge cases and expected behaviors
+
+### 2. Write Tests FIRST (Red Phase)
+
+- Write failing tests BEFORE implementing any functionality
+- Tests should cover:
+  - Happy path scenarios
+  - Edge cases
+  - Error conditions
+  - Boundary values
+- Use descriptive test names that explain the expected behavior
+- Start with the simplest test case
+
+### 3. Run Tests to Confirm Failure
+
+- Verify that new tests fail for the right reasons
+- Ensure test failure messages are clear and informative
+
+### 4. Implement Minimal Code (Green Phase)
+
+- Write the SIMPLEST code that makes the tests pass
+- Don't add functionality that isn't tested
+- Focus on making tests green, not on perfect code
+
+### 5. Run Tests to Confirm Success
+
+- All new tests should pass
+- All existing tests should still pass (no regressions)
+
+### 6. Refactor (Refactor Phase)
+
+- Improve code quality while keeping tests green
+- Remove duplication
+- Improve naming and structure
+- Run tests after each refactoring step
+
+### 7. Repeat the Cycle
+
+- Continue with the next smallest piece of functionality
+
+## Testing Framework Preferences
+
+For Next.js/React projects, prefer:
+
+- **Unit Tests**: Jest + React Testing Library
+- **Component Tests**: React Testing Library
+- **Integration Tests**: Jest + MSW (Mock Service Worker)
+- **E2E Tests**: Playwright or Cypress
+
+TDD Guidelines
+DO:
+
+Write tests that describe behavior, not implementation
+Keep tests focused and atomic (one assertion concept per test)
+Use meaningful test descriptions
+Mock external dependencies
+Test user-facing behavior over internal implementation
+Keep tests fast and independent
+
+DON'T:
+
+Write implementation code before tests
+Skip tests because "it's simple"
+Test implementation details
+Write tests that depend on other tests
+Leave failing tests uncommitted
+Mock everything (only mock boundaries)
+
+Test Coverage Expectations
+
+Aim for 80%+ code coverage
+100% coverage for critical business logic
+Focus on meaningful coverage, not just hitting percentages
+
+When Working on Existing Code
+If adding to untested code:
+
+Write tests for the NEW functionality first
+Add tests for AFFECTED existing code
+Refactor with tests in place
+Gradually improve test coverage
+
+Checklist Before Committing
+
+All tests are passing
+New functionality has corresponding tests
+Tests are clear and well-named
+No commented-out test code
+Test coverage hasn't decreased
+Tests run quickly
+Linting checks pass
+
+Remember
+"Red, Green, Refactor" - This is the rhythm of TDD. Never skip the Red phase!

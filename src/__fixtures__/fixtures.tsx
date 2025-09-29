@@ -47,8 +47,14 @@ export const portfolioResult: PortfolioResponses = {
     },
   ],
 }
-export const withUserProvider = (user: UserProfile = mockUserProfile) => {
-  return ({ children }: { children: ReactNode }) => (
-    <UserProvider>{children}</UserProvider>
-  )
+export const withUserProvider = (
+  user: UserProfile = mockUserProfile,
+): React.ComponentType<{ children: ReactNode }> => {
+  const TestUserProvider = ({
+    children,
+  }: {
+    children: ReactNode
+  }): React.ReactElement => <UserProvider>{children}</UserProvider>
+  TestUserProvider.displayName = `TestUserProvider(${user.name})`
+  return TestUserProvider
 }

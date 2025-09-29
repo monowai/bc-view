@@ -1,7 +1,7 @@
 jest.mock("simple-git")
 const mockGit = {
   __esModule: true,
-  default: () => ({
+  default: (): { revparse: jest.Mock } => ({
     revparse: jest
       .fn()
       .mockResolvedValueOnce("mock-branch")
