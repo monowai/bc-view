@@ -15,30 +15,30 @@
     {
       "description": "Auto-merge patch updates for non-major dependencies",
       "matchUpdateTypes": ["patch", "pin", "digest"],
-      "excludePackagePatterns": ["^next$", "^react$", "^typescript$"],
       "automerge": true,
-      "automergeType": "pr"
+      "automergeType": "pr",
+      "matchPackageNames": ["!/^next$/", "!/^react$/", "!/^typescript$/"]
     },
     {
       "description": "Group type definitions together",
-      "matchPackagePatterns": ["^@types/"],
       "groupName": "type definitions",
-      "automerge": true
+      "automerge": true,
+      "matchPackageNames": ["/^@types//"]
     },
     {
       "description": "Group ESLint packages together",
-      "matchPackagePatterns": ["eslint", "@typescript-eslint/"],
-      "groupName": "ESLint packages"
+      "groupName": "ESLint packages",
+      "matchPackageNames": ["/eslint/", "/@typescript-eslint//"]
     },
     {
       "description": "Group testing packages together",
-      "matchPackagePatterns": ["jest", "@testing-library/", "babel-jest"],
-      "groupName": "testing packages"
+      "groupName": "testing packages",
+      "matchPackageNames": ["/jest/", "/@testing-library//", "/babel-jest/"]
     },
     {
       "description": "Group OpenTelemetry packages together",
-      "matchPackagePatterns": ["^@opentelemetry/"],
-      "groupName": "OpenTelemetry packages"
+      "groupName": "OpenTelemetry packages",
+      "matchPackageNames": ["/^@opentelemetry//"]
     },
     {
       "description": "Separate major updates for critical packages",
@@ -57,8 +57,8 @@
       "description": "Auto-merge minor and patch updates for dev dependencies",
       "matchDepTypes": ["devDependencies"],
       "matchUpdateTypes": ["minor", "patch"],
-      "excludePackagePatterns": ["^typescript$", "^@typescript-eslint/"],
-      "automerge": true
+      "automerge": true,
+      "matchPackageNames": ["!/^typescript$/", "!/^@typescript-eslint//"]
     }
   ],
   "vulnerabilityAlerts": {
