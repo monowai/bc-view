@@ -43,7 +43,10 @@ export const headers = [
   { key: "summary.gain", align: "right" as const, mobile: true, medium: true },
 ]
 
-export default function SummaryHeader(portfolio: Portfolio, portfolioSummary?: PortfolioSummary): ReactElement {
+export default function SummaryHeader(
+  portfolio: Portfolio,
+  portfolioSummary?: PortfolioSummary,
+): ReactElement {
   const { t } = useTranslation("common")
   const { control, handleSubmit } = useForm()
   const holdingState = useHoldingState()
@@ -82,7 +85,10 @@ export default function SummaryHeader(portfolio: Portfolio, portfolioSummary?: P
             />
           </h3>
         </div>
-        <form onSubmit={handleSubmit(onSubmit)} className="flex items-center gap-2">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="flex items-center gap-2"
+        >
           <span className="text-xs text-gray-600">@</span>
           <Controller
             name="date"
@@ -112,7 +118,10 @@ export default function SummaryHeader(portfolio: Portfolio, portfolioSummary?: P
               />
             </h3>
           </div>
-          <form onSubmit={handleSubmit(onSubmit)} className="flex items-center gap-2">
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="flex items-center gap-2"
+          >
             <span className="text-sm text-gray-600">@</span>
             <Controller
               name="date"
@@ -162,9 +171,15 @@ export default function SummaryHeader(portfolio: Portfolio, portfolioSummary?: P
           })}
         </tr>
         <tr className="bg-gray-100">
-          <td colSpan={headers.length + 1} className="px-2 py-2 text-xs text-gray-600">
+          <td
+            colSpan={headers.length + 1}
+            className="px-2 py-2 text-xs text-gray-600"
+          >
             <div className="flex items-center justify-between">
-              <form onSubmit={handleSubmit(onSubmit)} className="flex items-center gap-2">
+              <form
+                onSubmit={handleSubmit(onSubmit)}
+                className="flex items-center gap-2"
+              >
                 <span>@</span>
                 <Controller
                   name="date"
@@ -181,9 +196,7 @@ export default function SummaryHeader(portfolio: Portfolio, portfolioSummary?: P
                 />
               </form>
               {portfolioSummary?.currency?.code && (
-                <span className="xl:hidden font-medium">
-                  {displayCurrency}
-                </span>
+                <span className="xl:hidden font-medium">{displayCurrency}</span>
               )}
             </div>
           </td>
@@ -205,7 +218,7 @@ export function SummaryRow({
   const HorizontalCard = (): ReactElement => (
     <div className="xl:hidden bg-white rounded-lg border border-gray-200 mx-4 my-4 px-6 py-5 md:px-8 md:py-6 relative">
       {/* DEBUG: Show which layout is active */}
-      {process.env.NODE_ENV === 'development' && (
+      {process.env.NODE_ENV === "development" && (
         <div className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-bold">
           <span className="md:hidden">MOBILE</span>
           <span className="hidden md:inline xl:hidden">TABLET</span>
@@ -213,7 +226,9 @@ export function SummaryRow({
       )}
       <div className="grid grid-cols-4 gap-x-8 md:gap-x-12 text-xs md:text-sm">
         <div className="text-center min-w-0">
-          <div className="text-gray-500 font-medium text-xs md:text-sm mb-3 leading-relaxed">{t("summary.value")}</div>
+          <div className="text-gray-500 font-medium text-xs md:text-sm mb-3 leading-relaxed">
+            {t("summary.value")}
+          </div>
           <div className="font-bold text-base md:text-xl">
             {currencyTotals ? (
               <FormatValue value={totals.marketValue} defaultValue="-" />
@@ -226,7 +241,9 @@ export function SummaryRow({
           </div>
         </div>
         <div className="text-center min-w-0">
-          <div className="text-gray-500 font-medium text-xs md:text-sm mb-3 leading-relaxed">{t("summary.gain")}</div>
+          <div className="text-gray-500 font-medium text-xs md:text-sm mb-3 leading-relaxed">
+            {t("summary.gain")}
+          </div>
           <div className="font-bold text-base md:text-xl">
             {currencyTotals ? (
               <FormatValue value={totals.gain} defaultValue="-" />
@@ -236,7 +253,9 @@ export function SummaryRow({
           </div>
         </div>
         <div className="text-center min-w-0">
-          <div className="text-gray-500 font-medium text-xs md:text-sm mb-3 leading-relaxed">{t("summary.irr")}</div>
+          <div className="text-gray-500 font-medium text-xs md:text-sm mb-3 leading-relaxed">
+            {t("summary.irr")}
+          </div>
           <div className="font-bold text-base md:text-xl">
             {currencyTotals ? (
               <>
@@ -254,7 +273,9 @@ export function SummaryRow({
           </div>
         </div>
         <div className="text-center min-w-0">
-          <div className="text-gray-500 font-medium text-xs md:text-sm mb-3 leading-relaxed">{t("summary.purchases")}</div>
+          <div className="text-gray-500 font-medium text-xs md:text-sm mb-3 leading-relaxed">
+            {t("summary.purchases")}
+          </div>
           <div className="font-bold text-base md:text-xl">
             {currencyTotals ? (
               <FormatValue value={totals.purchases} defaultValue="-" />
@@ -351,7 +372,7 @@ export function SummaryRow({
       {/* Traditional table layout for desktop screens */}
       <tbody className="hidden xl:table-row-group relative">
         {/* DEBUG: Desktop table indicator */}
-        {process.env.NODE_ENV === 'development' && (
+        {process.env.NODE_ENV === "development" && (
           <tr>
             <td colSpan={100} className="relative">
               <div className="absolute top-0 right-0 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-bold z-10">

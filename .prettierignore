@@ -4,3 +4,4 @@ yarn.lock
 coverage
 build
 tsconfig.tsbuildinfo
+*.snap

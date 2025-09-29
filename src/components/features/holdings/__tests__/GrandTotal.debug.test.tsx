@@ -1,38 +1,36 @@
-import React from 'react'
-import { render } from '@testing-library/react'
-import '@testing-library/jest-dom'
-import GrandTotal from '../GrandTotal'
-import { mockHoldings, mockValueIn, mockUseTranslation } from '../__mocks__/testData'
+import "./testSetup"
+import { renderGrandTotal, getDataCells } from "./testHelpers"
 
-// Mock next-i18next
-jest.mock('next-i18next', () => ({
-  useTranslation: () => mockUseTranslation()
-}))
+describe("GrandTotal Structure Validation", () => {
+  it("validates table structure and cell count", () => {
+    const { container } = renderGrandTotal()
 
-describe('GrandTotal Debug', () => {
-  it('prints out all cell contents for debugging', () => {
-    const { container } = render(
-      <table>
-        <GrandTotal holdings={mockHoldings} valueIn={mockValueIn} />
-      </table>
-    )
+    const dataRow = container.querySelector("tbody tr:last-child")
+    const cells = dataRow?.querySelectorAll("td")
 
-    const dataRow = container.querySelector('tbody tr:last-child')
-    const cells = dataRow?.querySelectorAll('td')
+    // Validate basic structure
+    expect(cells).toHaveLength(14) // 1 label + 1 spacer + 12 data cells
 
-    console.log('Total cells:', cells?.length)
+    // Validate first cell is the value title
+    expect(cells![0]).toHaveTextContent("Value in PORTFOLIO")
 
-    cells?.forEach((cell, index) => {
-      console.log(`Cell ${index}: "${cell.textContent}" (colSpan: ${cell.getAttribute('colSpan') || '1'}) (classes: "${cell.className}")`)
-    })
+    // Validate second cell is empty spacer
+    expect(cells![1]).toHaveTextContent("")
+    expect(cells![1]).toHaveAttribute("colSpan", "1")
 
-    const dataCells = Array.from(cells!).slice(2)
-    console.log('\nData cells only:')
-    dataCells.forEach((cell, index) => {
-      console.log(`DataCell ${index}: "${cell.textContent}" (colSpan: ${cell.getAttribute('colSpan') || '1'})`)
-    })
+    // Validate data cells exist and have expected structure
+    const dataCells = getDataCells(container)
+    expect(dataCells).toHaveLength(12)
 
-    // This should help us see what's actually rendered
-    expect(true).toBe(true)
+    // Validate specific known values are present
+    expect(dataCells.some((cell) => cell.textContent?.includes("72.76"))).toBe(
+      true,
+    ) // gainOnDay
+    expect(
+      dataCells.some((cell) => cell.textContent?.includes("8,150.65")),
+    ).toBe(true) // costValue
+    expect(
+      dataCells.some((cell) => cell.textContent?.includes("4,284.31")),
+    ).toBe(true) // totalGain
   })
 })

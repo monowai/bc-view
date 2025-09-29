@@ -34,7 +34,13 @@ const getCellClasses = (headerIndex: number): string => {
   let padding
   if (isQuantityColumn) {
     padding = "px-0 py-1 md:px-2 xl:px-3" // No horizontal padding on mobile for quantity
-  } else if (isChangeColumn || isGainOnDayColumn || isMarketValueColumn || isIrrColumn || isTotalGainColumn) {
+  } else if (
+    isChangeColumn ||
+    isGainOnDayColumn ||
+    isMarketValueColumn ||
+    isIrrColumn ||
+    isTotalGainColumn
+  ) {
     padding = "px-0.5 py-1 md:px-2 xl:px-3" // Minimal padding for mobile-visible columns
   } else {
     padding = "px-1 py-1 md:px-2 xl:px-3" // Normal padding for other columns
