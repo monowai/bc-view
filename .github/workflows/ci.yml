@@ -7,10 +7,14 @@ on:
       - master
       - react-issues
       - renovate/*
+    paths-ignore:
+      - '.circleci/**'
   pull_request:
     branches:
       - main
       - master
+    paths-ignore:
+      - '.circleci/**'
 
 jobs:
   build:
