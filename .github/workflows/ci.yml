@@ -8,13 +8,13 @@ on:
       - react-issues
       - renovate/*
     paths-ignore:
-      - '.circleci/**'
+      - ".circleci/**"
   pull_request:
     branches:
       - main
       - master
     paths-ignore:
-      - '.circleci/**'
+      - ".circleci/**"
 
 jobs:
   build:
