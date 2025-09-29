@@ -260,28 +260,13 @@ jobs:
 workflows:
   build_and_package:
     jobs:
-      - install-dependencies:
-          filters:
-            branches:
-              ignore:
-                - /^renovate\/.*$/
-            paths:
-              ignore:
-                - .github/**
+      - install-dependencies
       - test:
           requires:
             - install-dependencies
-          filters:
-            paths:
-              ignore:
-                - .github/**
       - build:
           requires:
             - install-dependencies
-          filters:
-            paths:
-              ignore:
-                - .github/**
       - docker-build:
           matrix:
             parameters:
@@ -289,7 +274,3 @@ workflows:
           requires:
             - test
             - build
-          filters:
-            paths:
-              ignore:
-                - .github/**
