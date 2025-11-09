@@ -25,6 +25,7 @@ import Header from "@components/features/holdings/Header"
 import GrandTotal from "@components/features/holdings/GrandTotal"
 import HoldingActions from "@components/features/holdings/HoldingActions"
 import PerformanceHeatmap from "@components/ui/PerformanceHeatmap"
+import ViewToggle, { ViewMode } from "@components/features/holdings/ViewToggle"
 
 function HoldingsPage(): React.ReactElement {
   const router = useRouter()
@@ -38,7 +39,7 @@ function HoldingsPage(): React.ReactElement {
   const [tradeModalOpen, setTradeModalOpen] = useState(false)
   const [cashModalOpen, setCashModalOpen] = useState(false)
   const [columns, setColumns] = useState<string[]>([])
-  const [viewMode, setViewMode] = useState<"table" | "heatmap">("table")
+  const [viewMode, setViewMode] = useState<ViewMode>("table")
   const [sortConfig, setSortConfig] = useState<SortConfig>({
     key: "assetName",
     direction: "asc",
@@ -159,59 +160,15 @@ function HoldingsPage(): React.ReactElement {
   return (
     <div className="w-full py-4">
       <HoldingMenu portfolio={holdingResults.portfolio} />
-      <div className="flex justify-between items-center mb-4">
+      <div className="mobile-portrait:hidden flex justify-between items-center mb-4">
         <HoldingActions
           holdingResults={holdingResults}
           columns={columns}
           valueIn={holdingState.valueIn.value}
         />
-        <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
-          <button
-            onClick={() => setViewMode("table")}
-            className={`flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-              viewMode === "table"
-                ? "bg-white text-gray-900 shadow-sm"
-                : "text-gray-600 hover:text-gray-900"
-            }`}
-          >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 4h18M3 10h18M3 16h18"
-              />
-            </svg>
-            <span>Table</span>
-          </button>
-          <button
-            onClick={() => setViewMode("heatmap")}
-            className={`flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-              viewMode === "heatmap"
-                ? "bg-white text-gray-900 shadow-sm"
-                : "text-gray-600 hover:text-gray-900"
-            }`}
-          >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"
-              />
-            </svg>
-            <span>Heatmap</span>
-          </button>
+        {/* Desktop view toggle - hidden on mobile/tablet */}
+        <div className="hidden xl:block">
+          <ViewToggle viewMode={viewMode} onViewModeChange={setViewMode} />
         </div>
       </div>
 
@@ -219,7 +176,11 @@ function HoldingsPage(): React.ReactElement {
         <div className="grid grid-cols-1 gap-3">
           <div>
             <table className="min-w-full bg-white">
-              <SummaryHeader {...holdingResults.portfolio} />
+              <SummaryHeader
+                portfolio={holdingResults.portfolio}
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
+              />
               <SummaryRow
                 totals={holdings.totals}
                 currency={holdings.currency}
@@ -266,7 +227,11 @@ function HoldingsPage(): React.ReactElement {
         <div className="grid grid-cols-1 gap-3">
           <div>
             <table className="min-w-full bg-white">
-              <SummaryHeader {...holdingResults.portfolio} />
+              <SummaryHeader
+                portfolio={holdingResults.portfolio}
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
+              />
               <SummaryRow
                 totals={holdings.totals}
                 currency={holdings.currency}
