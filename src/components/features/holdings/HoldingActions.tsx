@@ -22,21 +22,21 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
   return (
     <div className="flex flex-col sm:flex-row justify-end py-2 space-y-2 sm:space-y-0 sm:space-x-2 mb-4">
       <button
-        className="w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center"
+        className="mobile-portrait:hidden w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center"
         onClick={() => setCopyModalOpen(true)}
       >
         <i className="fas fa-copy mr-2"></i>
         Copy Data
       </button>
       <button
-        className="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center"
+        className="mobile-portrait:hidden w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center"
         onClick={() => setTradeModalOpen(true)}
       >
         <i className="fas fa-chart-line mr-2"></i>
         Add Trade
       </button>
       <button
-        className="w-full sm:w-auto bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center"
+        className="mobile-portrait:hidden w-full sm:w-auto bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center"
         onClick={() => setCashModalOpen(true)}
       >
         <i className="fas fa-dollar-sign mr-2"></i>
