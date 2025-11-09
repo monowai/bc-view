@@ -6,9 +6,22 @@ module.exports = {
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      screens: {
+        portrait: { raw: "(orientation: portrait)" },
+        landscape: { raw: "(orientation: landscape)" },
+      },
+    },
   },
-  plugins: [],
+  plugins: [
+    function ({ addVariant }) {
+      // Add variant for mobile portrait (max-width: 640px and portrait orientation)
+      addVariant(
+        "mobile-portrait",
+        "@media (max-width: 639px) and (orientation: portrait)",
+      )
+    },
+  ],
   // Configuration to reduce CSS parser warnings
   future: {
     hoverOnlyWhenSupported: true,

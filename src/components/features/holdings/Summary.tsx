@@ -6,6 +6,7 @@ import { Controller, useForm } from "react-hook-form"
 import { useHoldingState } from "@lib/holdings/holdingState"
 import Link from "next/link"
 import { getTodayDate } from "@lib/dateUtils"
+import ViewToggle, { ViewMode } from "./ViewToggle"
 
 export const headers = [
   {
@@ -43,10 +44,19 @@ export const headers = [
   { key: "summary.gain", align: "right" as const, mobile: true, medium: true },
 ]
 
-export default function SummaryHeader(
-  portfolio: Portfolio,
-  portfolioSummary?: PortfolioSummary,
-): ReactElement {
+interface SummaryHeaderProps {
+  portfolio: Portfolio
+  portfolioSummary?: PortfolioSummary
+  viewMode?: ViewMode
+  onViewModeChange?: (mode: ViewMode) => void
+}
+
+export default function SummaryHeader({
+  portfolio,
+  portfolioSummary,
+  viewMode,
+  onViewModeChange,
+}: SummaryHeaderProps): ReactElement {
   const { t } = useTranslation("common")
   const { control, handleSubmit } = useForm()
   const holdingState = useHoldingState()
@@ -74,41 +84,54 @@ export default function SummaryHeader(
 
   return (
     <>
-      {/* Mobile header */}
-      <div className="md:hidden bg-gray-100 p-3 mx-2 mt-2 rounded-t-lg border border-b-0 border-gray-200">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="font-medium text-sm text-gray-900">
+      {/* Mobile header - Single row layout */}
+      <div className="md:hidden bg-gray-100 p-2 mx-2 mt-2 rounded-t-lg border border-b-0 border-gray-200">
+        <div className="flex items-center justify-between gap-2">
+          {/* Portfolio name - truncate if too long */}
+          <h3 className="font-medium text-xs text-gray-900 truncate flex-shrink min-w-0">
             {portfolio.name}
             <Link
               href={`/portfolios/${portfolio.id}`}
-              className="far fa-edit text-gray-500 hover:text-gray-700 ml-2"
+              className="far fa-edit text-gray-500 hover:text-gray-700 ml-1"
             />
           </h3>
-        </div>
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          className="flex items-center gap-2"
-        >
-          <span className="text-xs text-gray-600">@</span>
-          <Controller
-            name="date"
-            control={control}
-            render={({ field }) => (
-              <input
-                {...field}
-                type="date"
-                defaultValue={getTodayDate(holdingState.asAt)}
-                className="input text-xs"
-                onChange={handleDateChange(field)}
+
+          {/* View toggle buttons - center */}
+          {viewMode && onViewModeChange && (
+            <div className="flex-shrink-0">
+              <ViewToggle
+                viewMode={viewMode}
+                onViewModeChange={onViewModeChange}
               />
-            )}
-          />
-        </form>
+            </div>
+          )}
+
+          {/* Date picker - right */}
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="flex items-center gap-1 flex-shrink-0"
+          >
+            <span className="text-xs text-gray-600">@</span>
+            <Controller
+              name="date"
+              control={control}
+              render={({ field }) => (
+                <input
+                  {...field}
+                  type="date"
+                  defaultValue={getTodayDate(holdingState.asAt)}
+                  className="input text-xs w-28"
+                  onChange={handleDateChange(field)}
+                />
+              )}
+            />
+          </form>
+        </div>
       </div>
 
       {/* Tablet header */}
       <div className="hidden md:block xl:hidden bg-gray-100 p-4 mx-2 mt-2 rounded-t-lg border border-b-0 border-gray-200">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-4">
           <div>
             <h3 className="font-medium text-base text-gray-900">
               {portfolio.name}
@@ -118,6 +141,14 @@ export default function SummaryHeader(
               />
             </h3>
           </div>
+          {viewMode && onViewModeChange && (
+            <div className="flex-shrink-0">
+              <ViewToggle
+                viewMode={viewMode}
+                onViewModeChange={onViewModeChange}
+              />
+            </div>
+          )}
           <form
             onSubmit={handleSubmit(onSubmit)}
             className="flex items-center gap-2"
@@ -224,7 +255,7 @@ export function SummaryRow({
           <span className="hidden md:inline xl:hidden">TABLET</span>
         </div>
       )}
-      <div className="grid grid-cols-4 gap-x-8 md:gap-x-12 text-xs md:text-sm">
+      <div className="grid grid-cols-3 md:grid-cols-4 gap-x-8 md:gap-x-12 text-xs md:text-sm">
         <div className="text-center min-w-0">
           <div className="text-gray-500 font-medium text-xs md:text-sm mb-3 leading-relaxed">
             {t("summary.value")}
@@ -237,6 +268,18 @@ export function SummaryRow({
             )}
             {currency?.code && (
               <div className="text-gray-500 text-xs">{currency.code}</div>
+            )}
+          </div>
+        </div>
+        <div className="hidden md:block text-center min-w-0">
+          <div className="text-gray-500 font-medium text-xs md:text-sm mb-3 leading-relaxed">
+            {t("summary.dividends")}
+          </div>
+          <div className="font-bold text-base md:text-xl">
+            {currencyTotals ? (
+              <FormatValue value={totals.income} defaultValue="-" />
+            ) : (
+              "-"
             )}
           </div>
         </div>
@@ -267,18 +310,6 @@ export function SummaryRow({
                 />
                 %
               </>
-            ) : (
-              "-"
-            )}
-          </div>
-        </div>
-        <div className="text-center min-w-0">
-          <div className="text-gray-500 font-medium text-xs md:text-sm mb-3 leading-relaxed">
-            {t("summary.purchases")}
-          </div>
-          <div className="font-bold text-base md:text-xl">
-            {currencyTotals ? (
-              <FormatValue value={totals.purchases} defaultValue="-" />
             ) : (
               "-"
             )}

@@ -1,5 +1,13 @@
 @import "tailwindcss";
 @tailwind utilities;
+
+@layer utilities {
+  @media (max-width: 639px) and (orientation: portrait) {
+    .mobile-portrait\:hidden {
+      display: none !important;
+    }
+  }
+}
 html,
 body {
   padding: 0;
@@ -84,4 +92,11 @@ a {
   padding: 0;
   margin: 0;
   z-index: 1000; /* Set a higher z-index value */
+}
+
+/* Hide elements with mobile-portrait:hidden class in mobile portrait mode */
+@media (max-width: 639px) and (orientation: portrait) {
+  .mobile-portrait\:hidden {
+    display: none !important;
+  }
 }
