@@ -1,4 +1,4 @@
-import React, { ReactElement, useState } from "react"
+import React, { ReactElement, useState, useEffect } from "react"
 import { useTranslation } from "next-i18next"
 import useSwr from "swr"
 import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
@@ -13,10 +13,17 @@ export function Portfolios(selectedPortfolio: Portfolio): ReactElement {
   const [isOpen, setIsOpen] = useState(false)
   const [selected, setSelected] = useState(selectedPortfolio)
 
-  if (!ready || !data) {
+  // Update selected portfolio when prop changes (e.g., from "Loading..." to real portfolio)
+  useEffect(() => {
+    setSelected(selectedPortfolio)
+  }, [selectedPortfolio])
+
+  if (!ready) {
     return rootLoader(t("loading"))
   }
-  const portfolios: Portfolio[] = data.data
+
+  // Show the selected portfolio immediately, even if the list hasn't loaded yet
+  const portfolios: Portfolio[] = data?.data || []
 
   const handleSelect = (portfolio: Portfolio): void => {
     setSelected(portfolio)
@@ -60,16 +67,22 @@ export function Portfolios(selectedPortfolio: Portfolio): ReactElement {
             aria-orientation="vertical"
             aria-labelledby="options-menu"
           >
-            {portfolios.map((portfolio) => (
-              <button
-                key={portfolio.code}
-                onClick={() => handleSelect(portfolio)}
-                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                role="menuitem"
-              >
-                {portfolio.name}
-              </button>
-            ))}
+            {portfolios.length > 0 ? (
+              portfolios.map((portfolio) => (
+                <button
+                  key={portfolio.code}
+                  onClick={() => handleSelect(portfolio)}
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                  role="menuitem"
+                >
+                  {portfolio.name}
+                </button>
+              ))
+            ) : (
+              <div className="px-4 py-2 text-sm text-gray-500">
+                {t("loading")}
+              </div>
+            )}
           </div>
         </div>
       )}
