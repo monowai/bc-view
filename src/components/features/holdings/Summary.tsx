@@ -63,6 +63,91 @@ export default function SummaryHeader({
 
   // Get currency display for header
   const displayCurrency = portfolioSummary?.currency?.code || "Mixed"
+  const currencyTotals = portfolioSummary?.totals !== undefined
+  const totals = portfolioSummary?.totals
+
+  // Prepare desktop table data (same as in SummaryRow)
+  const dataWithVisibility = [
+    { content: displayCurrency, mobile: false, medium: false }, // summary.currency
+    {
+      content:
+        currencyTotals && totals ? (
+          <FormatValue value={totals.marketValue} defaultValue="-" />
+        ) : (
+          <div>-</div>
+        ),
+      mobile: true,
+      medium: true,
+    }, // summary.value
+    {
+      content:
+        currencyTotals && totals ? (
+          <FormatValue value={totals.purchases} defaultValue="-" />
+        ) : (
+          <div>-</div>
+        ),
+      mobile: false,
+      medium: true,
+    }, // summary.purchases
+    {
+      content:
+        currencyTotals && totals ? (
+          <FormatValue value={totals.sales} defaultValue="-" />
+        ) : (
+          <div>-</div>
+        ),
+      mobile: false,
+      medium: true,
+    }, // summary.sales
+    {
+      content:
+        currencyTotals && totals ? (
+          <FormatValue value={totals.cash} defaultValue="-" />
+        ) : (
+          <div>-</div>
+        ),
+      mobile: false,
+      medium: false,
+    }, // summary.cash
+    {
+      content:
+        currencyTotals && totals ? (
+          <FormatValue value={totals.income} defaultValue="-" />
+        ) : (
+          <div>-</div>
+        ),
+      mobile: false,
+      medium: false,
+    }, // summary.dividends (income)
+    {
+      content:
+        currencyTotals && totals ? (
+          <>
+            <FormatValue
+              value={totals.irr}
+              defaultValue="-"
+              multiplier={100}
+              scale={2}
+            />
+            {"%"}
+          </>
+        ) : (
+          <div>-</div>
+        ),
+      mobile: true,
+      medium: true,
+    }, // summary.irr
+    {
+      content:
+        currencyTotals && totals ? (
+          <FormatValue value={totals.gain} defaultValue="-" />
+        ) : (
+          <div>-</div>
+        ),
+      mobile: true,
+      medium: true,
+    }, // summary.gain
+  ]
 
   const onSubmit = useCallback(
     (data: any): void => {
@@ -202,35 +287,50 @@ export default function SummaryHeader({
           })}
         </tr>
         <tr className="bg-gray-100">
-          <td
-            colSpan={headers.length + 1}
-            className="px-2 py-2 text-xs text-gray-600"
-          >
-            <div className="flex items-center justify-between">
-              <form
-                onSubmit={handleSubmit(onSubmit)}
-                className="flex items-center gap-2"
-              >
-                <span>@</span>
-                <Controller
-                  name="date"
-                  control={control}
-                  render={({ field }) => (
-                    <input
-                      {...field}
-                      type="date"
-                      defaultValue={getTodayDate(holdingState.asAt)}
-                      className="input text-xs"
-                      onChange={handleDateChange(field)}
-                    />
-                  )}
-                />
-              </form>
-              {portfolioSummary?.currency?.code && (
-                <span className="xl:hidden font-medium">{displayCurrency}</span>
-              )}
-            </div>
+          <td className="px-2 py-2 text-xs md:text-sm font-medium text-gray-700">
+            <form
+              onSubmit={handleSubmit(onSubmit)}
+              className="flex items-center gap-2"
+            >
+              <span>@</span>
+              <Controller
+                name="date"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    {...field}
+                    type="date"
+                    defaultValue={getTodayDate(holdingState.asAt)}
+                    className="input text-xs md:text-sm font-medium"
+                    onChange={handleDateChange(field)}
+                  />
+                )}
+              />
+            </form>
           </td>
+          {/* Summary values in the same row as the date */}
+          {dataWithVisibility.map((item, index) => {
+            let visibility
+            if (item.mobile) {
+              visibility = ""
+            } else if (item.medium) {
+              visibility = "hidden md:table-cell"
+            } else {
+              visibility = "hidden xl:table-cell"
+            }
+
+            // Get alignment from headers array
+            const alignment = headers[index]?.align || "right"
+
+            return (
+              <td
+                key={index}
+                className={`px-1 py-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-${alignment} ${visibility}`}
+              >
+                {item.content}
+              </td>
+            )
+          })}
         </tr>
       </thead>
     </>
@@ -243,9 +343,7 @@ export function SummaryRow({
 }: PortfolioSummary): ReactElement {
   const { t } = useTranslation("common")
   const currencyTotals = totals !== undefined
-  const displayCurrency = currency?.code || "Mixed"
-
-  // Unified horizontal card layout for all non-desktop screens - DRAMATICALLY improved spacing
+// Unified horizontal card layout for all non-desktop screens - DRAMATICALLY improved spacing
   const HorizontalCard = (): ReactElement => (
     <div className="xl:hidden bg-white rounded-lg border border-gray-200 mx-4 my-4 px-6 py-5 md:px-8 md:py-6 relative">
       {/* DEBUG: Show which layout is active */}
@@ -320,126 +418,13 @@ export function SummaryRow({
   )
 
   // Traditional table layout for medium+ screens
-  const dataWithVisibility = [
-    { content: displayCurrency, mobile: false, medium: false }, // summary.currency
-    {
-      content: currencyTotals ? (
-        <FormatValue value={totals.marketValue} defaultValue="-" />
-      ) : (
-        <div>-</div>
-      ),
-      mobile: true,
-      medium: true,
-    }, // summary.value
-    {
-      content: currencyTotals ? (
-        <FormatValue value={totals.purchases} defaultValue="-" />
-      ) : (
-        <div>-</div>
-      ),
-      mobile: false,
-      medium: true,
-    }, // summary.purchases
-    {
-      content: currencyTotals ? (
-        <FormatValue value={totals.sales} defaultValue="-" />
-      ) : (
-        <div>-</div>
-      ),
-      mobile: false,
-      medium: true,
-    }, // summary.sales
-    {
-      content: currencyTotals ? (
-        <FormatValue value={totals.cash} defaultValue="-" />
-      ) : (
-        <div>-</div>
-      ),
-      mobile: false,
-      medium: false,
-    }, // summary.cash
-    {
-      content: currencyTotals ? (
-        <FormatValue value={totals.income} defaultValue="-" />
-      ) : (
-        <div>-</div>
-      ),
-      mobile: false,
-      medium: false,
-    }, // summary.dividends (income)
-    {
-      content: currencyTotals ? (
-        <>
-          <FormatValue
-            value={totals.irr}
-            defaultValue="-"
-            multiplier={100}
-            scale={2}
-          />
-          {"%"}
-        </>
-      ) : (
-        <div>-</div>
-      ),
-      mobile: true,
-      medium: true,
-    }, // summary.irr
-    {
-      content: currencyTotals ? (
-        <FormatValue value={totals.gain} defaultValue="-" />
-      ) : (
-        <div>-</div>
-      ),
-      mobile: true,
-      medium: true,
-    }, // summary.gain
-  ]
-
   return (
     <>
       {/* Unified horizontal card layout for all non-desktop screens */}
       <HorizontalCard />
 
-      {/* Traditional table layout for desktop screens */}
-      <tbody className="hidden xl:table-row-group relative">
-        {/* DEBUG: Desktop table indicator */}
-        {process.env.NODE_ENV === "development" && (
-          <tr>
-            <td colSpan={100} className="relative">
-              <div className="absolute top-0 right-0 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-bold z-10">
-                DESKTOP TABLE
-              </div>
-            </td>
-          </tr>
-        )}
-        <tr className="bg-white">
-          <td className="px-1 py-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-left">
-            {/* Empty cell for portfolio name column */}
-          </td>
-          {dataWithVisibility.map((item, index) => {
-            let visibility
-            if (item.mobile) {
-              visibility = ""
-            } else if (item.medium) {
-              visibility = "hidden md:table-cell"
-            } else {
-              visibility = "hidden xl:table-cell"
-            }
-
-            // Get alignment from headers array
-            const alignment = headers[index]?.align || "right"
-
-            return (
-              <td
-                key={index}
-                className={`px-1 py-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-${alignment} ${visibility}`}
-              >
-                {item.content}
-              </td>
-            )
-          })}
-        </tr>
-      </tbody>
+      {/* Desktop values are now rendered in SummaryHeader's second row */}
+      {/* No separate tbody needed for desktop summary values */}
     </>
   )
 }

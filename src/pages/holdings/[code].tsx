@@ -178,6 +178,10 @@ function HoldingsPage(): React.ReactElement {
             <table className="min-w-full bg-white">
               <SummaryHeader
                 portfolio={holdingResults.portfolio}
+                portfolioSummary={{
+                  totals: holdings.totals,
+                  currency: holdings.currency,
+                }}
                 viewMode={viewMode}
                 onViewModeChange={setViewMode}
               />
@@ -229,6 +233,10 @@ function HoldingsPage(): React.ReactElement {
             <table className="min-w-full bg-white">
               <SummaryHeader
                 portfolio={holdingResults.portfolio}
+                portfolioSummary={{
+                  totals: holdings.totals,
+                  currency: holdings.currency,
+                }}
                 viewMode={viewMode}
                 onViewModeChange={setViewMode}
               />
