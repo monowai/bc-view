@@ -1,8 +1,8 @@
 import React from "react"
 import { render } from "@testing-library/react"
 import "@testing-library/jest-dom"
-import { SummaryRow } from "../Summary"
-import { PortfolioSummary } from "types/beancounter"
+import SummaryHeader, { SummaryRow } from "../Summary"
+import { Portfolio, PortfolioSummary } from "types/beancounter"
 
 // Mock next-i18next
 jest.mock("next-i18next", () => ({
@@ -19,6 +19,16 @@ jest.mock("@lib/holdings/holdingState", () => ({
     setAsAt: jest.fn(),
   }),
 }))
+
+const mockPortfolio: Portfolio = {
+  id: "test-portfolio",
+  code: "TEST",
+  name: "Test Portfolio",
+  currency: { code: "USD", name: "US Dollar", symbol: "$" },
+  base: { code: "USD", name: "US Dollar", symbol: "$" },
+  marketValue: 10000,
+  irr: 0.1,
+}
 
 const mockSummary: PortfolioSummary = {
   totals: {
@@ -168,6 +178,94 @@ describe("Summary Mobile View Tests (TDD)", () => {
       expect(columnLabels[1]).toBe("summary.dividends")
       expect(columnLabels[2]).toBe("summary.gain")
       expect(columnLabels[3]).toBe("summary.irr")
+    })
+  })
+
+  describe("Desktop View (width >= 1280px)", () => {
+    beforeEach(() => {
+      // Mock desktop viewport
+      Object.defineProperty(window, "innerWidth", {
+        writable: true,
+        configurable: true,
+        value: 1920,
+      })
+    })
+
+    it("should render summary values on the same row as the As At date picker in desktop mode", () => {
+      const { container } = render(
+        <table>
+          <SummaryHeader
+            portfolio={mockPortfolio}
+            portfolioSummary={mockSummary}
+          />
+          <SummaryRow {...mockSummary} />
+        </table>,
+      )
+
+      // Get the thead element
+      const thead = container.querySelector("thead")
+      expect(thead).toBeInTheDocument()
+
+      // Get all rows in thead
+      const theadRows = thead?.querySelectorAll("tr")
+      expect(theadRows?.length).toBe(2) // Should have exactly 2 rows
+
+      // Second row should contain BOTH the date picker AND the summary values
+      const secondRow = theadRows?.[1]
+      expect(secondRow).toBeInTheDocument()
+
+      // Should contain the date picker
+      const dateInput = secondRow?.querySelector('input[type="date"]')
+      expect(dateInput).toBeInTheDocument()
+
+      // Should NOT have a separate tbody with values (values should be in the header row)
+      const tbody = container.querySelector("tbody")
+      const tbodyRows = tbody?.querySelectorAll("tr")
+
+      // tbody should either not exist or should be empty (no value rows)
+      // The values should be in cells of the second thead row
+      if (tbody && tbodyRows) {
+        // If tbody exists, it should not contain the summary value row
+        const hasValueCells = Array.from(tbodyRows).some((row) => {
+          const cells = row.querySelectorAll("td")
+          return cells.length > 1 // Value rows have multiple cells
+        })
+        expect(hasValueCells).toBe(false)
+      }
+
+      // The second header row should have multiple cells (date + values)
+      const secondRowCells = secondRow?.querySelectorAll("td, th")
+      expect(secondRowCells?.length).toBeGreaterThan(1)
+    })
+
+    it("should display As At date with same font size and bold styling as the values", () => {
+      const { container } = render(
+        <table>
+          <SummaryHeader
+            portfolio={mockPortfolio}
+            portfolioSummary={mockSummary}
+          />
+          <SummaryRow {...mockSummary} />
+        </table>,
+      )
+
+      const thead = container.querySelector("thead")
+      const theadRows = thead?.querySelectorAll("tr")
+      const secondRow = theadRows?.[1]
+
+      // Get the date cell (first cell in second row)
+      const dateCell = secondRow?.querySelector("td")
+      expect(dateCell).toBeInTheDocument()
+
+      // Date cell should have matching font size classes as value cells
+      expect(dateCell).toHaveClass("text-xs")
+      expect(dateCell).toHaveClass("md:text-sm")
+
+      // Date cell should be bold/medium weight to match values
+      const hasFontWeight =
+        dateCell?.classList.contains("font-bold") ||
+        dateCell?.classList.contains("font-medium")
+      expect(hasFontWeight).toBe(true)
     })
   })
 })

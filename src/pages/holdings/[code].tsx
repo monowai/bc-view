@@ -12,7 +12,7 @@ import { GetServerSideProps } from "next"
 import { useTranslation } from "next-i18next"
 import useSwr from "swr"
 import { holdingKey, simpleFetcher } from "@utils/api/fetchHelper"
-import errorOut from "@components/errors/ErrorOut"
+import { errorOut } from "@components/errors/ErrorOut"
 import { useHoldingState } from "@lib/holdings/holdingState"
 import { sortPositions, SortConfig } from "@lib/holdings/sortHoldings"
 import HoldingMenu from "@components/features/holdings/HoldingMenu"
@@ -178,6 +178,10 @@ function HoldingsPage(): React.ReactElement {
             <table className="min-w-full bg-white">
               <SummaryHeader
                 portfolio={holdingResults.portfolio}
+                portfolioSummary={{
+                  totals: holdings.totals,
+                  currency: holdings.currency,
+                }}
                 viewMode={viewMode}
                 onViewModeChange={setViewMode}
               />
@@ -229,6 +233,10 @@ function HoldingsPage(): React.ReactElement {
             <table className="min-w-full bg-white">
               <SummaryHeader
                 portfolio={holdingResults.portfolio}
+                portfolioSummary={{
+                  totals: holdings.totals,
+                  currency: holdings.currency,
+                }}
                 viewMode={viewMode}
                 onViewModeChange={setViewMode}
               />
