@@ -49,8 +49,8 @@ export default function GrandTotal({
         <td className="px-1 py-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right">
           <div>{t("holdings.valueTitle", { valueIn })}</div>
         </td>
-        {/* Skip only Price column (colSpan=1) - Change column should be visible */}
-        <td colSpan={1} />
+        {/* Skip Price column - hidden on mobile portrait, visible on landscape (640px+) */}
+        <td colSpan={1} className="hidden sm:table-cell" />
         {data.map((item, index) => {
           // Explicit mapping for each data position to ensure correct alignment
           let headerIndex
@@ -102,7 +102,7 @@ export default function GrandTotal({
           if (header?.mobile) {
             visibility = "" // Visible on all screens if mobile: true
           } else if (header?.medium) {
-            visibility = "hidden md:table-cell"
+            visibility = "hidden sm:table-cell" // Hidden on mobile portrait, visible on landscape (640px+)
           } else {
             visibility = "hidden xl:table-cell"
           }
@@ -110,10 +110,12 @@ export default function GrandTotal({
           // Get alignment from headers array
           const alignment = header?.align || "right"
 
-          // Determine color for gainOnDay column
+          // Determine color for gainOnDay, change, and IRR columns
           let colorClass = ""
           if (
-            headerIndex === HEADER_INDICES.GAIN_ON_DAY &&
+            (headerIndex === HEADER_INDICES.GAIN_ON_DAY ||
+              headerIndex === HEADER_INDICES.CHANGE ||
+              headerIndex === HEADER_INDICES.IRR) &&
             typeof item.value === "number"
           ) {
             if (item.value < 0) {
@@ -123,16 +125,36 @@ export default function GrandTotal({
             }
           }
 
+          // Apply same padding logic as Header and Rows
+          const padding = "px-0.5 py-1 sm:px-1 md:px-2 xl:px-4" // Minimal padding on portrait for breathing room
+
           return (
             <td
               key={index}
               colSpan={item.colSpan}
-              className={`px-1 py-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-${alignment} ${visibility} ${colorClass}`}
+              className={`${padding} text-xs md:text-sm font-medium text-${alignment} ${visibility} ${colorClass}`}
             >
               {item.value !== null && item.value !== "" ? (
                 <>
+                  <span className="hidden sm:inline">
+                    {(headerIndex === HEADER_INDICES.CHANGE ||
+                      headerIndex === HEADER_INDICES.IRR) &&
+                    typeof item.value === "number"
+                      ? item.value < 0
+                        ? "▼ "
+                        : item.value > 0
+                          ? "▲ "
+                          : ""
+                      : ""}
+                  </span>
                   <FormatValue
-                    value={item.value}
+                    value={
+                      (headerIndex === HEADER_INDICES.CHANGE ||
+                        headerIndex === HEADER_INDICES.IRR) &&
+                      typeof item.value === "number"
+                        ? Math.abs(item.value)
+                        : item.value
+                    }
                     defaultValue=""
                     multiplier={
                       headerIndex === HEADER_INDICES.IRR ||
