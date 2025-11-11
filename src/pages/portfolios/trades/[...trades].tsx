@@ -9,7 +9,7 @@ import { useTranslation } from "next-i18next"
 import Link from "next/link"
 import { Transaction } from "types/beancounter"
 import { rootLoader } from "@components/ui/PageLoader"
-import errorOut from "@components/errors/ErrorOut"
+import { errorOut } from "@components/errors/ErrorOut"
 import useSwr from "swr"
 import { deleteTrn } from "@lib/trns/apiHelper"
 

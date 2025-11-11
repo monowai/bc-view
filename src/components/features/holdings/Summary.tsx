@@ -343,7 +343,7 @@ export function SummaryRow({
 }: PortfolioSummary): ReactElement {
   const { t } = useTranslation("common")
   const currencyTotals = totals !== undefined
-// Unified horizontal card layout for all non-desktop screens - DRAMATICALLY improved spacing
+  // Unified horizontal card layout for all non-desktop screens - DRAMATICALLY improved spacing
   const HorizontalCard = (): ReactElement => (
     <div className="xl:hidden bg-white rounded-lg border border-gray-200 mx-4 my-4 px-6 py-5 md:px-8 md:py-6 relative">
       {/* DEBUG: Show which layout is active */}

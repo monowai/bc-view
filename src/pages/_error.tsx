@@ -1,26 +1,40 @@
 import React from "react"
 import * as Sentry from "@sentry/nextjs"
-import Error from "next/error"
+import NextError from "next/error"
 import { NextPageContext } from "next"
+import ErrorOut from "@components/errors/ErrorOut"
 
 interface CustomErrorComponentProps {
   statusCode: number
+  err?: Error
 }
 
 const CustomErrorComponent = ({
   statusCode,
+  err,
 }: CustomErrorComponentProps): React.ReactElement => {
+  // Create a descriptive error object
+  const error = err || new Error(`HTTP ${statusCode}`)
+
+  // Determine error type based on status code
+  let type: "404" | "500" | "generic" = "generic"
+  if (statusCode === 404) {
+    type = "404"
+  } else if (statusCode >= 500) {
+    type = "500"
+  }
+
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <div className="bg-white p-6 rounded-lg shadow-lg text-center">
-        <Error statusCode={statusCode} />
-        <p className="mt-4 text-gray-600">
-          {statusCode
-            ? `An error ${statusCode} occurred on server`
-            : "An error occurred on client"}
-        </p>
-      </div>
-    </div>
+    <ErrorOut
+      error={error}
+      type={type}
+      autoDetect={false}
+      message={
+        statusCode
+          ? `An error ${statusCode} occurred on the server`
+          : "An error occurred on the client"
+      }
+    />
   )
 }
 
@@ -32,7 +46,7 @@ CustomErrorComponent.getInitialProps = async (
   await Sentry.captureUnderscoreErrorException(contextData)
 
   // This will contain the status code of the response
-  return Error.getInitialProps(contextData)
+  return NextError.getInitialProps(contextData)
 }
 
 export default CustomErrorComponent
