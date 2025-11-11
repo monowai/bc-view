@@ -1,6 +1,6 @@
 import { HoldingsInCurrency } from "types/beancounter"
 import React, { ReactElement } from "react"
-import { FormatValue, ResponsiveFormatValue } from "@components/ui/MoneyUtils"
+import { FormatValue } from "@components/ui/MoneyUtils"
 import { useTranslation } from "next-i18next"
 import { headers, HEADER_INDICES } from "./Header"
 import { GRANDTOTAL_LAYOUT } from "./constants"
@@ -110,10 +110,12 @@ export default function GrandTotal({
           // Get alignment from headers array
           const alignment = header?.align || "right"
 
-          // Determine color for gainOnDay column
+          // Determine color for gainOnDay, change, and IRR columns
           let colorClass = ""
           if (
-            headerIndex === HEADER_INDICES.GAIN_ON_DAY &&
+            (headerIndex === HEADER_INDICES.GAIN_ON_DAY ||
+              headerIndex === HEADER_INDICES.CHANGE ||
+              headerIndex === HEADER_INDICES.IRR) &&
             typeof item.value === "number"
           ) {
             if (item.value < 0) {
@@ -124,12 +126,7 @@ export default function GrandTotal({
           }
 
           // Apply same padding logic as Header and Rows
-          let padding
-          if (headerIndex === HEADER_INDICES.GAIN_ON_DAY) {
-            padding = "px-0 py-1 sm:px-1 md:px-2 xl:px-4" // Minimal padding to keep column narrow
-          } else {
-            padding = "px-0.5 py-1 sm:px-1 md:px-2 xl:px-4" // Minimal padding on portrait for breathing room
-          }
+          const padding = "px-0.5 py-1 sm:px-1 md:px-2 xl:px-4" // Minimal padding on portrait for breathing room
 
           return (
             <td
@@ -139,23 +136,31 @@ export default function GrandTotal({
             >
               {item.value !== null && item.value !== "" ? (
                 <>
-                  {/* Use ResponsiveFormatValue for mobile-visible money columns (no cents on portrait) */}
-                  {headerIndex === HEADER_INDICES.GAIN_ON_DAY ||
-                  headerIndex === HEADER_INDICES.MARKET_VALUE ||
-                  headerIndex === HEADER_INDICES.TOTAL_GAIN ? (
-                    <ResponsiveFormatValue value={item.value} defaultValue="" />
-                  ) : (
-                    <FormatValue
-                      value={item.value}
-                      defaultValue=""
-                      multiplier={
-                        headerIndex === HEADER_INDICES.IRR ||
-                        headerIndex === HEADER_INDICES.WEIGHT
-                          ? 100
-                          : 1
-                      }
-                    />
-                  )}
+                  {(headerIndex === HEADER_INDICES.CHANGE ||
+                    headerIndex === HEADER_INDICES.IRR) &&
+                  typeof item.value === "number"
+                    ? item.value < 0
+                      ? "▼ "
+                      : item.value > 0
+                        ? "▲ "
+                        : ""
+                    : ""}
+                  <FormatValue
+                    value={
+                      (headerIndex === HEADER_INDICES.CHANGE ||
+                        headerIndex === HEADER_INDICES.IRR) &&
+                      typeof item.value === "number"
+                        ? Math.abs(item.value)
+                        : item.value
+                    }
+                    defaultValue=""
+                    multiplier={
+                      headerIndex === HEADER_INDICES.IRR ||
+                      headerIndex === HEADER_INDICES.WEIGHT
+                        ? 100
+                        : 1
+                    }
+                  />
                   {headerIndex === HEADER_INDICES.WEIGHT && "%"}
                   {/* Remove % signs from IRR for cleaner appearance */}
                 </>

@@ -47,11 +47,11 @@ describe("Holdings Table Headers (TDD - Mobile Layout)", () => {
       expect(marketValueColumn?.mobile).toBe(true)
     })
 
-    it("should show Total Gain on mobile", () => {
+    it("should hide Total Gain on mobile portrait to save space", () => {
       const gainColumn = headers.find((h) => h.key === "gain")
 
       expect(gainColumn).toBeDefined()
-      expect(gainColumn?.mobile).toBe(true)
+      expect(gainColumn?.mobile).toBe(false)
     })
 
     it("should show Change % on mobile", () => {

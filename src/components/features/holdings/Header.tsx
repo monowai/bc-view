@@ -49,7 +49,7 @@ export const headers = [
   {
     key: "gain.onday",
     align: "right",
-    mobile: true,
+    mobile: true, // Visible on mobile portrait
     medium: true,
     sortable: true,
     sortKey: "gainOnDay",
@@ -129,7 +129,7 @@ export const headers = [
   {
     key: "gain",
     align: "right",
-    mobile: true,
+    mobile: false, // Hidden on mobile portrait to save space
     medium: true,
     sortable: true,
     sortKey: "totalGain",
@@ -158,19 +158,10 @@ export default function Header({
   const getHeaderPadding = (headerIndex: number): string => {
     // Apply same logic as data cells for mobile-visible columns
     const isChangeColumn = headerIndex === 1
-    const isGainOnDayColumn = headerIndex === 2
-    const isQuantityColumn = headerIndex === 3
     const isMarketValueColumn = headerIndex === 5
     const isIrrColumn = headerIndex === 9
     const isTotalGainColumn = headerIndex === 12
 
-    if (isQuantityColumn) {
-      return "px-0 py-1 md:px-2 xl:px-3" // No horizontal padding on mobile for quantity
-    }
-    // Gain on Day column gets minimal padding to be narrower
-    if (isGainOnDayColumn) {
-      return "px-0 py-1 sm:px-1 md:px-2 xl:px-3" // Minimal padding to keep column narrow
-    }
     if (
       isChangeColumn ||
       isMarketValueColumn ||

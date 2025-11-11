@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo } from "react"
 import { HoldingValues, PriceData } from "types/beancounter"
 import { NumericFormat } from "react-number-format"
-import { FormatValue, ResponsiveFormatValue } from "@components/ui/MoneyUtils"
+import { FormatValue } from "@components/ui/MoneyUtils"
 import { isCashRelated, isCash } from "@lib/assets/assetUtils"
 import { headers } from "./Header"
 import Link from "next/link"
@@ -25,19 +25,12 @@ const getCellClasses = (headerIndex: number): string => {
 
   // Reduce padding for mobile-visible columns to maximize space
   const isChangeColumn = headerIndex === 1
-  const isGainOnDayColumn = headerIndex === 2
-  const isQuantityColumn = headerIndex === 3
   const isMarketValueColumn = headerIndex === 5
   const isIrrColumn = headerIndex === 9
   const isTotalGainColumn = headerIndex === 12
 
   let padding
-  if (isQuantityColumn) {
-    padding = "px-0 py-1 md:px-2 xl:px-3" // No horizontal padding on mobile for quantity
-  } else if (isGainOnDayColumn) {
-    // Gain on Day column gets minimal padding to be narrower
-    padding = "px-0 py-1 sm:px-1 md:px-2 xl:px-3" // Minimal padding to keep column narrow
-  } else if (
+  if (
     isChangeColumn ||
     isMarketValueColumn ||
     isIrrColumn ||
@@ -150,9 +143,12 @@ export default function Rows({
                       : "text-green-500"
                   }`}
                 >
-                  {(moneyValues[valueIn].priceData.changePercent * 100).toFixed(
-                    2,
-                  )}
+                  {moneyValues[valueIn].priceData.changePercent < 0
+                    ? "▼ "
+                    : "▲ "}
+                  {(
+                    Math.abs(moneyValues[valueIn].priceData.changePercent) * 100
+                  ).toFixed(2)}
                   %
                   <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full mb-1 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap z-50">
                     Previous {moneyValues[valueIn].currency.symbol}{" "}
@@ -165,7 +161,7 @@ export default function Rows({
               {hideValue(moneyValues[valueIn].priceData) ? (
                 " "
               ) : (
-                <ResponsiveFormatValue value={moneyValues[valueIn].gainOnDay} />
+                <FormatValue value={moneyValues[valueIn].gainOnDay} />
               )}
             </td>
 
@@ -197,7 +193,7 @@ export default function Rows({
                 as={`/trns/trades/${portfolio.id}/${asset.id}`}
                 className="text-blue-600 hover:text-blue-800"
               >
-                <ResponsiveFormatValue
+                <FormatValue
                   value={moneyValues[valueIn].marketValue}
                   defaultValue="0"
                 />
@@ -225,14 +221,28 @@ export default function Rows({
             </td>
             <td className={getCellClasses(9)}>
               {!isCashRelated(asset) && (
-                <span className="relative group">
+                <span
+                  className={`relative group ${
+                    moneyValues[valueIn].irr < 0
+                      ? "text-red-500"
+                      : moneyValues[valueIn].irr > 0
+                        ? "text-green-500"
+                        : ""
+                  }`}
+                >
+                  {moneyValues[valueIn].irr < 0
+                    ? "▼ "
+                    : moneyValues[valueIn].irr > 0
+                      ? "▲ "
+                      : ""}
                   <FormatValue
-                    value={moneyValues[valueIn].irr}
+                    value={Math.abs(moneyValues[valueIn].irr)}
                     multiplier={100}
                   />
                   {"%"}
                   <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full mb-1 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap z-50">
-                    ROI: {(moneyValues[valueIn].roi * 100).toFixed(2)}%
+                    ROI: {(Math.abs(moneyValues[valueIn].roi) * 100).toFixed(2)}
+                    %
                   </span>
                 </span>
               )}
@@ -252,7 +262,7 @@ export default function Rows({
               %
             </td>
             <td className={getCellClasses(12)}>
-              <ResponsiveFormatValue value={moneyValues[valueIn].totalGain} />
+              <FormatValue value={moneyValues[valueIn].totalGain} />
             </td>
           </tr>
         ),

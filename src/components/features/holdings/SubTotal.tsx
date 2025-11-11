@@ -1,6 +1,6 @@
 import React, { ReactElement } from "react"
 import { GroupedSubtotals } from "types/beancounter"
-import { FormatValue, ResponsiveFormatValue } from "@components/ui/MoneyUtils"
+import { FormatValue } from "@components/ui/MoneyUtils"
 import { headers } from "./Header"
 
 // Helper function to generate responsive classes for table cells
@@ -17,13 +17,7 @@ const getCellClasses = (headerIndex: number): string => {
   const align = header.align === "center" ? "text-center" : "text-right"
 
   // Apply same padding logic as Header and Rows
-  let padding
-  if (headerIndex === 2) {
-    // Gain on Day column gets minimal padding to be narrower
-    padding = "px-0 py-1 sm:px-1 md:px-2 xl:px-3"
-  } else {
-    padding = "px-0.5 py-1 sm:px-1 md:px-2 xl:px-3"
-  }
+  const padding = "px-0.5 py-1 sm:px-1 md:px-2 xl:px-3"
 
   return `${padding} ${align} ${visibility}`
 }
@@ -41,14 +35,11 @@ export default function SubTotal({
       key="gainOnDay"
       className={`${subTotals[valueIn].gainOnDay < 0 ? "text-red-500" : subTotals[valueIn].gainOnDay > 0 ? "text-green-500" : ""}`}
     >
-      <ResponsiveFormatValue value={subTotals[valueIn].gainOnDay} />
-    </span>, // gain.onday - mobile visible
+      <FormatValue value={subTotals[valueIn].gainOnDay} />
+    </span>, // gain.onday
     "-", // quantityInc
     <FormatValue key="costValue" value={subTotals[valueIn].costValue} />, // cost
-    <ResponsiveFormatValue
-      key="marketValue"
-      value={subTotals[valueIn].marketValue}
-    />, // summary.value - mobile visible
+    <FormatValue key="marketValue" value={subTotals[valueIn].marketValue} />, // summary.value
     <FormatValue key="dividends" value={subTotals[valueIn].dividends} />, // summary.dividends
     <FormatValue
       key="unrealisedGain"
@@ -60,10 +51,7 @@ export default function SubTotal({
     <span key="weight">
       <FormatValue value={subTotals[valueIn].weight} multiplier={100} />%
     </span>, // weight
-    <ResponsiveFormatValue
-      key="totalGain"
-      value={subTotals[valueIn].totalGain}
-    />, // gain - mobile visible
+    <FormatValue key="totalGain" value={subTotals[valueIn].totalGain} />, // gain
   ]
 
   return (
