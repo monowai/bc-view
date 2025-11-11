@@ -49,8 +49,8 @@ export default function GrandTotal({
         <td className="px-1 py-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right">
           <div>{t("holdings.valueTitle", { valueIn })}</div>
         </td>
-        {/* Skip only Price column (colSpan=1) - Change column should be visible */}
-        <td colSpan={1} />
+        {/* Skip Price column - hidden on mobile, visible on md+ (matches Price column visibility) */}
+        <td colSpan={1} className="hidden md:table-cell" />
         {data.map((item, index) => {
           // Explicit mapping for each data position to ensure correct alignment
           let headerIndex

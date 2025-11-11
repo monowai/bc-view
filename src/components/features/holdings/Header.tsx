@@ -33,7 +33,7 @@ export const headers = [
   {
     key: "asset.price",
     align: "left",
-    mobile: true,
+    mobile: false, // Hidden on mobile to prevent horizontal scrolling
     medium: true,
     sortable: true,
     sortKey: "price",

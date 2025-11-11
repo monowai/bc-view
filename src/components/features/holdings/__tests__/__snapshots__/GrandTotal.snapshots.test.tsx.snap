@@ -22,6 +22,7 @@ exports[`GrandTotal Snapshot Tests matches desktop snapshot: desktop-layout 1`] 
         </div>
       </td>
       <td
+        class="hidden md:table-cell"
         colspan="1"
       />
       <td
@@ -136,6 +137,7 @@ exports[`GrandTotal Snapshot Tests matches mobile snapshot: mobile-layout 1`] = 
         </div>
       </td>
       <td
+        class="hidden md:table-cell"
         colspan="1"
       />
       <td
@@ -250,6 +252,7 @@ exports[`GrandTotal Snapshot Tests matches tablet snapshot: tablet-layout 1`] = 
         </div>
       </td>
       <td
+        class="hidden md:table-cell"
         colspan="1"
       />
       <td
