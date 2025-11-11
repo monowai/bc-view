@@ -15,7 +15,17 @@ const getCellClasses = (headerIndex: number): string => {
     visibility = "hidden xl:table-cell"
   }
   const align = header.align === "center" ? "text-center" : "text-right"
-  return `px-1 py-1 md:px-2 xl:px-3 ${align} ${visibility}`
+
+  // Apply same padding logic as Header and Rows
+  let padding
+  if (headerIndex === 2) {
+    // Gain on Day column gets minimal padding to be narrower
+    padding = "px-0 py-1 sm:px-1 md:px-2 xl:px-3"
+  } else {
+    padding = "px-0.5 py-1 sm:px-1 md:px-2 xl:px-3"
+  }
+
+  return `${padding} ${align} ${visibility}`
 }
 
 export default function SubTotal({

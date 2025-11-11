@@ -123,11 +123,19 @@ export default function GrandTotal({
             }
           }
 
+          // Apply same padding logic as Header and Rows
+          let padding
+          if (headerIndex === HEADER_INDICES.GAIN_ON_DAY) {
+            padding = "px-0 py-1 sm:px-1 md:px-2 xl:px-4" // Minimal padding to keep column narrow
+          } else {
+            padding = "px-0.5 py-1 sm:px-1 md:px-2 xl:px-4" // Minimal padding on portrait for breathing room
+          }
+
           return (
             <td
               key={index}
               colSpan={item.colSpan}
-              className={`px-1 py-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-${alignment} ${visibility} ${colorClass}`}
+              className={`${padding} text-xs md:text-sm font-medium text-${alignment} ${visibility} ${colorClass}`}
             >
               {item.value !== null && item.value !== "" ? (
                 <>
@@ -135,10 +143,7 @@ export default function GrandTotal({
                   {headerIndex === HEADER_INDICES.GAIN_ON_DAY ||
                   headerIndex === HEADER_INDICES.MARKET_VALUE ||
                   headerIndex === HEADER_INDICES.TOTAL_GAIN ? (
-                    <ResponsiveFormatValue
-                      value={item.value}
-                      defaultValue=""
-                    />
+                    <ResponsiveFormatValue value={item.value} defaultValue="" />
                   ) : (
                     <FormatValue
                       value={item.value}

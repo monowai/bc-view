@@ -167,16 +167,19 @@ export default function Header({
     if (isQuantityColumn) {
       return "px-0 py-1 md:px-2 xl:px-3" // No horizontal padding on mobile for quantity
     }
+    // Gain on Day column gets minimal padding to be narrower
+    if (isGainOnDayColumn) {
+      return "px-0 py-1 sm:px-1 md:px-2 xl:px-3" // Minimal padding to keep column narrow
+    }
     if (
       isChangeColumn ||
-      isGainOnDayColumn ||
       isMarketValueColumn ||
       isIrrColumn ||
       isTotalGainColumn
     ) {
-      return "px-0 py-1 sm:px-1 md:px-2 xl:px-3" // No padding on portrait, minimal on landscape+
+      return "px-0.5 py-1 sm:px-1 md:px-2 xl:px-3" // Minimal padding on portrait for breathing room
     }
-    return "px-0 py-1 sm:px-1 md:px-2 xl:px-3" // No padding on portrait, minimal on landscape+
+    return "px-0.5 py-1 sm:px-1 md:px-2 xl:px-3" // Minimal padding on portrait for breathing room
   }
 
   return (

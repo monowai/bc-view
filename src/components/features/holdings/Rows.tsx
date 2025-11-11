@@ -34,16 +34,18 @@ const getCellClasses = (headerIndex: number): string => {
   let padding
   if (isQuantityColumn) {
     padding = "px-0 py-1 md:px-2 xl:px-3" // No horizontal padding on mobile for quantity
+  } else if (isGainOnDayColumn) {
+    // Gain on Day column gets minimal padding to be narrower
+    padding = "px-0 py-1 sm:px-1 md:px-2 xl:px-3" // Minimal padding to keep column narrow
   } else if (
     isChangeColumn ||
-    isGainOnDayColumn ||
     isMarketValueColumn ||
     isIrrColumn ||
     isTotalGainColumn
   ) {
-    padding = "px-0 py-1 sm:px-1 md:px-2 xl:px-3" // No padding on portrait, minimal on landscape+
+    padding = "px-0.5 py-1 sm:px-1 md:px-2 xl:px-3" // Minimal padding on portrait for breathing room
   } else {
-    padding = "px-0 py-1 sm:px-1 md:px-2 xl:px-3" // No padding on portrait, minimal on landscape+
+    padding = "px-0.5 py-1 sm:px-1 md:px-2 xl:px-3" // Minimal padding on portrait for breathing room
   }
 
   return `text-right ${padding} ${visibility}`
