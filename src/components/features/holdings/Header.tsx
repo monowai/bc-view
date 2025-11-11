@@ -174,16 +174,16 @@ export default function Header({
       isIrrColumn ||
       isTotalGainColumn
     ) {
-      return "px-0.5 py-1 md:px-2 xl:px-3" // Minimal padding for mobile-visible columns
+      return "px-0 py-1 sm:px-1 md:px-2 xl:px-3" // No padding on portrait, minimal on landscape+
     }
-    return "px-1 py-1 md:px-2 xl:px-3" // Normal padding for other columns
+    return "px-0 py-1 sm:px-1 md:px-2 xl:px-3" // No padding on portrait, minimal on landscape+
   }
 
   return (
     <thead className="bg-gray-100">
       <tr className="border-t-2 border-b-2 border-gray-400">
         <th
-          className={`px-1 py-1 sm:px-3 text-left text-xs sm:text-sm font-medium ${
+          className={`px-0.5 py-1 sm:px-2 md:px-3 text-left text-sm font-medium ${
             onSort
               ? "cursor-pointer hover:bg-gray-200 transition-colors select-none"
               : ""
@@ -200,7 +200,7 @@ export default function Header({
           if (header.mobile) {
             visibility = ""
           } else if (header.medium) {
-            visibility = "hidden md:table-cell"
+            visibility = "hidden sm:table-cell" // Hidden on mobile portrait, visible on landscape (640px+)
           } else {
             visibility = "hidden xl:table-cell"
           }
@@ -208,7 +208,7 @@ export default function Header({
           return (
             <th
               key={header.key}
-              className={`${getHeaderPadding(index)} text-xs md:text-sm font-medium ${
+              className={`${getHeaderPadding(index)} text-sm font-medium ${
                 header.align === "right"
                   ? "text-right"
                   : header.align === "center"

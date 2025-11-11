@@ -1,6 +1,6 @@
 import React, { ReactElement } from "react"
 import { GroupedSubtotals } from "types/beancounter"
-import { FormatValue } from "@components/ui/MoneyUtils"
+import { FormatValue, ResponsiveFormatValue } from "@components/ui/MoneyUtils"
 import { headers } from "./Header"
 
 // Helper function to generate responsive classes for table cells
@@ -10,7 +10,7 @@ const getCellClasses = (headerIndex: number): string => {
   if (header.mobile) {
     visibility = ""
   } else if (header.medium) {
-    visibility = "hidden md:table-cell"
+    visibility = "hidden sm:table-cell" // Hidden on mobile portrait, visible on landscape (640px+)
   } else {
     visibility = "hidden xl:table-cell"
   }
@@ -31,11 +31,14 @@ export default function SubTotal({
       key="gainOnDay"
       className={`${subTotals[valueIn].gainOnDay < 0 ? "text-red-500" : subTotals[valueIn].gainOnDay > 0 ? "text-green-500" : ""}`}
     >
-      <FormatValue value={subTotals[valueIn].gainOnDay} />
-    </span>, // gain.onday
+      <ResponsiveFormatValue value={subTotals[valueIn].gainOnDay} />
+    </span>, // gain.onday - mobile visible
     "-", // quantityInc
     <FormatValue key="costValue" value={subTotals[valueIn].costValue} />, // cost
-    <FormatValue key="marketValue" value={subTotals[valueIn].marketValue} />, // summary.value
+    <ResponsiveFormatValue
+      key="marketValue"
+      value={subTotals[valueIn].marketValue}
+    />, // summary.value - mobile visible
     <FormatValue key="dividends" value={subTotals[valueIn].dividends} />, // summary.dividends
     <FormatValue
       key="unrealisedGain"
@@ -47,7 +50,10 @@ export default function SubTotal({
     <span key="weight">
       <FormatValue value={subTotals[valueIn].weight} multiplier={100} />%
     </span>, // weight
-    <FormatValue key="totalGain" value={subTotals[valueIn].totalGain} />, // gain
+    <ResponsiveFormatValue
+      key="totalGain"
+      value={subTotals[valueIn].totalGain}
+    />, // gain - mobile visible
   ]
 
   return (

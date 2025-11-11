@@ -205,7 +205,7 @@ describe("GrandTotal Component", () => {
       expect(dataCells[11]).toHaveTextContent(/4,?284\.31/)
     })
 
-    it("hides Price column skip cell on mobile to prevent column misalignment", () => {
+    it("hides Price column skip cell on mobile portrait to prevent column misalignment", () => {
       renderGrandTotal()
 
       const table = screen.getByRole("rowgroup")
@@ -216,10 +216,10 @@ describe("GrandTotal Component", () => {
       // cells[1] is the Price column skip/spacer cell
       const skipCell = cells![1]
 
-      // Skip cell should be hidden on mobile (since Price column is hidden)
-      // It should have "hidden md:table-cell" class
+      // Skip cell should be hidden on mobile portrait, visible on landscape (640px+)
+      // It should have "hidden sm:table-cell" class
       expect(skipCell).toHaveClass("hidden")
-      expect(skipCell).toHaveClass("md:table-cell")
+      expect(skipCell).toHaveClass("sm:table-cell")
     })
 
     it("ensures totalGain appears in correct position (not under IRR)", () => {

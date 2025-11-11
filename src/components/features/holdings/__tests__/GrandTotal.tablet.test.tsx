@@ -37,13 +37,18 @@ describe("GrandTotal Tablet-Specific Tests (TDD)", () => {
     const cells = dataRow?.querySelectorAll("td")
     const dataCells = Array.from(cells!).slice(2)
 
-    // Count visible columns on tablet (excluding hidden columns)
+    // Count visible columns on tablet (768px)
+    // At this breakpoint, sm:table-cell (640px+) and md:table-cell are visible
     const visibleColumns = dataCells.filter((cell) => {
       const classes = cell.className
-      return !classes.includes("hidden") || classes.includes("md:table-cell")
+      return (
+        !classes.includes("hidden") ||
+        classes.includes("sm:table-cell") ||
+        classes.includes("md:table-cell")
+      )
     })
 
-    // FIXED: Should now have 10 visible columns (including Change)
+    // FIXED: Should now have 10 visible columns (including Change and columns with sm:table-cell)
     expect(visibleColumns.length).toBe(10)
 
     // totalGain should be in the LAST visible position (10th position, index 9)

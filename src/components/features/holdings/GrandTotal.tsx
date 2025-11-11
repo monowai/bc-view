@@ -1,6 +1,6 @@
 import { HoldingsInCurrency } from "types/beancounter"
 import React, { ReactElement } from "react"
-import { FormatValue } from "@components/ui/MoneyUtils"
+import { FormatValue, ResponsiveFormatValue } from "@components/ui/MoneyUtils"
 import { useTranslation } from "next-i18next"
 import { headers, HEADER_INDICES } from "./Header"
 import { GRANDTOTAL_LAYOUT } from "./constants"
@@ -49,8 +49,8 @@ export default function GrandTotal({
         <td className="px-1 py-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right">
           <div>{t("holdings.valueTitle", { valueIn })}</div>
         </td>
-        {/* Skip Price column - hidden on mobile, visible on md+ (matches Price column visibility) */}
-        <td colSpan={1} className="hidden md:table-cell" />
+        {/* Skip Price column - hidden on mobile portrait, visible on landscape (640px+) */}
+        <td colSpan={1} className="hidden sm:table-cell" />
         {data.map((item, index) => {
           // Explicit mapping for each data position to ensure correct alignment
           let headerIndex
@@ -102,7 +102,7 @@ export default function GrandTotal({
           if (header?.mobile) {
             visibility = "" // Visible on all screens if mobile: true
           } else if (header?.medium) {
-            visibility = "hidden md:table-cell"
+            visibility = "hidden sm:table-cell" // Hidden on mobile portrait, visible on landscape (640px+)
           } else {
             visibility = "hidden xl:table-cell"
           }
@@ -131,16 +131,26 @@ export default function GrandTotal({
             >
               {item.value !== null && item.value !== "" ? (
                 <>
-                  <FormatValue
-                    value={item.value}
-                    defaultValue=""
-                    multiplier={
-                      headerIndex === HEADER_INDICES.IRR ||
-                      headerIndex === HEADER_INDICES.WEIGHT
-                        ? 100
-                        : 1
-                    }
-                  />
+                  {/* Use ResponsiveFormatValue for mobile-visible money columns (no cents on portrait) */}
+                  {headerIndex === HEADER_INDICES.GAIN_ON_DAY ||
+                  headerIndex === HEADER_INDICES.MARKET_VALUE ||
+                  headerIndex === HEADER_INDICES.TOTAL_GAIN ? (
+                    <ResponsiveFormatValue
+                      value={item.value}
+                      defaultValue=""
+                    />
+                  ) : (
+                    <FormatValue
+                      value={item.value}
+                      defaultValue=""
+                      multiplier={
+                        headerIndex === HEADER_INDICES.IRR ||
+                        headerIndex === HEADER_INDICES.WEIGHT
+                          ? 100
+                          : 1
+                      }
+                    />
+                  )}
                   {headerIndex === HEADER_INDICES.WEIGHT && "%"}
                   {/* Remove % signs from IRR for cleaner appearance */}
                 </>

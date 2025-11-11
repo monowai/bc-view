@@ -2,39 +2,39 @@ import { headers } from "../Header"
 
 describe("Holdings Table Headers (TDD - Mobile Layout)", () => {
   describe("Price Column Visibility", () => {
-    it("should hide Price column on mobile to prevent horizontal scrolling", () => {
+    it("should hide Price column on mobile portrait to prevent horizontal scrolling", () => {
       // Find the Price column (key: "asset.price")
       const priceColumn = headers.find((h) => h.key === "asset.price")
 
       expect(priceColumn).toBeDefined()
-      // Price column should NOT be visible on mobile
+      // Price column should NOT be visible on mobile portrait
       expect(priceColumn?.mobile).toBe(false)
     })
 
-    it("should show Price column on medium and larger screens", () => {
+    it("should show Price column on mobile landscape and larger screens (sm:640px+)", () => {
       const priceColumn = headers.find((h) => h.key === "asset.price")
 
       expect(priceColumn).toBeDefined()
-      // Price column should be visible on medium+ screens
+      // Price column should be visible on mobile landscape+ (when medium: true, renders as sm:table-cell)
       expect(priceColumn?.medium).toBe(true)
     })
   })
 
   describe("Quantity Column Visibility", () => {
-    it("should hide Quantity column on mobile to prevent horizontal scrolling", () => {
+    it("should hide Quantity column on mobile portrait to prevent horizontal scrolling", () => {
       // Find the Quantity column (key: "quantity")
       const quantityColumn = headers.find((h) => h.key === "quantity")
 
       expect(quantityColumn).toBeDefined()
-      // Quantity column should NOT be visible on mobile
+      // Quantity column should NOT be visible on mobile portrait
       expect(quantityColumn?.mobile).toBe(false)
     })
 
-    it("should show Quantity column on medium and larger screens", () => {
+    it("should show Quantity column on mobile landscape and larger screens (sm:640px+)", () => {
       const quantityColumn = headers.find((h) => h.key === "quantity")
 
       expect(quantityColumn).toBeDefined()
-      // Quantity column should be visible on medium+ screens
+      // Quantity column should be visible on mobile landscape+ (when medium: true, renders as sm:table-cell)
       expect(quantityColumn?.medium).toBe(true)
     })
   })
@@ -70,11 +70,11 @@ describe("Holdings Table Headers (TDD - Mobile Layout)", () => {
       expect(mobileColumns.length).toBeLessThan(desktopColumns.length)
     })
 
-    it("should have reasonable number of columns for mobile (max 5)", () => {
+    it("should have reasonable number of columns for mobile portrait (max 5)", () => {
       const mobileColumns = headers.filter((h) => h.mobile)
 
-      // Mobile should show 5 columns max to prevent horizontal scrolling
-      // After hiding Price and Quantity columns, we have 5 mobile columns
+      // Mobile portrait should show 5 columns max to prevent horizontal scrolling
+      // After hiding Price and Quantity columns on portrait, we have 5 mobile columns
       expect(mobileColumns.length).toBeLessThanOrEqual(5)
     })
   })

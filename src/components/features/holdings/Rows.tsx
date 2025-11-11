@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo } from "react"
 import { HoldingValues, PriceData } from "types/beancounter"
 import { NumericFormat } from "react-number-format"
-import { FormatValue } from "@components/ui/MoneyUtils"
+import { FormatValue, ResponsiveFormatValue } from "@components/ui/MoneyUtils"
 import { isCashRelated, isCash } from "@lib/assets/assetUtils"
 import { headers } from "./Header"
 import Link from "next/link"
@@ -18,7 +18,7 @@ const getCellClasses = (headerIndex: number): string => {
   if (header.mobile) {
     visibility = ""
   } else if (header.medium) {
-    visibility = "hidden md:table-cell"
+    visibility = "hidden sm:table-cell" // Hidden on mobile portrait, visible on landscape (640px+)
   } else {
     visibility = "hidden xl:table-cell"
   }
@@ -41,9 +41,9 @@ const getCellClasses = (headerIndex: number): string => {
     isIrrColumn ||
     isTotalGainColumn
   ) {
-    padding = "px-0.5 py-1 md:px-2 xl:px-3" // Minimal padding for mobile-visible columns
+    padding = "px-0 py-1 sm:px-1 md:px-2 xl:px-3" // No padding on portrait, minimal on landscape+
   } else {
-    padding = "px-1 py-1 md:px-2 xl:px-3" // Normal padding for other columns
+    padding = "px-0 py-1 sm:px-1 md:px-2 xl:px-3" // No padding on portrait, minimal on landscape+
   }
 
   return `text-right ${padding} ${visibility}`
@@ -95,9 +95,9 @@ export default function Rows({
         ({ asset, moneyValues, quantityValues, dateValues }, index) => (
           <tr
             key={groupBy + index}
-            className="holding-row text-xs sm:text-sm bg-white hover:!bg-slate-200 transition-colors duration-200 cursor-pointer"
+            className="holding-row text-sm bg-white hover:!bg-slate-200 transition-colors duration-200 cursor-pointer"
           >
-            <td className="px-1 py-1 sm:px-3 text-ellipsis min-w-0">
+            <td className="px-0.5 py-1 sm:px-2 md:px-3 text-ellipsis min-w-0">
               {/* Unified layout: code on top, name below for both mobile and desktop */}
               <div>
                 <div
@@ -163,7 +163,7 @@ export default function Rows({
               {hideValue(moneyValues[valueIn].priceData) ? (
                 " "
               ) : (
-                <FormatValue value={moneyValues[valueIn].gainOnDay} />
+                <ResponsiveFormatValue value={moneyValues[valueIn].gainOnDay} />
               )}
             </td>
 
@@ -195,7 +195,7 @@ export default function Rows({
                 as={`/trns/trades/${portfolio.id}/${asset.id}`}
                 className="text-blue-600 hover:text-blue-800"
               >
-                <FormatValue
+                <ResponsiveFormatValue
                   value={moneyValues[valueIn].marketValue}
                   defaultValue="0"
                 />
@@ -250,7 +250,7 @@ export default function Rows({
               %
             </td>
             <td className={getCellClasses(12)}>
-              <FormatValue value={moneyValues[valueIn].totalGain} />
+              <ResponsiveFormatValue value={moneyValues[valueIn].totalGain} />
             </td>
           </tr>
         ),
