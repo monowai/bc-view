@@ -33,7 +33,7 @@ export const headers = [
   {
     key: "asset.price",
     align: "left",
-    mobile: true,
+    mobile: false, // Hidden on mobile to prevent horizontal scrolling
     medium: true,
     sortable: true,
     sortKey: "price",
@@ -49,7 +49,7 @@ export const headers = [
   {
     key: "gain.onday",
     align: "right",
-    mobile: true,
+    mobile: true, // Visible on mobile portrait
     medium: true,
     sortable: true,
     sortKey: "gainOnDay",
@@ -57,7 +57,7 @@ export const headers = [
   {
     key: "quantity",
     align: "right",
-    mobile: true,
+    mobile: false, // Hidden on mobile to prevent horizontal scrolling
     medium: true,
     sortable: true,
     sortKey: "quantity",
@@ -129,7 +129,7 @@ export const headers = [
   {
     key: "gain",
     align: "right",
-    mobile: true,
+    mobile: false, // Hidden on mobile portrait to save space
     medium: true,
     sortable: true,
     sortKey: "totalGain",
@@ -158,32 +158,26 @@ export default function Header({
   const getHeaderPadding = (headerIndex: number): string => {
     // Apply same logic as data cells for mobile-visible columns
     const isChangeColumn = headerIndex === 1
-    const isGainOnDayColumn = headerIndex === 2
-    const isQuantityColumn = headerIndex === 3
     const isMarketValueColumn = headerIndex === 5
     const isIrrColumn = headerIndex === 9
     const isTotalGainColumn = headerIndex === 12
 
-    if (isQuantityColumn) {
-      return "px-0 py-1 md:px-2 xl:px-3" // No horizontal padding on mobile for quantity
-    }
     if (
       isChangeColumn ||
-      isGainOnDayColumn ||
       isMarketValueColumn ||
       isIrrColumn ||
       isTotalGainColumn
     ) {
-      return "px-0.5 py-1 md:px-2 xl:px-3" // Minimal padding for mobile-visible columns
+      return "px-0.5 py-1 sm:px-1 md:px-2 xl:px-3" // Minimal padding on portrait for breathing room
     }
-    return "px-1 py-1 md:px-2 xl:px-3" // Normal padding for other columns
+    return "px-0.5 py-1 sm:px-1 md:px-2 xl:px-3" // Minimal padding on portrait for breathing room
   }
 
   return (
     <thead className="bg-gray-100">
       <tr className="border-t-2 border-b-2 border-gray-400">
         <th
-          className={`px-1 py-1 sm:px-3 text-left text-xs sm:text-sm font-medium ${
+          className={`px-0.5 py-1 sm:px-2 md:px-3 text-left text-sm font-medium ${
             onSort
               ? "cursor-pointer hover:bg-gray-200 transition-colors select-none"
               : ""
@@ -200,7 +194,7 @@ export default function Header({
           if (header.mobile) {
             visibility = ""
           } else if (header.medium) {
-            visibility = "hidden md:table-cell"
+            visibility = "hidden sm:table-cell" // Hidden on mobile portrait, visible on landscape (640px+)
           } else {
             visibility = "hidden xl:table-cell"
           }
@@ -208,7 +202,7 @@ export default function Header({
           return (
             <th
               key={header.key}
-              className={`${getHeaderPadding(index)} text-xs md:text-sm font-medium ${
+              className={`${getHeaderPadding(index)} text-sm font-medium ${
                 header.align === "right"
                   ? "text-right"
                   : header.align === "center"

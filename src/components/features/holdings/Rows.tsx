@@ -18,32 +18,27 @@ const getCellClasses = (headerIndex: number): string => {
   if (header.mobile) {
     visibility = ""
   } else if (header.medium) {
-    visibility = "hidden md:table-cell"
+    visibility = "hidden sm:table-cell" // Hidden on mobile portrait, visible on landscape (640px+)
   } else {
     visibility = "hidden xl:table-cell"
   }
 
   // Reduce padding for mobile-visible columns to maximize space
   const isChangeColumn = headerIndex === 1
-  const isGainOnDayColumn = headerIndex === 2
-  const isQuantityColumn = headerIndex === 3
   const isMarketValueColumn = headerIndex === 5
   const isIrrColumn = headerIndex === 9
   const isTotalGainColumn = headerIndex === 12
 
   let padding
-  if (isQuantityColumn) {
-    padding = "px-0 py-1 md:px-2 xl:px-3" // No horizontal padding on mobile for quantity
-  } else if (
+  if (
     isChangeColumn ||
-    isGainOnDayColumn ||
     isMarketValueColumn ||
     isIrrColumn ||
     isTotalGainColumn
   ) {
-    padding = "px-0.5 py-1 md:px-2 xl:px-3" // Minimal padding for mobile-visible columns
+    padding = "px-0.5 py-1 sm:px-1 md:px-2 xl:px-3" // Minimal padding on portrait for breathing room
   } else {
-    padding = "px-1 py-1 md:px-2 xl:px-3" // Normal padding for other columns
+    padding = "px-0.5 py-1 sm:px-1 md:px-2 xl:px-3" // Minimal padding on portrait for breathing room
   }
 
   return `text-right ${padding} ${visibility}`
@@ -95,9 +90,9 @@ export default function Rows({
         ({ asset, moneyValues, quantityValues, dateValues }, index) => (
           <tr
             key={groupBy + index}
-            className="holding-row text-xs sm:text-sm bg-white hover:!bg-slate-200 transition-colors duration-200 cursor-pointer"
+            className="holding-row text-sm bg-white hover:!bg-slate-200 transition-colors duration-200 cursor-pointer"
           >
-            <td className="px-1 py-1 sm:px-3 text-ellipsis min-w-0">
+            <td className="px-0.5 py-1 sm:px-2 md:px-3 text-ellipsis min-w-0">
               {/* Unified layout: code on top, name below for both mobile and desktop */}
               <div>
                 <div
@@ -148,9 +143,14 @@ export default function Rows({
                       : "text-green-500"
                   }`}
                 >
-                  {(moneyValues[valueIn].priceData.changePercent * 100).toFixed(
-                    2,
-                  )}
+                  <span className="hidden sm:inline">
+                    {moneyValues[valueIn].priceData.changePercent < 0
+                      ? "▼ "
+                      : "▲ "}
+                  </span>
+                  {(
+                    Math.abs(moneyValues[valueIn].priceData.changePercent) * 100
+                  ).toFixed(2)}
                   %
                   <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full mb-1 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap z-50">
                     Previous {moneyValues[valueIn].currency.symbol}{" "}
@@ -223,14 +223,30 @@ export default function Rows({
             </td>
             <td className={getCellClasses(9)}>
               {!isCashRelated(asset) && (
-                <span className="relative group">
+                <span
+                  className={`relative group ${
+                    moneyValues[valueIn].irr < 0
+                      ? "text-red-500"
+                      : moneyValues[valueIn].irr > 0
+                        ? "text-green-500"
+                        : ""
+                  }`}
+                >
+                  <span className="hidden sm:inline">
+                    {moneyValues[valueIn].irr < 0
+                      ? "▼ "
+                      : moneyValues[valueIn].irr > 0
+                        ? "▲ "
+                        : ""}
+                  </span>
                   <FormatValue
-                    value={moneyValues[valueIn].irr}
+                    value={Math.abs(moneyValues[valueIn].irr)}
                     multiplier={100}
                   />
                   {"%"}
                   <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full mb-1 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap z-50">
-                    ROI: {(moneyValues[valueIn].roi * 100).toFixed(2)}%
+                    ROI: {(Math.abs(moneyValues[valueIn].roi) * 100).toFixed(2)}
+                    %
                   </span>
                 </span>
               )}

@@ -73,13 +73,14 @@ describe("GrandTotal Snapshot Tests", () => {
       )
 
       // On desktop, all columns should be visible - none should have 'hidden' without a responsive suffix
-      // Mobile-only hidden: 'hidden md:table-cell' or 'hidden xl:table-cell' (both visible on desktop)
+      // Mobile portrait-only hidden: 'hidden sm:table-cell' or 'hidden xl:table-cell' (visible on desktop)
       // Desktop-only hidden: would be 'hidden' with no suffix (but all columns should be visible on desktop)
       const hiddenOnDesktop = dataCells.filter((cell) => {
         const classes = cell.className
         // Hidden on desktop if it has 'hidden' but no responsive suffix that makes it visible on desktop
         return (
           classes.includes("hidden") &&
+          !classes.includes("sm:table-cell") &&
           !classes.includes("md:table-cell") &&
           !classes.includes("xl:table-cell")
         )
@@ -105,13 +106,18 @@ describe("GrandTotal Snapshot Tests", () => {
       const cells = dataRow?.querySelectorAll("td")
       const dataCells = Array.from(cells!).slice(2)
 
-      // Count visible columns on tablet (excluding hidden columns)
+      // Count visible columns on tablet (768px)
+      // At this breakpoint, sm:table-cell (640px+) and md:table-cell are visible, but xl:table-cell is not
       const visibleColumns = dataCells.filter((cell) => {
         const classes = cell.className
-        return !classes.includes("hidden") || classes.includes("md:table-cell")
+        return (
+          !classes.includes("hidden") ||
+          classes.includes("sm:table-cell") ||
+          classes.includes("md:table-cell")
+        )
       })
 
-      // Should have 10 visible columns on tablet
+      // Should have 10 visible columns on tablet (sm:640px+ columns are visible)
       expect(visibleColumns).toHaveLength(10)
 
       // Verify key columns are in correct positions

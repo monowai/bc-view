@@ -92,8 +92,9 @@ describe("GrandTotal Component", () => {
       // marketValue should be visible (mobile: true) - marketValue is at data[4]
       expect(dataCells[4]).not.toHaveClass("hidden")
 
-      // totalGain should be visible (mobile: true) - totalGain is at data[11]
-      expect(dataCells[11]).not.toHaveClass("hidden")
+      // totalGain should be hidden on mobile portrait, visible on landscape+ (mobile: false) - totalGain is at data[11]
+      expect(dataCells[11]).toHaveClass("hidden")
+      expect(dataCells[11]).toHaveClass("sm:table-cell")
     })
 
     it("maps data correctly to header indices", () => {
@@ -187,8 +188,8 @@ describe("GrandTotal Component", () => {
         "hidden",
       )
 
-      // costValue should be visible on mobile (quantity column: mobile: true) - costValue is at data[2]
-      expect(dataCells[2]).not.toHaveClass("hidden")
+      // quantity column should be hidden on mobile (quantity column: mobile: false) - costValue is at data[2]
+      expect(dataCells[2]).toHaveClass("hidden")
 
       // cost column should be hidden on mobile (cost column: mobile: false) - cost is at data[3]
       expect(dataCells[3]).toHaveClass("hidden")
@@ -200,9 +201,27 @@ describe("GrandTotal Component", () => {
       // alpha should be hidden on mobile (mobile: false, medium: false in header) - alpha is at data[9]
       expect(dataCells[9]).toHaveClass("hidden", "xl:table-cell") // alpha column is hidden on mobile
 
-      // totalGain should be visible on mobile - totalGain is at data[11]
-      expect(dataCells[11]).not.toHaveClass("hidden")
+      // totalGain should be hidden on mobile portrait, visible on landscape+ (mobile: false) - totalGain is at data[11]
+      expect(dataCells[11]).toHaveClass("hidden")
+      expect(dataCells[11]).toHaveClass("sm:table-cell")
       expect(dataCells[11]).toHaveTextContent(/4,?284\.31/)
+    })
+
+    it("hides Price column skip cell on mobile portrait to prevent column misalignment", () => {
+      renderGrandTotal()
+
+      const table = screen.getByRole("rowgroup")
+      const dataRow = table.querySelector("tr:last-child")
+      const cells = dataRow?.querySelectorAll("td")
+
+      // cells[0] is the Value Title
+      // cells[1] is the Price column skip/spacer cell
+      const skipCell = cells![1]
+
+      // Skip cell should be hidden on mobile portrait, visible on landscape (640px+)
+      // It should have "hidden sm:table-cell" class
+      expect(skipCell).toHaveClass("hidden")
+      expect(skipCell).toHaveClass("sm:table-cell")
     })
 
     it("ensures totalGain appears in correct position (not under IRR)", () => {
@@ -219,9 +238,10 @@ describe("GrandTotal Component", () => {
       const irrCell = dataCells[8]
       expect(irrCell).not.toHaveClass("hidden")
 
-      // totalGain should be at position 11 (data[11]) and visible on mobile
+      // totalGain should be at position 11 (data[11]) and hidden on mobile portrait, visible on landscape+ (mobile: false)
       const totalGainCell = dataCells[11]
-      expect(totalGainCell).not.toHaveClass("hidden")
+      expect(totalGainCell).toHaveClass("hidden")
+      expect(totalGainCell).toHaveClass("sm:table-cell")
       expect(totalGainCell).toHaveTextContent(/4,?284\.31/)
 
       // Alpha spacer should be at position 9 (data[9]) and hidden on mobile (mobile: false in header)

@@ -67,8 +67,9 @@ describe("GrandTotal Column Positioning Tests", () => {
       // alpha should be hidden on mobile (mobile: false, medium: false in header)
       expect(dataCells[9]).toHaveClass("hidden", "xl:table-cell") // HEADER_INDICES.ALPHA
 
-      // totalGain should be visible on mobile
-      expect(dataCells[11]).not.toHaveClass("hidden") // HEADER_INDICES.TOTAL_GAIN
+      // totalGain should be hidden on mobile portrait, visible on landscape+ (mobile: false in header)
+      expect(dataCells[11]).toHaveClass("hidden") // HEADER_INDICES.TOTAL_GAIN
+      expect(dataCells[11]).toHaveClass("sm:table-cell")
     })
   })
 
