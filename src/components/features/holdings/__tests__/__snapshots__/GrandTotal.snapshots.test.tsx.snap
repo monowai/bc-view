@@ -38,7 +38,7 @@ exports[`GrandTotal Snapshot Tests matches desktop snapshot: desktop-layout 1`] 
         </span>
       </td>
       <td
-        class="px-1 py-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right  "
+        class="px-1 py-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden md:table-cell "
         colspan="1"
       >
         <span>
@@ -153,7 +153,7 @@ exports[`GrandTotal Snapshot Tests matches mobile snapshot: mobile-layout 1`] = 
         </span>
       </td>
       <td
-        class="px-1 py-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right  "
+        class="px-1 py-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden md:table-cell "
         colspan="1"
       >
         <span>
@@ -268,7 +268,7 @@ exports[`GrandTotal Snapshot Tests matches tablet snapshot: tablet-layout 1`] = 
         </span>
       </td>
       <td
-        class="px-1 py-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right  "
+        class="px-1 py-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden md:table-cell "
         colspan="1"
       >
         <span>

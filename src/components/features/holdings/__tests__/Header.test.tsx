@@ -20,6 +20,25 @@ describe("Holdings Table Headers (TDD - Mobile Layout)", () => {
     })
   })
 
+  describe("Quantity Column Visibility", () => {
+    it("should hide Quantity column on mobile to prevent horizontal scrolling", () => {
+      // Find the Quantity column (key: "quantity")
+      const quantityColumn = headers.find((h) => h.key === "quantity")
+
+      expect(quantityColumn).toBeDefined()
+      // Quantity column should NOT be visible on mobile
+      expect(quantityColumn?.mobile).toBe(false)
+    })
+
+    it("should show Quantity column on medium and larger screens", () => {
+      const quantityColumn = headers.find((h) => h.key === "quantity")
+
+      expect(quantityColumn).toBeDefined()
+      // Quantity column should be visible on medium+ screens
+      expect(quantityColumn?.medium).toBe(true)
+    })
+  })
+
   describe("Essential Columns on Mobile", () => {
     it("should show Market Value on mobile", () => {
       const marketValueColumn = headers.find((h) => h.key === "summary.value")
@@ -35,11 +54,11 @@ describe("Holdings Table Headers (TDD - Mobile Layout)", () => {
       expect(gainColumn?.mobile).toBe(true)
     })
 
-    it("should show Quantity on mobile", () => {
-      const quantityColumn = headers.find((h) => h.key === "quantity")
+    it("should show Change % on mobile", () => {
+      const changeColumn = headers.find((h) => h.key === "asset.change")
 
-      expect(quantityColumn).toBeDefined()
-      expect(quantityColumn?.mobile).toBe(true)
+      expect(changeColumn).toBeDefined()
+      expect(changeColumn?.mobile).toBe(true)
     })
   })
 
@@ -51,12 +70,12 @@ describe("Holdings Table Headers (TDD - Mobile Layout)", () => {
       expect(mobileColumns.length).toBeLessThan(desktopColumns.length)
     })
 
-    it("should have reasonable number of columns for mobile (max 6)", () => {
+    it("should have reasonable number of columns for mobile (max 5)", () => {
       const mobileColumns = headers.filter((h) => h.mobile)
 
-      // Mobile should show 6 columns max to prevent horizontal scrolling
-      // After hiding Price column, we have 6 mobile columns
-      expect(mobileColumns.length).toBeLessThanOrEqual(6)
+      // Mobile should show 5 columns max to prevent horizontal scrolling
+      // After hiding Price and Quantity columns, we have 5 mobile columns
+      expect(mobileColumns.length).toBeLessThanOrEqual(5)
     })
   })
 })

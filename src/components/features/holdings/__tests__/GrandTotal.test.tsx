@@ -187,8 +187,8 @@ describe("GrandTotal Component", () => {
         "hidden",
       )
 
-      // costValue should be visible on mobile (quantity column: mobile: true) - costValue is at data[2]
-      expect(dataCells[2]).not.toHaveClass("hidden")
+      // quantity column should be hidden on mobile (quantity column: mobile: false) - costValue is at data[2]
+      expect(dataCells[2]).toHaveClass("hidden")
 
       // cost column should be hidden on mobile (cost column: mobile: false) - cost is at data[3]
       expect(dataCells[3]).toHaveClass("hidden")

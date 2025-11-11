@@ -57,7 +57,7 @@ export const headers = [
   {
     key: "quantity",
     align: "right",
-    mobile: true,
+    mobile: false, // Hidden on mobile to prevent horizontal scrolling
     medium: true,
     sortable: true,
     sortKey: "quantity",
