@@ -143,9 +143,11 @@ export default function Rows({
                       : "text-green-500"
                   }`}
                 >
-                  {moneyValues[valueIn].priceData.changePercent < 0
-                    ? "▼ "
-                    : "▲ "}
+                  <span className="hidden sm:inline">
+                    {moneyValues[valueIn].priceData.changePercent < 0
+                      ? "▼ "
+                      : "▲ "}
+                  </span>
                   {(
                     Math.abs(moneyValues[valueIn].priceData.changePercent) * 100
                   ).toFixed(2)}
@@ -230,11 +232,13 @@ export default function Rows({
                         : ""
                   }`}
                 >
-                  {moneyValues[valueIn].irr < 0
-                    ? "▼ "
-                    : moneyValues[valueIn].irr > 0
-                      ? "▲ "
-                      : ""}
+                  <span className="hidden sm:inline">
+                    {moneyValues[valueIn].irr < 0
+                      ? "▼ "
+                      : moneyValues[valueIn].irr > 0
+                        ? "▲ "
+                        : ""}
+                  </span>
                   <FormatValue
                     value={Math.abs(moneyValues[valueIn].irr)}
                     multiplier={100}

@@ -136,15 +136,17 @@ export default function GrandTotal({
             >
               {item.value !== null && item.value !== "" ? (
                 <>
-                  {(headerIndex === HEADER_INDICES.CHANGE ||
-                    headerIndex === HEADER_INDICES.IRR) &&
-                  typeof item.value === "number"
-                    ? item.value < 0
-                      ? "▼ "
-                      : item.value > 0
-                        ? "▲ "
-                        : ""
-                    : ""}
+                  <span className="hidden sm:inline">
+                    {(headerIndex === HEADER_INDICES.CHANGE ||
+                      headerIndex === HEADER_INDICES.IRR) &&
+                    typeof item.value === "number"
+                      ? item.value < 0
+                        ? "▼ "
+                        : item.value > 0
+                          ? "▲ "
+                          : ""
+                      : ""}
+                  </span>
                   <FormatValue
                     value={
                       (headerIndex === HEADER_INDICES.CHANGE ||
