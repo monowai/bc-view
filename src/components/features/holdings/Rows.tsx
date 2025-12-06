@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from "react"
-import { HoldingValues, PriceData } from "types/beancounter"
+import { HoldingValues, PriceData, QuickSellData } from "types/beancounter"
 import { NumericFormat } from "react-number-format"
 import { FormatValue } from "@components/ui/MoneyUtils"
 import { isCashRelated, isCash } from "@lib/assets/assetUtils"
@@ -9,6 +9,7 @@ import { AlphaProgress } from "@components/ui/ProgressBar"
 
 interface RowsProps extends HoldingValues {
   onColumnsChange: (columns: string[]) => void
+  onQuickSell?: (data: QuickSellData) => void
 }
 
 // Helper function to generate responsive classes for table cells
@@ -50,12 +51,19 @@ const truncateText = (text: string, maxLength: number): string => {
   return text.substring(0, maxLength) + "..."
 }
 
+// Helper to extract asset code without market prefix
+const getAssetCode = (code: string): string => {
+  const dotIndex = code.indexOf(".")
+  return dotIndex > 0 ? code.substring(dotIndex + 1) : code
+}
+
 export default function Rows({
   portfolio,
   holdingGroup,
   groupBy,
   valueIn,
   onColumnsChange,
+  onQuickSell,
 }: RowsProps): React.ReactElement {
   const columns = useMemo(
     () => [
@@ -94,24 +102,45 @@ export default function Rows({
           >
             <td className="px-0.5 py-1 sm:px-2 md:px-3 text-ellipsis min-w-0">
               {/* Unified layout: code on top, name below for both mobile and desktop */}
-              <div>
-                <div
-                  className="font-semibold text-sm sm:text-base"
-                  title={asset.code}
-                >
-                  {isCash(asset)
-                    ? asset.name
-                    : asset.code.indexOf(".") > 0
-                      ? asset.code.substring(asset.code.indexOf(".") + 1)
-                      : asset.code}
-                </div>
-                {!isCash(asset) && (
+              <div className="flex items-start gap-1">
+                <div className="flex-1 min-w-0">
                   <div
-                    className="text-[10px] xl:text-xs text-gray-600"
-                    title={asset.name}
+                    className="font-semibold text-sm sm:text-base"
+                    title={asset.code}
                   >
-                    {truncateText(asset.name, 20)}
+                    {isCash(asset)
+                      ? asset.name
+                      : asset.code.indexOf(".") > 0
+                        ? asset.code.substring(asset.code.indexOf(".") + 1)
+                        : asset.code}
                   </div>
+                  {!isCash(asset) && (
+                    <div
+                      className="text-[10px] xl:text-xs text-gray-600"
+                      title={asset.name}
+                    >
+                      {truncateText(asset.name, 20)}
+                    </div>
+                  )}
+                </div>
+                {onQuickSell && !isCashRelated(asset) && (
+                  <button
+                    type="button"
+                    aria-label={`Sell ${getAssetCode(asset.code)}`}
+                    className="hidden sm:inline-flex items-center justify-center w-6 h-6 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors duration-200"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onQuickSell({
+                        asset: getAssetCode(asset.code),
+                        market: asset.market.code,
+                        quantity: quantityValues.total,
+                        price: moneyValues[valueIn].priceData?.close || 0,
+                      })
+                    }}
+                    title="Quick sell entire position"
+                  >
+                    <i className="fas fa-money-bill-transfer text-xs"></i>
+                  </button>
                 )}
               </div>
             </td>

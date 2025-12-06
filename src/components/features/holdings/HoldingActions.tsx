@@ -1,23 +1,42 @@
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import TradeInputForm from "@pages/trns/trade"
 import CashInputForm from "@pages/trns/cash"
 import CopyPopup from "@components/ui/CopyPopup"
-import { HoldingContract } from "types/beancounter"
+import { HoldingContract, QuickSellData } from "types/beancounter"
 
 interface HoldingActionsProps {
   holdingResults: HoldingContract
   columns: string[]
   valueIn: string
+  quickSellData?: QuickSellData
+  onQuickSellHandled?: () => void
 }
 
 const HoldingActions: React.FC<HoldingActionsProps> = ({
   holdingResults,
   columns,
   valueIn,
+  quickSellData,
+  onQuickSellHandled,
 }) => {
   const [tradeModalOpen, setTradeModalOpen] = useState(false)
   const [cashModalOpen, setCashModalOpen] = useState(false)
   const [copyModalOpen, setCopyModalOpen] = useState(false)
+
+  // Open trade modal when quick sell data is provided
+  useEffect(() => {
+    if (quickSellData) {
+      setTradeModalOpen(true)
+    }
+  }, [quickSellData])
+
+  // Handle trade modal close
+  const handleTradeModalClose = (open: boolean): void => {
+    setTradeModalOpen(open)
+    if (!open && onQuickSellHandled) {
+      onQuickSellHandled()
+    }
+  }
 
   return (
     <div className="flex flex-col sm:flex-row justify-end py-2 space-y-2 sm:space-y-0 sm:space-x-2 mb-4">
@@ -45,7 +64,8 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
       <TradeInputForm
         portfolio={holdingResults.portfolio}
         modalOpen={tradeModalOpen}
-        setModalOpen={setTradeModalOpen}
+        setModalOpen={handleTradeModalClose}
+        initialValues={quickSellData}
       />
       <CashInputForm
         portfolio={holdingResults.portfolio}

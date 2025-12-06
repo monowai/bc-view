@@ -1,9 +1,13 @@
-import React, { useEffect } from "react"
+import React, { useEffect, useMemo } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
 import * as yup from "yup"
-import { Portfolio } from "types/beancounter"
-import { calculateTradeAmount } from "@lib/trns/tradeUtils"
+import { Portfolio, QuickSellData } from "types/beancounter"
+import {
+  calculateTradeAmount,
+  calculateTradeWeight,
+  calculateNewPositionWeight,
+} from "@lib/trns/tradeUtils"
 import { useTranslation } from "next-i18next"
 import useSwr from "swr"
 import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper"
@@ -58,17 +62,35 @@ const TradeInputForm: React.FC<{
   portfolio: Portfolio
   modalOpen: boolean
   setModalOpen: (open: boolean) => void
-}> = ({ portfolio, modalOpen, setModalOpen }) => {
+  initialValues?: QuickSellData
+}> = ({ portfolio, modalOpen, setModalOpen, initialValues }) => {
   const {
     control,
     handleSubmit,
     setValue,
     watch,
+    reset,
     formState: { errors, isDirty },
   } = useForm({
     resolver: yupResolver(schema),
     defaultValues,
   })
+
+  // Reset form with initial values when modal opens with quick sell data
+  useEffect(() => {
+    if (modalOpen && initialValues) {
+      reset({
+        ...defaultValues,
+        type: { value: "SELL", label: "SELL" },
+        asset: initialValues.asset,
+        market: initialValues.market,
+        quantity: initialValues.quantity,
+        price: initialValues.price,
+      })
+    } else if (modalOpen && !initialValues) {
+      reset(defaultValues)
+    }
+  }, [modalOpen, initialValues, reset])
   const { data: ccyData, isLoading } = useSwr(ccyKey, simpleFetcher(ccyKey))
   const { t } = useTranslation("common")
 
@@ -90,6 +112,46 @@ const TradeInputForm: React.FC<{
       setValue("tradeAmount", parseFloat(tradeAmount.toFixed(2)))
     }
   }, [quantity, price, tax, fees, type, setValue])
+
+  // Calculate trade weight based on type
+  const weightInfo = useMemo(() => {
+    if (!quantity || !price || !portfolio.marketValue) {
+      return null
+    }
+
+    const tradeAmount = calculateTradeAmount(quantity, price, tax, fees, type.value)
+
+    if (type.value === "SELL" && initialValues) {
+      // For SELL with initial values (quick sell), show new position weight
+      const newWeight = calculateNewPositionWeight(
+        initialValues.quantity,
+        quantity,
+        price,
+        portfolio.marketValue
+      )
+      const tradeWeight = calculateTradeWeight(tradeAmount, portfolio.marketValue)
+      return {
+        label: "New Weight",
+        value: newWeight,
+        tradeWeight: tradeWeight,
+      }
+    } else if (type.value === "BUY") {
+      // For BUY, show the weight this trade would represent
+      const weight = calculateTradeWeight(tradeAmount, portfolio.marketValue)
+      return {
+        label: "Trade Weight",
+        value: weight,
+      }
+    } else if (type.value === "SELL") {
+      // For SELL without initial values, show trade as % of portfolio
+      const weight = calculateTradeWeight(tradeAmount, portfolio.marketValue)
+      return {
+        label: "Selling",
+        value: weight,
+      }
+    }
+    return null
+  }, [quantity, price, tax, fees, portfolio.marketValue, initialValues, type.value])
 
   useEscapeHandler(isDirty, setModalOpen)
 
@@ -354,6 +416,29 @@ const TradeInputForm: React.FC<{
                   </div>
                 ))}
               </div>
+              {weightInfo && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <span className="text-sm font-medium text-blue-800">
+                        {weightInfo.label}:{" "}
+                        <span className="text-lg font-bold">
+                          {weightInfo.value.toFixed(2)}%
+                        </span>
+                      </span>
+                      {weightInfo.tradeWeight !== undefined && (
+                        <span className="text-sm text-blue-600">
+                          (Reducing by {weightInfo.tradeWeight.toFixed(2)}%)
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-xs text-blue-500">
+                      of {portfolio.currency.symbol}
+                      {portfolio.marketValue.toLocaleString()} portfolio
+                    </span>
+                  </div>
+                </div>
+              )}
               <div className="text-red-500 text-xs">
                 {Object.values(errors)
                   .map((error) => error?.message)

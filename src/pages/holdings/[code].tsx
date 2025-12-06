@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from "react"
+import React, { useState, useEffect, useMemo, useCallback } from "react"
 import { calculateHoldings } from "@lib/holdings/calculateHoldings"
-import { Holdings } from "types/beancounter"
+import { Holdings, QuickSellData } from "types/beancounter"
 import {
   TableSkeletonLoader,
   SummarySkeletonLoader,
@@ -44,6 +44,19 @@ function HoldingsPage(): React.ReactElement {
     key: "assetName",
     direction: "asc",
   })
+  const [quickSellData, setQuickSellData] = useState<QuickSellData | undefined>(
+    undefined
+  )
+
+  // Handle quick sell from position row
+  const handleQuickSell = useCallback((data: QuickSellData) => {
+    setQuickSellData(data)
+  }, [])
+
+  // Clear quick sell data when modal closes
+  const handleQuickSellHandled = useCallback(() => {
+    setQuickSellData(undefined)
+  }, [])
 
   useEffect(() => {
     if (router.query.action === "trade") {
@@ -140,6 +153,8 @@ function HoldingsPage(): React.ReactElement {
           holdingResults={holdingResults}
           columns={columns}
           valueIn={holdingState.valueIn.value}
+          quickSellData={quickSellData}
+          onQuickSellHandled={handleQuickSellHandled}
         />
         No Holdings for {holdingResults.portfolio.code}
       </div>
@@ -165,6 +180,8 @@ function HoldingsPage(): React.ReactElement {
           holdingResults={holdingResults}
           columns={columns}
           valueIn={holdingState.valueIn.value}
+          quickSellData={quickSellData}
+          onQuickSellHandled={handleQuickSellHandled}
         />
         {/* Desktop view toggle - hidden on mobile/tablet */}
         <div className="hidden xl:block">
@@ -211,6 +228,7 @@ function HoldingsPage(): React.ReactElement {
                         holdingGroup={holdings.holdingGroups[groupKey]}
                         valueIn={holdingState.valueIn.value}
                         onColumnsChange={setColumns}
+                        onQuickSell={handleQuickSell}
                       />
                       <SubTotal
                         groupBy={groupKey}

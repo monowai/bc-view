@@ -2,6 +2,13 @@ import { ValueIn } from "@components/features/holdings/GroupByOptions"
 
 export type TrnType = "BUY" | "SELL" | "DIVI" | "SPLIT"
 
+export interface QuickSellData {
+  asset: string
+  market: string
+  quantity: number
+  price: number
+}
+
 // As returned from the server
 interface HoldingContract {
   portfolio: Portfolio

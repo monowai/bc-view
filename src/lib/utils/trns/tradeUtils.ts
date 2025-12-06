@@ -29,6 +29,35 @@ export const calculateTradeAmount = (
   return type === "SELL" ? qty * prc - tx - fee : qty * prc + fee + tx
 }
 
+/**
+ * Calculate the weight (%) a trade would represent in the portfolio.
+ * For BUY: tradeAmount / portfolioMarketValue
+ * For SELL: tradeAmount / portfolioMarketValue (shows reduction)
+ */
+export const calculateTradeWeight = (
+  tradeAmount: number,
+  portfolioMarketValue: number
+): number => {
+  if (portfolioMarketValue <= 0) return 0
+  return (Math.abs(tradeAmount) / portfolioMarketValue) * 100
+}
+
+/**
+ * Calculate the new position weight after a SELL trade.
+ * Uses the initial quantity (total held) and the quantity being sold.
+ */
+export const calculateNewPositionWeight = (
+  initialQuantity: number,
+  sellQuantity: number,
+  price: number,
+  portfolioMarketValue: number
+): number => {
+  if (portfolioMarketValue <= 0 || initialQuantity <= 0) return 0
+  const remainingQuantity = Math.max(0, initialQuantity - sellQuantity)
+  const remainingValue = remainingQuantity * price
+  return (remainingValue / portfolioMarketValue) * 100
+}
+
 // ensures the cash amount is correctly signed for supplied Transaction Type
 export const calculateCashAmount = (data: TradeFormData): number => {
   if (data.type.value === "SPLIT") {
