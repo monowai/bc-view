@@ -1,6 +1,8 @@
 import {
   calculateCashAmount,
   calculateTradeAmount,
+  calculateTradeWeight,
+  calculateNewPositionWeight,
   convert,
   convertToTradeImport,
   generateBatchId,
@@ -306,5 +308,116 @@ describe("TradeUtils", () => {
     const result = convertToTradeImport(data)
     expect(result.tradeCurrency).toBe("USD")
     expect(result.cashCurrency).toBe("USD")
+  })
+
+  describe("calculateTradeWeight", () => {
+    test("calculates weight for BUY trade - 1k trade on 10k portfolio = 10%", () => {
+      const tradeAmount = 1000
+      const portfolioValue = 10000
+      const result = calculateTradeWeight(tradeAmount, portfolioValue)
+      expect(result).toBe(10)
+    })
+
+    test("calculates weight for larger trade", () => {
+      const tradeAmount = 5000
+      const portfolioValue = 10000
+      const result = calculateTradeWeight(tradeAmount, portfolioValue)
+      expect(result).toBe(50)
+    })
+
+    test("handles negative trade amounts (SELL)", () => {
+      const tradeAmount = -1000
+      const portfolioValue = 10000
+      const result = calculateTradeWeight(tradeAmount, portfolioValue)
+      expect(result).toBe(10) // Should use absolute value
+    })
+
+    test("returns 0 for zero portfolio value", () => {
+      const tradeAmount = 1000
+      const portfolioValue = 0
+      const result = calculateTradeWeight(tradeAmount, portfolioValue)
+      expect(result).toBe(0)
+    })
+
+    test("returns 0 for negative portfolio value", () => {
+      const tradeAmount = 1000
+      const portfolioValue = -10000
+      const result = calculateTradeWeight(tradeAmount, portfolioValue)
+      expect(result).toBe(0)
+    })
+  })
+
+  describe("calculateNewPositionWeight", () => {
+    test("selling 50% of 10% position results in ~5% weight", () => {
+      // Portfolio = 10k, position = 1k (10%), selling half
+      const initialQuantity = 100
+      const sellQuantity = 50
+      const price = 10 // position value = 100 * 10 = 1000
+      const portfolioValue = 10000
+
+      const result = calculateNewPositionWeight(
+        initialQuantity,
+        sellQuantity,
+        price,
+        portfolioValue
+      )
+      expect(result).toBe(5) // 50 * 10 / 10000 = 5%
+    })
+
+    test("selling entire position results in 0% weight", () => {
+      const initialQuantity = 100
+      const sellQuantity = 100
+      const price = 10
+      const portfolioValue = 10000
+
+      const result = calculateNewPositionWeight(
+        initialQuantity,
+        sellQuantity,
+        price,
+        portfolioValue
+      )
+      expect(result).toBe(0)
+    })
+
+    test("selling more than held results in 0% weight", () => {
+      const initialQuantity = 100
+      const sellQuantity = 150 // More than held
+      const price = 10
+      const portfolioValue = 10000
+
+      const result = calculateNewPositionWeight(
+        initialQuantity,
+        sellQuantity,
+        price,
+        portfolioValue
+      )
+      expect(result).toBe(0)
+    })
+
+    test("returns 0 for zero portfolio value", () => {
+      const result = calculateNewPositionWeight(100, 50, 10, 0)
+      expect(result).toBe(0)
+    })
+
+    test("returns 0 for zero initial quantity", () => {
+      const result = calculateNewPositionWeight(0, 50, 10, 10000)
+      expect(result).toBe(0)
+    })
+
+    test("selling 25% of position", () => {
+      // 20% position, selling 25% of it
+      const initialQuantity = 200
+      const sellQuantity = 50 // 25% of 200
+      const price = 10 // position = 2000 (20% of 10k)
+      const portfolioValue = 10000
+
+      const result = calculateNewPositionWeight(
+        initialQuantity,
+        sellQuantity,
+        price,
+        portfolioValue
+      )
+      expect(result).toBe(15) // 150 * 10 / 10000 = 15%
+    })
   })
 })
