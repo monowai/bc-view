@@ -4,7 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-BC-View is the user interface for the Beancounter financial transaction processing system. It's a Next.js application that provides portfolio management, transaction tracking, and financial reporting capabilities. This is the primary interaction point for users to access the Beancounter services.
+BC-View is the user interface for the Beancounter financial transaction
+processing system. It's a Next.js application that provides portfolio
+management, transaction tracking, and financial reporting capabilities.
+This is the primary interaction point for users to access the Beancounter
+services.
 
 ## Technology Stack
 
