@@ -7,7 +7,20 @@ const path = require("path")
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ["s.gravatar.com", "cdn.auth0.com", "lh3.googleusercontent.com"],
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "s.gravatar.com",
+      },
+      {
+        protocol: "https",
+        hostname: "cdn.auth0.com",
+      },
+      {
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
+      },
+    ],
   },
   sassOptions: {
     includePaths: [path.join(__dirname, "styles")],
