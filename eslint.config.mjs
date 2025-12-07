@@ -1,15 +1,21 @@
-const { FlatCompat } = require("@eslint/eslintrc")
-const js = require("@eslint/js")
-const typescriptEslint = require("@typescript-eslint/eslint-plugin")
-const typescriptParser = require("@typescript-eslint/parser")
-const reactHooks = require("eslint-plugin-react-hooks")
+import { FlatCompat } from "@eslint/eslintrc"
+import js from "@eslint/js"
+import typescriptEslint from "@typescript-eslint/eslint-plugin"
+import typescriptParser from "@typescript-eslint/parser"
+import reactHooks from "eslint-plugin-react-hooks"
+import nextPlugin from "@next/eslint-plugin-next"
+import { fileURLToPath } from "url"
+import path from "path"
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 const compat = new FlatCompat({
   baseDirectory: __dirname,
   recommendedConfig: js.configs.recommended,
 })
 
-module.exports = [
+export default [
   // Ignore build directories and generated files
   {
     ignores: [
@@ -20,15 +26,14 @@ module.exports = [
       "**/*.d.ts",
       "jest.config.js",
       "next.config.js",
-      "eslint.config.js",
+      "eslint.config.mjs",
       ".lintstagedrc.js",
       "__mocks__/**",
       "**/*.min.js",
     ],
   },
-  // Use FlatCompat to convert legacy extends
+  // Use FlatCompat to convert legacy extends (excluding next which we handle directly)
   ...compat.extends(
-    "plugin:@next/next/recommended",
     "plugin:react/recommended",
     "plugin:@typescript-eslint/recommended",
     "prettier",
@@ -37,6 +42,7 @@ module.exports = [
     plugins: {
       "@typescript-eslint": typescriptEslint,
       "react-hooks": reactHooks,
+      "@next/next": nextPlugin,
     },
     languageOptions: {
       parser: typescriptParser,
@@ -114,6 +120,9 @@ module.exports = [
       "@typescript-eslint/ban-ts-ignore": "off",
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
+      // Next.js rules
+      ...nextPlugin.configs.recommended.rules,
+      ...nextPlugin.configs["core-web-vitals"].rules,
     },
   },
 ]

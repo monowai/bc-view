@@ -4,8 +4,8 @@ orbs:
 
 # Global variables
 variables:
-  node_version: &node_version "20.12"
-  node_image: &node_image "cimg/node:20.12"
+  node_version: &node_version "20.19"
+  node_image: &node_image "cimg/node:20.19"
   resource_class: &resource_class "medium"
   container_registry: &container_registry "ghcr.io"
   container_org: &container_org "monowai"
