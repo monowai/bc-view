@@ -232,13 +232,6 @@ export default function Rows({
                         : ""
                   }`}
                 >
-                  <span className="hidden sm:inline">
-                    {moneyValues[valueIn].irr < 0
-                      ? "▼ "
-                      : moneyValues[valueIn].irr > 0
-                        ? "▲ "
-                        : ""}
-                  </span>
                   <FormatValue
                     value={Math.abs(moneyValues[valueIn].irr)}
                     multiplier={100}

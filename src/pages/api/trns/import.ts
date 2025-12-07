@@ -1,45 +1,44 @@
 import { TransactionUpload } from "types/app"
 import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0"
-import { Kafka, Partitioners, RecordMetadata } from "kafkajs"
-import { getKafkaClient, getKafkaHosts, getTrnTopic } from "@utils/api/bcConfig"
 import { NextApiRequest, NextApiResponse } from "next"
+import { getBroker, getBrokerConfig, SendResult } from "@lib/broker"
 
 export default withApiAuthRequired(async function writeRows(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
   await getAccessToken(req, res)
-  await writeTrn({ portfolio: req.body.portfolio, row: req.body.row }).catch(
-    console.error,
-  )
-  res.status(200).json("ok")
+
+  try {
+    const result = await writeTrn({
+      portfolio: req.body.portfolio,
+      row: req.body.row,
+    })
+
+    if (!result.success) {
+      console.error("Broker send failed:", result.error)
+      res.status(500).json({ error: result.error?.message || "Failed to send message" })
+      return
+    }
+
+    res.status(200).json("ok")
+  } catch (error) {
+    console.error("Transaction import error:", error)
+    res.status(500).json({
+      error: error instanceof Error ? error.message : "Failed to send message",
+    })
+  }
 })
 
-const topic = getTrnTopic()
-const brokers = getKafkaHosts()
-const clientId = getKafkaClient()
+function writeTrn(transactionUpload: TransactionUpload): Promise<SendResult> {
+  const config = getBrokerConfig()
+  const broker = getBroker()
 
-async function writeTrn(
-  transactionUpload: TransactionUpload,
-): Promise<RecordMetadata[] | void> {
-  console.log(`brokers: ${brokers}, clientId: ${clientId}, topic: ${topic}`)
-  const producer = new Kafka({
-    clientId,
-    brokers,
-  }).producer({
-    allowAutoTopicCreation: true,
-    createPartitioner: Partitioners.LegacyPartitioner,
-  })
-  await producer.connect()
-  const messages = [
-    {
-      key: `${transactionUpload.portfolio.id}.${transactionUpload.row[5]}`,
-      value: JSON.stringify(transactionUpload),
-      partition: 0,
-    },
-  ]
-  return producer.send({
-    topic,
-    messages,
+  const messageKey = `${transactionUpload.portfolio.id}.${transactionUpload.row[5]}`
+
+  return broker.send({
+    key: messageKey,
+    value: transactionUpload,
+    topic: config.topic,
   })
 }

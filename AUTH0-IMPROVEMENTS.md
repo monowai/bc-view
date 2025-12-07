@@ -2,7 +2,8 @@
 
 ## Overview
 
-This document outlines the improvements made to the Auth0 implementation following the latest Next.js guidelines and security best practices.
+This document outlines the improvements made to the Auth0 implementation
+following the latest Next.js guidelines and security best practices.
 
 ## Changes Made
 
