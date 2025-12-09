@@ -9,7 +9,12 @@ import useSwr from "swr"
 import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { rootLoader } from "@components/ui/PageLoader"
 import { CurrencyOptionSchema } from "@lib/portfolio/schema"
-import { onSubmit, useEscapeHandler } from "@lib/trns/formUtils"
+import {
+  onSubmit,
+  useEscapeHandler,
+  copyToClipboard,
+} from "@lib/trns/formUtils"
+import { convert } from "@lib/trns/tradeUtils"
 import TradeTypeController from "@components/features/transactions/TradeTypeController"
 import { currencyOptions } from "@lib/currency"
 import { GetServerSideProps } from "next"
@@ -64,11 +69,25 @@ const CashInputForm: React.FC<{
     handleSubmit,
     setValue,
     watch,
+    getValues,
     formState: { errors, isDirty },
   } = useForm({
     resolver: yupResolver(cashSchema),
     defaultValues,
   })
+
+  const handleCopy = (): void => {
+    const formData = getValues()
+    // Map form fields to TradeFormData format
+    const data = {
+      ...formData,
+      market: "CASH",
+      price: 1, // Cash transactions always have price of 1
+      comments: formData.comment ?? undefined,
+    }
+    const row = convert(data)
+    copyToClipboard(row)
+  }
   const { data: ccyData, isLoading } = useSwr(ccyKey, simpleFetcher(ccyKey))
   const { t } = useTranslation("common")
 
@@ -180,7 +199,45 @@ const CashInputForm: React.FC<{
                       />
                     ),
                   },
-
+                  // Cash Currency - only shown for FX transactions
+                  ...(type.value === "FX"
+                    ? [
+                        {
+                          name: "cashCurrency",
+                          label: t("trn.currency.cash"),
+                          component: (
+                            <Controller
+                              name="cashCurrency"
+                              control={control}
+                              render={({ field }) => (
+                                <select
+                                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
+                                  value={field.value.value}
+                                  onChange={(e) => {
+                                    const selected = ccyOptions.find(
+                                      (opt: CurrencyOption) =>
+                                        opt.value === e.target.value,
+                                    )
+                                    if (selected) {
+                                      field.onChange(selected)
+                                    }
+                                  }}
+                                >
+                                  {ccyOptions.map((option: CurrencyOption) => (
+                                    <option
+                                      key={option.value}
+                                      value={option.value}
+                                    >
+                                      {option.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              )}
+                            />
+                          ),
+                        },
+                      ]
+                    : []),
                   {
                     name: "quantity",
                     label: t("trn.amount.trade"),
@@ -270,6 +327,14 @@ const CashInputForm: React.FC<{
                   .join(" ")}
               </div>
               <div className="flex justify-end space-x-2">
+                <button
+                  type="button"
+                  className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
+                  onClick={handleCopy}
+                >
+                  <i className="fas fa-copy mr-2"></i>
+                  Copy
+                </button>
                 <button
                   type="submit"
                   className="bg-blue-500 text-white px-4 py-2 rounded"

@@ -78,7 +78,7 @@ exports[`GrandTotal Snapshot Tests matches desktop snapshot: desktop-layout 1`] 
         </span>
       </td>
       <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden sm:table-cell "
+        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden xl:table-cell "
         colspan="1"
       >
         <span
@@ -89,7 +89,7 @@ exports[`GrandTotal Snapshot Tests matches desktop snapshot: desktop-layout 1`] 
         </span>
       </td>
       <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden sm:table-cell "
+        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden xl:table-cell "
         colspan="1"
       >
         <span
@@ -117,7 +117,7 @@ exports[`GrandTotal Snapshot Tests matches desktop snapshot: desktop-layout 1`] 
         colspan="1"
       />
       <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden xl:table-cell "
+        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden sm:table-cell "
         colspan="1"
       >
         <span
@@ -222,7 +222,7 @@ exports[`GrandTotal Snapshot Tests matches mobile snapshot: mobile-layout 1`] = 
         </span>
       </td>
       <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden sm:table-cell "
+        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden xl:table-cell "
         colspan="1"
       >
         <span
@@ -233,7 +233,7 @@ exports[`GrandTotal Snapshot Tests matches mobile snapshot: mobile-layout 1`] = 
         </span>
       </td>
       <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden sm:table-cell "
+        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden xl:table-cell "
         colspan="1"
       >
         <span
@@ -261,7 +261,7 @@ exports[`GrandTotal Snapshot Tests matches mobile snapshot: mobile-layout 1`] = 
         colspan="1"
       />
       <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden xl:table-cell "
+        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden sm:table-cell "
         colspan="1"
       >
         <span
@@ -366,7 +366,7 @@ exports[`GrandTotal Snapshot Tests matches tablet snapshot: tablet-layout 1`] = 
         </span>
       </td>
       <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden sm:table-cell "
+        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden xl:table-cell "
         colspan="1"
       >
         <span
@@ -377,7 +377,7 @@ exports[`GrandTotal Snapshot Tests matches tablet snapshot: tablet-layout 1`] = 
         </span>
       </td>
       <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden sm:table-cell "
+        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden xl:table-cell "
         colspan="1"
       >
         <span
@@ -405,7 +405,7 @@ exports[`GrandTotal Snapshot Tests matches tablet snapshot: tablet-layout 1`] = 
         colspan="1"
       />
       <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden xl:table-cell "
+        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden sm:table-cell "
         colspan="1"
       >
         <span

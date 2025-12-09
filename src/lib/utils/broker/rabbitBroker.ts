@@ -33,9 +33,7 @@ export class RabbitBroker implements MessageBroker {
       const exchange = this.config.topic
       await this.channel.assertExchange(exchange, "topic", { durable: true })
 
-      console.log(
-        `RabbitMQ broker connected: url=${url}, exchange=${exchange}`
-      )
+      console.log(`RabbitMQ broker connected: url=${url}, exchange=${exchange}`)
     }
   }
 
@@ -85,7 +83,9 @@ export class RabbitBroker implements MessageBroker {
         }
       }
 
-      console.log(`RabbitMQ message published to exchange ${exchange}, routingKey=${routingKey}, key=${message.key}`)
+      console.log(
+        `RabbitMQ message published to exchange ${exchange}, routingKey=${routingKey}, key=${message.key}`,
+      )
 
       return {
         success: true,

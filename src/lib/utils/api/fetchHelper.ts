@@ -38,3 +38,17 @@ export const holdingKey = (portfolioCode: string, asAt: string): string =>
 
 export const portfolioKey = (portfolioId: string): string =>
   `${portfoliosKey}/${portfolioId}`
+
+export const trnKey = (trnId: string): string => `${trnsKey}/${trnId}`
+
+export const corporateEventsKey = (
+  assetId: string,
+  fromDate?: string,
+  toDate?: string,
+): string => {
+  const base = `${apiRoot}/corporate-events/${assetId}`
+  if (fromDate && toDate) {
+    return `${base}?fromDate=${fromDate}&toDate=${toDate}`
+  }
+  return base
+}

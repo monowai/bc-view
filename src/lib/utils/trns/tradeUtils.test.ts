@@ -359,7 +359,7 @@ describe("TradeUtils", () => {
         initialQuantity,
         sellQuantity,
         price,
-        portfolioValue
+        portfolioValue,
       )
       expect(result).toBe(5) // 50 * 10 / 10000 = 5%
     })
@@ -374,7 +374,7 @@ describe("TradeUtils", () => {
         initialQuantity,
         sellQuantity,
         price,
-        portfolioValue
+        portfolioValue,
       )
       expect(result).toBe(0)
     })
@@ -389,7 +389,7 @@ describe("TradeUtils", () => {
         initialQuantity,
         sellQuantity,
         price,
-        portfolioValue
+        portfolioValue,
       )
       expect(result).toBe(0)
     })
@@ -415,7 +415,7 @@ describe("TradeUtils", () => {
         initialQuantity,
         sellQuantity,
         price,
-        portfolioValue
+        portfolioValue,
       )
       expect(result).toBe(15) // 150 * 10 / 10000 = 15%
     })

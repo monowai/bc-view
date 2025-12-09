@@ -17,15 +17,18 @@ import { useHoldingState } from "@lib/holdings/holdingState"
 import { sortPositions, SortConfig } from "@lib/holdings/sortHoldings"
 import HoldingMenu from "@components/features/holdings/HoldingMenu"
 import SummaryHeader, {
+  SummaryHeaderMobile,
   SummaryRow,
+  SummaryRowMobile,
 } from "@components/features/holdings/Summary"
-import Rows from "@components/features/holdings/Rows"
+import Rows, { CorporateActionsData } from "@components/features/holdings/Rows"
 import SubTotal from "@components/features/holdings/SubTotal"
 import Header from "@components/features/holdings/Header"
 import GrandTotal from "@components/features/holdings/GrandTotal"
 import HoldingActions from "@components/features/holdings/HoldingActions"
 import PerformanceHeatmap from "@components/ui/PerformanceHeatmap"
 import ViewToggle, { ViewMode } from "@components/features/holdings/ViewToggle"
+import CorporateActionsPopup from "@components/features/holdings/CorporateActionsPopup"
 
 function HoldingsPage(): React.ReactElement {
   const router = useRouter()
@@ -45,8 +48,11 @@ function HoldingsPage(): React.ReactElement {
     direction: "asc",
   })
   const [quickSellData, setQuickSellData] = useState<QuickSellData | undefined>(
-    undefined
+    undefined,
   )
+  const [corporateActionsData, setCorporateActionsData] = useState<
+    CorporateActionsData | undefined
+  >(undefined)
 
   // Handle quick sell from position row
   const handleQuickSell = useCallback((data: QuickSellData) => {
@@ -56,6 +62,16 @@ function HoldingsPage(): React.ReactElement {
   // Clear quick sell data when modal closes
   const handleQuickSellHandled = useCallback(() => {
     setQuickSellData(undefined)
+  }, [])
+
+  // Handle corporate actions popup
+  const handleCorporateActions = useCallback((data: CorporateActionsData) => {
+    setCorporateActionsData(data)
+  }, [])
+
+  // Close corporate actions popup
+  const handleCorporateActionsClose = useCallback(() => {
+    setCorporateActionsData(undefined)
   }, [])
 
   useEffect(() => {
@@ -192,6 +208,22 @@ function HoldingsPage(): React.ReactElement {
       {viewMode === "table" ? (
         <div className="grid grid-cols-1 gap-3">
           <div>
+            {/* Mobile/Tablet header - must be outside table */}
+            <SummaryHeaderMobile
+              portfolio={holdingResults.portfolio}
+              portfolioSummary={{
+                totals: holdings.totals,
+                currency: holdings.currency,
+              }}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+            />
+            {/* Mobile/Tablet summary row - must be outside table */}
+            <SummaryRowMobile
+              totals={holdings.totals}
+              currency={holdings.currency}
+            />
+            {/* Desktop table with thead */}
             <table className="min-w-full bg-white">
               <SummaryHeader
                 portfolio={holdingResults.portfolio}
@@ -199,13 +231,8 @@ function HoldingsPage(): React.ReactElement {
                   totals: holdings.totals,
                   currency: holdings.currency,
                 }}
-                viewMode={viewMode}
-                onViewModeChange={setViewMode}
               />
-              <SummaryRow
-                totals={holdings.totals}
-                currency={holdings.currency}
-              />
+              <SummaryRow />
             </table>
           </div>
           <div className="overflow-x-auto overflow-y-visible">
@@ -229,6 +256,7 @@ function HoldingsPage(): React.ReactElement {
                         valueIn={holdingState.valueIn.value}
                         onColumnsChange={setColumns}
                         onQuickSell={handleQuickSell}
+                        onCorporateActions={handleCorporateActions}
                       />
                       <SubTotal
                         groupBy={groupKey}
@@ -248,6 +276,22 @@ function HoldingsPage(): React.ReactElement {
       ) : (
         <div className="grid grid-cols-1 gap-3">
           <div>
+            {/* Mobile/Tablet header - must be outside table */}
+            <SummaryHeaderMobile
+              portfolio={holdingResults.portfolio}
+              portfolioSummary={{
+                totals: holdings.totals,
+                currency: holdings.currency,
+              }}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+            />
+            {/* Mobile/Tablet summary row - must be outside table */}
+            <SummaryRowMobile
+              totals={holdings.totals}
+              currency={holdings.currency}
+            />
+            {/* Desktop table with thead */}
             <table className="min-w-full bg-white">
               <SummaryHeader
                 portfolio={holdingResults.portfolio}
@@ -255,13 +299,8 @@ function HoldingsPage(): React.ReactElement {
                   totals: holdings.totals,
                   currency: holdings.currency,
                 }}
-                viewMode={viewMode}
-                onViewModeChange={setViewMode}
               />
-              <SummaryRow
-                totals={holdings.totals}
-                currency={holdings.currency}
-              />
+              <SummaryRow />
             </table>
           </div>
           <PerformanceHeatmap
@@ -269,6 +308,16 @@ function HoldingsPage(): React.ReactElement {
             valueIn={holdingState.valueIn.value}
           />
         </div>
+      )}
+      {corporateActionsData && (
+        <CorporateActionsPopup
+          asset={corporateActionsData.asset}
+          portfolioId={corporateActionsData.portfolioId}
+          fromDate={corporateActionsData.fromDate}
+          toDate={holdingState.asAt}
+          modalOpen={!!corporateActionsData}
+          onClose={handleCorporateActionsClose}
+        />
       )}
     </div>
   )
