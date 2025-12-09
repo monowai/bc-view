@@ -1,6 +1,13 @@
 import { ValueIn } from "@components/features/holdings/GroupByOptions"
 
-export type TrnType = "BUY" | "SELL" | "DIVI" | "SPLIT"
+export type TrnType =
+  | "BUY"
+  | "SELL"
+  | "DIVI"
+  | "SPLIT"
+  | "DEPOSIT"
+  | "WITHDRAWAL"
+  | "FX"
 
 export interface QuickSellData {
   asset: string
@@ -279,4 +286,23 @@ export interface PriceData {
   previousClose: number
   changePercent: number
   priceDate: string
+}
+
+export interface CorporateEvent {
+  id: string
+  trnType: TrnType
+  source: string
+  assetId: string
+  recordDate: string
+  rate: number
+  split: number
+  payDate: string
+}
+
+export interface CorporateEventResponse {
+  data: CorporateEvent
+}
+
+export interface CorporateEventsResponse {
+  data: CorporateEvent[]
 }

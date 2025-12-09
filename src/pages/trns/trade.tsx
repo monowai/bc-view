@@ -14,7 +14,12 @@ import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { rootLoader } from "@components/ui/PageLoader"
 import { CurrencyOptionSchema } from "@lib/portfolio/schema"
 import TradeTypeController from "@components/features/transactions/TradeTypeController"
-import { onSubmit, useEscapeHandler } from "@lib/trns/formUtils"
+import {
+  onSubmit,
+  useEscapeHandler,
+  copyToClipboard,
+} from "@lib/trns/formUtils"
+import { convert } from "@lib/trns/tradeUtils"
 import { currencyOptions, toCurrencyOption } from "@lib/currency"
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
@@ -70,11 +75,24 @@ const TradeInputForm: React.FC<{
     setValue,
     watch,
     reset,
+    getValues,
     formState: { errors, isDirty },
   } = useForm({
     resolver: yupResolver(schema),
     defaultValues,
   })
+
+  const handleCopy = (): void => {
+    const formData = getValues()
+    // Map form fields to TradeFormData format
+    const data = {
+      ...formData,
+      tradeCurrency: formData.cashCurrency,
+      comments: formData.comment ?? undefined,
+    }
+    const row = convert(data)
+    copyToClipboard(row)
+  }
 
   // Reset form with initial values when modal opens with quick sell data
   useEffect(() => {
@@ -119,7 +137,13 @@ const TradeInputForm: React.FC<{
       return null
     }
 
-    const tradeAmount = calculateTradeAmount(quantity, price, tax, fees, type.value)
+    const tradeAmount = calculateTradeAmount(
+      quantity,
+      price,
+      tax,
+      fees,
+      type.value,
+    )
 
     if (type.value === "SELL" && initialValues) {
       // For SELL with initial values (quick sell), show new position weight
@@ -127,9 +151,12 @@ const TradeInputForm: React.FC<{
         initialValues.quantity,
         quantity,
         price,
-        portfolio.marketValue
+        portfolio.marketValue,
       )
-      const tradeWeight = calculateTradeWeight(tradeAmount, portfolio.marketValue)
+      const tradeWeight = calculateTradeWeight(
+        tradeAmount,
+        portfolio.marketValue,
+      )
       return {
         label: "New Weight",
         value: newWeight,
@@ -151,7 +178,15 @@ const TradeInputForm: React.FC<{
       }
     }
     return null
-  }, [quantity, price, tax, fees, portfolio.marketValue, initialValues, type.value])
+  }, [
+    quantity,
+    price,
+    tax,
+    fees,
+    portfolio.marketValue,
+    initialValues,
+    type.value,
+  ])
 
   useEscapeHandler(isDirty, setModalOpen)
 
@@ -445,6 +480,14 @@ const TradeInputForm: React.FC<{
                   .join(" ")}
               </div>
               <div className="flex justify-end space-x-2">
+                <button
+                  type="button"
+                  className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
+                  onClick={handleCopy}
+                >
+                  <i className="fas fa-copy mr-2"></i>
+                  Copy
+                </button>
                 <button
                   type="submit"
                   className="bg-blue-500 text-white px-4 py-2 rounded"

@@ -1,15 +1,28 @@
-import React, { useEffect, useMemo } from "react"
-import { HoldingValues, PriceData, QuickSellData } from "types/beancounter"
+import React, { useEffect, useMemo, useState, useRef } from "react"
+import {
+  HoldingValues,
+  PriceData,
+  QuickSellData,
+  Asset,
+} from "types/beancounter"
 import { NumericFormat } from "react-number-format"
 import { FormatValue } from "@components/ui/MoneyUtils"
 import { isCashRelated, isCash } from "@lib/assets/assetUtils"
 import { headers } from "./Header"
 import Link from "next/link"
 import { AlphaProgress } from "@components/ui/ProgressBar"
+import { useTranslation } from "next-i18next"
+
+export interface CorporateActionsData {
+  asset: Asset
+  portfolioId: string
+  fromDate: string
+}
 
 interface RowsProps extends HoldingValues {
   onColumnsChange: (columns: string[]) => void
   onQuickSell?: (data: QuickSellData) => void
+  onCorporateActions?: (data: CorporateActionsData) => void
 }
 
 // Helper function to generate responsive classes for table cells
@@ -57,6 +70,106 @@ const getAssetCode = (code: string): string => {
   return dotIndex > 0 ? code.substring(dotIndex + 1) : code
 }
 
+// Actions dropdown menu component
+interface ActionsMenuProps {
+  asset: Asset
+  portfolioId: string
+  fromDate?: string
+  quantity: number
+  price: number
+  valueIn: string
+  onQuickSell?: (data: QuickSellData) => void
+  onCorporateActions?: (data: CorporateActionsData) => void
+  t: (key: string) => string
+}
+
+const ActionsMenu: React.FC<ActionsMenuProps> = ({
+  asset,
+  portfolioId,
+  fromDate,
+  quantity,
+  price,
+  onQuickSell,
+  onCorporateActions,
+  t,
+}) => {
+  const [isOpen, setIsOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent): void => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  const assetCode = getAssetCode(asset.code)
+
+  return (
+    <div className="relative" ref={menuRef}>
+      <button
+        type="button"
+        aria-label={`${t("actions.menu")} ${assetCode}`}
+        className="inline-flex items-center justify-center w-6 h-6 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors duration-200"
+        onClick={(e) => {
+          e.stopPropagation()
+          setIsOpen(!isOpen)
+        }}
+        title={t("actions.menu")}
+      >
+        <i className="fas fa-ellipsis-v text-xs"></i>
+      </button>
+      {isOpen && (
+        <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200">
+          <div className="py-1">
+            {onQuickSell && (
+              <button
+                type="button"
+                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setIsOpen(false)
+                  onQuickSell({
+                    asset: assetCode,
+                    market: asset.market.code,
+                    quantity,
+                    price,
+                  })
+                }}
+              >
+                <i className="fas fa-money-bill-transfer text-red-500 w-4"></i>
+                {t("actions.quickSell")}
+              </button>
+            )}
+            {onCorporateActions && fromDate && (
+              <button
+                type="button"
+                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setIsOpen(false)
+                  onCorporateActions({
+                    asset,
+                    portfolioId,
+                    fromDate,
+                  })
+                }}
+              >
+                <i className="fas fa-calendar-check text-blue-500 w-4"></i>
+                {t("corporate.view")}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Rows({
   portfolio,
   holdingGroup,
@@ -64,7 +177,9 @@ export default function Rows({
   valueIn,
   onColumnsChange,
   onQuickSell,
+  onCorporateActions,
 }: RowsProps): React.ReactElement {
+  const { t } = useTranslation("common")
   const columns = useMemo(
     () => [
       "Asset Code",
@@ -123,25 +238,22 @@ export default function Rows({
                     </div>
                   )}
                 </div>
-                {onQuickSell && !isCashRelated(asset) && (
-                  <button
-                    type="button"
-                    aria-label={`Sell ${getAssetCode(asset.code)}`}
-                    className="hidden sm:inline-flex items-center justify-center w-6 h-6 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors duration-200"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onQuickSell({
-                        asset: getAssetCode(asset.code),
-                        market: asset.market.code,
-                        quantity: quantityValues.total,
-                        price: moneyValues[valueIn].priceData?.close || 0,
-                      })
-                    }}
-                    title="Quick sell entire position"
-                  >
-                    <i className="fas fa-money-bill-transfer text-xs"></i>
-                  </button>
-                )}
+                {!isCashRelated(asset) &&
+                  (onQuickSell || onCorporateActions) && (
+                    <div className="hidden sm:flex items-center">
+                      <ActionsMenu
+                        asset={asset}
+                        portfolioId={portfolio.id}
+                        fromDate={dateValues?.opened}
+                        quantity={quantityValues.total}
+                        price={moneyValues[valueIn].priceData?.close || 0}
+                        valueIn={valueIn}
+                        onQuickSell={onQuickSell}
+                        onCorporateActions={onCorporateActions}
+                        t={t}
+                      />
+                    </div>
+                  )}
               </div>
             </td>
             <td className={getCellClasses(0)}>

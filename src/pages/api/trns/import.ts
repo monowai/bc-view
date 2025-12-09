@@ -17,7 +17,9 @@ export default withApiAuthRequired(async function writeRows(
 
     if (!result.success) {
       console.error("Broker send failed:", result.error)
-      res.status(500).json({ error: result.error?.message || "Failed to send message" })
+      res
+        .status(500)
+        .json({ error: result.error?.message || "Failed to send message" })
       return
     }
 

@@ -5,6 +5,20 @@ import Rows from "../Rows"
 import { Position, Portfolio, HoldingGroup } from "types/beancounter"
 import { ValueIn } from "@components/features/holdings/GroupByOptions"
 
+// Mock next-i18next
+jest.mock("next-i18next", () => ({
+  useTranslation: (): { t: (key: string) => string } => ({
+    t: (key: string): string => {
+      const translations: Record<string, string> = {
+        "actions.menu": "Actions",
+        "actions.quickSell": "Quick Sell",
+        "corporate.view": "View Corporate Actions",
+      }
+      return translations[key] || key
+    },
+  }),
+}))
+
 // Mock Next.js Link component
 jest.mock("next/link", () => {
   return function Link({
@@ -37,57 +51,57 @@ const createMockPosition = (
   code: string,
   marketCode: string,
   quantity: number,
-  price: number
+  price: number,
 ): Position =>
   ({
-  asset: {
-    id: `asset-${code}`,
-    code: `${marketCode}.${code}`,
-    name: `${code} Company`,
-    assetCategory: { id: "equity", name: "Equity" },
-    market: {
-      code: marketCode,
-      currency: { code: "USD", name: "US Dollar", symbol: "$" },
-    },
-  },
-  moneyValues: {
-    PORTFOLIO: {
-      currency: { code: "USD", name: "US Dollar", symbol: "$" },
-      costValue: quantity * (price - 10),
-      marketValue: quantity * price,
-      unrealisedGain: quantity * 10,
-      realisedGain: 0,
-      dividends: 100,
-      irr: 0.15,
-      roi: 0.12,
-      weight: 0.5,
-      totalGain: quantity * 10 + 100,
-      averageCost: price - 10,
-      priceData: {
-        close: price,
-        previousClose: price - 1,
-        change: 1,
-        changePercent: 0.01,
-        priceDate: "2024-01-15",
+    asset: {
+      id: `asset-${code}`,
+      code: `${marketCode}.${code}`,
+      name: `${code} Company`,
+      assetCategory: { id: "equity", name: "Equity" },
+      market: {
+        code: marketCode,
+        currency: { code: "USD", name: "US Dollar", symbol: "$" },
       },
-      gainOnDay: quantity,
     },
-  },
-  quantityValues: {
-    total: quantity,
-    purchased: quantity,
-    sold: 0,
-    precision: 0,
-  },
-  dateValues: {
-    opened: "2023-01-01",
-    last: "2024-01-15",
-    closed: null,
-    lastDividend: "2024-01-01",
-  },
-  lastTradeDate: "2024-01-15",
-  roi: 0.12,
-}) as Position
+    moneyValues: {
+      PORTFOLIO: {
+        currency: { code: "USD", name: "US Dollar", symbol: "$" },
+        costValue: quantity * (price - 10),
+        marketValue: quantity * price,
+        unrealisedGain: quantity * 10,
+        realisedGain: 0,
+        dividends: 100,
+        irr: 0.15,
+        roi: 0.12,
+        weight: 0.5,
+        totalGain: quantity * 10 + 100,
+        averageCost: price - 10,
+        priceData: {
+          close: price,
+          previousClose: price - 1,
+          change: 1,
+          changePercent: 0.01,
+          priceDate: "2024-01-15",
+        },
+        gainOnDay: quantity,
+      },
+    },
+    quantityValues: {
+      total: quantity,
+      purchased: quantity,
+      sold: 0,
+      precision: 0,
+    },
+    dateValues: {
+      opened: "2023-01-01",
+      last: "2024-01-15",
+      closed: null,
+      lastDividend: "2024-01-01",
+    },
+    lastTradeDate: "2024-01-15",
+    roi: 0.12,
+  }) as Position
 
 const createMockHoldingGroup = (positions: Position[]): HoldingGroup => ({
   positions,
@@ -106,7 +120,7 @@ const createMockHoldingGroup = (positions: Position[]): HoldingGroup => ({
   },
 })
 
-describe("Quick Sell Icon Feature", () => {
+describe("Quick Sell Feature via Actions Menu", () => {
   const mockOnColumnsChange = jest.fn()
   const mockOnQuickSell = jest.fn()
 
@@ -123,7 +137,7 @@ describe("Quick Sell Icon Feature", () => {
       })
     })
 
-    it("should render a sell icon button for each position when onQuickSell is provided", () => {
+    it("should render an actions menu button for each position when onQuickSell is provided", () => {
       const positions = [
         createMockPosition("AAPL", "NASDAQ", 100, 150),
         createMockPosition("GOOGL", "NASDAQ", 50, 140),
@@ -139,14 +153,14 @@ describe("Quick Sell Icon Feature", () => {
             onColumnsChange={mockOnColumnsChange}
             onQuickSell={mockOnQuickSell}
           />
-        </table>
+        </table>,
       )
 
-      const sellButtons = screen.getAllByRole("button", { name: /sell/i })
-      expect(sellButtons).toHaveLength(2)
+      const actionsButtons = screen.getAllByRole("button", { name: /actions/i })
+      expect(actionsButtons).toHaveLength(2)
     })
 
-    it("should call onQuickSell with correct asset details when sell icon is clicked", () => {
+    it("should call onQuickSell with correct asset details when Quick Sell menu item is clicked", () => {
       const positions = [createMockPosition("AAPL", "NASDAQ", 100, 150)]
 
       render(
@@ -159,11 +173,16 @@ describe("Quick Sell Icon Feature", () => {
             onColumnsChange={mockOnColumnsChange}
             onQuickSell={mockOnQuickSell}
           />
-        </table>
+        </table>,
       )
 
-      const sellButton = screen.getByRole("button", { name: /sell/i })
-      fireEvent.click(sellButton)
+      // First click the actions menu button
+      const actionsButton = screen.getByRole("button", { name: /actions/i })
+      fireEvent.click(actionsButton)
+
+      // Then click the Quick Sell menu item
+      const sellMenuItem = screen.getByRole("button", { name: /quick sell/i })
+      fireEvent.click(sellMenuItem)
 
       expect(mockOnQuickSell).toHaveBeenCalledTimes(1)
       expect(mockOnQuickSell).toHaveBeenCalledWith({
@@ -174,7 +193,7 @@ describe("Quick Sell Icon Feature", () => {
       })
     })
 
-    it("should have hidden class for mobile portrait mode on sell button", () => {
+    it("should have hidden class for mobile portrait mode on actions menu container", () => {
       const positions = [createMockPosition("AAPL", "NASDAQ", 100, 150)]
 
       render(
@@ -187,18 +206,20 @@ describe("Quick Sell Icon Feature", () => {
             onColumnsChange={mockOnColumnsChange}
             onQuickSell={mockOnQuickSell}
           />
-        </table>
+        </table>,
       )
 
-      const sellButton = screen.getByRole("button", { name: /sell/i })
-      // Should be hidden on mobile portrait but visible on desktop/tablet
-      expect(sellButton).toHaveClass("hidden")
-      expect(sellButton).toHaveClass("sm:inline-flex")
+      const actionsButton = screen.getByRole("button", { name: /actions/i })
+      // The outer container div should be hidden on mobile portrait but visible on desktop/tablet
+      // Structure: container (hidden sm:flex) > ActionsMenu wrapper (relative) > button
+      const outerContainer = actionsButton.parentElement?.parentElement
+      expect(outerContainer).toHaveClass("hidden")
+      expect(outerContainer).toHaveClass("sm:flex")
     })
   })
 
   describe("Without onQuickSell callback", () => {
-    it("should not render sell icon when onQuickSell is not provided", () => {
+    it("should not render actions menu when onQuickSell is not provided", () => {
       const positions = [createMockPosition("AAPL", "NASDAQ", 100, 150)]
 
       render(
@@ -210,16 +231,18 @@ describe("Quick Sell Icon Feature", () => {
             valueIn={ValueIn.PORTFOLIO}
             onColumnsChange={mockOnColumnsChange}
           />
-        </table>
+        </table>,
       )
 
-      const sellButtons = screen.queryAllByRole("button", { name: /sell/i })
-      expect(sellButtons).toHaveLength(0)
+      const actionsButtons = screen.queryAllByRole("button", {
+        name: /actions/i,
+      })
+      expect(actionsButtons).toHaveLength(0)
     })
   })
 
   describe("Cash positions", () => {
-    it("should not render sell icon for cash positions", () => {
+    it("should not render actions menu for cash positions", () => {
       const cashPosition = {
         asset: {
           id: "cash-usd",
@@ -274,11 +297,13 @@ describe("Quick Sell Icon Feature", () => {
             onColumnsChange={mockOnColumnsChange}
             onQuickSell={mockOnQuickSell}
           />
-        </table>
+        </table>,
       )
 
-      const sellButtons = screen.queryAllByRole("button", { name: /sell/i })
-      expect(sellButtons).toHaveLength(0)
+      const actionsButtons = screen.queryAllByRole("button", {
+        name: /actions/i,
+      })
+      expect(actionsButtons).toHaveLength(0)
     })
   })
 
@@ -296,17 +321,22 @@ describe("Quick Sell Icon Feature", () => {
             onColumnsChange={mockOnColumnsChange}
             onQuickSell={mockOnQuickSell}
           />
-        </table>
+        </table>,
       )
 
-      const sellButton = screen.getByRole("button", { name: /sell/i })
-      fireEvent.click(sellButton)
+      // First click the actions menu button
+      const actionsButton = screen.getByRole("button", { name: /actions/i })
+      fireEvent.click(actionsButton)
+
+      // Then click the Quick Sell menu item
+      const sellMenuItem = screen.getByRole("button", { name: /quick sell/i })
+      fireEvent.click(sellMenuItem)
 
       expect(mockOnQuickSell).toHaveBeenCalledWith(
         expect.objectContaining({
           asset: "MSFT",
           market: "NYSE",
-        })
+        }),
       )
     })
   })

@@ -6,9 +6,18 @@ import { useTranslation } from "next-i18next"
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 
+// Capitalize first letter of a string
+const capitalize = (str: string): string =>
+  str ? str.charAt(0).toUpperCase() + str.slice(1) : ""
+
 export default withPageAuthRequired(function Home(): React.ReactElement {
   const { user, error, isLoading } = useUser()
   const { t } = useTranslation("common")
+
+  // Get display name: prefer nickname, fall back to name
+  const displayName = user?.nickname
+    ? capitalize(user.nickname)
+    : user?.name || ""
 
   if (isLoading)
     return (
@@ -32,7 +41,7 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
             <div className="text-center">
               <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
                 {t("home.welcome")}{" "}
-                <span className="text-blue-600">{user.name}</span>
+                <span className="text-blue-600">{displayName}</span>
               </h1>
               <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
                 {t("tagline")} - Track your investments, manage portfolios, and

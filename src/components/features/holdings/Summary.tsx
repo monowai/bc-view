@@ -51,11 +51,121 @@ interface SummaryHeaderProps {
   onViewModeChange?: (mode: ViewMode) => void
 }
 
+// Mobile/Tablet header - must be rendered OUTSIDE the table element
+export function SummaryHeaderMobile({
+  portfolio,
+  viewMode,
+  onViewModeChange,
+}: SummaryHeaderProps): ReactElement {
+  const { control, handleSubmit } = useForm()
+  const holdingState = useHoldingState()
+
+  const onSubmit = useCallback(
+    (data: any): void => {
+      holdingState.setAsAt(data.date)
+    },
+    [holdingState],
+  )
+
+  const handleDateChange = useCallback(
+    (field: any) => (event: React.ChangeEvent<HTMLInputElement>) => {
+      field.onChange(event)
+      const date = new Date(event.target.value)
+      if (!isNaN(date.getTime())) {
+        handleSubmit(onSubmit)()
+      }
+    },
+    [handleSubmit, onSubmit],
+  )
+
+  return (
+    <>
+      {/* Mobile header - Single row layout */}
+      <div className="md:hidden bg-gray-100 p-2 mx-2 mt-2 rounded-t-lg border border-b-0 border-gray-200">
+        <div className="flex items-center justify-between gap-2">
+          {/* Portfolio name - truncate if too long */}
+          <h3 className="font-medium text-xs text-gray-900 truncate flex-shrink min-w-0">
+            {portfolio.name}
+            <Link
+              href={`/portfolios/${portfolio.id}`}
+              className="far fa-edit text-gray-500 hover:text-gray-700 ml-1"
+            />
+          </h3>
+
+          {/* View toggle buttons - center */}
+          {viewMode && onViewModeChange && (
+            <div className="flex-shrink-0">
+              <ViewToggle
+                viewMode={viewMode}
+                onViewModeChange={onViewModeChange}
+              />
+            </div>
+          )}
+
+          {/* Date picker - right */}
+          <form onSubmit={handleSubmit(onSubmit)} className="flex-shrink-0">
+            <Controller
+              name="date"
+              control={control}
+              render={({ field }) => (
+                <input
+                  {...field}
+                  type="date"
+                  defaultValue={getTodayDate(holdingState.asAt)}
+                  className="input text-xs w-28"
+                  onChange={handleDateChange(field)}
+                />
+              )}
+            />
+          </form>
+        </div>
+      </div>
+
+      {/* Tablet header */}
+      <div className="hidden md:block xl:hidden bg-gray-100 p-4 mx-2 mt-2 rounded-t-lg border border-b-0 border-gray-200">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h3 className="font-medium text-base text-gray-900">
+              {portfolio.name}
+              <Link
+                href={`/portfolios/${portfolio.id}`}
+                className="far fa-edit text-gray-500 hover:text-gray-700 ml-2"
+              />
+            </h3>
+          </div>
+          {viewMode && onViewModeChange && (
+            <div className="flex-shrink-0">
+              <ViewToggle
+                viewMode={viewMode}
+                onViewModeChange={onViewModeChange}
+              />
+            </div>
+          )}
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <Controller
+              name="date"
+              control={control}
+              render={({ field }) => (
+                <input
+                  {...field}
+                  type="date"
+                  defaultValue={getTodayDate(holdingState.asAt)}
+                  className="input text-sm"
+                  onChange={handleDateChange(field)}
+                />
+              )}
+            />
+          </form>
+        </div>
+      </div>
+    </>
+  )
+}
+
+// Desktop table header - renders as thead, must be inside table
 export default function SummaryHeader({
   portfolio,
   portfolioSummary,
-  viewMode,
-  onViewModeChange,
 }: SummaryHeaderProps): ReactElement {
   const { t } = useTranslation("common")
   const { control, handleSubmit } = useForm()
@@ -168,183 +278,90 @@ export default function SummaryHeader({
   )
 
   return (
-    <>
-      {/* Mobile header - Single row layout */}
-      <div className="md:hidden bg-gray-100 p-2 mx-2 mt-2 rounded-t-lg border border-b-0 border-gray-200">
-        <div className="flex items-center justify-between gap-2">
-          {/* Portfolio name - truncate if too long */}
-          <h3 className="font-medium text-xs text-gray-900 truncate flex-shrink min-w-0">
-            {portfolio.name}
-            <Link
-              href={`/portfolios/${portfolio.id}`}
-              className="far fa-edit text-gray-500 hover:text-gray-700 ml-1"
-            />
-          </h3>
+    <thead className="hidden xl:table-header-group">
+      <tr className="bg-gray-200">
+        <th className="px-2 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm text-left">
+          {portfolio.name}
+          <Link
+            href={`/portfolios/${portfolio.id}`}
+            className="far fa-edit text-gray-500 hover:text-gray-700 ml-2"
+          />
+        </th>
+        {headers.map((header) => {
+          let visibility
+          if (header.mobile) {
+            visibility = ""
+          } else if (header.medium) {
+            visibility = "hidden md:table-cell"
+          } else {
+            visibility = "hidden xl:table-cell"
+          }
 
-          {/* View toggle buttons - center */}
-          {viewMode && onViewModeChange && (
-            <div className="flex-shrink-0">
-              <ViewToggle
-                viewMode={viewMode}
-                onViewModeChange={onViewModeChange}
-              />
-            </div>
-          )}
-
-          {/* Date picker - right */}
-          <form
-            onSubmit={handleSubmit(onSubmit)}
-            className="flex items-center gap-1 flex-shrink-0"
-          >
-            <span className="text-xs text-gray-600">@</span>
-            <Controller
-              name="date"
-              control={control}
-              render={({ field }) => (
-                <input
-                  {...field}
-                  type="date"
-                  defaultValue={getTodayDate(holdingState.asAt)}
-                  className="input text-xs w-28"
-                  onChange={handleDateChange(field)}
-                />
-              )}
-            />
-          </form>
-        </div>
-      </div>
-
-      {/* Tablet header */}
-      <div className="hidden md:block xl:hidden bg-gray-100 p-4 mx-2 mt-2 rounded-t-lg border border-b-0 border-gray-200">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h3 className="font-medium text-base text-gray-900">
-              {portfolio.name}
-              <Link
-                href={`/portfolios/${portfolio.id}`}
-                className="far fa-edit text-gray-500 hover:text-gray-700 ml-2"
-              />
-            </h3>
-          </div>
-          {viewMode && onViewModeChange && (
-            <div className="flex-shrink-0">
-              <ViewToggle
-                viewMode={viewMode}
-                onViewModeChange={onViewModeChange}
-              />
-            </div>
-          )}
-          <form
-            onSubmit={handleSubmit(onSubmit)}
-            className="flex items-center gap-2"
-          >
-            <span className="text-sm text-gray-600">@</span>
-            <Controller
-              name="date"
-              control={control}
-              render={({ field }) => (
-                <input
-                  {...field}
-                  type="date"
-                  defaultValue={getTodayDate(holdingState.asAt)}
-                  className="input text-sm"
-                  onChange={handleDateChange(field)}
-                />
-              )}
-            />
-          </form>
-        </div>
-      </div>
-
-      {/* Desktop table header */}
-      <thead className="hidden xl:table-header-group">
-        <tr className="bg-gray-200">
-          <th className="px-2 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm text-left">
-            {portfolio.name}
-            <Link
-              href={`/portfolios/${portfolio.id}`}
-              className="far fa-edit text-gray-500 hover:text-gray-700 ml-2"
-            />
-          </th>
-          {headers.map((header) => {
-            let visibility
-            if (header.mobile) {
-              visibility = ""
-            } else if (header.medium) {
-              visibility = "hidden md:table-cell"
-            } else {
-              visibility = "hidden xl:table-cell"
-            }
-
-            return (
-              <th
-                key={header.key}
-                className={`px-1 py-2 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-${header.align} ${visibility}`}
-              >
-                {t(header.key)}
-              </th>
-            )
-          })}
-        </tr>
-        <tr className="bg-gray-100">
-          <td className="px-2 py-2 text-xs md:text-sm font-medium text-gray-700">
-            <form
-              onSubmit={handleSubmit(onSubmit)}
-              className="flex items-center gap-2"
+          return (
+            <th
+              key={header.key}
+              className={`px-1 py-2 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-${header.align} ${visibility}`}
             >
-              <span>@</span>
-              <Controller
-                name="date"
-                control={control}
-                render={({ field }) => (
-                  <input
-                    {...field}
-                    type="date"
-                    defaultValue={getTodayDate(holdingState.asAt)}
-                    className="input text-xs md:text-sm font-medium"
-                    onChange={handleDateChange(field)}
-                  />
-                )}
-              />
-            </form>
-          </td>
-          {/* Summary values in the same row as the date */}
-          {dataWithVisibility.map((item, index) => {
-            let visibility
-            if (item.mobile) {
-              visibility = ""
-            } else if (item.medium) {
-              visibility = "hidden md:table-cell"
-            } else {
-              visibility = "hidden xl:table-cell"
-            }
+              {t(header.key)}
+            </th>
+          )
+        })}
+      </tr>
+      <tr className="bg-gray-100">
+        <td className="px-2 py-2 text-xs md:text-sm font-medium text-gray-700">
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <Controller
+              name="date"
+              control={control}
+              render={({ field }) => (
+                <input
+                  {...field}
+                  type="date"
+                  defaultValue={getTodayDate(holdingState.asAt)}
+                  className="input text-xs md:text-sm font-medium"
+                  onChange={handleDateChange(field)}
+                />
+              )}
+            />
+          </form>
+        </td>
+        {/* Summary values in the same row as the date */}
+        {dataWithVisibility.map((item, index) => {
+          let visibility
+          if (item.mobile) {
+            visibility = ""
+          } else if (item.medium) {
+            visibility = "hidden md:table-cell"
+          } else {
+            visibility = "hidden xl:table-cell"
+          }
 
-            // Get alignment from headers array
-            const alignment = headers[index]?.align || "right"
+          // Get alignment from headers array
+          const alignment = headers[index]?.align || "right"
 
-            return (
-              <td
-                key={index}
-                className={`px-1 py-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-${alignment} ${visibility}`}
-              >
-                {item.content}
-              </td>
-            )
-          })}
-        </tr>
-      </thead>
-    </>
+          return (
+            <td
+              key={index}
+              className={`px-1 py-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-${alignment} ${visibility}`}
+            >
+              {item.content}
+            </td>
+          )
+        })}
+      </tr>
+    </thead>
   )
 }
 
-export function SummaryRow({
+// Mobile/Tablet summary row - must be rendered OUTSIDE the table element
+export function SummaryRowMobile({
   totals,
   currency,
 }: PortfolioSummary): ReactElement {
   const { t } = useTranslation("common")
   const currencyTotals = totals !== undefined
-  // Unified horizontal card layout for all non-desktop screens - DRAMATICALLY improved spacing
-  const HorizontalCard = (): ReactElement => (
+
+  return (
     <div className="xl:hidden bg-white rounded-lg border border-gray-200 mx-4 my-4 px-6 py-5 md:px-8 md:py-6 relative">
       {/* DEBUG: Show which layout is active */}
       {process.env.NODE_ENV === "development" && (
@@ -416,15 +433,11 @@ export function SummaryRow({
       </div>
     </div>
   )
+}
 
-  // Traditional table layout for medium+ screens
-  return (
-    <>
-      {/* Unified horizontal card layout for all non-desktop screens */}
-      <HorizontalCard />
-
-      {/* Desktop values are now rendered in SummaryHeader's second row */}
-      {/* No separate tbody needed for desktop summary values */}
-    </>
-  )
+// Desktop summary row - returns empty fragment as values are now in SummaryHeader
+// This component exists for backward compatibility but doesn't render anything
+// Use SummaryRowMobile for mobile/tablet views (must be rendered outside table)
+export function SummaryRow(): ReactElement {
+  return <></>
 }

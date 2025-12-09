@@ -25,7 +25,7 @@ export class KafkaBroker implements MessageBroker {
       })
       await this.producer.connect()
       console.log(
-        `Kafka broker connected: hosts=${this.config.hosts}, clientId=${this.config.clientId}`
+        `Kafka broker connected: hosts=${this.config.hosts}, clientId=${this.config.clientId}`,
       )
     }
   }
@@ -61,7 +61,9 @@ export class KafkaBroker implements MessageBroker {
         ],
       })
 
-      console.log(`Kafka message sent to topic ${message.topic}, key=${message.key}`)
+      console.log(
+        `Kafka message sent to topic ${message.topic}, key=${message.key}`,
+      )
 
       return {
         success: true,

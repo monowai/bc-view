@@ -117,8 +117,9 @@ describe("GrandTotal Snapshot Tests", () => {
         )
       })
 
-      // Should have 10 visible columns on tablet (sm:640px+ columns are visible)
-      expect(visibleColumns).toHaveLength(10)
+      // Should have 9 visible columns on tablet (sm:640px+ columns are visible)
+      // Note: Weight is shown instead of Unrealised and Realised gains on tablet
+      expect(visibleColumns).toHaveLength(9)
 
       // Verify key columns are in correct positions
       expect(dataCells[0]).toHaveTextContent("") // Change (empty)

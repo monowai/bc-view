@@ -48,11 +48,12 @@ describe("GrandTotal Tablet-Specific Tests (TDD)", () => {
       )
     })
 
-    // FIXED: Should now have 10 visible columns (including Change and columns with sm:table-cell)
-    expect(visibleColumns.length).toBe(10)
+    // Should have 9 visible columns on tablet
+    // Note: Weight is shown instead of Unrealised and Realised gains on tablet
+    expect(visibleColumns.length).toBe(9)
 
-    // totalGain should be in the LAST visible position (10th position, index 9)
-    const lastVisibleCell = visibleColumns[9]
+    // totalGain should be in the LAST visible position (9th position, index 8)
+    const lastVisibleCell = visibleColumns[8]
     expect(lastVisibleCell.textContent).toMatch(/4,?284\.31/)
 
     // FIXED: Change column should be first visible column

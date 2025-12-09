@@ -1,5 +1,5 @@
 import React from "react"
-import { render, screen, waitFor } from "@testing-library/react"
+import { render, screen, waitFor, fireEvent } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import { Portfolios } from "../Portfolios"
 import { Portfolio } from "types/beancounter"
@@ -131,7 +131,7 @@ describe("Portfolios Component (TDD)", () => {
       render(<Portfolios {...mockPortfolio} />)
 
       const button = screen.getByRole("button", { name: /Test Portfolio/i })
-      button.click()
+      fireEvent.click(button)
 
       await waitFor(() => {
         expect(screen.getByText("Another Portfolio")).toBeInTheDocument()

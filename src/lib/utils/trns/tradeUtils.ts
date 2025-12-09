@@ -36,7 +36,7 @@ export const calculateTradeAmount = (
  */
 export const calculateTradeWeight = (
   tradeAmount: number,
-  portfolioMarketValue: number
+  portfolioMarketValue: number,
 ): number => {
   if (portfolioMarketValue <= 0) return 0
   return (Math.abs(tradeAmount) / portfolioMarketValue) * 100
@@ -50,7 +50,7 @@ export const calculateNewPositionWeight = (
   initialQuantity: number,
   sellQuantity: number,
   price: number,
-  portfolioMarketValue: number
+  portfolioMarketValue: number,
 ): number => {
   if (portfolioMarketValue <= 0 || initialQuantity <= 0) return 0
   const remainingQuantity = Math.max(0, initialQuantity - sellQuantity)

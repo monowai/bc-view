@@ -15,14 +15,31 @@ import { deleteTrn } from "@lib/trns/apiHelper"
 
 export default withPageAuthRequired(function Events(): React.ReactElement {
   const router = useRouter()
-  const portfolioId = router.query.events ? router.query.events[0] : "undefined"
-  const assetId = router.query.events ? router.query.events[1] : "undefined"
   const { t } = useTranslation("common")
-  const asset = useSwr(assetKey(assetId), simpleFetcher(assetKey(assetId)))
-  const events = useSwr(
-    eventKey(portfolioId, assetId),
-    simpleFetcher(eventKey(portfolioId, assetId)),
+
+  // Extract query params - safe to access even before router is ready (will be undefined)
+  const eventsParam = router.query.events as string[] | undefined
+  const portfolioId = eventsParam ? eventsParam[0] : undefined
+  const assetId = eventsParam ? eventsParam[1] : undefined
+
+  // Fetch asset and events - only when router is ready and we have valid params
+  const asset = useSwr(
+    router.isReady && assetId ? assetKey(assetId) : null,
+    router.isReady && assetId ? simpleFetcher(assetKey(assetId)) : null,
   )
+  const events = useSwr(
+    router.isReady && portfolioId && assetId
+      ? eventKey(portfolioId, assetId)
+      : null,
+    router.isReady && portfolioId && assetId
+      ? simpleFetcher(eventKey(portfolioId, assetId))
+      : null,
+  )
+
+  // Wait for router to be ready (query params available) during client-side navigation
+  if (!router.isReady) {
+    return rootLoader(t("loading"))
+  }
   if (events.error) {
     return errorOut(t("events.error.retrieve"), events.error)
   }

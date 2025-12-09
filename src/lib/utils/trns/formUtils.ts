@@ -3,6 +3,27 @@ import { convert } from "@lib/trns/tradeUtils"
 import { useEffect } from "react"
 import { postData } from "@components/ui/DropZone"
 
+export const copyToClipboard = (text: string): void => {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).catch((err) => {
+      console.error("Failed to copy text: ", err)
+    })
+  } else {
+    const textarea = document.createElement("textarea")
+    textarea.value = text
+    textarea.style.position = "fixed"
+    document.body.appendChild(textarea)
+    textarea.focus()
+    textarea.select()
+    try {
+      document.execCommand("copy")
+    } catch (err) {
+      console.error("Fallback: Failed to copy text: ", err)
+    }
+    document.body.removeChild(textarea)
+  }
+}
+
 export const onSubmit = (
   portfolio: Portfolio,
   errors: any,
@@ -15,7 +36,6 @@ export const onSubmit = (
   }
   const row = convert(data)
   if (window.confirm("Submit the transaction?")) {
-    alert(row)
     postData(portfolio, false, row.split(",")).then()
     setTradeModalOpen(false)
   } else {

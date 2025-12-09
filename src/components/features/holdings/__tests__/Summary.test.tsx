@@ -1,7 +1,7 @@
 import React from "react"
 import { render } from "@testing-library/react"
 import "@testing-library/jest-dom"
-import SummaryHeader, { SummaryRow } from "../Summary"
+import SummaryHeader, { SummaryRow, SummaryRowMobile } from "../Summary"
 import { Portfolio, PortfolioSummary } from "types/beancounter"
 
 // Mock next-i18next
@@ -61,11 +61,8 @@ describe("Summary Mobile View Tests (TDD)", () => {
     })
 
     it("should hide Purchases and Income sections in mobile view", () => {
-      const { container } = render(
-        <table>
-          <SummaryRow {...mockSummary} />
-        </table>,
-      )
+      // SummaryRowMobile is rendered outside table for mobile/tablet views
+      const { container } = render(<SummaryRowMobile {...mockSummary} />)
 
       // Find the sections in the horizontal card (mobile layout)
       // The mobile layout uses a grid with 3 columns on mobile, 4 on tablet
@@ -93,11 +90,8 @@ describe("Summary Mobile View Tests (TDD)", () => {
     })
 
     it("should show columns in order: Value, Income, Gain, IRR", () => {
-      const { container } = render(
-        <table>
-          <SummaryRow {...mockSummary} />
-        </table>,
-      )
+      // SummaryRowMobile is rendered outside table for mobile/tablet views
+      const { container } = render(<SummaryRowMobile {...mockSummary} />)
 
       const gridContainer = container.querySelector(".grid")
       const columns = gridContainer?.querySelectorAll(".text-center")
@@ -128,11 +122,8 @@ describe("Summary Mobile View Tests (TDD)", () => {
     })
 
     it("should show Income instead of Purchases in tablet view", () => {
-      const { container } = render(
-        <table>
-          <SummaryRow {...mockSummary} />
-        </table>,
-      )
+      // SummaryRowMobile is rendered outside table for mobile/tablet views
+      const { container } = render(<SummaryRowMobile {...mockSummary} />)
 
       // Find the sections in the horizontal card
       const gridContainer = container.querySelector(".grid")
@@ -157,11 +148,8 @@ describe("Summary Mobile View Tests (TDD)", () => {
     })
 
     it("should show all summary fields in correct order in tablet view", () => {
-      const { container } = render(
-        <table>
-          <SummaryRow {...mockSummary} />
-        </table>,
-      )
+      // SummaryRowMobile is rendered outside table for mobile/tablet views
+      const { container } = render(<SummaryRowMobile {...mockSummary} />)
 
       const gridContainer = container.querySelector(".grid")
       const columns = gridContainer?.querySelectorAll(".text-center")
