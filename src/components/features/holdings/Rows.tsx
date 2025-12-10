@@ -145,7 +145,7 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
                 {t("actions.quickSell")}
               </button>
             )}
-            {onCorporateActions && fromDate && (
+            {onCorporateActions && (
               <button
                 type="button"
                 className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
@@ -155,7 +155,7 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
                   onCorporateActions({
                     asset,
                     portfolioId,
-                    fromDate,
+                    fromDate: fromDate || "",
                   })
                 }}
               >

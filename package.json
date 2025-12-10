@@ -19,7 +19,7 @@
     "deps:update": "yarn upgrade-interactive",
     "check-imports": "node scripts/check-imports.js",
     "precommit": "lint-staged",
-    "prepare": "husky install"
+    "prepare": "husky insta ll"
   },
   "dependencies": {
     "@auth0/nextjs-auth0": "^3.8.0",

@@ -59,15 +59,33 @@ const isEventReconciled = (
 const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
   asset,
   portfolioId,
-  fromDate,
+  fromDate: fromDateProp,
   toDate: toDateProp,
   modalOpen,
   onClose,
 }) => {
   const { t } = useTranslation("common")
   const today = new Date().toISOString().split("T")[0]
+
+  // Helper to validate date string
+  const isValidDate = (dateStr: string | undefined): boolean => {
+    if (!dateStr) return false
+    const date = new Date(dateStr)
+    return !isNaN(date.getTime())
+  }
+
   // Use provided toDate or default to today
-  const toDate = toDateProp || today
+  const toDate = isValidDate(toDateProp) ? toDateProp! : today
+
+  // Calculate default fromDate (1 year before toDate)
+  const defaultFromDate = (() => {
+    const date = new Date(toDate)
+    date.setFullYear(date.getFullYear() - 1)
+    return date.toISOString().split("T")[0]
+  })()
+
+  // Use provided fromDate or default
+  const fromDate = isValidDate(fromDateProp) ? fromDateProp! : defaultFromDate
   const [isLoadingEvents, setIsLoadingEvents] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [loadSuccess, setLoadSuccess] = useState(false)
