@@ -143,5 +143,15 @@
   "corporate.portfolio.noMissing": "All corporate actions have been recorded. No missing events found.",
   "corporate.portfolio.found": "Found {{count}} missing corporate action(s) that can be processed.",
   "actions.menu": "Actions",
-  "actions.quickSell": "Quick Sell"
+  "actions.quickSell": "Quick Sell",
+  "actions.rebalance": "Rebalance",
+  "rebalance.title": "Rebalance Position",
+  "rebalance.currentWeight": "Current Weight",
+  "rebalance.targetWeight": "Target Weight",
+  "rebalance.requiredShares": "Required Shares",
+  "rebalance.action": "Action",
+  "rebalance.buy": "Buy",
+  "rebalance.sell": "Sell",
+  "rebalance.proceed": "Proceed",
+  "rebalance.cancel": "Cancel"
 }

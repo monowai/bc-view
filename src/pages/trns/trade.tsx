@@ -85,6 +85,7 @@ const TradeInputForm: React.FC<{
   const [copyStatus, setCopyStatus] = useState<"idle" | "success" | "error">(
     "idle",
   )
+  const [targetWeight, setTargetWeight] = useState<string>("")
 
   const handleCopy = async (): Promise<void> => {
     const formData = getValues()
@@ -103,18 +104,22 @@ const TradeInputForm: React.FC<{
   // Reset form with initial values when modal opens with quick sell data
   useEffect(() => {
     if (modalOpen && initialValues) {
+      const tradeType = initialValues.type || "SELL"
       reset({
         ...defaultValues,
-        type: { value: "SELL", label: "SELL" },
+        type: { value: tradeType, label: tradeType },
         asset: initialValues.asset,
         market: initialValues.market,
         quantity: initialValues.quantity,
         price: initialValues.price,
       })
+      setTargetWeight("")
     } else if (modalOpen && !initialValues) {
       reset(defaultValues)
+      setTargetWeight("")
     }
   }, [modalOpen, initialValues, reset])
+
   const { data: ccyData, isLoading } = useSwr(ccyKey, simpleFetcher(ccyKey))
   const { t } = useTranslation("common")
 
@@ -123,6 +128,54 @@ const TradeInputForm: React.FC<{
   const tax = watch("tax")
   const fees = watch("fees")
   const type = watch("type")
+
+  // Calculate current weight from position data
+  // Use currentPositionQuantity if available (rebalance), otherwise use quantity (quick sell)
+  const currentPositionWeight = useMemo(() => {
+    const positionQty =
+      initialValues?.currentPositionQuantity ?? initialValues?.quantity
+    if (!positionQty || !price || !portfolio.marketValue) {
+      return null
+    }
+    const positionValue = positionQty * price
+    return (positionValue / portfolio.marketValue) * 100
+  }, [
+    initialValues?.currentPositionQuantity,
+    initialValues?.quantity,
+    price,
+    portfolio.marketValue,
+  ])
+
+  // Get the actual current position quantity for calculations
+  const actualPositionQuantity =
+    initialValues?.currentPositionQuantity ?? initialValues?.quantity ?? 0
+
+  // Handle target weight change - calculate and set quantity
+  const handleTargetWeightChange = (newTargetWeight: string): void => {
+    setTargetWeight(newTargetWeight)
+
+    const targetWeightNum = parseFloat(newTargetWeight)
+    if (
+      isNaN(targetWeightNum) ||
+      !price ||
+      !portfolio.marketValue ||
+      currentPositionWeight === null
+    ) {
+      return
+    }
+
+    const targetValue = (targetWeightNum / 100) * portfolio.marketValue
+    const currentValue = (currentPositionWeight / 100) * portfolio.marketValue
+    const valueDiff = targetValue - currentValue
+    const requiredShares = Math.round(Math.abs(valueDiff) / price)
+
+    // Set the quantity
+    setValue("quantity", requiredShares)
+
+    // Set the trade type based on direction
+    const newType = valueDiff >= 0 ? "BUY" : "SELL"
+    setValue("type", { value: newType, label: newType })
+  }
 
   useEffect(() => {
     if (quantity && price) {
@@ -151,14 +204,28 @@ const TradeInputForm: React.FC<{
       type.value,
     )
 
-    if (type.value === "SELL" && initialValues) {
-      // For SELL with initial values (quick sell), show new position weight
+    if (type.value === "SELL" && actualPositionQuantity > 0) {
+      // For SELL with position data, show new position weight
       const newWeight = calculateNewPositionWeight(
-        initialValues.quantity,
+        actualPositionQuantity,
         quantity,
         price,
         portfolio.marketValue,
       )
+      const tradeWeight = calculateTradeWeight(
+        tradeAmount,
+        portfolio.marketValue,
+      )
+      return {
+        label: "New Weight",
+        value: newWeight,
+        tradeWeight: tradeWeight,
+      }
+    } else if (type.value === "BUY" && actualPositionQuantity > 0) {
+      // For BUY with position data, show new position weight after buying
+      const currentPositionValue = actualPositionQuantity * price
+      const newPositionValue = currentPositionValue + tradeAmount
+      const newWeight = (newPositionValue / portfolio.marketValue) * 100
       const tradeWeight = calculateTradeWeight(
         tradeAmount,
         portfolio.marketValue,
@@ -184,15 +251,7 @@ const TradeInputForm: React.FC<{
       }
     }
     return null
-  }, [
-    quantity,
-    price,
-    tax,
-    fees,
-    portfolio.marketValue,
-    initialValues,
-    type.value,
-  ])
+  }, [quantity, price, tax, fees, portfolio.marketValue, type.value])
 
   useEscapeHandler(isDirty, setModalOpen)
 
@@ -203,16 +262,16 @@ const TradeInputForm: React.FC<{
   return (
     <>
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center md:overflow-visible overflow-hidden">
           <div
             className="fixed inset-0 bg-black opacity-50"
             onClick={() => setModalOpen(false)}
           ></div>
           <div
-            className="bg-white rounded-lg shadow-lg w-full max-w-2xl mx-auto p-6 z-50"
+            className="bg-white rounded-lg shadow-lg w-full max-w-2xl mx-4 md:mx-auto z-50 md:max-h-none max-h-[90vh] md:block flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            <header className="flex justify-between items-center border-b pb-2 mb-4">
+            <header className="flex justify-between items-center border-b p-6 pb-4 shrink-0">
               <h2 className="text-xl font-semibold">
                 {t("trade.market.title")}
               </h2>
@@ -227,7 +286,7 @@ const TradeInputForm: React.FC<{
               onSubmit={handleSubmit((data) =>
                 onSubmit(portfolio, errors, data, setModalOpen),
               )}
-              className="space-y-4"
+              className="space-y-4 md:overflow-visible overflow-y-auto flex-1 p-6 pt-4"
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
@@ -342,7 +401,10 @@ const TradeInputForm: React.FC<{
                   },
                   {
                     name: "quantity",
-                    label: t("quantity"),
+                    label:
+                      actualPositionQuantity > 0
+                        ? `${t("quantity")} (${actualPositionQuantity.toLocaleString()} held)`
+                        : t("quantity"),
                     component: (
                       <Controller
                         name="quantity"
@@ -457,29 +519,64 @@ const TradeInputForm: React.FC<{
                   </div>
                 ))}
               </div>
-              {weightInfo && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <span className="text-sm font-medium text-blue-800">
-                        {weightInfo.label}:{" "}
-                        <span className="text-lg font-bold">
-                          {weightInfo.value.toFixed(2)}%
-                        </span>
+              {/* Target Weight Input - shown when we have position data */}
+              {currentPositionWeight !== null && (
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 mt-2">
+                  <div className="flex items-center gap-4 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-purple-800">
+                        {t("rebalance.currentWeight")}:
                       </span>
-                      {weightInfo.tradeWeight !== undefined && (
-                        <span className="text-sm text-blue-600">
-                          (Reducing by {weightInfo.tradeWeight.toFixed(2)}%)
-                        </span>
-                      )}
+                      <span className="text-lg font-bold text-purple-900">
+                        {currentPositionWeight.toFixed(2)}%
+                      </span>
                     </div>
-                    <span className="text-xs text-blue-500">
-                      of {portfolio.currency.symbol}
-                      {portfolio.marketValue.toLocaleString()} portfolio
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-purple-800">
+                        {t("rebalance.targetWeight")}:
+                      </span>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        value={targetWeight}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value)
+                          if (e.target.value === "" || val >= 0) {
+                            handleTargetWeightChange(e.target.value)
+                          }
+                        }}
+                        placeholder={currentPositionWeight.toFixed(1)}
+                        className="w-20 px-2 py-1 border border-purple-300 rounded text-sm focus:ring-purple-500 focus:border-purple-500"
+                      />
+                      <span className="text-purple-600">%</span>
+                    </div>
                   </div>
                 </div>
               )}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <span className="text-sm font-medium text-blue-800">
+                      {weightInfo ? weightInfo.label : "Trade Weight"}:{" "}
+                      <span className="text-lg font-bold">
+                        {weightInfo ? `${weightInfo.value.toFixed(2)}%` : "—"}
+                      </span>
+                    </span>
+                    {weightInfo?.tradeWeight !== undefined && (
+                      <span className="text-sm text-blue-600">
+                        ({type.value === "SELL" ? "Reducing" : "Adding"}{" "}
+                        {weightInfo.tradeWeight.toFixed(2)}%)
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs text-blue-500">
+                    of {portfolio.currency.symbol}
+                    {portfolio.marketValue.toLocaleString()} portfolio
+                  </span>
+                </div>
+              </div>
               <div className="text-red-500 text-xs">
                 {Object.values(errors)
                   .map((error) => error?.message)
