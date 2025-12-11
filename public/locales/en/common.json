@@ -129,7 +129,7 @@
   "corporate.transactionCreated": "Transaction dispatched",
   "corporate.transactionCreated.hint": "Transaction sent to bc-data with pay date: {{date}}",
   "corporate.sourceRecord": "Source record unchanged",
-  "corporate.info": "Corporate events are source records from market data. Click the play button to dispatch a transaction to your portfolio. The effective date can be edited before processing.",
+  "corporate.info": "These are the corporate events we know about. Click the play button to dispatch a transaction to your portfolio. The effective date can be edited before processing.",
   "corporate.reconciled": "Transaction exists in portfolio",
   "corporate.reconciled.hint": "Reconciliation status - shows if a matching transaction exists in your portfolio",
   "corporate.notReconciled": "No matching transaction in portfolio",

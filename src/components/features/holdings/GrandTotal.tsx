@@ -11,26 +11,27 @@ export default function GrandTotal({
   valueIn,
 }: HoldingsInCurrency): ReactElement {
   const { t, ready } = useTranslation("common")
-  if (!ready) return <div />
-  if (!holdings.viewTotals) return <div />
+  if (!ready) return <tbody />
+  if (!holdings.viewTotals) return <tbody />
 
   // GrandTotal data: skips first column (Price), maps to headers[1-12]
+  const gainOnDay = holdings.viewTotals.gainOnDay || 0
   const data: {
     value: number | string | null
     colSpan: number
     multiplier?: number
   }[] = [
-    { value: null, colSpan: 1 }, // Maps to CHANGE% (headers[1])
-    { value: holdings.viewTotals.gainOnDay || 0, colSpan: 1 }, // Maps to GAIN_ON_DAY (headers[2])
+    { value: gainOnDay, colSpan: 1 }, // Maps to CHANGE% (headers[1]) - shows gainOnDay sum on mobile
+    { value: gainOnDay, colSpan: 1 }, // Maps to GAIN_ON_DAY (headers[2]) - hidden
     { value: holdings.viewTotals.costValue, colSpan: 1 }, // Maps to QUANTITY (headers[3]) - costValue only in quantity column
     { value: null, colSpan: 1 }, // Maps to COST (headers[4]) - empty since cost column gets the costValue
     { value: holdings.viewTotals.marketValue, colSpan: 1 }, // Maps to MARKET_VALUE (headers[5])
-    { value: holdings.viewTotals.dividends, colSpan: 1 }, // Maps to DIVIDENDS (headers[6])
-    { value: holdings.viewTotals.unrealisedGain, colSpan: 1 }, // Maps to UNREALISED_GAIN (headers[7])
-    { value: holdings.viewTotals.realisedGain, colSpan: 1 }, // Maps to REALISED_GAIN (headers[8])
-    { value: holdings.viewTotals.irr, colSpan: 1, multiplier: 100 }, // Maps to IRR (headers[9])
-    { value: null, colSpan: 1 }, // Maps to ALPHA (headers[10])
-    { value: holdings.viewTotals.weight, colSpan: 1, multiplier: 100 }, // Maps to WEIGHT (headers[11])
+    { value: holdings.viewTotals.weight, colSpan: 1, multiplier: 100 }, // Maps to WEIGHT (headers[6]) - moved between value and income
+    { value: holdings.viewTotals.dividends, colSpan: 1 }, // Maps to DIVIDENDS (headers[7])
+    { value: holdings.viewTotals.unrealisedGain, colSpan: 1 }, // Maps to UNREALISED_GAIN (headers[8])
+    { value: holdings.viewTotals.realisedGain, colSpan: 1 }, // Maps to REALISED_GAIN (headers[9])
+    { value: holdings.viewTotals.irr, colSpan: 1, multiplier: 100 }, // Maps to IRR (headers[10])
+    { value: null, colSpan: 1 }, // Maps to ALPHA (headers[11])
     { value: holdings.viewTotals.totalGain, colSpan: 1 }, // Maps to TOTAL_GAIN (headers[12])
   ]
 
@@ -53,14 +54,15 @@ export default function GrandTotal({
         <td colSpan={1} className="hidden sm:table-cell" />
         {data.map((item, index) => {
           // Explicit mapping for each data position to ensure correct alignment
+          // Data array order matches header order: Change, GainOnDay, Quantity, Cost, MarketValue, Weight, Dividends, etc.
           let headerIndex
           switch (index) {
             case 0:
               headerIndex = HEADER_INDICES.CHANGE
-              break // change (null)
+              break // change (gainOnDay sum on mobile)
             case 1:
               headerIndex = HEADER_INDICES.GAIN_ON_DAY
-              break // gainOnDay
+              break // gainOnDay (hidden)
             case 2:
               headerIndex = HEADER_INDICES.QUANTITY
               break // costValue in quantity column
@@ -71,23 +73,23 @@ export default function GrandTotal({
               headerIndex = HEADER_INDICES.MARKET_VALUE
               break // marketValue
             case 5:
+              headerIndex = HEADER_INDICES.WEIGHT
+              break // weight (now between value and income)
+            case 6:
               headerIndex = HEADER_INDICES.DIVIDENDS
               break // dividends
-            case 6:
+            case 7:
               headerIndex = HEADER_INDICES.UNREALISED_GAIN
               break // unrealisedGain
-            case 7:
+            case 8:
               headerIndex = HEADER_INDICES.REALISED_GAIN
               break // realisedGain
-            case 8:
+            case 9:
               headerIndex = HEADER_INDICES.IRR
               break // irr
-            case 9:
+            case 10:
               headerIndex = HEADER_INDICES.ALPHA
               break // alpha (null)
-            case 10:
-              headerIndex = HEADER_INDICES.WEIGHT
-              break // weight
             case 11:
               headerIndex = HEADER_INDICES.TOTAL_GAIN
               break // totalGain
@@ -99,7 +101,9 @@ export default function GrandTotal({
 
           // All columns follow header rules exactly
           let visibility
-          if (header?.mobile) {
+          if (header && "hidden" in header && header.hidden) {
+            visibility = "hidden" // Hidden on all screens
+          } else if (header?.mobile) {
             visibility = "" // Visible on all screens if mobile: true
           } else if (header?.medium) {
             visibility = "hidden sm:table-cell" // Hidden on mobile portrait, visible on landscape (640px+)
@@ -110,12 +114,13 @@ export default function GrandTotal({
           // Get alignment from headers array
           const alignment = header?.align || "right"
 
-          // Determine color for gainOnDay, change, and IRR columns
+          // Determine color for gainOnDay, change, IRR, and weight columns
           let colorClass = ""
           if (
             (headerIndex === HEADER_INDICES.GAIN_ON_DAY ||
               headerIndex === HEADER_INDICES.CHANGE ||
-              headerIndex === HEADER_INDICES.IRR) &&
+              headerIndex === HEADER_INDICES.IRR ||
+              headerIndex === HEADER_INDICES.WEIGHT) &&
             typeof item.value === "number"
           ) {
             if (item.value < 0) {

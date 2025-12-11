@@ -10,12 +10,12 @@ export const HEADER_INDICES = {
   QUANTITY: 3, // quantity
   COST: 4, // cost
   MARKET_VALUE: 5, // summary.value
-  DIVIDENDS: 6, // summary.dividends
-  UNREALISED_GAIN: 7, // gain.unrealised
-  REALISED_GAIN: 8, // gain.realised
-  IRR: 9, // irr
-  ALPHA: 10, // alpha
-  WEIGHT: 11, // weight
+  WEIGHT: 6, // weight (moved between value and income)
+  DIVIDENDS: 7, // summary.dividends
+  UNREALISED_GAIN: 8, // gain.unrealised
+  REALISED_GAIN: 9, // gain.realised
+  IRR: 10, // irr
+  ALPHA: 11, // alpha
   TOTAL_GAIN: 12, // gain
 } as const
 
@@ -49,8 +49,9 @@ export const headers = [
   {
     key: "gain.onday",
     align: "right",
-    mobile: true, // Visible on mobile portrait
-    medium: true,
+    mobile: false, // Hidden completely - value shown in Change % tooltip and summary
+    medium: false, // Hidden on tablet
+    hidden: true, // Hidden on all screens including desktop
     sortable: true,
     sortKey: "gainOnDay",
   },
@@ -77,6 +78,14 @@ export const headers = [
     medium: true,
     sortable: true,
     sortKey: "marketValue",
+  },
+  {
+    key: "weight",
+    align: "right",
+    mobile: true, // Visible on mobile - important for portfolio balance view
+    medium: true,
+    sortable: true,
+    sortKey: "weight",
   },
   {
     key: "summary.dividends",
@@ -119,14 +128,6 @@ export const headers = [
     sortKey: "",
   },
   {
-    key: "weight",
-    align: "right",
-    mobile: false,
-    medium: true,
-    sortable: true,
-    sortKey: "weight",
-  },
-  {
     key: "gain",
     align: "right",
     mobile: false, // Hidden on mobile portrait to save space
@@ -160,13 +161,13 @@ export default function Header({
     const isChangeColumn = headerIndex === 1
     const isMarketValueColumn = headerIndex === 5
     const isIrrColumn = headerIndex === 9
-    const isTotalGainColumn = headerIndex === 12
+    const isWeightColumn = headerIndex === 11
 
     if (
       isChangeColumn ||
       isMarketValueColumn ||
       isIrrColumn ||
-      isTotalGainColumn
+      isWeightColumn
     ) {
       return "px-0.5 py-1 sm:px-1 md:px-2 xl:px-3" // Minimal padding on portrait for breathing room
     }
@@ -191,7 +192,9 @@ export default function Header({
         </th>
         {headers.map((header, index) => {
           let visibility
-          if (header.mobile) {
+          if ("hidden" in header && header.hidden) {
+            visibility = "hidden" // Hidden on all screens
+          } else if (header.mobile) {
             visibility = ""
           } else if (header.medium) {
             visibility = "hidden sm:table-cell" // Hidden on mobile portrait, visible on landscape (640px+)

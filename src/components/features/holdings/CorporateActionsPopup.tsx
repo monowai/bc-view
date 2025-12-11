@@ -29,7 +29,10 @@ const calculateEffectivePayDate = (event: CorporateEvent): string => {
 }
 
 // Check if an event can be processed (effective pay date <= reference date)
-const canProcessEvent = (event: CorporateEvent, referenceDate: string): boolean => {
+const canProcessEvent = (
+  event: CorporateEvent,
+  referenceDate: string,
+): boolean => {
   if (event.trnType !== "DIVI") {
     return true // Splits can always be processed
   }
@@ -399,145 +402,153 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
                           {getEventTypeLabel(event.trnType)}
                         </span>
                       </td>
-                    <td className="px-4 py-2">{event.recordDate}</td>
-                    <td className="px-4 py-2">
-                      {event.trnType === "DIVI" ? (
-                        editingEventId === event.id ? (
-                          <input
-                            type="date"
-                            value={overridePayDate}
-                            min={event.recordDate}
-                            max={toDate}
-                            onChange={(e) => setOverridePayDate(e.target.value)}
-                            className="text-sm border rounded px-2 py-1 w-32"
-                            autoFocus
+                      <td className="px-4 py-2">{event.recordDate}</td>
+                      <td className="px-4 py-2">
+                        {event.trnType === "DIVI" ? (
+                          editingEventId === event.id ? (
+                            <input
+                              type="date"
+                              value={overridePayDate}
+                              min={event.recordDate}
+                              max={toDate}
+                              onChange={(e) =>
+                                setOverridePayDate(e.target.value)
+                              }
+                              className="text-sm border rounded px-2 py-1 w-32"
+                              autoFocus
+                            />
+                          ) : (
+                            <button
+                              onClick={() => handleEditPayDate(event)}
+                              className={`text-left hover:underline ${
+                                canProcessEvent(event, toDate)
+                                  ? "text-green-600"
+                                  : "text-orange-500"
+                              }`}
+                              title={t("corporate.payDate.clickToEdit")}
+                            >
+                              {calculateEffectivePayDate(event)}
+                              {!canProcessEvent(event, toDate) && (
+                                <i className="fas fa-clock ml-1 text-xs"></i>
+                              )}
+                              <i className="fas fa-pencil-alt ml-1 text-xs opacity-50"></i>
+                            </button>
+                          )
+                        ) : (
+                          event.recordDate
+                        )}
+                      </td>
+                      <td className="px-4 py-2 text-right">
+                        {event.trnType === "DIVI" ? (
+                          <NumericFormat
+                            value={event.rate}
+                            displayType={"text"}
+                            decimalScale={4}
+                            fixedDecimalScale={true}
+                            thousandSeparator={true}
                           />
                         ) : (
-                          <button
-                            onClick={() => handleEditPayDate(event)}
-                            className={`text-left hover:underline ${
-                              canProcessEvent(event, toDate)
-                                ? "text-green-600"
-                                : "text-orange-500"
-                            }`}
-                            title={t("corporate.payDate.clickToEdit")}
-                          >
-                            {calculateEffectivePayDate(event)}
-                            {!canProcessEvent(event, toDate) && (
-                              <i className="fas fa-clock ml-1 text-xs"></i>
-                            )}
-                            <i className="fas fa-pencil-alt ml-1 text-xs opacity-50"></i>
-                          </button>
-                        )
-                      ) : (
-                        event.recordDate
-                      )}
-                    </td>
-                    <td className="px-4 py-2 text-right">
-                      {event.trnType === "DIVI" ? (
-                        <NumericFormat
-                          value={event.rate}
-                          displayType={"text"}
-                          decimalScale={4}
-                          fixedDecimalScale={true}
-                          thousandSeparator={true}
-                        />
-                      ) : (
-                        "-"
-                      )}
-                    </td>
-                    <td className="px-4 py-2 text-right">
-                      {event.trnType === "SPLIT" ? (
-                        <NumericFormat
-                          value={event.split}
-                          displayType={"text"}
-                          decimalScale={4}
-                          fixedDecimalScale={true}
-                        />
-                      ) : (
-                        "-"
-                      )}
-                    </td>
-                    <td className="px-4 py-2 text-center">
-                      {editingEventId === event.id ? (
-                        <div className="flex items-center gap-2 justify-center">
-                          <button
-                            onClick={() => handleSavePayDate(event.id)}
-                            disabled={
-                              processingEventId === event.id ||
-                              !overridePayDate ||
-                              overridePayDate < event.recordDate ||
-                              overridePayDate > toDate
-                            }
-                            className="text-green-500 hover:text-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                            title={t("corporate.saveAndProcess")}
-                          >
-                            {processingEventId === event.id ? (
-                              <i className="fas fa-spinner fa-spin"></i>
-                            ) : (
-                              <i className="fas fa-save"></i>
-                            )}
-                          </button>
-                          <button
-                            onClick={handleCancelEdit}
-                            disabled={processingEventId === event.id}
-                            className="text-gray-500 hover:text-gray-700 disabled:opacity-50"
-                            title={t("cancel")}
-                          >
-                            <i className="fas fa-times"></i>
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2 justify-center">
-                          <button
-                            onClick={() => handleProcessEvent(event.id)}
-                            disabled={
-                              processingEventId === event.id ||
-                              !canProcessEvent(event, toDate)
-                            }
-                            className={`disabled:opacity-50 disabled:cursor-not-allowed ${
-                              canProcessEvent(event, toDate)
-                                ? "text-blue-500 hover:text-blue-700"
-                                : "text-gray-300"
-                            }`}
-                            title={
-                              canProcessEvent(event, toDate)
-                                ? t("corporate.process")
-                                : t("corporate.payDate.pending")
-                            }
-                          >
-                            {processingEventId === event.id ? (
-                              <i className="fas fa-spinner fa-spin"></i>
-                            ) : processSuccess === event.id ? (
-                              <span
-                                className="flex items-center text-green-500"
-                                title={t("corporate.transactionCreated.hint", {
-                                  date: processedPayDates[event.id],
-                                })}
-                              >
-                                <i className="fas fa-check mr-1"></i>
-                                <span className="text-xs">
-                                  {t("corporate.transactionCreated")}
+                          "-"
+                        )}
+                      </td>
+                      <td className="px-4 py-2 text-right">
+                        {event.trnType === "SPLIT" ? (
+                          <NumericFormat
+                            value={event.split}
+                            displayType={"text"}
+                            decimalScale={4}
+                            fixedDecimalScale={true}
+                          />
+                        ) : (
+                          "-"
+                        )}
+                      </td>
+                      <td className="px-4 py-2 text-center">
+                        {editingEventId === event.id ? (
+                          <div className="flex items-center gap-2 justify-center">
+                            <button
+                              onClick={() => handleSavePayDate(event.id)}
+                              disabled={
+                                processingEventId === event.id ||
+                                !overridePayDate ||
+                                overridePayDate < event.recordDate ||
+                                overridePayDate > toDate
+                              }
+                              className="text-green-500 hover:text-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                              title={t("corporate.saveAndProcess")}
+                            >
+                              {processingEventId === event.id ? (
+                                <i className="fas fa-spinner fa-spin"></i>
+                              ) : (
+                                <i className="fas fa-save"></i>
+                              )}
+                            </button>
+                            <button
+                              onClick={handleCancelEdit}
+                              disabled={processingEventId === event.id}
+                              className="text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                              title={t("cancel")}
+                            >
+                              <i className="fas fa-times"></i>
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 justify-center">
+                            <button
+                              onClick={() => handleProcessEvent(event.id)}
+                              disabled={
+                                processingEventId === event.id ||
+                                !canProcessEvent(event, toDate)
+                              }
+                              className={`disabled:opacity-50 disabled:cursor-not-allowed ${
+                                canProcessEvent(event, toDate)
+                                  ? "text-blue-500 hover:text-blue-700"
+                                  : "text-gray-300"
+                              }`}
+                              title={
+                                canProcessEvent(event, toDate)
+                                  ? t("corporate.process")
+                                  : t("corporate.payDate.pending")
+                              }
+                            >
+                              {processingEventId === event.id ? (
+                                <i className="fas fa-spinner fa-spin"></i>
+                              ) : processSuccess === event.id ? (
+                                <span
+                                  className="flex items-center text-green-500"
+                                  title={t(
+                                    "corporate.transactionCreated.hint",
+                                    {
+                                      date: processedPayDates[event.id],
+                                    },
+                                  )}
+                                >
+                                  <i className="fas fa-check mr-1"></i>
+                                  <span className="text-xs">
+                                    {t("corporate.transactionCreated")}
+                                  </span>
                                 </span>
-                              </span>
-                            ) : processedPayDates[event.id] ? (
-                              <span
-                                className="flex items-center text-gray-400"
-                                title={t("corporate.transactionCreated.hint", {
-                                  date: processedPayDates[event.id],
-                                })}
-                              >
-                                <i className="fas fa-check mr-1"></i>
-                                <span className="text-xs">
-                                  {processedPayDates[event.id]}
+                              ) : processedPayDates[event.id] ? (
+                                <span
+                                  className="flex items-center text-gray-400"
+                                  title={t(
+                                    "corporate.transactionCreated.hint",
+                                    {
+                                      date: processedPayDates[event.id],
+                                    },
+                                  )}
+                                >
+                                  <i className="fas fa-check mr-1"></i>
+                                  <span className="text-xs">
+                                    {processedPayDates[event.id]}
+                                  </span>
                                 </span>
-                              </span>
-                            ) : (
-                              <i className="fas fa-play"></i>
-                            )}
-                          </button>
-                        </div>
-                      )}
+                              ) : (
+                                <i className="fas fa-play"></i>
+                              )}
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   )
@@ -586,7 +597,8 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
               ) : (
                 <>
                   <i className="fas fa-forward mr-2"></i>
-                  {t("corporate.backfill")} ({getMissingProcessableEvents().length})
+                  {t("corporate.backfill")} (
+                  {getMissingProcessableEvents().length})
                 </>
               )}
             </button>

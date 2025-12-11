@@ -13,21 +13,22 @@ describe("GrandTotal Column Positioning Tests", () => {
       const dataCells = Array.from(cells!).slice(2) // Skip ValueTitle + Empty columns
 
       // Use constants for consistent mapping
-      // Change column should be empty
-      expect(dataCells[0]).toHaveTextContent("") // HEADER_INDICES.CHANGE
+      // Change column now shows gainOnDay sum for mobile visibility
+      expect(dataCells[0]).toHaveTextContent("72.76") // HEADER_INDICES.CHANGE - gainOnDay sum
 
       // Verify data using constants (accounting for new data array structure)
+      // New order: Change, GainOnDay, Quantity, Cost, MarketValue, Weight, Dividends, UnrealisedGain, RealisedGain, IRR, Alpha, TotalGain
       expect(dataCells[1]).toHaveTextContent("72.76") // HEADER_INDICES.GAIN_ON_DAY - gainOnDay value
       expect(dataCells[2]).toHaveAttribute("colSpan", "1") // HEADER_INDICES.QUANTITY - costValue in quantity column
       expect(dataCells[2].textContent).toMatch(/8,?150\.65/) // costValue
       expect(dataCells[3]).toHaveTextContent("") // HEADER_INDICES.COST - empty cost column
       expect(dataCells[4].textContent).toMatch(/12,?643\.74/) // HEADER_INDICES.MARKET_VALUE - marketValue
-      expect(dataCells[5].textContent).toMatch(/299\.02/) // HEADER_INDICES.DIVIDENDS - dividends
-      expect(dataCells[6].textContent).toMatch(/3,?503\.85/) // HEADER_INDICES.UNREALISED_GAIN - unrealisedGain
-      expect(dataCells[7].textContent).toMatch(/481\.44/) // HEADER_INDICES.REALISED_GAIN - realisedGain
-      expect(dataCells[8]).toHaveTextContent("15.00") // HEADER_INDICES.IRR - irr (no %)
-      expect(dataCells[9]).toHaveTextContent("") // HEADER_INDICES.ALPHA - empty spacer
-      expect(dataCells[10]).toHaveTextContent("100.00%") // HEADER_INDICES.WEIGHT - weight with %
+      expect(dataCells[5]).toHaveTextContent("100.00%") // HEADER_INDICES.WEIGHT - weight with % (moved between value and income)
+      expect(dataCells[6].textContent).toMatch(/299\.02/) // HEADER_INDICES.DIVIDENDS - dividends
+      expect(dataCells[7].textContent).toMatch(/3,?503\.85/) // HEADER_INDICES.UNREALISED_GAIN - unrealisedGain
+      expect(dataCells[8].textContent).toMatch(/481\.44/) // HEADER_INDICES.REALISED_GAIN - realisedGain
+      expect(dataCells[9]).toHaveTextContent("15.00") // HEADER_INDICES.IRR - irr (no %)
+      expect(dataCells[10]).toHaveTextContent("") // HEADER_INDICES.ALPHA - empty spacer
       expect(dataCells[11].textContent).toMatch(/4,?284\.31/) // HEADER_INDICES.TOTAL_GAIN - totalGain
     })
 
@@ -39,8 +40,9 @@ describe("GrandTotal Column Positioning Tests", () => {
       const dataCells = Array.from(cells!).slice(2)
 
       // IRR should contain irr value (15.00) and NOT totalGain value
-      expect(dataCells[8]).toHaveTextContent("15.00") // HEADER_INDICES.IRR
-      expect(dataCells[8].textContent).not.toMatch(/4,?284\.31/)
+      // IRR is now at position 9 (after realised gain at 8)
+      expect(dataCells[9]).toHaveTextContent("15.00") // HEADER_INDICES.IRR
+      expect(dataCells[9].textContent).not.toMatch(/4,?284\.31/)
 
       // totalGain should contain totalGain value in correct position
       expect(dataCells[11].textContent).toMatch(/4,?284\.31/) // HEADER_INDICES.TOTAL_GAIN
@@ -58,14 +60,19 @@ describe("GrandTotal Column Positioning Tests", () => {
       // Change column should be visible on all screens (mobile: true)
       expect(dataCells[0]).not.toHaveClass("hidden") // HEADER_INDICES.CHANGE
 
-      // gainOnDay should be visible on mobile (mobile: true, medium: true in header)
-      expect(dataCells[1]).not.toHaveClass("hidden") // HEADER_INDICES.GAIN_ON_DAY
+      // gainOnDay should be hidden on all screens (hidden: true in header)
+      expect(dataCells[1]).toHaveClass("hidden") // HEADER_INDICES.GAIN_ON_DAY
+      // No responsive suffix - hidden on all screens including desktop
+      expect(dataCells[1]).not.toHaveClass("xl:table-cell")
 
       // marketValue should be visible on mobile
       expect(dataCells[4]).not.toHaveClass("hidden") // HEADER_INDICES.MARKET_VALUE
 
-      // alpha should be hidden on mobile (mobile: false, medium: false in header)
-      expect(dataCells[9]).toHaveClass("hidden", "xl:table-cell") // HEADER_INDICES.ALPHA
+      // weight should be visible on mobile (mobile: true in header) - now at position 5 (between value and income)
+      expect(dataCells[5]).not.toHaveClass("hidden") // HEADER_INDICES.WEIGHT
+
+      // alpha should be hidden on mobile (mobile: false, medium: false in header) - now at position 10
+      expect(dataCells[10]).toHaveClass("hidden", "xl:table-cell") // HEADER_INDICES.ALPHA
 
       // totalGain should be hidden on mobile portrait, visible on landscape+ (mobile: false in header)
       expect(dataCells[11]).toHaveClass("hidden") // HEADER_INDICES.TOTAL_GAIN
@@ -76,12 +83,14 @@ describe("GrandTotal Column Positioning Tests", () => {
   describe("Constants Verification", () => {
     it("verifies HEADER_INDICES constants are correctly defined", () => {
       // These constants are critical for correct mapping
+      // New order: Price(0), Change(1), GainOnDay(2), Quantity(3), Cost(4), MarketValue(5), Weight(6), Dividends(7), Unrealised(8), Realised(9), IRR(10), Alpha(11), TotalGain(12)
       expect(HEADER_INDICES.GAIN_ON_DAY).toBe(2)
       expect(HEADER_INDICES.COST).toBe(4)
       expect(HEADER_INDICES.MARKET_VALUE).toBe(5)
-      expect(HEADER_INDICES.IRR).toBe(9)
-      expect(HEADER_INDICES.ALPHA).toBe(10)
-      expect(HEADER_INDICES.WEIGHT).toBe(11)
+      expect(HEADER_INDICES.WEIGHT).toBe(6) // moved between value and income
+      expect(HEADER_INDICES.DIVIDENDS).toBe(7)
+      expect(HEADER_INDICES.IRR).toBe(10)
+      expect(HEADER_INDICES.ALPHA).toBe(11)
       expect(HEADER_INDICES.TOTAL_GAIN).toBe(12)
     })
 
@@ -101,9 +110,9 @@ describe("GrandTotal Column Positioning Tests", () => {
       expect(cells![1]).toHaveAttribute("colSpan", "1")
       expect(cells![1]).toHaveTextContent("")
 
-      // Third cell should be Change column (empty)
+      // Third cell should be Change column (shows gainOnDay sum)
       expect(cells![2]).toHaveAttribute("colSpan", "1")
-      expect(cells![2]).toHaveTextContent("")
+      expect(cells![2]).toHaveTextContent("72.76")
     })
   })
 
@@ -115,12 +124,12 @@ describe("GrandTotal Column Positioning Tests", () => {
       const cells = dataRow?.querySelectorAll("td")
       const dataCells = Array.from(cells!).slice(2)
 
-      // Weight should be multiplied by 100 and show %
-      expect(dataCells[10]).toHaveTextContent("100.00%") // HEADER_INDICES.WEIGHT
+      // Weight should be multiplied by 100 and show % - now at position 5 (between value and income)
+      expect(dataCells[5]).toHaveTextContent("100.00%") // HEADER_INDICES.WEIGHT
 
-      // IRR should be multiplied by 100 but NOT show % (cleaner appearance)
-      expect(dataCells[8]).toHaveTextContent("15.00") // HEADER_INDICES.IRR - 0.15 * 100 = 15.00
-      expect(dataCells[8]).not.toHaveTextContent("%")
+      // IRR should be multiplied by 100 but NOT show % (cleaner appearance) - now at position 9
+      expect(dataCells[9]).toHaveTextContent("15.00") // HEADER_INDICES.IRR - 0.15 * 100 = 15.00
+      expect(dataCells[9]).not.toHaveTextContent("%")
     })
   })
 
@@ -135,8 +144,10 @@ describe("GrandTotal Column Positioning Tests", () => {
         holdings: holdingsWithoutTotals,
       })
 
-      // Should render empty div when no viewTotals
-      expect(container.querySelector("tbody")).toBeNull()
+      // Should render empty tbody when no viewTotals
+      const tbody = container.querySelector("tbody")
+      expect(tbody).toBeInTheDocument()
+      expect(tbody?.children.length).toBe(0)
     })
 
     it("handles null gainOnDay with fallback to 0", () => {

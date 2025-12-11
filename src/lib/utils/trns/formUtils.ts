@@ -3,24 +3,24 @@ import { convert } from "@lib/trns/tradeUtils"
 import { useEffect } from "react"
 import { postData } from "@components/ui/DropZone"
 
-export const copyToClipboard = (text: string): void => {
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).catch((err) => {
-      console.error("Failed to copy text: ", err)
-    })
-  } else {
+export const copyToClipboard = async (text: string): Promise<boolean> => {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text)
+      return true
+    }
     const textarea = document.createElement("textarea")
     textarea.value = text
     textarea.style.position = "fixed"
     document.body.appendChild(textarea)
     textarea.focus()
     textarea.select()
-    try {
-      document.execCommand("copy")
-    } catch (err) {
-      console.error("Fallback: Failed to copy text: ", err)
-    }
+    document.execCommand("copy")
     document.body.removeChild(textarea)
+    return true
+  } catch (err) {
+    console.error("Failed to copy text: ", err)
+    return false
   }
 }
 

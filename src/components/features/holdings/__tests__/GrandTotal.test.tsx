@@ -46,8 +46,8 @@ describe("GrandTotal Component", () => {
         GRANDTOTAL_LAYOUT.DATA_CELLS_SLICE_START,
       )
 
-      // Check that Change is in the first data position (empty)
-      expect(dataCells[0]).toHaveTextContent("")
+      // Check that Change is in the first data position (shows gainOnDay sum for mobile)
+      expect(dataCells[0]).toHaveTextContent("72.76")
 
       // Check that gainOnDay (72.76) is in the second data position
       expect(dataCells[1]).toHaveTextContent("72.76")
@@ -62,8 +62,8 @@ describe("GrandTotal Component", () => {
       // Check marketValue (allow for comma formatting)
       expect(dataCells[4]).toHaveTextContent(/12,?643\.74/)
 
-      // Check weight (100.00%) - weight is at data[10]
-      expect(dataCells[10]).toHaveTextContent("100.00%")
+      // Check weight (100.00%) - weight is now at data[5] (moved between value and income)
+      expect(dataCells[5]).toHaveTextContent("100.00%")
 
       // Check totalGain is in the last position (allow for comma formatting) - totalGain is at data[11]
       expect(dataCells[11]).toHaveTextContent(/4,?284\.31/)
@@ -84,9 +84,13 @@ describe("GrandTotal Component", () => {
         "hidden",
       )
 
-      // gainOnDay should be visible on all screens (mobile: true, medium: true) - gainOnDay is at data[1]
-      expect(dataCells[GRANDTOTAL_LAYOUT.GAIN_ON_DAY_POSITION]).not.toHaveClass(
+      // gainOnDay should be hidden on all screens (hidden: true) - gainOnDay is at data[1]
+      expect(dataCells[GRANDTOTAL_LAYOUT.GAIN_ON_DAY_POSITION]).toHaveClass(
         "hidden",
+      )
+      // No responsive suffix - hidden on all screens including desktop
+      expect(dataCells[GRANDTOTAL_LAYOUT.GAIN_ON_DAY_POSITION]).not.toHaveClass(
+        "xl:table-cell",
       )
 
       // marketValue should be visible (mobile: true) - marketValue is at data[4]
@@ -108,8 +112,8 @@ describe("GrandTotal Component", () => {
       )
 
       // Verify explicit mapping using constants
-      // data[0] → HEADER_INDICES.CHANGE (1)
-      expect(dataCells[0]).toHaveTextContent("") // change (empty)
+      // data[0] → HEADER_INDICES.CHANGE (1) - shows gainOnDay sum for mobile visibility
+      expect(dataCells[0]).toHaveTextContent("72.76") // change shows gainOnDay sum
 
       // data[1] → HEADER_INDICES.GAIN_ON_DAY (2)
       expect(dataCells[1]).toHaveTextContent("72.76") // gainOnDay
@@ -124,11 +128,11 @@ describe("GrandTotal Component", () => {
       // data[4] → HEADER_INDICES.MARKET_VALUE (5)
       expect(dataCells[4]).toHaveTextContent(/12,?643\.74/) // marketValue
 
-      // data[8] → HEADER_INDICES.IRR (9)
-      expect(dataCells[8]).toHaveTextContent("15.00") // irr (15.00 without %)
+      // data[5] → HEADER_INDICES.WEIGHT (6) - moved between value and income
+      expect(dataCells[5]).toHaveTextContent("100.00%") // weight
 
-      // data[10] → HEADER_INDICES.WEIGHT (11)
-      expect(dataCells[10]).toHaveTextContent("100.00%") // weight
+      // data[9] → HEADER_INDICES.IRR (10)
+      expect(dataCells[9]).toHaveTextContent("15.00") // irr (15.00 without %)
 
       // data[11] → HEADER_INDICES.TOTAL_GAIN (12)
       expect(dataCells[11]).toHaveTextContent(/4,?284\.31/) // totalGain
@@ -164,7 +168,7 @@ describe("GrandTotal Component", () => {
       })
     })
 
-    it("shows change, marketValue, alpha (spacer), and totalGain on mobile", () => {
+    it("shows change, marketValue, weight, and irr on mobile", () => {
       renderGrandTotal()
 
       const table = screen.getByRole("rowgroup")
@@ -183,9 +187,13 @@ describe("GrandTotal Component", () => {
         "hidden",
       )
 
-      // gainOnDay should be visible on mobile (header.mobile = true, medium = true)
-      expect(dataCells[GRANDTOTAL_LAYOUT.GAIN_ON_DAY_POSITION]).not.toHaveClass(
+      // gainOnDay should be hidden on all screens (header.hidden = true)
+      expect(dataCells[GRANDTOTAL_LAYOUT.GAIN_ON_DAY_POSITION]).toHaveClass(
         "hidden",
+      )
+      // No responsive suffix - hidden on all screens including desktop
+      expect(dataCells[GRANDTOTAL_LAYOUT.GAIN_ON_DAY_POSITION]).not.toHaveClass(
+        "xl:table-cell",
       )
 
       // quantity column should be hidden on mobile (quantity column: mobile: false) - costValue is at data[2]
@@ -198,8 +206,12 @@ describe("GrandTotal Component", () => {
       expect(dataCells[4]).not.toHaveClass("hidden")
       expect(dataCells[4]).toHaveTextContent(/12,?643\.74/)
 
-      // alpha should be hidden on mobile (mobile: false, medium: false in header) - alpha is at data[9]
-      expect(dataCells[9]).toHaveClass("hidden", "xl:table-cell") // alpha column is hidden on mobile
+      // weight should be visible on mobile (mobile: true) - weight is now at data[5] (moved between value and income)
+      expect(dataCells[5]).not.toHaveClass("hidden")
+      expect(dataCells[5]).toHaveTextContent("100.00%")
+
+      // alpha should be hidden on mobile (mobile: false, medium: false in header) - alpha is now at data[10]
+      expect(dataCells[10]).toHaveClass("hidden", "xl:table-cell") // alpha column is hidden on mobile
 
       // totalGain should be hidden on mobile portrait, visible on landscape+ (mobile: false) - totalGain is at data[11]
       expect(dataCells[11]).toHaveClass("hidden")
@@ -234,8 +246,8 @@ describe("GrandTotal Component", () => {
         GRANDTOTAL_LAYOUT.DATA_CELLS_SLICE_START,
       )
 
-      // IRR should be at position 8 (data[8]) and visible on mobile (mobile: true in header)
-      const irrCell = dataCells[8]
+      // IRR should be at position 9 (data[9]) and visible on mobile (mobile: true in header)
+      const irrCell = dataCells[9]
       expect(irrCell).not.toHaveClass("hidden")
 
       // totalGain should be at position 11 (data[11]) and hidden on mobile portrait, visible on landscape+ (mobile: false)
@@ -244,13 +256,13 @@ describe("GrandTotal Component", () => {
       expect(totalGainCell).toHaveClass("sm:table-cell")
       expect(totalGainCell).toHaveTextContent(/4,?284\.31/)
 
-      // Alpha spacer should be at position 9 (data[9]) and hidden on mobile (mobile: false in header)
-      const alphaCell = dataCells[9]
+      // Alpha spacer should be at position 10 (data[10]) and hidden on mobile (mobile: false in header)
+      const alphaCell = dataCells[10]
       expect(alphaCell).toHaveClass("hidden", "xl:table-cell")
       expect(alphaCell).toHaveTextContent("") // Empty spacer
     })
 
-    it("maintains proper table structure with alpha spacer", () => {
+    it("maintains proper table structure with weight visible", () => {
       renderGrandTotal()
 
       const table = screen.getByRole("rowgroup")
@@ -268,7 +280,7 @@ describe("GrandTotal Component", () => {
           cell.classList.contains("xl:table-cell"),
       )
 
-      // Should have: gainOnDay, marketValue, alpha (spacer), totalGain + others without hidden classes
+      // Should have: change, marketValue, irr, weight + others without hidden classes
       expect(visibleColumns.length).toBeGreaterThanOrEqual(4)
     })
   })
@@ -278,12 +290,14 @@ describe("GrandTotal Component", () => {
       renderGrandTotal()
 
       // Verify constants are correctly defined
+      // New order: Price(0), Change(1), GainOnDay(2), Quantity(3), Cost(4), MarketValue(5), Weight(6), Dividends(7), Unrealised(8), Realised(9), IRR(10), Alpha(11), TotalGain(12)
       expect(HEADER_INDICES.GAIN_ON_DAY).toBe(2)
       expect(HEADER_INDICES.COST).toBe(4)
       expect(HEADER_INDICES.MARKET_VALUE).toBe(5)
-      expect(HEADER_INDICES.IRR).toBe(9)
-      expect(HEADER_INDICES.ALPHA).toBe(10)
-      expect(HEADER_INDICES.WEIGHT).toBe(11)
+      expect(HEADER_INDICES.WEIGHT).toBe(6) // moved between value and income
+      expect(HEADER_INDICES.DIVIDENDS).toBe(7)
+      expect(HEADER_INDICES.IRR).toBe(10)
+      expect(HEADER_INDICES.ALPHA).toBe(11)
       expect(HEADER_INDICES.TOTAL_GAIN).toBe(12)
 
       const table = screen.getByRole("rowgroup")
@@ -294,7 +308,7 @@ describe("GrandTotal Component", () => {
       )
 
       // Verify data positions match expected values
-      expect(dataCells[0]).toHaveTextContent("") // change at data[0]
+      expect(dataCells[0]).toHaveTextContent("72.76") // change shows gainOnDay sum at data[0]
       expect(dataCells[1]).toHaveTextContent("72.76") // gainOnDay at data[1]
       expect(dataCells[2]).toHaveTextContent(/8,?150\.65/) // costValue at data[2]
       expect(dataCells[3]).toHaveTextContent("") // cost column (empty) at data[3]
@@ -312,12 +326,12 @@ describe("GrandTotal Component", () => {
         GRANDTOTAL_LAYOUT.DATA_CELLS_SLICE_START,
       )
 
-      // IRR should not show % (removed for cleaner appearance) - IRR is at data[8]
-      expect(dataCells[8]).toHaveTextContent("15.00") // 0.15 * 100 = 15.00, no %
-      expect(dataCells[8]).not.toHaveTextContent("%")
+      // Weight should show % and be multiplied by 100 - Weight is now at data[5] (between value and income)
+      expect(dataCells[5]).toHaveTextContent("100.00%") // 1.0 * 100 = 100.00%
 
-      // Weight should show % and be multiplied by 100 - Weight is at data[10]
-      expect(dataCells[10]).toHaveTextContent("100.00%") // 1.0 * 100 = 100.00%
+      // IRR should not show % (removed for cleaner appearance) - IRR is now at data[9]
+      expect(dataCells[9]).toHaveTextContent("15.00") // 0.15 * 100 = 15.00, no %
+      expect(dataCells[9]).not.toHaveTextContent("%")
     })
   })
 
@@ -331,9 +345,11 @@ describe("GrandTotal Component", () => {
       const { container } = renderGrandTotal({
         holdings: holdingsWithoutTotals,
       })
-      // Should return an empty div, not a tbody element
+      // Should return an empty tbody element
       const table = container.querySelector("table")
-      expect(table?.querySelector("div")).toBeInTheDocument()
+      const tbody = table?.querySelector("tbody")
+      expect(tbody).toBeInTheDocument()
+      expect(tbody?.children.length).toBe(0)
     })
 
     it("handles null gainOnDay value", () => {
