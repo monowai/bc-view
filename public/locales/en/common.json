@@ -135,6 +135,13 @@
   "corporate.notReconciled": "No matching transaction in portfolio",
   "corporate.backfill": "Backfill",
   "corporate.backfill.hint": "Process all missing events that are ready (effective pay date has passed)",
+  "corporate.portfolio.title": "Portfolio Corporate Actions",
+  "corporate.portfolio.info": "Scan your portfolio to find corporate actions (dividends, splits) that may not have been recorded as transactions.",
+  "corporate.portfolio.scan": "Scan Corporate Actions",
+  "corporate.portfolio.scan.prompt": "Click the button below to scan all positions in this portfolio for missing corporate actions.",
+  "corporate.portfolio.scanning": "Scanning positions for missing events...",
+  "corporate.portfolio.noMissing": "All corporate actions have been recorded. No missing events found.",
+  "corporate.portfolio.found": "Found {{count}} missing corporate action(s) that can be processed.",
   "actions.menu": "Actions",
   "actions.quickSell": "Quick Sell"
 }

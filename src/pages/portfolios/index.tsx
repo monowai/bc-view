@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, useCallback } from "react"
 import useSwr from "swr"
 import { UserProfile, withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useTranslation } from "next-i18next"
@@ -11,6 +11,7 @@ import { errorOut } from "@components/errors/ErrorOut"
 import { useRouter } from "next/router"
 import { rootLoader } from "@components/ui/PageLoader"
 import { FormatValue } from "@components/ui/MoneyUtils"
+import PortfolioCorporateActionsPopup from "@components/features/portfolios/PortfolioCorporateActionsPopup"
 
 type SortConfig = {
   key: string | null
@@ -48,6 +49,14 @@ export default withPageAuthRequired(function Portfolios({
     key: "code",
     direction: "asc",
   })
+
+  // Corporate actions popup state
+  const [corporateActionsPortfolio, setCorporateActionsPortfolio] =
+    useState<Portfolio | null>(null)
+
+  const handleCorporateActionsClose = useCallback(() => {
+    setCorporateActionsPortfolio(null)
+  }, [])
 
   // Handle sorting
   const handleSort = (key: string): void => {
@@ -277,6 +286,16 @@ export default withPageAuthRequired(function Portfolios({
                   </td>
                   <td className="px-4 py-3">
                     <div className="action-buttons flex items-center justify-center space-x-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setCorporateActionsPortfolio(portfolio)
+                        }}
+                        className="text-blue-500 hover:text-blue-700 transition-colors"
+                        title={t("corporate.portfolio.scan")}
+                      >
+                        <span className="fas fa-calendar-check text-lg"></span>
+                      </button>
                       <Link
                         href={`/portfolios/${portfolio.id}`}
                         className="text-blue-500 hover:text-blue-700 transition-colors"
@@ -313,7 +332,18 @@ export default withPageAuthRequired(function Portfolios({
     return rootLoader(t("loading"))
   }
   // Use the user variable somewhere in your component
-  return listPortfolios(sortedPortfolios)
+  return (
+    <>
+      {listPortfolios(sortedPortfolios)}
+      {corporateActionsPortfolio && (
+        <PortfolioCorporateActionsPopup
+          portfolio={corporateActionsPortfolio}
+          modalOpen={!!corporateActionsPortfolio}
+          onClose={handleCorporateActionsClose}
+        />
+      )}
+    </>
+  )
 })
 
 export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
