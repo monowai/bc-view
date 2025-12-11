@@ -14,6 +14,24 @@ export interface QuickSellData {
   market: string
   quantity: number
   price: number
+  type?: "BUY" | "SELL"
+  currentPositionQuantity?: number // For rebalance: the current position size
+}
+
+export interface RebalanceData {
+  asset: string
+  market: string
+  quantity: number
+  price: number
+  type: "BUY" | "SELL"
+  currentPositionQuantity: number
+}
+
+export interface WeightClickData {
+  asset: Asset
+  currentWeight: number
+  currentQuantity: number
+  currentPrice: number
 }
 
 // As returned from the server

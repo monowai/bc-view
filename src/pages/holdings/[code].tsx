@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react"
 import { calculateHoldings } from "@lib/holdings/calculateHoldings"
-import { Holdings, QuickSellData } from "types/beancounter"
+import {
+  Holdings,
+  QuickSellData,
+  WeightClickData,
+  RebalanceData,
+} from "types/beancounter"
 import {
   TableSkeletonLoader,
   SummarySkeletonLoader,
@@ -29,6 +34,7 @@ import HoldingActions from "@components/features/holdings/HoldingActions"
 import PerformanceHeatmap from "@components/ui/PerformanceHeatmap"
 import ViewToggle, { ViewMode } from "@components/features/holdings/ViewToggle"
 import CorporateActionsPopup from "@components/features/holdings/CorporateActionsPopup"
+import TargetWeightDialog from "@components/features/holdings/TargetWeightDialog"
 
 function HoldingsPage(): React.ReactElement {
   const router = useRouter()
@@ -53,6 +59,9 @@ function HoldingsPage(): React.ReactElement {
   const [corporateActionsData, setCorporateActionsData] = useState<
     CorporateActionsData | undefined
   >(undefined)
+  const [weightClickData, setWeightClickData] = useState<
+    WeightClickData | undefined
+  >(undefined)
 
   // Handle quick sell from position row
   const handleQuickSell = useCallback((data: QuickSellData) => {
@@ -72,6 +81,29 @@ function HoldingsPage(): React.ReactElement {
   // Close corporate actions popup
   const handleCorporateActionsClose = useCallback(() => {
     setCorporateActionsData(undefined)
+  }, [])
+
+  // Handle weight click from position row
+  const handleWeightClick = useCallback((data: WeightClickData) => {
+    setWeightClickData(data)
+  }, [])
+
+  // Close weight dialog
+  const handleWeightDialogClose = useCallback(() => {
+    setWeightClickData(undefined)
+  }, [])
+
+  // Handle rebalance confirmation - convert to QuickSellData format and open trade modal
+  const handleRebalanceConfirm = useCallback((data: RebalanceData) => {
+    setQuickSellData({
+      asset: data.asset,
+      market: data.market,
+      quantity: data.quantity,
+      price: data.price,
+      type: data.type,
+      currentPositionQuantity: data.currentPositionQuantity,
+    })
+    setWeightClickData(undefined)
   }, [])
 
   useEffect(() => {
@@ -257,6 +289,7 @@ function HoldingsPage(): React.ReactElement {
                         onColumnsChange={setColumns}
                         onQuickSell={handleQuickSell}
                         onCorporateActions={handleCorporateActions}
+                        onWeightClick={handleWeightClick}
                       />
                       <SubTotal
                         groupBy={groupKey}
@@ -317,6 +350,18 @@ function HoldingsPage(): React.ReactElement {
           toDate={holdingState.asAt}
           modalOpen={!!corporateActionsData}
           onClose={handleCorporateActionsClose}
+        />
+      )}
+      {weightClickData && (
+        <TargetWeightDialog
+          modalOpen={!!weightClickData}
+          onClose={handleWeightDialogClose}
+          onConfirm={handleRebalanceConfirm}
+          asset={weightClickData.asset}
+          portfolio={holdingResults.portfolio}
+          currentWeight={weightClickData.currentWeight}
+          currentQuantity={weightClickData.currentQuantity}
+          currentPrice={weightClickData.currentPrice}
         />
       )}
     </div>

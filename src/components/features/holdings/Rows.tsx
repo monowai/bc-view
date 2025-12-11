@@ -3,6 +3,7 @@ import {
   HoldingValues,
   PriceData,
   QuickSellData,
+  WeightClickData,
   Asset,
 } from "types/beancounter"
 import { NumericFormat } from "react-number-format"
@@ -23,6 +24,7 @@ interface RowsProps extends HoldingValues {
   onColumnsChange: (columns: string[]) => void
   onQuickSell?: (data: QuickSellData) => void
   onCorporateActions?: (data: CorporateActionsData) => void
+  onWeightClick?: (data: WeightClickData) => void
 }
 
 // Helper function to generate responsive classes for table cells
@@ -175,6 +177,7 @@ export default function Rows({
   onColumnsChange,
   onQuickSell,
   onCorporateActions,
+  onWeightClick,
 }: RowsProps): React.ReactElement {
   const { t } = useTranslation("common")
   const columns = useMemo(
@@ -350,7 +353,26 @@ export default function Rows({
                     : moneyValues[valueIn].weight > 0
                       ? "text-green-500"
                       : ""
-                }`}
+                } ${onWeightClick && !isCashRelated(asset) ? "cursor-pointer hover:underline" : ""}`}
+                onClick={
+                  onWeightClick && !isCashRelated(asset)
+                    ? (e) => {
+                        e.stopPropagation()
+                        onWeightClick({
+                          asset,
+                          currentWeight: moneyValues[valueIn].weight * 100,
+                          currentQuantity: quantityValues.total,
+                          currentPrice:
+                            moneyValues[valueIn].priceData?.close || 0,
+                        })
+                      }
+                    : undefined
+                }
+                title={
+                  onWeightClick && !isCashRelated(asset)
+                    ? t("actions.rebalance")
+                    : undefined
+                }
               >
                 <FormatValue
                   value={moneyValues[valueIn].weight}
