@@ -1,4 +1,4 @@
-import React, { useEffect } from "react"
+import React, { useEffect, useState } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
 import * as yup from "yup"
@@ -76,7 +76,11 @@ const CashInputForm: React.FC<{
     defaultValues,
   })
 
-  const handleCopy = (): void => {
+  const [copyStatus, setCopyStatus] = useState<"idle" | "success" | "error">(
+    "idle",
+  )
+
+  const handleCopy = async (): Promise<void> => {
     const formData = getValues()
     // Map form fields to TradeFormData format
     const data = {
@@ -86,7 +90,9 @@ const CashInputForm: React.FC<{
       comments: formData.comment ?? undefined,
     }
     const row = convert(data)
-    copyToClipboard(row)
+    const success = await copyToClipboard(row)
+    setCopyStatus(success ? "success" : "error")
+    setTimeout(() => setCopyStatus("idle"), 2000)
   }
   const { data: ccyData, isLoading } = useSwr(ccyKey, simpleFetcher(ccyKey))
   const { t } = useTranslation("common")
@@ -329,11 +335,23 @@ const CashInputForm: React.FC<{
               <div className="flex justify-end space-x-2">
                 <button
                   type="button"
-                  className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
+                  className={`${
+                    copyStatus === "success"
+                      ? "bg-green-600"
+                      : copyStatus === "error"
+                        ? "bg-red-500"
+                        : "bg-green-500 hover:bg-green-600"
+                  } text-white px-4 py-2 rounded transition-colors duration-200`}
                   onClick={handleCopy}
                 >
-                  <i className="fas fa-copy mr-2"></i>
-                  Copy
+                  <i
+                    className={`fas ${copyStatus === "success" ? "fa-check fa-bounce" : copyStatus === "error" ? "fa-times fa-shake" : "fa-copy"} mr-2`}
+                  ></i>
+                  {copyStatus === "success"
+                    ? "Copied!"
+                    : copyStatus === "error"
+                      ? "Failed"
+                      : "Copy"}
                 </button>
                 <button
                   type="submit"

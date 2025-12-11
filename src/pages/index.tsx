@@ -101,7 +101,7 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
               <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-8 border border-gray-100 hover:border-purple-200">
                 <div className="flex items-center mb-4">
                   <div className="p-3 bg-purple-100 rounded-lg mr-4">
-                    <i className="fas fa-exchange-alt text-2xl text-purple-600"></i>
+                    <i className="fas fa-right-left text-2xl text-purple-600"></i>
                   </div>
                   <h3 className="text-xl font-semibold text-gray-900">
                     Transactions
@@ -177,7 +177,7 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
               </div>
               <div className="flex items-center mb-4">
                 <div className="p-3 bg-teal-100 rounded-lg mr-4">
-                  <i className="fas fa-mobile-alt text-2xl text-teal-600"></i>
+                  <i className="fas fa-mobile-screen text-2xl text-teal-600"></i>
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900">
                   Mobile App

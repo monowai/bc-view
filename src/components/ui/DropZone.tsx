@@ -54,7 +54,7 @@ function DropZone({
     <div {...getRootProps()}>
       <input {...getInputProps()} />
       <span>
-        <i className="far fa-arrow-alt-circle-up fa-3x" />
+        <i className="far fa-circle-up fa-3x" />
       </span>
     </div>
   )

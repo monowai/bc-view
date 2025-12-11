@@ -72,9 +72,9 @@ describe("GrandTotal Snapshot Tests", () => {
         GRANDTOTAL_LAYOUT.DATA_CELLS_SLICE_START,
       )
 
-      // On desktop, all columns should be visible - none should have 'hidden' without a responsive suffix
+      // On desktop, most columns should be visible - except gainOnDay which is now hidden on all screens
       // Mobile portrait-only hidden: 'hidden sm:table-cell' or 'hidden xl:table-cell' (visible on desktop)
-      // Desktop-only hidden: would be 'hidden' with no suffix (but all columns should be visible on desktop)
+      // Always hidden: 'hidden' with no suffix (gainOnDay column)
       const hiddenOnDesktop = dataCells.filter((cell) => {
         const classes = cell.className
         // Hidden on desktop if it has 'hidden' but no responsive suffix that makes it visible on desktop
@@ -86,8 +86,8 @@ describe("GrandTotal Snapshot Tests", () => {
         )
       })
 
-      // Should have 0 columns hidden on desktop (all 11 data columns visible)
-      expect(hiddenOnDesktop).toHaveLength(0)
+      // Should have 1 column hidden on desktop (gainOnDay is hidden on all screens)
+      expect(hiddenOnDesktop).toHaveLength(1)
 
       // Verify we have all data cells
       expect(dataCells).toHaveLength(GRANDTOTAL_LAYOUT.DATA_CELL_COUNT)
@@ -117,12 +117,12 @@ describe("GrandTotal Snapshot Tests", () => {
         )
       })
 
-      // Should have 9 visible columns on tablet (sm:640px+ columns are visible)
-      // Note: Weight is shown instead of Unrealised and Realised gains on tablet
-      expect(visibleColumns).toHaveLength(9)
+      // Should have 8 visible columns on tablet (gainOnDay now hidden, only visible on xl desktop)
+      // Change, Quantity, Cost, MarketValue, Dividends, IRR, Weight, TotalGain
+      expect(visibleColumns).toHaveLength(8)
 
       // Verify key columns are in correct positions
-      expect(dataCells[0]).toHaveTextContent("") // Change (empty)
+      expect(dataCells[0]).toHaveTextContent("72.76") // Change (shows gainOnDay sum)
       expect(dataCells[1]).toHaveTextContent("72.76") // gainOnDay
       expect(dataCells[4]).toHaveTextContent(/12,?643\.74/) // marketValue
       expect(dataCells[11]).toHaveTextContent(/4,?284\.31/) // totalGain

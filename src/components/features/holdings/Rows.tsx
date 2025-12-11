@@ -29,7 +29,9 @@ interface RowsProps extends HoldingValues {
 const getCellClasses = (headerIndex: number): string => {
   const header = headers[headerIndex]
   let visibility
-  if (header.mobile) {
+  if ("hidden" in header && header.hidden) {
+    visibility = "hidden" // Hidden on all screens
+  } else if (header.mobile) {
     visibility = ""
   } else if (header.medium) {
     visibility = "hidden sm:table-cell" // Hidden on mobile portrait, visible on landscape (640px+)
@@ -40,16 +42,11 @@ const getCellClasses = (headerIndex: number): string => {
   // Reduce padding for mobile-visible columns to maximize space
   const isChangeColumn = headerIndex === 1
   const isMarketValueColumn = headerIndex === 5
-  const isIrrColumn = headerIndex === 9
-  const isTotalGainColumn = headerIndex === 12
+  const isWeightColumn = headerIndex === 6
+  const isIrrColumn = headerIndex === 10
 
   let padding
-  if (
-    isChangeColumn ||
-    isMarketValueColumn ||
-    isIrrColumn ||
-    isTotalGainColumn
-  ) {
+  if (isChangeColumn || isMarketValueColumn || isIrrColumn || isWeightColumn) {
     padding = "px-0.5 py-1 sm:px-1 md:px-2 xl:px-3" // Minimal padding on portrait for breathing room
   } else {
     padding = "px-0.5 py-1 sm:px-1 md:px-2 xl:px-3" // Minimal padding on portrait for breathing room
@@ -121,7 +118,7 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
         }}
         title={t("actions.menu")}
       >
-        <i className="fas fa-ellipsis-v text-xs"></i>
+        <i className="fas fa-ellipsis-vertical text-xs"></i>
       </button>
       {isOpen && (
         <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200">
@@ -294,8 +291,11 @@ export default function Rows({
                   ).toFixed(2)}
                   %
                   <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full mb-1 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap z-50">
-                    Previous {moneyValues[valueIn].currency.symbol}{" "}
-                    {moneyValues[valueIn].priceData.previousClose}
+                    Change: {moneyValues[valueIn].currency.symbol}
+                    {moneyValues[valueIn].gainOnDay?.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }) || "0.00"}
                   </span>
                 </span>
               )}
@@ -343,6 +343,23 @@ export default function Rows({
               </Link>
             </td>
             <td className={getCellClasses(6)}>
+              <span
+                className={`${
+                  moneyValues[valueIn].weight < 0
+                    ? "text-red-500"
+                    : moneyValues[valueIn].weight > 0
+                      ? "text-green-500"
+                      : ""
+                }`}
+              >
+                <FormatValue
+                  value={moneyValues[valueIn].weight}
+                  multiplier={100}
+                />
+                %
+              </span>
+            </td>
+            <td className={getCellClasses(7)}>
               <span className="relative group">
                 <Link
                   href={`/trns/events`}
@@ -356,13 +373,13 @@ export default function Rows({
                 </span>
               </span>
             </td>
-            <td className={getCellClasses(7)}>
+            <td className={getCellClasses(8)}>
               <FormatValue value={moneyValues[valueIn].unrealisedGain} />
             </td>
-            <td className={getCellClasses(8)}>
+            <td className={getCellClasses(9)}>
               <FormatValue value={moneyValues[valueIn].realisedGain} />
             </td>
-            <td className={getCellClasses(9)}>
+            <td className={getCellClasses(10)}>
               {!isCashRelated(asset) && (
                 <span
                   className={`relative group ${
@@ -385,19 +402,12 @@ export default function Rows({
                 </span>
               )}
             </td>
-            <td className={`${getCellClasses(10)} relative overflow-visible`}>
+            <td className={`${getCellClasses(11)} relative overflow-visible`}>
               <AlphaProgress
                 irr={moneyValues[valueIn].irr}
                 lastTradeDate={dateValues?.opened || undefined}
                 className="min-w-[120px]"
               />
-            </td>
-            <td className={getCellClasses(11)}>
-              <FormatValue
-                value={moneyValues[valueIn].weight}
-                multiplier={100}
-              />
-              %
             </td>
             <td className={getCellClasses(12)}>
               <FormatValue value={moneyValues[valueIn].totalGain} />

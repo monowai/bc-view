@@ -7,7 +7,9 @@ import { headers } from "./Header"
 const getCellClasses = (headerIndex: number): string => {
   const header = headers[headerIndex]
   let visibility
-  if (header.mobile) {
+  if ("hidden" in header && header.hidden) {
+    visibility = "hidden" // Hidden on all screens
+  } else if (header.mobile) {
     visibility = ""
   } else if (header.medium) {
     visibility = "hidden sm:table-cell" // Hidden on mobile portrait, visible on landscape (640px+)
@@ -28,29 +30,42 @@ export default function SubTotal({
   valueIn,
 }: GroupedSubtotals): ReactElement {
   // Define data array that matches the header structure
-  const data = [
-    "-", // asset.price column
-    "-", // asset.change
+  const gainOnDay = subTotals[valueIn].gainOnDay
+  const gainOnDayElement = (
     <span
       key="gainOnDay"
-      className={`${subTotals[valueIn].gainOnDay < 0 ? "text-red-500" : subTotals[valueIn].gainOnDay > 0 ? "text-green-500" : ""}`}
+      className={`${gainOnDay < 0 ? "text-red-500" : gainOnDay > 0 ? "text-green-500" : ""}`}
     >
-      <FormatValue value={subTotals[valueIn].gainOnDay} />
-    </span>, // gain.onday
-    "-", // quantityInc
+      <FormatValue value={gainOnDay} />
+    </span>
+  )
+  const data = [
+    "-", // asset.price column
+    gainOnDayElement, // asset.change - shows gainOnDay sum on mobile
+    gainOnDayElement, // gain.onday (hidden)
+    "-", // quantity
     <FormatValue key="costValue" value={subTotals[valueIn].costValue} />, // cost
     <FormatValue key="marketValue" value={subTotals[valueIn].marketValue} />, // summary.value
+    <span
+      key="weight"
+      className={`${
+        subTotals[valueIn].weight < 0
+          ? "text-red-500"
+          : subTotals[valueIn].weight > 0
+            ? "text-green-500"
+            : ""
+      }`}
+    >
+      <FormatValue value={subTotals[valueIn].weight} multiplier={100} />%
+    </span>, // weight (moved between value and income)
     <FormatValue key="dividends" value={subTotals[valueIn].dividends} />, // summary.dividends
     <FormatValue
       key="unrealisedGain"
       value={subTotals[valueIn].unrealisedGain}
     />, // gain.unrealised
     <FormatValue key="realisedGain" value={subTotals[valueIn].realisedGain} />, // gain.realised
-    "-", // irr
+    "-", // irr - cannot be summed, requires cash flow calculation
     "-", // alpha
-    <span key="weight">
-      <FormatValue value={subTotals[valueIn].weight} multiplier={100} />%
-    </span>, // weight
     <FormatValue key="totalGain" value={subTotals[valueIn].totalGain} />, // gain
   ]
 

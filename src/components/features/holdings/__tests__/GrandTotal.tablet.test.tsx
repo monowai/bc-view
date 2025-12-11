@@ -11,23 +11,25 @@ describe("GrandTotal Tablet-Specific Tests (TDD)", () => {
     })
   })
 
-  it("verifies tablet shows Change column (FIXED)", () => {
+  it("verifies tablet shows Change column with gainOnDay sum (FIXED)", () => {
     const { container } = renderGrandTotal()
 
     const dataRow = container.querySelector("tbody tr:last-child")
     const cells = dataRow?.querySelectorAll("td")
     const dataCells = Array.from(cells!).slice(2)
 
-    // FIXED: Change column is now present as first data cell
+    // FIXED: Change column now shows gainOnDay sum for mobile visibility
     const changeCell = dataCells[0] // First data cell is Change column
-    expect(changeCell).toHaveTextContent("") // Shows empty placeholder for Change
+    expect(changeCell).toHaveTextContent("72.76") // Shows gainOnDay sum in Change column
 
     // Change should be visible on tablet (no hidden classes)
     expect(changeCell).not.toHaveClass("hidden")
 
-    // gainOnDay should now be second data cell
+    // gainOnDay column is now hidden on all screens including desktop
     const gainOnDayCell = dataCells[1]
     expect(gainOnDayCell).toHaveTextContent("72.76") // Shows gainOnDay value
+    expect(gainOnDayCell).toHaveClass("hidden") // Hidden on all screens
+    expect(gainOnDayCell).not.toHaveClass("xl:table-cell") // No responsive suffix
   })
 
   it("verifies totalGain alignment on tablet (FIXED)", () => {
@@ -39,6 +41,7 @@ describe("GrandTotal Tablet-Specific Tests (TDD)", () => {
 
     // Count visible columns on tablet (768px)
     // At this breakpoint, sm:table-cell (640px+) and md:table-cell are visible
+    // Note: gainOnDay column is now hidden on tablet (only visible on xl desktop)
     const visibleColumns = dataCells.filter((cell) => {
       const classes = cell.className
       return (
@@ -48,16 +51,16 @@ describe("GrandTotal Tablet-Specific Tests (TDD)", () => {
       )
     })
 
-    // Should have 9 visible columns on tablet
-    // Note: Weight is shown instead of Unrealised and Realised gains on tablet
-    expect(visibleColumns.length).toBe(9)
+    // Should have 8 visible columns on tablet (gainOnDay now hidden on tablet)
+    // Change, Quantity, Cost, MarketValue, Dividends, IRR, Weight, TotalGain
+    expect(visibleColumns.length).toBe(8)
 
-    // totalGain should be in the LAST visible position (9th position, index 8)
-    const lastVisibleCell = visibleColumns[8]
+    // totalGain should be in the LAST visible position (8th position, index 7)
+    const lastVisibleCell = visibleColumns[7]
     expect(lastVisibleCell.textContent).toMatch(/4,?284\.31/)
 
-    // FIXED: Change column should be first visible column
+    // FIXED: Change column should be first visible column with gainOnDay sum
     const firstVisibleCell = visibleColumns[0]
-    expect(firstVisibleCell.textContent).toBe("") // Change placeholder
+    expect(firstVisibleCell.textContent).toMatch(/72\.76/) // Change shows gainOnDay sum
   })
 })
