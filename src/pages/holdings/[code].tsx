@@ -348,6 +348,7 @@ function HoldingsPage(): React.ReactElement {
           portfolioId={corporateActionsData.portfolioId}
           fromDate={corporateActionsData.fromDate}
           toDate={holdingState.asAt}
+          closedDate={corporateActionsData.closedDate}
           modalOpen={!!corporateActionsData}
           onClose={handleCorporateActionsClose}
         />
