@@ -18,6 +18,7 @@ export interface CorporateActionsData {
   asset: Asset
   portfolioId: string
   fromDate: string
+  closedDate?: string // Position closed date - events after this should be ignored
 }
 
 interface RowsProps extends HoldingValues {
@@ -74,6 +75,7 @@ interface ActionsMenuProps {
   asset: Asset
   portfolioId: string
   fromDate?: string
+  closedDate?: string
   quantity: number
   price: number
   valueIn: string
@@ -86,6 +88,7 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
   asset,
   portfolioId,
   fromDate,
+  closedDate,
   quantity,
   price,
   onQuickSell,
@@ -155,6 +158,7 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
                     asset,
                     portfolioId,
                     fromDate: fromDate || "",
+                    closedDate,
                   })
                 }}
               >
@@ -245,6 +249,7 @@ export default function Rows({
                         asset={asset}
                         portfolioId={portfolio.id}
                         fromDate={dateValues?.opened}
+                        closedDate={dateValues?.closed}
                         quantity={quantityValues.total}
                         price={moneyValues[valueIn].priceData?.close || 0}
                         valueIn={valueIn}

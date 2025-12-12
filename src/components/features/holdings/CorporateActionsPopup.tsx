@@ -8,55 +8,23 @@ import {
   eventKey,
   simpleFetcher,
 } from "@utils/api/fetchHelper"
+import {
+  calculateEffectivePayDate,
+  canProcessEvent,
+  isEventReconciled,
+  getMissingProcessableEvents,
+  filterEventsForOpenPosition,
+  sortEventsByRecordDateDesc,
+} from "@lib/corporate-events"
 
 interface CorporateActionsPopupProps {
   asset: Asset
   portfolioId: string
   fromDate: string
   toDate?: string // Optional - defaults to today if not provided
+  closedDate?: string // Position closed date - events after this should be ignored
   modalOpen: boolean
   onClose: () => void
-}
-
-// Calculate effective pay date for dividends (recordDate + 18 days)
-const calculateEffectivePayDate = (event: CorporateEvent): string => {
-  if (event.trnType !== "DIVI") {
-    return event.payDate
-  }
-  const recordDate = new Date(event.recordDate)
-  recordDate.setDate(recordDate.getDate() + 18)
-  return recordDate.toISOString().split("T")[0]
-}
-
-// Check if an event can be processed (effective pay date <= reference date)
-const canProcessEvent = (
-  event: CorporateEvent,
-  referenceDate: string,
-): boolean => {
-  if (event.trnType !== "DIVI") {
-    return true // Splits can always be processed
-  }
-  const effectivePayDate = calculateEffectivePayDate(event)
-  return effectivePayDate <= referenceDate
-}
-
-// Check if a corporate event has a matching transaction in the portfolio
-// Matches on trnType and checks if transaction date falls within a reasonable window
-// around the record date (dividends typically pay 2-4 weeks after record date)
-const isEventReconciled = (
-  event: CorporateEvent,
-  portfolioTransactions: Transaction[],
-): boolean => {
-  const recordDate = new Date(event.recordDate)
-  // Window: from record date to record date + 45 days (covers most dividend payment periods)
-  const windowEnd = new Date(recordDate)
-  windowEnd.setDate(windowEnd.getDate() + 45)
-
-  return portfolioTransactions.some((trn) => {
-    if (trn.trnType !== event.trnType) return false
-    const trnDate = new Date(trn.tradeDate)
-    return trnDate >= recordDate && trnDate <= windowEnd
-  })
 }
 
 const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
@@ -64,6 +32,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
   portfolioId,
   fromDate: fromDateProp,
   toDate: toDateProp,
+  closedDate,
   modalOpen,
   onClose,
 }) => {
@@ -212,22 +181,20 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
   }
 
   // Sort events by recordDate descending (most recent first)
-  const events: CorporateEvent[] = (data?.data || []).sort(
-    (a: CorporateEvent, b: CorporateEvent) =>
-      new Date(b.recordDate).getTime() - new Date(a.recordDate).getTime(),
-  )
+  const events: CorporateEvent[] = sortEventsByRecordDateDesc(data?.data || [])
 
   // Get events that are missing (not reconciled) and ready to process
-  const getMissingProcessableEvents = (): CorporateEvent[] => {
-    return events.filter(
-      (event) =>
-        !isEventReconciled(event, portfolioTransactions) &&
-        canProcessEvent(event, toDate),
-    )
-  }
+  const missingEvents = getMissingProcessableEvents(
+    events,
+    portfolioTransactions,
+    toDate,
+    closedDate,
+  )
+
+  // Filter events for display (exclude those for closed positions)
+  const displayEvents = filterEventsForOpenPosition(events, closedDate)
 
   const handleBackfill = async (): Promise<void> => {
-    const missingEvents = getMissingProcessableEvents()
     if (missingEvents.length === 0) return
 
     setIsBackfilling(true)
@@ -369,7 +336,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
                 </tr>
               </thead>
               <tbody>
-                {events.map((event: CorporateEvent) => {
+                {displayEvents.map((event: CorporateEvent) => {
                   const reconciled = isEventReconciled(
                     event,
                     portfolioTransactions,
@@ -583,7 +550,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
               disabled={
                 isBackfilling ||
                 isLoadingEvents ||
-                getMissingProcessableEvents().length === 0
+                missingEvents.length === 0
               }
               title={t("corporate.backfill.hint")}
             >
@@ -597,8 +564,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
               ) : (
                 <>
                   <i className="fas fa-forward mr-2"></i>
-                  {t("corporate.backfill")} (
-                  {getMissingProcessableEvents().length})
+                  {t("corporate.backfill")} ({missingEvents.length})
                 </>
               )}
             </button>

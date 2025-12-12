@@ -15,6 +15,12 @@ import {
   corporateEventsKey,
 } from "@utils/api/fetchHelper"
 import { isCashRelated } from "@lib/assets/assetUtils"
+import {
+  calculateEffectivePayDate,
+  canProcessEvent,
+  isEventReconciled,
+  isPositionClosedBeforeEvent,
+} from "@lib/corporate-events"
 
 interface PortfolioCorporateActionsPopupProps {
   portfolio: Portfolio
@@ -26,44 +32,6 @@ interface AssetEvent {
   asset: Asset
   event: CorporateEvent
   position: Position
-}
-
-// Calculate effective pay date for dividends (recordDate + 18 days)
-const calculateEffectivePayDate = (event: CorporateEvent): string => {
-  if (event.trnType !== "DIVI") {
-    return event.recordDate
-  }
-  const recordDate = new Date(event.recordDate)
-  recordDate.setDate(recordDate.getDate() + 18)
-  return recordDate.toISOString().split("T")[0]
-}
-
-// Check if an event can be processed (effective pay date <= reference date)
-const canProcessEvent = (
-  event: CorporateEvent,
-  referenceDate: string,
-): boolean => {
-  if (event.trnType !== "DIVI") {
-    return true
-  }
-  const effectivePayDate = calculateEffectivePayDate(event)
-  return effectivePayDate <= referenceDate
-}
-
-// Check if a corporate event has a matching transaction in the portfolio
-const isEventReconciled = (
-  event: CorporateEvent,
-  portfolioTransactions: Transaction[],
-): boolean => {
-  const recordDate = new Date(event.recordDate)
-  const windowEnd = new Date(recordDate)
-  windowEnd.setDate(windowEnd.getDate() + 45)
-
-  return portfolioTransactions.some((trn) => {
-    if (trn.trnType !== event.trnType) return false
-    const trnDate = new Date(trn.tradeDate)
-    return trnDate >= recordDate && trnDate <= windowEnd
-  })
 }
 
 const PortfolioCorporateActionsPopup: React.FC<
@@ -150,8 +118,10 @@ const PortfolioCorporateActionsPopup: React.FC<
         const portfolioTransactions: Transaction[] = trnsData.data || []
 
         // Find events that are not reconciled and can be processed
+        // Skip events for positions that were closed before the event
         for (const event of events) {
           if (
+            !isPositionClosedBeforeEvent(position, event) &&
             !isEventReconciled(event, portfolioTransactions) &&
             canProcessEvent(event, today)
           ) {
@@ -171,7 +141,7 @@ const PortfolioCorporateActionsPopup: React.FC<
     setIsScanning(false)
     setScanComplete(true)
     setScanProgress(null)
-  }, [portfolio.id, holdingsData?.data?.positions, today])
+  }, [portfolio.id, holdingsData.data.positions])
 
   const handleBackfillAll = async (): Promise<void> => {
     if (missingEvents.length === 0) return
