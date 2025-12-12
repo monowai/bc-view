@@ -1,5 +1,73 @@
 import { TradeFormData } from "types/beancounter"
 
+// Cash transaction types
+export type CashTrnType = "DEPOSIT" | "WITHDRAWAL" | "FX"
+
+// Parameters for building a cash transaction row
+export interface CashRowParams {
+  type: CashTrnType
+  currency: string
+  amount: number // Absolute value - sign is determined by type
+  tradeDate?: string // Defaults to today
+  comments?: string
+  batchId?: string // Defaults to generated from date
+}
+
+// Build a cash transaction row array for import
+export const buildCashRow = (params: CashRowParams): string[] => {
+  const {
+    type,
+    currency,
+    amount,
+    tradeDate = new Date().toISOString().split("T")[0],
+    comments = "",
+    batchId = generateBatchId(),
+  } = params
+
+  // Cash amount needs correct sign: negative for WITHDRAWAL, positive for DEPOSIT/FX
+  const signedCashAmount = type === "WITHDRAWAL" ? -Math.abs(amount) : Math.abs(amount)
+
+  return [
+    batchId, // batchId
+    "", // callerId (empty)
+    type, // type (DEPOSIT/WITHDRAWAL/FX)
+    "CASH", // market
+    currency, // asset (currency code)
+    "", // name (empty)
+    "", // cashAccount (empty)
+    currency, // cashCurrency
+    tradeDate, // tradeDate
+    String(Math.abs(amount)), // quantity (absolute value)
+    "", // baseRate (empty)
+    currency, // tradeCurrency
+    "", // price (empty for cash)
+    "", // fees (empty)
+    "", // portfolioRate (empty)
+    "", // tradeAmount (empty)
+    String(signedCashAmount), // cashAmount (signed)
+    comments, // comments
+  ]
+}
+
+// Calculate the cash adjustment needed to reach a target balance
+export interface CashBalanceAdjustment {
+  type: CashTrnType
+  amount: number // Absolute value
+  newBalance: number
+}
+
+export const calculateCashAdjustment = (
+  currentBalance: number,
+  targetBalance: number,
+): CashBalanceAdjustment => {
+  const diff = targetBalance - currentBalance
+  return {
+    type: diff >= 0 ? "DEPOSIT" : "WITHDRAWAL",
+    amount: Math.abs(diff),
+    newBalance: targetBalance,
+  }
+}
+
 export interface TradeImport {
   batchId: string
   type: string

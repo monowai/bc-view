@@ -548,9 +548,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
               className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               onClick={handleBackfill}
               disabled={
-                isBackfilling ||
-                isLoadingEvents ||
-                missingEvents.length === 0
+                isBackfilling || isLoadingEvents || missingEvents.length === 0
               }
               title={t("corporate.backfill.hint")}
             >
