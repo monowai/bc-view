@@ -70,6 +70,7 @@ const CashInputForm: React.FC<{
     setValue,
     watch,
     getValues,
+    reset,
     formState: { errors, isDirty },
   } = useForm({
     resolver: yupResolver(cashSchema),
@@ -79,6 +80,13 @@ const CashInputForm: React.FC<{
   const [copyStatus, setCopyStatus] = useState<"idle" | "success" | "error">(
     "idle",
   )
+
+  // Reset form when modal opens
+  useEffect(() => {
+    if (modalOpen) {
+      reset(defaultValues)
+    }
+  }, [modalOpen, reset])
 
   const handleCopy = async (): Promise<void> => {
     const formData = getValues()

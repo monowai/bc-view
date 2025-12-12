@@ -34,6 +34,11 @@ export interface WeightClickData {
   currentPrice: number
 }
 
+export interface SetCashBalanceData {
+  currency: string // Currency code (e.g., "USD", "NZD")
+  currentBalance: number // Current cash balance
+}
+
 // As returned from the server
 interface HoldingContract {
   portfolio: Portfolio

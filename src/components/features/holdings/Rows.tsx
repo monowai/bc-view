@@ -4,6 +4,7 @@ import {
   PriceData,
   QuickSellData,
   WeightClickData,
+  SetCashBalanceData,
   Asset,
 } from "types/beancounter"
 import { NumericFormat } from "react-number-format"
@@ -26,6 +27,7 @@ interface RowsProps extends HoldingValues {
   onQuickSell?: (data: QuickSellData) => void
   onCorporateActions?: (data: CorporateActionsData) => void
   onWeightClick?: (data: WeightClickData) => void
+  onSetCashBalance?: (data: SetCashBalanceData) => void
 }
 
 // Helper function to generate responsive classes for table cells
@@ -182,6 +184,7 @@ export default function Rows({
   onQuickSell,
   onCorporateActions,
   onWeightClick,
+  onSetCashBalance,
 }: RowsProps): React.ReactElement {
   const { t } = useTranslation("common")
   const columns = useMemo(
@@ -259,6 +262,26 @@ export default function Rows({
                       />
                     </div>
                   )}
+                {isCash(asset) && onSetCashBalance && (
+                  <div className="hidden sm:flex items-center">
+                    <button
+                      type="button"
+                      aria-label={`${t("cash.setBalance")} ${asset.name}`}
+                      className="inline-flex items-center justify-center w-6 h-6 text-purple-500 hover:text-purple-700 hover:bg-purple-100 rounded transition-colors duration-200"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        // Always use TRADE currency for cash balance (actual cash amount)
+                        onSetCashBalance({
+                          currency: asset.code,
+                          currentBalance: moneyValues["TRADE"].marketValue,
+                        })
+                      }}
+                      title={t("cash.setBalance")}
+                    >
+                      <i className="fas fa-balance-scale text-xs"></i>
+                    </button>
+                  </div>
+                )}
               </div>
             </td>
             <td className={getCellClasses(0)}>

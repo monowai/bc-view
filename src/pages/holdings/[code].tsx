@@ -5,6 +5,7 @@ import {
   QuickSellData,
   WeightClickData,
   RebalanceData,
+  SetCashBalanceData,
 } from "types/beancounter"
 import {
   TableSkeletonLoader,
@@ -35,6 +36,7 @@ import PerformanceHeatmap from "@components/ui/PerformanceHeatmap"
 import ViewToggle, { ViewMode } from "@components/features/holdings/ViewToggle"
 import CorporateActionsPopup from "@components/features/holdings/CorporateActionsPopup"
 import TargetWeightDialog from "@components/features/holdings/TargetWeightDialog"
+import SetCashBalanceDialog from "@components/features/holdings/SetCashBalanceDialog"
 
 function HoldingsPage(): React.ReactElement {
   const router = useRouter()
@@ -61,6 +63,9 @@ function HoldingsPage(): React.ReactElement {
   >(undefined)
   const [weightClickData, setWeightClickData] = useState<
     WeightClickData | undefined
+  >(undefined)
+  const [setCashBalanceData, setSetCashBalanceData] = useState<
+    SetCashBalanceData | undefined
   >(undefined)
 
   // Handle quick sell from position row
@@ -104,6 +109,16 @@ function HoldingsPage(): React.ReactElement {
       currentPositionQuantity: data.currentPositionQuantity,
     })
     setWeightClickData(undefined)
+  }, [])
+
+  // Handle set cash balance from cash row - opens the dialog
+  const handleSetCashBalance = useCallback((data: SetCashBalanceData) => {
+    setSetCashBalanceData(data)
+  }, [])
+
+  // Close set cash balance dialog
+  const handleSetCashBalanceDialogClose = useCallback(() => {
+    setSetCashBalanceData(undefined)
   }, [])
 
   useEffect(() => {
@@ -290,6 +305,7 @@ function HoldingsPage(): React.ReactElement {
                         onQuickSell={handleQuickSell}
                         onCorporateActions={handleCorporateActions}
                         onWeightClick={handleWeightClick}
+                        onSetCashBalance={handleSetCashBalance}
                       />
                       <SubTotal
                         groupBy={groupKey}
@@ -363,6 +379,15 @@ function HoldingsPage(): React.ReactElement {
           currentWeight={weightClickData.currentWeight}
           currentQuantity={weightClickData.currentQuantity}
           currentPrice={weightClickData.currentPrice}
+        />
+      )}
+      {setCashBalanceData && (
+        <SetCashBalanceDialog
+          modalOpen={!!setCashBalanceData}
+          onClose={handleSetCashBalanceDialogClose}
+          portfolio={holdingResults.portfolio}
+          currency={setCashBalanceData.currency}
+          currentBalance={setCashBalanceData.currentBalance}
         />
       )}
     </div>
