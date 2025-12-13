@@ -1,289 +1,235 @@
-# CLAUDE.md
+# bc-view
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Next.js frontend for the Beancounter financial transaction processing system.
 
-## Project Overview
+## Related Repositories
 
-BC-View is the user interface for the Beancounter financial transaction
-processing system. It's a Next.js application that provides portfolio
-management, transaction tracking, and financial reporting capabilities.
-This is the primary interaction point for users to access the Beancounter
-services.
+**IMPORTANT:** Before starting work, review these related repositories for system-wide context:
+
+| Repository    | Path               | Purpose                                              |
+|---------------|--------------------|------------------------------------------------------|
+| bc-claude     | `../bc-claude`     | **Read first** - System architecture, Auth0, service URLs, cross-service flows |
+| bc-deploy     | `../bc-deploy`     | Kubernetes/Helm deployment, OpenAPI endpoints, debugging |
+| beancounter   | `../beancounter`   | Spring Boot backend services (Kotlin source code)    |
+
+Key resources in bc-deploy/CLAUDE.md:
+- Service ports (HTTP and Actuator)
+- OpenAPI/Swagger URLs: `http://kauri.monowai.com:{actuator-port}/actuator/openapi`
+- RabbitMQ management, health checks, debugging commands
 
 ## Technology Stack
 
-- **Framework**: Next.js 15 with React 18
+- **Framework**: Next.js 16 with React 19
 - **Language**: TypeScript 5.x
 - **Styling**: Tailwind CSS 4.x + Sass
-- **Authentication**: Auth0 (@auth0/nextjs-auth0)
-- **State Management**: Hookstate + Redux
-- **Testing**: Jest with React Testing Library
-- **Internationalization**: next-i18next
-- **Data Fetching**: SWR for API calls
-- **Build Tool**: Yarn with Node.js 20
-- **Monitoring**: Sentry for error tracking
+- **Authentication**: Auth0 (`@auth0/nextjs-auth0`)
+- **Data Fetching**: SWR
+- **Testing**: Jest 30 + React Testing Library
+- **Build Tool**: Yarn 1.22 / Node.js 20+
+- **Monitoring**: Sentry
 
-## Common Development Commands
+## Development Commands
 
 ```bash
-# Development server with Turbopack
+yarn dev           # Start with Turbopack (fast refresh)
+yarn build         # Production build
+yarn test          # Run tests with coverage
+yarn test:watch    # Watch mode
+yarn lint          # ESLint + markdownlint
+yarn prettier      # Format code
+yarn typecheck     # TypeScript checks only
+yarn check-imports # Validate import paths
+```
+
+## Local Development Setup
+
+### 1. Environment Configuration
+
+**Secrets should be set in your shell environment** (e.g., `.zshrc`, `.bashrc`):
+
+```bash
+# Add to your shell profile - never commit these
+export AUTH0_CLIENT_ID='your-client-id'
+export AUTH0_CLIENT_SECRET='your-client-secret'
+export AUTH0_SECRET='your-32-byte-hex-value'  # generate with: openssl rand -hex 32
+```
+
+Then in `.env.local`, reference shell variables for secrets and set non-sensitive config:
+
+```bash
+# Auth0 - secrets come from shell environment
+AUTH0_BASE_URL='http://localhost:3000'
+AUTH0_ISSUER_BASE_URL='https://beancounter.eu.auth0.com'
+AUTH0_AUDIENCE='https://holdsworth.app'
+
+# Backend services (point to local or remote)
+BC_DATA='http://localhost:9610'      # or kauri.monowai.com:30610
+BC_POSITION='http://localhost:9600'  # or kauri.monowai.com:30600
+BC_EVENT='http://localhost:9630'     # or kauri.monowai.com:30630
+
+# Message broker (choose one)
+BROKER_TYPE='RABBIT'                 # or 'KAFKA'
+RABBIT_URL='localhost:5672'
+RABBIT_EXCHANGE='bc-trn-csv-dev'
+# OR
+KAFKA_URL='localhost:9092'
+KAFKA_TOPIC_TRN='bc-trn-csv-dev'
+```
+
+Next.js automatically merges shell environment variables with `.env.local`.
+
+### 2. Running Locally
+
+```bash
+# Against remote kauri services (easiest)
+BC_DATA='http://kauri.monowai.com:30610' \
+BC_POSITION='http://kauri.monowai.com:30600' \
+BC_EVENT='http://kauri.monowai.com:30630' \
 yarn dev
 
-# Production build
-yarn build
-
-# Start production server
-yarn start
-
-# Testing
-yarn test          # Run tests with coverage
-yarn test:watch    # Watch mode for development
-
-# Code quality
-yarn lint          # ESLint + TypeScript checks
-yarn prettier     # Format code and run linting
-yarn check-imports # Import path regression check (prevents 500 errors)
-
-# Debug mode
-yarn node-debug   # Start with Node.js inspector
+# Against local backend (requires beancounter services running)
+yarn dev
 ```
+
+### 3. Testing Auth Flow
+
+The app requires authentication. For local testing:
+
+1. Navigate to `http://localhost:3000`
+2. Click login - redirects to Auth0
+3. After login, session stored in cookies
+4. API routes proxy authenticated requests to backend
 
 ## Project Structure
 
 ```
 src/
-├── components/    # React components organized by feature
-├── pages/        # Next.js pages (file-based routing)
-├── utils/        # Utility functions and helpers
-├── hooks/        # Custom React hooks
-styles/           # Global styles and Sass modules
-types/            # TypeScript type definitions
-tests/            # Test files and fixtures
-public/           # Static assets
+├── components/
+│   ├── errors/      # Error handling, boundaries
+│   ├── features/    # Feature components (holdings, portfolios, transactions)
+│   ├── layout/      # Header, navigation
+│   └── ui/          # Reusable UI components
+├── lib/utils/
+│   ├── api/         # Backend configuration, fetch helpers
+│   ├── broker/      # Kafka/RabbitMQ message broker abstraction
+│   ├── holdings/    # Holdings calculations, sorting
+│   └── trns/        # Transaction utilities
+├── pages/
+│   ├── api/         # Next.js API routes (auth proxy)
+│   ├── holdings/    # Holdings views
+│   ├── portfolios/  # Portfolio management
+│   └── trns/        # Transaction entry (trade, cash, events)
+└── providers/       # React context providers
+
+styles/              # Global Sass styles
+types/               # TypeScript type definitions
+tests/               # Test utilities and fixtures
 ```
 
-## Authentication & Integration
+## Path Aliases
 
-- **Auth0 Integration**: Uses `@auth0/nextjs-auth0` for authentication
-- **Backend Services**: Communicates with bc-data, bc-position, bc-event services
-- **Kafka Integration**: Real-time transaction processing via KafkaJS
-- **Configuration**: Environment variables in `.env.local` and `.env.test.local`
-
-## CI/CD Pipeline (CircleCI)
-
-The project uses CircleCI with optimized workflows:
-
-- **install-dependencies**: Dependency installation with retry logic
-- **test**: Jest test execution with caching
-- **build**: Next.js build with performance optimizations
-- **docker-build**: Multi-platform Docker images (linux/amd64, linux/arm64)
-- **Container Registry**: `ghcr.io/monowai/bc-view`
-
-## Docker Configuration
-
-```bash
-# Development
-docker build . -t monowai/bc-view
-
-# With Kafka URL for different environments
-docker build --build-arg KAFKA_URL=kafka:9092 . -t monowai/bc-view-demo
-docker build --build-arg KAFKA_URL=host.minikube.internal:9092 . -t monowai/bc-view
-```
-
-## Development Workflow
-
-1. **Local Development**: Use `yarn dev` with Turbopack for fast rebuilds
-2. **Environment Setup**: Configure `.env.local` with Auth0 and API endpoints
-3. **Testing**: Run `yarn test:watch` during development
-4. **Code Quality**: Pre-commit hooks run `yarn precommit` (lint-staged)
-5. **Debugging**: Use `yarn node-debug` for Node.js inspector access
-
-## Key Features
-
-- **Portfolio Management**: View and manage investment portfolios
-- **Transaction Tracking**: Import and track financial transactions
-- **Reporting**: Financial reports and analytics
-- **Real-time Updates**: Kafka-based real-time transaction processing
-- **Internationalization**: Multi-language support via i18next
-- **Responsive Design**: Mobile-first responsive interface
-
-## Configuration Files
-
-- **TypeScript**: Path aliases configured in `tsconfig.json` (@components, @pages, @utils, @hooks, @styles)
-- **ESLint**: Strict TypeScript and React rules in `.eslintrc.js`
-- **Jest**: Component testing with jsdom environment in `jest.config.js`
-- **Next.js**: Optimized build configuration in `next.config.js`
-- **Sentry**: Error monitoring with source maps upload
-
-## API Interaction Strategies
-
-### Authentication Challenge
-
-The UI requires authentication, but there are several approaches to interact with the system:
-
-**1. Next.js API Routes (Recommended)**
-
-- **Endpoint Pattern**: `/api/{resource}` (e.g., `/api/portfolios`, `/api/trns`)
-- **Authentication**: Uses `withApiAuthRequired` wrapper and Auth0 `getAccessToken`
-- **Bearer Token**: Can potentially be called directly with `Authorization: Bearer {token}`
-- **Proxy Behavior**: API routes act as authenticated proxies to backend services
-
-**Available API Endpoints:**
-
-```
-GET  /api/portfolios         - List user portfolios
-GET  /api/portfolios/{id}    - Get specific portfolio
-GET  /api/currencies         - Get currencies
-GET  /api/holdings/{code}    - Get holdings for portfolio
-GET  /api/assets/{id}        - Get asset information
-POST /api/register           - Register user
-GET  /api/trns               - Transaction operations
-GET  /api/trns/trades/{portfolioId}/{assetId} - Trade data
-GET  /api/trns/events/{portfolioId}/{assetId} - Event data
-POST /api/trns/import        - Import transactions
-```
-
-**2. Direct Backend Access**
-
-- Backend services accessible via environment variables:
-  - `BC_DATA` - Data service URL
-  - `BC_POSITION` - Position service URL
-- Requires JWT token from `BC_TOKEN` environment variable
-- May bypass Next.js middleware but lose session management
-
-**3. Unauthenticated Endpoints**
-
-- `/ping` - Basic health check (has SSR but minimal auth)
-- `/api/git-info` - Git information endpoint
-
-### Technical Implementation
-
-**API Route Pattern:**
+Configured in `tsconfig.json`:
 
 ```typescript
-// All API routes use this pattern:
-export default withApiAuthRequired(async function handler(req, res) {
-  const { accessToken } = await getAccessToken(req, res)
-  // Proxy to backend with: Authorization: Bearer ${accessToken}
-})
+import {Something} from "@components/ui/Something"
+import {fetchHelper} from "@lib/api/fetchHelper"
+import {HoldingType} from "@types/holdings"
 ```
 
-**Frontend Pages:**
+## API Routes
 
-- All main pages use `withPageAuthRequired` wrapper
-- SSR via `getServerSideProps` for translations
-- Client-side data fetching with SWR + `/api/*` endpoints
+All routes use `withApiAuthRequired` and proxy to backend services:
 
-## Important Notes
+| Endpoint                  | Backend     | Purpose                |
+|---------------------------|-------------|------------------------|
+| `/api/portfolios`         | bc-data     | Portfolio CRUD         |
+| `/api/holdings/[code]`    | bc-position | Portfolio holdings     |
+| `/api/trns/*`             | bc-data     | Transaction operations |
+| `/api/corporate-events/*` | bc-event    | Corporate actions      |
+| `/api/assets/[id]`        | bc-data     | Asset lookup           |
+| `/api/currencies`         | bc-data     | Currency list          |
 
-- **Standalone Output**: Configured for containerized deployment
-- **Performance Optimizations**: Webpack splitting, compression, and caching enabled
-- **Memory Limits**: CI builds use `--max-old-space-size=4096` for Node.js
-- **Pre-commit Hooks**: Automatic code formatting and linting via Husky + lint-staged
-- **Authentication**: All meaningful endpoints require Auth0 JWT tokens
-- **Proxy Architecture**: Next.js API routes proxy authenticated requests to backend services
+## Message Broker
 
-# Test-Driven Development (TDD) Approach
+Supports both Kafka and RabbitMQ for CSV imports:
 
-## Mandatory TDD Workflow
+```typescript
+// Automatically uses BROKER_TYPE from environment
+import {getBroker} from "@lib/broker"
 
-When implementing new features or fixing bugs, ALWAYS follow this strict TDD cycle:
+const broker = getBroker()
+await broker.send(csvData)
+```
 
-### 1. Understand Requirements First
+## Key Pages
 
-- Clarify the feature/fix requirements before writing any code
-- Ask questions if specifications are ambiguous
-- Identify edge cases and expected behaviors
+| Route                                        | Purpose                                |
+|----------------------------------------------|----------------------------------------|
+| `/portfolios`                                | List user portfolios                   |
+| `/holdings/[code]`                           | View portfolio holdings with valuation |
+| `/portfolios/trades/[portfolioId]/[assetId]` | Trade history                          |
+| `/trns/trade`                                | Enter new trade                        |
+| `/trns/cash`                                 | Enter cash transaction                 |
+| `/trns/events/[portfolioId]/[assetId]`       | Corporate event transactions           |
 
-### 2. Write Tests FIRST (Red Phase)
+## Testing
 
-- Write failing tests BEFORE implementing any functionality
-- Tests should cover:
-  - Happy path scenarios
-  - Edge cases
-  - Error conditions
-  - Boundary values
-- Use descriptive test names that explain the expected behavior
-- Start with the simplest test case
+```bash
+# Run all tests
+yarn test
 
-### 3. Run Tests to Confirm Failure
+# Watch mode for development
+yarn test:watch
 
-- Verify that new tests fail for the right reasons
-- Ensure test failure messages are clear and informative
+# Run specific test file
+yarn test src/components/features/holdings/__tests__/Summary.test.tsx
+```
 
-### 4. Implement Minimal Code (Green Phase)
+Test files are colocated with source in `__tests__` directories.
 
-- Write the SIMPLEST code that makes the tests pass
-- Don't add functionality that isn't tested
-- Focus on making tests green, not on perfect code
+## TDD Workflow
 
-### 5. Run Tests to Confirm Success
+Follow Red-Green-Refactor:
 
-- All new tests should pass
-- All existing tests should still pass (no regressions)
+1. **Write failing test first** - Cover expected behavior
+2. **Implement minimal code** - Just enough to pass
+3. **Refactor** - Improve while keeping tests green
+4. **Lint** - Lastly, lint the code and resolve warnings and errors then rerun the tests
 
-### 6. Refactor (Refactor Phase)
+```bash
+# Typical TDD cycle
+yarn test:watch  # Keep running in terminal
+# Write test -> Watch fail -> Implement -> Watch pass -> Refactor
+```
 
-- Improve code quality while keeping tests green
-- Remove duplication
-- Improve naming and structure
-- Run tests after each refactoring step
+## Debugging
 
-### 7. Repeat the Cycle
+```bash
+# Node.js inspector
+yarn node-debug
+# Then open chrome://inspect
 
-- Continue with the next smallest piece of functionality
+# Check for import issues (prevents 500 errors)
+yarn check-imports
+```
 
-## Testing Framework Preferences
+## Common Issues
 
-For Next.js/React projects, prefer:
+**Auth redirect loop**: Check `AUTH0_BASE_URL` matches actual URL
 
-- **Unit Tests**: Jest + React Testing Library
-- **Component Tests**: React Testing Library
-- **Integration Tests**: Jest + MSW (Mock Service Worker)
-- **E2E Tests**: Playwright or Cypress
+**Backend connection refused**: Verify `BC_DATA`, `BC_POSITION`, `BC_EVENT` URLs are accessible
 
-TDD Guidelines
-DO:
+**CORS errors**: Backend services must allow origin from `AUTH0_BASE_URL`
 
-Write tests that describe behavior, not implementation
-Keep tests focused and atomic (one assertion concept per test)
-Use meaningful test descriptions
-Mock external dependencies
-Test user-facing behavior over internal implementation
-Keep tests fast and independent
+**Message broker connection failed**: Check `RABBIT_URL` or `KAFKA_URL` and `BROKER_TYPE`
 
-DON'T:
+## Docker Build
 
-Write implementation code before tests
-Skip tests because "it's simple"
-Test implementation details
-Write tests that depend on other tests
-Leave failing tests uncommitted
-Mock everything (only mock boundaries)
+```bash
+# Standard build
+docker build . -t monowai/bc-view
 
-Test Coverage Expectations
-
-Aim for 80%+ code coverage
-100% coverage for critical business logic
-Focus on meaningful coverage, not just hitting percentages
-
-When Working on Existing Code
-If adding to untested code:
-
-Write tests for the NEW functionality first
-Add tests for AFFECTED existing code
-Refactor with tests in place
-Gradually improve test coverage
-
-Checklist Before Committing
-
-All tests are passing
-New functionality has corresponding tests
-Tests are clear and well-named
-No commented-out test code
-Test coverage hasn't decreased
-Tests run quickly
-Linting checks pass
-
-Remember
-"Red, Green, Refactor" - This is the rhythm of TDD. Never skip the Red phase!
+# With specific broker URL
+docker build --build-arg KAFKA_URL=host.minikube.internal:9092 . -t monowai/bc-view
+```
+Output is `standalone` mode for containerized deployment.
