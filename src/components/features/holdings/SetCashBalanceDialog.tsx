@@ -14,6 +14,9 @@ interface SetCashBalanceDialogProps {
   portfolio: Portfolio
   currency: string
   currentBalance: number
+  market?: string // "CASH" for currencies, "PRIVATE" for bank accounts
+  assetCode?: string // Asset code for bank accounts
+  assetName?: string // Asset name for display
 }
 
 const SetCashBalanceDialog: React.FC<SetCashBalanceDialogProps> = ({
@@ -22,6 +25,9 @@ const SetCashBalanceDialog: React.FC<SetCashBalanceDialogProps> = ({
   portfolio,
   currency,
   currentBalance,
+  market = "CASH",
+  assetCode,
+  assetName,
 }) => {
   const { t } = useTranslation("common")
   const [targetBalance, setTargetBalance] = useState<string>("")
@@ -55,11 +61,14 @@ const SetCashBalanceDialog: React.FC<SetCashBalanceDialogProps> = ({
     setSubmitError(null)
 
     try {
+      const displayName = assetName || assetCode || currency
       const row = buildCashRow({
         type: calculation.type,
         currency,
         amount: calculation.amount,
-        comments: `Set balance to ${currency} ${calculation.newBalance.toFixed(2)}`,
+        comments: `Set ${displayName} balance to ${currency} ${calculation.newBalance.toFixed(2)}`,
+        market,
+        assetCode,
       })
 
       await postData(portfolio, false, row)
@@ -108,9 +117,14 @@ const SetCashBalanceDialog: React.FC<SetCashBalanceDialogProps> = ({
         </header>
 
         <div className="space-y-4">
-          {/* Currency Info */}
+          {/* Currency/Account Info */}
           <div className="bg-gray-50 rounded-lg p-3">
-            <div className="font-semibold text-lg">{currency} Cash</div>
+            <div className="font-semibold text-lg">
+              {assetName || assetCode || `${currency} Cash`}
+            </div>
+            {assetCode && (
+              <div className="text-sm text-gray-500">{currency}</div>
+            )}
           </div>
 
           {/* Current Balance */}

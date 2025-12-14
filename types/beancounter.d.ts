@@ -7,6 +7,8 @@ export type TrnType =
   | "SPLIT"
   | "DEPOSIT"
   | "WITHDRAWAL"
+  | "INCOME"
+  | "DEDUCTION"
   | "FX"
 
 export interface QuickSellData {
@@ -37,6 +39,9 @@ export interface WeightClickData {
 export interface SetCashBalanceData {
   currency: string // Currency code (e.g., "USD", "NZD")
   currentBalance: number // Current cash balance
+  market?: string // Market code: "CASH" for currencies, "PRIVATE" for bank accounts
+  assetCode?: string // Asset code for bank accounts (e.g., "WISE", "USD-SAVINGS")
+  assetName?: string // Asset name for display
 }
 
 // As returned from the server
@@ -281,6 +286,7 @@ export interface RegistrationResponse {
 
 export interface Market {
   code: string
+  name: string
   currency: Currency
 }
 
@@ -296,11 +302,45 @@ export interface Asset {
   name: string
   assetCategory: AssetCategory
   market: Market
+  priceSymbol?: string // Currency code for ACCOUNT/CASH assets
 }
 
 export interface AssetCategory {
   id: string
   name: string
+}
+
+// Asset category constants
+export const ASSET_CATEGORIES = {
+  EQUITY: "EQUITY",
+  CASH: "CASH",
+  ETF: "ETF",
+  MUTUAL_FUND: "MUTUAL FUND",
+  RE: "RE",
+  ACCOUNT: "ACCOUNT",
+} as const
+
+export type AssetCategoryId =
+  (typeof ASSET_CATEGORIES)[keyof typeof ASSET_CATEGORIES]
+
+// Input for creating/updating assets
+export interface AssetInput {
+  market: string
+  code: string
+  name?: string
+  currency?: string
+  category: string
+  owner: string
+}
+
+// Request wrapper for bulk asset operations
+export interface AssetRequest {
+  data: Record<string, AssetInput>
+}
+
+// Response from asset creation
+export interface AssetResponse {
+  data: Record<string, Asset>
 }
 
 export interface PriceData {

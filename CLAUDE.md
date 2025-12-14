@@ -6,13 +6,14 @@ Next.js frontend for the Beancounter financial transaction processing system.
 
 **IMPORTANT:** Before starting work, review these related repositories for system-wide context:
 
-| Repository    | Path               | Purpose                                              |
-|---------------|--------------------|------------------------------------------------------|
-| bc-claude     | `../bc-claude`     | **Read first** - System architecture, Auth0, service URLs, cross-service flows |
-| bc-deploy     | `../bc-deploy`     | Kubernetes/Helm deployment, OpenAPI endpoints, debugging |
-| beancounter   | `../beancounter`   | Spring Boot backend services (Kotlin source code)    |
+| Repository  | Path             | Purpose                                                                        |
+| ----------- | ---------------- | ------------------------------------------------------------------------------ |
+| bc-claude   | `../bc-claude`   | **Read first** - System architecture, Auth0, service URLs, cross-service flows |
+| bc-deploy   | `../bc-deploy`   | Kubernetes/Helm deployment, OpenAPI endpoints, debugging                       |
+| beancounter | `../beancounter` | Spring Boot backend services (Kotlin source code)                              |
 
 Key resources in bc-deploy/CLAUDE.md:
+
 - Service ports (HTTP and Actuator)
 - OpenAPI/Swagger URLs: `http://kauri.monowai.com:{actuator-port}/actuator/openapi`
 - RabbitMQ management, health checks, debugging commands
@@ -131,9 +132,9 @@ tests/               # Test utilities and fixtures
 Configured in `tsconfig.json`:
 
 ```typescript
-import {Something} from "@components/ui/Something"
-import {fetchHelper} from "@lib/api/fetchHelper"
-import {HoldingType} from "@types/holdings"
+import { Something } from "@components/ui/Something"
+import { fetchHelper } from "@lib/api/fetchHelper"
+import { HoldingType } from "@types/holdings"
 ```
 
 ## API Routes
@@ -141,7 +142,7 @@ import {HoldingType} from "@types/holdings"
 All routes use `withApiAuthRequired` and proxy to backend services:
 
 | Endpoint                  | Backend     | Purpose                |
-|---------------------------|-------------|------------------------|
+| ------------------------- | ----------- | ---------------------- |
 | `/api/portfolios`         | bc-data     | Portfolio CRUD         |
 | `/api/holdings/[code]`    | bc-position | Portfolio holdings     |
 | `/api/trns/*`             | bc-data     | Transaction operations |
@@ -155,7 +156,7 @@ Supports both Kafka and RabbitMQ for CSV imports:
 
 ```typescript
 // Automatically uses BROKER_TYPE from environment
-import {getBroker} from "@lib/broker"
+import { getBroker } from "@lib/broker"
 
 const broker = getBroker()
 await broker.send(csvData)
@@ -164,7 +165,7 @@ await broker.send(csvData)
 ## Key Pages
 
 | Route                                        | Purpose                                |
-|----------------------------------------------|----------------------------------------|
+| -------------------------------------------- | -------------------------------------- |
 | `/portfolios`                                | List user portfolios                   |
 | `/holdings/[code]`                           | View portfolio holdings with valuation |
 | `/portfolios/trades/[portfolioId]/[assetId]` | Trade history                          |
@@ -232,4 +233,5 @@ docker build . -t monowai/bc-view
 # With specific broker URL
 docker build --build-arg KAFKA_URL=host.minikube.internal:9092 . -t monowai/bc-view
 ```
+
 Output is `standalone` mode for containerized deployment.

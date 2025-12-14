@@ -9,7 +9,12 @@ import {
 } from "types/beancounter"
 import { NumericFormat } from "react-number-format"
 import { FormatValue } from "@components/ui/MoneyUtils"
-import { isCashRelated, isCash } from "@lib/assets/assetUtils"
+import {
+  isCashRelated,
+  isCash,
+  supportsBalanceSetting,
+  isAccount,
+} from "@lib/assets/assetUtils"
 import { headers } from "./Header"
 import Link from "next/link"
 import { AlphaProgress } from "@components/ui/ProgressBar"
@@ -262,7 +267,7 @@ export default function Rows({
                       />
                     </div>
                   )}
-                {isCash(asset) && onSetCashBalance && (
+                {supportsBalanceSetting(asset) && onSetCashBalance && (
                   <div className="hidden sm:flex items-center">
                     <button
                       type="button"
@@ -270,10 +275,17 @@ export default function Rows({
                       className="inline-flex items-center justify-center w-6 h-6 text-purple-500 hover:text-purple-700 hover:bg-purple-100 rounded transition-colors duration-200"
                       onClick={(e) => {
                         e.stopPropagation()
-                        // Always use TRADE currency for cash balance (actual cash amount)
+                        // For accounts, pass market and asset info
+                        // For cash, use currency as asset code
+                        const isAccountAsset = isAccount(asset)
                         onSetCashBalance({
-                          currency: asset.code,
+                          currency: isAccountAsset
+                            ? asset.market.currency?.code || asset.code
+                            : asset.code,
                           currentBalance: moneyValues["TRADE"].marketValue,
+                          market: isAccountAsset ? "PRIVATE" : "CASH",
+                          assetCode: isAccountAsset ? asset.code : undefined,
+                          assetName: isAccountAsset ? asset.name : undefined,
                         })
                       }}
                       title={t("cash.setBalance")}
