@@ -50,9 +50,6 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
             ? JSON.stringify(toPortfolioRequests(portfolioInput))
             : JSON.stringify(toPortfolioRequest(portfolioInput)),
         })
-          .catch((err) => {
-            throw err
-          })
           .then((response) => response.json())
           .then((data) => {
             const route = post

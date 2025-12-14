@@ -157,6 +157,10 @@ export function calculateHoldings(
     (key) => !(hideEmpty && contract.positions[key].quantityValues.total === 0),
   )
 
+  // Handle empty portfolios - use portfolio currency as fallback
+  const totalsCurrency =
+    contract.totals[valueIn]?.currency ?? contract.portfolio.currency
+
   const results = filteredPositions.reduce(
     (results: Holdings, group) => {
       const position = contract.positions[group] as Position
@@ -178,15 +182,15 @@ export function calculateHoldings(
       holdingGroups: {}, // Initialize as an empty object
       valueIn: valueIn,
       currency: { code: "", symbol: "" } as Currency,
-      totals: zeroTotal(contract.totals[valueIn].currency),
+      totals: zeroTotal(totalsCurrency),
       viewTotals: zeroMoneyValues(contract.portfolio.currency, valueIn),
     },
   )
 
   // Post process results now that all positions have been processed
   results.valueIn = valueIn
-  results.currency = contract.totals[valueIn].currency
-  results.totals = contract.totals[valueIn]
+  results.currency = totalsCurrency
+  results.totals = contract.totals[valueIn] ?? zeroTotal(totalsCurrency)
   results.viewTotals = calculateSummaryTotals(results, valueIn)
   return results
 }

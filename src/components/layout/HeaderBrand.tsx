@@ -8,7 +8,7 @@ function HeaderBrand(): React.ReactElement {
       <a
         className="text-xl font-bold cursor-pointer"
         onClick={() => {
-          router.push("/portfolios")
+          router.push("/")
         }}
       >
         Holds<i>worth</i>

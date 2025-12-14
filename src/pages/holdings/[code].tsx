@@ -388,6 +388,9 @@ function HoldingsPage(): React.ReactElement {
           portfolio={holdingResults.portfolio}
           currency={setCashBalanceData.currency}
           currentBalance={setCashBalanceData.currentBalance}
+          market={setCashBalanceData.market}
+          assetCode={setCashBalanceData.assetCode}
+          assetName={setCashBalanceData.assetName}
         />
       )}
     </div>

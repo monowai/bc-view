@@ -16,12 +16,16 @@ const GitInfo: React.FC<GitInfoProps> = ({ alwaysVisible = false }) => {
 
   useEffect(() => {
     const fetchGitInfo = async (): Promise<void> => {
-      const response = await fetch("/api/git-info")
-      if (!response.ok) {
-        throw new Error("Network response was not ok")
+      try {
+        const response = await fetch("/api/git-info")
+        if (!response.ok) {
+          return
+        }
+        const data: GitInfoData = await response.json()
+        setGitInfo(data)
+      } catch {
+        // Silently ignore git info fetch errors
       }
-      const data: GitInfoData = await response.json()
-      setGitInfo(data)
     }
 
     fetchGitInfo().then()

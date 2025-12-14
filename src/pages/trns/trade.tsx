@@ -10,7 +10,7 @@ import {
 } from "@lib/trns/tradeUtils"
 import { useTranslation } from "next-i18next"
 import useSwr from "swr"
-import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper"
+import { ccyKey, marketsKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { rootLoader } from "@components/ui/PageLoader"
 import { CurrencyOptionSchema } from "@lib/portfolio/schema"
 import TradeTypeController from "@components/features/transactions/TradeTypeController"
@@ -120,7 +120,14 @@ const TradeInputForm: React.FC<{
     }
   }, [modalOpen, initialValues, reset])
 
-  const { data: ccyData, isLoading } = useSwr(ccyKey, simpleFetcher(ccyKey))
+  const { data: ccyData, isLoading: ccyLoading } = useSwr(
+    ccyKey,
+    simpleFetcher(ccyKey),
+  )
+  const { data: marketsData, isLoading: marketsLoading } = useSwr(
+    marketsKey,
+    simpleFetcher(marketsKey),
+  )
   const { t } = useTranslation("common")
 
   const quantity = watch("quantity")
@@ -255,9 +262,22 @@ const TradeInputForm: React.FC<{
 
   useEscapeHandler(isDirty, setModalOpen)
 
-  if (isLoading) return rootLoader(t("loading"))
+  if (ccyLoading || marketsLoading) return rootLoader(t("loading"))
 
   const ccyOptions = currencyOptions(ccyData.data)
+
+  // Get market options from the fetched data
+  // Filter out CASH and US exchange markets (use US market instead)
+  const excludedMarkets = ["CASH", "AMEX", "NYSE", "NASDAQ"]
+  const marketOptions =
+    marketsData?.data
+      ?.filter(
+        (market: { code: string }) => !excludedMarkets.includes(market.code),
+      )
+      .map((market: { code: string; name: string }) => ({
+        value: market.code,
+        label: market.name || market.code,
+      })) || []
 
   return (
     <>
@@ -391,10 +411,18 @@ const TradeInputForm: React.FC<{
                         name="market"
                         control={control}
                         render={({ field }) => (
-                          <input
+                          <select
                             {...field}
                             className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
-                          />
+                          >
+                            {marketOptions.map(
+                              (option: { value: string; label: string }) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ),
+                            )}
+                          </select>
                         )}
                       />
                     ),

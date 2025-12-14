@@ -34,16 +34,16 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
 
   if (user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      <div className="min-h-screen bg-linear-to-br from-slate-50 to-blue-50">
         {/* Hero Section */}
         <div className="relative overflow-hidden">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="text-center">
-              <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
                 {t("home.welcome")}{" "}
                 <span className="text-blue-600">{displayName}</span>
               </h1>
-              <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+              <p className="text-base text-gray-600 mb-4 max-w-2xl mx-auto">
                 {t("tagline")} - Track your investments, manage portfolios, and
                 make informed financial decisions.
               </p>
@@ -96,30 +96,30 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
               </div>
             </div>
 
-            {/* Transaction Management */}
-            <Link href="/trns" className="group">
-              <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-8 border border-gray-100 hover:border-purple-200">
+            {/* Custom Assets */}
+            <Link href="/accounts" className="group">
+              <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-8 border border-gray-100 hover:border-emerald-200">
                 <div className="flex items-center mb-4">
-                  <div className="p-3 bg-purple-100 rounded-lg mr-4">
-                    <i className="fas fa-right-left text-2xl text-purple-600"></i>
+                  <div className="p-3 bg-emerald-100 rounded-lg mr-4">
+                    <i className="fas fa-gem text-2xl text-emerald-600"></i>
                   </div>
                   <h3 className="text-xl font-semibold text-gray-900">
-                    Transactions
+                    {t("accounts.title")}
                   </h3>
                 </div>
                 <p className="text-gray-600 mb-4">
-                  Record and manage trades, dividends, and cash movements across
-                  multiple currencies.
+                  Track bank accounts, real estate, and mutual funds not priced
+                  by Beancounter.
                 </p>
-                <div className="flex items-center text-purple-600 group-hover:text-purple-700">
-                  <span className="font-medium">Manage Trades</span>
+                <div className="flex items-center text-emerald-600 group-hover:text-emerald-700">
+                  <span className="font-medium">Manage Assets</span>
                   <i className="fas fa-arrow-right ml-2 transform group-hover:translate-x-1 transition-transform"></i>
                 </div>
               </div>
             </Link>
 
-            {/* Advanced Analytics (Coming Soon) */}
-            <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-2xl shadow-lg p-8 border border-orange-100 relative overflow-hidden">
+            {/* Retirement Planning (Coming Soon) */}
+            <div className="bg-linear-to-br from-orange-50 to-red-50 rounded-2xl shadow-lg p-8 border border-orange-100 relative overflow-hidden">
               <div className="absolute top-4 right-4">
                 <span className="bg-orange-100 text-orange-600 text-xs px-2 py-1 rounded-full font-medium">
                   Coming Soon
@@ -127,15 +127,15 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
               </div>
               <div className="flex items-center mb-4">
                 <div className="p-3 bg-orange-100 rounded-lg mr-4">
-                  <i className="fas fa-chart-bar text-2xl text-orange-600"></i>
+                  <i className="fas fa-umbrella-beach text-2xl text-orange-600"></i>
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900">
-                  Advanced Analytics
+                  Retirement Planning
                 </h3>
               </div>
               <p className="text-gray-600 mb-4">
-                Enhanced portfolio analysis with sector allocation, performance
-                benchmarking, and risk metrics.
+                Plan your financial future with retirement projections, savings
+                goals, and withdrawal strategies.
               </p>
               <div className="flex items-center text-orange-600">
                 <span className="font-medium">In Development</span>
@@ -144,7 +144,7 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
             </div>
 
             {/* AI Insights (Coming Soon) */}
-            <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl shadow-lg p-8 border border-indigo-100 relative overflow-hidden">
+            <div className="bg-linear-to-br from-indigo-50 to-purple-50 rounded-2xl shadow-lg p-8 border border-indigo-100 relative overflow-hidden">
               <div className="absolute top-4 right-4">
                 <span className="bg-indigo-100 text-indigo-600 text-xs px-2 py-1 rounded-full font-medium">
                   Coming Soon
@@ -169,7 +169,7 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
             </div>
 
             {/* Mobile App (Coming Soon) */}
-            <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-2xl shadow-lg p-8 border border-teal-100 relative overflow-hidden">
+            <div className="bg-linear-to-br from-teal-50 to-cyan-50 rounded-2xl shadow-lg p-8 border border-teal-100 relative overflow-hidden">
               <div className="absolute top-4 right-4">
                 <span className="bg-teal-100 text-teal-600 text-xs px-2 py-1 rounded-full font-medium">
                   Coming Soon

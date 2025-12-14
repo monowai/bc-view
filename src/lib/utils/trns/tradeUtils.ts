@@ -11,6 +11,8 @@ export interface CashRowParams {
   tradeDate?: string // Defaults to today
   comments?: string
   batchId?: string // Defaults to generated from date
+  market?: string // Defaults to "CASH", use "PRIVATE" for bank accounts
+  assetCode?: string // Asset code, defaults to currency
 }
 
 // Build a cash transaction row array for import
@@ -22,17 +24,21 @@ export const buildCashRow = (params: CashRowParams): string[] => {
     tradeDate = new Date().toISOString().split("T")[0],
     comments = "",
     batchId = generateBatchId(),
+    market = "CASH",
+    assetCode,
   } = params
 
   // Cash amount needs correct sign: negative for WITHDRAWAL, positive for DEPOSIT/FX
-  const signedCashAmount = type === "WITHDRAWAL" ? -Math.abs(amount) : Math.abs(amount)
+  const signedCashAmount =
+    type === "WITHDRAWAL" ? -Math.abs(amount) : Math.abs(amount)
+  const asset = assetCode || currency
 
   return [
     batchId, // batchId
     "", // callerId (empty)
     type, // type (DEPOSIT/WITHDRAWAL/FX)
-    "CASH", // market
-    currency, // asset (currency code)
+    market, // market (CASH or PRIVATE for bank accounts)
+    asset, // asset (currency code or account code)
     "", // name (empty)
     "", // cashAccount (empty)
     currency, // cashCurrency

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react"
+import React, { useState, useMemo, useCallback, useRef } from "react"
 import useSwr from "swr"
 import { UserProfile, withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useTranslation } from "next-i18next"
@@ -16,6 +16,75 @@ import PortfolioCorporateActionsPopup from "@components/features/portfolios/Port
 type SortConfig = {
   key: string | null
   direction: "asc" | "desc"
+}
+
+interface PortfolioActionsProps {
+  onImportClick: () => void
+}
+
+const PortfolioActions = ({
+  onImportClick,
+}: PortfolioActionsProps): React.ReactElement => {
+  const router = useRouter()
+  const { t } = useTranslation("common")
+  const [isExporting, setIsExporting] = useState(false)
+
+  const handleExport = async (): Promise<void> => {
+    setIsExporting(true)
+    try {
+      const response = await fetch("/api/portfolios/export")
+      if (!response.ok) {
+        console.error("Export failed: HTTP", response.status)
+        return
+      }
+      const csvContent = await response.text()
+      const blob = new Blob([csvContent], { type: "text/csv" })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = "portfolios.csv"
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (err) {
+      console.error("Export failed:", err)
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  return (
+    <div className="flex space-x-2">
+      <button
+        className="bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition-colors flex items-center"
+        onClick={handleExport}
+        disabled={isExporting}
+      >
+        {isExporting ? (
+          <i className="fas fa-spinner fa-spin mr-2"></i>
+        ) : (
+          <i className="fas fa-download mr-2"></i>
+        )}
+        {t("portfolios.export")}
+      </button>
+      <button
+        className="bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition-colors flex items-center"
+        onClick={onImportClick}
+      >
+        <i className="fas fa-upload mr-2"></i>
+        {t("portfolios.import")}
+      </button>
+      <button
+        className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition-colors"
+        onClick={async () => {
+          await router.push(`/portfolios/__NEW__`)
+        }}
+      >
+        {t("portfolio.create")}
+      </button>
+    </div>
+  )
 }
 
 const CreatePortfolioButton = (): React.ReactElement<HTMLButtonElement> => {
@@ -54,9 +123,25 @@ export default withPageAuthRequired(function Portfolios({
   const [corporateActionsPortfolio, setCorporateActionsPortfolio] =
     useState<Portfolio | null>(null)
 
+  // Import dialog state
+  const [showImportDialog, setShowImportDialog] = useState(false)
+
   const handleCorporateActionsClose = useCallback(() => {
     setCorporateActionsPortfolio(null)
   }, [])
+
+  const handleImportClick = useCallback(() => {
+    setShowImportDialog(true)
+  }, [])
+
+  const handleImportClose = useCallback(() => {
+    setShowImportDialog(false)
+  }, [])
+
+  const handleImportComplete = useCallback(async () => {
+    await mutate()
+    setShowImportDialog(false)
+  }, [mutate])
 
   // Handle sorting
   const handleSort = (key: string): void => {
@@ -184,7 +269,7 @@ export default withPageAuthRequired(function Portfolios({
           <h1 className="text-2xl font-bold text-gray-900">
             {t("portfolios.title", "Portfolios")}
           </h1>
-          <CreatePortfolioButton />
+          <PortfolioActions onImportClick={handleImportClick} />
         </div>
 
         <div className="bg-white shadow-sm border border-gray-200 rounded-lg overflow-hidden">
@@ -342,9 +427,192 @@ export default withPageAuthRequired(function Portfolios({
           onClose={handleCorporateActionsClose}
         />
       )}
+      {showImportDialog && (
+        <PortfolioImportDialog
+          onClose={handleImportClose}
+          onComplete={handleImportComplete}
+        />
+      )}
     </>
   )
 })
+
+interface PortfolioImportDialogProps {
+  onClose: () => void
+  onComplete: () => Promise<void>
+}
+
+const PortfolioImportDialog: React.FC<PortfolioImportDialogProps> = ({
+  onClose,
+  onComplete,
+}) => {
+  const { t } = useTranslation("common")
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isImporting, setIsImporting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [importResult, setImportResult] = useState<{ count: number } | null>(
+    null,
+  )
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setSelectedFile(file)
+      setError(null)
+      setImportResult(null)
+    }
+  }
+
+  const handleImport = async (): Promise<void> => {
+    if (!selectedFile) {
+      setError("Please select a file")
+      return
+    }
+
+    setIsImporting(true)
+    setError(null)
+
+    try {
+      const csvContent = await selectedFile.text()
+      const response = await fetch("/api/portfolios/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ csvContent }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        setError(errorData.error || "Import failed")
+        return
+      }
+
+      const result = await response.json()
+      const count = result.data ? result.data.length : 0
+      setImportResult({ count })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Import failed")
+    } finally {
+      setIsImporting(false)
+    }
+  }
+
+  const handleDone = async (): Promise<void> => {
+    await onComplete()
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div
+        className="fixed inset-0 bg-black opacity-50"
+        onClick={onClose}
+      ></div>
+      <div
+        className="bg-white rounded-lg shadow-lg w-full max-w-md mx-auto p-6 z-50"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header className="flex justify-between items-center border-b pb-2 mb-4">
+          <h2 className="text-xl font-semibold">
+            {t("portfolios.import.title")}
+          </h2>
+          <button
+            className="text-gray-500 hover:text-gray-700"
+            onClick={onClose}
+          >
+            &times;
+          </button>
+        </header>
+
+        <div className="space-y-4">
+          {!importResult ? (
+            <>
+              <p className="text-sm text-gray-600">
+                {t("portfolios.import.hint")}
+              </p>
+
+              <div
+                className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-gray-400 transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <i className="fas fa-file-csv text-4xl text-gray-400 mb-2"></i>
+                {selectedFile ? (
+                  <p className="text-sm text-gray-700 font-medium">
+                    {selectedFile.name}
+                  </p>
+                ) : (
+                  <p className="text-sm text-gray-500">
+                    {t("portfolios.import.select")}
+                  </p>
+                )}
+              </div>
+
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm">
+                  {error}
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+              <i className="fas fa-check-circle text-green-500 text-3xl mb-2"></i>
+              <p className="text-green-700 font-medium">
+                {t("portfolios.import.success", { count: importResult.count })}
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-end space-x-2 mt-6">
+          {!importResult ? (
+            <>
+              <button
+                type="button"
+                className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 transition-colors"
+                onClick={onClose}
+              >
+                {t("cancel")}
+              </button>
+              <button
+                type="button"
+                className={`px-4 py-2 rounded transition-colors text-white ${
+                  isImporting || !selectedFile
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-blue-500 hover:bg-blue-600"
+                }`}
+                onClick={handleImport}
+                disabled={isImporting || !selectedFile}
+              >
+                {isImporting ? (
+                  <span className="flex items-center">
+                    <i className="fas fa-spinner fa-spin mr-2"></i>
+                    {t("portfolios.importing")}
+                  </span>
+                ) : (
+                  t("portfolios.import")
+                )}
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
+              onClick={handleDone}
+            >
+              {t("done")}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
   props: {

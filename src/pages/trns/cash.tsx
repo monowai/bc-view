@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState, useMemo } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
 import * as yup from "yup"
-import { CurrencyOption, Portfolio } from "types/beancounter"
+import { Asset, CurrencyOption, Portfolio } from "types/beancounter"
 import { calculateTradeAmount } from "@lib/trns/tradeUtils"
 import { useTranslation } from "next-i18next"
 import useSwr from "swr"
@@ -20,7 +20,19 @@ import { currencyOptions } from "@lib/currency"
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 
-const TradeTypeValues = ["DEPOSIT", "WITHDRAWAL", "FX"] as const
+const TradeTypeValues = [
+  "DEPOSIT",
+  "WITHDRAWAL",
+  "INCOME",
+  "DEDUCTION",
+  "FX",
+] as const
+
+// Extended option that includes market info for accounts
+interface AssetOption extends CurrencyOption {
+  market?: string // CASH for currencies, PRIVATE for accounts
+  currency?: string // For accounts, the currency of the account
+}
 
 const defaultValues = {
   type: { value: "DEPOSIT", label: "DEPOSIT" },
@@ -88,12 +100,14 @@ const CashInputForm: React.FC<{
     }
   }, [modalOpen, reset])
 
+  const [selectedMarket, setSelectedMarket] = useState("CASH")
+
   const handleCopy = async (): Promise<void> => {
     const formData = getValues()
     // Map form fields to TradeFormData format
     const data = {
       ...formData,
-      market: "CASH",
+      market: selectedMarket,
       price: 1, // Cash transactions always have price of 1
       comments: formData.comment ?? undefined,
     }
@@ -102,30 +116,101 @@ const CashInputForm: React.FC<{
     setCopyStatus(success ? "success" : "error")
     setTimeout(() => setCopyStatus("idle"), 2000)
   }
-  const { data: ccyData, isLoading } = useSwr(ccyKey, simpleFetcher(ccyKey))
+
+  const { data: ccyData, isLoading: ccyLoading } = useSwr(
+    ccyKey,
+    simpleFetcher(ccyKey),
+  )
+  const { data: accountsData, error: accountsError } = useSwr(
+    "/api/assets?category=ACCOUNT",
+    simpleFetcher("/api/assets?category=ACCOUNT"),
+  )
+
+  // Log accounts fetch status for debugging
+  useEffect(() => {
+    if (accountsError) {
+      console.log("Failed to fetch accounts:", accountsError)
+    }
+    if (accountsData?.data) {
+      console.log("Fetched accounts:", Object.keys(accountsData.data).length)
+      console.log("Account data:", JSON.stringify(accountsData.data, null, 2))
+    }
+  }, [accountsData, accountsError])
+
   const { t } = useTranslation("common")
 
   const tax = watch("tax")
   const fees = watch("fees")
   const type = watch("type")
   const qty = watch("quantity")
+  const asset = watch("asset")
 
   useEscapeHandler(isDirty, setModalOpen)
 
-  useEffect(() => {
-    const asset = watch("asset")
-    if (asset) {
-      setValue("tradeCurrency", { value: asset, label: asset })
-      setValue("cashCurrency", { value: asset, label: asset })
+  // Combine currency options with account options
+  const combinedOptions = useMemo(() => {
+    const options: AssetOption[] = []
+
+    // Add currencies (market: CASH)
+    if (ccyData?.data) {
+      currencyOptions(ccyData.data).forEach((opt: CurrencyOption) => {
+        options.push({ ...opt, market: "CASH", currency: opt.value })
+      })
     }
-  }, [watch, setValue])
+
+    // Add user's accounts (market: PRIVATE)
+    // For ACCOUNT assets, the currency is stored in priceSymbol
+    if (accountsData?.data) {
+      Object.values(accountsData.data as Record<string, Asset>).forEach(
+        (account) => {
+          const accountCurrency =
+            account.priceSymbol || account.market?.currency?.code || "?"
+          options.push({
+            value: account.code,
+            label: `${account.name} (${accountCurrency})`,
+            market: "PRIVATE",
+            currency: accountCurrency,
+          })
+        },
+      )
+    }
+
+    return options
+  }, [ccyData?.data, accountsData?.data])
+
+  // Debug: log combined options
+  useEffect(() => {
+    const offmOptions = combinedOptions.filter(
+      (opt) => opt.market === "PRIVATE",
+    )
+    console.log("PRIVATE options count:", offmOptions.length)
+    if (offmOptions.length > 0) {
+      console.log("PRIVATE options:", offmOptions)
+    }
+  }, [combinedOptions])
+
+  // Update market and currency when asset changes
+  useEffect(() => {
+    if (asset) {
+      const selected = combinedOptions.find((opt) => opt.value === asset)
+      if (selected) {
+        setSelectedMarket(selected.market || "CASH")
+        const currency = selected.currency || asset
+        setValue("tradeCurrency", { value: currency, label: currency })
+        setValue("cashCurrency", { value: currency, label: currency })
+        setValue("market", selected.market || "CASH")
+      }
+    }
+  }, [asset, combinedOptions, setValue])
+
   useEffect(() => {
     const tradeAmount = calculateTradeAmount(qty, 1, tax, fees, type.value)
     setValue("tradeAmount", parseFloat(tradeAmount.toFixed(2)))
     setValue("cashAmount", parseFloat(tradeAmount.toFixed(2)))
   }, [tax, fees, type, qty, setValue])
 
-  if (isLoading) return rootLoader(t("loading"))
+  // Only wait for currencies - accounts are optional enhancement
+  if (ccyLoading) return rootLoader(t("loading"))
 
   const ccyOptions = currencyOptions(ccyData.data)
 
@@ -191,7 +276,7 @@ const CashInputForm: React.FC<{
                   },
                   {
                     name: "asset",
-                    label: t("trade.cash.asset"),
+                    label: t("trade.cash.account"),
                     component: (
                       <Controller
                         name="asset"
@@ -203,11 +288,34 @@ const CashInputForm: React.FC<{
                             className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
                             value={field.value}
                           >
-                            {ccyOptions.map((option: CurrencyOption) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
+                            <optgroup label="Currencies">
+                              {combinedOptions
+                                .filter((opt) => opt.market === "CASH")
+                                .map((option) => (
+                                  <option
+                                    key={option.value}
+                                    value={option.value}
+                                  >
+                                    {option.label}
+                                  </option>
+                                ))}
+                            </optgroup>
+                            {combinedOptions.some(
+                              (opt) => opt.market === "PRIVATE",
+                            ) && (
+                              <optgroup label="Bank Accounts">
+                                {combinedOptions
+                                  .filter((opt) => opt.market === "PRIVATE")
+                                  .map((option) => (
+                                    <option
+                                      key={option.value}
+                                      value={option.value}
+                                    >
+                                      {option.label}
+                                    </option>
+                                  ))}
+                              </optgroup>
+                            )}
                           </select>
                         )}
                       />
