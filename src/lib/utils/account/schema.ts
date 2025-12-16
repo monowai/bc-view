@@ -18,11 +18,3 @@ export const accountInputSchema = yup
     category: CategoryOptionSchema.required(),
   })
   .required()
-
-// Asset category options for user-owned custom assets
-export const assetCategoryOptions = [
-  { value: "ACCOUNT", label: "Bank Account" },
-  { value: "RE", label: "Real Estate" },
-  { value: "MUTUAL FUND", label: "Mutual Fund" },
-  { value: "POLICY", label: "Insurance Policy" },
-]

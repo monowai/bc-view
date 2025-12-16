@@ -10,6 +10,9 @@ export type TrnType =
   | "INCOME"
   | "DEDUCTION"
   | "FX"
+  | "ADD"
+  | "REDUCE"
+  | "BALANCE"
 
 export interface QuickSellData {
   asset: string
@@ -223,7 +226,8 @@ interface TrnInput {
   tradeAmount: number
   tradeBaseRate: number
   tradePortfolioRate: number
-  cashCurrency: string
+  cashCurrency?: string
+  cashAssetId?: string // Settlement account asset ID
   cashAmount: number
   tradeCashRate: number
   fees: number
@@ -239,6 +243,7 @@ interface TradeFormData {
   price: number
   tradeCurrency: { value: string; label: string }
   cashCurrency?: { value: string; label: string }
+  settlementAccount?: { value: string; label: string } // Asset ID and display label
   tradeAmount?: number
   cashAmount?: number
   fees: number
@@ -318,6 +323,7 @@ export const ASSET_CATEGORIES = {
   MUTUAL_FUND: "MUTUAL FUND",
   RE: "RE",
   ACCOUNT: "ACCOUNT",
+  TRADE: "TRADE",
 } as const
 
 export type AssetCategoryId =

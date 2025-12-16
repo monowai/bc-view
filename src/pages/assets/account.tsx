@@ -1,7 +1,12 @@
-import React from "react"
+import React, { useMemo } from "react"
 import { Controller, SubmitHandler, useForm } from "react-hook-form"
-import { AssetRequest, AssetResponse, CurrencyOption } from "types/beancounter"
-import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper"
+import {
+  AssetCategory,
+  AssetRequest,
+  AssetResponse,
+  CurrencyOption,
+} from "types/beancounter"
+import { ccyKey, categoriesKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { useRouter } from "next/router"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useTranslation } from "next-i18next"
@@ -14,7 +19,10 @@ import { currencyOptions } from "@lib/currency"
 import ReactSelect from "react-select"
 import { yupResolver } from "@hookform/resolvers/yup"
 import { validateInput } from "@components/errors/validator"
-import { accountInputSchema, assetCategoryOptions } from "@lib/account/schema"
+import { accountInputSchema } from "@lib/account/schema"
+
+// Categories that can be used for user-owned custom assets
+const USER_ASSET_CATEGORIES = ["ACCOUNT", "TRADE", "RE", "MUTUAL FUND", "POLICY"]
 
 interface CategoryOption {
   value: string
@@ -44,6 +52,18 @@ export default withPageAuthRequired(
     })
 
     const ccyResponse = useSwr(ccyKey, simpleFetcher(ccyKey))
+    const categoriesResponse = useSwr(categoriesKey, simpleFetcher(categoriesKey))
+
+    // Convert backend categories to select options, filtering to user asset types
+    const categoryOptions = useMemo(() => {
+      if (!categoriesResponse.data?.data) return []
+      return categoriesResponse.data.data
+        .filter((cat: AssetCategory) => USER_ASSET_CATEGORIES.includes(cat.id))
+        .map((cat: AssetCategory) => ({
+          value: cat.id,
+          label: cat.name,
+        }))
+    }, [categoriesResponse.data?.data])
 
     const handleSubmit: SubmitHandler<AccountFormInput> = (formData) => {
       validateInput(accountInputSchema, formData)
@@ -89,10 +109,13 @@ export default withPageAuthRequired(
         })
     }
 
-    if (ccyResponse.error) {
-      return errorOut(t("account.error.create"), ccyResponse.error)
+    if (ccyResponse.error || categoriesResponse.error) {
+      return errorOut(
+        t("account.error.create"),
+        ccyResponse.error || categoriesResponse.error,
+      )
     }
-    if (!ready || ccyResponse.isLoading) {
+    if (!ready || ccyResponse.isLoading || categoriesResponse.isLoading) {
       return rootLoader(t("loading"))
     }
 
@@ -112,7 +135,7 @@ export default withPageAuthRequired(
             render={({ field }) => (
               <ReactSelect
                 {...field}
-                options={assetCategoryOptions}
+                options={categoryOptions}
                 placeholder={t("account.category.hint")}
               />
             )}
