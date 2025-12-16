@@ -8,7 +8,7 @@ export function FormatValue({
   multiplier,
   defaultValue = " ",
 }: FormatNumber): ReactElement {
-  if (value) {
+  if (typeof value === "number") {
     return (
       <NumericFormat
         value={value * (multiplier ? multiplier : 1)}
@@ -33,7 +33,7 @@ export function ResponsiveFormatValue({
   multiplier,
   defaultValue = " ",
 }: FormatNumber): ReactElement {
-  if (!value) {
+  if (typeof value !== "number") {
     return <span>{defaultValue}</span>
   }
 

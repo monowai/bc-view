@@ -19,6 +19,7 @@ import {
 import { rootLoader } from "@components/ui/PageLoader"
 import TradeTypeController from "@components/features/transactions/TradeTypeController"
 import SettlementAccountSelect from "@components/features/transactions/SettlementAccountSelect"
+import AssetSearchInput, { AssetOption } from "@components/features/transactions/AssetSearchInput"
 import {
   onSubmit,
   useEscapeHandler,
@@ -59,6 +60,13 @@ const schema = yup.object().shape({
   tradeDate: yup.string().required(),
   quantity: yup.number().default(0).required(),
   price: yup.number().required().default(0),
+  tradeCurrency: yup
+    .object()
+    .shape({
+      value: yup.string().required(),
+      label: yup.string().required(),
+    })
+    .required(),
   tradeAmount: yup.number(),
   settlementAccount: yup
     .object()
@@ -400,15 +408,20 @@ const TradeInputForm: React.FC<{
                     name: "asset",
                     label: t("trn.asset.code"),
                     component: (
-                      <Controller
+                      <AssetSearchInput
                         name="asset"
                         control={control}
-                        render={({ field }) => (
-                          <input
-                            {...field}
-                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
-                          />
-                        )}
+                        market={watch("market")}
+                        defaultValue={initialValues?.asset}
+                        onAssetSelect={(option: AssetOption | null) => {
+                          // Set the trade currency to match the asset's currency
+                          if (option?.currency) {
+                            setValue("tradeCurrency", {
+                              value: option.currency,
+                              label: option.currency,
+                            })
+                          }
+                        }}
                       />
                     ),
                   },
