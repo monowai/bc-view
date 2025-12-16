@@ -46,24 +46,33 @@ export async function postData(
 // DropZone component
 function DropZone({
   onDrop,
+  hideIcon = false,
 }: {
   onDrop: (acceptedFiles: Blob[]) => void
+  hideIcon?: boolean
 }): React.ReactElement {
   const { getRootProps, getInputProps } = useDropzone({ onDrop })
   return (
     <div {...getRootProps()}>
       <input {...getInputProps()} />
-      <span>
-        <i className="far fa-circle-up fa-3x" />
-      </span>
+      {!hideIcon && (
+        <span>
+          <i className="far fa-circle-up fa-3x" />
+        </span>
+      )}
     </div>
   )
+}
+
+interface TrnDropZoneProps extends TransactionImport {
+  hideIcon?: boolean
 }
 
 export default function TrnDropZone({
   portfolio,
   purge,
-}: TransactionImport): ReactElement {
+  hideIcon = false,
+}: TrnDropZoneProps): ReactElement {
   const onDrop = useCallback(
     async (acceptedFiles: Blob[]) => {
       let rows = 0
@@ -93,5 +102,5 @@ export default function TrnDropZone({
   if (portfolio.id === "new") {
     return <div />
   }
-  return <DropZone onDrop={onDrop} />
+  return <DropZone onDrop={onDrop} hideIcon={hideIcon} />
 }

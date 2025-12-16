@@ -10,6 +10,7 @@ interface HoldingActionsProps {
   valueIn: string
   quickSellData?: QuickSellData
   onQuickSellHandled?: () => void
+  emptyHoldings?: boolean
 }
 
 const HoldingActions: React.FC<HoldingActionsProps> = ({
@@ -18,6 +19,7 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
   valueIn,
   quickSellData,
   onQuickSellHandled,
+  emptyHoldings = false,
 }) => {
   const [tradeModalOpen, setTradeModalOpen] = useState(false)
   const [cashModalOpen, setCashModalOpen] = useState(false)
@@ -39,14 +41,18 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
   }
 
   return (
-    <div className="flex flex-col sm:flex-row justify-end py-2 space-y-2 sm:space-y-0 sm:space-x-2 mb-4">
-      <button
-        className="mobile-portrait:hidden w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center"
-        onClick={() => setCopyModalOpen(true)}
-      >
-        <i className="fas fa-copy mr-2"></i>
-        Copy Data
-      </button>
+    <div
+      className={`flex flex-col sm:flex-row py-2 space-y-2 sm:space-y-0 sm:space-x-2 mb-4 ${emptyHoldings ? "justify-start" : "justify-end"}`}
+    >
+      {!emptyHoldings && (
+        <button
+          className="mobile-portrait:hidden w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center"
+          onClick={() => setCopyModalOpen(true)}
+        >
+          <i className="fas fa-copy mr-2"></i>
+          Copy Data
+        </button>
+      )}
       <button
         className="mobile-portrait:hidden w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center"
         onClick={() => setTradeModalOpen(true)}

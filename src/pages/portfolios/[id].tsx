@@ -192,17 +192,32 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
           </button>
         </div>
       </form>
-      <div>
-        <div className="flex justify-center items-center mt-10">
-          <TrnDropZone portfolio={portfolio} purge={purgeTrn} />
-          <label className="inline-flex items-center ml-4">
+      <div className="max-w-lg mx-auto mt-6">
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
+          <p className="text-sm text-gray-500 mb-4">
+            {t("holdings.import.hint")}
+          </p>
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 inline-block cursor-pointer hover:border-gray-400 transition-colors">
+            <i className="fas fa-file-csv text-4xl text-gray-400 mb-2"></i>
+            <TrnDropZone
+              portfolio={portfolio}
+              purge={purgeTrn}
+              hideIcon={true}
+            />
+            <p className="text-sm text-gray-500 mt-2">
+              {t("holdings.import.select")}
+            </p>
+          </div>
+          <label className="flex items-center justify-center mt-4">
             <input
               type="checkbox"
               className="form-checkbox"
               checked={purgeTrn}
               onChange={() => setPurgeTrn(!purgeTrn)}
             />
-            <span className="ml-2">{t("portfolio.delete.trns")}</span>
+            <span className="ml-2 text-sm text-gray-600">
+              {t("portfolio.delete.trns")}
+            </span>
           </label>
         </div>
       </div>

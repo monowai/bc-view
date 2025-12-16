@@ -10,21 +10,25 @@ import {
 } from "@lib/trns/tradeUtils"
 import { useTranslation } from "next-i18next"
 import useSwr from "swr"
-import { ccyKey, marketsKey, simpleFetcher } from "@utils/api/fetchHelper"
+import {
+  marketsKey,
+  simpleFetcher,
+  tradeAccountsKey,
+  ccyKey,
+} from "@utils/api/fetchHelper"
 import { rootLoader } from "@components/ui/PageLoader"
-import { CurrencyOptionSchema } from "@lib/portfolio/schema"
 import TradeTypeController from "@components/features/transactions/TradeTypeController"
+import SettlementAccountSelect from "@components/features/transactions/SettlementAccountSelect"
 import {
   onSubmit,
   useEscapeHandler,
   copyToClipboard,
 } from "@lib/trns/formUtils"
 import { convert } from "@lib/trns/tradeUtils"
-import { currencyOptions, toCurrencyOption } from "@lib/currency"
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 
-const TradeTypeValues = ["BUY", "SELL", "DIVI", "SPLIT"] as const
+const TradeTypeValues = ["BUY", "SELL", "ADD", "REDUCE", "DIVI", "SPLIT"] as const
 
 const defaultValues = {
   type: { value: "BUY", label: "BUY" },
@@ -34,7 +38,7 @@ const defaultValues = {
   quantity: 0,
   price: 0,
   tradeCurrency: { value: "USD", label: "USD" },
-  cashCurrency: { value: "USD", label: "USD" },
+  settlementAccount: { value: "", label: "", currency: "" },
   tradeAmount: 0,
   cashAmount: 0,
   fees: 0,
@@ -56,7 +60,14 @@ const schema = yup.object().shape({
   quantity: yup.number().default(0).required(),
   price: yup.number().required().default(0),
   tradeAmount: yup.number(),
-  cashCurrency: CurrencyOptionSchema.required(),
+  settlementAccount: yup
+    .object()
+    .shape({
+      value: yup.string(),
+      label: yup.string(),
+      currency: yup.string(),
+    })
+    .nullable(),
   cashAmount: yup.number(),
   fees: yup.number().required().default(defaultValues.fees),
   tax: yup.number().required().default(defaultValues.tax),
@@ -90,12 +101,15 @@ const TradeInputForm: React.FC<{
   const handleCopy = async (): Promise<void> => {
     const formData = getValues()
     // Map form fields to TradeFormData format
+    // Use settlement account's currency as tradeCurrency if available
+    const settlementCurrency = formData.settlementAccount?.currency || "USD"
     const data = {
       ...formData,
-      tradeCurrency: formData.cashCurrency,
+      tradeCurrency: { value: settlementCurrency, label: settlementCurrency },
+      cashCurrency: { value: settlementCurrency, label: settlementCurrency },
       comments: formData.comment ?? undefined,
     }
-    const row = convert(data)
+    const row = convert(data as any)
     const success = await copyToClipboard(row)
     setCopyStatus(success ? "success" : "error")
     setTimeout(() => setCopyStatus("idle"), 2000)
@@ -120,13 +134,17 @@ const TradeInputForm: React.FC<{
     }
   }, [modalOpen, initialValues, reset])
 
-  const { data: ccyData, isLoading: ccyLoading } = useSwr(
-    ccyKey,
-    simpleFetcher(ccyKey),
-  )
   const { data: marketsData, isLoading: marketsLoading } = useSwr(
     marketsKey,
     simpleFetcher(marketsKey),
+  )
+  const { data: tradeAccountsData, isLoading: tradeAccountsLoading } = useSwr(
+    tradeAccountsKey,
+    simpleFetcher(tradeAccountsKey),
+  )
+  const { data: ccyData, isLoading: ccyLoading } = useSwr(
+    ccyKey,
+    simpleFetcher(ccyKey),
   )
   const { t } = useTranslation("common")
 
@@ -258,13 +276,19 @@ const TradeInputForm: React.FC<{
       }
     }
     return null
-  }, [quantity, price, tax, fees, portfolio.marketValue, type.value])
+  }, [quantity, price, tax, fees, portfolio.marketValue, type.value, actualPositionQuantity])
 
   useEscapeHandler(isDirty, setModalOpen)
 
-  if (ccyLoading || marketsLoading) return rootLoader(t("loading"))
+  if (marketsLoading || tradeAccountsLoading || ccyLoading)
+    return rootLoader(t("loading"))
 
-  const ccyOptions = currencyOptions(ccyData.data)
+  // Get trade accounts for settlement account dropdown
+  const tradeAccounts = tradeAccountsData?.data
+    ? Object.values(tradeAccountsData.data)
+    : []
+  // Get currencies for settlement account dropdown
+  const currencies = ccyData?.data || []
 
   // Get market options from the fetched data
   // Filter out CASH and US exchange markets (use US market instead)
@@ -342,31 +366,16 @@ const TradeInputForm: React.FC<{
                     ),
                   },
                   {
-                    name: "cashCurrency",
-                    label: t("trn.currency.cash"),
+                    name: "settlementAccount",
+                    label: t("trn.settlement.account"),
                     component: (
-                      <Controller
-                        name="cashCurrency"
+                      <SettlementAccountSelect
+                        name="settlementAccount"
                         control={control}
-                        defaultValue={toCurrencyOption(portfolio.currency)}
-                        render={({ field }) => (
-                          <select
-                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
-                            value={field.value.value}
-                            onChange={(e) => {
-                              const selected = ccyOptions.find(
-                                (opt) => opt.value === e.target.value,
-                              )
-                              field.onChange(selected)
-                            }}
-                          >
-                            {ccyOptions.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
-                        )}
+                        accounts={tradeAccounts as any[]}
+                        currencies={currencies}
+                        trnType={type?.value || "BUY"}
+                        accountsLabel={t("settlement.tradeAccounts", "Trade Accounts")}
                       />
                     ),
                   },

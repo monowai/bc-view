@@ -8,6 +8,32 @@ import "@styles/globals.css"
 import "@fortawesome/fontawesome-free/css/all.min.css"
 import GitInfo from "@components/ui/GitInfo"
 import { useRouter } from "next/router"
+import { useAutoRegister } from "@hooks/useAutoRegister"
+
+// Inner component that handles auto-registration (must be inside UserProvider)
+interface AppContentProps {
+  Component: AppProps["Component"]
+  pageProps: AppProps["pageProps"]
+  alwaysVisible: boolean
+}
+
+const AppContent: React.FC<AppContentProps> = ({
+  Component,
+  pageProps,
+  alwaysVisible,
+}) => {
+  useAutoRegister()
+
+  return (
+    <>
+      <div className="pt-0 p-3 sm:p-4 md:p-6 lg:p-8 bg-gray-100">
+        <Header />
+        <Component {...pageProps} />
+      </div>
+      <GitInfo alwaysVisible={alwaysVisible} />
+    </>
+  )
+}
 
 const App: React.FC<AppProps> = ({ Component, pageProps }) => {
   const router = useRouter()
@@ -16,11 +42,11 @@ const App: React.FC<AppProps> = ({ Component, pageProps }) => {
 
   return (
     <UserProvider>
-      <div className="pt-0 p-3 sm:p-4 md:p-6 lg:p-8 bg-gray-100">
-        <Header />
-        <Component {...pageProps} />
-      </div>
-      <GitInfo alwaysVisible={alwaysVisible} />
+      <AppContent
+        Component={Component}
+        pageProps={pageProps}
+        alwaysVisible={alwaysVisible}
+      />
     </UserProvider>
   )
 }

@@ -1,14 +1,22 @@
-import React, { useState, useCallback, useRef } from "react"
+import React, { useState, useCallback, useRef, useMemo } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { useTranslation } from "next-i18next"
 import useSwr, { mutate } from "swr"
-import { simpleFetcher, ccyKey } from "@utils/api/fetchHelper"
+import { simpleFetcher, ccyKey, categoriesKey } from "@utils/api/fetchHelper"
 import { rootLoader } from "@components/ui/PageLoader"
-import { Asset, CurrencyOption } from "types/beancounter"
+import { Asset, AssetCategory, CurrencyOption } from "types/beancounter"
 import { currencyOptions } from "@lib/currency"
 import { useRouter } from "next/router"
+
+// Categories that can be used for user-owned custom assets
+const USER_ASSET_CATEGORIES = ["ACCOUNT", "TRADE", "RE", "MUTUAL FUND", "POLICY"]
+
+interface CategoryOption {
+  value: string
+  label: string
+}
 
 // Extract display code without owner prefix (e.g., "userId.WISE" -> "WISE")
 function getDisplayCode(code: string): string {
@@ -106,6 +114,21 @@ function AccountsPage(): React.ReactElement {
     ccyKey,
     simpleFetcher(ccyKey),
   )
+  const { data: categoriesData, isLoading: categoriesLoading } = useSwr(
+    categoriesKey,
+    simpleFetcher(categoriesKey),
+  )
+
+  // Convert backend categories to select options, filtering to user asset types
+  const categoryOptions = useMemo((): CategoryOption[] => {
+    if (!categoriesData?.data) return []
+    return categoriesData.data
+      .filter((cat: AssetCategory) => USER_ASSET_CATEGORIES.includes(cat.id))
+      .map((cat: AssetCategory) => ({
+        value: cat.id,
+        label: cat.name,
+      }))
+  }, [categoriesData?.data])
 
   const [editData, setEditData] = useState<EditAccountData | undefined>(
     undefined,
@@ -221,7 +244,7 @@ function AccountsPage(): React.ReactElement {
     [],
   )
 
-  if (!ready || isLoading || ccyLoading) {
+  if (!ready || isLoading || ccyLoading || categoriesLoading) {
     return rootLoader(t("loading"))
   }
 
@@ -330,6 +353,7 @@ function AccountsPage(): React.ReactElement {
         <EditAccountDialog
           asset={editData.asset}
           currencies={ccyOptions}
+          categories={categoryOptions}
           onClose={handleEditClose}
           onSave={handleEditSave}
         />
@@ -367,6 +391,7 @@ function AccountsPage(): React.ReactElement {
 interface EditAccountDialogProps {
   asset: Asset
   currencies: CurrencyOption[]
+  categories: CategoryOption[]
   onClose: () => void
   onSave: (
     assetId: string,
@@ -380,6 +405,7 @@ interface EditAccountDialogProps {
 const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
   asset,
   currencies,
+  categories,
   onClose,
   onSave,
 }) => {
@@ -392,13 +418,6 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
   const [category, setCategory] = useState(asset.assetCategory?.id || "ACCOUNT")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  const categoryOptions = [
-    { value: "ACCOUNT", label: t("category.ACCOUNT") },
-    { value: "RE", label: t("category.RE") },
-    { value: "MUTUAL FUND", label: t("category.MUTUAL FUND") },
-    { value: "POLICY", label: t("category.POLICY") },
-  ]
 
   const handleSave = async (): Promise<void> => {
     setIsSubmitting(true)
@@ -483,7 +502,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
               onChange={(e) => setCategory(e.target.value)}
               className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
             >
-              {categoryOptions.map((cat) => (
+              {categories.map((cat) => (
                 <option key={cat.value} value={cat.value}>
                   {cat.label}
                 </option>

@@ -23,8 +23,12 @@ export function simpleFetcher(requestInfo: RequestInfo): any {
 const apiRoot = "/api"
 export const ccyKey = `${apiRoot}/currencies`
 export const marketsKey = `${apiRoot}/markets`
+export const categoriesKey = `${apiRoot}/categories`
 
 export const portfoliosKey = `${apiRoot}/portfolios`
+export const assetsKey = `${apiRoot}/assets`
+export const accountsKey = `${assetsKey}?category=ACCOUNT`
+export const tradeAccountsKey = `${assetsKey}?category=TRADE`
 
 export const trnsKey = `${apiRoot}/trns`
 export const assetKey = (assetId: string): string =>

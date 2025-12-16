@@ -37,6 +37,7 @@ import ViewToggle, { ViewMode } from "@components/features/holdings/ViewToggle"
 import CorporateActionsPopup from "@components/features/holdings/CorporateActionsPopup"
 import TargetWeightDialog from "@components/features/holdings/TargetWeightDialog"
 import SetCashBalanceDialog from "@components/features/holdings/SetCashBalanceDialog"
+import TrnDropZone from "@components/ui/DropZone"
 
 function HoldingsPage(): React.ReactElement {
   const router = useRouter()
@@ -211,15 +212,34 @@ function HoldingsPage(): React.ReactElement {
   const holdingResults = data.data
   if (Object.keys(holdingResults.positions).length === 0) {
     return (
-      <div>
+      <div className="w-full py-4">
         <HoldingActions
           holdingResults={holdingResults}
           columns={columns}
           valueIn={holdingState.valueIn.value}
           quickSellData={quickSellData}
           onQuickSellHandled={handleQuickSellHandled}
+          emptyHoldings={true}
         />
-        No Holdings for {holdingResults.portfolio.code}
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center mt-4">
+          <p className="text-gray-600 mb-6">
+            {t("holdings.empty", { code: holdingResults.portfolio.code })}
+          </p>
+          <p className="text-sm text-gray-500 mb-4">
+            {t("holdings.import.hint")}
+          </p>
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 inline-block cursor-pointer hover:border-gray-400 transition-colors">
+            <i className="fas fa-file-csv text-4xl text-gray-400 mb-2"></i>
+            <TrnDropZone
+              portfolio={holdingResults.portfolio}
+              purge={false}
+              hideIcon={true}
+            />
+            <p className="text-sm text-gray-500 mt-2">
+              {t("holdings.import.select")}
+            </p>
+          </div>
+        </div>
       </div>
     )
   }

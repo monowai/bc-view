@@ -125,6 +125,10 @@ const CashInputForm: React.FC<{
     "/api/assets?category=ACCOUNT",
     simpleFetcher("/api/assets?category=ACCOUNT"),
   )
+  const { data: tradeAccountsData } = useSwr(
+    "/api/assets?category=TRADE",
+    simpleFetcher("/api/assets?category=TRADE"),
+  )
 
   // Log accounts fetch status for debugging
   useEffect(() => {
@@ -158,7 +162,7 @@ const CashInputForm: React.FC<{
       })
     }
 
-    // Add user's accounts (market: PRIVATE)
+    // Add user's bank accounts (market: PRIVATE, category: ACCOUNT)
     // For ACCOUNT assets, the currency is stored in priceSymbol
     if (accountsData?.data) {
       Object.values(accountsData.data as Record<string, Asset>).forEach(
@@ -175,8 +179,24 @@ const CashInputForm: React.FC<{
       )
     }
 
+    // Add user's trade accounts (market: PRIVATE, category: TRADE)
+    if (tradeAccountsData?.data) {
+      Object.values(tradeAccountsData.data as Record<string, Asset>).forEach(
+        (account) => {
+          const accountCurrency =
+            account.priceSymbol || account.market?.currency?.code || "?"
+          options.push({
+            value: account.code,
+            label: `${account.name} (${accountCurrency})`,
+            market: "TRADE",
+            currency: accountCurrency,
+          })
+        },
+      )
+    }
+
     return options
-  }, [ccyData?.data, accountsData?.data])
+  }, [ccyData?.data, accountsData?.data, tradeAccountsData?.data])
 
   // Debug: log combined options
   useEffect(() => {
@@ -306,6 +326,22 @@ const CashInputForm: React.FC<{
                               <optgroup label="Bank Accounts">
                                 {combinedOptions
                                   .filter((opt) => opt.market === "PRIVATE")
+                                  .map((option) => (
+                                    <option
+                                      key={option.value}
+                                      value={option.value}
+                                    >
+                                      {option.label}
+                                    </option>
+                                  ))}
+                              </optgroup>
+                            )}
+                            {combinedOptions.some(
+                              (opt) => opt.market === "TRADE",
+                            ) && (
+                              <optgroup label="Trade Accounts">
+                                {combinedOptions
+                                  .filter((opt) => opt.market === "TRADE")
                                   .map((option) => (
                                     <option
                                       key={option.value}
