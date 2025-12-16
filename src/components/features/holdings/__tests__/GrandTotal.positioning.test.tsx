@@ -165,7 +165,7 @@ describe("GrandTotal Column Positioning Tests", () => {
       const cells = dataRow?.querySelectorAll("td")
       const gainOnDayCell = cells?.[2] // First data cell
 
-      expect(gainOnDayCell).toHaveTextContent("") // null renders as empty
+      expect(gainOnDayCell).toHaveTextContent("0.00") // null becomes 0, FormatValue correctly shows 0 values
     })
   })
 })

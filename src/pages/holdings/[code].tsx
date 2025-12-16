@@ -6,6 +6,7 @@ import {
   WeightClickData,
   RebalanceData,
   SetCashBalanceData,
+  SetPriceData,
 } from "types/beancounter"
 import {
   TableSkeletonLoader,
@@ -37,6 +38,7 @@ import ViewToggle, { ViewMode } from "@components/features/holdings/ViewToggle"
 import CorporateActionsPopup from "@components/features/holdings/CorporateActionsPopup"
 import TargetWeightDialog from "@components/features/holdings/TargetWeightDialog"
 import SetCashBalanceDialog from "@components/features/holdings/SetCashBalanceDialog"
+import SetPriceDialog from "@components/features/holdings/SetPriceDialog"
 import TrnDropZone from "@components/ui/DropZone"
 
 function HoldingsPage(): React.ReactElement {
@@ -68,6 +70,9 @@ function HoldingsPage(): React.ReactElement {
   const [setCashBalanceData, setSetCashBalanceData] = useState<
     SetCashBalanceData | undefined
   >(undefined)
+  const [setPriceData, setSetPriceData] = useState<SetPriceData | undefined>(
+    undefined,
+  )
 
   // Handle quick sell from position row
   const handleQuickSell = useCallback((data: QuickSellData) => {
@@ -121,6 +126,39 @@ function HoldingsPage(): React.ReactElement {
   const handleSetCashBalanceDialogClose = useCallback(() => {
     setSetCashBalanceData(undefined)
   }, [])
+
+  // Handle set price from position row
+  const handleSetPrice = useCallback((data: SetPriceData) => {
+    setSetPriceData(data)
+  }, [])
+
+  // Close set price dialog
+  const handleSetPriceDialogClose = useCallback(() => {
+    setSetPriceData(undefined)
+  }, [])
+
+  // Save price via API
+  const handleSetPriceSave = useCallback(
+    async (assetId: string, date: string, price: string): Promise<void> => {
+      const response = await fetch("/api/prices/write", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          assetId,
+          date,
+          closePrice: parseFloat(price),
+        }),
+      })
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || "Failed to set price")
+      }
+      setSetPriceData(undefined)
+      // Refresh holdings data
+      router.replace(router.asPath)
+    },
+    [router],
+  )
 
   useEffect(() => {
     if (router.query.action === "trade") {
@@ -326,6 +364,7 @@ function HoldingsPage(): React.ReactElement {
                         onCorporateActions={handleCorporateActions}
                         onWeightClick={handleWeightClick}
                         onSetCashBalance={handleSetCashBalance}
+                        onSetPrice={handleSetPrice}
                       />
                       <SubTotal
                         groupBy={groupKey}
@@ -411,6 +450,13 @@ function HoldingsPage(): React.ReactElement {
           market={setCashBalanceData.market}
           assetCode={setCashBalanceData.assetCode}
           assetName={setCashBalanceData.assetName}
+        />
+      )}
+      {setPriceData && (
+        <SetPriceDialog
+          asset={setPriceData.asset}
+          onClose={handleSetPriceDialogClose}
+          onSave={handleSetPriceSave}
         />
       )}
     </div>

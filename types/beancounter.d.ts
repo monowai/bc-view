@@ -47,6 +47,10 @@ export interface SetCashBalanceData {
   assetName?: string // Asset name for display
 }
 
+export interface SetPriceData {
+  asset: Asset
+}
+
 // As returned from the server
 interface HoldingContract {
   portfolio: Portfolio
@@ -347,6 +351,22 @@ export interface AssetRequest {
 // Response from asset creation
 export interface AssetResponse {
   data: Record<string, Asset>
+}
+
+// Asset search result from backend search
+export interface AssetSearchResult {
+  symbol: string
+  name: string
+  type: string
+  region?: string
+  currency?: string
+  market?: string
+  assetId?: string
+}
+
+// Response from asset search
+export interface AssetSearchResponse {
+  data: AssetSearchResult[]
 }
 
 export interface PriceData {

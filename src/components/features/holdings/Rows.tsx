@@ -5,6 +5,7 @@ import {
   QuickSellData,
   WeightClickData,
   SetCashBalanceData,
+  SetPriceData,
   Asset,
 } from "types/beancounter"
 import { NumericFormat } from "react-number-format"
@@ -33,6 +34,7 @@ interface RowsProps extends HoldingValues {
   onCorporateActions?: (data: CorporateActionsData) => void
   onWeightClick?: (data: WeightClickData) => void
   onSetCashBalance?: (data: SetCashBalanceData) => void
+  onSetPrice?: (data: SetPriceData) => void
 }
 
 // Helper function to generate responsive classes for table cells
@@ -88,6 +90,7 @@ interface ActionsMenuProps {
   valueIn: string
   onQuickSell?: (data: QuickSellData) => void
   onCorporateActions?: (data: CorporateActionsData) => void
+  onSetPrice?: (data: SetPriceData) => void
   t: (key: string) => string
 }
 
@@ -100,6 +103,7 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
   price,
   onQuickSell,
   onCorporateActions,
+  onSetPrice,
   t,
 }) => {
   const [isOpen, setIsOpen] = useState(false)
@@ -173,6 +177,20 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
                 {t("corporate.view")}
               </button>
             )}
+            {onSetPrice && asset.market?.code === "PRIVATE" && (
+              <button
+                type="button"
+                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setIsOpen(false)
+                  onSetPrice({ asset })
+                }}
+              >
+                <i className="fas fa-tag text-green-500 w-4"></i>
+                {t("price.set")}
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -190,6 +208,7 @@ export default function Rows({
   onCorporateActions,
   onWeightClick,
   onSetCashBalance,
+  onSetPrice,
 }: RowsProps): React.ReactElement {
   const { t } = useTranslation("common")
   const columns = useMemo(
@@ -251,7 +270,9 @@ export default function Rows({
                   )}
                 </div>
                 {!isCashRelated(asset) &&
-                  (onQuickSell || onCorporateActions) && (
+                  (onQuickSell ||
+                    onCorporateActions ||
+                    (onSetPrice && asset.market?.code === "PRIVATE")) && (
                     <div className="hidden sm:flex items-center">
                       <ActionsMenu
                         asset={asset}
@@ -263,6 +284,7 @@ export default function Rows({
                         valueIn={valueIn}
                         onQuickSell={onQuickSell}
                         onCorporateActions={onCorporateActions}
+                        onSetPrice={onSetPrice}
                         t={t}
                       />
                     </div>
@@ -280,7 +302,9 @@ export default function Rows({
                         const isAccountAsset = isAccount(asset)
                         onSetCashBalance({
                           currency: isAccountAsset
-                            ? asset.market.currency?.code || asset.code
+                            ? asset.priceSymbol ||
+                              asset.market.currency?.code ||
+                              asset.code
                             : asset.code,
                           currentBalance: moneyValues["TRADE"].marketValue,
                           market: isAccountAsset ? "PRIVATE" : "CASH",

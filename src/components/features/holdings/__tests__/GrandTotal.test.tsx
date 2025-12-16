@@ -371,7 +371,7 @@ describe("GrandTotal Component", () => {
       )
       const gainOnDayCell = dataCells[GRANDTOTAL_LAYOUT.GAIN_ON_DAY_POSITION] // gainOnDay cell
 
-      expect(gainOnDayCell).toHaveTextContent("") // null gainOnDay becomes 0 via ||0, then FormatValue treats 0 as falsy and shows defaultValue=""
+      expect(gainOnDayCell).toHaveTextContent("0.00") // null gainOnDay becomes 0 via ||0, FormatValue now correctly shows 0 values
     })
   })
 })
