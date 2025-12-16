@@ -395,3 +395,24 @@ export interface CorporateEventResponse {
 export interface CorporateEventsResponse {
   data: CorporateEvent[]
 }
+
+// FX Rate types
+export interface FxRate {
+  from: Currency
+  to: Currency
+  rate: number
+  date: string
+}
+
+export interface FxPairResults {
+  rates: Record<string, FxRate>
+}
+
+export interface FxResponse {
+  data: FxPairResults
+}
+
+export interface FxRequest {
+  rateDate?: string
+  pairs: Array<{ from: string; to: string }>
+}
