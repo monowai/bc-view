@@ -239,5 +239,7 @@
   "portfolios.import.hint": "Import portfolios from a CSV file. The file should have columns: Code, Name, Currency, Base.",
   "portfolios.import.select": "Click or drop a CSV file here",
   "portfolios.import.success": "Successfully imported {{count}} portfolio(s)",
-  "portfolios.import.error": "Error importing portfolios"
+  "portfolios.import.error": "Error importing portfolios",
+  "portfolios.total": "Total",
+  "portfolios.currency.display": "Display Currency"
 }

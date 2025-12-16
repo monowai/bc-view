@@ -14,8 +14,17 @@ jest.mock("swr", () => ({
 
 // Setup the mock data for useSWR as needed before each test
 
+// Mock fetch for /api/currencies
+const mockFetch = jest.fn()
+global.fetch = mockFetch
+
 describe("Portfolios Page", () => {
   beforeEach(() => {
+    // Mock fetch for currencies API
+    mockFetch.mockResolvedValue({
+      json: () => Promise.resolve({ data: [] }),
+    })
+
     const mockUseSWR = jest.fn().mockReturnValue({
       data: portfolioResult,
       error: null,

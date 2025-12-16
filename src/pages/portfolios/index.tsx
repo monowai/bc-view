@@ -1,8 +1,8 @@
-import React, { useState, useMemo, useCallback, useRef } from "react"
+import React, { useState, useMemo, useCallback, useRef, useEffect } from "react"
 import useSwr from "swr"
 import { UserProfile, withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useTranslation } from "next-i18next"
-import { Portfolio } from "types/beancounter"
+import { Portfolio, Currency, FxResponse } from "types/beancounter"
 import Link from "next/link"
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
@@ -77,9 +77,7 @@ const PortfolioActions = ({
       </button>
       <button
         className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition-colors"
-        onClick={async () => {
-          await router.push(`/portfolios/__NEW__`)
-        }}
+        onClick={() => router.push(`/portfolios/__NEW__`)}
       >
         {t("portfolio.create")}
       </button>
@@ -87,16 +85,14 @@ const PortfolioActions = ({
   )
 }
 
-const CreatePortfolioButton = (): React.ReactElement<HTMLButtonElement> => {
+const CreatePortfolioButton = (): React.ReactElement => {
   const router = useRouter()
   const { t } = useTranslation("common")
 
   return (
     <button
-      className="bg-blue-500 text-white py-2 px-4 rounded"
-      onClick={async () => {
-        await router.push(`/portfolios/__NEW__`)
-      }}
+      className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition-colors"
+      onClick={() => router.push(`/portfolios/__NEW__`)}
     >
       {t("portfolio.create")}
     </button>
@@ -125,6 +121,60 @@ export default withPageAuthRequired(function Portfolios({
 
   // Import dialog state
   const [showImportDialog, setShowImportDialog] = useState(false)
+
+  // Currency display state
+  const [currencies, setCurrencies] = useState<Currency[]>([])
+  const [displayCurrency, setDisplayCurrency] = useState<Currency | null>(null)
+  const [fxRate, setFxRate] = useState<number>(1)
+  const [baseCurrency, setBaseCurrency] = useState<Currency | null>(null)
+
+  // Fetch available currencies
+  useEffect(() => {
+    fetch("/api/currencies")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.data) {
+          setCurrencies(data.data)
+        }
+      })
+      .catch(console.error)
+  }, [])
+
+  // Set default display currency from first portfolio's report currency
+  useEffect(() => {
+    if (data?.data && data.data.length > 0 && !baseCurrency) {
+      const reportCurrency = data.data[0].currency
+      setBaseCurrency(reportCurrency)
+      setDisplayCurrency(reportCurrency)
+    }
+  }, [data, baseCurrency])
+
+  // Fetch FX rate when display currency changes
+  useEffect(() => {
+    if (!baseCurrency || !displayCurrency) return
+    if (baseCurrency.code === displayCurrency.code) {
+      setFxRate(1)
+      return
+    }
+
+    fetch("/api/fx", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        rateDate: "today",
+        pairs: [{ from: baseCurrency.code, to: displayCurrency.code }],
+      }),
+    })
+      .then((res) => res.json())
+      .then((fxResponse: FxResponse) => {
+        const pairKey = `${baseCurrency.code}:${displayCurrency.code}`
+        const rate = fxResponse.data?.rates?.[pairKey]?.rate
+        if (rate) {
+          setFxRate(rate)
+        }
+      })
+      .catch(console.error)
+  }, [baseCurrency, displayCurrency])
 
   const handleCorporateActionsClose = useCallback(() => {
     setCorporateActionsPortfolio(null)
@@ -227,10 +277,7 @@ export default withPageAuthRequired(function Portfolios({
         await fetch(`/api/portfolios/${portfolioId}`, {
           method: "DELETE",
         })
-        await mutate({ ...data })
-        await router.push("/portfolios", "/portfolios", {
-          shallow: true,
-        })
+        await mutate() // Revalidate to refresh the list
       } catch (error) {
         console.error("Failed to delete portfolio:", error)
       }
@@ -263,12 +310,40 @@ export default withPageAuthRequired(function Portfolios({
       )
     }
 
+    // Calculate total market value with FX conversion
+    const totalMarketValue = portfolios.reduce(
+      (sum, p) => sum + (p.marketValue || 0) * fxRate,
+      0,
+    )
+
     return (
       <div className="w-full py-4">
         <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold text-gray-900">
-            {t("portfolios.title", "Portfolios")}
-          </h1>
+          <div className="flex items-center space-x-4">
+            <h1 className="text-2xl font-bold text-gray-900">
+              {t("portfolios.title", "Portfolios")}
+            </h1>
+            {currencies.length > 0 && displayCurrency && (
+              <select
+                value={displayCurrency.code}
+                onChange={(e) => {
+                  const selected = currencies.find(
+                    (c) => c.code === e.target.value,
+                  )
+                  if (selected) setDisplayCurrency(selected)
+                }}
+                className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                title={t("portfolios.currency.display")}
+              >
+                {currencies.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.symbol}
+                    {c.code}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
           <PortfolioActions onImportClick={handleImportClick} />
         </div>
 
@@ -363,7 +438,10 @@ export default withPageAuthRequired(function Portfolios({
                   </td>
                   <td className="px-4 py-3 text-right font-medium text-gray-900">
                     <FormatValue
-                      value={portfolio.marketValue ? portfolio.marketValue : 0}
+                      value={
+                        (portfolio.marketValue ? portfolio.marketValue : 0) *
+                        fxRate
+                      }
                     />
                   </td>
                   <td className="px-4 py-3 text-right font-medium text-gray-900 hidden sm:table-cell">
@@ -407,6 +485,22 @@ export default withPageAuthRequired(function Portfolios({
                 </tr>
               ))}
             </tbody>
+            <tfoot className="bg-gray-100 border-t-2 border-gray-300">
+              <tr>
+                <td
+                  colSpan={4}
+                  className="px-4 py-3 text-right font-bold text-gray-900"
+                >
+                  {t("portfolios.total")}
+                </td>
+                <td className="px-4 py-3 text-right font-bold text-gray-900">
+                  {displayCurrency?.symbol}
+                  <FormatValue value={totalMarketValue} />
+                </td>
+                <td className="hidden sm:table-cell"></td>
+                <td></td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       </div>
