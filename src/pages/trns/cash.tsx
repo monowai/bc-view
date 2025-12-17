@@ -135,10 +135,6 @@ const CashInputForm: React.FC<{
     if (accountsError) {
       console.log("Failed to fetch accounts:", accountsError)
     }
-    if (accountsData?.data) {
-      console.log("Fetched accounts:", Object.keys(accountsData.data).length)
-      console.log("Account data:", JSON.stringify(accountsData.data, null, 2))
-    }
   }, [accountsData, accountsError])
 
   const { t } = useTranslation("common")
@@ -197,17 +193,6 @@ const CashInputForm: React.FC<{
 
     return options
   }, [ccyData?.data, accountsData?.data, tradeAccountsData?.data])
-
-  // Debug: log combined options
-  useEffect(() => {
-    const offmOptions = combinedOptions.filter(
-      (opt) => opt.market === "PRIVATE",
-    )
-    console.log("PRIVATE options count:", offmOptions.length)
-    if (offmOptions.length > 0) {
-      console.log("PRIVATE options:", offmOptions)
-    }
-  }, [combinedOptions])
 
   // Update market and currency when asset changes
   useEffect(() => {

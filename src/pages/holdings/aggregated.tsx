@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, useCallback } from "react"
 import { calculateHoldings } from "@lib/holdings/calculateHoldings"
 import { Holdings } from "types/beancounter"
 import {
@@ -32,8 +32,7 @@ import {
   transformToAllocationSlices,
   GroupingMode,
 } from "@lib/allocation/aggregateHoldings"
-
-const sortOrder = ["Equity", "Exchange Traded Fund", "Cash", "RE"]
+import { compareByReportCategory } from "@lib/categoryMapping"
 
 function AggregatedHoldingsPage(): React.ReactElement {
   const router = useRouter()
@@ -42,10 +41,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
 
   // Get portfolio codes from URL query parameter
   const codes = router.query.codes as string | undefined
-  const portfolioCodes = useMemo(
-    () => (codes ? codes.split(",") : []),
-    [codes],
-  )
+  const portfolioCodes = useMemo(() => (codes ? codes.split(",") : []), [codes])
 
   // Build the API URL with optional codes parameter
   const aggregatedHoldingsKey = codes
@@ -60,10 +56,26 @@ function AggregatedHoldingsPage(): React.ReactElement {
   const [viewMode, setViewMode] = useState<ViewMode>("table")
   const [allocationGroupBy, setAllocationGroupBy] =
     useState<GroupingMode>("category")
+  const [excludedCategories, setExcludedCategories] = useState<Set<string>>(
+    new Set(),
+  )
   const [sortConfig, setSortConfig] = useState<SortConfig>({
     key: "assetName",
     direction: "asc",
   })
+
+  // Handle toggling category exclusion in allocation view
+  const handleToggleCategory = useCallback((category: string) => {
+    setExcludedCategories((prev) => {
+      const next = new Set(prev)
+      if (next.has(category)) {
+        next.delete(category)
+      } else {
+        next.add(category)
+      }
+      return next
+    })
+  }, [])
 
   // Handle sorting
   const handleSort = (key: string): void => {
@@ -153,7 +165,10 @@ function AggregatedHoldingsPage(): React.ReactElement {
   }, [portfolioCodes, t])
 
   if (error && ready) {
-    return errorOut(t("holdings.error.aggregated", "Failed to load aggregated holdings"), error)
+    return errorOut(
+      t("holdings.error.aggregated", "Failed to load aggregated holdings"),
+      error,
+    )
   }
 
   if (isLoading || !ready) {
@@ -223,9 +238,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
           <div className="overflow-x-auto overflow-y-visible">
             <table className="min-w-full bg-white">
               {Object.keys(holdings.holdingGroups)
-                .sort((a, b) => {
-                  return sortOrder.indexOf(a) - sortOrder.indexOf(b)
-                })
+                .sort(compareByReportCategory)
                 .map((groupKey) => {
                   return (
                     <React.Fragment key={groupKey}>
@@ -327,6 +340,8 @@ function AggregatedHoldingsPage(): React.ReactElement {
               data={allocationData}
               totalValue={allocationTotalValue}
               currencySymbol={holdingResults.portfolio.currency.symbol}
+              excludedCategories={excludedCategories}
+              onToggleCategory={handleToggleCategory}
             />
           </div>
         </div>

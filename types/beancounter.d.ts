@@ -312,6 +312,8 @@ export interface Asset {
   assetCategory: AssetCategory
   market: Market
   priceSymbol?: string // Currency code for ACCOUNT/CASH assets
+  reportCategory?: string // Higher-level category for reporting (nullable, for backward compatibility)
+  effectiveReportCategory?: string // Computed: reportCategory if set, otherwise mapped from assetCategory
 }
 
 export interface AssetCategory {

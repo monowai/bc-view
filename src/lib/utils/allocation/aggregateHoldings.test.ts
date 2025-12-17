@@ -7,19 +7,19 @@ describe("transformToAllocationSlices", () => {
   const holdingContract = testHoldings.data as unknown as HoldingContract
 
   describe("grouping by category", () => {
-    it("should aggregate positions by asset category", () => {
+    it("should aggregate positions by report category", () => {
       const result = transformToAllocationSlices(
         holdingContract,
         "category",
         ValueIn.PORTFOLIO,
       )
 
-      // Should have 3 categories: Equity, ETF, Cash
+      // Should have 3 report categories: Equity, ETF, Cash
       expect(result.length).toBe(3)
 
       const categories = result.map((s) => s.key)
       expect(categories).toContain("Equity")
-      expect(categories).toContain("Exchange Traded Fund")
+      expect(categories).toContain("ETF") // Mapped from "Exchange Traded Fund"
       expect(categories).toContain("Cash")
     })
 
@@ -35,7 +35,7 @@ describe("transformToAllocationSlices", () => {
       expect(equity?.value).toBeCloseTo(4851.83, 2)
 
       // ETF: QQQ (441.02) + SMH (0) = 441.02
-      const etf = result.find((s) => s.key === "Exchange Traded Fund")
+      const etf = result.find((s) => s.key === "ETF")
       expect(etf?.value).toBeCloseTo(441.02, 2)
 
       // Cash: USD (5741.0)
@@ -202,7 +202,7 @@ describe("transformToAllocationSlices", () => {
       const equity = result.find((s) => s.key === "Equity")
       expect(equity?.color).toBe("#3B82F6") // blue
 
-      const etf = result.find((s) => s.key === "Exchange Traded Fund")
+      const etf = result.find((s) => s.key === "ETF")
       expect(etf?.color).toBe("#10B981") // green
 
       const cash = result.find((s) => s.key === "Cash")
@@ -221,7 +221,7 @@ describe("transformToAllocationSlices", () => {
       // Cash (5741) > Equity (4851.83) > ETF (441.02)
       expect(result[0].key).toBe("Cash")
       expect(result[1].key).toBe("Equity")
-      expect(result[2].key).toBe("Exchange Traded Fund")
+      expect(result[2].key).toBe("ETF")
     })
   })
 })

@@ -388,7 +388,8 @@ export default withPageAuthRequired(function Portfolios({
                 onClick={handleViewAggregated}
               >
                 <i className="fas fa-layer-group mr-2"></i>
-                {t("portfolios.viewHoldings", "View Holdings")} ({selectedPortfolios.size})
+                {t("portfolios.viewHoldings", "View Holdings")} (
+                {selectedPortfolios.size})
               </button>
             )}
           </div>

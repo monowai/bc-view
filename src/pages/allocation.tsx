@@ -119,9 +119,13 @@ export default withPageAuthRequired(function Allocation(): React.ReactElement {
       )
     }
     if (portfolioCodes.length === 1) {
-      return t("allocation.description.single", "Showing allocation for {{code}}", {
-        code: portfolioCodes[0],
-      })
+      return t(
+        "allocation.description.single",
+        "Showing allocation for {{code}}",
+        {
+          code: portfolioCodes[0],
+        },
+      )
     }
     return t(
       "allocation.description.selected",
