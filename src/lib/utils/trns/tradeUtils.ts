@@ -28,9 +28,6 @@ export const buildCashRow = (params: CashRowParams): string[] => {
     assetCode,
   } = params
 
-  // Cash amount needs correct sign: negative for WITHDRAWAL, positive for DEPOSIT/FX
-  const signedCashAmount =
-    type === "WITHDRAWAL" ? -Math.abs(amount) : Math.abs(amount)
   const asset = assetCode || currency
 
   return [
@@ -43,14 +40,14 @@ export const buildCashRow = (params: CashRowParams): string[] => {
     "", // cashAccount (empty)
     currency, // cashCurrency
     tradeDate, // tradeDate
-    String(Math.abs(amount)), // quantity (absolute value)
+    String(Math.abs(amount)), // quantity (absolute - backend enforces sign based on type)
     "", // baseRate (empty)
     currency, // tradeCurrency
     "", // price (empty for cash)
     "", // fees (empty)
     "", // portfolioRate (empty)
     "", // tradeAmount (empty)
-    String(signedCashAmount), // cashAmount (signed)
+    String(Math.abs(amount)), // cashAmount (absolute - backend enforces sign based on type)
     comments, // comments
   ]
 }

@@ -241,5 +241,16 @@
   "portfolios.import.success": "Successfully imported {{count}} portfolio(s)",
   "portfolios.import.error": "Error importing portfolios",
   "portfolios.total": "Total",
-  "portfolios.currency.display": "Display Currency"
+  "portfolios.currency.display": "Display Currency",
+  "allocation.title": "Asset Allocation",
+  "allocation.description": "View how your assets are distributed across all portfolios",
+  "allocation.error.retrieve": "Failed to load allocation data",
+  "allocation.groupBy.label": "Group by",
+  "allocation.groupBy.category": "Category",
+  "allocation.groupBy.asset": "Asset",
+  "allocation.groupBy.market": "Market",
+  "allocation.valueIn.label": "Value in",
+  "valueIn.portfolio": "Portfolio",
+  "valueIn.base": "Base",
+  "valueIn.trade": "Trade"
 }

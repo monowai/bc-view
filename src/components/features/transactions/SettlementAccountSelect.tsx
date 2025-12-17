@@ -32,7 +32,7 @@ interface SettlementAccountSelectProps {
 
 // Convert accounts to select options with currency display
 export const toSettlementAccountOptions = (
-  accounts: Asset[]
+  accounts: Asset[],
 ): SettlementAccountOption[] => {
   return accounts.map((account) => ({
     value: account.id,
@@ -44,7 +44,7 @@ export const toSettlementAccountOptions = (
 
 // Convert currencies to select options
 export const toCurrencyOptions = (
-  currencies: Currency[]
+  currencies: Currency[],
 ): SettlementAccountOption[] => {
   return currencies.map((currency) => ({
     value: currency.code,
@@ -57,7 +57,7 @@ export const toCurrencyOptions = (
 // Check if the transaction type requires no cash settlement
 export const isNoCashImpact = (trnType: string): boolean => {
   return NO_CASH_IMPACT_TYPES.includes(
-    trnType as (typeof NO_CASH_IMPACT_TYPES)[number]
+    trnType as (typeof NO_CASH_IMPACT_TYPES)[number],
   )
 }
 

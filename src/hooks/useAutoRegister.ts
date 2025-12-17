@@ -8,7 +8,10 @@ const REGISTRATION_KEY = "bc_registered"
  * On first login, calls /api/register to create a SystemUser record.
  * Uses localStorage to avoid repeated registration calls.
  */
-export function useAutoRegister(): { isRegistering: boolean; isRegistered: boolean } {
+export function useAutoRegister(): {
+  isRegistering: boolean
+  isRegistered: boolean
+} {
   const { user, isLoading } = useUser()
   const [isRegistering, setIsRegistering] = useState(false)
   const [isRegistered, setIsRegistered] = useState(false)

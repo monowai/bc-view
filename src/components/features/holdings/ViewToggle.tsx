@@ -1,6 +1,6 @@
 import React from "react"
 
-export type ViewMode = "table" | "heatmap"
+export type ViewMode = "table" | "heatmap" | "allocation"
 
 interface ViewToggleProps {
   viewMode: ViewMode
@@ -60,6 +60,36 @@ const ViewToggle: React.FC<ViewToggleProps> = ({
           />
         </svg>
         <span className="hidden sm:inline text-xs">Heatmap</span>
+      </button>
+      <button
+        onClick={() => onViewModeChange("allocation")}
+        className={`flex items-center space-x-1 px-2 py-1.5 text-sm font-medium rounded-md transition-colors ${
+          viewMode === "allocation"
+            ? "bg-white text-gray-900 shadow-sm"
+            : "text-gray-600 hover:text-gray-900"
+        }`}
+        aria-label="Allocation view"
+      >
+        <svg
+          className="w-3.5 h-3.5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"
+          />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"
+          />
+        </svg>
+        <span className="hidden sm:inline text-xs">Allocation</span>
       </button>
     </div>
   )

@@ -35,6 +35,12 @@ import GrandTotal from "@components/features/holdings/GrandTotal"
 import HoldingActions from "@components/features/holdings/HoldingActions"
 import PerformanceHeatmap from "@components/ui/PerformanceHeatmap"
 import ViewToggle, { ViewMode } from "@components/features/holdings/ViewToggle"
+import AllocationChart from "@components/features/allocation/AllocationChart"
+import AllocationControls from "@components/features/allocation/AllocationControls"
+import {
+  transformToAllocationSlices,
+  GroupingMode,
+} from "@lib/allocation/aggregateHoldings"
 import CorporateActionsPopup from "@components/features/holdings/CorporateActionsPopup"
 import TargetWeightDialog from "@components/features/holdings/TargetWeightDialog"
 import SetCashBalanceDialog from "@components/features/holdings/SetCashBalanceDialog"
@@ -54,6 +60,8 @@ function HoldingsPage(): React.ReactElement {
   const [cashModalOpen, setCashModalOpen] = useState(false)
   const [columns, setColumns] = useState<string[]>([])
   const [viewMode, setViewMode] = useState<ViewMode>("table")
+  const [allocationGroupBy, setAllocationGroupBy] =
+    useState<GroupingMode>("category")
   const [sortConfig, setSortConfig] = useState<SortConfig>({
     key: "assetName",
     direction: "asc",
@@ -221,6 +229,20 @@ function HoldingsPage(): React.ReactElement {
     sortConfig,
   ])
 
+  // Calculate allocation data for allocation view
+  const allocationData = useMemo(() => {
+    if (!data?.data) return []
+    return transformToAllocationSlices(
+      data.data,
+      allocationGroupBy,
+      holdingState.valueIn.value,
+    )
+  }, [data, allocationGroupBy, holdingState.valueIn.value])
+
+  const allocationTotalValue = useMemo(() => {
+    return allocationData.reduce((sum, slice) => sum + slice.value, 0)
+  }, [allocationData])
+
   if (error && ready) {
     console.error(error) // Log the error for debugging
     return errorOut(
@@ -381,7 +403,7 @@ function HoldingsPage(): React.ReactElement {
             </table>
           </div>
         </div>
-      ) : (
+      ) : viewMode === "heatmap" ? (
         <div className="grid grid-cols-1 gap-3">
           <div>
             {/* Mobile/Tablet header - must be outside table */}
@@ -415,6 +437,51 @@ function HoldingsPage(): React.ReactElement {
             holdingGroups={holdings.holdingGroups}
             valueIn={holdingState.valueIn.value}
           />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-3">
+          <div>
+            {/* Mobile/Tablet header - must be outside table */}
+            <SummaryHeaderMobile
+              portfolio={holdingResults.portfolio}
+              portfolioSummary={{
+                totals: holdings.totals,
+                currency: holdings.currency,
+              }}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+            />
+            {/* Mobile/Tablet summary row - must be outside table */}
+            <SummaryRowMobile
+              totals={holdings.totals}
+              currency={holdings.currency}
+            />
+            {/* Desktop table with thead */}
+            <table className="min-w-full bg-white">
+              <SummaryHeader
+                portfolio={holdingResults.portfolio}
+                portfolioSummary={{
+                  totals: holdings.totals,
+                  currency: holdings.currency,
+                }}
+              />
+              <SummaryRow />
+            </table>
+          </div>
+          <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6">
+            <AllocationControls
+              groupBy={allocationGroupBy}
+              onGroupByChange={setAllocationGroupBy}
+              valueIn={holdingState.valueIn.value}
+              onValueInChange={() => {}}
+              hideValueIn={true}
+            />
+            <AllocationChart
+              data={allocationData}
+              totalValue={allocationTotalValue}
+              currencySymbol={holdingResults.portfolio.currency.symbol}
+            />
+          </div>
         </div>
       )}
       {corporateActionsData && (
