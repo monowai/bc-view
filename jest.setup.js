@@ -63,4 +63,8 @@ jest.mock("@auth0/nextjs-auth0/client", () => {
 })
 
 // Mock fetch globally for API calls
-global.fetch = jest.fn()
+global.fetch = jest.fn(() =>
+  Promise.resolve({
+    json: () => Promise.resolve({ data: [] }),
+  }),
+)

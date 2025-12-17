@@ -106,16 +106,16 @@ describe("categoryMapping", () => {
       expect(compareByReportCategory("ETF", "Mutual Fund")).toBeLessThan(0)
     })
 
-    it("sorts Mutual Fund before Cash", () => {
-      expect(compareByReportCategory("Mutual Fund", "Cash")).toBeLessThan(0)
+    it("sorts Mutual Fund before Property", () => {
+      expect(compareByReportCategory("Mutual Fund", "Property")).toBeLessThan(0)
     })
 
-    it("sorts Cash before Property", () => {
-      expect(compareByReportCategory("Cash", "Property")).toBeLessThan(0)
+    it("sorts Property before Cash", () => {
+      expect(compareByReportCategory("Property", "Cash")).toBeLessThan(0)
     })
 
     it("sorts unknown categories after known ones", () => {
-      expect(compareByReportCategory("Property", "Unknown")).toBeLessThan(0)
+      expect(compareByReportCategory("Cash", "Unknown")).toBeLessThan(0)
     })
 
     it("returns 0 for same category", () => {

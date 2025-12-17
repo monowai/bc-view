@@ -1,7 +1,5 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react"
-import { calculateHoldings } from "@lib/holdings/calculateHoldings"
+import React, { useState, useEffect, useCallback } from "react"
 import {
-  Holdings,
   QuickSellData,
   WeightClickData,
   RebalanceData,
@@ -21,26 +19,19 @@ import useSwr from "swr"
 import { holdingKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { errorOut } from "@components/errors/ErrorOut"
 import { useHoldingState } from "@lib/holdings/holdingState"
-import { sortPositions, SortConfig } from "@lib/holdings/sortHoldings"
+import { useHoldingsView } from "@lib/holdings/useHoldingsView"
 import HoldingMenu from "@components/features/holdings/HoldingMenu"
-import SummaryHeader, {
-  SummaryHeaderMobile,
-  SummaryRow,
-  SummaryRowMobile,
-} from "@components/features/holdings/Summary"
+import HoldingsHeader from "@components/features/holdings/HoldingsHeader"
 import Rows, { CorporateActionsData } from "@components/features/holdings/Rows"
 import SubTotal from "@components/features/holdings/SubTotal"
 import Header from "@components/features/holdings/Header"
 import GrandTotal from "@components/features/holdings/GrandTotal"
 import HoldingActions from "@components/features/holdings/HoldingActions"
 import PerformanceHeatmap from "@components/ui/PerformanceHeatmap"
-import ViewToggle, { ViewMode } from "@components/features/holdings/ViewToggle"
+import ViewToggle from "@components/features/holdings/ViewToggle"
+import SummaryView from "@components/features/holdings/SummaryView"
 import AllocationChart from "@components/features/allocation/AllocationChart"
 import AllocationControls from "@components/features/allocation/AllocationControls"
-import {
-  transformToAllocationSlices,
-  GroupingMode,
-} from "@lib/allocation/aggregateHoldings"
 import { compareByReportCategory } from "@lib/categoryMapping"
 import CorporateActionsPopup from "@components/features/holdings/CorporateActionsPopup"
 import TargetWeightDialog from "@components/features/holdings/TargetWeightDialog"
@@ -57,19 +48,25 @@ function HoldingsPage(): React.ReactElement {
     simpleFetcher(holdingKey(`${router.query.code}`, `${holdingState.asAt}`)),
   )
 
+  // Use shared hook for view state and calculations
+  const {
+    viewMode,
+    setViewMode,
+    sortConfig,
+    allocationGroupBy,
+    setAllocationGroupBy,
+    excludedCategories,
+    handleSort,
+    handleToggleCategory,
+    holdings,
+    allocationData,
+    allocationTotalValue,
+  } = useHoldingsView(data?.data)
+
+  // Page-specific state
   const [tradeModalOpen, setTradeModalOpen] = useState(false)
   const [cashModalOpen, setCashModalOpen] = useState(false)
   const [columns, setColumns] = useState<string[]>([])
-  const [viewMode, setViewMode] = useState<ViewMode>("table")
-  const [allocationGroupBy, setAllocationGroupBy] =
-    useState<GroupingMode>("category")
-  const [excludedCategories, setExcludedCategories] = useState<Set<string>>(
-    new Set(),
-  )
-  const [sortConfig, setSortConfig] = useState<SortConfig>({
-    key: "assetName",
-    direction: "asc",
-  })
   const [quickSellData, setQuickSellData] = useState<QuickSellData | undefined>(
     undefined,
   )
@@ -144,19 +141,6 @@ function HoldingsPage(): React.ReactElement {
     setSetPriceData(data)
   }, [])
 
-  // Handle toggling category exclusion in allocation view
-  const handleToggleCategory = useCallback((category: string) => {
-    setExcludedCategories((prev) => {
-      const next = new Set(prev)
-      if (next.has(category)) {
-        next.delete(category)
-      } else {
-        next.add(category)
-      }
-      return next
-    })
-  }, [])
-
   // Close set price dialog
   const handleSetPriceDialogClose = useCallback(() => {
     setSetPriceData(undefined)
@@ -192,73 +176,6 @@ function HoldingsPage(): React.ReactElement {
       setCashModalOpen(true)
     }
   }, [router.query.action, cashModalOpen, tradeModalOpen])
-
-  // Handle sorting
-  const handleSort = (key: string): void => {
-    setSortConfig((prevConfig) => {
-      if (prevConfig.key === key) {
-        // Toggle direction for the same column
-        return {
-          key,
-          direction: prevConfig.direction === "asc" ? "desc" : "asc",
-        }
-      }
-      // New column clicked - start with DESC for better UX
-      return {
-        key,
-        direction: "desc",
-      }
-    })
-  }
-
-  // Calculate holdings and apply sorting - moved before conditional returns
-  const holdings = useMemo(() => {
-    if (!data) return null
-
-    const calculatedHoldings = calculateHoldings(
-      data.data,
-      holdingState.hideEmpty,
-      holdingState.valueIn.value,
-      holdingState.groupBy.value,
-    ) as Holdings
-
-    // Apply sorting to each holding group
-    if (sortConfig.key) {
-      const sortedHoldingGroups = { ...calculatedHoldings.holdingGroups }
-      Object.keys(sortedHoldingGroups).forEach((groupKey) => {
-        sortedHoldingGroups[groupKey] = sortPositions(
-          sortedHoldingGroups[groupKey],
-          sortConfig,
-          holdingState.valueIn.value,
-        )
-      })
-      return {
-        ...calculatedHoldings,
-        holdingGroups: sortedHoldingGroups,
-      }
-    }
-    return calculatedHoldings
-  }, [
-    data,
-    holdingState.hideEmpty,
-    holdingState.valueIn.value,
-    holdingState.groupBy.value,
-    sortConfig,
-  ])
-
-  // Calculate allocation data for allocation view
-  const allocationData = useMemo(() => {
-    if (!data?.data) return []
-    return transformToAllocationSlices(
-      data.data,
-      allocationGroupBy,
-      holdingState.valueIn.value,
-    )
-  }, [data, allocationGroupBy, holdingState.valueIn.value])
-
-  const allocationTotalValue = useMemo(() => {
-    return allocationData.reduce((sum, slice) => sum + slice.value, 0)
-  }, [allocationData])
 
   if (error && ready) {
     console.error(error) // Log the error for debugging
@@ -347,36 +264,29 @@ function HoldingsPage(): React.ReactElement {
         </div>
       </div>
 
-      {viewMode === "table" ? (
+      {viewMode === "summary" ? (
         <div className="grid grid-cols-1 gap-3">
-          <div>
-            {/* Mobile/Tablet header - must be outside table */}
-            <SummaryHeaderMobile
-              portfolio={holdingResults.portfolio}
-              portfolioSummary={{
-                totals: holdings.totals,
-                currency: holdings.currency,
-              }}
-              viewMode={viewMode}
-              onViewModeChange={setViewMode}
-            />
-            {/* Mobile/Tablet summary row - must be outside table */}
-            <SummaryRowMobile
-              totals={holdings.totals}
-              currency={holdings.currency}
-            />
-            {/* Desktop table with thead */}
-            <table className="min-w-full bg-white">
-              <SummaryHeader
-                portfolio={holdingResults.portfolio}
-                portfolioSummary={{
-                  totals: holdings.totals,
-                  currency: holdings.currency,
-                }}
-              />
-              <SummaryRow />
-            </table>
-          </div>
+          <HoldingsHeader
+            portfolio={holdingResults.portfolio}
+            holdings={holdings}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            mobileOnly
+          />
+          <SummaryView
+            holdings={holdings}
+            allocationData={allocationData}
+            currencySymbol={holdingResults.portfolio.currency.symbol}
+          />
+        </div>
+      ) : viewMode === "table" ? (
+        <div className="grid grid-cols-1 gap-3">
+          <HoldingsHeader
+            portfolio={holdingResults.portfolio}
+            holdings={holdings}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+          />
           <div className="overflow-x-auto overflow-y-visible">
             <table className="min-w-full bg-white">
               {Object.keys(holdings.holdingGroups)
@@ -418,34 +328,12 @@ function HoldingsPage(): React.ReactElement {
         </div>
       ) : viewMode === "heatmap" ? (
         <div className="grid grid-cols-1 gap-3">
-          <div>
-            {/* Mobile/Tablet header - must be outside table */}
-            <SummaryHeaderMobile
-              portfolio={holdingResults.portfolio}
-              portfolioSummary={{
-                totals: holdings.totals,
-                currency: holdings.currency,
-              }}
-              viewMode={viewMode}
-              onViewModeChange={setViewMode}
-            />
-            {/* Mobile/Tablet summary row - must be outside table */}
-            <SummaryRowMobile
-              totals={holdings.totals}
-              currency={holdings.currency}
-            />
-            {/* Desktop table with thead */}
-            <table className="min-w-full bg-white">
-              <SummaryHeader
-                portfolio={holdingResults.portfolio}
-                portfolioSummary={{
-                  totals: holdings.totals,
-                  currency: holdings.currency,
-                }}
-              />
-              <SummaryRow />
-            </table>
-          </div>
+          <HoldingsHeader
+            portfolio={holdingResults.portfolio}
+            holdings={holdings}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+          />
           <PerformanceHeatmap
             holdingGroups={holdings.holdingGroups}
             valueIn={holdingState.valueIn.value}
@@ -453,34 +341,12 @@ function HoldingsPage(): React.ReactElement {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3">
-          <div>
-            {/* Mobile/Tablet header - must be outside table */}
-            <SummaryHeaderMobile
-              portfolio={holdingResults.portfolio}
-              portfolioSummary={{
-                totals: holdings.totals,
-                currency: holdings.currency,
-              }}
-              viewMode={viewMode}
-              onViewModeChange={setViewMode}
-            />
-            {/* Mobile/Tablet summary row - must be outside table */}
-            <SummaryRowMobile
-              totals={holdings.totals}
-              currency={holdings.currency}
-            />
-            {/* Desktop table with thead */}
-            <table className="min-w-full bg-white">
-              <SummaryHeader
-                portfolio={holdingResults.portfolio}
-                portfolioSummary={{
-                  totals: holdings.totals,
-                  currency: holdings.currency,
-                }}
-              />
-              <SummaryRow />
-            </table>
-          </div>
+          <HoldingsHeader
+            portfolio={holdingResults.portfolio}
+            holdings={holdings}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+          />
           <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6">
             <AllocationControls
               groupBy={allocationGroupBy}

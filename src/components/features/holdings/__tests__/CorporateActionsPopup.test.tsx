@@ -80,9 +80,29 @@ const mockAsset: Asset = {
   assetCategory: { id: "equity", name: "Equity" },
   market: {
     code: "NASDAQ",
+    name: "NASDAQ Stock Exchange",
     currency: { code: "USD", name: "US Dollar", symbol: "$" },
   },
 }
+
+// Helper to create a mock SWR response
+const mockSwrResponse = <T,>(
+  data: T,
+  error: Error | null = null,
+  isLoading = false,
+): {
+  data: T
+  error: Error | null
+  isLoading: boolean
+  mutate: jest.Mock
+  isValidating: boolean
+} => ({
+  data,
+  error,
+  isLoading,
+  mutate: jest.fn(),
+  isValidating: false,
+})
 
 describe("CorporateActionsPopup", () => {
   const mockOnClose = jest.fn()
@@ -100,11 +120,7 @@ describe("CorporateActionsPopup", () => {
 
   describe("when modal is closed", () => {
     it("should render nothing when modalOpen is false", () => {
-      mockUseSwr.mockReturnValue({
-        data: null,
-        error: null,
-        isLoading: false,
-      })
+      mockUseSwr.mockReturnValue(mockSwrResponse(null))
 
       const { container } = render(
         <CorporateActionsPopup
@@ -122,11 +138,7 @@ describe("CorporateActionsPopup", () => {
 
   describe("when modal is open", () => {
     it("should display loading state", () => {
-      mockUseSwr.mockReturnValue({
-        data: null,
-        error: null,
-        isLoading: true,
-      })
+      mockUseSwr.mockReturnValue(mockSwrResponse(null, null, true))
 
       render(
         <CorporateActionsPopup
@@ -142,11 +154,9 @@ describe("CorporateActionsPopup", () => {
     })
 
     it("should display error state", () => {
-      mockUseSwr.mockReturnValue({
-        data: null,
-        error: new Error("Failed to fetch"),
-        isLoading: false,
-      })
+      mockUseSwr.mockReturnValue(
+        mockSwrResponse(null, new Error("Failed to fetch")),
+      )
 
       render(
         <CorporateActionsPopup
@@ -164,11 +174,7 @@ describe("CorporateActionsPopup", () => {
     })
 
     it("should display no events message when data is empty", () => {
-      mockUseSwr.mockReturnValue({
-        data: { data: [] },
-        error: null,
-        isLoading: false,
-      })
+      mockUseSwr.mockReturnValue(mockSwrResponse({ data: [] }))
 
       render(
         <CorporateActionsPopup
@@ -186,11 +192,7 @@ describe("CorporateActionsPopup", () => {
     })
 
     it("should display corporate events when data is available", () => {
-      mockUseSwr.mockReturnValue({
-        data: mockData,
-        error: null,
-        isLoading: false,
-      })
+      mockUseSwr.mockReturnValue(mockSwrResponse(mockData))
 
       render(
         <CorporateActionsPopup
@@ -221,11 +223,7 @@ describe("CorporateActionsPopup", () => {
     })
 
     it("should call onClose when cancel button is clicked", () => {
-      mockUseSwr.mockReturnValue({
-        data: mockData,
-        error: null,
-        isLoading: false,
-      })
+      mockUseSwr.mockReturnValue(mockSwrResponse(mockData))
 
       render(
         <CorporateActionsPopup
@@ -244,11 +242,7 @@ describe("CorporateActionsPopup", () => {
     })
 
     it("should call onClose when clicking the backdrop", () => {
-      mockUseSwr.mockReturnValue({
-        data: mockData,
-        error: null,
-        isLoading: false,
-      })
+      mockUseSwr.mockReturnValue(mockSwrResponse(mockData))
 
       render(
         <CorporateActionsPopup
@@ -269,11 +263,7 @@ describe("CorporateActionsPopup", () => {
     })
 
     it("should call onClose when clicking the X button", () => {
-      mockUseSwr.mockReturnValue({
-        data: mockData,
-        error: null,
-        isLoading: false,
-      })
+      mockUseSwr.mockReturnValue(mockSwrResponse(mockData))
 
       render(
         <CorporateActionsPopup
@@ -293,11 +283,7 @@ describe("CorporateActionsPopup", () => {
     })
 
     it("should display date range information", () => {
-      mockUseSwr.mockReturnValue({
-        data: mockData,
-        error: null,
-        isLoading: false,
-      })
+      mockUseSwr.mockReturnValue(mockSwrResponse(mockData))
 
       render(
         <CorporateActionsPopup

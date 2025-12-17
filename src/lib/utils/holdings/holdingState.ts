@@ -1,8 +1,15 @@
 import { hookstate, useHookstate } from "@hookstate/core"
 import { devtools } from "@hookstate/devtools"
-import { GroupOption, HoldingDefaults, ValuationOption } from "types/app"
+import {
+  DisplayCurrencyOption,
+  GroupOption,
+  HoldingDefaults,
+  ValuationOption,
+} from "types/app"
 import { useValuationOptions } from "@components/ui/ValueIn"
 import { useGroupOptions } from "@components/features/holdings/GroupByOptions"
+
+const defaultDisplayCurrency: DisplayCurrencyOption = { mode: "PORTFOLIO" }
 
 const holdingDefaults = hookstate(
   {
@@ -45,6 +52,12 @@ export function useHoldingState(): HoldingDefaults {
     },
     get asAt(): string {
       return state.asAt.get() || "today"
+    },
+    get displayCurrency(): DisplayCurrencyOption {
+      return state.displayCurrency.get() || defaultDisplayCurrency
+    },
+    setDisplayCurrency(value: DisplayCurrencyOption): void {
+      state.displayCurrency.set(value)
     },
   }
 }

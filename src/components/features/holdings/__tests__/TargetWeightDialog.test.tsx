@@ -41,6 +41,7 @@ const mockAsset: Asset = {
   assetCategory: { id: "equity", name: "Equity" },
   market: {
     code: "NASDAQ",
+    name: "NASDAQ Stock Exchange",
     currency: { code: "USD", name: "US Dollar", symbol: "$" },
   },
 }
