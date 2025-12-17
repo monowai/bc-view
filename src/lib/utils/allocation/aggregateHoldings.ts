@@ -1,5 +1,6 @@
 import { HoldingContract, Position } from "types/beancounter"
 import { ValueIn } from "@components/features/holdings/GroupByOptions"
+import { getReportCategory } from "../categoryMapping"
 
 export type GroupingMode = "category" | "asset" | "market"
 
@@ -12,16 +13,13 @@ export interface AllocationSlice {
   color: string
 }
 
-// Color palette for known categories
+// Color palette for report categories
 const CATEGORY_COLORS: Record<string, string> = {
   Equity: "#3B82F6", // blue
-  "Exchange Traded Fund": "#10B981", // green
-  ETF: "#10B981", // green (alias)
-  Cash: "#6B7280", // gray
+  ETF: "#10B981", // green
   "Mutual Fund": "#8B5CF6", // purple
-  RE: "#F59E0B", // amber
-  Account: "#EC4899", // pink
-  Trade: "#14B8A6", // teal
+  Cash: "#6B7280", // gray
+  Property: "#F59E0B", // amber
 }
 
 // Fallback colors for dynamic values
@@ -47,11 +45,13 @@ function getGroupKey(
   groupBy: GroupingMode,
 ): { key: string; label: string } {
   switch (groupBy) {
-    case "category":
+    case "category": {
+      const reportCategory = getReportCategory(position.asset)
       return {
-        key: position.asset.assetCategory.name,
-        label: position.asset.assetCategory.name,
+        key: reportCategory,
+        label: reportCategory,
       }
+    }
     case "asset":
       return {
         key: position.asset.code,

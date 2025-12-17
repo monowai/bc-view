@@ -9,6 +9,7 @@ import {
 } from "types/beancounter"
 import { isCashRelated } from "@lib/assets/assetUtils"
 import { GroupBy, ValueIn } from "@components/features/holdings/GroupByOptions"
+import { getReportCategory } from "../categoryMapping"
 
 function getPath(path: string, position: Position): string {
   return path
@@ -17,6 +18,18 @@ function getPath(path: string, position: Position): string {
       (p: any, path: string) => (p && p[path]) || "undefined",
       position,
     ) as unknown as string
+}
+
+/**
+ * Gets the group key for a position based on the groupBy option.
+ * For ASSET_CLASS grouping, uses report categories with backward compatibility.
+ */
+function getGroupKey(groupBy: GroupBy, position: Position): string {
+  if (groupBy === GroupBy.ASSET_CLASS) {
+    // Use report categories for asset class grouping
+    return getReportCategory(position.asset)
+  }
+  return getPath(groupBy, position)
 }
 
 // Helper function to update total
@@ -164,7 +177,7 @@ export function calculateHoldings(
   const results = filteredPositions.reduce(
     (results: Holdings, group) => {
       const position = contract.positions[group] as Position
-      const groupKey = getPath(groupBy, position)
+      const groupKey = getGroupKey(groupBy, position)
       results.holdingGroups[groupKey] =
         results.holdingGroups[groupKey] ||
         createHoldingGroup(groupKey, position)

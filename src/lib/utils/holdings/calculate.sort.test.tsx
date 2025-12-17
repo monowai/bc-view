@@ -13,13 +13,13 @@ describe("calculate function", () => {
   const valueIn = ValueIn.PORTFOLIO
   const groupBy = GroupBy.ASSET_CLASS
 
-  it("should sort by Equity, ETF then Cash", () => {
+  it("should group by report category (Equity, ETF, Cash)", () => {
     const result = calculateHoldings(mockContract, true, valueIn, groupBy)
     expect(result.holdingGroups["Cash"].positions.length).toEqual(1)
     const equities = result.holdingGroups["Equity"]
     expect(equities.positions.length).toEqual(2)
-    const etfs = result.holdingGroups["Exchange Traded Fund"]
+    // ETF category now maps "Exchange Traded Fund" to "ETF" via report categories
+    const etfs = result.holdingGroups["ETF"]
     expect(etfs.positions.length).toEqual(2)
-    // result.holdingGroups - removed unused expression
   })
 })

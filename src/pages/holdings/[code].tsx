@@ -41,6 +41,7 @@ import {
   transformToAllocationSlices,
   GroupingMode,
 } from "@lib/allocation/aggregateHoldings"
+import { compareByReportCategory } from "@lib/categoryMapping"
 import CorporateActionsPopup from "@components/features/holdings/CorporateActionsPopup"
 import TargetWeightDialog from "@components/features/holdings/TargetWeightDialog"
 import SetCashBalanceDialog from "@components/features/holdings/SetCashBalanceDialog"
@@ -62,6 +63,9 @@ function HoldingsPage(): React.ReactElement {
   const [viewMode, setViewMode] = useState<ViewMode>("table")
   const [allocationGroupBy, setAllocationGroupBy] =
     useState<GroupingMode>("category")
+  const [excludedCategories, setExcludedCategories] = useState<Set<string>>(
+    new Set(),
+  )
   const [sortConfig, setSortConfig] = useState<SortConfig>({
     key: "assetName",
     direction: "asc",
@@ -138,6 +142,19 @@ function HoldingsPage(): React.ReactElement {
   // Handle set price from position row
   const handleSetPrice = useCallback((data: SetPriceData) => {
     setSetPriceData(data)
+  }, [])
+
+  // Handle toggling category exclusion in allocation view
+  const handleToggleCategory = useCallback((category: string) => {
+    setExcludedCategories((prev) => {
+      const next = new Set(prev)
+      if (next.has(category)) {
+        next.delete(category)
+      } else {
+        next.add(category)
+      }
+      return next
+    })
   }, [])
 
   // Close set price dialog
@@ -303,8 +320,6 @@ function HoldingsPage(): React.ReactElement {
       </div>
     )
   }
-  const sortOrder = ["Equity", "Exchange Traded Fund", "Cash"]
-
   if (!holdings) {
     return (
       <div className="w-full py-4">
@@ -365,9 +380,7 @@ function HoldingsPage(): React.ReactElement {
           <div className="overflow-x-auto overflow-y-visible">
             <table className="min-w-full bg-white">
               {Object.keys(holdings.holdingGroups)
-                .sort((a, b) => {
-                  return sortOrder.indexOf(a) - sortOrder.indexOf(b)
-                })
+                .sort(compareByReportCategory)
                 .map((groupKey) => {
                   return (
                     <React.Fragment key={groupKey}>
@@ -480,6 +493,8 @@ function HoldingsPage(): React.ReactElement {
               data={allocationData}
               totalValue={allocationTotalValue}
               currencySymbol={holdingResults.portfolio.currency.symbol}
+              excludedCategories={excludedCategories}
+              onToggleCategory={handleToggleCategory}
             />
           </div>
         </div>

@@ -41,7 +41,8 @@ describe("calculate function", () => {
     expect(equities.subTotals[ValueIn.PORTFOLIO].costValue).toEqual(3701.0)
     expect(equities.subTotals[ValueIn.TRADE].costValue).toEqual(3701.0)
     expect(equities.subTotals[ValueIn.BASE].costValue).toEqual(3701.0)
-    const etfs = holdings.holdingGroups["Exchange Traded Fund"]
+    // ETF category is now mapped from "Exchange Traded Fund" to "ETF" via report categories
+    const etfs = holdings.holdingGroups["ETF"]
     expect(etfs.positions.length).toEqual(2)
     validateEtfGains(etfs)
     validateTotals(holdings)
@@ -54,7 +55,8 @@ describe("calculate function", () => {
     expect(result.holdingGroups["Cash"].positions.length).toEqual(1)
     const equities = result.holdingGroups["Equity"]
     expect(equities.positions.length).toEqual(2)
-    const etfs = result.holdingGroups["Exchange Traded Fund"]
+    // ETF category is now mapped from "Exchange Traded Fund" to "ETF" via report categories
+    const etfs = result.holdingGroups["ETF"]
     expect(etfs.positions.length).toEqual(1)
     validateEtfGains(etfs)
     validateTotals(result)
