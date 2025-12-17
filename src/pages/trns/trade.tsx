@@ -19,7 +19,9 @@ import {
 import { rootLoader } from "@components/ui/PageLoader"
 import TradeTypeController from "@components/features/transactions/TradeTypeController"
 import SettlementAccountSelect from "@components/features/transactions/SettlementAccountSelect"
-import AssetSearchInput, { AssetOption } from "@components/features/transactions/AssetSearchInput"
+import AssetSearchInput, {
+  AssetOption,
+} from "@components/features/transactions/AssetSearchInput"
 import {
   onSubmit,
   useEscapeHandler,
@@ -29,7 +31,14 @@ import { convert } from "@lib/trns/tradeUtils"
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 
-const TradeTypeValues = ["BUY", "SELL", "ADD", "REDUCE", "DIVI", "SPLIT"] as const
+const TradeTypeValues = [
+  "BUY",
+  "SELL",
+  "ADD",
+  "REDUCE",
+  "DIVI",
+  "SPLIT",
+] as const
 
 const defaultValues = {
   type: { value: "BUY", label: "BUY" },
@@ -284,7 +293,15 @@ const TradeInputForm: React.FC<{
       }
     }
     return null
-  }, [quantity, price, tax, fees, portfolio.marketValue, type.value, actualPositionQuantity])
+  }, [
+    quantity,
+    price,
+    tax,
+    fees,
+    portfolio.marketValue,
+    type.value,
+    actualPositionQuantity,
+  ])
 
   useEscapeHandler(isDirty, setModalOpen)
 
@@ -383,7 +400,10 @@ const TradeInputForm: React.FC<{
                         accounts={tradeAccounts as any[]}
                         currencies={currencies}
                         trnType={type?.value || "BUY"}
-                        accountsLabel={t("settlement.tradeAccounts", "Trade Accounts")}
+                        accountsLabel={t(
+                          "settlement.tradeAccounts",
+                          "Trade Accounts",
+                        )}
                       />
                     ),
                   },

@@ -35,10 +35,7 @@ export default function AssetSearchInput({
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
   const loadOptions = useCallback(
-    (
-      inputValue: string,
-      callback: (options: AssetOption[]) => void,
-    ): void => {
+    (inputValue: string, callback: (options: AssetOption[]) => void): void => {
       // Clear any existing debounce timer
       if (debounceRef.current) {
         clearTimeout(debounceRef.current)

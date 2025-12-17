@@ -115,6 +115,11 @@ export default withPageAuthRequired(function Portfolios({
     direction: "asc",
   })
 
+  // Multi-select state for Analyze functionality
+  const [selectedPortfolios, setSelectedPortfolios] = useState<Set<string>>(
+    new Set(),
+  )
+
   // Corporate actions popup state
   const [corporateActionsPortfolio, setCorporateActionsPortfolio] =
     useState<Portfolio | null>(null)
@@ -192,6 +197,37 @@ export default withPageAuthRequired(function Portfolios({
     await mutate()
     setShowImportDialog(false)
   }, [mutate])
+
+  // Toggle portfolio selection for multi-select
+  const togglePortfolioSelection = useCallback((code: string) => {
+    setSelectedPortfolios((prev) => {
+      const newSet = new Set(prev)
+      if (newSet.has(code)) {
+        newSet.delete(code)
+      } else {
+        newSet.add(code)
+      }
+      return newSet
+    })
+  }, [])
+
+  // Toggle all portfolios selection
+  const toggleAllSelection = useCallback(() => {
+    if (!data?.data) return
+    setSelectedPortfolios((prev) => {
+      if (prev.size === data.data.length) {
+        return new Set()
+      }
+      return new Set(data.data.map((p: Portfolio) => p.code))
+    })
+  }, [data?.data])
+
+  // Navigate to aggregated holdings view with selected portfolios
+  const handleViewAggregated = useCallback(() => {
+    if (selectedPortfolios.size === 0) return
+    const codes = Array.from(selectedPortfolios).join(",")
+    router.push(`/holdings/aggregated?codes=${encodeURIComponent(codes)}`)
+  }, [selectedPortfolios, router])
 
   // Handle sorting
   const handleSort = (key: string): void => {
@@ -316,6 +352,9 @@ export default withPageAuthRequired(function Portfolios({
       0,
     )
 
+    const allSelected =
+      portfolios.length > 0 && selectedPortfolios.size === portfolios.length
+
     return (
       <div className="w-full py-4">
         <div className="flex justify-between items-center mb-4">
@@ -343,6 +382,15 @@ export default withPageAuthRequired(function Portfolios({
                 ))}
               </select>
             )}
+            {selectedPortfolios.size > 0 && (
+              <button
+                className="bg-amber-500 text-white py-2 px-4 rounded hover:bg-amber-600 transition-colors flex items-center"
+                onClick={handleViewAggregated}
+              >
+                <i className="fas fa-layer-group mr-2"></i>
+                {t("portfolios.viewHoldings", "View Holdings")} ({selectedPortfolios.size})
+              </button>
+            )}
           </div>
           <PortfolioActions onImportClick={handleImportClick} />
         </div>
@@ -351,6 +399,15 @@ export default withPageAuthRequired(function Portfolios({
           <table className="min-w-full">
             <thead className="bg-gray-100">
               <tr className="border-b border-gray-200">
+                <th className="px-4 py-3 text-center w-10">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={toggleAllSelection}
+                    className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                    title={t("portfolios.selectAll", "Select all")}
+                  />
+                </th>
                 <th
                   className="px-4 py-3 text-left text-xs sm:text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors select-none"
                   onClick={() => handleSort("code")}
@@ -414,14 +471,28 @@ export default withPageAuthRequired(function Portfolios({
               {portfolios.map((portfolio) => (
                 <tr
                   key={portfolio.id}
-                  className="hover:!bg-slate-200 transition-colors duration-200 cursor-pointer"
+                  className={`hover:!bg-slate-200 transition-colors duration-200 cursor-pointer ${
+                    selectedPortfolios.has(portfolio.code) ? "bg-blue-50" : ""
+                  }`}
                   onClick={(e) => {
-                    // Don't navigate if clicking on action buttons
-                    if (!(e.target as HTMLElement).closest(".action-buttons")) {
+                    // Don't navigate if clicking on action buttons or checkbox
+                    if (
+                      !(e.target as HTMLElement).closest(".action-buttons") &&
+                      !(e.target as HTMLElement).closest(".selection-checkbox")
+                    ) {
                       router.push(`/holdings/${portfolio.code}`)
                     }
                   }}
                 >
+                  <td className="px-4 py-3 text-center selection-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={selectedPortfolios.has(portfolio.code)}
+                      onChange={() => togglePortfolioSelection(portfolio.code)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                    />
+                  </td>
                   <td className="px-4 py-3">
                     <span className="text-blue-600 font-medium">
                       {portfolio.code}
@@ -488,7 +559,7 @@ export default withPageAuthRequired(function Portfolios({
             <tfoot className="bg-gray-100 border-t-2 border-gray-300">
               <tr>
                 <td
-                  colSpan={4}
+                  colSpan={5}
                   className="px-4 py-3 text-right font-bold text-gray-900"
                 >
                   {t("portfolios.total")}

@@ -11,7 +11,13 @@ import { currencyOptions } from "@lib/currency"
 import { useRouter } from "next/router"
 
 // Categories that can be used for user-owned custom assets
-const USER_ASSET_CATEGORIES = ["ACCOUNT", "TRADE", "RE", "MUTUAL FUND", "POLICY"]
+const USER_ASSET_CATEGORIES = [
+  "ACCOUNT",
+  "TRADE",
+  "RE",
+  "MUTUAL FUND",
+  "POLICY",
+]
 
 interface CategoryOption {
   value: string

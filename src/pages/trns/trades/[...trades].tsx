@@ -28,7 +28,14 @@ import { currencyOptions } from "@lib/currency"
 import TradeTypeController from "@components/features/transactions/TradeTypeController"
 
 // Transaction type options based on market type
-const MarketTradeTypeValues = ["BUY", "SELL", "ADD", "REDUCE", "DIVI", "SPLIT"] as const
+const MarketTradeTypeValues = [
+  "BUY",
+  "SELL",
+  "ADD",
+  "REDUCE",
+  "DIVI",
+  "SPLIT",
+] as const
 const CashTradeTypeValues = ["DEPOSIT", "WITHDRAWAL", "FX"] as const
 
 // Common CSS classes

@@ -22,7 +22,13 @@ import { validateInput } from "@components/errors/validator"
 import { accountInputSchema } from "@lib/account/schema"
 
 // Categories that can be used for user-owned custom assets
-const USER_ASSET_CATEGORIES = ["ACCOUNT", "TRADE", "RE", "MUTUAL FUND", "POLICY"]
+const USER_ASSET_CATEGORIES = [
+  "ACCOUNT",
+  "TRADE",
+  "RE",
+  "MUTUAL FUND",
+  "POLICY",
+]
 
 interface CategoryOption {
   value: string
@@ -52,7 +58,10 @@ export default withPageAuthRequired(
     })
 
     const ccyResponse = useSwr(ccyKey, simpleFetcher(ccyKey))
-    const categoriesResponse = useSwr(categoriesKey, simpleFetcher(categoriesKey))
+    const categoriesResponse = useSwr(
+      categoriesKey,
+      simpleFetcher(categoriesKey),
+    )
 
     // Convert backend categories to select options, filtering to user asset types
     const categoryOptions = useMemo(() => {
