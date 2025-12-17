@@ -40,6 +40,13 @@ export interface GroupOption {
   value: GroupBy
 }
 
+export type DisplayCurrencyMode = "PORTFOLIO" | "BASE" | "TRADE" | "CUSTOM"
+
+export interface DisplayCurrencyOption {
+  mode: DisplayCurrencyMode
+  customCode?: string // Only used when mode is "CUSTOM"
+}
+
 export interface TradeDefaults {
   readonly onMarket: boolean
   setOffMarket(value: boolean)
@@ -57,4 +64,6 @@ export interface HoldingDefaults {
   setGroupBy(value: GroupOption): void
   setAsAt(value: string): void
   readonly asAt: string
+  readonly displayCurrency: DisplayCurrencyOption
+  setDisplayCurrency(value: DisplayCurrencyOption): void
 }

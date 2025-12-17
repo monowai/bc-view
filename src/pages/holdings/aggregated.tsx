@@ -1,6 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react"
-import { calculateHoldings } from "@lib/holdings/calculateHoldings"
-import { Holdings } from "types/beancounter"
+import React, { useMemo } from "react"
 import {
   TableSkeletonLoader,
   SummarySkeletonLoader,
@@ -14,24 +12,17 @@ import useSwr from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import { errorOut } from "@components/errors/ErrorOut"
 import { useHoldingState } from "@lib/holdings/holdingState"
-import { sortPositions, SortConfig } from "@lib/holdings/sortHoldings"
-import SummaryHeader, {
-  SummaryHeaderMobile,
-  SummaryRow,
-  SummaryRowMobile,
-} from "@components/features/holdings/Summary"
+import { useHoldingsView } from "@lib/holdings/useHoldingsView"
+import HoldingsHeader from "@components/features/holdings/HoldingsHeader"
 import Rows from "@components/features/holdings/Rows"
 import SubTotal from "@components/features/holdings/SubTotal"
 import Header from "@components/features/holdings/Header"
 import GrandTotal from "@components/features/holdings/GrandTotal"
 import PerformanceHeatmap from "@components/ui/PerformanceHeatmap"
-import ViewToggle, { ViewMode } from "@components/features/holdings/ViewToggle"
+import ViewToggle from "@components/features/holdings/ViewToggle"
+import SummaryView from "@components/features/holdings/SummaryView"
 import AllocationChart from "@components/features/allocation/AllocationChart"
 import AllocationControls from "@components/features/allocation/AllocationControls"
-import {
-  transformToAllocationSlices,
-  GroupingMode,
-} from "@lib/allocation/aggregateHoldings"
 import { compareByReportCategory } from "@lib/categoryMapping"
 
 function AggregatedHoldingsPage(): React.ReactElement {
@@ -53,94 +44,20 @@ function AggregatedHoldingsPage(): React.ReactElement {
     simpleFetcher(aggregatedHoldingsKey),
   )
 
-  const [viewMode, setViewMode] = useState<ViewMode>("table")
-  const [allocationGroupBy, setAllocationGroupBy] =
-    useState<GroupingMode>("category")
-  const [excludedCategories, setExcludedCategories] = useState<Set<string>>(
-    new Set(),
-  )
-  const [sortConfig, setSortConfig] = useState<SortConfig>({
-    key: "assetName",
-    direction: "asc",
-  })
-
-  // Handle toggling category exclusion in allocation view
-  const handleToggleCategory = useCallback((category: string) => {
-    setExcludedCategories((prev) => {
-      const next = new Set(prev)
-      if (next.has(category)) {
-        next.delete(category)
-      } else {
-        next.add(category)
-      }
-      return next
-    })
-  }, [])
-
-  // Handle sorting
-  const handleSort = (key: string): void => {
-    setSortConfig((prevConfig) => {
-      if (prevConfig.key === key) {
-        return {
-          key,
-          direction: prevConfig.direction === "asc" ? "desc" : "asc",
-        }
-      }
-      return {
-        key,
-        direction: "desc",
-      }
-    })
-  }
-
-  // Calculate holdings and apply sorting
-  const holdings = useMemo(() => {
-    if (!data?.data) return null
-
-    const calculatedHoldings = calculateHoldings(
-      data.data,
-      holdingState.hideEmpty,
-      holdingState.valueIn.value,
-      holdingState.groupBy.value,
-    ) as Holdings
-
-    // Apply sorting to each holding group
-    if (sortConfig.key) {
-      const sortedHoldingGroups = { ...calculatedHoldings.holdingGroups }
-      Object.keys(sortedHoldingGroups).forEach((groupKey) => {
-        sortedHoldingGroups[groupKey] = sortPositions(
-          sortedHoldingGroups[groupKey],
-          sortConfig,
-          holdingState.valueIn.value,
-        )
-      })
-      return {
-        ...calculatedHoldings,
-        holdingGroups: sortedHoldingGroups,
-      }
-    }
-    return calculatedHoldings
-  }, [
-    data,
-    holdingState.hideEmpty,
-    holdingState.valueIn.value,
-    holdingState.groupBy.value,
+  // Use shared hook for view state and calculations
+  const {
+    viewMode,
+    setViewMode,
     sortConfig,
-  ])
-
-  // Calculate allocation data for allocation view
-  const allocationData = useMemo(() => {
-    if (!data?.data) return []
-    return transformToAllocationSlices(
-      data.data,
-      allocationGroupBy,
-      holdingState.valueIn.value,
-    )
-  }, [data, allocationGroupBy, holdingState.valueIn.value])
-
-  const allocationTotalValue = useMemo(() => {
-    return allocationData.reduce((sum, slice) => sum + slice.value, 0)
-  }, [allocationData])
+    allocationGroupBy,
+    setAllocationGroupBy,
+    excludedCategories,
+    handleSort,
+    handleToggleCategory,
+    holdings,
+    allocationData,
+    allocationTotalValue,
+  } = useHoldingsView(data?.data)
 
   // Determine the subtitle based on selected portfolios
   const subtitle = useMemo(() => {
@@ -208,33 +125,20 @@ function AggregatedHoldingsPage(): React.ReactElement {
         </div>
       </div>
 
-      {viewMode === "table" ? (
+      {viewMode === "summary" ? (
+        <SummaryView
+          holdings={holdings}
+          allocationData={allocationData}
+          currencySymbol={holdingResults.portfolio.currency.symbol}
+        />
+      ) : viewMode === "table" ? (
         <div className="grid grid-cols-1 gap-3">
-          <div>
-            <SummaryHeaderMobile
-              portfolio={holdingResults.portfolio}
-              portfolioSummary={{
-                totals: holdings.totals,
-                currency: holdings.currency,
-              }}
-              viewMode={viewMode}
-              onViewModeChange={setViewMode}
-            />
-            <SummaryRowMobile
-              totals={holdings.totals}
-              currency={holdings.currency}
-            />
-            <table className="min-w-full bg-white">
-              <SummaryHeader
-                portfolio={holdingResults.portfolio}
-                portfolioSummary={{
-                  totals: holdings.totals,
-                  currency: holdings.currency,
-                }}
-              />
-              <SummaryRow />
-            </table>
-          </div>
+          <HoldingsHeader
+            portfolio={holdingResults.portfolio}
+            holdings={holdings}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+          />
           <div className="overflow-x-auto overflow-y-visible">
             <table className="min-w-full bg-white">
               {Object.keys(holdings.holdingGroups)
@@ -271,31 +175,12 @@ function AggregatedHoldingsPage(): React.ReactElement {
         </div>
       ) : viewMode === "heatmap" ? (
         <div className="grid grid-cols-1 gap-3">
-          <div>
-            <SummaryHeaderMobile
-              portfolio={holdingResults.portfolio}
-              portfolioSummary={{
-                totals: holdings.totals,
-                currency: holdings.currency,
-              }}
-              viewMode={viewMode}
-              onViewModeChange={setViewMode}
-            />
-            <SummaryRowMobile
-              totals={holdings.totals}
-              currency={holdings.currency}
-            />
-            <table className="min-w-full bg-white">
-              <SummaryHeader
-                portfolio={holdingResults.portfolio}
-                portfolioSummary={{
-                  totals: holdings.totals,
-                  currency: holdings.currency,
-                }}
-              />
-              <SummaryRow />
-            </table>
-          </div>
+          <HoldingsHeader
+            portfolio={holdingResults.portfolio}
+            holdings={holdings}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+          />
           <PerformanceHeatmap
             holdingGroups={holdings.holdingGroups}
             valueIn={holdingState.valueIn.value}
@@ -303,31 +188,12 @@ function AggregatedHoldingsPage(): React.ReactElement {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3">
-          <div>
-            <SummaryHeaderMobile
-              portfolio={holdingResults.portfolio}
-              portfolioSummary={{
-                totals: holdings.totals,
-                currency: holdings.currency,
-              }}
-              viewMode={viewMode}
-              onViewModeChange={setViewMode}
-            />
-            <SummaryRowMobile
-              totals={holdings.totals}
-              currency={holdings.currency}
-            />
-            <table className="min-w-full bg-white">
-              <SummaryHeader
-                portfolio={holdingResults.portfolio}
-                portfolioSummary={{
-                  totals: holdings.totals,
-                  currency: holdings.currency,
-                }}
-              />
-              <SummaryRow />
-            </table>
-          </div>
+          <HoldingsHeader
+            portfolio={holdingResults.portfolio}
+            holdings={holdings}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+          />
           <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6">
             <AllocationControls
               groupBy={allocationGroupBy}

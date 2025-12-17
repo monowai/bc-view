@@ -66,6 +66,26 @@ jest.mock("@components/ui/HideEmpty", () => ({
   HideEmpty: () => <div>MockHideEmpty</div>,
 }))
 
+jest.mock("@components/features/holdings/GroupByOptions", () => {
+  return function GroupByOptions() {
+    return <div data-testid="group-by-options">MockGroupByOptions</div>
+  }
+})
+
+jest.mock("@components/ui/ValueIn", () => {
+  return function ValueInOption() {
+    return <div data-testid="value-in-option">MockValueInOption</div>
+  }
+})
+
+jest.mock("@components/ui/DisplayCurrencyOption", () => {
+  return function DisplayCurrencyOption() {
+    return (
+      <div data-testid="display-currency-option">MockDisplayCurrencyOption</div>
+    )
+  }
+})
+
 describe("<HoldingOptions />", () => {
   const mockPush = jest.fn()
   beforeEach(() => {

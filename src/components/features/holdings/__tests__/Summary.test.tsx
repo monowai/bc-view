@@ -186,7 +186,7 @@ describe("Summary Mobile View Tests (TDD)", () => {
             portfolio={mockPortfolio}
             portfolioSummary={mockSummary}
           />
-          <SummaryRow {...mockSummary} />
+          <SummaryRow />
         </table>,
       )
 
@@ -233,7 +233,7 @@ describe("Summary Mobile View Tests (TDD)", () => {
             portfolio={mockPortfolio}
             portfolioSummary={mockSummary}
           />
-          <SummaryRow {...mockSummary} />
+          <SummaryRow />
         </table>,
       )
 

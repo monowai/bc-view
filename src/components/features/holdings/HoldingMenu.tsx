@@ -5,6 +5,7 @@ import { Portfolios } from "@components/features/portfolios/Portfolios"
 import { Portfolio } from "types/beancounter"
 import GroupByOptions from "@components/features/holdings/GroupByOptions"
 import ValueInOption from "@components/ui/ValueIn"
+import DisplayCurrencyOption from "@components/ui/DisplayCurrencyOption"
 
 interface HoldingMenuOptions {
   portfolio: Portfolio
@@ -111,6 +112,17 @@ const HoldingMenu: React.FC<HoldingMenuOptions> = ({
             </label>
             <div className="mt-1">
               <ValueInOption onOptionSelect={closeMenu} />
+            </div>
+          </div>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700">
+              {t("holdings.displayCurrency", "Display Currency")}
+            </label>
+            <div className="mt-1">
+              <DisplayCurrencyOption
+                portfolio={portfolio}
+                onOptionSelect={closeMenu}
+              />
             </div>
           </div>
           <div className="mb-4">
