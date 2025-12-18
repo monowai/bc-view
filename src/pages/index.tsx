@@ -5,6 +5,7 @@ import React from "react"
 import { useTranslation } from "next-i18next"
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
+import { useUserPreferences } from "@contexts/UserPreferencesContext"
 
 // Capitalize first letter of a string
 const capitalize = (str: string): string =>
@@ -13,11 +14,14 @@ const capitalize = (str: string): string =>
 export default withPageAuthRequired(function Home(): React.ReactElement {
   const { user, error, isLoading } = useUser()
   const { t } = useTranslation("common")
+  const { preferences } = useUserPreferences()
 
-  // Get display name: prefer nickname, fall back to name
-  const displayName = user?.nickname
-    ? capitalize(user.nickname)
-    : user?.name || ""
+  // Get display name: prefer user's preferred name, then nickname, fall back to name
+  const displayName = preferences?.preferredName
+    ? preferences.preferredName
+    : user?.nickname
+      ? capitalize(user.nickname)
+      : user?.name || ""
 
   if (isLoading)
     return (

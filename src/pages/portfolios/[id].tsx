@@ -1,6 +1,7 @@
-import React, { useState } from "react"
+import React, { useState, useMemo } from "react"
 import { Controller, SubmitHandler, useForm } from "react-hook-form"
 import {
+  Currency,
   Portfolio,
   PortfolioInput,
   PortfolioRequest,
@@ -22,6 +23,7 @@ import { yupResolver } from "@hookform/resolvers/yup"
 import { validateInput } from "@components/errors/validator"
 import { portfolioInputSchema } from "@lib/portfolio/schema"
 import TrnDropZone from "@components/ui/DropZone"
+import { useUserPreferences } from "@contexts/UserPreferencesContext"
 
 export default withPageAuthRequired(function Manage(): React.ReactElement {
   function toPortfolioRequest(portfolio: PortfolioInput): PortfolioRequest {
@@ -65,6 +67,7 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
 
   const router = useRouter()
   const { t, ready } = useTranslation("common")
+  const { preferences } = useUserPreferences()
   const [purgeTrn, setPurgeTrn] = useState(false)
   const {
     formState: { errors },
@@ -78,6 +81,28 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
   const key = portfolioKey(`${router.query.id}`)
   const { data, error } = useSwr(key, simpleFetcher(key))
   const ccyResponse = useSwr(ccyKey, simpleFetcher(ccyKey))
+
+  const isNewPortfolio = router.query.id === "__NEW__"
+
+  // Get the default base currency - use user preference for new portfolios
+  const defaultBaseCurrency = useMemo((): Currency | undefined => {
+    if (!ccyResponse.data?.data) return undefined
+
+    if (isNewPortfolio && preferences?.baseCurrencyCode) {
+      const preferredCurrency = ccyResponse.data.data.find(
+        (c: Currency) => c.code === preferences.baseCurrencyCode,
+      )
+      if (preferredCurrency) return preferredCurrency
+    }
+
+    return data?.data?.base
+  }, [
+    isNewPortfolio,
+    preferences?.baseCurrencyCode,
+    ccyResponse.data?.data,
+    data?.data?.base,
+  ])
+
   if (ccyResponse.error) {
     return errorOut(t("portfolio.error.retrieve"), ccyResponse.error)
   }
@@ -149,11 +174,13 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
           name="base"
           control={control}
           rules={{ required: true }}
-          defaultValue={toCurrencyOption(portfolio.base)}
+          defaultValue={toCurrencyOption(defaultBaseCurrency || portfolio.base)}
           render={({ field }) => (
             <ReactSelect
               {...field}
-              defaultValue={toCurrencyOption(portfolio.base)}
+              defaultValue={toCurrencyOption(
+                defaultBaseCurrency || portfolio.base,
+              )}
               options={ccyOptions}
               onChange={(event) => {
                 if (event) {

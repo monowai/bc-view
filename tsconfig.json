@@ -22,6 +22,7 @@
       "@lib/*": ["src/lib/utils/*"],
       "@utils/*": ["src/lib/utils/*"],
       "@hooks/*": ["src/hooks/*"],
+      "@contexts/*": ["src/contexts/*"],
       "@styles/*": ["styles/*"],
       "@constants/*": ["src/constants/*"],
       "@providers/*": ["src/providers/*"],

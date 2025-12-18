@@ -9,6 +9,7 @@ import "@fortawesome/fontawesome-free/css/all.min.css"
 import GitInfo from "@components/ui/GitInfo"
 import { useRouter } from "next/router"
 import { useAutoRegister } from "@hooks/useAutoRegister"
+import { UserPreferencesProvider } from "@contexts/UserPreferencesContext"
 
 // Inner component that handles auto-registration (must be inside UserProvider)
 interface AppContentProps {
@@ -42,11 +43,13 @@ const App: React.FC<AppProps> = ({ Component, pageProps }) => {
 
   return (
     <UserProvider>
-      <AppContent
-        Component={Component}
-        pageProps={pageProps}
-        alwaysVisible={alwaysVisible}
-      />
+      <UserPreferencesProvider>
+        <AppContent
+          Component={Component}
+          pageProps={pageProps}
+          alwaysVisible={alwaysVisible}
+        />
+      </UserPreferencesProvider>
     </UserProvider>
   )
 }
