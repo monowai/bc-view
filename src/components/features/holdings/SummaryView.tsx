@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback, useEffect } from "react"
+import React, { useMemo, useState, useCallback } from "react"
 import {
   BarChart,
   Bar,
@@ -8,11 +8,11 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts"
-import { Holdings, MoneyValues, Currency, FxResponse } from "types/beancounter"
+import { Holdings, MoneyValues } from "types/beancounter"
 import { FormatValue } from "@components/ui/MoneyUtils"
 import { AllocationSlice } from "@lib/allocation/aggregateHoldings"
 import { compareByReportCategory } from "@lib/categoryMapping"
-import { useHoldingState } from "@lib/holdings/holdingState"
+import { useDisplayCurrencyConversion } from "@lib/hooks/useDisplayCurrencyConversion"
 
 // Color palette for report categories
 const CATEGORY_COLORS: Record<string, string> = {
@@ -37,7 +37,6 @@ const FALLBACK_COLORS = [
 interface SummaryViewProps {
   holdings: Holdings
   allocationData: AllocationSlice[]
-  currencySymbol: string
 }
 
 interface MetricCardProps {
@@ -130,72 +129,23 @@ const CustomBarTooltip: React.FC<CustomTooltipProps> = ({
 const SummaryView: React.FC<SummaryViewProps> = ({
   holdings,
   allocationData,
-  currencySymbol,
 }) => {
   const [excludedCategories, setExcludedCategories] = useState<Set<string>>(
     new Set(),
   )
-  const holdingState = useHoldingState()
-  const displayCurrencyOption = holdingState.displayCurrency
-
-  // Currency conversion state
-  const [fxRate, setFxRate] = useState<number>(1)
-  const [targetCurrency, setTargetCurrency] = useState<Currency | null>(null)
 
   // Source currency is always the trade currency (what the values are denominated in)
   const sourceCurrency = holdings.viewTotals?.currency || holdings.currency
 
-  // Determine target currency based on display mode
-  useEffect(() => {
-    const { mode, customCode } = displayCurrencyOption
-
-    if (mode === "TRADE") {
-      // Trade mode: use source currency (no conversion)
-      setTargetCurrency(sourceCurrency)
-    } else if (mode === "PORTFOLIO") {
-      setTargetCurrency(holdings.portfolio.currency)
-    } else if (mode === "BASE") {
-      setTargetCurrency(holdings.portfolio.base)
-    } else if (mode === "CUSTOM" && customCode) {
-      // Fetch custom currency details
-      fetch("/api/currencies")
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.data) {
-            const found = data.data.find((c: Currency) => c.code === customCode)
-            if (found) setTargetCurrency(found)
-          }
-        })
-        .catch(console.error)
-    }
-  }, [displayCurrencyOption, sourceCurrency, holdings.portfolio])
-
-  // Fetch FX rate when target currency changes
-  useEffect(() => {
-    if (!sourceCurrency || !targetCurrency) return
-    if (sourceCurrency.code === targetCurrency.code) {
-      setFxRate(1)
-      return
-    }
-
-    fetch("/api/fx", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        rateDate: "today",
-        pairs: [{ from: sourceCurrency.code, to: targetCurrency.code }],
-      }),
-    })
-      .then((res) => res.json())
-      .then((fxResponse: FxResponse) => {
-        const pairKey = `${sourceCurrency.code}:${targetCurrency.code}`
-        const rate = fxResponse.data?.rates?.[pairKey]?.rate
-        if (rate) {
-          setFxRate(rate)
-        }
-      })
-      .catch(console.error)
-  }, [sourceCurrency, targetCurrency])
+  // Use shared hook for display currency conversion
+  const {
+    convert,
+    currencySymbol: effectiveCurrencySymbol,
+    currencyCode: effectiveCurrencyCode,
+  } = useDisplayCurrencyConversion({
+    sourceCurrency,
+    portfolio: holdings.portfolio,
+  })
 
   const handleToggleCategory = useCallback((category: string) => {
     setExcludedCategories((prev) => {
@@ -211,12 +161,6 @@ const SummaryView: React.FC<SummaryViewProps> = ({
 
   // Get the viewTotals based on valueIn
   const viewTotals: MoneyValues = holdings.viewTotals
-
-  // Get effective currency symbol
-  const effectiveCurrencySymbol = targetCurrency?.symbol || currencySymbol
-
-  // Apply FX conversion to a value
-  const convert = useCallback((value: number) => value * fxRate, [fxRate])
 
   // Filter allocation data and sort by predefined order
   const filteredAllocation = useMemo(() => {
@@ -251,6 +195,18 @@ const SummaryView: React.FC<SummaryViewProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* Currency indicator */}
+      {effectiveCurrencyCode && (
+        <div className="flex justify-end">
+          <span className="text-sm text-gray-500">
+            Currency:{" "}
+            <span className="font-medium text-gray-700">
+              {effectiveCurrencyCode}
+            </span>
+          </span>
+        </div>
+      )}
+
       {/* Top Row: Key Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <MetricCard

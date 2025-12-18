@@ -126,11 +126,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
       </div>
 
       {viewMode === "summary" ? (
-        <SummaryView
-          holdings={holdings}
-          allocationData={allocationData}
-          currencySymbol={holdingResults.portfolio.currency.symbol}
-        />
+        <SummaryView holdings={holdings} allocationData={allocationData} />
       ) : viewMode === "table" ? (
         <div className="grid grid-cols-1 gap-3">
           <HoldingsHeader

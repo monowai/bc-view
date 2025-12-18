@@ -252,5 +252,12 @@
   "allocation.valueIn.label": "Value in",
   "valueIn.portfolio": "Portfolio",
   "valueIn.base": "Base",
-  "valueIn.trade": "Trade"
+  "valueIn.trade": "Trade",
+  "displayCurrency.portfolio": "Portfolio",
+  "displayCurrency.base": "Base",
+  "displayCurrency.trade": "Trade",
+  "displayCurrency.other": "Other",
+  "displayCurrency.none": "None",
+  "displayCurrency.warning": "Cost/Gains will be approximate",
+  "displayCurrency.approximate": "Values shown in display currency - Cost/Gains are approximate"
 }

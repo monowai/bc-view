@@ -29,6 +29,14 @@ export function useHoldingState(): HoldingDefaults {
   const { groupDefault } = useGroupOptions()
 
   return {
+    /**
+     * Returns true if Cost/Gains values are approximate due to FX conversion.
+     * This happens when a custom Display Currency is selected.
+     */
+    get isCostApproximate(): boolean {
+      // Cost is only approximate when displaying in a custom currency
+      return state.displayCurrency.get()?.mode === "CUSTOM"
+    },
     get hideEmpty(): boolean {
       return state.hideEmpty.get()
     },
@@ -40,6 +48,10 @@ export function useHoldingState(): HoldingDefaults {
     },
     setValueIn(value: ValuationOption): void {
       state.valueIn.set(value)
+      // Reset display currency to None (match Value In) when Value In changes
+      state.displayCurrency.set({
+        mode: value.value as "PORTFOLIO" | "BASE" | "TRADE",
+      })
     },
     get groupBy(): GroupOption {
       return state.groupBy.get() || groupDefault

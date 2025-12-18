@@ -20,6 +20,7 @@ import { headers } from "./Header"
 import Link from "next/link"
 import { AlphaProgress } from "@components/ui/ProgressBar"
 import { useTranslation } from "next-i18next"
+import { useDisplayCurrencyConversion } from "@lib/hooks/useDisplayCurrencyConversion"
 
 export interface CorporateActionsData {
   asset: Asset
@@ -211,6 +212,25 @@ export default function Rows({
   onSetPrice,
 }: RowsProps): React.ReactElement {
   const { t } = useTranslation("common")
+
+  // Source currency based on valueIn selection
+  const sourceCurrency = useMemo(() => {
+    if (valueIn === "PORTFOLIO") return portfolio.currency
+    if (valueIn === "BASE") return portfolio.base
+    // For TRADE, use the first position's currency as representative
+    return (
+      holdingGroup.positions[0]?.moneyValues?.TRADE?.currency ||
+      portfolio.currency
+    )
+  }, [valueIn, portfolio, holdingGroup])
+
+  // Use shared hook for display currency conversion
+  const { convert, currencySymbol: effectiveCurrencySymbol } =
+    useDisplayCurrencyConversion({
+      sourceCurrency,
+      portfolio,
+    })
+
   const columns = useMemo(
     () => [
       "Asset Code",
@@ -358,11 +378,14 @@ export default function Rows({
                   ).toFixed(2)}
                   %
                   <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full mb-1 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap z-50">
-                    Change: {moneyValues[valueIn].currency.symbol}
-                    {moneyValues[valueIn].gainOnDay?.toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    }) || "0.00"}
+                    Change: {effectiveCurrencySymbol}
+                    {convert(moneyValues[valueIn].gainOnDay)?.toLocaleString(
+                      undefined,
+                      {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      },
+                    ) || "0.00"}
                   </span>
                 </span>
               )}
@@ -371,7 +394,7 @@ export default function Rows({
               {hideValue(moneyValues[valueIn].priceData) ? (
                 " "
               ) : (
-                <FormatValue value={moneyValues[valueIn].gainOnDay} />
+                <FormatValue value={convert(moneyValues[valueIn].gainOnDay)} />
               )}
             </td>
 
@@ -391,9 +414,10 @@ export default function Rows({
             </td>
             <td className={getCellClasses(4)}>
               <span className="relative group">
-                <FormatValue value={moneyValues[valueIn].costValue} />
+                <FormatValue value={convert(moneyValues[valueIn].costValue)} />
                 <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full mb-1 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap z-50">
-                  Average: {moneyValues[valueIn].averageCost.toLocaleString()}
+                  Average:{" "}
+                  {convert(moneyValues[valueIn].averageCost).toLocaleString()}
                 </span>
               </span>
             </td>
@@ -404,7 +428,7 @@ export default function Rows({
                 className="text-blue-600 hover:text-blue-800"
               >
                 <FormatValue
-                  value={moneyValues[valueIn].marketValue}
+                  value={convert(moneyValues[valueIn].marketValue)}
                   defaultValue="0"
                 />
               </Link>
@@ -452,7 +476,9 @@ export default function Rows({
                   as={`/trns/events/${portfolio.id}/${asset.id}`}
                   className="text-blue-600 hover:text-blue-800"
                 >
-                  <FormatValue value={moneyValues[valueIn].dividends} />
+                  <FormatValue
+                    value={convert(moneyValues[valueIn].dividends)}
+                  />
                 </Link>
                 <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full mb-1 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap z-50">
                   Last Event: {dateValues?.lastDividend || "N/A"}
@@ -460,10 +486,12 @@ export default function Rows({
               </span>
             </td>
             <td className={getCellClasses(8)}>
-              <FormatValue value={moneyValues[valueIn].unrealisedGain} />
+              <FormatValue
+                value={convert(moneyValues[valueIn].unrealisedGain)}
+              />
             </td>
             <td className={getCellClasses(9)}>
-              <FormatValue value={moneyValues[valueIn].realisedGain} />
+              <FormatValue value={convert(moneyValues[valueIn].realisedGain)} />
             </td>
             <td className={getCellClasses(10)}>
               {!isCashRelated(asset) && (
@@ -496,7 +524,7 @@ export default function Rows({
               />
             </td>
             <td className={getCellClasses(12)}>
-              <FormatValue value={moneyValues[valueIn].totalGain} />
+              <FormatValue value={convert(moneyValues[valueIn].totalGain)} />
             </td>
           </tr>
         ),

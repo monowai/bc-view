@@ -1,6 +1,7 @@
 import React, { ReactElement } from "react"
 import { GroupKey } from "types/beancounter"
 import { useTranslation } from "next-i18next"
+import { useHoldingState } from "@lib/holdings/holdingState"
 
 // Header column indices for consistent mapping
 export const HEADER_INDICES = {
@@ -70,6 +71,7 @@ export const headers = [
     medium: true,
     sortable: true,
     sortKey: "costValue",
+    costRelated: true, // Shows warning when display currency differs from value in
   },
   {
     key: "summary.value",
@@ -102,6 +104,7 @@ export const headers = [
     medium: false,
     sortable: true,
     sortKey: "unrealisedGain",
+    costRelated: true,
   },
   {
     key: "gain.realised",
@@ -110,6 +113,7 @@ export const headers = [
     medium: false,
     sortable: true,
     sortKey: "realisedGain",
+    costRelated: true,
   },
   {
     key: "irr",
@@ -134,6 +138,7 @@ export const headers = [
     medium: true,
     sortable: true,
     sortKey: "totalGain",
+    costRelated: true,
   },
 ]
 
@@ -143,6 +148,8 @@ export default function Header({
   onSort,
 }: HeaderProps): ReactElement {
   const { t } = useTranslation("common")
+  const holdingState = useHoldingState()
+  const isCostApproximate = holdingState.isCostApproximate
 
   const getSortIcon = (headerKey: string): React.ReactElement => {
     if (!sortConfig || sortConfig.key !== headerKey) {
@@ -232,6 +239,16 @@ export default function Header({
                 }`}
               >
                 {t(header.key)}
+                {"costRelated" in header &&
+                  header.costRelated &&
+                  isCostApproximate && (
+                    <span
+                      className="ml-1 text-amber-500 text-xs"
+                      title={t("displayCurrency.approximate")}
+                    >
+                      ⚠
+                    </span>
+                  )}
                 {header.sortable && onSort && getSortIcon(header.sortKey)}
               </div>
             </th>
