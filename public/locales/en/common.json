@@ -259,5 +259,22 @@
   "displayCurrency.other": "Other",
   "displayCurrency.none": "None",
   "displayCurrency.warning": "Cost/Gains will be approximate",
-  "displayCurrency.approximate": "Values shown in display currency - Cost/Gains are approximate"
+  "displayCurrency.approximate": "Values shown in display currency - Cost/Gains are approximate",
+  "settings.title": "Settings",
+  "settings.preferredName": "Preferred Name",
+  "settings.preferredName.placeholder": "Enter your preferred name",
+  "settings.preferredName.description": "How you'd like to be greeted in the app",
+  "settings.defaultHoldingsView": "Default Holdings View",
+  "settings.defaultHoldingsView.description": "The view to show when opening the Holdings page",
+  "settings.holdingsView.summary": "Summary",
+  "settings.holdingsView.table": "Table",
+  "settings.holdingsView.heatmap": "Heatmap",
+  "settings.holdingsView.allocation": "Allocation",
+  "settings.baseCurrency": "Default Base Currency",
+  "settings.baseCurrency.description": "Your preferred base currency for new portfolios",
+  "settings.save": "Save Settings",
+  "settings.saving": "Saving...",
+  "settings.success.saved": "Settings saved successfully",
+  "settings.error.load": "Failed to load settings",
+  "settings.error.save": "Failed to save settings"
 }

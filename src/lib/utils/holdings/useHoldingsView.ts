@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react"
+import { useState, useMemo, useCallback, useEffect } from "react"
 import { Holdings, HoldingContract } from "types/beancounter"
 import { calculateHoldings } from "@lib/holdings/calculateHoldings"
 import { sortPositions, SortConfig } from "@lib/holdings/sortHoldings"
@@ -8,6 +8,10 @@ import {
 } from "@lib/allocation/aggregateHoldings"
 import { ViewMode } from "@components/features/holdings/ViewToggle"
 import { useHoldingState } from "@lib/holdings/holdingState"
+import {
+  useUserPreferences,
+  toViewMode,
+} from "@contexts/UserPreferencesContext"
 
 interface UseHoldingsViewResult {
   // State
@@ -36,9 +40,19 @@ export function useHoldingsView(
   holdingContract: HoldingContract | undefined | null,
 ): UseHoldingsViewResult {
   const holdingState = useHoldingState()
+  const { preferences, isLoading: preferencesLoading } = useUserPreferences()
 
-  // View state
+  // View state - initialize from user preferences
   const [viewMode, setViewMode] = useState<ViewMode>("summary")
+  const [hasInitialized, setHasInitialized] = useState(false)
+
+  // Set initial view mode from user preferences once loaded
+  useEffect(() => {
+    if (!preferencesLoading && preferences && !hasInitialized) {
+      setViewMode(toViewMode(preferences.defaultHoldingsView))
+      setHasInitialized(true)
+    }
+  }, [preferences, preferencesLoading, hasInitialized])
   const [allocationGroupBy, setAllocationGroupBy] =
     useState<GroupingMode>("category")
   const [excludedCategories, setExcludedCategories] = useState<Set<string>>(

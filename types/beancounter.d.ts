@@ -289,8 +289,24 @@ interface Registration {
   since: string
 }
 
+export type HoldingsView = "SUMMARY" | "TABLE" | "HEATMAP" | "ALLOCATION"
+
+export interface UserPreferences {
+  id: string
+  preferredName?: string
+  defaultHoldingsView: HoldingsView
+  baseCurrencyCode: string
+}
+
+export interface UserPreferencesRequest {
+  preferredName?: string
+  defaultHoldingsView?: HoldingsView
+  baseCurrencyCode?: string
+}
+
 export interface RegistrationResponse {
   data: Registration
+  preferences?: UserPreferences
 }
 
 export interface Market {
