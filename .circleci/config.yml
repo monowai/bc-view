@@ -113,7 +113,7 @@ jobs:
               export CODACY_ORGANIZATION_PROVIDER=gh
               export CODACY_USERNAME=monowai
               export CODACY_PROJECT_NAME=bc-view
-              bash <(curl -Ls https://coverage.codacy.com/get.sh) report -r coverage/lcov.info
+              bash <(curl -Ls https://coverage.codacy.com/get.sh)
               echo "✅ Coverage uploaded successfully"
             else
               echo "⚠️  CODACY_API_TOKEN not set, skipping coverage upload"
