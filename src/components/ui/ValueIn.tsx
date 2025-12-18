@@ -3,6 +3,7 @@ import { useHoldingState } from "@lib/holdings/holdingState"
 import { ValuationOption, ValuationOptions } from "types/app"
 import { useTranslation } from "next-i18next"
 import { rootLoader } from "@components/ui/PageLoader"
+import { Portfolio } from "types/beancounter"
 
 export enum ValueIn {
   PORTFOLIO = "PORTFOLIO",
@@ -23,14 +24,15 @@ export function useValuationOptions(): ValuationOptions {
 }
 
 interface ValueInOptionProps {
+  portfolio: Portfolio
   onOptionSelect: () => void
 }
 
 const ValueInOption: React.FC<ValueInOptionProps> = ({
+  portfolio,
   onOptionSelect,
 }): ReactElement => {
   const holdingState = useHoldingState()
-  const valuationOptions = useValuationOptions()
   const { t, ready } = useTranslation("common")
 
   const handleSelectChange = useCallback(
@@ -45,9 +47,22 @@ const ValueInOption: React.FC<ValueInOptionProps> = ({
     return rootLoader(t("loading"))
   }
 
+  // Build options with currency codes
+  const options: ValuationOption[] = [
+    {
+      value: ValueIn.PORTFOLIO,
+      label: `${t("in.portfolio")} (${portfolio.currency.code})`,
+    },
+    {
+      value: ValueIn.BASE,
+      label: `${t("in.base")} (${portfolio.base.code})`,
+    },
+    { value: ValueIn.TRADE, label: t("in.trade") },
+  ]
+
   return (
     <ul className="menu-list">
-      {valuationOptions.values.map((option) => (
+      {options.map((option) => (
         <li
           key={option.value}
           className="menu-item"

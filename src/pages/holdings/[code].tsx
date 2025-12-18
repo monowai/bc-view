@@ -273,11 +273,7 @@ function HoldingsPage(): React.ReactElement {
             onViewModeChange={setViewMode}
             mobileOnly
           />
-          <SummaryView
-            holdings={holdings}
-            allocationData={allocationData}
-            currencySymbol={holdingResults.portfolio.currency.symbol}
-          />
+          <SummaryView holdings={holdings} allocationData={allocationData} />
         </div>
       ) : viewMode === "table" ? (
         <div className="grid grid-cols-1 gap-3">

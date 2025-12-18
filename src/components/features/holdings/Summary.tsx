@@ -170,9 +170,14 @@ export default function SummaryHeader({
   const { t } = useTranslation("common")
   const { control, handleSubmit } = useForm()
   const holdingState = useHoldingState()
+  const displayCurrencyOption = holdingState.displayCurrency
 
-  // Get currency display for header
-  const displayCurrency = portfolioSummary?.currency?.code || "Mixed"
+  // Get currency display for header - use custom display currency if set
+  const displayCurrency =
+    displayCurrencyOption?.mode === "CUSTOM" &&
+    displayCurrencyOption?.customCode
+      ? displayCurrencyOption.customCode
+      : portfolioSummary?.currency?.code || "Mixed"
   const currencyTotals = portfolioSummary?.totals !== undefined
   const totals = portfolioSummary?.totals
 
@@ -359,7 +364,16 @@ export function SummaryRowMobile({
   currency,
 }: PortfolioSummary): ReactElement {
   const { t } = useTranslation("common")
+  const holdingState = useHoldingState()
+  const displayCurrencyOption = holdingState.displayCurrency
   const currencyTotals = totals !== undefined
+
+  // Get effective display currency code
+  const displayCurrencyCode =
+    displayCurrencyOption?.mode === "CUSTOM" &&
+    displayCurrencyOption?.customCode
+      ? displayCurrencyOption.customCode
+      : currency?.code
 
   return (
     <div className="xl:hidden bg-white rounded-lg border border-gray-200 mx-4 my-4 px-6 py-5 md:px-8 md:py-6 relative">
@@ -381,8 +395,8 @@ export function SummaryRowMobile({
             ) : (
               "-"
             )}
-            {currency?.code && (
-              <div className="text-gray-500 text-xs">{currency.code}</div>
+            {displayCurrencyCode && (
+              <div className="text-gray-500 text-xs">{displayCurrencyCode}</div>
             )}
           </div>
         </div>

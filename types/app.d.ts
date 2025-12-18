@@ -66,4 +66,9 @@ export interface HoldingDefaults {
   readonly asAt: string
   readonly displayCurrency: DisplayCurrencyOption
   setDisplayCurrency(value: DisplayCurrencyOption): void
+  /**
+   * True when Cost/Gains are approximate due to FX conversion.
+   * This happens when Display Currency differs from the Value In bucket.
+   */
+  readonly isCostApproximate: boolean
 }

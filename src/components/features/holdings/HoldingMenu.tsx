@@ -111,7 +111,7 @@ const HoldingMenu: React.FC<HoldingMenuOptions> = ({
               {t("holdings.valueIn")}
             </label>
             <div className="mt-1">
-              <ValueInOption onOptionSelect={closeMenu} />
+              <ValueInOption portfolio={portfolio} onOptionSelect={closeMenu} />
             </div>
           </div>
           <div className="mb-4">
