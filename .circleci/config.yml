@@ -108,16 +108,12 @@ jobs:
       - run:
           name: Upload Coverage to Codacy
           command: |
-            # Install Codacy coverage reporter
-            curl -Ls -o codacy-coverage-reporter "$(curl -Ls https://api.github.com/repos/codacy/codacy-coverage-reporter/releases/latest | jq -r '.assets | map({name, browser_download_url} | select(.name | contains("codacy-coverage-reporter-linux"))) | .[0].browser_download_url')"
-            chmod +x codacy-coverage-reporter
-            export CODACY_ORGANIZATION_PROVIDER=gh
-            export CODACY_USERNAME=monowai
-            export CODACY_PROJECT_NAME=bc-view
-            # Upload coverage report if CODACY_API_TOKEN is set
             if [ -n "$CODACY_API_TOKEN" ]; then
               echo "Uploading coverage to Codacy..."
-              ./codacy-coverage-reporter report -l TypeScript -r coverage/lcov.info --commit-uuid $CIRCLE_SHA1
+              export CODACY_ORGANIZATION_PROVIDER=gh
+              export CODACY_USERNAME=monowai
+              export CODACY_PROJECT_NAME=bc-view
+              bash <(curl -Ls https://coverage.codacy.com/get.sh) report -r coverage/lcov.info
               echo "✅ Coverage uploaded successfully"
             else
               echo "⚠️  CODACY_API_TOKEN not set, skipping coverage upload"
