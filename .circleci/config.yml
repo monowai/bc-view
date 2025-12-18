@@ -108,15 +108,19 @@ jobs:
       - run:
           name: Upload Coverage to Codacy
           command: |
-            if [ -n "$CODACY_API_TOKEN" ]; then
-              echo "Uploading coverage to Codacy..."
+            if [ -n "$CODACY_PROJECT_TOKEN" ]; then
+              echo "Uploading coverage to Codacy using project token..."
+              bash <(curl -Ls https://coverage.codacy.com/get.sh) report -r coverage/lcov.info
+              echo "✅ Coverage uploaded successfully"
+            elif [ -n "$CODACY_API_TOKEN" ]; then
+              echo "Uploading coverage to Codacy using API token..."
               export CODACY_ORGANIZATION_PROVIDER=gh
               export CODACY_USERNAME=monowai
               export CODACY_PROJECT_NAME=bc-view
-              bash <(curl -Ls https://coverage.codacy.com/get.sh)
+              bash <(curl -Ls https://coverage.codacy.com/get.sh) report -r coverage/lcov.info
               echo "✅ Coverage uploaded successfully"
             else
-              echo "⚠️  CODACY_API_TOKEN not set, skipping coverage upload"
+              echo "⚠️  No Codacy token set, skipping coverage upload"
             fi
           when: always
       - save_cache:
