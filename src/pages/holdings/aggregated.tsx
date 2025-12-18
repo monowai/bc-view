@@ -14,6 +14,7 @@ import { errorOut } from "@components/errors/ErrorOut"
 import { useHoldingState } from "@lib/holdings/holdingState"
 import { useHoldingsView } from "@lib/holdings/useHoldingsView"
 import HoldingsHeader from "@components/features/holdings/HoldingsHeader"
+import HoldingMenu from "@components/features/holdings/HoldingMenu"
 import Rows from "@components/features/holdings/Rows"
 import SubTotal from "@components/features/holdings/SubTotal"
 import Header from "@components/features/holdings/Header"
@@ -112,7 +113,12 @@ function AggregatedHoldingsPage(): React.ReactElement {
   const holdingResults = data.data
 
   return (
-    <div className="w-full py-4">
+    <>
+      <HoldingMenu
+        portfolio={holdingResults.portfolio}
+        showPortfolioSelector={false}
+      />
+      <div className="w-full py-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
@@ -134,6 +140,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
             holdings={holdings}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
+            isAggregated={true}
           />
           <div className="overflow-x-auto overflow-y-visible">
             <table className="min-w-full bg-white">
@@ -176,6 +183,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
             holdings={holdings}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
+            isAggregated={true}
           />
           <PerformanceHeatmap
             holdingGroups={holdings.holdingGroups}
@@ -189,6 +197,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
             holdings={holdings}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
+            isAggregated={true}
           />
           <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6">
             <AllocationControls
@@ -208,7 +217,8 @@ function AggregatedHoldingsPage(): React.ReactElement {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   )
 }
 

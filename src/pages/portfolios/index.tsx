@@ -12,6 +12,7 @@ import { useRouter } from "next/router"
 import { rootLoader } from "@components/ui/PageLoader"
 import { FormatValue } from "@components/ui/MoneyUtils"
 import PortfolioCorporateActionsPopup from "@components/features/portfolios/PortfolioCorporateActionsPopup"
+import { useUserPreferences } from "@contexts/UserPreferencesContext"
 
 type SortConfig = {
   key: string | null
@@ -104,6 +105,7 @@ export default withPageAuthRequired(function Portfolios({
 }: UserProfile): React.ReactElement {
   const { t, ready } = useTranslation("common")
   const router = useRouter()
+  const { preferences } = useUserPreferences()
   const { data, mutate, error } = useSwr(
     portfoliosKey,
     simpleFetcher(portfoliosKey),
@@ -145,14 +147,29 @@ export default withPageAuthRequired(function Portfolios({
       .catch(console.error)
   }, [])
 
-  // Set default display currency from first portfolio's report currency
+  // Set default display currency from user's preferred base currency
   useEffect(() => {
-    if (data?.data && data.data.length > 0 && !baseCurrency) {
+    if (currencies.length === 0 || baseCurrency) return
+
+    // Use user's preferred base currency if available
+    if (preferences?.baseCurrencyCode) {
+      const preferredCurrency = currencies.find(
+        (c) => c.code === preferences.baseCurrencyCode,
+      )
+      if (preferredCurrency) {
+        setBaseCurrency(preferredCurrency)
+        setDisplayCurrency(preferredCurrency)
+        return
+      }
+    }
+
+    // Fall back to first portfolio's currency if no preference
+    if (data?.data && data.data.length > 0) {
       const reportCurrency = data.data[0].currency
       setBaseCurrency(reportCurrency)
       setDisplayCurrency(reportCurrency)
     }
-  }, [data, baseCurrency])
+  }, [data, baseCurrency, currencies, preferences?.baseCurrencyCode])
 
   // Fetch FX rate when display currency changes
   useEffect(() => {
