@@ -49,6 +49,8 @@ interface SummaryHeaderProps {
   portfolioSummary?: PortfolioSummary
   viewMode?: ViewMode
   onViewModeChange?: (mode: ViewMode) => void
+  /** If true, display "Aggregated" instead of portfolio name */
+  isAggregated?: boolean
 }
 
 // Mobile/Tablet header - must be rendered OUTSIDE the table element
@@ -56,9 +58,16 @@ export function SummaryHeaderMobile({
   portfolio,
   viewMode,
   onViewModeChange,
+  isAggregated = false,
 }: SummaryHeaderProps): ReactElement {
+  const { t } = useTranslation("common")
   const { control, handleSubmit } = useForm()
   const holdingState = useHoldingState()
+
+  // Display name: show "Aggregated" for aggregated views, otherwise portfolio name
+  const displayName = isAggregated
+    ? t("holdings.aggregated.title", "Aggregated")
+    : portfolio.name
 
   const onSubmit = useCallback(
     (data: any): void => {
@@ -85,11 +94,13 @@ export function SummaryHeaderMobile({
         <div className="flex items-center justify-between gap-2">
           {/* Portfolio name - truncate if too long */}
           <h3 className="font-medium text-xs text-gray-900 truncate flex-shrink min-w-0">
-            {portfolio.name}
-            <Link
-              href={`/portfolios/${portfolio.id}`}
-              className="far fa-edit text-gray-500 hover:text-gray-700 ml-1"
-            />
+            {displayName}
+            {!isAggregated && (
+              <Link
+                href={`/portfolios/${portfolio.id}`}
+                className="far fa-edit text-gray-500 hover:text-gray-700 ml-1"
+              />
+            )}
           </h3>
 
           {/* View toggle buttons - center */}
@@ -126,11 +137,13 @@ export function SummaryHeaderMobile({
         <div className="flex items-center justify-between gap-4">
           <div>
             <h3 className="font-medium text-base text-gray-900">
-              {portfolio.name}
-              <Link
-                href={`/portfolios/${portfolio.id}`}
-                className="far fa-edit text-gray-500 hover:text-gray-700 ml-2"
-              />
+              {displayName}
+              {!isAggregated && (
+                <Link
+                  href={`/portfolios/${portfolio.id}`}
+                  className="far fa-edit text-gray-500 hover:text-gray-700 ml-2"
+                />
+              )}
             </h3>
           </div>
           {viewMode && onViewModeChange && (
@@ -166,11 +179,17 @@ export function SummaryHeaderMobile({
 export default function SummaryHeader({
   portfolio,
   portfolioSummary,
+  isAggregated = false,
 }: SummaryHeaderProps): ReactElement {
   const { t } = useTranslation("common")
   const { control, handleSubmit } = useForm()
   const holdingState = useHoldingState()
   const displayCurrencyOption = holdingState.displayCurrency
+
+  // Display name: show "Aggregated" for aggregated views, otherwise portfolio name
+  const displayName = isAggregated
+    ? t("holdings.aggregated.title", "Aggregated")
+    : portfolio.name
 
   // Get currency display for header - use custom display currency if set
   const displayCurrency =
@@ -286,11 +305,13 @@ export default function SummaryHeader({
     <thead className="hidden xl:table-header-group">
       <tr className="bg-gray-200">
         <th className="px-2 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm text-left">
-          {portfolio.name}
-          <Link
-            href={`/portfolios/${portfolio.id}`}
-            className="far fa-edit text-gray-500 hover:text-gray-700 ml-2"
-          />
+          {displayName}
+          {!isAggregated && (
+            <Link
+              href={`/portfolios/${portfolio.id}`}
+              className="far fa-edit text-gray-500 hover:text-gray-700 ml-2"
+            />
+          )}
         </th>
         {headers.map((header) => {
           let visibility

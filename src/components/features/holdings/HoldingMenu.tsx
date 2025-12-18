@@ -9,10 +9,12 @@ import DisplayCurrencyOption from "@components/ui/DisplayCurrencyOption"
 
 interface HoldingMenuOptions {
   portfolio: Portfolio
+  showPortfolioSelector?: boolean
 }
 
 const HoldingMenu: React.FC<HoldingMenuOptions> = ({
   portfolio,
+  showPortfolioSelector = true,
 }): ReactElement => {
   const { t } = useTranslation("common")
   const [menuOpen, setMenuOpen] = useState(false)
@@ -90,14 +92,16 @@ const HoldingMenu: React.FC<HoldingMenuOptions> = ({
         </button>
 
         <div className="p-4 mt-8">
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700">
-              {t("option.portfolio")}
-            </label>
-            <div className="mt-1 flex items-center">
-              <Portfolios {...portfolio} />
+          {showPortfolioSelector && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700">
+                {t("option.portfolio")}
+              </label>
+              <div className="mt-1 flex items-center">
+                <Portfolios {...portfolio} />
+              </div>
             </div>
-          </div>
+          )}
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700">
               {t("holdings.groupBy")}

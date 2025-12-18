@@ -14,6 +14,8 @@ interface HoldingsHeaderProps {
   onViewModeChange: (mode: ViewMode) => void
   /** If true, only renders mobile header (used in summary view) */
   mobileOnly?: boolean
+  /** If true, display "Aggregated" instead of portfolio name (for aggregated holdings) */
+  isAggregated?: boolean
 }
 
 /**
@@ -26,6 +28,7 @@ const HoldingsHeader: React.FC<HoldingsHeaderProps> = ({
   viewMode,
   onViewModeChange,
   mobileOnly = false,
+  isAggregated = false,
 }) => {
   const portfolioSummary = {
     totals: holdings.totals,
@@ -39,6 +42,7 @@ const HoldingsHeader: React.FC<HoldingsHeaderProps> = ({
         portfolioSummary={portfolioSummary}
         viewMode={viewMode}
         onViewModeChange={onViewModeChange}
+        isAggregated={isAggregated}
       />
       {!mobileOnly && (
         <>
@@ -50,6 +54,7 @@ const HoldingsHeader: React.FC<HoldingsHeaderProps> = ({
             <SummaryHeader
               portfolio={portfolio}
               portfolioSummary={portfolioSummary}
+              isAggregated={isAggregated}
             />
             <SummaryRow />
           </table>
