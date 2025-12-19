@@ -19,6 +19,15 @@ const USER_ASSET_CATEGORIES = [
   "POLICY",
 ]
 
+// Category icons mapping
+const CATEGORY_ICONS: Record<string, string> = {
+  ACCOUNT: "fa-university",
+  TRADE: "fa-exchange-alt",
+  RE: "fa-home",
+  "MUTUAL FUND": "fa-chart-pie",
+  POLICY: "fa-shield-alt",
+}
+
 interface CategoryOption {
   value: string
   label: string
@@ -41,6 +50,8 @@ interface DeleteAccountData {
 interface SetPriceData {
   asset: Asset
 }
+
+type TabType = "overview" | "all" | string
 
 interface AccountActionsProps {
   onImportClick: () => void
@@ -109,8 +120,194 @@ const AccountActions = ({
   )
 }
 
+interface CategoryCardProps {
+  categoryId: string
+  categoryName: string
+  count: number
+  onSelect: (category: string) => void
+}
+
+const CategoryCard: React.FC<CategoryCardProps> = ({
+  categoryId,
+  categoryName,
+  count,
+  onSelect,
+}) => {
+  const { t } = useTranslation("common")
+  const icon = CATEGORY_ICONS[categoryId] || "fa-folder"
+  const description = t(`category.${categoryId}.desc`)
+
+  return (
+    <div
+      className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow cursor-pointer border border-gray-200"
+      onClick={() => onSelect(categoryId)}
+    >
+      <div className="flex items-start justify-between mb-4">
+        <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+          <i className={`fas ${icon} text-blue-600 text-xl`}></i>
+        </div>
+        <span className="bg-gray-100 text-gray-700 text-sm font-medium px-3 py-1 rounded-full">
+          {count}
+        </span>
+      </div>
+      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+        {categoryName}
+      </h3>
+      <p className="text-sm text-gray-600">{description}</p>
+    </div>
+  )
+}
+
+interface OverviewTabProps {
+  accounts: Asset[]
+  categoryOptions: CategoryOption[]
+  onSelectCategory: (category: string) => void
+}
+
+const OverviewTab: React.FC<OverviewTabProps> = ({
+  accounts,
+  categoryOptions,
+  onSelectCategory,
+}) => {
+  const { t } = useTranslation("common")
+
+  // Count assets per category
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    USER_ASSET_CATEGORIES.forEach((cat) => {
+      counts[cat] = 0
+    })
+    accounts.forEach((account) => {
+      const catId = account.assetCategory?.id
+      if (catId && counts[catId] !== undefined) {
+        counts[catId]++
+      }
+    })
+    return counts
+  }, [accounts])
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <p className="text-blue-800">{t("accounts.overview.description")}</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {categoryOptions.map((cat) => (
+          <CategoryCard
+            key={cat.value}
+            categoryId={cat.value}
+            categoryName={cat.label}
+            count={categoryCounts[cat.value] || 0}
+            onSelect={onSelectCategory}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+interface AssetTableProps {
+  accounts: Asset[]
+  onEdit: (asset: Asset) => void
+  onDelete: (asset: Asset) => void
+  onSetPrice: (asset: Asset) => void
+  emptyMessage?: string
+}
+
+const AssetTable: React.FC<AssetTableProps> = ({
+  accounts,
+  onEdit,
+  onDelete,
+  onSetPrice,
+  emptyMessage,
+}) => {
+  const { t } = useTranslation("common")
+
+  if (accounts.length === 0) {
+    return (
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center text-gray-500">
+        <p>{emptyMessage || t("accounts.empty")}</p>
+        <p className="text-sm mt-2">{t("accounts.tab.empty.hint")}</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="bg-white shadow rounded-lg overflow-hidden">
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              {t("accounts.code")}
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              {t("accounts.name")}
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              {t("accounts.category")}
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              {t("accounts.currency")}
+            </th>
+            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              {t("accounts.actions")}
+            </th>
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-200">
+          {accounts.map((account) => (
+            <tr key={account.id}>
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                {getDisplayCode(account.code)}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {account.name}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {t(`category.${account.assetCategory?.id}`) ||
+                  account.assetCategory?.name ||
+                  "-"}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {account.priceSymbol || account.market?.currency?.code || "-"}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                {account.assetCategory?.id !== "ACCOUNT" && (
+                  <button
+                    onClick={() => onSetPrice(account)}
+                    className="text-green-600 hover:text-green-900 mr-4"
+                  >
+                    <i className="fas fa-dollar-sign mr-1"></i>
+                    {t("price.set")}
+                  </button>
+                )}
+                <button
+                  onClick={() => onEdit(account)}
+                  className="text-indigo-600 hover:text-indigo-900 mr-4"
+                >
+                  <i className="fas fa-edit mr-1"></i>
+                  {t("edit")}
+                </button>
+                <button
+                  onClick={() => onDelete(account)}
+                  className="text-red-600 hover:text-red-900"
+                >
+                  <i className="fas fa-trash mr-1"></i>
+                  {t("delete")}
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 function AccountsPage(): React.ReactElement {
   const { t, ready } = useTranslation("common")
+  const [activeTab, setActiveTab] = useState<TabType>("overview")
   const {
     data: accountsData,
     error,
@@ -250,6 +447,39 @@ function AccountsPage(): React.ReactElement {
     [],
   )
 
+  const handleSelectCategory = useCallback((category: string) => {
+    setActiveTab(category)
+  }, [])
+
+  // Convert accounts data to array
+  const accounts = useMemo(() => {
+    if (!accountsData?.data) return []
+    return Object.values(accountsData.data as Record<string, Asset>)
+  }, [accountsData?.data])
+
+  // Currency options
+  const ccyOptions = useMemo(() => {
+    if (!ccyData?.data) return []
+    return currencyOptions(ccyData.data)
+  }, [ccyData?.data])
+
+  // Filter accounts based on active tab
+  const filteredAccounts = useMemo(() => {
+    if (activeTab === "overview") return []
+    if (activeTab === "all") return accounts
+    return accounts.filter((account) => account.assetCategory?.id === activeTab)
+  }, [accounts, activeTab])
+
+  // Tab definitions
+  const tabs = useMemo(
+    (): { id: TabType; label: string }[] => [
+      { id: "overview", label: t("accounts.overview") },
+      { id: "all", label: t("accounts.all") },
+      ...categoryOptions.map((cat) => ({ id: cat.value, label: cat.label })),
+    ],
+    [categoryOptions, t],
+  )
+
   if (!ready || isLoading || ccyLoading || categoriesLoading) {
     return rootLoader(t("loading"))
   }
@@ -264,12 +494,6 @@ function AccountsPage(): React.ReactElement {
     )
   }
 
-  const accounts = accountsData?.data
-    ? Object.values(accountsData.data as Record<string, Asset>)
-    : []
-
-  const ccyOptions = ccyData?.data ? currencyOptions(ccyData.data) : []
-
   return (
     <div className="p-4">
       <div className="flex justify-between items-center mb-4">
@@ -277,81 +501,63 @@ function AccountsPage(): React.ReactElement {
         <AccountActions onImportClick={handleImportClick} />
       </div>
 
-      {accounts.length === 0 ? (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center text-gray-500">
-          {t("accounts.empty")}
-        </div>
+      {/* Tab Bar */}
+      <div className="border-b border-gray-200 mb-6">
+        <nav
+          className="-mb-px flex space-x-8 overflow-x-auto"
+          aria-label="Tabs"
+        >
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === tab.id
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              {tab.label}
+              {tab.id !== "overview" && (
+                <span
+                  className={`ml-2 py-0.5 px-2 rounded-full text-xs ${
+                    activeTab === tab.id
+                      ? "bg-blue-100 text-blue-600"
+                      : "bg-gray-100 text-gray-600"
+                  }`}
+                >
+                  {tab.id === "all"
+                    ? accounts.length
+                    : accounts.filter((a) => a.assetCategory?.id === tab.id)
+                        .length}
+                </span>
+              )}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === "overview" ? (
+        <OverviewTab
+          accounts={accounts}
+          categoryOptions={categoryOptions}
+          onSelectCategory={handleSelectCategory}
+        />
       ) : (
-        <div className="bg-white shadow rounded-lg overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t("accounts.code")}
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t("accounts.name")}
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t("accounts.category")}
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t("accounts.currency")}
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t("accounts.actions")}
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {accounts.map((account) => (
-                <tr key={account.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {getDisplayCode(account.code)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {account.name}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {t(`category.${account.assetCategory?.id}`) ||
-                      account.assetCategory?.name ||
-                      "-"}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {account.priceSymbol ||
-                      account.market?.currency?.code ||
-                      "-"}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    {account.assetCategory?.id !== "ACCOUNT" && (
-                      <button
-                        onClick={() => handleSetPrice(account)}
-                        className="text-green-600 hover:text-green-900 mr-4"
-                      >
-                        <i className="fas fa-dollar-sign mr-1"></i>
-                        {t("price.set")}
-                      </button>
-                    )}
-                    <button
-                      onClick={() => handleEdit(account)}
-                      className="text-indigo-600 hover:text-indigo-900 mr-4"
-                    >
-                      <i className="fas fa-edit mr-1"></i>
-                      {t("edit")}
-                    </button>
-                    <button
-                      onClick={() => handleDelete(account)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      <i className="fas fa-trash mr-1"></i>
-                      {t("delete")}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <AssetTable
+          accounts={filteredAccounts}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onSetPrice={handleSetPrice}
+          emptyMessage={
+            activeTab === "all"
+              ? t("accounts.empty")
+              : t("accounts.tab.empty", {
+                  category: t(`category.${activeTab}`),
+                })
+          }
+        />
       )}
 
       {/* Edit Dialog */}

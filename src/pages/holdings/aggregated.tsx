@@ -119,104 +119,104 @@ function AggregatedHoldingsPage(): React.ReactElement {
         showPortfolioSelector={false}
       />
       <div className="w-full py-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            {t("holdings.aggregated.title", "Aggregated Holdings")}
-          </h1>
-          <p className="text-sm text-gray-600 mt-1">{subtitle}</p>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {t("holdings.aggregated.title", "Aggregated Holdings")}
+            </h1>
+            <p className="text-sm text-gray-600 mt-1">{subtitle}</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <ViewToggle viewMode={viewMode} onViewModeChange={setViewMode} />
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <ViewToggle viewMode={viewMode} onViewModeChange={setViewMode} />
-        </div>
-      </div>
 
-      {viewMode === "summary" ? (
-        <SummaryView holdings={holdings} allocationData={allocationData} />
-      ) : viewMode === "table" ? (
-        <div className="grid grid-cols-1 gap-3">
-          <HoldingsHeader
-            portfolio={holdingResults.portfolio}
-            holdings={holdings}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-            isAggregated={true}
-          />
-          <div className="overflow-x-auto overflow-y-visible">
-            <table className="min-w-full bg-white">
-              {Object.keys(holdings.holdingGroups)
-                .sort(compareByReportCategory)
-                .map((groupKey) => {
-                  return (
-                    <React.Fragment key={groupKey}>
-                      <Header
-                        groupKey={groupKey}
-                        sortConfig={sortConfig}
-                        onSort={handleSort}
-                      />
-                      <Rows
-                        portfolio={holdingResults.portfolio}
-                        groupBy={groupKey}
-                        holdingGroup={holdings.holdingGroups[groupKey]}
-                        valueIn={holdingState.valueIn.value}
-                        onColumnsChange={() => {}}
-                      />
-                      <SubTotal
-                        groupBy={groupKey}
-                        subTotals={holdings.holdingGroups[groupKey].subTotals}
-                        valueIn={holdingState.valueIn.value}
-                      />
-                    </React.Fragment>
-                  )
-                })}
-              <GrandTotal
-                holdings={holdings}
-                valueIn={holdingState.valueIn.value}
-              />
-            </table>
+        {viewMode === "summary" ? (
+          <SummaryView holdings={holdings} allocationData={allocationData} />
+        ) : viewMode === "table" ? (
+          <div className="grid grid-cols-1 gap-3">
+            <HoldingsHeader
+              portfolio={holdingResults.portfolio}
+              holdings={holdings}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+              isAggregated={true}
+            />
+            <div className="overflow-x-auto overflow-y-visible">
+              <table className="min-w-full bg-white">
+                {Object.keys(holdings.holdingGroups)
+                  .sort(compareByReportCategory)
+                  .map((groupKey) => {
+                    return (
+                      <React.Fragment key={groupKey}>
+                        <Header
+                          groupKey={groupKey}
+                          sortConfig={sortConfig}
+                          onSort={handleSort}
+                        />
+                        <Rows
+                          portfolio={holdingResults.portfolio}
+                          groupBy={groupKey}
+                          holdingGroup={holdings.holdingGroups[groupKey]}
+                          valueIn={holdingState.valueIn.value}
+                          onColumnsChange={() => {}}
+                        />
+                        <SubTotal
+                          groupBy={groupKey}
+                          subTotals={holdings.holdingGroups[groupKey].subTotals}
+                          valueIn={holdingState.valueIn.value}
+                        />
+                      </React.Fragment>
+                    )
+                  })}
+                <GrandTotal
+                  holdings={holdings}
+                  valueIn={holdingState.valueIn.value}
+                />
+              </table>
+            </div>
           </div>
-        </div>
-      ) : viewMode === "heatmap" ? (
-        <div className="grid grid-cols-1 gap-3">
-          <HoldingsHeader
-            portfolio={holdingResults.portfolio}
-            holdings={holdings}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-            isAggregated={true}
-          />
-          <PerformanceHeatmap
-            holdingGroups={holdings.holdingGroups}
-            valueIn={holdingState.valueIn.value}
-          />
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-3">
-          <HoldingsHeader
-            portfolio={holdingResults.portfolio}
-            holdings={holdings}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-            isAggregated={true}
-          />
-          <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6">
-            <AllocationControls
-              groupBy={allocationGroupBy}
-              onGroupByChange={setAllocationGroupBy}
+        ) : viewMode === "heatmap" ? (
+          <div className="grid grid-cols-1 gap-3">
+            <HoldingsHeader
+              portfolio={holdingResults.portfolio}
+              holdings={holdings}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+              isAggregated={true}
+            />
+            <PerformanceHeatmap
+              holdingGroups={holdings.holdingGroups}
               valueIn={holdingState.valueIn.value}
-              onValueInChange={() => {}}
-              hideValueIn={true}
-            />
-            <AllocationChart
-              data={allocationData}
-              totalValue={allocationTotalValue}
-              currencySymbol={holdingResults.portfolio.currency.symbol}
-              excludedCategories={excludedCategories}
-              onToggleCategory={handleToggleCategory}
             />
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="grid grid-cols-1 gap-3">
+            <HoldingsHeader
+              portfolio={holdingResults.portfolio}
+              holdings={holdings}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+              isAggregated={true}
+            />
+            <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6">
+              <AllocationControls
+                groupBy={allocationGroupBy}
+                onGroupByChange={setAllocationGroupBy}
+                valueIn={holdingState.valueIn.value}
+                onValueInChange={() => {}}
+                hideValueIn={true}
+              />
+              <AllocationChart
+                data={allocationData}
+                totalValue={allocationTotalValue}
+                currencySymbol={holdingResults.portfolio.currency.symbol}
+                excludedCategories={excludedCategories}
+                onToggleCategory={handleToggleCategory}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </>
   )
