@@ -9,6 +9,7 @@ import { rootLoader } from "@components/ui/PageLoader"
 import { Asset, AssetCategory, CurrencyOption } from "types/beancounter"
 import { currencyOptions } from "@lib/currency"
 import { useRouter } from "next/router"
+import SetAccountBalancesDialog from "@components/features/accounts/SetAccountBalancesDialog"
 
 // Categories that can be used for user-owned custom assets
 const USER_ASSET_CATEGORIES = [
@@ -48,6 +49,10 @@ interface DeleteAccountData {
 }
 
 interface SetPriceData {
+  asset: Asset
+}
+
+interface SetBalancesData {
   asset: Asset
 }
 
@@ -212,6 +217,7 @@ interface AssetTableProps {
   onEdit: (asset: Asset) => void
   onDelete: (asset: Asset) => void
   onSetPrice: (asset: Asset) => void
+  onSetBalances: (asset: Asset) => void
   emptyMessage?: string
 }
 
@@ -220,6 +226,7 @@ const AssetTable: React.FC<AssetTableProps> = ({
   onEdit,
   onDelete,
   onSetPrice,
+  onSetBalances,
   emptyMessage,
 }) => {
   const { t } = useTranslation("common")
@@ -273,7 +280,15 @@ const AssetTable: React.FC<AssetTableProps> = ({
                 {account.priceSymbol || account.market?.currency?.code || "-"}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                {account.assetCategory?.id !== "ACCOUNT" && (
+                {account.assetCategory?.id === "ACCOUNT" ? (
+                  <button
+                    onClick={() => onSetBalances(account)}
+                    className="text-purple-600 hover:text-purple-900 mr-4"
+                  >
+                    <i className="fas fa-balance-scale mr-1"></i>
+                    {t("accounts.setBalances")}
+                  </button>
+                ) : (
                   <button
                     onClick={() => onSetPrice(account)}
                     className="text-green-600 hover:text-green-900 mr-4"
@@ -342,6 +357,9 @@ function AccountsPage(): React.ReactElement {
   const [setPriceData, setSetPriceData] = useState<SetPriceData | undefined>(
     undefined,
   )
+  const [setBalancesData, setSetBalancesData] = useState<
+    SetBalancesData | undefined
+  >(undefined)
   const [showImportDialog, setShowImportDialog] = useState(false)
 
   const handleEdit = useCallback((asset: Asset) => {
@@ -411,6 +429,18 @@ function AccountsPage(): React.ReactElement {
 
   const handleSetPriceClose = useCallback(() => {
     setSetPriceData(undefined)
+  }, [])
+
+  const handleSetBalances = useCallback((asset: Asset) => {
+    setSetBalancesData({ asset })
+  }, [])
+
+  const handleSetBalancesClose = useCallback(() => {
+    setSetBalancesData(undefined)
+  }, [])
+
+  const handleSetBalancesComplete = useCallback(() => {
+    setSetBalancesData(undefined)
   }, [])
 
   const handleImportClick = useCallback(() => {
@@ -550,6 +580,7 @@ function AccountsPage(): React.ReactElement {
           onEdit={handleEdit}
           onDelete={handleDelete}
           onSetPrice={handleSetPrice}
+          onSetBalances={handleSetBalances}
           emptyMessage={
             activeTab === "all"
               ? t("accounts.empty")
@@ -586,6 +617,15 @@ function AccountsPage(): React.ReactElement {
           asset={setPriceData.asset}
           onClose={handleSetPriceClose}
           onSave={handleSetPriceSave}
+        />
+      )}
+
+      {/* Set Balances Dialog */}
+      {setBalancesData && (
+        <SetAccountBalancesDialog
+          asset={setBalancesData.asset}
+          onClose={handleSetBalancesClose}
+          onComplete={handleSetBalancesComplete}
         />
       )}
 
