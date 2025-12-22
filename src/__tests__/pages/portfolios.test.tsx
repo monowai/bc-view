@@ -1,9 +1,9 @@
 import React from "react"
-import { render, screen } from "@testing-library/react"
+import { render, screen, waitFor } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import Portfolios from "@pages/portfolios"
 import useSWR from "swr"
-import { beforeEach, describe, it } from "@jest/globals"
+import { beforeEach, afterEach, describe, it } from "@jest/globals"
 import { portfolioResult } from "../../__fixtures__/fixtures"
 
 // Mock useSWR with specific data setup
@@ -33,8 +33,18 @@ describe("Portfolios Page", () => {
     ;(useSWR as jest.Mock).mockImplementation(() => mockUseSWR())
   })
 
-  it("renders the portfolios table when data is available", () => {
+  afterEach(() => {
+    jest.clearAllMocks()
+  })
+
+  it("renders the portfolios table when data is available", async () => {
     render(<Portfolios />)
+
+    // Wait for async currency fetch to complete
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith("/api/currencies")
+    })
+
     expect(screen.getByText("portfolio.code")).toBeInTheDocument()
     expect(screen.getByText("P123")).toBeInTheDocument()
     expect(screen.getByText("Portfolio 1")).toBeInTheDocument()
@@ -51,7 +61,7 @@ describe("Portfolios Page", () => {
     ).toBeInTheDocument()
   })
 
-  it("handles no portfolios correctly", () => {
+  it("handles no portfolios correctly", async () => {
     const mockUseSWR = jest.fn().mockReturnValue({
       data: { data: [] },
       error: null,
@@ -59,6 +69,11 @@ describe("Portfolios Page", () => {
     })
     ;(useSWR as jest.Mock).mockImplementation(() => mockUseSWR())
     render(<Portfolios />)
+
+    // Wait for async currency fetch to complete
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalled()
+    })
 
     expect(screen.getByText("error.portfolios.empty")).toBeInTheDocument()
   })
