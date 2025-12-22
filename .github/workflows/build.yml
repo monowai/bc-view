@@ -191,16 +191,14 @@ jobs:
             yarn.lock
           retention-days: 1
 
-  docker-build:
-    name: Docker Build (${{ matrix.platform }})
+  docker:
+    name: Build and Push Docker
     runs-on: ubuntu-latest
     needs: [test, build]
+    if: github.event_name == 'push'
     permissions:
       contents: read
       packages: write
-    strategy:
-      matrix:
-        platform: [linux/amd64, linux/arm64]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -209,6 +207,9 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: build-output
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -220,92 +221,43 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GH_TOKEN }}
 
-      - name: Generate Docker metadata
+      - name: Extract metadata for Docker
         id: meta
-        run: |
-          SHORT_COMMIT=$(git rev-parse --short ${{ github.sha }})
-          PLATFORM_TAG=$(echo "${{ matrix.platform }}" | sed 's/\//-/g')
-          BUILD_NUMBER=${{ github.run_number }}
-
-          echo "short_commit=$SHORT_COMMIT" >> $GITHUB_OUTPUT
-          echo "platform_tag=$PLATFORM_TAG" >> $GITHUB_OUTPUT
-          echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.CONTAINER_REGISTRY }}/${{ env.CONTAINER_ORG }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
+            type=raw,value=${{ github.run_number }}
+          labels: |
+            org.opencontainers.image.build-number=${{ github.run_number }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: ${{ matrix.platform }}
-          push: ${{ github.event_name == 'push' }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             GIT_BRANCH=${{ github.ref_name }}
-            GIT_COMMIT=${{ steps.meta.outputs.short_commit }}
-            BUILD_ID=${{ steps.meta.outputs.build_number }}
-          tags: |
-            ${{ env.CONTAINER_REGISTRY }}/${{ env.CONTAINER_ORG }}/${{ env.IMAGE_NAME }}:latest-${{ steps.meta.outputs.platform_tag }}
-            ${{ env.CONTAINER_REGISTRY }}/${{ env.CONTAINER_ORG }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.build_number }}-${{ steps.meta.outputs.platform_tag }}
+            GIT_COMMIT=${{ github.sha }}
+            BUILD_ID=${{ github.run_number }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          provenance: false
-          sbom: false
 
-      - name: Output image info
-        if: github.event_name == 'push'
+      - name: Output image tags
         run: |
-          echo "## Docker Image Built (${{ matrix.platform }})" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Tags:**" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          echo "${{ env.CONTAINER_REGISTRY }}/${{ env.CONTAINER_ORG }}/${{ env.IMAGE_NAME }}:latest-${{ steps.meta.outputs.platform_tag }}" >> $GITHUB_STEP_SUMMARY
-          echo "${{ env.CONTAINER_REGISTRY }}/${{ env.CONTAINER_ORG }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.build_number }}-${{ steps.meta.outputs.platform_tag }}" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-
-  docker-manifest:
-    name: Create Multi-arch Manifest
-    runs-on: ubuntu-latest
-    needs: docker-build
-    if: github.event_name == 'push'
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - name: Login to Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.CONTAINER_REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GH_TOKEN }}
-
-      - name: Create and push manifest
-        run: |
-          BUILD_NUMBER=${{ github.run_number }}
-          IMAGE="${{ env.CONTAINER_REGISTRY }}/${{ env.CONTAINER_ORG }}/${{ env.IMAGE_NAME }}"
-
-          # Create manifest for latest
-          docker manifest create ${IMAGE}:latest \
-            ${IMAGE}:latest-linux-amd64 \
-            ${IMAGE}:latest-linux-arm64
-          docker manifest push ${IMAGE}:latest
-
-          # Create manifest for build number
-          docker manifest create ${IMAGE}:${BUILD_NUMBER} \
-            ${IMAGE}:${BUILD_NUMBER}-linux-amd64 \
-            ${IMAGE}:${BUILD_NUMBER}-linux-arm64
-          docker manifest push ${IMAGE}:${BUILD_NUMBER}
-
-          echo "✅ Multi-arch manifests created and pushed"
-
-          # Output to step summary
           SHORT_SHA=${GITHUB_SHA::7}
           echo "## Docker Image Published" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Multi-arch Images (amd64 + arm64):**" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          echo "${IMAGE}:latest" >> $GITHUB_STEP_SUMMARY
-          echo "${IMAGE}:${BUILD_NUMBER}" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Pull command:**" >> $GITHUB_STEP_SUMMARY
           echo '```bash' >> $GITHUB_STEP_SUMMARY
-          echo "docker pull ${IMAGE}:${BUILD_NUMBER}" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ${{ env.CONTAINER_REGISTRY }}/${{ env.CONTAINER_ORG }}/${{ env.IMAGE_NAME }}:${SHORT_SHA}" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
