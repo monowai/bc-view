@@ -210,26 +210,6 @@ jobs:
         with:
           name: build-output
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "yarn"
-
-      - name: Restore node_modules cache
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: node-modules-${{ hashFiles('yarn.lock') }}
-          restore-keys: |
-            node-modules-
-
-      - name: Install dependencies (if cache miss)
-        run: |
-          if [ ! -d "node_modules" ]; then
-            yarn install --frozen-lockfile --prefer-offline
-          fi
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
