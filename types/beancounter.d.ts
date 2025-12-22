@@ -434,3 +434,23 @@ export interface FxRequest {
   rateDate?: string
   pairs: Array<{ from: string; to: string }>
 }
+
+// Asset Allocation types
+export interface CategoryAllocation {
+  category: string
+  marketValue: number
+  percentage: number
+}
+
+export interface AllocationData {
+  cashAllocation: number
+  equityAllocation: number
+  housingAllocation: number
+  totalValue: number
+  currency: string
+  categoryBreakdown: Record<string, CategoryAllocation>
+}
+
+export interface AllocationResponse {
+  data: AllocationData
+}

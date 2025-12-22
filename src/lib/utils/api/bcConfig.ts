@@ -10,6 +10,10 @@ export function getEventUrl(path: string = ""): string {
   return `${process.env.BC_EVENT}${path}`
 }
 
+export function getRetireUrl(path: string = ""): string {
+  return `${process.env.BC_RETIRE}${path}`
+}
+
 export function getTrnTopic(): string {
   return `${process.env.KAFKA_TOPIC_TRN}`
 }

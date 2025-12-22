@@ -1,4 +1,4 @@
-import React, { useMemo } from "react"
+import React, { useMemo, useState } from "react"
 import {
   TableSkeletonLoader,
   SummarySkeletonLoader,
@@ -25,6 +25,7 @@ import SummaryView from "@components/features/holdings/SummaryView"
 import AllocationChart from "@components/features/allocation/AllocationChart"
 import AllocationControls from "@components/features/allocation/AllocationControls"
 import { compareByReportCategory } from "@lib/categoryMapping"
+import CopyPopup from "@components/ui/CopyPopup"
 
 function AggregatedHoldingsPage(): React.ReactElement {
   const router = useRouter()
@@ -59,6 +60,10 @@ function AggregatedHoldingsPage(): React.ReactElement {
     allocationData,
     allocationTotalValue,
   } = useHoldingsView(data?.data)
+
+  // State for copy functionality
+  const [columns, setColumns] = useState<string[]>([])
+  const [copyModalOpen, setCopyModalOpen] = useState(false)
 
   // Determine the subtitle based on selected portfolios
   const subtitle = useMemo(() => {
@@ -119,14 +124,24 @@ function AggregatedHoldingsPage(): React.ReactElement {
         showPortfolioSelector={false}
       />
       <div className="w-full py-4">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              {t("holdings.aggregated.title", "Aggregated Holdings")}
-            </h1>
-            <p className="text-sm text-gray-600 mt-1">{subtitle}</p>
+        <div className="mb-4">
+          <h1 className="text-2xl font-bold text-gray-900">
+            {t("holdings.aggregated.title", "Aggregated Holdings")}
+          </h1>
+          <p className="text-sm text-gray-600 mt-1">{subtitle}</p>
+        </div>
+        <div className="mobile-portrait:hidden flex justify-between items-center mb-4">
+          <div className="flex py-2 space-x-2">
+            <button
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center"
+              onClick={() => setCopyModalOpen(true)}
+            >
+              <i className="fas fa-copy mr-2"></i>
+              Copy Data
+            </button>
           </div>
-          <div className="flex items-center gap-3">
+          {/* Desktop view toggle - hidden on mobile/tablet */}
+          <div className="hidden xl:block">
             <ViewToggle viewMode={viewMode} onViewModeChange={setViewMode} />
           </div>
         </div>
@@ -159,7 +174,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
                           groupBy={groupKey}
                           holdingGroup={holdings.holdingGroups[groupKey]}
                           valueIn={holdingState.valueIn.value}
-                          onColumnsChange={() => {}}
+                          onColumnsChange={setColumns}
                         />
                         <SubTotal
                           groupBy={groupKey}
@@ -217,6 +232,13 @@ function AggregatedHoldingsPage(): React.ReactElement {
             </div>
           </div>
         )}
+        <CopyPopup
+          columns={columns}
+          data={holdingResults.positions}
+          valueIn={holdingState.valueIn.value}
+          modalOpen={copyModalOpen}
+          onClose={() => setCopyModalOpen(false)}
+        />
       </div>
     </>
   )

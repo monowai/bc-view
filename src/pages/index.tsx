@@ -122,30 +122,27 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
               </div>
             </Link>
 
-            {/* Retirement Planning (Coming Soon) */}
-            <div className="bg-linear-to-br from-orange-50 to-red-50 rounded-2xl shadow-lg p-8 border border-orange-100 relative overflow-hidden">
-              <div className="absolute top-4 right-4">
-                <span className="bg-orange-100 text-orange-600 text-xs px-2 py-1 rounded-full font-medium">
-                  Coming Soon
-                </span>
-              </div>
-              <div className="flex items-center mb-4">
-                <div className="p-3 bg-orange-100 rounded-lg mr-4">
-                  <i className="fas fa-umbrella-beach text-2xl text-orange-600"></i>
+            {/* Retirement Planning */}
+            <Link href="/retire" className="group">
+              <div className="bg-linear-to-br from-orange-50 to-red-50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-8 border border-orange-100 hover:border-orange-200 relative overflow-hidden">
+                <div className="flex items-center mb-4">
+                  <div className="p-3 bg-orange-100 rounded-lg mr-4 group-hover:bg-orange-200 transition-colors">
+                    <i className="fas fa-umbrella-beach text-2xl text-orange-600"></i>
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900">
+                    Retirement Planning
+                  </h3>
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900">
-                  Retirement Planning
-                </h3>
+                <p className="text-gray-600 mb-4">
+                  Plan your financial future with retirement projections,
+                  savings goals, and withdrawal strategies.
+                </p>
+                <div className="flex items-center text-orange-600 group-hover:text-orange-700">
+                  <span className="font-medium">Start Planning</span>
+                  <i className="fas fa-arrow-right ml-2 transform group-hover:translate-x-1 transition-transform"></i>
+                </div>
               </div>
-              <p className="text-gray-600 mb-4">
-                Plan your financial future with retirement projections, savings
-                goals, and withdrawal strategies.
-              </p>
-              <div className="flex items-center text-orange-600">
-                <span className="font-medium">In Development</span>
-                <i className="fas fa-clock ml-2"></i>
-              </div>
-            </div>
+            </Link>
 
             {/* AI Insights (Coming Soon) */}
             <div className="bg-linear-to-br from-indigo-50 to-purple-50 rounded-2xl shadow-lg p-8 border border-indigo-100 relative overflow-hidden">
