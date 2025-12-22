@@ -1,0 +1,331 @@
+name: Build and Package
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  NODE_VERSION: "24"
+  CONTAINER_REGISTRY: ghcr.io
+  CONTAINER_ORG: monowai
+  IMAGE_NAME: bc-view
+
+jobs:
+  install:
+    name: Install Dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "yarn"
+
+      - name: Restore node_modules cache
+        id: cache-node-modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            node-modules-
+
+      - name: Install dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: |
+          yarn config set network-timeout 60000
+          yarn install --frozen-lockfile --prefer-offline --network-concurrency 8
+
+      - name: Verify @types/node
+        run: |
+          if [ ! -d "node_modules/@types/node" ]; then
+            echo "❌ @types/node missing, reinstalling..."
+            rm -rf node_modules
+            yarn cache clean
+            yarn install --frozen-lockfile
+          else
+            echo "✅ @types/node present"
+          fi
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "yarn"
+
+      - name: Restore node_modules cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            node-modules-
+
+      - name: Install dependencies (if cache miss)
+        run: |
+          if [ ! -d "node_modules" ]; then
+            yarn install --frozen-lockfile --prefer-offline
+          fi
+
+      - name: Restore Jest cache
+        uses: actions/cache@v4
+        with:
+          path: .jest-cache
+          key: jest-cache-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            jest-cache-
+
+      - name: Run tests
+        run: yarn test
+
+      - name: Upload coverage to Codacy
+        if: always()
+        env:
+          CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
+          CODACY_API_TOKEN: ${{ secrets.CODACY_API_TOKEN }}
+        run: |
+          if [ -n "$CODACY_PROJECT_TOKEN" ]; then
+            echo "Uploading coverage to Codacy using project token..."
+            bash <(curl -Ls https://coverage.codacy.com/get.sh) report -r coverage/lcov.info
+            echo "✅ Coverage uploaded successfully"
+          elif [ -n "$CODACY_API_TOKEN" ]; then
+            echo "Uploading coverage to Codacy using API token..."
+            export CODACY_ORGANIZATION_PROVIDER=gh
+            export CODACY_USERNAME=monowai
+            export CODACY_PROJECT_NAME=bc-view
+            bash <(curl -Ls https://coverage.codacy.com/get.sh) report -r coverage/lcov.info
+            echo "✅ Coverage uploaded successfully"
+          else
+            echo "⚠️  No Codacy token set, skipping coverage upload"
+          fi
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            coverage/
+            junit.xml
+          retention-days: 7
+
+  build:
+    name: Build Application
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "yarn"
+
+      - name: Restore node_modules cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            node-modules-
+
+      - name: Install dependencies (if cache miss)
+        run: |
+          if [ ! -d "node_modules" ]; then
+            yarn install --frozen-lockfile --prefer-offline
+          fi
+
+      - name: Restore Next.js build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            .next/cache
+          key: nextjs-cache-${{ hashFiles('yarn.lock') }}-${{ hashFiles('next.config.js') }}-${{ hashFiles('src/**/*') }}
+          restore-keys: |
+            nextjs-cache-${{ hashFiles('yarn.lock') }}-${{ hashFiles('next.config.js') }}-
+            nextjs-cache-${{ hashFiles('yarn.lock') }}-
+            nextjs-cache-
+
+      - name: Debug Build Environment
+        run: |
+          echo "Node version: $(node --version)"
+          echo "Yarn version: $(yarn --version)"
+          echo "Available memory: $(free -h)"
+          echo "Disk space: $(df -h)"
+          echo "node_modules exists: $([ -d 'node_modules' ] && echo '✅' || echo '❌')"
+
+      - name: Build application
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+          CI: true
+        run: yarn build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: |
+            .next/
+            public/
+            next-i18next.config.js
+            package.json
+            yarn.lock
+          retention-days: 1
+
+  docker-build:
+    name: Docker Build (${{ matrix.platform }})
+    runs-on: ubuntu-latest
+    needs: [test, build]
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        platform: [linux/amd64, linux/arm64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "yarn"
+
+      - name: Restore node_modules cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            node-modules-
+
+      - name: Install dependencies (if cache miss)
+        run: |
+          if [ ! -d "node_modules" ]; then
+            yarn install --frozen-lockfile --prefer-offline
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.CONTAINER_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GH_TOKEN }}
+
+      - name: Generate Docker metadata
+        id: meta
+        run: |
+          SHORT_COMMIT=$(git rev-parse --short ${{ github.sha }})
+          PLATFORM_TAG=$(echo "${{ matrix.platform }}" | sed 's/\//-/g')
+          BUILD_NUMBER=${{ github.run_number }}
+
+          echo "short_commit=$SHORT_COMMIT" >> $GITHUB_OUTPUT
+          echo "platform_tag=$PLATFORM_TAG" >> $GITHUB_OUTPUT
+          echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          push: ${{ github.event_name == 'push' }}
+          build-args: |
+            GIT_BRANCH=${{ github.ref_name }}
+            GIT_COMMIT=${{ steps.meta.outputs.short_commit }}
+            BUILD_ID=${{ steps.meta.outputs.build_number }}
+          tags: |
+            ${{ env.CONTAINER_REGISTRY }}/${{ env.CONTAINER_ORG }}/${{ env.IMAGE_NAME }}:latest-${{ steps.meta.outputs.platform_tag }}
+            ${{ env.CONTAINER_REGISTRY }}/${{ env.CONTAINER_ORG }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.build_number }}-${{ steps.meta.outputs.platform_tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+          sbom: false
+
+      - name: Output image info
+        if: github.event_name == 'push'
+        run: |
+          echo "## Docker Image Built (${{ matrix.platform }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Tags:**" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "${{ env.CONTAINER_REGISTRY }}/${{ env.CONTAINER_ORG }}/${{ env.IMAGE_NAME }}:latest-${{ steps.meta.outputs.platform_tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "${{ env.CONTAINER_REGISTRY }}/${{ env.CONTAINER_ORG }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.build_number }}-${{ steps.meta.outputs.platform_tag }}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+  docker-manifest:
+    name: Create Multi-arch Manifest
+    runs-on: ubuntu-latest
+    needs: docker-build
+    if: github.event_name == 'push'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.CONTAINER_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GH_TOKEN }}
+
+      - name: Create and push manifest
+        run: |
+          BUILD_NUMBER=${{ github.run_number }}
+          IMAGE="${{ env.CONTAINER_REGISTRY }}/${{ env.CONTAINER_ORG }}/${{ env.IMAGE_NAME }}"
+
+          # Create manifest for latest
+          docker manifest create ${IMAGE}:latest \
+            ${IMAGE}:latest-linux-amd64 \
+            ${IMAGE}:latest-linux-arm64
+          docker manifest push ${IMAGE}:latest
+
+          # Create manifest for build number
+          docker manifest create ${IMAGE}:${BUILD_NUMBER} \
+            ${IMAGE}:${BUILD_NUMBER}-linux-amd64 \
+            ${IMAGE}:${BUILD_NUMBER}-linux-arm64
+          docker manifest push ${IMAGE}:${BUILD_NUMBER}
+
+          echo "✅ Multi-arch manifests created and pushed"
+
+          # Output to step summary
+          SHORT_SHA=${GITHUB_SHA::7}
+          echo "## Docker Image Published" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Multi-arch Images (amd64 + arm64):**" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "${IMAGE}:latest" >> $GITHUB_STEP_SUMMARY
+          echo "${IMAGE}:${BUILD_NUMBER}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Pull command:**" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ${IMAGE}:${BUILD_NUMBER}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
