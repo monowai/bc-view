@@ -141,7 +141,7 @@ const PortfolioCorporateActionsPopup: React.FC<
     setIsScanning(false)
     setScanComplete(true)
     setScanProgress(null)
-  }, [portfolio.id, holdingsData.data.positions, today])
+  }, [portfolio.id, holdingsData?.data?.positions, today])
 
   const handleBackfillAll = async (): Promise<void> => {
     if (missingEvents.length === 0) return
