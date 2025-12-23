@@ -1,8 +1,9 @@
-import React, { useEffect, useState, useMemo } from "react"
+import React, { useEffect, useState, useMemo, useRef } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
 import * as yup from "yup"
 import { Asset, CurrencyOption, Portfolio } from "types/beancounter"
+import { SelectInstance } from "react-select"
 import { calculateTradeAmount } from "@lib/trns/tradeUtils"
 import { useTranslation } from "next-i18next"
 import useSwr from "swr"
@@ -19,6 +20,8 @@ import TradeTypeController from "@components/features/transactions/TradeTypeCont
 import { currencyOptions } from "@lib/currency"
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
+import DateInput from "@components/ui/DateInput"
+import MathInput from "@components/ui/MathInput"
 
 const TradeTypeValues = [
   "DEPOSIT",
@@ -92,6 +95,8 @@ const CashInputForm: React.FC<{
   const [copyStatus, setCopyStatus] = useState<"idle" | "success" | "error">(
     "idle",
   )
+  const typeSelectRef =
+    useRef<SelectInstance<{ value: string; label: string }>>(null)
 
   // Reset form when modal opens
   useEffect(() => {
@@ -99,6 +104,15 @@ const CashInputForm: React.FC<{
       reset(defaultValues)
     }
   }, [modalOpen, reset])
+
+  // Focus type select when modal opens
+  useEffect(() => {
+    if (modalOpen) {
+      setTimeout(() => {
+        typeSelectRef.current?.focus()
+      }, 100)
+    }
+  }, [modalOpen])
 
   const [selectedMarket, setSelectedMarket] = useState("CASH")
 
@@ -253,6 +267,7 @@ const CashInputForm: React.FC<{
                     label: t("trn.type"),
                     component: (
                       <TradeTypeController
+                        ref={typeSelectRef}
                         name="type"
                         control={control}
                         options={TradeTypeValues.map((value) => ({
@@ -270,9 +285,9 @@ const CashInputForm: React.FC<{
                         name="tradeDate"
                         control={control}
                         render={({ field }) => (
-                          <input
-                            {...field}
-                            type="date"
+                          <DateInput
+                            value={field.value}
+                            onChange={field.onChange}
                             className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
                           />
                         )}
@@ -389,9 +404,9 @@ const CashInputForm: React.FC<{
                         name="quantity"
                         control={control}
                         render={({ field }) => (
-                          <input
-                            {...field}
-                            type="number"
+                          <MathInput
+                            value={field.value}
+                            onChange={field.onChange}
                             className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
                           />
                         )}
@@ -406,9 +421,9 @@ const CashInputForm: React.FC<{
                         name="fees"
                         control={control}
                         render={({ field }) => (
-                          <input
-                            {...field}
-                            type="number"
+                          <MathInput
+                            value={field.value}
+                            onChange={field.onChange}
                             className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
                           />
                         )}
@@ -423,9 +438,9 @@ const CashInputForm: React.FC<{
                         name="tax"
                         control={control}
                         render={({ field }) => (
-                          <input
-                            {...field}
-                            type="number"
+                          <MathInput
+                            value={field.value}
+                            onChange={field.onChange}
                             className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
                           />
                         )}

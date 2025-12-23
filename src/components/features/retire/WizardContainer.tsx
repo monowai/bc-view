@@ -246,7 +246,9 @@ export default function WizardContainer({
       router.push(`/retire/plans/${savedPlanId}`)
     } catch (err: unknown) {
       const message =
-        err instanceof Error ? err.message : "An error occurred while saving the plan"
+        err instanceof Error
+          ? err.message
+          : "An error occurred while saving the plan"
       setError(message)
       setIsSubmitting(false)
     }

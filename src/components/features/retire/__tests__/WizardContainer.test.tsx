@@ -4,10 +4,7 @@ import "@testing-library/jest-dom"
 import { useForm, FormProvider } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
 import ExpensesStep from "../steps/ExpensesStep"
-import {
-  expensesStepSchema,
-  defaultWizardValues,
-} from "@lib/retire/schema"
+import { expensesStepSchema, defaultWizardValues } from "@lib/retire/schema"
 import { WizardFormData } from "types/retirement"
 
 // Mock SWR

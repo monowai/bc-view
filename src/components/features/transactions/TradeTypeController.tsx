@@ -1,6 +1,6 @@
-import React from "react"
+import React, { forwardRef } from "react"
 import { Controller } from "react-hook-form"
-import Select from "react-select"
+import Select, { SelectInstance } from "react-select"
 
 interface SelectControllerProps {
   name: string
@@ -8,20 +8,34 @@ interface SelectControllerProps {
   options: { value: string; label: string }[]
 }
 
-const TradeTypeController: React.FC<SelectControllerProps> = ({
-  name,
-  control,
-  options,
-}) => {
+const TradeTypeController = forwardRef<
+  SelectInstance<{ value: string; label: string }>,
+  SelectControllerProps
+>(function TradeTypeController({ name, control, options }, ref) {
   return (
     <Controller
       name={name}
       control={control}
       render={({ field }) => (
-        <Select {...field} defaultValue={options[0]} options={options} />
+        <Select
+          {...field}
+          ref={ref}
+          defaultValue={options[0]}
+          options={options}
+          menuPortalTarget={
+            typeof document !== "undefined" ? document.body : null
+          }
+          menuPosition="fixed"
+          styles={{
+            menuPortal: (base) => ({
+              ...base,
+              zIndex: 9999,
+            }),
+          }}
+        />
       )}
     />
   )
-}
+})
 
 export default TradeTypeController

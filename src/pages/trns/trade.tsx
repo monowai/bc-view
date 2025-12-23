@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react"
+import React, { useEffect, useMemo, useState, useRef } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
 import * as yup from "yup"
@@ -14,6 +14,7 @@ import {
   marketsKey,
   simpleFetcher,
   tradeAccountsKey,
+  accountsKey,
   ccyKey,
 } from "@utils/api/fetchHelper"
 import { rootLoader } from "@components/ui/PageLoader"
@@ -27,6 +28,8 @@ import {
   useEscapeHandler,
   copyToClipboard,
 } from "@lib/trns/formUtils"
+import MathInput from "@components/ui/MathInput"
+import DateInput from "@components/ui/DateInput"
 import { convert } from "@lib/trns/tradeUtils"
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
@@ -114,6 +117,9 @@ const TradeInputForm: React.FC<{
     "idle",
   )
   const [targetWeight, setTargetWeight] = useState<string>("")
+  const [tradeValue, setTradeValue] = useState<string>("")
+  const [isFetchingPrice, setIsFetchingPrice] = useState(false)
+  const dateInputRef = useRef<HTMLInputElement>(null)
 
   const handleCopy = async (): Promise<void> => {
     const formData = getValues()
@@ -145,11 +151,23 @@ const TradeInputForm: React.FC<{
         price: initialValues.price,
       })
       setTargetWeight("")
+      setTradeValue("")
     } else if (modalOpen && !initialValues) {
       reset(defaultValues)
       setTargetWeight("")
+      setTradeValue("")
     }
   }, [modalOpen, initialValues, reset])
+
+  // Focus date input when modal opens
+  useEffect(() => {
+    if (modalOpen) {
+      // Small delay to ensure modal is rendered
+      setTimeout(() => {
+        dateInputRef.current?.focus()
+      }, 100)
+    }
+  }, [modalOpen])
 
   const { data: marketsData, isLoading: marketsLoading } = useSwr(
     marketsKey,
@@ -158,6 +176,10 @@ const TradeInputForm: React.FC<{
   const { data: tradeAccountsData, isLoading: tradeAccountsLoading } = useSwr(
     tradeAccountsKey,
     simpleFetcher(tradeAccountsKey),
+  )
+  const { data: bankAccountsData } = useSwr(
+    accountsKey,
+    simpleFetcher(accountsKey),
   )
   const { data: ccyData, isLoading: ccyLoading } = useSwr(
     ccyKey,
@@ -217,6 +239,69 @@ const TradeInputForm: React.FC<{
     // Set the trade type based on direction
     const newType = valueDiff >= 0 ? "BUY" : "SELL"
     setValue("type", { value: newType, label: newType })
+  }
+
+  // Handle trade value change - calculate quantity from total value
+  const handleTradeValueChange = (newTradeValue: string): void => {
+    setTradeValue(newTradeValue)
+
+    const valueNum = parseFloat(newTradeValue)
+    if (isNaN(valueNum) || !price || price <= 0) {
+      return
+    }
+
+    // Calculate quantity from trade value and price
+    const calculatedQuantity = Math.floor(valueNum / price)
+    setValue("quantity", calculatedQuantity)
+  }
+
+  // Fetch price for selected asset
+  const fetchAssetPrice = async (
+    market: string,
+    assetCode: string,
+  ): Promise<number | null> => {
+    setIsFetchingPrice(true)
+    try {
+      const response = await fetch(`/api/prices/${market}/${assetCode}`)
+      if (!response.ok) {
+        return null
+      }
+      const data = await response.json()
+      if (data.data && data.data.length > 0) {
+        return data.data[0].close
+      }
+      return null
+    } catch {
+      return null
+    } finally {
+      setIsFetchingPrice(false)
+    }
+  }
+
+  // Handle asset selection - fetch price and set currency
+  const handleAssetSelect = async (
+    option: AssetOption | null,
+  ): Promise<void> => {
+    if (!option) {
+      return
+    }
+
+    // Set the trade currency to match the asset's currency
+    if (option.currency) {
+      setValue("tradeCurrency", {
+        value: option.currency,
+        label: option.currency,
+      })
+    }
+
+    // Fetch the current price for the asset
+    const market = option.market || watch("market")
+    if (market && option.value) {
+      const fetchedPrice = await fetchAssetPrice(market, option.value)
+      if (fetchedPrice !== null) {
+        setValue("price", fetchedPrice)
+      }
+    }
   }
 
   useEffect(() => {
@@ -312,6 +397,10 @@ const TradeInputForm: React.FC<{
   const tradeAccounts = tradeAccountsData?.data
     ? Object.values(tradeAccountsData.data)
     : []
+  // Get bank accounts for settlement account dropdown
+  const bankAccounts = bankAccountsData?.data
+    ? Object.values(bankAccountsData.data)
+    : []
   // Get currencies for settlement account dropdown
   const currencies = ccyData?.data || []
 
@@ -381,67 +470,13 @@ const TradeInputForm: React.FC<{
                         name="tradeDate"
                         control={control}
                         render={({ field }) => (
-                          <input
-                            {...field}
-                            type="date"
+                          <DateInput
+                            ref={dateInputRef}
+                            value={field.value}
+                            onChange={field.onChange}
                             className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
                           />
                         )}
-                      />
-                    ),
-                  },
-                  {
-                    name: "settlementAccount",
-                    label: t("trn.settlement.account"),
-                    component: (
-                      <SettlementAccountSelect
-                        name="settlementAccount"
-                        control={control}
-                        accounts={tradeAccounts as any[]}
-                        currencies={currencies}
-                        trnType={type?.value || "BUY"}
-                        accountsLabel={t(
-                          "settlement.tradeAccounts",
-                          "Trade Accounts",
-                        )}
-                      />
-                    ),
-                  },
-                  {
-                    name: "cashAmount",
-                    label: t("trn.amount.cash"),
-                    component: (
-                      <Controller
-                        name="cashAmount"
-                        control={control}
-                        render={({ field }) => (
-                          <input
-                            {...field}
-                            type="number"
-                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
-                          />
-                        )}
-                      />
-                    ),
-                  },
-                  {
-                    name: "asset",
-                    label: t("trn.asset.code"),
-                    component: (
-                      <AssetSearchInput
-                        name="asset"
-                        control={control}
-                        market={watch("market")}
-                        defaultValue={initialValues?.asset}
-                        onAssetSelect={(option: AssetOption | null) => {
-                          // Set the trade currency to match the asset's currency
-                          if (option?.currency) {
-                            setValue("tradeCurrency", {
-                              value: option.currency,
-                              label: option.currency,
-                            })
-                          }
-                        }}
                       />
                     ),
                   },
@@ -470,6 +505,21 @@ const TradeInputForm: React.FC<{
                     ),
                   },
                   {
+                    name: "asset",
+                    label: isFetchingPrice
+                      ? `${t("trn.asset.code")} (fetching price...)`
+                      : t("trn.asset.code"),
+                    component: (
+                      <AssetSearchInput
+                        name="asset"
+                        control={control}
+                        market={watch("market")}
+                        defaultValue={initialValues?.asset}
+                        onAssetSelect={handleAssetSelect}
+                      />
+                    ),
+                  },
+                  {
                     name: "quantity",
                     label:
                       actualPositionQuantity > 0
@@ -480,9 +530,9 @@ const TradeInputForm: React.FC<{
                         name="quantity"
                         control={control}
                         render={({ field }) => (
-                          <input
-                            {...field}
-                            type="number"
+                          <MathInput
+                            value={field.value}
+                            onChange={field.onChange}
                             className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
                           />
                         )}
@@ -497,9 +547,10 @@ const TradeInputForm: React.FC<{
                         name="price"
                         control={control}
                         render={({ field }) => (
-                          <input
-                            {...field}
-                            type="number"
+                          <MathInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            step="0.01"
                             className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
                           />
                         )}
@@ -514,9 +565,9 @@ const TradeInputForm: React.FC<{
                         name="fees"
                         control={control}
                         render={({ field }) => (
-                          <input
-                            {...field}
-                            type="number"
+                          <MathInput
+                            value={field.value}
+                            onChange={field.onChange}
                             className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
                           />
                         )}
@@ -531,13 +582,46 @@ const TradeInputForm: React.FC<{
                         name="tax"
                         control={control}
                         render={({ field }) => (
-                          <input
-                            {...field}
-                            type="number"
+                          <MathInput
+                            value={field.value}
+                            onChange={field.onChange}
                             className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
                           />
                         )}
                       />
+                    ),
+                  },
+                  {
+                    name: "investValue",
+                    label: t("trn.invest.value", "Invest Value"),
+                    component: (
+                      <div className="relative">
+                        <input
+                          type="number"
+                          step="100"
+                          min="0"
+                          value={tradeValue}
+                          onChange={(e) =>
+                            handleTradeValueChange(e.target.value)
+                          }
+                          placeholder={
+                            price > 0
+                              ? t(
+                                  "trn.invest.placeholder",
+                                  "Enter amount to invest",
+                                )
+                              : t("trn.invest.needPrice", "Set price first")
+                          }
+                          disabled={!price || price <= 0}
+                          className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height disabled:bg-gray-100 disabled:text-gray-500"
+                        />
+                        {price > 0 && tradeValue && (
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500">
+                            = {Math.floor(parseFloat(tradeValue) / price)}{" "}
+                            shares
+                          </span>
+                        )}
+                      </div>
                     ),
                   },
                   {
@@ -548,9 +632,44 @@ const TradeInputForm: React.FC<{
                         name="tradeAmount"
                         control={control}
                         render={({ field }) => (
-                          <input
-                            {...field}
-                            type="number"
+                          <MathInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
+                          />
+                        )}
+                      />
+                    ),
+                  },
+                  {
+                    name: "settlementAccount",
+                    label: t("trn.settlement.account"),
+                    component: (
+                      <SettlementAccountSelect
+                        name="settlementAccount"
+                        control={control}
+                        accounts={tradeAccounts as any[]}
+                        bankAccounts={bankAccounts as any[]}
+                        currencies={currencies}
+                        trnType={type?.value || "BUY"}
+                        accountsLabel={t(
+                          "settlement.tradeAccounts",
+                          "Trade Accounts",
+                        )}
+                      />
+                    ),
+                  },
+                  {
+                    name: "cashAmount",
+                    label: t("trn.amount.cash"),
+                    component: (
+                      <Controller
+                        name="cashAmount"
+                        control={control}
+                        render={({ field }) => (
+                          <MathInput
+                            value={field.value}
+                            onChange={field.onChange}
                             className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
                           />
                         )}

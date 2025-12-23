@@ -23,11 +23,13 @@ interface SettlementAccountSelectProps {
   name: string
   control: Control<any>
   accounts: Asset[]
+  bankAccounts?: Asset[] // Optional bank accounts (category: ACCOUNT)
   currencies?: Currency[]
   trnType: string
   defaultValue?: SettlementAccountOption
   currenciesLabel?: string // Label for currencies group
   accountsLabel?: string // Label for accounts group
+  bankAccountsLabel?: string // Label for bank accounts group
 }
 
 // Convert accounts to select options with currency display
@@ -65,11 +67,13 @@ const SettlementAccountSelect: React.FC<SettlementAccountSelectProps> = ({
   name,
   control,
   accounts,
+  bankAccounts = [],
   currencies = [],
   trnType,
   defaultValue,
   currenciesLabel,
   accountsLabel,
+  bankAccountsLabel,
 }) => {
   const { t } = useTranslation("common")
   const disabled = isNoCashImpact(trnType)
@@ -86,7 +90,16 @@ const SettlementAccountSelect: React.FC<SettlementAccountSelectProps> = ({
       })
     }
 
-    // Add accounts group
+    // Add bank accounts group (if provided)
+    if (bankAccounts.length > 0) {
+      groups.push({
+        label:
+          bankAccountsLabel || t("settlement.bankAccounts", "Bank Accounts"),
+        options: toSettlementAccountOptions(bankAccounts),
+      })
+    }
+
+    // Add trade accounts group
     if (accounts.length > 0) {
       groups.push({
         label: accountsLabel || t("settlement.accounts", "Accounts"),
@@ -95,7 +108,15 @@ const SettlementAccountSelect: React.FC<SettlementAccountSelectProps> = ({
     }
 
     return groups
-  }, [accounts, currencies, t, currenciesLabel, accountsLabel])
+  }, [
+    accounts,
+    bankAccounts,
+    currencies,
+    t,
+    currenciesLabel,
+    accountsLabel,
+    bankAccountsLabel,
+  ])
 
   // No Settlement option shown when disabled
   const noSettlementOption: SettlementAccountOption = {
@@ -116,11 +137,19 @@ const SettlementAccountSelect: React.FC<SettlementAccountSelectProps> = ({
           value={disabled ? noSettlementOption : field.value}
           isDisabled={disabled}
           placeholder={t("trn.settlement.select")}
+          menuPortalTarget={
+            typeof document !== "undefined" ? document.body : null
+          }
+          menuPosition="fixed"
           styles={{
             control: (base) => ({
               ...base,
               backgroundColor: disabled ? "#f3f4f6" : base.backgroundColor,
               cursor: disabled ? "not-allowed" : "default",
+            }),
+            menuPortal: (base) => ({
+              ...base,
+              zIndex: 9999,
             }),
           }}
           onChange={(selected) => {
