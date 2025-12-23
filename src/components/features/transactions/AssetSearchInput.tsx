@@ -10,6 +10,8 @@ export interface AssetOption {
   market?: string
   assetId?: string
   currency?: string
+  price?: number
+  priceDate?: string
 }
 
 interface AssetSearchInputProps {
@@ -108,10 +110,18 @@ export default function AssetSearchInput({
                 : null
           }
           isClearable
+          menuPortalTarget={
+            typeof document !== "undefined" ? document.body : null
+          }
+          menuPosition="fixed"
           styles={{
             control: (base) => ({
               ...base,
               minHeight: "38px",
+            }),
+            menuPortal: (base) => ({
+              ...base,
+              zIndex: 9999,
             }),
           }}
         />

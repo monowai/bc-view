@@ -95,7 +95,8 @@ function RetirementPlanning(): React.ReactElement {
       mutate() // Refresh the plans list
       router.push(`/retire/plans/${result.data.id}`)
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to import plan"
+      const message =
+        err instanceof Error ? err.message : "Failed to import plan"
       setImportError(message)
     } finally {
       cleanup()
