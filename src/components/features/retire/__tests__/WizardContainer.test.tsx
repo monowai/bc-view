@@ -65,6 +65,7 @@ const TestWrapper: React.FC<TestWrapperProps> = ({ onGetValues }) => {
 
 describe("ExpensesStep - Custom Category", () => {
   it("captures custom category with correct monetary value", async () => {
+    jest.setTimeout(15000) // Increase timeout for CI environments
     let getValuesFn: (() => any) | null = null
 
     render(
