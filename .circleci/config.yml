@@ -10,8 +10,34 @@ variables:
   container_registry: &container_registry "ghcr.io"
   container_org: &container_org "monowai"
 
-# Define reusable commands for better network resilience
+# Define reusable commands
 commands:
+  # Skip builds when only .github folder changes
+  skip-if-github-only:
+    description: "Skip build if only .github folder changed"
+    steps:
+      - run:
+          name: Check for skippable changes
+          command: |
+            # Get changed files in this commit
+            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "")
+
+            if [ -z "$CHANGED_FILES" ]; then
+              echo "Could not determine changed files, continuing build..."
+              exit 0
+            fi
+
+            # Check if ALL changed files are in .github/
+            NON_GITHUB_CHANGES=$(echo "$CHANGED_FILES" | grep -v "^\.github/" || true)
+
+            if [ -z "$NON_GITHUB_CHANGES" ]; then
+              echo "Only .github/ files changed, skipping build..."
+              circleci-agent step halt
+            else
+              echo "Non-.github changes detected, continuing build..."
+              echo "$NON_GITHUB_CHANGES"
+            fi
+
   install-dependencies:
     description: "Install dependencies with retry logic"
     steps:
@@ -72,6 +98,7 @@ jobs:
     resource_class: *resource_class
     steps:
       - checkout
+      - skip-if-github-only
       - restore_cache:
           keys:
             - v2-dependencies-{{ checksum "yarn.lock" }}
