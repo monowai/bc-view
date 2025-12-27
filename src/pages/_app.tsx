@@ -27,7 +27,7 @@ const AppContent: React.FC<AppContentProps> = ({
 
   return (
     <>
-      <div className="pt-0 p-3 sm:p-4 md:p-6 lg:p-8 bg-gray-100">
+      <div className="pt-2 px-2 pb-2 sm:pt-3 sm:px-3 sm:pb-3 md:px-4 md:pb-4 bg-gray-100">
         <Header />
         <Component {...pageProps} />
       </div>

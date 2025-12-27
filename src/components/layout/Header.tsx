@@ -19,7 +19,7 @@ export default function Header(): React.ReactElement {
           <span className="hidden xl:inline">Desktop</span>
         </div>
       )}
-      <nav className="flex flex-col sm:flex-row items-center justify-between p-3 bg-gray-800 text-white">
+      <nav className="flex flex-col sm:flex-row items-center justify-between px-2 py-2 sm:px-3 bg-gray-800 text-white">
         <div className="flex justify-between w-full sm:w-auto">
           <HeaderBrand />
           <div className="sm:hidden">
