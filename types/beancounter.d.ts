@@ -121,6 +121,7 @@ export interface MoneyValues {
   weight: number
   roi: number
   irr: number
+  weightedIrr: number
 }
 
 export interface QuantityValues {
@@ -315,6 +316,7 @@ export interface UserPreferences {
   defaultValueIn: ValueInOption
   defaultGroupBy: GroupByApiValue // Backend stores enum names
   baseCurrencyCode: string
+  showWeightedIrr: boolean
 }
 
 export interface UserPreferencesRequest {
@@ -323,6 +325,7 @@ export interface UserPreferencesRequest {
   defaultValueIn?: ValueInOption
   defaultGroupBy?: GroupByApiValue // Send enum names to backend
   baseCurrencyCode?: string
+  showWeightedIrr?: boolean
 }
 
 export interface RegistrationResponse {

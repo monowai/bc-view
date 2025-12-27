@@ -32,6 +32,7 @@ const defaultPreferences: UserPreferences = {
   defaultValueIn: VALUE_IN_OPTIONS.PORTFOLIO,
   defaultGroupBy: GROUP_BY_API_VALUES.ASSET_CLASS,
   baseCurrencyCode: "USD",
+  showWeightedIrr: true,
 }
 
 const UserPreferencesContext = createContext<UserPreferencesContextValue>({

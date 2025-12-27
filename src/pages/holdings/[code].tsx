@@ -21,6 +21,7 @@ import { holdingKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { errorOut } from "@components/errors/ErrorOut"
 import { useHoldingState } from "@lib/holdings/holdingState"
 import { useHoldingsView } from "@lib/holdings/useHoldingsView"
+import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import HoldingMenu from "@components/features/holdings/HoldingMenu"
 import HoldingsHeader from "@components/features/holdings/HoldingsHeader"
 import Rows, {
@@ -48,6 +49,7 @@ function HoldingsPage(): React.ReactElement {
   const router = useRouter()
   const { t, ready } = useTranslation("common")
   const holdingState = useHoldingState()
+  const { preferences } = useUserPreferences()
   const { data, error, isLoading } = useSwr(
     holdingKey(`${router.query.code}`, `${holdingState.asAt}`),
     simpleFetcher(holdingKey(`${router.query.code}`, `${holdingState.asAt}`)),
@@ -306,20 +308,27 @@ function HoldingsPage(): React.ReactElement {
           />
           <div className="overflow-x-auto overflow-y-visible">
             <table className="min-w-full bg-white">
-              {Object.keys(holdings.holdingGroups)
-                .sort(
-                  holdingState.groupBy.value === GroupBy.SECTOR
-                    ? compareBySector
-                    : compareByReportCategory,
-                )
-                .map((groupKey) => {
-                  return (
-                    <React.Fragment key={groupKey}>
-                      <Header
-                        groupKey={groupKey}
-                        sortConfig={sortConfig}
-                        onSort={handleSort}
-                      />
+              {(() => {
+                let cumulativeCount = 0
+                return Object.keys(holdings.holdingGroups)
+                  .sort(
+                    holdingState.groupBy.value === GroupBy.SECTOR
+                      ? compareBySector
+                      : compareByReportCategory,
+                  )
+                  .map((groupKey, index) => {
+                    const currentCumulative = cumulativeCount
+                    cumulativeCount +=
+                      holdings.holdingGroups[groupKey].positions.length
+                    return (
+                      <React.Fragment key={groupKey}>
+                        <Header
+                          groupKey={groupKey}
+                          sortConfig={sortConfig}
+                          onSort={handleSort}
+                          cumulativePositionCount={currentCumulative}
+                          isFirstGroup={index === 0}
+                        />
                       <Rows
                         portfolio={holdingResults.portfolio}
                         groupBy={groupKey}
@@ -340,10 +349,12 @@ function HoldingsPage(): React.ReactElement {
                         positionCount={
                           holdings.holdingGroups[groupKey].positions.length
                         }
+                        showWeightedIrr={preferences?.showWeightedIrr}
                       />
                     </React.Fragment>
-                  )
-                })}
+                    )
+                  })
+              })()}
               <GrandTotal
                 holdings={holdings}
                 valueIn={holdingState.valueIn.value}

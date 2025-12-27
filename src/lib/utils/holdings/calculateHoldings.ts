@@ -120,6 +120,7 @@ function zeroMoneyValues(currency: Currency, valueIn: ValueIn): MoneyValues {
     valueIn: valueIn,
     averageCost: 0,
     currency: currency,
+    weightedIrr: 0,
   }
 }
 
@@ -171,6 +172,39 @@ function addSubtotalPosition(
   return subTotals
 }
 
+/**
+ * Calculate weighted IRR for a group of positions.
+ * Formula: Σ(position_irr × position_market_value) / Σ(position_market_value)
+ * Cash positions are excluded as they don't have meaningful IRR.
+ */
+function calculateWeightedIrr(positions: Position[], valueIn: ValueIn): number {
+  let weightedSum = 0
+  let totalMarketValue = 0
+
+  for (const position of positions) {
+    // Skip cash-related positions
+    if (isCashRelated(position.asset)) {
+      continue
+    }
+
+    const marketValue = position.moneyValues[valueIn].marketValue
+    const irr = position.moneyValues[valueIn].irr
+
+    // Only include positions with positive market value and valid IRR
+    if (marketValue > 0 && isFinite(irr)) {
+      weightedSum += irr * marketValue
+      totalMarketValue += marketValue
+    }
+  }
+
+  // Return 0 if no valid positions to avoid division by zero
+  if (totalMarketValue === 0) {
+    return 0
+  }
+
+  return weightedSum / totalMarketValue
+}
+
 export function calculateHoldings(
   contract: HoldingContract,
   hideEmpty: boolean,
@@ -215,6 +249,15 @@ export function calculateHoldings(
   results.valueIn = valueIn
   results.currency = totalsCurrency
   results.totals = contract.totals[valueIn] ?? zeroTotal(totalsCurrency)
+
+  // Calculate weighted IRR for each holding group
+  Object.values(results.holdingGroups).forEach((group: HoldingGroup) => {
+    const weightedIrr = calculateWeightedIrr(group.positions, valueIn)
+    group.subTotals[ValueIn.PORTFOLIO].weightedIrr = weightedIrr
+    group.subTotals[ValueIn.BASE].weightedIrr = weightedIrr
+    group.subTotals[ValueIn.TRADE].weightedIrr = weightedIrr
+  })
+
   results.viewTotals = calculateSummaryTotals(results, valueIn)
   return results
 }
