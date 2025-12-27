@@ -10,9 +10,14 @@ import {
 } from "recharts"
 import { Holdings, MoneyValues } from "types/beancounter"
 import { FormatValue } from "@components/ui/MoneyUtils"
-import { AllocationSlice } from "@lib/allocation/aggregateHoldings"
-import { compareByReportCategory } from "@lib/categoryMapping"
+import {
+  AllocationSlice,
+  GroupingMode,
+} from "@lib/allocation/aggregateHoldings"
+import { compareByReportCategory, compareBySector } from "@lib/categoryMapping"
 import { useDisplayCurrencyConversion } from "@lib/hooks/useDisplayCurrencyConversion"
+import AllocationControls from "@components/features/allocation/AllocationControls"
+import { useHoldingState } from "@lib/holdings/holdingState"
 
 // Color palette for report categories
 const CATEGORY_COLORS: Record<string, string> = {
@@ -37,6 +42,8 @@ const FALLBACK_COLORS = [
 interface SummaryViewProps {
   holdings: Holdings
   allocationData: AllocationSlice[]
+  groupBy: GroupingMode
+  onGroupByChange: (mode: GroupingMode) => void
 }
 
 interface MetricCardProps {
@@ -129,10 +136,13 @@ const CustomBarTooltip: React.FC<CustomTooltipProps> = ({
 const SummaryView: React.FC<SummaryViewProps> = ({
   holdings,
   allocationData,
+  groupBy,
+  onGroupByChange,
 }) => {
   const [excludedCategories, setExcludedCategories] = useState<Set<string>>(
     new Set(),
   )
+  const holdingState = useHoldingState()
 
   // Source currency is always the trade currency (what the values are denominated in)
   const sourceCurrency = holdings.viewTotals?.currency || holdings.currency
@@ -164,10 +174,12 @@ const SummaryView: React.FC<SummaryViewProps> = ({
 
   // Filter allocation data and sort by predefined order
   const filteredAllocation = useMemo(() => {
+    const sorter =
+      groupBy === "sector" ? compareBySector : compareByReportCategory
     return allocationData
       .filter((slice) => !excludedCategories.has(slice.key))
-      .sort((a, b) => compareByReportCategory(a.key, b.key))
-  }, [allocationData, excludedCategories])
+      .sort((a, b) => sorter(a.key, b.key))
+  }, [allocationData, excludedCategories, groupBy])
 
   // Calculate filtered total (with FX conversion)
   const filteredTotal = useMemo(() => {
@@ -195,17 +207,24 @@ const SummaryView: React.FC<SummaryViewProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Currency indicator */}
-      {effectiveCurrencyCode && (
-        <div className="flex justify-end">
+      {/* Controls Row: GroupBy and Currency */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <AllocationControls
+          groupBy={groupBy}
+          onGroupByChange={onGroupByChange}
+          valueIn={holdingState.valueIn.value}
+          onValueInChange={() => {}}
+          hideValueIn={true}
+        />
+        {effectiveCurrencyCode && (
           <span className="text-sm text-gray-500">
             Currency:{" "}
             <span className="font-medium text-gray-700">
               {effectiveCurrencyCode}
             </span>
           </span>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Top Row: Key Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -314,7 +333,11 @@ const SummaryView: React.FC<SummaryViewProps> = ({
         <div className="flex flex-col space-y-2">
           <p className="text-xs text-gray-400 mb-1">Click to exclude/include</p>
           {[...allocationData]
-            .sort((a, b) => compareByReportCategory(a.key, b.key))
+            .sort((a, b) =>
+              (groupBy === "sector"
+                ? compareBySector
+                : compareByReportCategory)(a.key, b.key),
+            )
             .map((slice, index) => {
               const isExcluded = excludedCategories.has(slice.key)
               const convertedValue = convert(slice.value)

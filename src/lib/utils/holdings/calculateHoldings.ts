@@ -23,11 +23,16 @@ function getPath(path: string, position: Position): string {
 /**
  * Gets the group key for a position based on the groupBy option.
  * For ASSET_CLASS grouping, uses report categories with backward compatibility.
+ * For SECTOR grouping, uses sector classification with "Unclassified" as fallback.
  */
 function getGroupKey(groupBy: GroupBy, position: Position): string {
   if (groupBy === GroupBy.ASSET_CLASS) {
     // Use report categories for asset class grouping
     return getReportCategory(position.asset)
+  }
+  if (groupBy === GroupBy.SECTOR) {
+    // Use sector with fallback for unclassified assets
+    return position.asset.sector || "Unclassified"
   }
   return getPath(groupBy, position)
 }

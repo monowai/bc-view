@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useMemo } from "react"
+import React, { useState, useCallback, useRef, useMemo, useEffect } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
@@ -10,6 +10,17 @@ import { Asset, AssetCategory, CurrencyOption } from "types/beancounter"
 import { currencyOptions } from "@lib/currency"
 import { useRouter } from "next/router"
 import SetAccountBalancesDialog from "@components/features/accounts/SetAccountBalancesDialog"
+
+interface SectorInfo {
+  code: string
+  name: string
+  standard: string
+}
+
+interface SectorOption {
+  value: string
+  label: string
+}
 
 // Categories that can be used for user-owned custom assets
 const USER_ASSET_CATEGORIES = [
@@ -336,6 +347,12 @@ function AccountsPage(): React.ReactElement {
     categoriesKey,
     simpleFetcher(categoriesKey),
   )
+  const { data: sectorsData, isLoading: sectorsLoading } = useSwr<{
+    data: SectorInfo[]
+  }>(
+    "/api/classifications/sectors",
+    simpleFetcher("/api/classifications/sectors"),
+  )
 
   // Convert backend categories to select options, filtering to user asset types
   const categoryOptions = useMemo((): CategoryOption[] => {
@@ -347,6 +364,15 @@ function AccountsPage(): React.ReactElement {
         label: cat.name,
       }))
   }, [categoriesData?.data])
+
+  // Convert sectors to select options
+  const sectorOptions = useMemo((): SectorOption[] => {
+    if (!sectorsData?.data) return []
+    return sectorsData.data.map((sector: SectorInfo) => ({
+      value: sector.name,
+      label: sector.name,
+    }))
+  }, [sectorsData?.data])
 
   const [editData, setEditData] = useState<EditAccountData | undefined>(
     undefined,
@@ -385,6 +411,7 @@ function AccountsPage(): React.ReactElement {
       name: string,
       currency: string,
       category: string,
+      sector?: string,
     ) => {
       const response = await fetch(`/api/assets/${assetId}`, {
         method: "PATCH",
@@ -401,6 +428,18 @@ function AccountsPage(): React.ReactElement {
         const error = new Error("Failed to update asset")
         console.error("Error updating asset:", error)
         throw error
+      }
+      // Update sector classification if provided
+      if (sector) {
+        try {
+          await fetch(`/api/classifications/${assetId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sector }),
+          })
+        } catch (err) {
+          console.error("Failed to update sector classification:", err)
+        }
       }
       // Refresh the assets list
       await mutate("/api/assets")
@@ -510,7 +549,13 @@ function AccountsPage(): React.ReactElement {
     [categoryOptions, t],
   )
 
-  if (!ready || isLoading || ccyLoading || categoriesLoading) {
+  if (
+    !ready ||
+    isLoading ||
+    ccyLoading ||
+    categoriesLoading ||
+    sectorsLoading
+  ) {
     return rootLoader(t("loading"))
   }
 
@@ -597,6 +642,7 @@ function AccountsPage(): React.ReactElement {
           asset={editData.asset}
           currencies={ccyOptions}
           categories={categoryOptions}
+          sectors={sectorOptions}
           onClose={handleEditClose}
           onSave={handleEditSave}
         />
@@ -644,6 +690,7 @@ interface EditAccountDialogProps {
   asset: Asset
   currencies: CurrencyOption[]
   categories: CategoryOption[]
+  sectors: SectorOption[]
   onClose: () => void
   onSave: (
     assetId: string,
@@ -651,6 +698,7 @@ interface EditAccountDialogProps {
     name: string,
     currency: string,
     category: string,
+    sector?: string,
   ) => Promise<void>
 }
 
@@ -658,6 +706,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
   asset,
   currencies,
   categories,
+  sectors,
   onClose,
   onSave,
 }) => {
@@ -668,14 +717,45 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
     asset.priceSymbol || asset.market?.currency?.code || "USD",
   )
   const [category, setCategory] = useState(asset.assetCategory?.id || "ACCOUNT")
+  const [sector, setSector] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Fetch current sector classification on mount
+  useEffect(() => {
+    async function fetchCurrentSector(): Promise<void> {
+      try {
+        const response = await fetch(`/api/classifications/${asset.id}`)
+        if (response.ok) {
+          const data = await response.json()
+          // Response is { data: [{ level: "SECTOR", item: { name: "..." }, ... }] }
+          const classifications = data.data || []
+          const sectorClassification = classifications.find(
+            (c: { level: string }) => c.level === "SECTOR",
+          )
+          if (sectorClassification?.item?.name) {
+            setSector(sectorClassification.item.name)
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch sector:", err)
+      }
+    }
+    fetchCurrentSector()
+  }, [asset.id])
 
   const handleSave = async (): Promise<void> => {
     setIsSubmitting(true)
     setError(null)
     try {
-      await onSave(asset.id, code, name, currency, category)
+      await onSave(
+        asset.id,
+        code,
+        name,
+        currency,
+        category,
+        sector || undefined,
+      )
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save")
     } finally {
@@ -761,6 +841,29 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
               ))}
             </select>
           </div>
+
+          {/* Only show sector for MUTUAL FUND category */}
+          {category === "MUTUAL FUND" && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t("account.sector", "Sector")}
+              </label>
+              <select
+                value={sector}
+                onChange={(e) => setSector(e.target.value)}
+                className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="">
+                  {t("account.sector.hint", "Select sector (optional)")}
+                </option>
+                {sectors.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm">

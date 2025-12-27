@@ -12,7 +12,8 @@ export default handleAuth({
       await handleLogin(req, res, {
         authorizationParams: {
           scope:
-            "openid profile email offline_access beancounter beancounter:user",
+            "openid profile email offline_access " +
+            "beancounter beancounter:user beancounter:admin",
           // Add additional security parameters
           prompt: "login", // Force re-authentication for sensitive apps
         },

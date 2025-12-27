@@ -24,7 +24,9 @@ import ViewToggle from "@components/features/holdings/ViewToggle"
 import SummaryView from "@components/features/holdings/SummaryView"
 import AllocationChart from "@components/features/allocation/AllocationChart"
 import AllocationControls from "@components/features/allocation/AllocationControls"
-import { compareByReportCategory } from "@lib/categoryMapping"
+import { compareByReportCategory, compareBySector } from "@lib/categoryMapping"
+import { GroupBy } from "@components/features/holdings/GroupByOptions"
+import { GroupByControls } from "@components/features/holdings/GroupByControls"
 import CopyPopup from "@components/ui/CopyPopup"
 
 function AggregatedHoldingsPage(): React.ReactElement {
@@ -147,7 +149,12 @@ function AggregatedHoldingsPage(): React.ReactElement {
         </div>
 
         {viewMode === "summary" ? (
-          <SummaryView holdings={holdings} allocationData={allocationData} />
+          <SummaryView
+            holdings={holdings}
+            allocationData={allocationData}
+            groupBy={allocationGroupBy}
+            onGroupByChange={setAllocationGroupBy}
+          />
         ) : viewMode === "table" ? (
           <div className="grid grid-cols-1 gap-3">
             <HoldingsHeader
@@ -157,10 +164,15 @@ function AggregatedHoldingsPage(): React.ReactElement {
               onViewModeChange={setViewMode}
               isAggregated={true}
             />
+            <GroupByControls />
             <div className="overflow-x-auto overflow-y-visible">
               <table className="min-w-full bg-white">
                 {Object.keys(holdings.holdingGroups)
-                  .sort(compareByReportCategory)
+                  .sort(
+                    holdingState.groupBy.value === GroupBy.SECTOR
+                      ? compareBySector
+                      : compareByReportCategory,
+                  )
                   .map((groupKey) => {
                     return (
                       <React.Fragment key={groupKey}>
@@ -200,6 +212,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
               onViewModeChange={setViewMode}
               isAggregated={true}
             />
+            <GroupByControls />
             <PerformanceHeatmap
               holdingGroups={holdings.holdingGroups}
               valueIn={holdingState.valueIn.value}

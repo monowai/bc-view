@@ -92,3 +92,18 @@ export function compareByReportCategory(a: string, b: string): number {
 
   return effectiveIndexA - effectiveIndexB
 }
+
+/**
+ * Comparator function for sorting by sector.
+ * Ordering: Classified sectors (alphabetically) → Unclassified → Cash (always last)
+ */
+export function compareBySector(a: string, b: string): number {
+  // Cash is always last
+  if (a === "Cash") return 1
+  if (b === "Cash") return -1
+  // Unclassified comes before Cash but after everything else
+  if (a === "Unclassified") return 1
+  if (b === "Unclassified") return -1
+  // Everything else alphabetically
+  return a.localeCompare(b)
+}

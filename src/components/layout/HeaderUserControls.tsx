@@ -54,6 +54,13 @@ export default function HeaderUserControls(): React.ReactElement {
           >
             {t("settings.title")}
           </Link>
+          <Link
+            href="/admin/classifications"
+            className="block px-4 py-2 hover:bg-gray-100"
+            onClick={() => setDropdownOpen(false)}
+          >
+            {t("classifications.title")}
+          </Link>
           <hr className="border-gray-200" />
           <Link
             href="/api/auth/logout"

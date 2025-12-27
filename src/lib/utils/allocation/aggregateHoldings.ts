@@ -2,7 +2,7 @@ import { HoldingContract, Position } from "types/beancounter"
 import { ValueIn } from "@components/features/holdings/GroupByOptions"
 import { getReportCategory } from "../categoryMapping"
 
-export type GroupingMode = "category" | "asset" | "market"
+export type GroupingMode = "category" | "asset" | "market" | "sector"
 
 export interface AllocationSlice {
   [key: string]: string | number // Index signature for Recharts compatibility
@@ -50,6 +50,13 @@ function getGroupKey(
       return {
         key: reportCategory,
         label: reportCategory,
+      }
+    }
+    case "sector": {
+      const sector = position.asset.sector || "Unclassified"
+      return {
+        key: sector,
+        label: sector,
       }
     }
     case "asset":

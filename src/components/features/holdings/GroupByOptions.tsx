@@ -8,6 +8,7 @@ export enum GroupBy {
   MARKET_CURRENCY = "asset.market.currency.code",
   MARKET = "asset.market.code",
   ASSET_CLASS = "asset.assetCategory.name",
+  SECTOR = "asset.sector",
 }
 
 export enum ValueIn {
@@ -23,6 +24,10 @@ export function useGroupOptions(): GroupOptions {
       {
         value: GroupBy.ASSET_CLASS,
         label: t("by.class"),
+      },
+      {
+        value: GroupBy.SECTOR,
+        label: t("by.sector"),
       },
       {
         value: GroupBy.MARKET_CURRENCY,
