@@ -19,9 +19,9 @@ describe("GrandTotal Column Positioning Tests", () => {
       // Verify data using constants (accounting for new data array structure)
       // New order: Change, GainOnDay, Quantity, Cost, MarketValue, Weight, Dividends, UnrealisedGain, RealisedGain, IRR, Alpha, TotalGain
       expect(dataCells[1]).toHaveTextContent("72.76") // HEADER_INDICES.GAIN_ON_DAY - gainOnDay value
-      expect(dataCells[2]).toHaveAttribute("colSpan", "1") // HEADER_INDICES.QUANTITY - costValue in quantity column
-      expect(dataCells[2].textContent).toMatch(/8,?150\.65/) // costValue
-      expect(dataCells[3]).toHaveTextContent("") // HEADER_INDICES.COST - empty cost column
+      expect(dataCells[2]).toHaveAttribute("colSpan", "1") // HEADER_INDICES.QUANTITY - empty (no total for quantity)
+      expect(dataCells[2]).toHaveTextContent("") // empty quantity column
+      expect(dataCells[3].textContent).toMatch(/8,?150\.65/) // HEADER_INDICES.COST - costValue
       expect(dataCells[4].textContent).toMatch(/12,?643\.74/) // HEADER_INDICES.MARKET_VALUE - marketValue
       expect(dataCells[5]).toHaveTextContent("100.00%") // HEADER_INDICES.WEIGHT - weight with % (moved between value and income)
       expect(dataCells[6].textContent).toMatch(/299\.02/) // HEADER_INDICES.DIVIDENDS - dividends

@@ -3,18 +3,40 @@ import { useHoldingState } from "@lib/holdings/holdingState"
 import { GroupOption, GroupOptions } from "types/app"
 import { useTranslation } from "next-i18next"
 import { rootLoader } from "@components/ui/PageLoader"
+import { GroupingMode } from "@lib/allocation/aggregateHoldings"
+import {
+  GROUP_BY_OPTIONS,
+  type GroupByOption as GroupByOptionType,
+  VALUE_IN_OPTIONS,
+  type ValueInOption as ValueInOptionType,
+} from "types/constants"
 
-export enum GroupBy {
-  MARKET_CURRENCY = "asset.market.currency.code",
-  MARKET = "asset.market.code",
-  ASSET_CLASS = "asset.assetCategory.name",
-  SECTOR = "asset.sector",
-}
+// Re-export for backward compatibility
+export const GroupBy = GROUP_BY_OPTIONS
+export type GroupBy = GroupByOptionType
 
-export enum ValueIn {
-  PORTFOLIO = "PORTFOLIO",
-  BASE = "BASE",
-  TRADE = "TRADE",
+// Re-export ValueIn for backward compatibility
+export const ValueIn = VALUE_IN_OPTIONS
+export type ValueIn = ValueInOptionType
+
+/**
+ * Maps table GroupBy to allocation chart GroupingMode.
+ * Used to synchronize grouping between table/heatmap and allocation views.
+ */
+export function toAllocationGroupBy(
+  groupBy: GroupByOptionType | string,
+): GroupingMode {
+  switch (groupBy) {
+    case GROUP_BY_OPTIONS.ASSET_CLASS:
+      return "category"
+    case GROUP_BY_OPTIONS.SECTOR:
+      return "sector"
+    case GROUP_BY_OPTIONS.MARKET:
+    case GROUP_BY_OPTIONS.MARKET_CURRENCY:
+      return "market"
+    default:
+      return "category"
+  }
 }
 
 export function useGroupOptions(): GroupOptions {
@@ -22,24 +44,24 @@ export function useGroupOptions(): GroupOptions {
   return {
     values: [
       {
-        value: GroupBy.ASSET_CLASS,
+        value: GROUP_BY_OPTIONS.ASSET_CLASS,
         label: t("by.class"),
       },
       {
-        value: GroupBy.SECTOR,
+        value: GROUP_BY_OPTIONS.SECTOR,
         label: t("by.sector"),
       },
       {
-        value: GroupBy.MARKET_CURRENCY,
+        value: GROUP_BY_OPTIONS.MARKET_CURRENCY,
         label: t("by.currency"),
       },
       {
-        value: GroupBy.MARKET,
+        value: GROUP_BY_OPTIONS.MARKET,
         label: t("by.market"),
       },
     ],
     groupDefault: {
-      value: GroupBy.ASSET_CLASS,
+      value: GROUP_BY_OPTIONS.ASSET_CLASS,
       label: t("by.class"),
     },
   }

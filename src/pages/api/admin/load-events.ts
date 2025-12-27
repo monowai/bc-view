@@ -25,7 +25,7 @@ export default withApiAuthRequired(async function loadEventsHandler(
     const fromDate =
       (query.fromDate as string) || thirtyDaysAgo.toISOString().split("T")[0]
 
-    const url = getEventUrl(`/events/load/${fromDate}`)
+    const url = getEventUrl(`/load/${fromDate}`)
 
     const { accessToken } = await getAccessToken(req, res)
     const response = await fetch(url, requestInit(accessToken, "POST"))

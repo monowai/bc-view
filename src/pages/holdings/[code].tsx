@@ -33,13 +33,11 @@ import Header from "@components/features/holdings/Header"
 import GrandTotal from "@components/features/holdings/GrandTotal"
 import HoldingActions from "@components/features/holdings/HoldingActions"
 import PerformanceHeatmap from "@components/ui/PerformanceHeatmap"
-import ViewToggle from "@components/features/holdings/ViewToggle"
 import SummaryView from "@components/features/holdings/SummaryView"
 import AllocationChart from "@components/features/allocation/AllocationChart"
-import AllocationControls from "@components/features/allocation/AllocationControls"
 import { compareByReportCategory, compareBySector } from "@lib/categoryMapping"
 import { GroupBy } from "@components/features/holdings/GroupByOptions"
-import { GroupByControls } from "@components/features/holdings/GroupByControls"
+import HoldingsToolbar from "@components/features/holdings/HoldingsToolbar"
 import CorporateActionsPopup from "@components/features/holdings/CorporateActionsPopup"
 import TargetWeightDialog from "@components/features/holdings/TargetWeightDialog"
 import SetCashBalanceDialog from "@components/features/holdings/SetCashBalanceDialog"
@@ -61,7 +59,6 @@ function HoldingsPage(): React.ReactElement {
     setViewMode,
     sortConfig,
     allocationGroupBy,
-    setAllocationGroupBy,
     excludedCategories,
     handleSort,
     handleToggleCategory,
@@ -270,7 +267,9 @@ function HoldingsPage(): React.ReactElement {
   return (
     <div className="w-full py-4">
       <HoldingMenu portfolio={holdingResults.portfolio} />
-      <div className="mobile-portrait:hidden flex justify-between items-center mb-4">
+
+      {/* Actions bar - visible on tablet/desktop */}
+      <div className="mobile-portrait:hidden mb-4">
         <HoldingActions
           holdingResults={holdingResults}
           columns={columns}
@@ -278,14 +277,11 @@ function HoldingsPage(): React.ReactElement {
           quickSellData={quickSellData}
           onQuickSellHandled={handleQuickSellHandled}
         />
-        {/* Desktop view toggle - hidden on mobile/tablet */}
-        <div className="hidden xl:block">
-          <ViewToggle viewMode={viewMode} onViewModeChange={setViewMode} />
-        </div>
       </div>
 
       {viewMode === "summary" ? (
         <div className="grid grid-cols-1 gap-3">
+          <HoldingsToolbar viewMode={viewMode} onViewModeChange={setViewMode} />
           <HoldingsHeader
             portfolio={holdingResults.portfolio}
             holdings={holdings}
@@ -297,18 +293,17 @@ function HoldingsPage(): React.ReactElement {
             holdings={holdings}
             allocationData={allocationData}
             groupBy={allocationGroupBy}
-            onGroupByChange={setAllocationGroupBy}
           />
         </div>
       ) : viewMode === "table" ? (
         <div className="grid grid-cols-1 gap-3">
+          <HoldingsToolbar viewMode={viewMode} onViewModeChange={setViewMode} />
           <HoldingsHeader
             portfolio={holdingResults.portfolio}
             holdings={holdings}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
           />
-          <GroupByControls />
           <div className="overflow-x-auto overflow-y-visible">
             <table className="min-w-full bg-white">
               {Object.keys(holdings.holdingGroups)
@@ -342,6 +337,9 @@ function HoldingsPage(): React.ReactElement {
                         groupBy={groupKey}
                         subTotals={holdings.holdingGroups[groupKey].subTotals}
                         valueIn={holdingState.valueIn.value}
+                        positionCount={
+                          holdings.holdingGroups[groupKey].positions.length
+                        }
                       />
                     </React.Fragment>
                   )
@@ -355,13 +353,13 @@ function HoldingsPage(): React.ReactElement {
         </div>
       ) : viewMode === "heatmap" ? (
         <div className="grid grid-cols-1 gap-3">
+          <HoldingsToolbar viewMode={viewMode} onViewModeChange={setViewMode} />
           <HoldingsHeader
             portfolio={holdingResults.portfolio}
             holdings={holdings}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
           />
-          <GroupByControls />
           <PerformanceHeatmap
             holdingGroups={holdings.holdingGroups}
             valueIn={holdingState.valueIn.value}
@@ -369,6 +367,7 @@ function HoldingsPage(): React.ReactElement {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3">
+          <HoldingsToolbar viewMode={viewMode} onViewModeChange={setViewMode} />
           <HoldingsHeader
             portfolio={holdingResults.portfolio}
             holdings={holdings}
@@ -376,13 +375,6 @@ function HoldingsPage(): React.ReactElement {
             onViewModeChange={setViewMode}
           />
           <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6">
-            <AllocationControls
-              groupBy={allocationGroupBy}
-              onGroupByChange={setAllocationGroupBy}
-              valueIn={holdingState.valueIn.value}
-              onValueInChange={() => {}}
-              hideValueIn={true}
-            />
             <AllocationChart
               data={allocationData}
               totalValue={allocationTotalValue}

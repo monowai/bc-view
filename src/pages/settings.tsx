@@ -7,16 +7,41 @@ import { rootLoader } from "@components/ui/PageLoader"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import {
   Currency,
+  GroupByApiValue,
   HoldingsView,
   RegistrationResponse,
   UserPreferencesRequest,
 } from "types/beancounter"
+import {
+  GROUP_BY_API_VALUES,
+  VALUE_IN_OPTIONS,
+  ValueInOption,
+} from "types/constants"
 
-const HOLDINGS_VIEW_OPTIONS: { value: HoldingsView; labelKey: string }[] = [
+const HOLDINGS_VIEW_UI_OPTIONS: { value: HoldingsView; labelKey: string }[] = [
   { value: "SUMMARY", labelKey: "settings.holdingsView.summary" },
   { value: "TABLE", labelKey: "settings.holdingsView.table" },
   { value: "HEATMAP", labelKey: "settings.holdingsView.heatmap" },
   { value: "ALLOCATION", labelKey: "settings.holdingsView.allocation" },
+]
+
+const VALUE_IN_UI_OPTIONS: { value: ValueInOption; labelKey: string }[] = [
+  { value: VALUE_IN_OPTIONS.PORTFOLIO, labelKey: "settings.valueIn.portfolio" },
+  { value: VALUE_IN_OPTIONS.BASE, labelKey: "settings.valueIn.base" },
+  { value: VALUE_IN_OPTIONS.TRADE, labelKey: "settings.valueIn.trade" },
+]
+
+const GROUP_BY_UI_OPTIONS: { value: GroupByApiValue; labelKey: string }[] = [
+  {
+    value: GROUP_BY_API_VALUES.ASSET_CLASS,
+    labelKey: "settings.groupBy.class",
+  },
+  { value: GROUP_BY_API_VALUES.SECTOR, labelKey: "settings.groupBy.sector" },
+  {
+    value: GROUP_BY_API_VALUES.MARKET_CURRENCY,
+    labelKey: "settings.groupBy.currency",
+  },
+  { value: GROUP_BY_API_VALUES.MARKET, labelKey: "settings.groupBy.market" },
 ]
 
 function SettingsPage(): React.ReactElement {
@@ -31,6 +56,12 @@ function SettingsPage(): React.ReactElement {
   const [preferredName, setPreferredName] = useState<string>("")
   const [defaultHoldingsView, setDefaultHoldingsView] =
     useState<HoldingsView>("SUMMARY")
+  const [defaultValueIn, setDefaultValueIn] = useState<ValueInOption>(
+    VALUE_IN_OPTIONS.PORTFOLIO,
+  )
+  const [defaultGroupBy, setDefaultGroupBy] = useState<GroupByApiValue>(
+    GROUP_BY_API_VALUES.ASSET_CLASS,
+  )
   const [baseCurrencyCode, setBaseCurrencyCode] = useState<string>("USD")
 
   // Fetch current preferences and currencies
@@ -47,6 +78,13 @@ function SettingsPage(): React.ReactElement {
           if (meData.preferences) {
             setPreferredName(meData.preferences.preferredName || "")
             setDefaultHoldingsView(meData.preferences.defaultHoldingsView)
+            setDefaultValueIn(
+              meData.preferences.defaultValueIn || VALUE_IN_OPTIONS.PORTFOLIO,
+            )
+            setDefaultGroupBy(
+              meData.preferences.defaultGroupBy ||
+                GROUP_BY_API_VALUES.ASSET_CLASS,
+            )
             setBaseCurrencyCode(meData.preferences.baseCurrencyCode)
           }
         }
@@ -77,6 +115,8 @@ function SettingsPage(): React.ReactElement {
       const request: UserPreferencesRequest = {
         preferredName: preferredName || undefined,
         defaultHoldingsView,
+        defaultValueIn,
+        defaultGroupBy,
         baseCurrencyCode,
       }
 
@@ -154,7 +194,7 @@ function SettingsPage(): React.ReactElement {
                 }
                 className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-500 focus:border-blue-500"
               >
-                {HOLDINGS_VIEW_OPTIONS.map((option) => (
+                {HOLDINGS_VIEW_UI_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
                     {t(option.labelKey)}
                   </option>
@@ -162,6 +202,60 @@ function SettingsPage(): React.ReactElement {
               </select>
               <p className="mt-1 text-sm text-gray-500">
                 {t("settings.defaultHoldingsView.description")}
+              </p>
+            </div>
+
+            {/* Default Value In */}
+            <div>
+              <label
+                htmlFor="valueIn"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                {t("settings.defaultValueIn")}
+              </label>
+              <select
+                id="valueIn"
+                value={defaultValueIn}
+                onChange={(e) =>
+                  setDefaultValueIn(e.target.value as ValueInOption)
+                }
+                className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-500 focus:border-blue-500"
+              >
+                {VALUE_IN_UI_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {t(option.labelKey)}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-sm text-gray-500">
+                {t("settings.defaultValueIn.description")}
+              </p>
+            </div>
+
+            {/* Default Group By */}
+            <div>
+              <label
+                htmlFor="groupBy"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                {t("settings.defaultGroupBy")}
+              </label>
+              <select
+                id="groupBy"
+                value={defaultGroupBy}
+                onChange={(e) =>
+                  setDefaultGroupBy(e.target.value as GroupByApiValue)
+                }
+                className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-500 focus:border-blue-500"
+              >
+                {GROUP_BY_UI_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {t(option.labelKey)}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-sm text-gray-500">
+                {t("settings.defaultGroupBy.description")}
               </p>
             </div>
 

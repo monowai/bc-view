@@ -16,8 +16,6 @@ import {
 } from "@lib/allocation/aggregateHoldings"
 import { compareByReportCategory, compareBySector } from "@lib/categoryMapping"
 import { useDisplayCurrencyConversion } from "@lib/hooks/useDisplayCurrencyConversion"
-import AllocationControls from "@components/features/allocation/AllocationControls"
-import { useHoldingState } from "@lib/holdings/holdingState"
 
 // Color palette for report categories
 const CATEGORY_COLORS: Record<string, string> = {
@@ -43,7 +41,6 @@ interface SummaryViewProps {
   holdings: Holdings
   allocationData: AllocationSlice[]
   groupBy: GroupingMode
-  onGroupByChange: (mode: GroupingMode) => void
 }
 
 interface MetricCardProps {
@@ -137,12 +134,10 @@ const SummaryView: React.FC<SummaryViewProps> = ({
   holdings,
   allocationData,
   groupBy,
-  onGroupByChange,
 }) => {
   const [excludedCategories, setExcludedCategories] = useState<Set<string>>(
     new Set(),
   )
-  const holdingState = useHoldingState()
 
   // Source currency is always the trade currency (what the values are denominated in)
   const sourceCurrency = holdings.viewTotals?.currency || holdings.currency
@@ -207,24 +202,17 @@ const SummaryView: React.FC<SummaryViewProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Controls Row: GroupBy and Currency */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <AllocationControls
-          groupBy={groupBy}
-          onGroupByChange={onGroupByChange}
-          valueIn={holdingState.valueIn.value}
-          onValueInChange={() => {}}
-          hideValueIn={true}
-        />
-        {effectiveCurrencyCode && (
+      {/* Currency indicator */}
+      {effectiveCurrencyCode && (
+        <div className="flex justify-end">
           <span className="text-sm text-gray-500">
             Currency:{" "}
             <span className="font-medium text-gray-700">
               {effectiveCurrencyCode}
             </span>
           </span>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Top Row: Key Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

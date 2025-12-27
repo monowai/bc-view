@@ -3,6 +3,10 @@ import { GroupedSubtotals } from "types/beancounter"
 import { FormatValue } from "@components/ui/MoneyUtils"
 import { headers } from "./Header"
 
+interface SubTotalProps extends GroupedSubtotals {
+  positionCount: number
+}
+
 // Helper function to generate responsive classes for table cells
 const getCellClasses = (headerIndex: number): string => {
   const header = headers[headerIndex]
@@ -28,7 +32,12 @@ export default function SubTotal({
   groupBy,
   subTotals,
   valueIn,
-}: GroupedSubtotals): ReactElement {
+  positionCount,
+}: SubTotalProps): ReactElement | null {
+  // Skip subtotal when there's only 1 position - it would duplicate the row values
+  if (positionCount <= 1) {
+    return null
+  }
   // Define data array that matches the header structure
   const gainOnDay = subTotals[valueIn].gainOnDay
   const gainOnDayElement = (

@@ -291,16 +291,37 @@ interface Registration {
 
 export type HoldingsView = "SUMMARY" | "TABLE" | "HEATMAP" | "ALLOCATION"
 
+// Type aliases for UserPreferences - runtime values defined in types/constants.ts
+export type ValueInOption = "PORTFOLIO" | "BASE" | "TRADE"
+
+// Backend GroupBy API values (enum names as persisted in the database)
+export type GroupByApiValue =
+  | "ASSET_CLASS"
+  | "SECTOR"
+  | "MARKET_CURRENCY"
+  | "MARKET"
+
+// Frontend GroupBy property paths (used for client-side grouping)
+export type GroupByOption =
+  | "asset.assetCategory.name"
+  | "asset.sector"
+  | "asset.market.currency.code"
+  | "asset.market.code"
+
 export interface UserPreferences {
   id: string
   preferredName?: string
   defaultHoldingsView: HoldingsView
+  defaultValueIn: ValueInOption
+  defaultGroupBy: GroupByApiValue // Backend stores enum names
   baseCurrencyCode: string
 }
 
 export interface UserPreferencesRequest {
   preferredName?: string
   defaultHoldingsView?: HoldingsView
+  defaultValueIn?: ValueInOption
+  defaultGroupBy?: GroupByApiValue // Send enum names to backend
   baseCurrencyCode?: string
 }
 

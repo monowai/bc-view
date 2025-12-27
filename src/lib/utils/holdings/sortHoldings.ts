@@ -1,4 +1,5 @@
-import { HoldingGroup } from "types/beancounter"
+import { HoldingGroup, Position } from "types/beancounter"
+import { isCashRelated } from "@lib/assets/assetUtils"
 
 export type SortConfig = {
   key: string | null
@@ -42,6 +43,19 @@ function getValueForSorting(
   }
 }
 
+/**
+ * Compare two positions, ensuring cash-related positions come last.
+ * Returns negative if a should come before b, positive if after.
+ */
+function compareCashLast(a: Position, b: Position): number {
+  const aIsCash = isCashRelated(a.asset)
+  const bIsCash = isCashRelated(b.asset)
+
+  if (aIsCash && !bIsCash) return 1 // a is cash, b is not -> a comes after
+  if (!aIsCash && bIsCash) return -1 // a is not cash, b is -> a comes before
+  return 0 // both same type, no preference
+}
+
 export function sortPositions(
   holdingGroup: HoldingGroup,
   sortConfig: SortConfig,
@@ -50,6 +64,11 @@ export function sortPositions(
   if (!sortConfig.key) return holdingGroup
 
   const sortedPositions = [...holdingGroup.positions].sort((a, b) => {
+    // First, separate cash from non-cash (cash always comes last)
+    const cashComparison = compareCashLast(a, b)
+    if (cashComparison !== 0) return cashComparison
+
+    // Then sort by the selected key
     const aValue = getValueForSorting(a, sortConfig.key!, valueIn)
     const bValue = getValueForSorting(b, sortConfig.key!, valueIn)
 

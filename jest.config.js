@@ -21,6 +21,7 @@ const customJestConfig = {
     "^@constants/(.*)$": "<rootDir>/src/constants/$1",
     "^@providers/(.*)$": "<rootDir>/src/providers/$1",
     "^@types/(.*)$": "<rootDir>/types/$1",
+    "^types/(.*)$": "<rootDir>/types/$1",
   },
   testEnvironment: "jest-environment-jsdom",
   testPathIgnorePatterns: [
