@@ -20,13 +20,11 @@ import SubTotal from "@components/features/holdings/SubTotal"
 import Header from "@components/features/holdings/Header"
 import GrandTotal from "@components/features/holdings/GrandTotal"
 import PerformanceHeatmap from "@components/ui/PerformanceHeatmap"
-import ViewToggle from "@components/features/holdings/ViewToggle"
 import SummaryView from "@components/features/holdings/SummaryView"
 import AllocationChart from "@components/features/allocation/AllocationChart"
-import AllocationControls from "@components/features/allocation/AllocationControls"
 import { compareByReportCategory, compareBySector } from "@lib/categoryMapping"
 import { GroupBy } from "@components/features/holdings/GroupByOptions"
-import { GroupByControls } from "@components/features/holdings/GroupByControls"
+import HoldingsToolbar from "@components/features/holdings/HoldingsToolbar"
 import CopyPopup from "@components/ui/CopyPopup"
 
 function AggregatedHoldingsPage(): React.ReactElement {
@@ -54,7 +52,6 @@ function AggregatedHoldingsPage(): React.ReactElement {
     setViewMode,
     sortConfig,
     allocationGroupBy,
-    setAllocationGroupBy,
     excludedCategories,
     handleSort,
     handleToggleCategory,
@@ -132,31 +129,35 @@ function AggregatedHoldingsPage(): React.ReactElement {
           </h1>
           <p className="text-sm text-gray-600 mt-1">{subtitle}</p>
         </div>
-        <div className="mobile-portrait:hidden flex justify-between items-center mb-4">
-          <div className="flex py-2 space-x-2">
-            <button
-              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center"
-              onClick={() => setCopyModalOpen(true)}
-            >
-              <i className="fas fa-copy mr-2"></i>
-              Copy Data
-            </button>
-          </div>
-          {/* Desktop view toggle - hidden on mobile/tablet */}
-          <div className="hidden xl:block">
-            <ViewToggle viewMode={viewMode} onViewModeChange={setViewMode} />
-          </div>
+        {/* Actions row - visible on tablet/desktop */}
+        <div className="mobile-portrait:hidden flex py-2 space-x-2 mb-4">
+          <button
+            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center"
+            onClick={() => setCopyModalOpen(true)}
+          >
+            <i className="fas fa-copy mr-2"></i>
+            Copy Data
+          </button>
         </div>
 
         {viewMode === "summary" ? (
-          <SummaryView
-            holdings={holdings}
-            allocationData={allocationData}
-            groupBy={allocationGroupBy}
-            onGroupByChange={setAllocationGroupBy}
-          />
+          <div className="grid grid-cols-1 gap-3">
+            <HoldingsToolbar
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+            />
+            <SummaryView
+              holdings={holdings}
+              allocationData={allocationData}
+              groupBy={allocationGroupBy}
+            />
+          </div>
         ) : viewMode === "table" ? (
           <div className="grid grid-cols-1 gap-3">
+            <HoldingsToolbar
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+            />
             <HoldingsHeader
               portfolio={holdingResults.portfolio}
               holdings={holdings}
@@ -164,7 +165,6 @@ function AggregatedHoldingsPage(): React.ReactElement {
               onViewModeChange={setViewMode}
               isAggregated={true}
             />
-            <GroupByControls />
             <div className="overflow-x-auto overflow-y-visible">
               <table className="min-w-full bg-white">
                 {Object.keys(holdings.holdingGroups)
@@ -192,6 +192,9 @@ function AggregatedHoldingsPage(): React.ReactElement {
                           groupBy={groupKey}
                           subTotals={holdings.holdingGroups[groupKey].subTotals}
                           valueIn={holdingState.valueIn.value}
+                          positionCount={
+                            holdings.holdingGroups[groupKey].positions.length
+                          }
                         />
                       </React.Fragment>
                     )
@@ -205,6 +208,10 @@ function AggregatedHoldingsPage(): React.ReactElement {
           </div>
         ) : viewMode === "heatmap" ? (
           <div className="grid grid-cols-1 gap-3">
+            <HoldingsToolbar
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+            />
             <HoldingsHeader
               portfolio={holdingResults.portfolio}
               holdings={holdings}
@@ -212,7 +219,6 @@ function AggregatedHoldingsPage(): React.ReactElement {
               onViewModeChange={setViewMode}
               isAggregated={true}
             />
-            <GroupByControls />
             <PerformanceHeatmap
               holdingGroups={holdings.holdingGroups}
               valueIn={holdingState.valueIn.value}
@@ -220,6 +226,10 @@ function AggregatedHoldingsPage(): React.ReactElement {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3">
+            <HoldingsToolbar
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+            />
             <HoldingsHeader
               portfolio={holdingResults.portfolio}
               holdings={holdings}
@@ -228,13 +238,6 @@ function AggregatedHoldingsPage(): React.ReactElement {
               isAggregated={true}
             />
             <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6">
-              <AllocationControls
-                groupBy={allocationGroupBy}
-                onGroupByChange={setAllocationGroupBy}
-                valueIn={holdingState.valueIn.value}
-                onValueInChange={() => {}}
-                hideValueIn={true}
-              />
               <AllocationChart
                 data={allocationData}
                 totalValue={allocationTotalValue}

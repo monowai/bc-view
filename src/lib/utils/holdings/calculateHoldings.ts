@@ -7,7 +7,7 @@ import {
   Position,
   Total,
 } from "types/beancounter"
-import { isCashRelated } from "@lib/assets/assetUtils"
+import { isCashRelated, isCash } from "@lib/assets/assetUtils"
 import { GroupBy, ValueIn } from "@components/features/holdings/GroupByOptions"
 import { getReportCategory } from "../categoryMapping"
 
@@ -24,6 +24,8 @@ function getPath(path: string, position: Position): string {
  * Gets the group key for a position based on the groupBy option.
  * For ASSET_CLASS grouping, uses report categories with backward compatibility.
  * For SECTOR grouping, uses sector classification with "Unclassified" as fallback.
+ * For MARKET_CURRENCY grouping, Cash assets are grouped by their asset code (the currency they represent).
+ * For MARKET grouping, Cash assets are grouped by their market (CASH).
  */
 function getGroupKey(groupBy: GroupBy, position: Position): string {
   if (groupBy === GroupBy.ASSET_CLASS) {
@@ -33,6 +35,10 @@ function getGroupKey(groupBy: GroupBy, position: Position): string {
   if (groupBy === GroupBy.SECTOR) {
     // Use sector with fallback for unclassified assets
     return position.asset.sector || "Unclassified"
+  }
+  // For Currency grouping, Cash assets should be grouped by their asset code (the currency they represent)
+  if (groupBy === GroupBy.MARKET_CURRENCY && isCash(position.asset)) {
+    return position.asset.code
   }
   return getPath(groupBy, position)
 }

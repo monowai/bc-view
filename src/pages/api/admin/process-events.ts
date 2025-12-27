@@ -24,10 +24,9 @@ export default withApiAuthRequired(async function processEventsHandler(
 
     const fromDate =
       (query.fromDate as string) || fiveDaysAgo.toISOString().split("T")[0]
-    const toDate =
-      (query.toDate as string) || today.toISOString().split("T")[0]
+    const toDate = (query.toDate as string) || today.toISOString().split("T")[0]
 
-    const url = getEventUrl(`/events/backfill/${fromDate}/${toDate}`)
+    const url = getEventUrl(`/backfill/${fromDate}/${toDate}`)
 
     const { accessToken } = await getAccessToken(req, res)
     const response = await fetch(url, requestInit(accessToken, "POST"))

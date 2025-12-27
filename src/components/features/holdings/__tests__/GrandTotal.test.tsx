@@ -52,12 +52,12 @@ describe("GrandTotal Component", () => {
       // Check that gainOnDay (72.76) is in the second data position
       expect(dataCells[1]).toHaveTextContent("72.76")
 
-      // Check that costValue is in quantity column only (no span, allow for comma formatting)
+      // Check that quantity column is empty (no total for quantity)
       expect(dataCells[2]).toHaveAttribute("colSpan", "1")
-      expect(dataCells[2]).toHaveTextContent(/8,?150\.65/)
+      expect(dataCells[2]).toHaveTextContent("")
 
-      // Check that cost column is empty
-      expect(dataCells[3]).toHaveTextContent("")
+      // Check that cost column has costValue (allow for comma formatting)
+      expect(dataCells[3]).toHaveTextContent(/8,?150\.65/)
 
       // Check marketValue (allow for comma formatting)
       expect(dataCells[4]).toHaveTextContent(/12,?643\.74/)
@@ -118,12 +118,12 @@ describe("GrandTotal Component", () => {
       // data[1] → HEADER_INDICES.GAIN_ON_DAY (2)
       expect(dataCells[1]).toHaveTextContent("72.76") // gainOnDay
 
-      // data[2] → HEADER_INDICES.QUANTITY (3) with costValue
-      expect(dataCells[2]).toHaveTextContent(/8,?150\.65/) // costValue in quantity column
+      // data[2] → HEADER_INDICES.QUANTITY (3) - empty (no total for quantity)
+      expect(dataCells[2]).toHaveTextContent("")
       expect(dataCells[2]).toHaveAttribute("colSpan", "1")
 
-      // data[3] → HEADER_INDICES.COST (4) - empty
-      expect(dataCells[3]).toHaveTextContent("") // empty cost column
+      // data[3] → HEADER_INDICES.COST (4) - costValue
+      expect(dataCells[3]).toHaveTextContent(/8,?150\.65/)
 
       // data[4] → HEADER_INDICES.MARKET_VALUE (5)
       expect(dataCells[4]).toHaveTextContent(/12,?643\.74/) // marketValue
@@ -310,8 +310,8 @@ describe("GrandTotal Component", () => {
       // Verify data positions match expected values
       expect(dataCells[0]).toHaveTextContent("72.76") // change shows gainOnDay sum at data[0]
       expect(dataCells[1]).toHaveTextContent("72.76") // gainOnDay at data[1]
-      expect(dataCells[2]).toHaveTextContent(/8,?150\.65/) // costValue at data[2]
-      expect(dataCells[3]).toHaveTextContent("") // cost column (empty) at data[3]
+      expect(dataCells[2]).toHaveTextContent("") // quantity column (empty) at data[2]
+      expect(dataCells[3]).toHaveTextContent(/8,?150\.65/) // costValue at data[3]
       expect(dataCells[4]).toHaveTextContent(/12,?643\.74/) // marketValue at data[4]
       expect(dataCells[11]).toHaveTextContent(/4,?284\.31/) // totalGain at data[11]
     })

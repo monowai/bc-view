@@ -6,7 +6,19 @@ import React, {
   useCallback,
 } from "react"
 import { useUser } from "@auth0/nextjs-auth0/client"
-import { HoldingsView, UserPreferences } from "types/beancounter"
+import {
+  GroupByApiValue,
+  HoldingsView,
+  UserPreferences,
+} from "types/beancounter"
+import {
+  apiValueToPropertyPath,
+  GROUP_BY_API_VALUES,
+  GROUP_BY_OPTIONS,
+  GroupByOption,
+  VALUE_IN_OPTIONS,
+  ValueInOption,
+} from "types/constants"
 
 interface UserPreferencesContextValue {
   preferences: UserPreferences | null
@@ -17,6 +29,8 @@ interface UserPreferencesContextValue {
 const defaultPreferences: UserPreferences = {
   id: "",
   defaultHoldingsView: "SUMMARY",
+  defaultValueIn: VALUE_IN_OPTIONS.PORTFOLIO,
+  defaultGroupBy: GROUP_BY_API_VALUES.ASSET_CLASS,
   baseCurrencyCode: "USD",
 }
 
@@ -100,4 +114,33 @@ export function toViewMode(
     default:
       return "summary"
   }
+}
+
+/**
+ * Convert backend ValueInOption to frontend ValueIn string
+ */
+export function toValueIn(
+  defaultValueIn: ValueInOption | undefined,
+): ValueInOption {
+  switch (defaultValueIn) {
+    case VALUE_IN_OPTIONS.BASE:
+      return VALUE_IN_OPTIONS.BASE
+    case VALUE_IN_OPTIONS.TRADE:
+      return VALUE_IN_OPTIONS.TRADE
+    case VALUE_IN_OPTIONS.PORTFOLIO:
+    default:
+      return VALUE_IN_OPTIONS.PORTFOLIO
+  }
+}
+
+/**
+ * Convert backend GroupBy API value (enum name) to frontend property path
+ */
+export function toGroupBy(
+  defaultGroupBy: GroupByApiValue | undefined,
+): GroupByOption {
+  if (!defaultGroupBy) {
+    return GROUP_BY_OPTIONS.ASSET_CLASS
+  }
+  return apiValueToPropertyPath(defaultGroupBy)
 }

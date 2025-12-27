@@ -11,7 +11,10 @@ import { useHoldingState } from "@lib/holdings/holdingState"
 import {
   useUserPreferences,
   toViewMode,
+  toValueIn,
+  toGroupBy,
 } from "@contexts/UserPreferencesContext"
+import { toAllocationGroupBy } from "@components/features/holdings/GroupByOptions"
 
 interface UseHoldingsViewResult {
   // State
@@ -19,7 +22,6 @@ interface UseHoldingsViewResult {
   setViewMode: (mode: ViewMode) => void
   sortConfig: SortConfig
   allocationGroupBy: GroupingMode
-  setAllocationGroupBy: (mode: GroupingMode) => void
   excludedCategories: Set<string>
 
   // Handlers
@@ -46,15 +48,32 @@ export function useHoldingsView(
   const [viewMode, setViewMode] = useState<ViewMode>("summary")
   const [hasInitialized, setHasInitialized] = useState(false)
 
-  // Set initial view mode from user preferences once loaded
+  // Set initial view mode, valueIn, and groupBy from user preferences once loaded
   useEffect(() => {
     if (!preferencesLoading && preferences && !hasInitialized) {
       setViewMode(toViewMode(preferences.defaultHoldingsView))
+      // Set valueIn from preferences
+      const defaultValueIn = toValueIn(preferences.defaultValueIn)
+      holdingState.setValueIn({
+        value: defaultValueIn,
+        label: defaultValueIn,
+      })
+      // Set groupBy from preferences
+      const defaultGroupBy = toGroupBy(preferences.defaultGroupBy)
+      holdingState.setGroupBy({
+        value: defaultGroupBy,
+        label: defaultGroupBy,
+      })
       setHasInitialized(true)
     }
-  }, [preferences, preferencesLoading, hasInitialized])
-  const [allocationGroupBy, setAllocationGroupBy] =
-    useState<GroupingMode>("category")
+  }, [preferences, preferencesLoading, hasInitialized, holdingState])
+
+  // Derive allocation groupBy from the shared holdingState groupBy
+  const allocationGroupBy = useMemo(
+    () => toAllocationGroupBy(holdingState.groupBy.value),
+    [holdingState.groupBy.value],
+  )
+
   const [excludedCategories, setExcludedCategories] = useState<Set<string>>(
     new Set(),
   )
@@ -146,7 +165,6 @@ export function useHoldingsView(
     setViewMode,
     sortConfig,
     allocationGroupBy,
-    setAllocationGroupBy,
     excludedCategories,
     handleSort,
     handleToggleCategory,

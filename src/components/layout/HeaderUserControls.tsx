@@ -4,11 +4,13 @@ import Link from "next/link"
 import { useTranslation } from "next-i18next"
 import { getAvatar } from "@pages/profile"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
+import { useIsAdmin } from "@hooks/useIsAdmin"
 
 export default function HeaderUserControls(): React.ReactElement {
   const { user, error, isLoading } = useUser()
   const { t } = useTranslation("common")
   const { preferences } = useUserPreferences()
+  const { isAdmin } = useIsAdmin()
   const [dropdownOpen, setDropdownOpen] = useState(false)
 
   // Get display name: prefer user's preferred name, fall back to nickname
@@ -37,13 +39,13 @@ export default function HeaderUserControls(): React.ReactElement {
   return (
     <div className="relative">
       <div className="flex items-center">
+        {getAvatar(user, 30)}
         <div
           onClick={() => setDropdownOpen(!dropdownOpen)}
-          className="cursor-pointer"
+          className="ml-2 cursor-pointer hover:text-blue-600"
         >
-          {getAvatar(user, 30)}
+          {displayName}
         </div>
-        <div className="ml-2">{displayName}</div>
       </div>
       {dropdownOpen && (
         <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow-lg z-50 text-gray-800">
@@ -54,13 +56,15 @@ export default function HeaderUserControls(): React.ReactElement {
           >
             {t("settings.title")}
           </Link>
-          <Link
-            href="/admin/classifications"
-            className="block px-4 py-2 hover:bg-gray-100"
-            onClick={() => setDropdownOpen(false)}
-          >
-            {t("classifications.title")}
-          </Link>
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className="block px-4 py-2 hover:bg-gray-100"
+              onClick={() => setDropdownOpen(false)}
+            >
+              {t("admin.title")}
+            </Link>
+          )}
           <hr className="border-gray-200" />
           <Link
             href="/api/auth/logout"

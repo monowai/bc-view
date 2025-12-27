@@ -4,22 +4,27 @@ import { ValuationOption, ValuationOptions } from "types/app"
 import { useTranslation } from "next-i18next"
 import { rootLoader } from "@components/ui/PageLoader"
 import { Portfolio } from "types/beancounter"
+import {
+  VALUE_IN_OPTIONS,
+  type ValueInOption as ValueInOptionType,
+} from "types/constants"
 
-export enum ValueIn {
-  PORTFOLIO = "PORTFOLIO",
-  BASE = "BASE",
-  TRADE = "TRADE",
-}
+// Re-export for backward compatibility
+export const ValueIn = VALUE_IN_OPTIONS
+export type ValueIn = ValueInOptionType
 
 export function useValuationOptions(): ValuationOptions {
   const { t } = useTranslation("common")
   return {
     values: [
-      { value: ValueIn.PORTFOLIO, label: t("in.portfolio") },
-      { value: ValueIn.BASE, label: t("in.base") },
-      { value: ValueIn.TRADE, label: t("in.trade") },
+      { value: VALUE_IN_OPTIONS.PORTFOLIO, label: t("in.portfolio") },
+      { value: VALUE_IN_OPTIONS.BASE, label: t("in.base") },
+      { value: VALUE_IN_OPTIONS.TRADE, label: t("in.trade") },
     ],
-    valuationDefault: { value: ValueIn.PORTFOLIO, label: t("in.portfolio") },
+    valuationDefault: {
+      value: VALUE_IN_OPTIONS.PORTFOLIO,
+      label: t("in.portfolio"),
+    },
   }
 }
 

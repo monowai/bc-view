@@ -80,3 +80,85 @@ describe("calculate function", () => {
     expect(result.viewTotals.realisedGain).toEqual(134.33)
   })
 })
+
+describe("Cash grouping behavior", () => {
+  const mockContract: HoldingContract = JSON.parse(data).data
+  const valueIn = ValueIn.PORTFOLIO
+  const hideEmpty = false
+
+  it("should group Cash by currency code when grouping by MARKET_CURRENCY", () => {
+    const holdings = calculateHoldings(
+      mockContract,
+      hideEmpty,
+      valueIn,
+      GroupBy.MARKET_CURRENCY,
+    )
+
+    // Cash (USD) should be grouped under "USD" (the asset code), not the market's currency
+    expect(holdings.holdingGroups["USD"]).toBeDefined()
+    expect(
+      holdings.holdingGroups["USD"].positions.length,
+    ).toBeGreaterThanOrEqual(1)
+
+    // Verify the Cash position is in the USD group
+    const cashPosition = holdings.holdingGroups["USD"].positions.find(
+      (p) => p.asset.assetCategory.id === "CASH",
+    )
+    expect(cashPosition).toBeDefined()
+    expect(cashPosition?.asset.code).toEqual("USD")
+  })
+
+  it("should group Cash by market when grouping by MARKET", () => {
+    const holdings = calculateHoldings(
+      mockContract,
+      hideEmpty,
+      valueIn,
+      GroupBy.MARKET,
+    )
+
+    // Cash should be grouped under "CASH" market
+    expect(holdings.holdingGroups["CASH"]).toBeDefined()
+    expect(holdings.holdingGroups["CASH"].positions.length).toEqual(1)
+
+    // Verify the Cash position is in the CASH market group
+    const cashPosition = holdings.holdingGroups["CASH"].positions[0]
+    expect(cashPosition.asset.assetCategory.id).toEqual("CASH")
+    expect(cashPosition.asset.market.code).toEqual("CASH")
+  })
+
+  it("should group Equities by market currency when grouping by MARKET_CURRENCY", () => {
+    const holdings = calculateHoldings(
+      mockContract,
+      hideEmpty,
+      valueIn,
+      GroupBy.MARKET_CURRENCY,
+    )
+
+    // Equities on US market should be grouped under "USD" (the market's currency)
+    expect(holdings.holdingGroups["USD"]).toBeDefined()
+
+    // Find equity positions in USD group
+    const equityPositions = holdings.holdingGroups["USD"].positions.filter(
+      (p) => p.asset.assetCategory.id === "EQUITY",
+    )
+    expect(equityPositions.length).toEqual(2) // BKNG and MCD
+  })
+
+  it("should group Equities by market when grouping by MARKET", () => {
+    const holdings = calculateHoldings(
+      mockContract,
+      hideEmpty,
+      valueIn,
+      GroupBy.MARKET,
+    )
+
+    // Equities on US market should be grouped under "US"
+    expect(holdings.holdingGroups["US"]).toBeDefined()
+
+    // Find equity positions in US group
+    const equityPositions = holdings.holdingGroups["US"].positions.filter(
+      (p) => p.asset.assetCategory.id === "EQUITY",
+    )
+    expect(equityPositions.length).toEqual(2) // BKNG and MCD
+  })
+})

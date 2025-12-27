@@ -23,10 +23,10 @@ export default function GrandTotal({
   }[] = [
     { value: gainOnDay, colSpan: 1 }, // Maps to CHANGE% (headers[1]) - shows gainOnDay sum on mobile
     { value: gainOnDay, colSpan: 1 }, // Maps to GAIN_ON_DAY (headers[2]) - hidden
-    { value: holdings.viewTotals.costValue, colSpan: 1 }, // Maps to QUANTITY (headers[3]) - costValue only in quantity column
-    { value: null, colSpan: 1 }, // Maps to COST (headers[4]) - empty since cost column gets the costValue
+    { value: null, colSpan: 1 }, // Maps to QUANTITY (headers[3]) - no total for quantity
+    { value: holdings.viewTotals.costValue, colSpan: 1 }, // Maps to COST (headers[4])
     { value: holdings.viewTotals.marketValue, colSpan: 1 }, // Maps to MARKET_VALUE (headers[5])
-    { value: holdings.viewTotals.weight, colSpan: 1, multiplier: 100 }, // Maps to WEIGHT (headers[6]) - moved between value and income
+    { value: holdings.viewTotals.weight, colSpan: 1, multiplier: 100 }, // Maps to WEIGHT (headers[6])
     { value: holdings.viewTotals.dividends, colSpan: 1 }, // Maps to DIVIDENDS (headers[7])
     { value: holdings.viewTotals.unrealisedGain, colSpan: 1 }, // Maps to UNREALISED_GAIN (headers[8])
     { value: holdings.viewTotals.realisedGain, colSpan: 1 }, // Maps to REALISED_GAIN (headers[9])
@@ -65,10 +65,10 @@ export default function GrandTotal({
               break // gainOnDay (hidden)
             case 2:
               headerIndex = HEADER_INDICES.QUANTITY
-              break // costValue in quantity column
+              break // quantity (empty - no total)
             case 3:
               headerIndex = HEADER_INDICES.COST
-              break // cost column (empty)
+              break // costValue
             case 4:
               headerIndex = HEADER_INDICES.MARKET_VALUE
               break // marketValue
