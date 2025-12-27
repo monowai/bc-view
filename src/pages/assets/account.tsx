@@ -21,6 +21,17 @@ import { yupResolver } from "@hookform/resolvers/yup"
 import { validateInput } from "@components/errors/validator"
 import { accountInputSchema } from "@lib/account/schema"
 
+interface SectorInfo {
+  code: string
+  name: string
+  standard: string
+}
+
+interface SectorOption {
+  value: string
+  label: string
+}
+
 // Categories that can be used for user-owned custom assets
 const USER_ASSET_CATEGORIES = [
   "ACCOUNT",
@@ -40,6 +51,7 @@ interface AccountFormInput {
   name: string
   currency: CurrencyOption
   category: CategoryOption
+  sector?: SectorOption
 }
 
 export default withPageAuthRequired(
@@ -52,6 +64,7 @@ export default withPageAuthRequired(
       control,
       register,
       getValues,
+      watch,
     } = useForm<AccountFormInput>({
       resolver: yupResolver(accountInputSchema),
       mode: "onChange",
@@ -61,6 +74,10 @@ export default withPageAuthRequired(
     const categoriesResponse = useSwr(
       categoriesKey,
       simpleFetcher(categoriesKey),
+    )
+    const sectorsResponse = useSwr<{ data: SectorInfo[] }>(
+      "/api/classifications/sectors",
+      simpleFetcher("/api/classifications/sectors"),
     )
 
     // Convert backend categories to select options, filtering to user asset types
@@ -73,6 +90,15 @@ export default withPageAuthRequired(
           label: cat.name,
         }))
     }, [categoriesResponse.data?.data])
+
+    // Convert sectors to select options
+    const sectorOptions = useMemo(() => {
+      if (!sectorsResponse.data?.data) return []
+      return sectorsResponse.data.data.map((sector: SectorInfo) => ({
+        value: sector.name,
+        label: sector.name,
+      }))
+    }, [sectorsResponse.data?.data])
 
     const handleSubmit: SubmitHandler<AccountFormInput> = (formData) => {
       validateInput(accountInputSchema, formData)
@@ -102,10 +128,22 @@ export default withPageAuthRequired(
               }
               return response.json()
             })
-            .then((data: AssetResponse | undefined) => {
+            .then(async (data: AssetResponse | undefined) => {
               if (!data) return
               const createdAsset = Object.values(data.data)[0]
               if (createdAsset) {
+                // Set sector classification if provided
+                if (formData.sector?.value) {
+                  try {
+                    await fetch(`/api/classifications/${createdAsset.id}`, {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ sector: formData.sector.value }),
+                    })
+                  } catch (err) {
+                    console.error("Failed to set sector classification:", err)
+                  }
+                }
                 router.push("/accounts").then()
               }
             })
@@ -118,13 +156,22 @@ export default withPageAuthRequired(
         })
     }
 
-    if (ccyResponse.error || categoriesResponse.error) {
+    if (
+      ccyResponse.error ||
+      categoriesResponse.error ||
+      sectorsResponse.error
+    ) {
       return errorOut(
         t("account.error.create"),
-        ccyResponse.error || categoriesResponse.error,
+        ccyResponse.error || categoriesResponse.error || sectorsResponse.error,
       )
     }
-    if (!ready || ccyResponse.isLoading || categoriesResponse.isLoading) {
+    if (
+      !ready ||
+      ccyResponse.isLoading ||
+      categoriesResponse.isLoading ||
+      sectorsResponse.isLoading
+    ) {
       return rootLoader(t("loading"))
     }
 
@@ -195,6 +242,30 @@ export default withPageAuthRequired(
               />
             )}
           />
+
+          {/* Only show sector for MUTUAL FUND category */}
+          {watch("category")?.value === "MUTUAL FUND" && (
+            <>
+              <label className="block text-gray-700 text-sm font-bold mb-2 mt-4">
+                {t("account.sector", "Sector")}
+              </label>
+              <Controller
+                name="sector"
+                control={control}
+                render={({ field }) => (
+                  <ReactSelect
+                    {...field}
+                    options={sectorOptions}
+                    isClearable
+                    placeholder={t(
+                      "account.sector.hint",
+                      "Select sector (optional)",
+                    )}
+                  />
+                )}
+              />
+            </>
+          )}
 
           <div className="flex items-center justify-between mt-6">
             <button

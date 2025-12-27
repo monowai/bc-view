@@ -29,6 +29,10 @@ export interface CorporateActionsData {
   closedDate?: string // Position closed date - events after this should be ignored
 }
 
+export interface SectorWeightingsData {
+  asset: Asset
+}
+
 interface RowsProps extends HoldingValues {
   onColumnsChange: (columns: string[]) => void
   onQuickSell?: (data: QuickSellData) => void
@@ -36,6 +40,7 @@ interface RowsProps extends HoldingValues {
   onWeightClick?: (data: WeightClickData) => void
   onSetCashBalance?: (data: SetCashBalanceData) => void
   onSetPrice?: (data: SetPriceData) => void
+  onSectorWeightings?: (data: SectorWeightingsData) => void
 }
 
 // Helper function to generate responsive classes for table cells
@@ -92,6 +97,7 @@ interface ActionsMenuProps {
   onQuickSell?: (data: QuickSellData) => void
   onCorporateActions?: (data: CorporateActionsData) => void
   onSetPrice?: (data: SetPriceData) => void
+  onSectorWeightings?: (data: SectorWeightingsData) => void
   t: (key: string) => string
 }
 
@@ -105,6 +111,7 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
   onQuickSell,
   onCorporateActions,
   onSetPrice,
+  onSectorWeightings,
   t,
 }) => {
   const [isOpen, setIsOpen] = useState(false)
@@ -192,6 +199,20 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
                 {t("price.set")}
               </button>
             )}
+            {onSectorWeightings && asset.assetCategory?.id === "ETF" && (
+              <button
+                type="button"
+                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setIsOpen(false)
+                  onSectorWeightings({ asset })
+                }}
+              >
+                <i className="fas fa-chart-pie text-purple-500 w-4"></i>
+                {t("sector.weightings.view")}
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -210,6 +231,7 @@ export default function Rows({
   onWeightClick,
   onSetCashBalance,
   onSetPrice,
+  onSectorWeightings,
 }: RowsProps): React.ReactElement {
   const { t } = useTranslation("common")
 
@@ -305,6 +327,7 @@ export default function Rows({
                         onQuickSell={onQuickSell}
                         onCorporateActions={onCorporateActions}
                         onSetPrice={onSetPrice}
+                        onSectorWeightings={onSectorWeightings}
                         t={t}
                       />
                     </div>

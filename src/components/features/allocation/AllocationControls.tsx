@@ -22,6 +22,7 @@ export const AllocationControls: React.FC<AllocationControlsProps> = ({
 
   const groupOptions: { value: GroupingMode; label: string }[] = [
     { value: "category", label: t("allocation.groupBy.category", "Category") },
+    { value: "sector", label: t("allocation.groupBy.sector", "Sector") },
     { value: "asset", label: t("allocation.groupBy.asset", "Asset") },
     { value: "market", label: t("allocation.groupBy.market", "Market") },
   ]

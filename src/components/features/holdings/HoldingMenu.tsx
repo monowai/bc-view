@@ -3,7 +3,6 @@ import { useTranslation } from "next-i18next"
 import { HideEmpty } from "@components/ui/HideEmpty"
 import { Portfolios } from "@components/features/portfolios/Portfolios"
 import { Portfolio } from "types/beancounter"
-import GroupByOptions from "@components/features/holdings/GroupByOptions"
 import ValueInOption from "@components/ui/ValueIn"
 import DisplayCurrencyOption from "@components/ui/DisplayCurrencyOption"
 
@@ -102,14 +101,6 @@ const HoldingMenu: React.FC<HoldingMenuOptions> = ({
               </div>
             </div>
           )}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700">
-              {t("holdings.groupBy")}
-            </label>
-            <div className="mt-1">
-              <GroupByOptions onOptionSelect={closeMenu} />
-            </div>
-          </div>
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700">
               {t("holdings.valueIn")}

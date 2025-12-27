@@ -330,6 +330,8 @@ export interface Asset {
   priceSymbol?: string // Currency code for ACCOUNT/CASH assets
   reportCategory?: string // Higher-level category for reporting (nullable, for backward compatibility)
   effectiveReportCategory?: string // Computed: reportCategory if set, otherwise mapped from assetCategory
+  sector?: string // Sector classification (e.g., "Technology", "Health Care")
+  industry?: string // Industry classification (more granular than sector)
 }
 
 export interface AssetCategory {
@@ -453,4 +455,45 @@ export interface AllocationData {
 
 export interface AllocationResponse {
   data: AllocationData
+}
+
+// Classification types for sector/industry grouping
+export interface AssetClassificationSummary {
+  assetId: string
+  sector?: string
+  industry?: string
+}
+
+export interface BulkClassificationRequest {
+  assetIds: string[]
+}
+
+export interface BulkClassificationResponse {
+  data: Record<string, AssetClassificationSummary>
+}
+
+// ETF Sector Exposure types
+export interface SectorExposure {
+  item: {
+    name: string
+    code: string
+  }
+  weight: number
+  asOf: string
+}
+
+export interface SectorExposuresResponse {
+  data: SectorExposure[]
+}
+
+// ETF Top Holdings types
+export interface AssetHolding {
+  symbol: string
+  name?: string
+  weight: number
+  asOf: string
+}
+
+export interface AssetHoldingsResponse {
+  data: AssetHolding[]
 }

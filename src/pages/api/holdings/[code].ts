@@ -24,7 +24,7 @@ export default withApiAuthRequired(async function holdingsByCodeAsAt(
 
     if (!response.ok) {
       const msg = `Failed to fetch holdings: ${response.status}`
-      console.error(msg) // Log the error for debugging
+      console.error(msg)
       res.status(response.status).json({
         status: "error",
         message: `${msg}`,
@@ -34,8 +34,8 @@ export default withApiAuthRequired(async function holdingsByCodeAsAt(
 
     await handleResponse<HoldingContract>(response, res)
   } catch (error: any) {
-    console.error(error) // Log the error for debugging
-    res.status(error.status).json({
+    console.error(error)
+    res.status(error.status || 500).json({
       status: "error",
       message:
         error.message ||

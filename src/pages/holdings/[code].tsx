@@ -5,6 +5,7 @@ import {
   RebalanceData,
   SetCashBalanceData,
   SetPriceData,
+  Asset,
 } from "types/beancounter"
 import {
   TableSkeletonLoader,
@@ -22,7 +23,11 @@ import { useHoldingState } from "@lib/holdings/holdingState"
 import { useHoldingsView } from "@lib/holdings/useHoldingsView"
 import HoldingMenu from "@components/features/holdings/HoldingMenu"
 import HoldingsHeader from "@components/features/holdings/HoldingsHeader"
-import Rows, { CorporateActionsData } from "@components/features/holdings/Rows"
+import Rows, {
+  CorporateActionsData,
+  SectorWeightingsData,
+} from "@components/features/holdings/Rows"
+import SectorWeightingsPopup from "@components/features/holdings/SectorWeightingsPopup"
 import SubTotal from "@components/features/holdings/SubTotal"
 import Header from "@components/features/holdings/Header"
 import GrandTotal from "@components/features/holdings/GrandTotal"
@@ -32,7 +37,9 @@ import ViewToggle from "@components/features/holdings/ViewToggle"
 import SummaryView from "@components/features/holdings/SummaryView"
 import AllocationChart from "@components/features/allocation/AllocationChart"
 import AllocationControls from "@components/features/allocation/AllocationControls"
-import { compareByReportCategory } from "@lib/categoryMapping"
+import { compareByReportCategory, compareBySector } from "@lib/categoryMapping"
+import { GroupBy } from "@components/features/holdings/GroupByOptions"
+import { GroupByControls } from "@components/features/holdings/GroupByControls"
 import CorporateActionsPopup from "@components/features/holdings/CorporateActionsPopup"
 import TargetWeightDialog from "@components/features/holdings/TargetWeightDialog"
 import SetCashBalanceDialog from "@components/features/holdings/SetCashBalanceDialog"
@@ -82,6 +89,9 @@ function HoldingsPage(): React.ReactElement {
   const [setPriceData, setSetPriceData] = useState<SetPriceData | undefined>(
     undefined,
   )
+  const [sectorWeightingsAsset, setSectorWeightingsAsset] = useState<
+    Asset | undefined
+  >(undefined)
 
   // Handle quick sell from position row
   const handleQuickSell = useCallback((data: QuickSellData) => {
@@ -144,6 +154,16 @@ function HoldingsPage(): React.ReactElement {
   // Close set price dialog
   const handleSetPriceDialogClose = useCallback(() => {
     setSetPriceData(undefined)
+  }, [])
+
+  // Handle sector weightings popup for ETFs
+  const handleSectorWeightings = useCallback((data: SectorWeightingsData) => {
+    setSectorWeightingsAsset(data.asset)
+  }, [])
+
+  // Close sector weightings popup
+  const handleSectorWeightingsClose = useCallback(() => {
+    setSectorWeightingsAsset(undefined)
   }, [])
 
   // Save price via API
@@ -273,7 +293,12 @@ function HoldingsPage(): React.ReactElement {
             onViewModeChange={setViewMode}
             mobileOnly
           />
-          <SummaryView holdings={holdings} allocationData={allocationData} />
+          <SummaryView
+            holdings={holdings}
+            allocationData={allocationData}
+            groupBy={allocationGroupBy}
+            onGroupByChange={setAllocationGroupBy}
+          />
         </div>
       ) : viewMode === "table" ? (
         <div className="grid grid-cols-1 gap-3">
@@ -283,10 +308,15 @@ function HoldingsPage(): React.ReactElement {
             viewMode={viewMode}
             onViewModeChange={setViewMode}
           />
+          <GroupByControls />
           <div className="overflow-x-auto overflow-y-visible">
             <table className="min-w-full bg-white">
               {Object.keys(holdings.holdingGroups)
-                .sort(compareByReportCategory)
+                .sort(
+                  holdingState.groupBy.value === GroupBy.SECTOR
+                    ? compareBySector
+                    : compareByReportCategory,
+                )
                 .map((groupKey) => {
                   return (
                     <React.Fragment key={groupKey}>
@@ -306,6 +336,7 @@ function HoldingsPage(): React.ReactElement {
                         onWeightClick={handleWeightClick}
                         onSetCashBalance={handleSetCashBalance}
                         onSetPrice={handleSetPrice}
+                        onSectorWeightings={handleSectorWeightings}
                       />
                       <SubTotal
                         groupBy={groupKey}
@@ -330,6 +361,7 @@ function HoldingsPage(): React.ReactElement {
             viewMode={viewMode}
             onViewModeChange={setViewMode}
           />
+          <GroupByControls />
           <PerformanceHeatmap
             holdingGroups={holdings.holdingGroups}
             valueIn={holdingState.valueIn.value}
@@ -401,6 +433,13 @@ function HoldingsPage(): React.ReactElement {
           asset={setPriceData.asset}
           onClose={handleSetPriceDialogClose}
           onSave={handleSetPriceSave}
+        />
+      )}
+      {sectorWeightingsAsset && (
+        <SectorWeightingsPopup
+          asset={sectorWeightingsAsset}
+          modalOpen={!!sectorWeightingsAsset}
+          onClose={handleSectorWeightingsClose}
         />
       )}
     </div>
