@@ -28,6 +28,8 @@ type SortConfig = {
 interface HeaderProps extends GroupKey {
   sortConfig?: SortConfig
   onSort?: (key: string) => void
+  cumulativePositionCount?: number // Cumulative positions displayed before this group
+  isFirstGroup?: boolean // Always show headers for first group
 }
 
 export const headers = [
@@ -142,14 +144,23 @@ export const headers = [
   },
 ]
 
+// Show column headers every N positions
+const HEADER_INTERVAL = 6
+
 export default function Header({
   groupKey,
   sortConfig,
   onSort,
+  cumulativePositionCount = 0,
+  isFirstGroup = false,
 }: HeaderProps): ReactElement {
   const { t } = useTranslation("common")
   const holdingState = useHoldingState()
   const isCostApproximate = holdingState.isCostApproximate
+
+  // Show headers for first group, or every HEADER_INTERVAL positions
+  const showColumnHeaders =
+    isFirstGroup || cumulativePositionCount % HEADER_INTERVAL === 0
 
   const getSortIcon = (headerKey: string): React.ReactElement => {
     if (!sortConfig || sortConfig.key !== headerKey) {
@@ -186,74 +197,78 @@ export default function Header({
       <tr className="border-t-2 border-b-2 border-gray-400">
         <th
           className={`px-0.5 py-1 sm:px-2 md:px-3 text-left text-sm font-medium ${
-            onSort
+            onSort && showColumnHeaders
               ? "cursor-pointer hover:bg-gray-200 transition-colors select-none"
               : ""
           }`}
-          onClick={onSort ? () => onSort("assetName") : undefined}
+          colSpan={showColumnHeaders ? 1 : headers.length + 1}
+          onClick={
+            onSort && showColumnHeaders ? () => onSort("assetName") : undefined
+          }
         >
           <div className="flex items-center justify-start">
             {groupKey}
-            {onSort && getSortIcon("assetName")}
+            {onSort && showColumnHeaders && getSortIcon("assetName")}
           </div>
         </th>
-        {headers.map((header, index) => {
-          let visibility
-          if ("hidden" in header && header.hidden) {
-            visibility = "hidden" // Hidden on all screens
-          } else if (header.mobile) {
-            visibility = ""
-          } else if (header.medium) {
-            visibility = "hidden sm:table-cell" // Hidden on mobile portrait, visible on landscape (640px+)
-          } else {
-            visibility = "hidden xl:table-cell"
-          }
+        {showColumnHeaders &&
+          headers.map((header, index) => {
+            let visibility
+            if ("hidden" in header && header.hidden) {
+              visibility = "hidden" // Hidden on all screens
+            } else if (header.mobile) {
+              visibility = ""
+            } else if (header.medium) {
+              visibility = "hidden sm:table-cell" // Hidden on mobile portrait, visible on landscape (640px+)
+            } else {
+              visibility = "hidden xl:table-cell"
+            }
 
-          return (
-            <th
-              key={header.key}
-              className={`${getHeaderPadding(index)} text-sm font-medium ${
-                header.align === "right"
-                  ? "text-right"
-                  : header.align === "center"
-                    ? "text-center"
-                    : "text-left"
-              } ${visibility} ${
-                header.sortable && onSort
-                  ? "cursor-pointer hover:bg-gray-200 transition-colors select-none"
-                  : ""
-              }`}
-              onClick={
-                header.sortable && onSort
-                  ? () => onSort(header.sortKey)
-                  : undefined
-              }
-            >
-              <div
-                className={`flex items-center ${
+            return (
+              <th
+                key={header.key}
+                className={`${getHeaderPadding(index)} text-sm font-medium ${
                   header.align === "right"
-                    ? "justify-end"
+                    ? "text-right"
                     : header.align === "center"
-                      ? "justify-center"
-                      : "justify-start"
+                      ? "text-center"
+                      : "text-left"
+                } ${visibility} ${
+                  header.sortable && onSort
+                    ? "cursor-pointer hover:bg-gray-200 transition-colors select-none"
+                    : ""
                 }`}
+                onClick={
+                  header.sortable && onSort
+                    ? () => onSort(header.sortKey)
+                    : undefined
+                }
               >
-                {t(header.key)}
-                {"costRelated" in header &&
-                  header.costRelated &&
-                  isCostApproximate && (
-                    <span
-                      className="ml-1 text-amber-500 text-xs"
-                      title={t("displayCurrency.approximate")}
-                    >
-                      ⚠
-                    </span>
-                  )}
-                {header.sortable && onSort && getSortIcon(header.sortKey)}
-              </div>
-            </th>
-          )
-        })}
+                <div
+                  className={`flex items-center ${
+                    header.align === "right"
+                      ? "justify-end"
+                      : header.align === "center"
+                        ? "justify-center"
+                        : "justify-start"
+                  }`}
+                >
+                  {t(header.key)}
+                  {"costRelated" in header &&
+                    header.costRelated &&
+                    isCostApproximate && (
+                      <span
+                        className="ml-1 text-amber-500 text-xs"
+                        title={t("displayCurrency.approximate")}
+                      >
+                        ⚠
+                      </span>
+                    )}
+                  {header.sortable && onSort && getSortIcon(header.sortKey)}
+                </div>
+              </th>
+            )
+          })}
       </tr>
     </thead>
   )

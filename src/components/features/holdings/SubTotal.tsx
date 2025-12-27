@@ -2,9 +2,11 @@ import React, { ReactElement } from "react"
 import { GroupedSubtotals } from "types/beancounter"
 import { FormatValue } from "@components/ui/MoneyUtils"
 import { headers } from "./Header"
+import { useTranslation } from "next-i18next"
 
 interface SubTotalProps extends GroupedSubtotals {
   positionCount: number
+  showWeightedIrr?: boolean
 }
 
 // Helper function to generate responsive classes for table cells
@@ -33,7 +35,10 @@ export default function SubTotal({
   subTotals,
   valueIn,
   positionCount,
+  showWeightedIrr = false,
 }: SubTotalProps): ReactElement | null {
+  const { t } = useTranslation("common")
+
   // Skip subtotal when there's only 1 position - it would duplicate the row values
   if (positionCount <= 1) {
     return null
@@ -48,6 +53,20 @@ export default function SubTotal({
       <FormatValue value={gainOnDay} />
     </span>
   )
+
+  // Weighted IRR element with tooltip
+  const weightedIrr = subTotals[valueIn].weightedIrr
+  const irrElement = showWeightedIrr ? (
+    <span key="weightedIrr" className="group relative cursor-help">
+      <FormatValue value={weightedIrr} multiplier={100} />%
+      <span className="invisible group-hover:visible absolute right-0 bottom-full mb-1 z-10 w-48 p-2 bg-gray-900 text-white text-xs rounded shadow-lg">
+        {t("irr.weighted.tooltip")}
+      </span>
+    </span>
+  ) : (
+    "-"
+  )
+
   const data = [
     "-", // asset.price column
     gainOnDayElement, // asset.change - shows gainOnDay sum on mobile
@@ -73,7 +92,7 @@ export default function SubTotal({
       value={subTotals[valueIn].unrealisedGain}
     />, // gain.unrealised
     <FormatValue key="realisedGain" value={subTotals[valueIn].realisedGain} />, // gain.realised
-    "-", // irr - cannot be summed, requires cash flow calculation
+    irrElement, // weighted irr (when enabled)
     "-", // alpha
     <FormatValue key="totalGain" value={subTotals[valueIn].totalGain} />, // gain
   ]

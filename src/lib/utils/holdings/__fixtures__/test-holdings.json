@@ -97,7 +97,8 @@
             "realisedGain": 0,
             "unrealisedGain": 1079.03,
             "totalGain": 1079.03,
-            "gainOnDay": 120.03
+            "gainOnDay": 120.03,
+            "irr": 0.35
           },
           "PORTFOLIO": {
             "currency": {
@@ -129,7 +130,8 @@
             "realisedGain": 0,
             "unrealisedGain": 1079.03,
             "totalGain": 1079.03,
-            "gainOnDay": 120.03
+            "gainOnDay": 120.03,
+            "irr": 0.35
           },
           "BASE": {
             "currency": {
@@ -161,7 +163,8 @@
             "realisedGain": 0,
             "unrealisedGain": 1079.03,
             "totalGain": 1079.03,
-            "gainOnDay": 120.03
+            "gainOnDay": 120.03,
+            "irr": 0.35
           }
         }
       },
@@ -237,7 +240,8 @@
             "realisedGain": 0,
             "unrealisedGain": 71.8,
             "totalGain": 71.8,
-            "gainOnDay": -2.16
+            "gainOnDay": -2.16,
+            "irr": 0.08
           },
           "PORTFOLIO": {
             "currency": {
@@ -269,7 +273,8 @@
             "realisedGain": 0,
             "unrealisedGain": 71.8,
             "totalGain": 71.8,
-            "gainOnDay": -2.16
+            "gainOnDay": -2.16,
+            "irr": 0.08
           },
           "BASE": {
             "currency": {
@@ -301,7 +306,8 @@
             "realisedGain": 0,
             "unrealisedGain": 71.8,
             "totalGain": 71.8,
-            "gainOnDay": -2.16
+            "gainOnDay": -2.16,
+            "irr": 0.08
           }
         }
       },
@@ -377,7 +383,8 @@
             "realisedGain": 134.33,
             "unrealisedGain": 107.69,
             "totalGain": 242.02,
-            "gainOnDay": 0.96
+            "gainOnDay": 0.96,
+            "irr": 0.25
           },
           "PORTFOLIO": {
             "currency": {
@@ -409,7 +416,8 @@
             "realisedGain": 134.33,
             "unrealisedGain": 107.69,
             "totalGain": 242.02,
-            "gainOnDay": 0.96
+            "gainOnDay": 0.96,
+            "irr": 0.25
           },
           "BASE": {
             "currency": {
@@ -441,7 +449,8 @@
             "realisedGain": 134.33,
             "unrealisedGain": 107.69,
             "totalGain": 242.02,
-            "gainOnDay": 0.96
+            "gainOnDay": 0.96,
+            "irr": 0.25
           }
         }
       },
@@ -517,7 +526,8 @@
             "realisedGain": -359.0,
             "unrealisedGain": 0,
             "totalGain": -359.0,
-            "gainOnDay": 0
+            "gainOnDay": 0,
+            "irr": -0.35
           },
           "PORTFOLIO": {
             "currency": {
@@ -549,7 +559,8 @@
             "realisedGain": -359.0,
             "unrealisedGain": 0,
             "totalGain": -359.0,
-            "gainOnDay": 0
+            "gainOnDay": 0,
+            "irr": -0.35
           },
           "BASE": {
             "currency": {
@@ -581,7 +592,8 @@
             "realisedGain": -359.0,
             "unrealisedGain": 0,
             "totalGain": -359.0,
-            "gainOnDay": 0
+            "gainOnDay": 0,
+            "irr": -0.35
           }
         }
       },
@@ -658,7 +670,8 @@
             "realisedGain": 0,
             "unrealisedGain": 0.0,
             "totalGain": 0.0,
-            "gainOnDay": 0
+            "gainOnDay": 0,
+            "irr": 0
           },
           "PORTFOLIO": {
             "currency": {
@@ -690,7 +703,8 @@
             "realisedGain": 0,
             "unrealisedGain": 0.0,
             "totalGain": 0.0,
-            "gainOnDay": 0
+            "gainOnDay": 0,
+            "irr": 0
           },
           "BASE": {
             "currency": {
@@ -722,7 +736,8 @@
             "realisedGain": 0,
             "unrealisedGain": 0.0,
             "totalGain": 0.0,
-            "gainOnDay": 0
+            "gainOnDay": 0,
+            "irr": 0
           }
         }
       }

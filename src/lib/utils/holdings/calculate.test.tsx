@@ -81,6 +81,96 @@ describe("calculate function", () => {
   })
 })
 
+describe("Weighted IRR calculation", () => {
+  const mockContract: HoldingContract = JSON.parse(data).data
+  const valueIn = ValueIn.PORTFOLIO
+  const groupBy = GroupBy.ASSET_CLASS
+  const hideEmpty = false
+
+  it("should calculate weighted IRR for Equity group based on market value", () => {
+    const holdings = calculateHoldings(
+      mockContract,
+      hideEmpty,
+      valueIn,
+      groupBy,
+    )
+    const equities = holdings.holdingGroups["Equity"]
+
+    // Equity group has BKNG (irr=0.35, mv=3780.03) and MCD (irr=0.08, mv=1071.8)
+    // Weighted IRR = (0.35 * 3780.03 + 0.08 * 1071.8) / (3780.03 + 1071.8)
+    //              = (1323.0105 + 85.744) / 4851.83
+    //              = 0.2903757...
+    const expectedWeightedIrr =
+      (0.35 * 3780.03 + 0.08 * 1071.8) / (3780.03 + 1071.8)
+
+    expect(equities.subTotals[ValueIn.PORTFOLIO].weightedIrr).toBeCloseTo(
+      expectedWeightedIrr,
+      5,
+    )
+    expect(equities.subTotals[ValueIn.BASE].weightedIrr).toBeCloseTo(
+      expectedWeightedIrr,
+      5,
+    )
+    expect(equities.subTotals[ValueIn.TRADE].weightedIrr).toBeCloseTo(
+      expectedWeightedIrr,
+      5,
+    )
+  })
+
+  it("should exclude positions with zero market value from weighted IRR", () => {
+    const holdings = calculateHoldings(
+      mockContract,
+      hideEmpty,
+      valueIn,
+      groupBy,
+    )
+    // ETF group has QQQ (irr=0.25, mv=441.02) and SMH (irr=-0.35, mv=0)
+    // SMH should be excluded because marketValue is 0
+    // Weighted IRR = 0.25 (only QQQ contributes)
+    const etfs = holdings.holdingGroups["ETF"]
+
+    expect(etfs.subTotals[ValueIn.PORTFOLIO].weightedIrr).toBeCloseTo(0.25, 5)
+  })
+
+  it("should exclude cash positions from weighted IRR calculation", () => {
+    const holdings = calculateHoldings(
+      mockContract,
+      hideEmpty,
+      valueIn,
+      groupBy,
+    )
+    // Cash group has only USD cash position - should be excluded
+    // Weighted IRR should be 0 (no qualifying positions)
+    const cash = holdings.holdingGroups["Cash"]
+
+    expect(cash.subTotals[ValueIn.PORTFOLIO].weightedIrr).toBe(0)
+  })
+
+  it("should give larger positions more weight in weighted IRR", () => {
+    const holdings = calculateHoldings(
+      mockContract,
+      hideEmpty,
+      valueIn,
+      groupBy,
+    )
+    const equities = holdings.holdingGroups["Equity"]
+
+    // BKNG has ~78% of the group's market value (3780.03 / 4851.83)
+    // MCD has ~22% of the group's market value (1071.8 / 4851.83)
+    // So weighted IRR should be closer to BKNG's 35% than MCD's 8%
+    const weightedIrr = equities.subTotals[ValueIn.PORTFOLIO].weightedIrr
+
+    // Weighted IRR should be closer to 0.35 (BKNG) than to 0.08 (MCD)
+    expect(weightedIrr).toBeGreaterThan(0.2) // Much closer to 0.35 than 0.08
+    expect(weightedIrr).toBeLessThan(0.35) // But not higher than BKNG's IRR
+
+    // Simple average would be (0.35 + 0.08) / 2 = 0.215
+    // Weighted average should be higher because BKNG (higher IRR) has more weight
+    const simpleAverage = (0.35 + 0.08) / 2
+    expect(weightedIrr).toBeGreaterThan(simpleAverage)
+  })
+})
+
 describe("Cash grouping behavior", () => {
   const mockContract: HoldingContract = JSON.parse(data).data
   const valueIn = ValueIn.PORTFOLIO

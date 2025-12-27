@@ -63,6 +63,7 @@ function SettingsPage(): React.ReactElement {
     GROUP_BY_API_VALUES.ASSET_CLASS,
   )
   const [baseCurrencyCode, setBaseCurrencyCode] = useState<string>("USD")
+  const [showWeightedIrr, setShowWeightedIrr] = useState<boolean>(false)
 
   // Fetch current preferences and currencies
   useEffect(() => {
@@ -86,6 +87,7 @@ function SettingsPage(): React.ReactElement {
                 GROUP_BY_API_VALUES.ASSET_CLASS,
             )
             setBaseCurrencyCode(meData.preferences.baseCurrencyCode)
+            setShowWeightedIrr(meData.preferences.showWeightedIrr ?? false)
           }
         }
 
@@ -118,6 +120,7 @@ function SettingsPage(): React.ReactElement {
         defaultValueIn,
         defaultGroupBy,
         baseCurrencyCode,
+        showWeightedIrr,
       }
 
       const response = await fetch("/api/me", {
@@ -281,6 +284,57 @@ function SettingsPage(): React.ReactElement {
               </select>
               <p className="mt-1 text-sm text-gray-500">
                 {t("settings.baseCurrency.description")}
+              </p>
+            </div>
+
+            {/* Show Weighted IRR */}
+            <div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <label
+                    htmlFor="showWeightedIrr"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    {t("settings.showWeightedIrr")}
+                  </label>
+                  <div className="group relative">
+                    <svg
+                      className="w-4 h-4 text-gray-400 cursor-help"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <div className="invisible group-hover:visible absolute left-0 top-6 z-10 w-72 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg">
+                      {t("settings.showWeightedIrr.tooltip")}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  id="showWeightedIrr"
+                  role="switch"
+                  aria-checked={showWeightedIrr}
+                  onClick={() => setShowWeightedIrr(!showWeightedIrr)}
+                  className={`${
+                    showWeightedIrr ? "bg-blue-600" : "bg-gray-200"
+                  } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
+                >
+                  <span
+                    className={`${
+                      showWeightedIrr ? "translate-x-5" : "translate-x-0"
+                    } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
+                  />
+                </button>
+              </div>
+              <p className="mt-1 text-sm text-gray-500">
+                {t("settings.showWeightedIrr.description")}
               </p>
             </div>
 

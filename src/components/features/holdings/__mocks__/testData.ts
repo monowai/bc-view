@@ -41,6 +41,7 @@ export const mockHoldings = {
     },
     valueIn: { code: "USD", name: "US Dollar", symbol: "$" },
     roi: 0.55,
+    weightedIrr: 0.15,
     [ValueIn.PORTFOLIO]: {} as any,
   },
   totals: {

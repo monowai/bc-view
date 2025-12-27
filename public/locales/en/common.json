@@ -19,6 +19,7 @@
   "quantity": "Quantity",
   "roi": "ROI",
   "irr": "IRR",
+  "irr.weighted.tooltip": "Weighted by market value. Cash positions excluded.",
   "asset.price": "Price",
   "gain.onday": "Change",
   "asset.change": "Change",
@@ -319,6 +320,9 @@
   "settings.success.saved": "Settings saved successfully",
   "settings.error.load": "Failed to load settings",
   "settings.error.save": "Failed to save settings",
+  "settings.showWeightedIrr": "Show Weighted IRR",
+  "settings.showWeightedIrr.description": "Display market-value weighted IRR in group subtotals",
+  "settings.showWeightedIrr.tooltip": "Weighted IRR is calculated as the sum of (position IRR × market value) divided by total market value. This gives larger positions more influence on the group average. Note: Cash positions are excluded as they have no meaningful IRR. This is an approximation and may differ from true time-weighted returns.",
 
   "retire.planDetails": "Plan Details",
   "retire.monthlyExpenses": "Monthly Expenses",
