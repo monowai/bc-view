@@ -225,11 +225,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GH_TOKEN }}
 
-      - name: Prepare platform tag
+      - name: Prepare build metadata
         id: prep
         run: |
           PLATFORM_TAG=$(echo "${{ matrix.platform }}" | sed 's/\//-/g')
+          SHORT_SHA=${GITHUB_SHA::7}
           echo "platform_tag=$PLATFORM_TAG" >> $GITHUB_OUTPUT
+          echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
@@ -243,7 +245,7 @@ jobs:
             org.opencontainers.image.build-number=${{ github.run_number }}
           build-args: |
             GIT_BRANCH=${{ github.ref_name }}
-            GIT_COMMIT=${{ github.sha }}
+            GIT_COMMIT=${{ steps.prep.outputs.short_sha }}
             BUILD_ID=${{ github.run_number }}
           cache-from: type=gha,scope=${{ matrix.platform }}
           cache-to: type=gha,scope=${{ matrix.platform }},mode=max

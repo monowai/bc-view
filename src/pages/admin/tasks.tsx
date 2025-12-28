@@ -20,6 +20,23 @@ interface ScheduledTask {
   endpoint: string
   icon: string
   service: string
+  hasFromDate?: boolean
+  hasToDate?: boolean
+}
+
+interface TaskDates {
+  fromDate: string
+  toDate: string
+}
+
+const getDefaultDates = (): TaskDates => {
+  const today = new Date()
+  const thirtyDaysAgo = new Date(today)
+  thirtyDaysAgo.setDate(today.getDate() - 30)
+  return {
+    fromDate: thirtyDaysAgo.toISOString().split("T")[0],
+    toDate: today.toISOString().split("T")[0],
+  }
 }
 
 const SCHEDULED_TASKS: ScheduledTask[] = [
@@ -54,6 +71,7 @@ const SCHEDULED_TASKS: ScheduledTask[] = [
     endpoint: "/api/admin/load-events",
     icon: "fa-download",
     service: "svc-event",
+    hasFromDate: true,
   },
   {
     id: "process-events",
@@ -62,6 +80,8 @@ const SCHEDULED_TASKS: ScheduledTask[] = [
     endpoint: "/api/admin/process-events",
     icon: "fa-cogs",
     service: "svc-event",
+    hasFromDate: true,
+    hasToDate: true,
   },
 ]
 
@@ -73,6 +93,29 @@ export default withPageAuthRequired(
     const [taskResults, setTaskResults] = useState<Record<string, TaskResult>>(
       {},
     )
+    const [taskDates, setTaskDates] = useState<Record<string, TaskDates>>(
+      () => {
+        const defaults = getDefaultDates()
+        return {
+          "load-events": { ...defaults },
+          "process-events": { ...defaults },
+        }
+      },
+    )
+
+    const updateTaskDate = (
+      taskId: string,
+      field: keyof TaskDates,
+      value: string,
+    ): void => {
+      setTaskDates((prev) => ({
+        ...prev,
+        [taskId]: {
+          ...prev[taskId],
+          [field]: value,
+        },
+      }))
+    }
 
     const runTask = async (task: ScheduledTask): Promise<void> => {
       setRunningTasks((prev) => new Set(prev).add(task.id))
@@ -83,7 +126,20 @@ export default withPageAuthRequired(
       })
 
       try {
-        const response = await fetch(task.endpoint, { method: "POST" })
+        let url = task.endpoint
+        const dates = taskDates[task.id]
+        if (dates && (task.hasFromDate || task.hasToDate)) {
+          const params = new URLSearchParams()
+          if (task.hasFromDate && dates.fromDate) {
+            params.set("fromDate", dates.fromDate)
+          }
+          if (task.hasToDate && dates.toDate) {
+            params.set("toDate", dates.toDate)
+          }
+          url = `${task.endpoint}?${params.toString()}`
+        }
+
+        const response = await fetch(url, { method: "POST" })
         const data = await response.json().catch(() => null)
 
         if (response.ok) {
@@ -205,6 +261,8 @@ export default withPageAuthRequired(
               {tasks.map((task) => {
                 const isRunning = runningTasks.has(task.id)
                 const result = taskResults[task.id]
+                const dates = taskDates[task.id]
+                const hasDates = task.hasFromDate || task.hasToDate
 
                 return (
                   <div
@@ -218,7 +276,7 @@ export default withPageAuthRequired(
                             className={`fas ${task.icon} text-blue-500 text-lg`}
                           ></i>
                         </div>
-                        <div>
+                        <div className="flex-1">
                           <h3 className="font-medium text-gray-900">
                             {task.name}
                           </h3>
@@ -249,6 +307,57 @@ export default withPageAuthRequired(
                         )}
                       </button>
                     </div>
+
+                    {hasDates && dates && (
+                      <div className="mt-4 flex items-center gap-4 pl-14">
+                        {task.hasFromDate && (
+                          <div className="flex items-center gap-2">
+                            <label
+                              htmlFor={`${task.id}-fromDate`}
+                              className="text-sm text-gray-600"
+                            >
+                              {t("admin.tasks.fromDate", "From:")}
+                            </label>
+                            <input
+                              id={`${task.id}-fromDate`}
+                              type="date"
+                              value={dates.fromDate}
+                              onChange={(e) =>
+                                updateTaskDate(
+                                  task.id,
+                                  "fromDate",
+                                  e.target.value,
+                                )
+                              }
+                              className="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                          </div>
+                        )}
+                        {task.hasToDate && (
+                          <div className="flex items-center gap-2">
+                            <label
+                              htmlFor={`${task.id}-toDate`}
+                              className="text-sm text-gray-600"
+                            >
+                              {t("admin.tasks.toDate", "To:")}
+                            </label>
+                            <input
+                              id={`${task.id}-toDate`}
+                              type="date"
+                              value={dates.toDate}
+                              onChange={(e) =>
+                                updateTaskDate(
+                                  task.id,
+                                  "toDate",
+                                  e.target.value,
+                                )
+                              }
+                              className="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {result && (
                       <div

@@ -11,6 +11,7 @@ export interface ErrorOutProps {
   showLogin?: boolean
   onRetry?: () => void
   autoDetect?: boolean
+  eventId?: string | null
 }
 
 // Backward compatibility: support old function signature errorOut(key: string, error: Error)
@@ -27,6 +28,7 @@ export default function ErrorOut({
   showLogin,
   onRetry,
   autoDetect = true,
+  eventId,
 }: ErrorOutProps): ReactElement {
   const router = useRouter()
   const [showDetails, setShowDetails] = useState(false)
@@ -245,10 +247,13 @@ export default function ErrorOut({
           </div>
         )}
 
-        {/* Support Message */}
-        <p className="text-xs text-gray-500 mt-4">
-          If this problem persists, please contact support
-        </p>
+        {/* Support Message with Event ID */}
+        <div className="text-xs text-gray-500 mt-4">
+          <p>If this problem persists, please contact support</p>
+          {eventId && (
+            <p className="mt-2 font-mono text-gray-400">Reference: {eventId}</p>
+          )}
+        </div>
       </div>
     </main>
   )
