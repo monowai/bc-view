@@ -8,12 +8,16 @@ ARG GIT_BRANCH
 ARG GIT_COMMIT
 ARG BUILD_ID
 
-# Environment variables
+# Environment variables - Build info
 ENV GIT_BRANCH=$GIT_BRANCH
 ENV GIT_COMMIT=$GIT_COMMIT
 ENV BUILD_ID=$BUILD_ID
 ENV HOSTNAME="0.0.0.0"
 ENV PORT=3000
+
+# Sentry defaults - SENTRY_DSN, SENTRY_ENVIRONMENT, SENTRY_TRACES_SAMPLE_RATE via bc-deploy
+ENV SENTRY_ENABLED="true"
+ENV SENTRY_DEBUG="false"
 
 # Build stage - copy pre-built artifacts from CI
 FROM base AS builder

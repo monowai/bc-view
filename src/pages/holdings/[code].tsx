@@ -329,29 +329,29 @@ function HoldingsPage(): React.ReactElement {
                           cumulativePositionCount={currentCumulative}
                           isFirstGroup={index === 0}
                         />
-                      <Rows
-                        portfolio={holdingResults.portfolio}
-                        groupBy={groupKey}
-                        holdingGroup={holdings.holdingGroups[groupKey]}
-                        valueIn={holdingState.valueIn.value}
-                        onColumnsChange={setColumns}
-                        onQuickSell={handleQuickSell}
-                        onCorporateActions={handleCorporateActions}
-                        onWeightClick={handleWeightClick}
-                        onSetCashBalance={handleSetCashBalance}
-                        onSetPrice={handleSetPrice}
-                        onSectorWeightings={handleSectorWeightings}
-                      />
-                      <SubTotal
-                        groupBy={groupKey}
-                        subTotals={holdings.holdingGroups[groupKey].subTotals}
-                        valueIn={holdingState.valueIn.value}
-                        positionCount={
-                          holdings.holdingGroups[groupKey].positions.length
-                        }
-                        showWeightedIrr={preferences?.showWeightedIrr}
-                      />
-                    </React.Fragment>
+                        <Rows
+                          portfolio={holdingResults.portfolio}
+                          groupBy={groupKey}
+                          holdingGroup={holdings.holdingGroups[groupKey]}
+                          valueIn={holdingState.valueIn.value}
+                          onColumnsChange={setColumns}
+                          onQuickSell={handleQuickSell}
+                          onCorporateActions={handleCorporateActions}
+                          onWeightClick={handleWeightClick}
+                          onSetCashBalance={handleSetCashBalance}
+                          onSetPrice={handleSetPrice}
+                          onSectorWeightings={handleSectorWeightings}
+                        />
+                        <SubTotal
+                          groupBy={groupKey}
+                          subTotals={holdings.holdingGroups[groupKey].subTotals}
+                          valueIn={holdingState.valueIn.value}
+                          positionCount={
+                            holdings.holdingGroups[groupKey].positions.length
+                          }
+                          showWeightedIrr={preferences?.showWeightedIrr}
+                        />
+                      </React.Fragment>
                     )
                   })
               })()}

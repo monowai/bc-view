@@ -4,13 +4,51 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import * as Sentry from "@sentry/nextjs"
+import {
+  getSentryDsn,
+  getSentryEnabled,
+  getSentryEnvironment,
+  getSentryIgnoreTransactions,
+  getSentryTracesSampleRate,
+} from "@utils/api/bcConfig"
 
-Sentry.init({
-  dsn: "https://77443f1427eaf68cd124ec3af629a438@o4508146873466880.ingest.de.sentry.io/4508155588182096",
+const enabled = getSentryEnabled()
+const dsn = getSentryDsn()
+const ignorePatterns = getSentryIgnoreTransactions()
 
-  // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
-  tracesSampleRate: 1,
+if (!enabled) {
+  console.log("[Sentry Edge] Disabled - skipping initialization")
+} else {
+  Sentry.init({
+    dsn,
+    environment: getSentryEnvironment(),
+    tracesSampleRate: getSentryTracesSampleRate(),
+    debug: false,
 
-  // Setting this option to true will print useful information to the console while you're setting up Sentry.
-  debug: false,
-})
+    // Filter and rename transactions
+    // Note: ignoreTransactions matches transaction NAME, not URL
+    // We use beforeSendTransaction for URL-based filtering
+    beforeSendTransaction(event) {
+      const url = event.request?.url || ""
+
+      // Filter by URL pattern
+      if (ignorePatterns.some((pattern) => url.includes(pattern))) {
+        return null
+      }
+
+      // Rename generic middleware transactions to include the URL path
+      if (
+        event.transaction === "middleware" ||
+        event.transaction === "http.server.middleware"
+      ) {
+        try {
+          const urlPath = new URL(url).pathname
+          event.transaction = `middleware ${urlPath}`
+        } catch {
+          // Keep original if URL parsing fails
+        }
+      }
+      return event
+    },
+  })
+}

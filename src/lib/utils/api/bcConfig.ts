@@ -30,14 +30,46 @@ export function getSentryDsn(): string {
   return process.env.SENTRY_DSN || ""
 }
 
-export function getSentryDebug(): boolean | undefined {
-  return Boolean(process.env.SENTRY_DEBUG || false).valueOf()
+export function getSentryDebug(): boolean {
+  return process.env.SENTRY_DEBUG === "true"
 }
 
-export function getSentryEnabled(): boolean | undefined {
-  return Boolean(process.env.SENTRY_ENABLED || false).valueOf()
+export function getSentryEnabled(): boolean {
+  return process.env.SENTRY_ENABLED === "true"
+}
+
+export function getSentryEnvironment(): string {
+  return process.env.SENTRY_ENVIRONMENT || "local"
 }
 
 export function getSentryTracesSampleRate(): number {
-  return Number(process.env.SENTRY_TRACE_SAMPLE_RATE || 1)
+  return Number(process.env.SENTRY_TRACES_SAMPLE_RATE || 1.0)
+}
+
+// Default patterns to ignore in Sentry transactions
+// /_next/data = client-side navigation data fetches (getServerSideProps JSON)
+// /_next/image = image optimization requests
+// /_next/static = static asset requests
+const DEFAULT_IGNORE_PATTERNS = [
+  "/api/ping",
+  "/_next/data",
+  "/_next/image",
+  "/_next/static",
+]
+
+export function getSentryIgnoreTransactions(): string[] {
+  const envPatterns = process.env.SENTRY_IGNORE_TRANSACTIONS
+  if (envPatterns) {
+    return envPatterns.split(",").map((p) => p.trim())
+  }
+  return DEFAULT_IGNORE_PATTERNS
+}
+
+export function getTracePropagationTargets(): (string | RegExp)[] {
+  const targets: (string | RegExp)[] = []
+  if (process.env.BC_DATA) targets.push(process.env.BC_DATA)
+  if (process.env.BC_POSITION) targets.push(process.env.BC_POSITION)
+  if (process.env.BC_EVENT) targets.push(process.env.BC_EVENT)
+  if (process.env.BC_RETIRE) targets.push(process.env.BC_RETIRE)
+  return targets
 }
