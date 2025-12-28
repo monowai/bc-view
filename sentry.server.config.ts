@@ -8,6 +8,7 @@ import {
   getSentryDsn,
   getSentryEnabled,
   getSentryTracesSampleRate,
+  getTracePropagationTargets,
 } from "@utils/api/bcConfig"
 
 Sentry.init({
@@ -20,4 +21,7 @@ Sentry.init({
 
   // Setting this option to true will print useful information to the console while you're setting up Sentry.
   debug: getSentryDebug(),
+
+  // Propagate trace headers to backend services for distributed tracing
+  tracePropagationTargets: getTracePropagationTargets(),
 })

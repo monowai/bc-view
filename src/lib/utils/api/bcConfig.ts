@@ -41,3 +41,12 @@ export function getSentryEnabled(): boolean | undefined {
 export function getSentryTracesSampleRate(): number {
   return Number(process.env.SENTRY_TRACE_SAMPLE_RATE || 1)
 }
+
+export function getTracePropagationTargets(): (string | RegExp)[] {
+  const targets: (string | RegExp)[] = []
+  if (process.env.BC_DATA) targets.push(process.env.BC_DATA)
+  if (process.env.BC_POSITION) targets.push(process.env.BC_POSITION)
+  if (process.env.BC_EVENT) targets.push(process.env.BC_EVENT)
+  if (process.env.BC_RETIRE) targets.push(process.env.BC_RETIRE)
+  return targets
+}

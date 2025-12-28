@@ -17,6 +17,9 @@ Sentry.init({
   replaysOnErrorSampleRate: 1.0,
   replaysSessionSampleRate: 0.1,
 
+  // Propagate trace headers to API routes for distributed tracing
+  tracePropagationTargets: [/^\/api\//],
+
   integrations: [
     Sentry.replayIntegration({
       maskAllText: false,
