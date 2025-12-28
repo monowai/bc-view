@@ -12,8 +12,36 @@ const ignorePatterns = [
   "/_next/static",
 ]
 
-// Client-side env vars must use NEXT_PUBLIC_ prefix
-const environment = process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT || "local"
+// Default resource span types to ignore (low-value for debugging)
+const defaultIgnoreResourceSpans = [
+  "resource.script",
+  "resource.css",
+  "resource.img",
+  "resource.link",
+  "resource.other",
+  "browser.DNS",
+  "browser.unloadEvent",
+  "mark",
+  "measure",
+]
+
+// Detect environment at runtime from hostname (no rebuild needed per environment)
+// Examples: kauri.monowai.com -> "kauri", kauri-sit.monowai.com -> "kauri-sit"
+//           192.168.0.40 -> "192.168.0.40", localhost -> "local"
+function detectEnvironment(): string {
+  if (typeof window === "undefined") return "server"
+  const hostname = window.location.hostname
+  if (hostname === "localhost" || hostname === "127.0.0.1") return "local"
+  // Check if it's an IP address (keep as-is)
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(hostname)) return hostname
+  // Extract first segment of FQDN (e.g., "kauri" from "kauri.monowai.com")
+  return hostname.split(".")[0]
+}
+
+const environment = detectEnvironment()
+
+// Ignore resource spans - hardcoded since same across all environments
+const ignoreResourceSpans = defaultIgnoreResourceSpans
 
 Sentry.init({
   dsn: "https://77443f1427eaf68cd124ec3af629a438@o4508146873466880.ingest.de.sentry.io/4508155588182096",
@@ -33,7 +61,6 @@ Sentry.init({
   tracePropagationTargets: [/^\/api\//],
 
   // Filter transactions by URL pattern
-  // Note: ignoreTransactions matches transaction NAME, not always the URL
   beforeSendTransaction(event) {
     const url = event.request?.url || event.transaction || ""
     if (ignorePatterns.some((pattern) => url.includes(pattern))) {
@@ -46,6 +73,16 @@ Sentry.init({
     Sentry.replayIntegration({
       maskAllText: false,
       blockAllMedia: false,
+    }),
+    // Configure browser tracing to exclude noisy requests
+    Sentry.browserTracingIntegration({
+      // Don't create spans for Next.js internal fetch requests
+      shouldCreateSpanForRequest: (url) => {
+        return !ignorePatterns.some((pattern) => url.includes(pattern))
+      },
+      // Don't create spans for static resource loading
+      // Configurable via NEXT_PUBLIC_SENTRY_IGNORE_RESOURCE_SPANS
+      ignoreResourceSpans,
     }),
   ],
 })
