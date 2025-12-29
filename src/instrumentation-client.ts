@@ -2,6 +2,8 @@
 // It runs when the client bundle is loaded in the browser.
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
+console.log("[Sentry Client] instrumentation-client.ts loading...")
+
 import * as Sentry from "@sentry/nextjs"
 
 // Patterns to filter out from transactions
@@ -42,6 +44,8 @@ const environment = detectEnvironment()
 
 // Ignore resource spans - hardcoded since same across all environments
 const ignoreResourceSpans = defaultIgnoreResourceSpans
+
+console.log("[Sentry Client] Initializing with environment:", environment)
 
 Sentry.init({
   dsn: "https://77443f1427eaf68cd124ec3af629a438@o4508146873466880.ingest.de.sentry.io/4508155588182096",
@@ -86,6 +90,8 @@ Sentry.init({
     }),
   ],
 })
+
+console.log("[Sentry Client] Initialized successfully")
 
 // Required for navigation instrumentation with Turbopack
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart
