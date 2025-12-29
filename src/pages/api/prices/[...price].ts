@@ -45,7 +45,7 @@ export default withApiAuthRequired(async function getPrice(
     const pricePath = price.join("/")
     const url = getDataUrl(`/prices/${pricePath}`)
 
-    const response = await fetch(url, requestInit(accessToken, "GET"))
+    const response = await fetch(url, requestInit(accessToken, "GET", req))
     await handleResponse<PriceResponse>(response, res)
   } catch (error: unknown) {
     fetchError(res, req, error)

@@ -20,7 +20,7 @@ export default withApiAuthRequired(async function exportPortfolios(
       return
     }
 
-    const response = await fetch(exportUrl, requestInit(accessToken, "GET"))
+    const response = await fetch(exportUrl, requestInit(accessToken, "GET", req))
 
     if (!response.ok) {
       res.status(response.status).json({ error: "Export failed" })

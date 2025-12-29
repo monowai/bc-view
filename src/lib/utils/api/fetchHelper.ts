@@ -1,13 +1,36 @@
+import { NextApiRequest } from "next"
+
+/**
+ * Create request init for backend API calls.
+ * Forwards sentry-trace and baggage headers for distributed tracing.
+ */
 export function requestInit(
   accessToken: string | undefined,
   method: string = "GET",
+  req?: NextApiRequest,
 ): RequestInit {
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${accessToken}`,
+    "Content-Type": "application/json",
+  }
+
+  // Forward trace headers for distributed tracing
+  if (req) {
+    const sentryTrace = req.headers["sentry-trace"]
+    const baggage = req.headers["baggage"]
+    if (sentryTrace) {
+      headers["sentry-trace"] = Array.isArray(sentryTrace)
+        ? sentryTrace[0]
+        : sentryTrace
+    }
+    if (baggage) {
+      headers["baggage"] = Array.isArray(baggage) ? baggage[0] : baggage
+    }
+  }
+
   return {
     method,
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
+    headers,
   }
 }
 

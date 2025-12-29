@@ -22,7 +22,7 @@ export default withApiAuthRequired(async function fx(
     }
 
     const response = await fetch(baseUrl, {
-      ...requestInit(accessToken, "POST"),
+      ...requestInit(accessToken, "POST", req),
       body: JSON.stringify(req.body),
     })
     await handleResponse<FxResponse>(response, res)

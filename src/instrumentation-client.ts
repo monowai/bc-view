@@ -6,16 +6,12 @@ console.log("[Sentry Client] instrumentation-client.ts loading...")
 
 import * as Sentry from "@sentry/nextjs"
 
-// Patterns to filter out from transactions
+// Patterns to filter out from transaction URLs and span operations
 const ignorePatterns = [
   "/api/ping",
   "/_next/data",
   "/_next/image",
   "/_next/static",
-]
-
-// Default resource span types to ignore (low-value for debugging)
-const defaultIgnoreResourceSpans = [
   "resource.script",
   "resource.css",
   "resource.img",
@@ -23,6 +19,8 @@ const defaultIgnoreResourceSpans = [
   "resource.other",
   "browser.DNS",
   "browser.unloadEvent",
+  "browser.connect",
+  "browser.cache",
   "mark",
   "measure",
 ]
@@ -41,9 +39,6 @@ function detectEnvironment(): string {
 }
 
 const environment = detectEnvironment()
-
-// Ignore resource spans - hardcoded since same across all environments
-const ignoreResourceSpans = defaultIgnoreResourceSpans
 
 console.log("[Sentry Client] Initializing with environment:", environment)
 
@@ -64,11 +59,17 @@ Sentry.init({
   // Propagate trace headers to API routes for distributed tracing
   tracePropagationTargets: [/^\/api\//],
 
-  // Filter transactions by URL pattern
+  // Filter transactions by URL pattern and remove noisy spans
   beforeSendTransaction(event) {
     const url = event.request?.url || event.transaction || ""
     if (ignorePatterns.some((pattern) => url.includes(pattern))) {
       return null
+    }
+    // Filter out spans matching ignore patterns
+    if (event.spans) {
+      event.spans = event.spans.filter(
+        (span) => !ignorePatterns.some((pattern) => span.op === pattern),
+      )
     }
     return event
   },
@@ -85,8 +86,7 @@ Sentry.init({
         return !ignorePatterns.some((pattern) => url.includes(pattern))
       },
       // Don't create spans for static resource loading
-      // Configurable via NEXT_PUBLIC_SENTRY_IGNORE_RESOURCE_SPANS
-      ignoreResourceSpans,
+      ignoreResourceSpans: ignorePatterns,
     }),
   ],
 })

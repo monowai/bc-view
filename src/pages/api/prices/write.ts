@@ -25,7 +25,7 @@ export default withApiAuthRequired(async function writePrice(
     // POST /api/prices/write - set a custom price for an off-market asset
     const url = getDataUrl("/prices/write")
     const response = await fetch(url, {
-      ...requestInit(accessToken, "POST"),
+      ...requestInit(accessToken, "POST", req),
       body: JSON.stringify(req.body),
     })
     await handleResponse<PriceResponse>(response, res)

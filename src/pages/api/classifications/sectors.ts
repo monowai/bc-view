@@ -25,7 +25,7 @@ export default withApiAuthRequired(async function sectorsHandler(
     const { accessToken } = await getAccessToken(req, res)
 
     if (method?.toUpperCase() === "GET") {
-      const response = await fetch(url, requestInit(accessToken, "GET"))
+      const response = await fetch(url, requestInit(accessToken, "GET", req))
       await handleResponse<SectorsResponse>(response, res)
     } else {
       res.setHeader("Allow", ["GET"])

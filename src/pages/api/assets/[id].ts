@@ -22,18 +22,17 @@ export default withApiAuthRequired(async function asset(
     switch (method?.toUpperCase()) {
       case "GET": {
         console.log(`requesting Asset from ${baseUrl}`)
-        const response = await fetch(`${baseUrl}/${id}`, {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        })
+        const response = await fetch(
+          `${baseUrl}/${id}`,
+          requestInit(accessToken, "GET", req),
+        )
         await handleResponse<Asset>(response, res)
         break
       }
       case "DELETE": {
         // Delete user-owned asset
         const url = getDataUrl(`/assets/me/${id}`)
-        const response = await fetch(url, requestInit(accessToken, "DELETE"))
+        const response = await fetch(url, requestInit(accessToken, "DELETE", req))
         if (response.ok) {
           res.status(200).json({ success: true })
         } else {
@@ -46,7 +45,7 @@ export default withApiAuthRequired(async function asset(
         // Update user-owned asset
         const url = getDataUrl(`/assets/me/${id}`)
         const response = await fetch(url, {
-          ...requestInit(accessToken, "PATCH"),
+          ...requestInit(accessToken, "PATCH", req),
           body: JSON.stringify(req.body),
         })
         await handleResponse<AssetResponse>(response, res)

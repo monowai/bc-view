@@ -16,7 +16,7 @@ export default withApiAuthRequired(async function categories(
 
     switch (method?.toUpperCase()) {
       case "GET": {
-        const response = await fetch(baseUrl, requestInit(accessToken))
+        const response = await fetch(baseUrl, requestInit(accessToken, "GET", req))
         await handleResponse(response, res)
         break
       }

@@ -28,7 +28,7 @@ export default withApiAuthRequired(async function loadEventsHandler(
     const url = getEventUrl(`/load/${fromDate}`)
 
     const { accessToken } = await getAccessToken(req, res)
-    const response = await fetch(url, requestInit(accessToken, "POST"))
+    const response = await fetch(url, requestInit(accessToken, "POST", req))
     await handleResponse(response, res)
   } catch (error: unknown) {
     fetchError(res, req, error)

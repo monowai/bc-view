@@ -29,7 +29,7 @@ export default withApiAuthRequired(async function refreshHandler(
 
     const { accessToken } = await getAccessToken(req, res)
     const url = `${baseUrl}/refresh/${assetId}`
-    const response = await fetch(url, requestInit(accessToken, "POST"))
+    const response = await fetch(url, requestInit(accessToken, "POST", req))
     await handleResponse<RefreshResponse>(response, res)
   } catch (error: unknown) {
     fetchError(res, req, error)

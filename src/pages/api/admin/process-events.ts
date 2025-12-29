@@ -29,7 +29,7 @@ export default withApiAuthRequired(async function processEventsHandler(
     const url = getEventUrl(`/backfill/${fromDate}/${toDate}`)
 
     const { accessToken } = await getAccessToken(req, res)
-    const response = await fetch(url, requestInit(accessToken, "POST"))
+    const response = await fetch(url, requestInit(accessToken, "POST", req))
     await handleResponse(response, res)
   } catch (error: unknown) {
     fetchError(res, req, error)

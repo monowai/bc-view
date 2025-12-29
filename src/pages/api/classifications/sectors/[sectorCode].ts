@@ -27,7 +27,7 @@ export default withApiAuthRequired(async function sectorHandler(
 
     if (method?.toUpperCase() === "DELETE") {
       const url = `${baseUrl}/${sectorCode}`
-      const response = await fetch(url, requestInit(accessToken, "DELETE"))
+      const response = await fetch(url, requestInit(accessToken, "DELETE", req))
       await handleResponse<DeleteSectorResponse>(response, res)
     } else {
       res.setHeader("Allow", ["DELETE"])
