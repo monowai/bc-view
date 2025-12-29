@@ -23,14 +23,14 @@ export default withApiAuthRequired(async function assets(
         const url = category
           ? getDataUrl(`/assets/me/${category}`)
           : getDataUrl("/assets/me")
-        const response = await fetch(url, requestInit(accessToken, "GET"))
+        const response = await fetch(url, requestInit(accessToken, "GET", req))
         await handleResponse<AssetResponse>(response, res)
         break
       }
       case "POST": {
         console.log("POST /assets - creating asset")
         const response = await fetch(baseUrl, {
-          ...requestInit(accessToken, "POST"),
+          ...requestInit(accessToken, "POST", req),
           body: JSON.stringify(req.body),
         })
         await handleResponse<AssetResponse>(response, res)

@@ -27,7 +27,7 @@ export default withApiAuthRequired(async function loadCorporateEvents(
 
     console.log(`Loading corporate events from: ${url}`)
     console.log(`Access token present: ${!!accessToken}`)
-    const response = await fetch(url, requestInit(accessToken, "POST"))
+    const response = await fetch(url, requestInit(accessToken, "POST", req))
     console.log(`Response status: ${response.status}`)
 
     if (response.status === 202 || response.status === 200) {

@@ -16,17 +16,13 @@ export default withApiAuthRequired(async function plan(
 
     switch (method?.toUpperCase()) {
       case "GET": {
-        const response = await fetch(planUrl, requestInit(accessToken))
+        const response = await fetch(planUrl, requestInit(accessToken, "GET", req))
         await handleResponse(response, res)
         break
       }
       case "PATCH": {
         const response = await fetch(planUrl, {
-          method: "PATCH",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
+          ...requestInit(accessToken, "PATCH", req),
           body: JSON.stringify(body),
         })
         await handleResponse(response, res)
@@ -35,7 +31,7 @@ export default withApiAuthRequired(async function plan(
       case "DELETE": {
         const response = await fetch(
           planUrl,
-          requestInit(accessToken, "DELETE"),
+          requestInit(accessToken, "DELETE", req),
         )
         await handleResponse(response, res)
         break

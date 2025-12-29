@@ -16,17 +16,13 @@ export default withApiAuthRequired(async function expenses(
 
     switch (method?.toUpperCase()) {
       case "GET": {
-        const response = await fetch(expensesUrl, requestInit(accessToken))
+        const response = await fetch(expensesUrl, requestInit(accessToken, "GET", req))
         await handleResponse(response, res)
         break
       }
       case "POST": {
         const response = await fetch(expensesUrl, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
+          ...requestInit(accessToken, "POST", req),
           body: JSON.stringify(body),
         })
         await handleResponse(response, res)

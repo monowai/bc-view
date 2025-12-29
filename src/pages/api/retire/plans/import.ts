@@ -16,8 +16,7 @@ export default withApiAuthRequired(async function importPlan(
     switch (method?.toUpperCase()) {
       case "POST": {
         const response = await fetch(importUrl, {
-          ...requestInit(accessToken),
-          method: "POST",
+          ...requestInit(accessToken, "POST", req),
           body: JSON.stringify(body),
         })
         await handleResponse(response, res)

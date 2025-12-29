@@ -24,7 +24,7 @@ export default withApiAuthRequired(async function searchAssets(
     }
 
     const url = getDataUrl(`/assets/search?${params.toString()}`)
-    const response = await fetch(url, requestInit(accessToken, "GET"))
+    const response = await fetch(url, requestInit(accessToken, "GET", req))
     await handleResponse<AssetSearchResponse>(response, res)
   } catch (error: unknown) {
     fetchError(res, req, error)

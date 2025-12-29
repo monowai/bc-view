@@ -37,7 +37,7 @@ export default withApiAuthRequired(async function exposuresHandler(
 
     const { accessToken } = await getAccessToken(req, res)
     const url = `${baseUrl}/${assetId}/exposures`
-    const response = await fetch(url, requestInit(accessToken, "GET"))
+    const response = await fetch(url, requestInit(accessToken, "GET", req))
     await handleResponse<ExposuresResponse>(response, res)
   } catch (error: unknown) {
     fetchError(res, req, error)

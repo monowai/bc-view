@@ -16,7 +16,7 @@ export default withApiAuthRequired(async function exportPlan(
 
     switch (method?.toUpperCase()) {
       case "GET": {
-        const response = await fetch(exportUrl, requestInit(accessToken))
+        const response = await fetch(exportUrl, requestInit(accessToken, "GET", req))
         await handleResponse(response, res)
         break
       }

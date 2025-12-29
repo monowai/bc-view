@@ -35,7 +35,7 @@ export default withApiAuthRequired(async function holdingsHandler(
 
     const { accessToken } = await getAccessToken(req, res)
     const url = `${baseUrl}/${assetId}/holdings`
-    const response = await fetch(url, requestInit(accessToken, "GET"))
+    const response = await fetch(url, requestInit(accessToken, "GET", req))
     await handleResponse<HoldingsResponse>(response, res)
   } catch (error: unknown) {
     fetchError(res, req, error)

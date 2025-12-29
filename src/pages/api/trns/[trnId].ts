@@ -22,7 +22,7 @@ export default withApiAuthRequired(async function trnApi(
       console.log(`GET trn ${trnId}`)
       const response = await fetch(
         `${baseUrl}/${trnId}`,
-        requestInit(accessToken),
+        requestInit(accessToken, "GET", req),
       )
       await handleResponse<Transaction>(response, res)
     } else if (req.method === "PATCH") {
@@ -32,11 +32,7 @@ export default withApiAuthRequired(async function trnApi(
       }
       console.log(`PATCH trn ${portfolioId}/${trnId}`)
       const response = await fetch(`${baseUrl}/${portfolioId}/${trnId}`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
+        ...requestInit(accessToken, "PATCH", req),
         body: JSON.stringify(req.body),
       })
       await handleResponse<Transaction>(response, res)

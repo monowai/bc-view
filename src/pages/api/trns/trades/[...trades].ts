@@ -19,7 +19,7 @@ export default withApiAuthRequired(async function tradeTrns(
         case "GET": {
           const response = await fetch(
             `${baseUrl}/${trades[0]}/asset/${trades[1]}/trades`,
-            requestInit(accessToken),
+            requestInit(accessToken, "GET", req),
           )
           await handleResponse<Transaction[]>(response, res)
           break
@@ -28,7 +28,7 @@ export default withApiAuthRequired(async function tradeTrns(
           console.log(`Delete trnId: ${trades[0]}`)
           const response = await fetch(
             `${baseUrl}/${trades[0]}`,
-            requestInit(accessToken, "DELETE"),
+            requestInit(accessToken, "DELETE", req),
           )
           await handleResponse(response, res)
           break

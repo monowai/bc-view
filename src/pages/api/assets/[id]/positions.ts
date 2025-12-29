@@ -61,10 +61,10 @@ export default withApiAuthRequired(async function getAssetPositions(
 
     // Step 1: Resolve asset and call whereHeld in parallel
     const [assetResponse, whereHeldResponse] = await Promise.all([
-      fetch(`${dataUrl}/assets/${assetId}`, requestInit(accessToken)),
+      fetch(`${dataUrl}/assets/${assetId}`, requestInit(accessToken, "GET", req)),
       fetch(
         `${dataUrl}/portfolios/asset/${assetId}/${date}`,
-        requestInit(accessToken),
+        requestInit(accessToken, "GET", req),
       ),
     ])
 
@@ -94,7 +94,7 @@ export default withApiAuthRequired(async function getAssetPositions(
     if (portfolios.length === 0) {
       const allPortfoliosResponse = await fetch(
         `${dataUrl}/portfolios`,
-        requestInit(accessToken),
+        requestInit(accessToken, "GET", req),
       )
 
       if (!allPortfoliosResponse.ok) {
@@ -113,7 +113,7 @@ export default withApiAuthRequired(async function getAssetPositions(
           try {
             const holdingsResponse = await fetch(
               `${positionUrl}/${portfolio.code}/${date}?value=true`,
-              requestInit(accessToken),
+              requestInit(accessToken, "GET", req),
             )
 
             if (!holdingsResponse.ok) return
@@ -148,7 +148,7 @@ export default withApiAuthRequired(async function getAssetPositions(
         try {
           const holdingsResponse = await fetch(
             `${positionUrl}/${portfolio.code}/${date}?value=true`,
-            requestInit(accessToken),
+            requestInit(accessToken, "GET", req),
           )
 
           if (!holdingsResponse.ok) {

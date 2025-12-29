@@ -18,7 +18,7 @@ export default withApiAuthRequired(async function expense(
       case "DELETE": {
         const response = await fetch(
           expenseUrl,
-          requestInit(accessToken, "DELETE"),
+          requestInit(accessToken, "DELETE", req),
         )
         await handleResponse(response, res)
         break

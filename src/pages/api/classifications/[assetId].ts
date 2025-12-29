@@ -31,7 +31,7 @@ export default withApiAuthRequired(async function classificationHandler(
         // Set manual classification for an asset
         const url = `${baseUrl}/${assetId}`
         const response = await fetch(url, {
-          ...requestInit(accessToken, "PUT"),
+          ...requestInit(accessToken, "PUT", req),
           body: JSON.stringify(req.body),
         })
         await handleResponse<ManualClassificationResponse>(response, res)
@@ -40,14 +40,14 @@ export default withApiAuthRequired(async function classificationHandler(
       case "GET": {
         // Get classification for an asset
         const url = `${baseUrl}/${assetId}`
-        const response = await fetch(url, requestInit(accessToken, "GET"))
+        const response = await fetch(url, requestInit(accessToken, "GET", req))
         await handleResponse<ManualClassificationResponse>(response, res)
         break
       }
       case "DELETE": {
         // Delete classification for an asset
         const url = `${baseUrl}/${assetId}`
-        const response = await fetch(url, requestInit(accessToken, "DELETE"))
+        const response = await fetch(url, requestInit(accessToken, "DELETE", req))
         if (response.ok) {
           res.status(200).json({ success: true })
         } else {

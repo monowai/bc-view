@@ -17,7 +17,7 @@ export default withApiAuthRequired(async function portfolios(
     console.log(`${method} / portfolios`)
     switch (method?.toUpperCase()) {
       case "GET": {
-        const response = await fetch(`${baseUrl}`, requestInit(accessToken))
+        const response = await fetch(`${baseUrl}`, requestInit(accessToken, "GET", req))
         await handleResponse<Portfolio[]>(response, res)
         break
       }

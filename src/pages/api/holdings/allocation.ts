@@ -22,7 +22,7 @@ export default withApiAuthRequired(async function allocation(
       url += `?ids=${encodeURIComponent(ids)}`
     }
 
-    const response = await fetch(url, requestInit(accessToken))
+    const response = await fetch(url, requestInit(accessToken, "GET", req))
 
     if (!response.ok) {
       const msg = `Failed to fetch allocation: ${response.status}`

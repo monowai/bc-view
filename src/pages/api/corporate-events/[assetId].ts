@@ -26,7 +26,7 @@ export default withApiAuthRequired(async function corporateEvents(
     }
 
     console.log(`Fetching corporate events from: ${url}`)
-    const response = await fetch(url, requestInit(accessToken))
+    const response = await fetch(url, requestInit(accessToken, "GET", req))
     await handleResponse<CorporateEventsResponse>(response, res)
   } catch (error: unknown) {
     fetchError(res, req, error)
