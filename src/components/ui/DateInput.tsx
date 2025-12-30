@@ -5,6 +5,9 @@ interface DateInputProps {
   onChange: (value: string) => void
   className?: string
   disabled?: boolean
+  min?: string
+  max?: string
+  autoFocus?: boolean
 }
 
 /**
@@ -18,7 +21,10 @@ interface DateInputProps {
  * - Arrow keys: Native browser behavior (adjusts focused segment)
  */
 const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
-  function DateInput({ value, onChange, className = "", disabled }, ref) {
+  function DateInput(
+    { value, onChange, className = "", disabled, min, max, autoFocus },
+    ref,
+  ) {
     const adjustDate = useCallback(
       (unit: "day" | "month" | "year", amount: number): void => {
         const currentDate = value ? new Date(value) : new Date()
@@ -78,6 +84,9 @@ const DateInput = forwardRef<HTMLInputElement, DateInputProps>(
         onKeyDown={handleKeyDown}
         className={className}
         disabled={disabled}
+        min={min}
+        max={max}
+        autoFocus={autoFocus}
       />
     )
   },

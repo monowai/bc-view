@@ -295,9 +295,11 @@ describe("CorporateActionsPopup", () => {
         />,
       )
 
-      expect(
-        screen.getByText(/From 2024-01-01 to 2024-06-15/),
-      ).toBeInTheDocument()
+      // Check that date inputs are present with correct values
+      const fromInput = screen.getByDisplayValue("2024-01-01")
+      const toInput = screen.getByDisplayValue("2024-06-15")
+      expect(fromInput).toBeInTheDocument()
+      expect(toInput).toBeInTheDocument()
     })
   })
 })
