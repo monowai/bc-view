@@ -35,7 +35,6 @@ import GrandTotal from "@components/features/holdings/GrandTotal"
 import HoldingActions from "@components/features/holdings/HoldingActions"
 import PerformanceHeatmap from "@components/ui/PerformanceHeatmap"
 import SummaryView from "@components/features/holdings/SummaryView"
-import AllocationChart from "@components/features/allocation/AllocationChart"
 import { compareByReportCategory, compareBySector } from "@lib/categoryMapping"
 import { GroupBy } from "@components/features/holdings/GroupByOptions"
 import HoldingsToolbar from "@components/features/holdings/HoldingsToolbar"
@@ -61,12 +60,9 @@ function HoldingsPage(): React.ReactElement {
     setViewMode,
     sortConfig,
     allocationGroupBy,
-    excludedCategories,
     handleSort,
-    handleToggleCategory,
     holdings,
     allocationData,
-    allocationTotalValue,
   } = useHoldingsView(data?.data)
 
   // Page-specific state
@@ -278,6 +274,9 @@ function HoldingsPage(): React.ReactElement {
           valueIn={holdingState.valueIn.value}
           quickSellData={quickSellData}
           onQuickSellHandled={handleQuickSellHandled}
+          viewMode={viewMode}
+          allocationData={allocationData}
+          holdings={holdings}
         />
       </div>
 
@@ -376,26 +375,7 @@ function HoldingsPage(): React.ReactElement {
             valueIn={holdingState.valueIn.value}
           />
         </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-3">
-          <HoldingsToolbar viewMode={viewMode} onViewModeChange={setViewMode} />
-          <HoldingsHeader
-            portfolio={holdingResults.portfolio}
-            holdings={holdings}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-          />
-          <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6">
-            <AllocationChart
-              data={allocationData}
-              totalValue={allocationTotalValue}
-              currencySymbol={holdingResults.portfolio.currency.symbol}
-              excludedCategories={excludedCategories}
-              onToggleCategory={handleToggleCategory}
-            />
-          </div>
-        </div>
-      )}
+      ) : null}
       {corporateActionsData && (
         <CorporateActionsPopup
           asset={corporateActionsData.asset}

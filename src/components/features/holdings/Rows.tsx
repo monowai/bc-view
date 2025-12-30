@@ -257,6 +257,7 @@ export default function Rows({
     () => [
       "Asset Code",
       "Asset Name",
+      "Classification",
       "Price",
       "Change %",
       "Change on Day",

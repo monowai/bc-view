@@ -11,8 +11,8 @@ describe("UserPreferencesContext helper functions", () => {
       expect(toViewMode("HEATMAP")).toBe("heatmap")
     })
 
-    it("converts ALLOCATION to allocation", () => {
-      expect(toViewMode("ALLOCATION")).toBe("allocation")
+    it("converts ALLOCATION to summary (consolidated view)", () => {
+      expect(toViewMode("ALLOCATION")).toBe("summary")
     })
 
     it("converts SUMMARY to summary", () => {

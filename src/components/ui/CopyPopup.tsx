@@ -1,5 +1,6 @@
 import React, { useState } from "react"
 import { Position } from "types/beancounter"
+import { getReportCategory } from "@lib/categoryMapping"
 
 interface CopyPopupProps {
   columns: string[]
@@ -37,6 +38,8 @@ const CopyPopup: React.FC<CopyPopupProps> = ({
                 return row.asset.code
               case "asset name":
                 return row.asset.name
+              case "classification":
+                return getReportCategory(row.asset)
               case "price":
                 return row.moneyValues[valueIn].priceData?.close || ""
               case "change %":

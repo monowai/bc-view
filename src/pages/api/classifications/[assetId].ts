@@ -47,7 +47,10 @@ export default withApiAuthRequired(async function classificationHandler(
       case "DELETE": {
         // Delete classification for an asset
         const url = `${baseUrl}/${assetId}`
-        const response = await fetch(url, requestInit(accessToken, "DELETE", req))
+        const response = await fetch(
+          url,
+          requestInit(accessToken, "DELETE", req),
+        )
         if (response.ok) {
           res.status(200).json({ success: true })
         } else {

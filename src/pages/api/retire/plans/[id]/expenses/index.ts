@@ -16,7 +16,10 @@ export default withApiAuthRequired(async function expenses(
 
     switch (method?.toUpperCase()) {
       case "GET": {
-        const response = await fetch(expensesUrl, requestInit(accessToken, "GET", req))
+        const response = await fetch(
+          expensesUrl,
+          requestInit(accessToken, "GET", req),
+        )
         await handleResponse(response, res)
         break
       }

@@ -103,14 +103,15 @@ export function useUserPreferences(): UserPreferencesContextValue {
  */
 export function toViewMode(
   holdingsView: HoldingsView | undefined,
-): "summary" | "table" | "heatmap" | "allocation" {
+): "summary" | "table" | "heatmap" {
   switch (holdingsView) {
     case "TABLE":
       return "table"
     case "HEATMAP":
       return "heatmap"
     case "ALLOCATION":
-      return "allocation"
+      // Allocation view consolidated into Summary
+      return "summary"
     case "SUMMARY":
     default:
       return "summary"

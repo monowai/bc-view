@@ -121,7 +121,7 @@ describe("HoldingActions Mobile Portrait Tests (TDD)", () => {
       setupMatchMedia(375, 667)
     })
 
-    it("should have mobile-portrait:hidden class on Copy Data button", () => {
+    it("should have mobile-portrait:hidden class on Copy Holdings button", () => {
       render(
         <HoldingActions
           holdingResults={mockHoldingResults}
@@ -130,7 +130,7 @@ describe("HoldingActions Mobile Portrait Tests (TDD)", () => {
         />,
       )
 
-      const copyButton = screen.getByText("Copy Data")
+      const copyButton = screen.getByText("Copy Holdings")
       expect(copyButton).toHaveClass("mobile-portrait:hidden")
     })
 
@@ -186,7 +186,7 @@ describe("HoldingActions Mobile Portrait Tests (TDD)", () => {
         />,
       )
 
-      const copyButton = screen.getByText("Copy Data")
+      const copyButton = screen.getByText("Copy Holdings")
       const tradeButton = screen.getByText("Add Trade")
       const cashButton = screen.getByText("Add Cash")
 
@@ -222,7 +222,7 @@ describe("HoldingActions Mobile Portrait Tests (TDD)", () => {
         />,
       )
 
-      const copyButton = screen.getByText("Copy Data")
+      const copyButton = screen.getByText("Copy Holdings")
       const tradeButton = screen.getByText("Add Trade")
       const cashButton = screen.getByText("Add Cash")
 
