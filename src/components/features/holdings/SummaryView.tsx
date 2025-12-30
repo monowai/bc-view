@@ -7,9 +7,12 @@ import {
   Tooltip,
   ResponsiveContainer,
   Cell,
+  PieChart,
+  Pie,
 } from "recharts"
 import { Holdings, MoneyValues } from "types/beancounter"
 import { FormatValue } from "@components/ui/MoneyUtils"
+import { ProgressBar } from "@components/ui/ProgressBar"
 import {
   AllocationSlice,
   GroupingMode,
@@ -36,6 +39,14 @@ const FALLBACK_COLORS = [
   "#14B8A6",
   "#6366F1",
 ]
+
+// Get color for alpha progress bar based on IRR performance
+const getAlphaColor = (irr: number): "blue" | "green" | "purple" | "gray" => {
+  if (irr >= 0.15) return "green" // 15%+ = green (excellent)
+  if (irr >= 0.08) return "blue" // 8-15% = blue (good)
+  if (irr >= 0.03) return "purple" // 3-8% = purple (fair)
+  return "gray" // <3% = gray (poor)
+}
 
 interface SummaryViewProps {
   holdings: Holdings
@@ -130,6 +141,8 @@ const CustomBarTooltip: React.FC<CustomTooltipProps> = ({
   return null
 }
 
+type ChartType = "none" | "bar" | "donut"
+
 const SummaryView: React.FC<SummaryViewProps> = ({
   holdings,
   allocationData,
@@ -138,6 +151,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({
   const [excludedCategories, setExcludedCategories] = useState<Set<string>>(
     new Set(),
   )
+  const [chartType, setChartType] = useState<ChartType>("none")
 
   // Source currency is always the trade currency (what the values are denominated in)
   const sourceCurrency = holdings.viewTotals?.currency || holdings.currency
@@ -202,22 +216,10 @@ const SummaryView: React.FC<SummaryViewProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Currency indicator */}
-      {effectiveCurrencyCode && (
-        <div className="flex justify-end">
-          <span className="text-sm text-gray-500">
-            Currency:{" "}
-            <span className="font-medium text-gray-700">
-              {effectiveCurrencyCode}
-            </span>
-          </span>
-        </div>
-      )}
-
       {/* Top Row: Key Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <MetricCard
-          label="Market Value"
+          label={`Market Value - ${effectiveCurrencyCode}`}
           value={convert(viewTotals.marketValue)}
           currencySymbol={effectiveCurrencySymbol}
         />
@@ -260,147 +262,351 @@ const SummaryView: React.FC<SummaryViewProps> = ({
           currencySymbol={effectiveCurrencySymbol}
         />
         <MetricCard
-          label="Unrealised Gain"
-          value={convert(viewTotals.unrealisedGain)}
-          currencySymbol={effectiveCurrencySymbol}
-          showSign
-        />
-        <MetricCard
           label="Realised Gain"
           value={convert(viewTotals.realisedGain)}
           currencySymbol={effectiveCurrencySymbol}
           showSign
         />
+        <MetricCard
+          label={`Unrealised Gain - ${effectiveCurrencyCode}`}
+          value={convert(viewTotals.unrealisedGain)}
+          currencySymbol={effectiveCurrencySymbol}
+          showSign
+        />
       </div>
 
-      {/* Stacked Horizontal Bar Chart */}
+      {/* Asset Allocation Chart */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Asset Allocation
-        </h3>
-
-        <div className="h-16 mb-6">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={barData}
-              layout="vertical"
-              margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Asset Allocation
+          </h3>
+          <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-0.5">
+            <button
+              onClick={() => setChartType("none")}
+              className={`px-2 py-1 text-xs font-medium rounded-md transition-colors ${
+                chartType === "none"
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+              title="Table only"
             >
-              <XAxis type="number" hide />
-              <YAxis type="category" dataKey="name" hide />
-              <Tooltip
-                content={
-                  <CustomBarTooltip
-                    currencySymbol={effectiveCurrencySymbol}
-                    totalValue={filteredTotal}
-                  />
-                }
-              />
-              {filteredAllocation.map((slice, index) => (
-                <Bar
-                  key={slice.key}
-                  dataKey={slice.key}
-                  stackId="allocation"
-                  fill={getColor(slice.key, index)}
-                  radius={
-                    index === 0
-                      ? [4, 0, 0, 4]
-                      : index === filteredAllocation.length - 1
-                        ? [0, 4, 4, 0]
-                        : [0, 0, 0, 0]
-                  }
-                >
-                  <Cell fill={getColor(slice.key, index)} />
-                </Bar>
-              ))}
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Legend with toggle */}
-        <div className="flex flex-col space-y-2">
-          <p className="text-xs text-gray-400 mb-1">Click to exclude/include</p>
-          {[...allocationData]
-            .sort((a, b) =>
-              (groupBy === "sector"
-                ? compareBySector
-                : compareByReportCategory)(a.key, b.key),
-            )
-            .map((slice, index) => {
-              const isExcluded = excludedCategories.has(slice.key)
-              const convertedValue = convert(slice.value)
-              const percentage =
-                filteredTotal > 0 && !isExcluded
-                  ? (convertedValue / filteredTotal) * 100
-                  : 0
-
-              return (
-                <div
-                  key={slice.key}
-                  className={`flex items-center justify-between cursor-pointer hover:bg-gray-50 rounded px-2 py-1 -mx-2 ${
-                    isExcluded ? "opacity-40" : ""
-                  }`}
-                  onClick={() => handleToggleCategory(slice.key)}
-                >
-                  <div className="flex items-center">
-                    <div
-                      className={`w-3 h-3 rounded-sm mr-2 ${isExcluded ? "bg-gray-300" : ""}`}
-                      style={{
-                        backgroundColor: isExcluded
-                          ? undefined
-                          : getColor(slice.key, index),
-                      }}
-                    />
-                    <span
-                      className={`text-sm ${isExcluded ? "text-gray-400 line-through" : "text-gray-700"}`}
-                    >
-                      {slice.label}
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <span
-                      className={`text-sm font-medium ${isExcluded ? "text-gray-400" : "text-gray-900"}`}
-                    >
-                      {effectiveCurrencySymbol}
-                      <FormatValue value={convertedValue} />
-                    </span>
-                    <span
-                      className={`text-sm w-14 text-right ${isExcluded ? "text-gray-400" : "text-gray-500"}`}
-                    >
-                      {isExcluded ? "-" : `${percentage.toFixed(1)}%`}
-                    </span>
-                  </div>
-                </div>
-              )
-            })}
-        </div>
-
-        {/* Totals */}
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <div className="flex justify-between items-center">
-            <span className="text-sm font-medium text-gray-700">
-              {excludedCategories.size > 0 ? "Filtered Total" : "Total"}
-            </span>
-            <span className="text-lg font-bold text-gray-900">
-              {effectiveCurrencySymbol}
-              <FormatValue value={filteredTotal} />
-            </span>
-          </div>
-          {excludedCategories.size > 0 && (
-            <div className="flex justify-between items-center mt-1">
-              <span className="text-xs text-gray-400">Full Total</span>
-              <span className="text-sm text-gray-400">
-                {effectiveCurrencySymbol}
-                <FormatValue
-                  value={allocationData.reduce(
-                    (sum, slice) => sum + convert(slice.value),
-                    0,
-                  )}
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 10h18M3 14h18M3 18h18M3 6h18"
                 />
-              </span>
-            </div>
-          )}
+              </svg>
+            </button>
+            <button
+              onClick={() => setChartType("bar")}
+              className={`px-2 py-1 text-xs font-medium rounded-md transition-colors ${
+                chartType === "bar"
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+              title="Bar chart"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                />
+              </svg>
+            </button>
+            <button
+              onClick={() => setChartType("donut")}
+              className={`px-2 py-1 text-xs font-medium rounded-md transition-colors ${
+                chartType === "donut"
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+              title="Donut chart"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"
+                />
+              </svg>
+            </button>
+          </div>
         </div>
+
+        {chartType === "bar" && (
+          <div className="h-16 mb-6">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={barData}
+                layout="vertical"
+                margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
+              >
+                <XAxis type="number" hide />
+                <YAxis type="category" dataKey="name" hide />
+                <Tooltip
+                  content={
+                    <CustomBarTooltip
+                      currencySymbol={effectiveCurrencySymbol}
+                      totalValue={filteredTotal}
+                    />
+                  }
+                />
+                {filteredAllocation.map((slice, index) => (
+                  <Bar
+                    key={slice.key}
+                    dataKey={slice.key}
+                    stackId="allocation"
+                    fill={getColor(slice.key, index)}
+                    radius={
+                      index === 0
+                        ? [4, 0, 0, 4]
+                        : index === filteredAllocation.length - 1
+                          ? [0, 4, 4, 0]
+                          : [0, 0, 0, 0]
+                    }
+                  >
+                    <Cell fill={getColor(slice.key, index)} />
+                  </Bar>
+                ))}
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+        {chartType === "donut" && (
+          <div className="h-64 mb-6">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={filteredAllocation.map((slice, index) => ({
+                    ...slice,
+                    fill: getColor(slice.key, index),
+                  }))}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={90}
+                  paddingAngle={2}
+                  dataKey="value"
+                  nameKey="label"
+                >
+                  {filteredAllocation.map((slice, index) => (
+                    <Cell key={slice.key} fill={getColor(slice.key, index)} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  content={
+                    <CustomBarTooltip
+                      currencySymbol={effectiveCurrencySymbol}
+                      totalValue={filteredTotal}
+                    />
+                  }
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {/* Allocation Table */}
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="text-left py-2 px-2 font-medium text-gray-600">
+                  Group
+                </th>
+                <th className="text-right py-2 px-2 font-medium text-gray-600">
+                  Market Value
+                </th>
+                <th className="text-right py-2 px-2 font-medium text-gray-600">
+                  Change
+                </th>
+                <th className="text-right py-2 px-2 font-medium text-gray-600">
+                  IRR
+                </th>
+                <th className="text-center py-2 px-2 font-medium text-gray-600 hidden md:table-cell">
+                  Alpha
+                </th>
+                <th className="text-right py-2 px-2 font-medium text-gray-600">
+                  Weight
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...allocationData]
+                .sort((a, b) =>
+                  (groupBy === "sector"
+                    ? compareBySector
+                    : compareByReportCategory)(a.key, b.key),
+                )
+                .map((slice, index) => {
+                  const isExcluded = excludedCategories.has(slice.key)
+                  const convertedValue = convert(slice.value)
+                  const convertedGainOnDay = convert(slice.gainOnDay)
+                  const percentage =
+                    filteredTotal > 0 && !isExcluded
+                      ? (convertedValue / filteredTotal) * 100
+                      : 0
+                  const gainOnDayPositive = convertedGainOnDay >= 0
+
+                  return (
+                    <tr
+                      key={slice.key}
+                      className={`border-b border-gray-100 cursor-pointer hover:bg-gray-50 ${
+                        isExcluded ? "opacity-40" : ""
+                      }`}
+                      onClick={() => handleToggleCategory(slice.key)}
+                    >
+                      <td className="py-2 px-2">
+                        <div className="flex items-center">
+                          <div
+                            className={`w-3 h-3 rounded-sm mr-2 flex-shrink-0 ${isExcluded ? "bg-gray-300" : ""}`}
+                            style={{
+                              backgroundColor: isExcluded
+                                ? undefined
+                                : getColor(slice.key, index),
+                            }}
+                          />
+                          <span
+                            className={
+                              isExcluded
+                                ? "text-gray-400 line-through"
+                                : "text-gray-900"
+                            }
+                          >
+                            {slice.label}
+                          </span>
+                        </div>
+                      </td>
+                      <td
+                        className={`py-2 px-2 text-right tabular-nums ${isExcluded ? "text-gray-400" : "text-gray-900"}`}
+                      >
+                        {effectiveCurrencySymbol}
+                        <FormatValue value={convertedValue} />
+                      </td>
+                      <td
+                        className={`py-2 px-2 text-right tabular-nums ${
+                          isExcluded
+                            ? "text-gray-400"
+                            : gainOnDayPositive
+                              ? "text-green-600"
+                              : "text-red-600"
+                        }`}
+                      >
+                        {gainOnDayPositive && convertedGainOnDay > 0 && "+"}
+                        {effectiveCurrencySymbol}
+                        <FormatValue value={convertedGainOnDay} />
+                      </td>
+                      <td
+                        className={`py-2 px-2 text-right tabular-nums ${
+                          isExcluded
+                            ? "text-gray-400"
+                            : slice.irr >= 0
+                              ? "text-green-600"
+                              : "text-red-600"
+                        }`}
+                      >
+                        {slice.irr >= 0 && slice.irr > 0 && "+"}
+                        {(slice.irr * 100).toFixed(2)}%
+                      </td>
+                      <td
+                        className={`py-2 px-2 hidden md:table-cell ${isExcluded ? "opacity-40" : ""}`}
+                      >
+                        <ProgressBar
+                          value={Math.abs(slice.irr)}
+                          maxValue={0.3}
+                          showLabel={false}
+                          size="sm"
+                          color={isExcluded ? "gray" : getAlphaColor(slice.irr)}
+                        />
+                      </td>
+                      <td
+                        className={`py-2 px-2 text-right tabular-nums ${isExcluded ? "text-gray-400" : "text-gray-600"}`}
+                      >
+                        {isExcluded ? "-" : `${percentage.toFixed(1)}%`}
+                      </td>
+                    </tr>
+                  )
+                })}
+            </tbody>
+            <tfoot>
+              <tr className="border-t-2 border-gray-300 font-medium">
+                <td className="py-2 px-2 text-gray-700">
+                  {excludedCategories.size > 0 ? "Filtered Total" : "Total"}
+                </td>
+                <td className="py-2 px-2 text-right tabular-nums text-gray-900">
+                  {effectiveCurrencySymbol}
+                  <FormatValue value={filteredTotal} />
+                </td>
+                <td className="py-2 px-2 text-right tabular-nums">
+                  {(() => {
+                    const totalGainOnDay = filteredAllocation.reduce(
+                      (sum, slice) => sum + convert(slice.gainOnDay),
+                      0,
+                    )
+                    const isPositive = totalGainOnDay >= 0
+                    return (
+                      <span
+                        className={
+                          isPositive ? "text-green-600" : "text-red-600"
+                        }
+                      >
+                        {isPositive && totalGainOnDay > 0 && "+"}
+                        {effectiveCurrencySymbol}
+                        <FormatValue value={totalGainOnDay} />
+                      </span>
+                    )
+                  })()}
+                </td>
+                <td className="py-2 px-2 text-right tabular-nums">
+                  <span
+                    className={
+                      holdings.totals.irr >= 0
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }
+                  >
+                    {holdings.totals.irr >= 0 && holdings.totals.irr > 0 && "+"}
+                    {(holdings.totals.irr * 100).toFixed(2)}%
+                  </span>
+                </td>
+                <td className="py-2 px-2 hidden md:table-cell" />
+                <td className="py-2 px-2 text-right tabular-nums text-gray-600">
+                  100%
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <p className="text-xs text-gray-400 mt-2">
+          Click row to exclude/include from totals
+        </p>
       </div>
     </div>
   )

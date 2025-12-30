@@ -34,7 +34,10 @@ export default withApiAuthRequired(async function portfoliosById(
           res.status(200).json(defaultPortfolio)
           break
         } else {
-          const response = await fetch(byId, requestInit(accessToken, "GET", req))
+          const response = await fetch(
+            byId,
+            requestInit(accessToken, "GET", req),
+          )
           await handleResponse<Portfolio>(response, res)
           break
         }
@@ -58,7 +61,10 @@ export default withApiAuthRequired(async function portfoliosById(
       }
 
       case "DELETE": {
-        const response = await fetch(byId, requestInit(accessToken, method, req))
+        const response = await fetch(
+          byId,
+          requestInit(accessToken, method, req),
+        )
         await handleResponse<void>(response, res)
         break
       }

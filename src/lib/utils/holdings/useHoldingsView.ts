@@ -3,7 +3,7 @@ import { Holdings, HoldingContract } from "types/beancounter"
 import { calculateHoldings } from "@lib/holdings/calculateHoldings"
 import { sortPositions, SortConfig } from "@lib/holdings/sortHoldings"
 import {
-  transformToAllocationSlices,
+  transformHoldingsToAllocationSlices,
   GroupingMode,
 } from "@lib/allocation/aggregateHoldings"
 import { ViewMode } from "@components/features/holdings/ViewToggle"
@@ -30,7 +30,7 @@ interface UseHoldingsViewResult {
 
   // Computed data
   holdings: Holdings | null
-  allocationData: ReturnType<typeof transformToAllocationSlices>
+  allocationData: ReturnType<typeof transformHoldingsToAllocationSlices>
   allocationTotalValue: number
 }
 
@@ -146,15 +146,15 @@ export function useHoldingsView(
     sortConfig,
   ])
 
-  // Calculate allocation data for allocation view
+  // Calculate allocation data from the already-calculated holdings
+  // This uses the pre-calculated weightedIrr from subTotals for consistency with SubTotal display
   const allocationData = useMemo(() => {
-    if (!holdingContract) return []
-    return transformToAllocationSlices(
-      holdingContract,
-      allocationGroupBy,
+    if (!holdings) return []
+    return transformHoldingsToAllocationSlices(
+      holdings,
       holdingState.valueIn.value,
     )
-  }, [holdingContract, allocationGroupBy, holdingState.valueIn.value])
+  }, [holdings, holdingState.valueIn.value])
 
   const allocationTotalValue = useMemo(() => {
     return allocationData.reduce((sum, slice) => sum + slice.value, 0)

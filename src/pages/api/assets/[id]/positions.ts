@@ -61,7 +61,10 @@ export default withApiAuthRequired(async function getAssetPositions(
 
     // Step 1: Resolve asset and call whereHeld in parallel
     const [assetResponse, whereHeldResponse] = await Promise.all([
-      fetch(`${dataUrl}/assets/${assetId}`, requestInit(accessToken, "GET", req)),
+      fetch(
+        `${dataUrl}/assets/${assetId}`,
+        requestInit(accessToken, "GET", req),
+      ),
       fetch(
         `${dataUrl}/portfolios/asset/${assetId}/${date}`,
         requestInit(accessToken, "GET", req),

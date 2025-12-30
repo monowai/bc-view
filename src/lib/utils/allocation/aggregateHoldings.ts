@@ -1,4 +1,4 @@
-import { HoldingContract, Position } from "types/beancounter"
+import { HoldingContract, Holdings, Position } from "types/beancounter"
 import { ValueIn } from "@components/features/holdings/GroupByOptions"
 import { getReportCategory } from "../categoryMapping"
 
@@ -11,6 +11,8 @@ export interface AllocationSlice {
   value: number
   percentage: number
   color: string
+  gainOnDay: number
+  irr: number
 }
 
 // Color palette for report categories
@@ -72,6 +74,14 @@ function getGroupKey(
   }
 }
 
+interface AggregatedData {
+  label: string
+  value: number
+  gainOnDay: number
+  // For weighted IRR calculation: sum of (marketValue * irr)
+  weightedIrrSum: number
+}
+
 /**
  * Transform aggregated holdings from backend into chart slices.
  * The backend has already aggregated positions across all portfolios.
@@ -85,8 +95,8 @@ export function transformToAllocationSlices(
     return []
   }
 
-  // Aggregate market values by group
-  const aggregated = new Map<string, { label: string; value: number }>()
+  // Aggregate market values, gainOnDay, and IRR by group
+  const aggregated = new Map<string, AggregatedData>()
 
   for (const positionKey of Object.keys(holdingContract.positions)) {
     const position = holdingContract.positions[positionKey]
@@ -96,12 +106,21 @@ export function transformToAllocationSlices(
 
     const { key, label } = getGroupKey(position, groupBy)
     const marketValue = moneyValues.marketValue || 0
+    const gainOnDay = moneyValues.gainOnDay || 0
+    const irr = moneyValues.irr || 0
 
     const existing = aggregated.get(key)
     if (existing) {
       existing.value += marketValue
+      existing.gainOnDay += gainOnDay
+      existing.weightedIrrSum += marketValue * irr
     } else {
-      aggregated.set(key, { label, value: marketValue })
+      aggregated.set(key, {
+        label,
+        value: marketValue,
+        gainOnDay,
+        weightedIrrSum: marketValue * irr,
+      })
     }
   }
 
@@ -113,14 +132,58 @@ export function transformToAllocationSlices(
     return []
   }
 
-  // Create slices with percentages and colors
+  // Create slices with percentages, colors, and weighted IRR
   const slices: AllocationSlice[] = entries.map(([key, data], index) => ({
     key,
     label: data.label,
     value: data.value,
     percentage: (data.value / total) * 100,
     color: getColor(key, index),
+    gainOnDay: data.gainOnDay,
+    irr: data.value > 0 ? data.weightedIrrSum / data.value : 0,
   }))
+
+  // Sort by value descending
+  slices.sort((a, b) => b.value - a.value)
+
+  return slices
+}
+
+/**
+ * Transform Holdings (with pre-calculated holdingGroups) into chart slices.
+ * Uses the already-calculated weightedIrr from subTotals for consistency with SubTotal display.
+ */
+export function transformHoldingsToAllocationSlices(
+  holdings: Holdings,
+  valueIn: ValueIn,
+): AllocationSlice[] {
+  if (!holdings.holdingGroups) {
+    return []
+  }
+
+  const entries = Object.entries(holdings.holdingGroups)
+  const total = entries.reduce(
+    (sum, [, group]) => sum + group.subTotals[valueIn].marketValue,
+    0,
+  )
+
+  if (total === 0) {
+    return []
+  }
+
+  // Create slices using the pre-calculated subTotals (which have correct weightedIrr)
+  const slices: AllocationSlice[] = entries.map(([groupKey, group], index) => {
+    const subTotals = group.subTotals[valueIn]
+    return {
+      key: groupKey,
+      label: groupKey,
+      value: subTotals.marketValue,
+      percentage: (subTotals.marketValue / total) * 100,
+      color: getColor(groupKey, index),
+      gainOnDay: subTotals.gainOnDay,
+      irr: subTotals.weightedIrr, // Use pre-calculated weighted IRR from backend
+    }
+  })
 
   // Sort by value descending
   slices.sort((a, b) => b.value - a.value)

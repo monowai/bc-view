@@ -21,7 +21,10 @@ export default withApiAuthRequired(
       }
 
       const { accessToken } = await getAccessToken(req, res)
-      const response = await fetch(baseUrl, requestInit(accessToken, "POST", req))
+      const response = await fetch(
+        baseUrl,
+        requestInit(accessToken, "POST", req),
+      )
       await handleResponse(response, res)
     } catch (error: unknown) {
       fetchError(res, req, error)
