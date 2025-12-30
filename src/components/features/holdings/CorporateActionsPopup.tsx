@@ -8,6 +8,7 @@ import {
   eventKey,
   simpleFetcher,
 } from "@utils/api/fetchHelper"
+import DateInput from "@components/ui/DateInput"
 import {
   calculateEffectivePayDate,
   canProcessEvent,
@@ -46,18 +47,21 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
     return !isNaN(date.getTime())
   }
 
-  // Use provided toDate or default to today
-  const toDate = isValidDate(toDateProp) ? toDateProp! : today
+  // Calculate initial toDate
+  const initialToDate = isValidDate(toDateProp) ? toDateProp! : today
 
-  // Calculate default fromDate (1 year before toDate)
-  const defaultFromDate = (() => {
-    const date = new Date(toDate)
+  // Calculate initial fromDate (1 year before toDate, or use prop)
+  const initialFromDate = (() => {
+    if (isValidDate(fromDateProp)) return fromDateProp!
+    const date = new Date(initialToDate)
     date.setFullYear(date.getFullYear() - 1)
     return date.toISOString().split("T")[0]
   })()
 
-  // Use provided fromDate or default
-  const fromDate = isValidDate(fromDateProp) ? fromDateProp! : defaultFromDate
+  // Editable date range state
+  const [fromDate, setFromDate] = useState(initialFromDate)
+  const [toDate, setToDate] = useState(initialToDate)
+
   const [isLoadingEvents, setIsLoadingEvents] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [loadSuccess, setLoadSuccess] = useState(false)
@@ -78,11 +82,13 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
   } | null>(null)
 
   // Fetch corporate events from bc-event service
+  const eventUrl = corporateEventsKey(asset.id, fromDate, toDate)
+  console.log(`[CorporateActions] Fetching events for asset: ${asset.id} (${asset.code}), from: ${fromDate}, to: ${toDate}`)
+  console.log(`[CorporateActions] Event URL: ${eventUrl}`)
+
   const { data, error, isLoading, mutate } = useSwr(
-    modalOpen ? corporateEventsKey(asset.id, fromDate, toDate) : null,
-    modalOpen
-      ? simpleFetcher(corporateEventsKey(asset.id, fromDate, toDate))
-      : null,
+    modalOpen ? eventUrl : null,
+    modalOpen ? simpleFetcher(eventUrl) : null,
   )
 
   // Fetch existing portfolio transactions for reconciliation
@@ -98,22 +104,35 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
     setLoadError(null)
     setLoadSuccess(false)
 
+    console.log(`[CorporateActions] Loading events for portfolio: ${portfolioId}, fromDate: ${fromDate}`)
+    console.log(`[CorporateActions] Asset: ${asset.id} (${asset.code})`)
+
     try {
-      const response = await fetch(
-        `/api/corporate-events/load/${portfolioId}/${toDate}`,
-        { method: "POST" },
-      )
+      // Use fromDate so the backend loads events from the start of the user's selected range
+      const loadUrl = `/api/corporate-events/load/${portfolioId}/${fromDate}`
+      console.log(`[CorporateActions] Load URL: ${loadUrl}`)
+      const response = await fetch(loadUrl, { method: "POST" })
+      console.log(`[CorporateActions] Response status: ${response.status}`)
 
       if (!response.ok) {
-        const errorData = await response.json()
-        setLoadError(errorData.message || "Failed to load events")
+        const errorText = await response.text()
+        console.error(`[CorporateActions] Load failed: ${errorText}`)
+        try {
+          const errorData = JSON.parse(errorText)
+          setLoadError(errorData.message || errorData.detail || `Failed to load events (${response.status})`)
+        } catch {
+          setLoadError(`Failed to load events (${response.status})`)
+        }
         return
       }
 
       setLoadSuccess(true)
+      console.log(`[CorporateActions] Load succeeded, refreshing events list`)
       // Refresh the events list
       await mutate()
+      console.log(`[CorporateActions] Events list refreshed`)
     } catch (err) {
+      console.error(`[CorporateActions] Load error:`, err)
       setLoadError(err instanceof Error ? err.message : "Failed to load events")
     } finally {
       setIsLoadingEvents(false)
@@ -274,8 +293,22 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
           </button>
         </div>
 
-        <div className="text-sm text-gray-600 mb-2">
-          {t("corporate.dateRange", { from: fromDate, to: toDate })}
+        <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+          <span>{t("corporate.from", "From")}:</span>
+          <DateInput
+            value={fromDate}
+            onChange={setFromDate}
+            max={toDate}
+            className="text-sm border rounded px-2 py-1 w-36"
+          />
+          <span>{t("corporate.to", "To")}:</span>
+          <DateInput
+            value={toDate}
+            onChange={setToDate}
+            min={fromDate}
+            max={today}
+            className="text-sm border rounded px-2 py-1 w-36"
+          />
         </div>
 
         <div className="bg-blue-50 border border-blue-200 rounded p-3 mb-4 text-sm text-blue-800">
@@ -396,14 +429,11 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
                       <td className="px-4 py-2">
                         {event.trnType === "DIVI" ? (
                           editingEventId === event.id ? (
-                            <input
-                              type="date"
+                            <DateInput
                               value={overridePayDate}
                               min={event.recordDate}
                               max={toDate}
-                              onChange={(e) =>
-                                setOverridePayDate(e.target.value)
-                              }
+                              onChange={setOverridePayDate}
                               className="text-sm border rounded px-2 py-1 w-32"
                               autoFocus
                             />
