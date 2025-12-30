@@ -43,19 +43,21 @@ export const canProcessEvent = (
 }
 
 /**
- * Check if a corporate event has a matching transaction in the portfolio.
+ * Find the matching transaction for a corporate event in the portfolio.
  *
  * Matching strategy:
  * 1. Exact match: transaction.callerRef.batch === event.id (definite match)
  * 2. Fuzzy match: transaction date within ±20 days of event pay date
  *
  * Both conditions also require matching transaction types.
+ *
+ * @returns The matching transaction, or undefined if none found
  */
-export const isEventReconciled = (
+export const getMatchingTransaction = (
   event: CorporateEvent,
   portfolioTransactions: Transaction[],
-): boolean => {
-  return portfolioTransactions.some((trn) => {
+): Transaction | undefined => {
+  return portfolioTransactions.find((trn) => {
     // Must match transaction type
     if (trn.trnType !== event.trnType) return false
 
@@ -72,6 +74,22 @@ export const isEventReconciled = (
     const trnDate = new Date(trn.tradeDate)
     return trnDate >= windowStart && trnDate <= windowEnd
   })
+}
+
+/**
+ * Check if a corporate event has a matching transaction in the portfolio.
+ *
+ * Matching strategy:
+ * 1. Exact match: transaction.callerRef.batch === event.id (definite match)
+ * 2. Fuzzy match: transaction date within ±20 days of event pay date
+ *
+ * Both conditions also require matching transaction types.
+ */
+export const isEventReconciled = (
+  event: CorporateEvent,
+  portfolioTransactions: Transaction[],
+): boolean => {
+  return getMatchingTransaction(event, portfolioTransactions) !== undefined
 }
 
 /**

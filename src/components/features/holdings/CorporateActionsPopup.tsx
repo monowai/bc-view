@@ -11,7 +11,7 @@ import {
 import {
   calculateEffectivePayDate,
   canProcessEvent,
-  isEventReconciled,
+  getMatchingTransaction,
   getMissingProcessableEvents,
   filterEventsForOpenPosition,
   sortEventsByRecordDateDesc,
@@ -261,7 +261,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
         className="fixed inset-0 bg-black opacity-50"
         onClick={onClose}
       ></div>
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-3xl mx-auto p-6 z-50 max-h-[80vh] overflow-hidden flex flex-col">
+      <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl mx-auto p-6 z-50 max-h-[80vh] overflow-hidden flex flex-col">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">
             {t("corporate.title")} - {asset.code}
@@ -324,6 +324,12 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
                     {t("corporate.effectiveDate")}
                     <i className="fas fa-info-circle ml-1 text-xs text-gray-400"></i>
                   </th>
+                  <th
+                    className="px-4 py-2 text-left"
+                    title={t("corporate.trnDate.hint")}
+                  >
+                    {t("corporate.trnDate")}
+                  </th>
                   <th className="px-4 py-2 text-right">
                     {t("corporate.rate")}
                   </th>
@@ -337,14 +343,16 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
               </thead>
               <tbody>
                 {displayEvents.map((event: CorporateEvent) => {
-                  const reconciled = isEventReconciled(
+                  const matchingTrn = getMatchingTransaction(
                     event,
                     portfolioTransactions,
                   )
+                  const reconciled = matchingTrn !== undefined
+                  const effectiveDate = calculateEffectivePayDate(event)
                   return (
                     <tr
                       key={event.id}
-                      className={`border-t hover:bg-gray-50 transition-colors ${
+                      className={`border-t hover:bg-gray-50 transition-colors text-sm ${
                         reconciled ? "bg-green-50" : ""
                       }`}
                     >
@@ -371,6 +379,21 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
                       </td>
                       <td className="px-4 py-2">{event.recordDate}</td>
                       <td className="px-4 py-2">
+                        <span
+                          className={
+                            canProcessEvent(event, toDate)
+                              ? "text-green-600"
+                              : "text-orange-500"
+                          }
+                          title={t("corporate.effectiveDate.hint")}
+                        >
+                          {effectiveDate}
+                          {!canProcessEvent(event, toDate) && (
+                            <i className="fas fa-clock ml-1 text-xs"></i>
+                          )}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2">
                         {event.trnType === "DIVI" ? (
                           editingEventId === event.id ? (
                             <input
@@ -384,25 +407,29 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
                               className="text-sm border rounded px-2 py-1 w-32"
                               autoFocus
                             />
+                          ) : reconciled && matchingTrn ? (
+                            <button
+                              onClick={() => {
+                                setEditingEventId(event.id)
+                                setOverridePayDate(matchingTrn.tradeDate)
+                              }}
+                              className="text-left text-green-600 hover:underline"
+                              title={t("corporate.trnDate.clickToEdit")}
+                            >
+                              {matchingTrn.tradeDate}
+                              <i className="fas fa-pencil-alt ml-1 text-xs opacity-50"></i>
+                            </button>
                           ) : (
                             <button
                               onClick={() => handleEditPayDate(event)}
-                              className={`text-left hover:underline ${
-                                canProcessEvent(event, toDate)
-                                  ? "text-green-600"
-                                  : "text-orange-500"
-                              }`}
-                              title={t("corporate.payDate.clickToEdit")}
+                              className="text-left text-gray-500 hover:text-blue-600 hover:underline"
+                              title={t("corporate.trnDate.clickToSet")}
                             >
-                              {calculateEffectivePayDate(event)}
-                              {!canProcessEvent(event, toDate) && (
-                                <i className="fas fa-clock ml-1 text-xs"></i>
-                              )}
-                              <i className="fas fa-pencil-alt ml-1 text-xs opacity-50"></i>
+                              <i className="fas fa-pencil-alt text-xs"></i>
                             </button>
                           )
                         ) : (
-                          event.recordDate
+                          <span className="text-gray-400">-</span>
                         )}
                       </td>
                       <td className="px-4 py-2 text-right">
