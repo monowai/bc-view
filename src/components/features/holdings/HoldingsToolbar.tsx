@@ -115,32 +115,7 @@ export const HoldingsToolbar: React.FC<HoldingsToolbarProps> = ({
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-      {/* GroupBy Controls - Left side */}
-      {!hideGroupBy && (
-        <div className="flex items-center space-x-0.5 bg-gray-100 rounded-lg p-0.5">
-          {groupOptions.values.map((option) => (
-            <button
-              key={option.value}
-              onClick={() => holdingState.setGroupBy(option)}
-              className={`flex items-center space-x-1 px-2 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                holdingState.groupBy.value === option.value
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-              aria-label={option.label}
-              title={option.label}
-            >
-              <GroupByIcon groupBy={option.value} />
-              <span className="hidden md:inline text-xs">{option.label}</span>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Spacer when GroupBy is hidden */}
-      {hideGroupBy && <div />}
-
-      {/* ViewToggle - Right side */}
+      {/* ViewToggle - Left side */}
       <div className="flex items-center space-x-0.5 bg-gray-100 rounded-lg p-0.5">
         <button
           onClick={() => onViewModeChange("summary")}
@@ -257,6 +232,28 @@ export const HoldingsToolbar: React.FC<HoldingsToolbarProps> = ({
           </span>
         </button>
       </div>
+
+      {/* GroupBy Controls - Right side */}
+      {!hideGroupBy && (
+        <div className="flex items-center space-x-0.5 bg-gray-100 rounded-lg p-0.5">
+          {groupOptions.values.map((option) => (
+            <button
+              key={option.value}
+              onClick={() => holdingState.setGroupBy(option)}
+              className={`flex items-center space-x-1 px-2 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                holdingState.groupBy.value === option.value
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+              aria-label={option.label}
+              title={option.label}
+            >
+              <GroupByIcon groupBy={option.value} />
+              <span className="hidden md:inline text-xs">{option.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

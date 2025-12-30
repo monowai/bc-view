@@ -6,7 +6,7 @@ import { Controller, useForm } from "react-hook-form"
 import { useHoldingState } from "@lib/holdings/holdingState"
 import Link from "next/link"
 import { getTodayDate } from "@lib/dateUtils"
-import ViewToggle, { ViewMode } from "./ViewToggle"
+import { ViewMode } from "./ViewToggle"
 
 export const headers = [
   {
@@ -56,8 +56,6 @@ interface SummaryHeaderProps {
 // Mobile/Tablet header - must be rendered OUTSIDE the table element
 export function SummaryHeaderMobile({
   portfolio,
-  viewMode,
-  onViewModeChange,
   isAggregated = false,
 }: SummaryHeaderProps): ReactElement {
   const { t } = useTranslation("common")
@@ -103,16 +101,6 @@ export function SummaryHeaderMobile({
             )}
           </h3>
 
-          {/* View toggle buttons - center */}
-          {viewMode && onViewModeChange && (
-            <div className="flex-shrink-0">
-              <ViewToggle
-                viewMode={viewMode}
-                onViewModeChange={onViewModeChange}
-              />
-            </div>
-          )}
-
           {/* Date picker - right */}
           <form onSubmit={handleSubmit(onSubmit)} className="flex-shrink-0">
             <Controller
@@ -146,14 +134,6 @@ export function SummaryHeaderMobile({
               )}
             </h3>
           </div>
-          {viewMode && onViewModeChange && (
-            <div className="flex-shrink-0">
-              <ViewToggle
-                viewMode={viewMode}
-                onViewModeChange={onViewModeChange}
-              />
-            </div>
-          )}
           <form onSubmit={handleSubmit(onSubmit)}>
             <Controller
               name="date"

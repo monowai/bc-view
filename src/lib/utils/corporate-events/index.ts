@@ -1,6 +1,7 @@
 export {
   calculateEffectivePayDate,
   canProcessEvent,
+  getMatchingTransaction,
   isEventReconciled,
   isClosedBeforeEvent,
   isPositionClosedBeforeEvent,
