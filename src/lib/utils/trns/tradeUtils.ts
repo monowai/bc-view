@@ -84,6 +84,7 @@ export interface TradeImport {
   fees: number
   cashAmount: number
   comments: string
+  status: string
 }
 
 export const calculateTradeAmount = (
@@ -172,6 +173,9 @@ export const convertToTradeImport = (data: TradeFormData): TradeImport => {
   const qty: number =
     data.market === "CASH" ? (data.cashAmount ?? 0) : (data.quantity ?? 0)
 
+  // Default to SETTLED if status not provided
+  const status = data.status?.value ?? "SETTLED"
+
   return {
     batchId,
     type: data.type.value,
@@ -185,19 +189,22 @@ export const convertToTradeImport = (data: TradeFormData): TradeImport => {
     fees: data.fees,
     cashAmount,
     comments,
+    status,
   }
 }
 
 // Updated getTradeRow to use TradeImport object
+// CSV columns: Batch,CallerId,Type,Market,Code,Name,CashAccount,CashCurrency,Date,Quantity,BaseRate,TradeCurrency,Price,Fees,PortfolioRate,TradeAmount,CashAmount,Comments,Status
 export const getTradeRow = (data: TradeFormData): string => {
   const tradeImport = convertToTradeImport(data)
-  return `${tradeImport.batchId},,${tradeImport.type},${tradeImport.market},${tradeImport.asset},,,${tradeImport.cashCurrency},${tradeImport.tradeDate},${tradeImport.quantity},,${tradeImport.tradeCurrency},${tradeImport.price},${tradeImport.fees},,,${tradeImport.cashAmount},${tradeImport.comments}`
+  return `${tradeImport.batchId},,${tradeImport.type},${tradeImport.market},${tradeImport.asset},,,${tradeImport.cashCurrency},${tradeImport.tradeDate},${tradeImport.quantity},,${tradeImport.tradeCurrency},${tradeImport.price},${tradeImport.fees},,,${tradeImport.cashAmount},${tradeImport.comments},${tradeImport.status}`
 }
 
 // Updated getCashRow to use TradeImport object
+// CSV columns: Batch,CallerId,Type,Market,Code,Name,CashAccount,CashCurrency,Date,Quantity,BaseRate,TradeCurrency,Price,Fees,PortfolioRate,TradeAmount,CashAmount,Comments,Status
 export const getCashRow = (data: TradeFormData): string => {
   const tradeImport = convertToTradeImport(data)
-  return `${tradeImport.batchId},,${tradeImport.type},${tradeImport.market},${tradeImport.asset},,,${tradeImport.cashCurrency},${tradeImport.tradeDate},${tradeImport.cashAmount},,${tradeImport.tradeCurrency},${tradeImport.price},${tradeImport.fees},,,${tradeImport.cashAmount},${tradeImport.comments}`
+  return `${tradeImport.batchId},,${tradeImport.type},${tradeImport.market},${tradeImport.asset},,,${tradeImport.cashCurrency},${tradeImport.tradeDate},${tradeImport.cashAmount},,${tradeImport.tradeCurrency},${tradeImport.price},${tradeImport.fees},,,${tradeImport.cashAmount},${tradeImport.comments},${tradeImport.status}`
 }
 
 export const convert = (tradeFormData: TradeFormData): string => {

@@ -31,6 +31,8 @@ const TradeTypeValues = [
   "FX",
 ] as const
 
+const StatusValues = ["SETTLED", "CONFIRMED", "PROPOSED"] as const
+
 // Extended option that includes market info for accounts
 interface AssetOption extends CurrencyOption {
   market?: string // CASH for currencies, PRIVATE for accounts
@@ -39,6 +41,7 @@ interface AssetOption extends CurrencyOption {
 
 const defaultValues = {
   type: { value: "DEPOSIT", label: "DEPOSIT" },
+  status: { value: "SETTLED", label: "SETTLED" },
   asset: "USD",
   market: "CASH",
   tradeDate: new Date().toISOString().split("T")[0],
@@ -59,6 +62,13 @@ const cashSchema = yup.object().shape({
     .shape({
       value: yup.string().required().default(defaultValues.type.value),
       label: yup.string().required().default(defaultValues.type.label),
+    })
+    .required(),
+  status: yup
+    .object()
+    .shape({
+      value: yup.string().required().default(defaultValues.status.value),
+      label: yup.string().required().default(defaultValues.status.label),
     })
     .required(),
   asset: yup.string().required(),
@@ -274,6 +284,34 @@ const CashInputForm: React.FC<{
                           value,
                           label: value,
                         }))}
+                      />
+                    ),
+                  },
+                  {
+                    name: "status",
+                    label: t("trn.status"),
+                    component: (
+                      <Controller
+                        name="status"
+                        control={control}
+                        render={({ field }) => (
+                          <select
+                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
+                            value={field.value.value}
+                            onChange={(e) => {
+                              field.onChange({
+                                value: e.target.value,
+                                label: e.target.value,
+                              })
+                            }}
+                          >
+                            {StatusValues.map((status) => (
+                              <option key={status} value={status}>
+                                {status}
+                              </option>
+                            ))}
+                          </select>
+                        )}
                       />
                     ),
                   },

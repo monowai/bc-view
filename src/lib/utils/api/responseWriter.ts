@@ -2,21 +2,23 @@ import { NextApiRequest, NextApiResponse } from "next"
 import { BcApiError } from "@components/errors/bcApiError"
 
 export async function handleErrors(response: Response): Promise<void> {
-  const result: BcApiError = await response.json()
+  const result = await response.json()
+  // Handle RFC 7807 problem detail format (detail) and legacy format (message)
+  const errorMessage = result.detail || result.message || response.statusText
   if (response.status == 401 || response.status == 403) {
     throw new BcApiError(
       response.status,
       "Auth error",
       response.statusText,
-      result.path,
+      result.path || result.instance,
     )
   } else {
     throw new BcApiError(
       response.status,
-      result.message,
+      errorMessage,
       response.statusText,
-      result.path,
-      result.message,
+      result.path || result.instance,
+      errorMessage,
     )
   }
 }

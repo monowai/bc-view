@@ -14,6 +14,10 @@ export function getRetireUrl(path: string = ""): string {
   return `${process.env.BC_RETIRE}${path}`
 }
 
+export function getRebalanceUrl(path: string = ""): string {
+  return `${process.env.BC_REBALANCE}${path}`
+}
+
 export function getTrnTopic(): string {
   return `${process.env.KAFKA_TOPIC_TRN}`
 }
@@ -71,5 +75,6 @@ export function getTracePropagationTargets(): (string | RegExp)[] {
   if (process.env.BC_POSITION) targets.push(process.env.BC_POSITION)
   if (process.env.BC_EVENT) targets.push(process.env.BC_EVENT)
   if (process.env.BC_RETIRE) targets.push(process.env.BC_RETIRE)
+  if (process.env.BC_REBALANCE) targets.push(process.env.BC_REBALANCE)
   return targets
 }

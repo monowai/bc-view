@@ -400,14 +400,27 @@ export default withPageAuthRequired(function Portfolios({
               </select>
             )}
             {selectedPortfolios.size > 0 && (
-              <button
-                className="bg-amber-500 text-white py-2 px-4 rounded hover:bg-amber-600 transition-colors flex items-center"
-                onClick={handleViewAggregated}
-              >
-                <i className="fas fa-layer-group mr-2"></i>
-                {t("portfolios.viewHoldings", "View Holdings")} (
-                {selectedPortfolios.size})
-              </button>
+              <>
+                <button
+                  className="bg-amber-500 text-white py-2 px-4 rounded hover:bg-amber-600 transition-colors flex items-center"
+                  onClick={handleViewAggregated}
+                >
+                  <i className="fas fa-layer-group mr-2"></i>
+                  {t("portfolios.viewHoldings", "View Holdings")} (
+                  {selectedPortfolios.size})
+                </button>
+                <button
+                  className="bg-indigo-500 text-white py-2 px-4 rounded hover:bg-indigo-600 transition-colors flex items-center"
+                  onClick={() => {
+                    const codes = Array.from(selectedPortfolios).join(",")
+                    router.push(`/rebalance/wizard?portfolios=${encodeURIComponent(codes)}`)
+                  }}
+                >
+                  <i className="fas fa-balance-scale mr-2"></i>
+                  {t("portfolios.rebalance", "Rebalance")} (
+                  {selectedPortfolios.size})
+                </button>
+              </>
             )}
           </div>
           <PortfolioActions onImportClick={handleImportClick} />

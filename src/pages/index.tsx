@@ -144,6 +144,32 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
               </div>
             </Link>
 
+            {/* Investment Models */}
+            <Link href="/rebalance/models" className="group">
+              <div className="bg-linear-to-br from-violet-50 to-purple-50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-8 border border-violet-100 hover:border-violet-200 relative overflow-hidden">
+                <div className="flex items-center mb-4">
+                  <div className="p-3 bg-violet-100 rounded-lg mr-4 group-hover:bg-violet-200 transition-colors">
+                    <i className="fas fa-balance-scale text-2xl text-violet-600"></i>
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900">
+                    {t("home.models", "Investment Models")}
+                  </h3>
+                </div>
+                <p className="text-gray-600 mb-4">
+                  {t(
+                    "home.modelsDescription",
+                    "Create target allocation models and rebalance your portfolios to match your investment objectives.",
+                  )}
+                </p>
+                <div className="flex items-center text-violet-600 group-hover:text-violet-700">
+                  <span className="font-medium">
+                    {t("home.manageModels", "Manage Models")}
+                  </span>
+                  <i className="fas fa-arrow-right ml-2 transform group-hover:translate-x-1 transition-transform"></i>
+                </div>
+              </div>
+            </Link>
+
             {/* AI Insights (Coming Soon) */}
             <div className="bg-linear-to-br from-indigo-50 to-purple-50 rounded-2xl shadow-lg p-8 border border-indigo-100 relative overflow-hidden">
               <div className="absolute top-4 right-4">

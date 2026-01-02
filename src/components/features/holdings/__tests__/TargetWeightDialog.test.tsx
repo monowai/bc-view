@@ -122,8 +122,8 @@ describe("TargetWeightDialog Component", () => {
         />,
       )
 
-      const input = screen.getByRole("spinbutton")
-      expect(input).toHaveValue(5)
+      const input = screen.getByRole("textbox")
+      expect(input).toHaveValue("5")
     })
   })
 
@@ -142,8 +142,9 @@ describe("TargetWeightDialog Component", () => {
         />,
       )
 
-      const input = screen.getByRole("spinbutton")
+      const input = screen.getByRole("textbox")
       fireEvent.change(input, { target: { value: "10" } })
+      fireEvent.blur(input) // MathInput evaluates on blur
 
       await waitFor(() => {
         // Target 10% of $100,000 = $10,000
@@ -173,8 +174,9 @@ describe("TargetWeightDialog Component", () => {
         />,
       )
 
-      const input = screen.getByRole("spinbutton")
+      const input = screen.getByRole("textbox")
       fireEvent.change(input, { target: { value: "5" } })
+      fireEvent.blur(input) // MathInput evaluates on blur
 
       await waitFor(() => {
         // Target 5% of $100,000 = $5,000
@@ -219,8 +221,9 @@ describe("TargetWeightDialog Component", () => {
         />,
       )
 
-      const input = screen.getByRole("spinbutton")
+      const input = screen.getByRole("textbox")
       fireEvent.change(input, { target: { value: "5.5" } })
+      fireEvent.blur(input) // MathInput evaluates on blur
 
       await waitFor(() => {
         // 0.5% of $100,000 = $500
@@ -285,8 +288,9 @@ describe("TargetWeightDialog Component", () => {
         />,
       )
 
-      const input = screen.getByRole("spinbutton")
+      const input = screen.getByRole("textbox")
       fireEvent.change(input, { target: { value: "10" } })
+      fireEvent.blur(input) // MathInput evaluates on blur
 
       await waitFor(() => {
         fireEvent.click(screen.getByText("Proceed"))
@@ -337,8 +341,9 @@ describe("TargetWeightDialog Component", () => {
         />,
       )
 
-      const input = screen.getByRole("spinbutton")
+      const input = screen.getByRole("textbox")
       fireEvent.change(input, { target: { value: "0" } })
+      fireEvent.blur(input) // MathInput evaluates on blur
 
       await waitFor(() => {
         // Should sell all shares - current value is 5% of $100k = $5000
@@ -348,7 +353,7 @@ describe("TargetWeightDialog Component", () => {
       })
     })
 
-    it("should not allow negative target weight", () => {
+    it("should clamp negative target weight to 0", async () => {
       render(
         <TargetWeightDialog
           modalOpen={true}
@@ -362,11 +367,16 @@ describe("TargetWeightDialog Component", () => {
         />,
       )
 
-      const input = screen.getByRole("spinbutton")
-      expect(input).toHaveAttribute("min", "0")
+      const input = screen.getByRole("textbox")
+      fireEvent.change(input, { target: { value: "-10" } })
+      fireEvent.blur(input) // MathInput evaluates on blur
+
+      await waitFor(() => {
+        expect(input).toHaveValue("0")
+      })
     })
 
-    it("should not allow target weight above 100", () => {
+    it("should clamp target weight above 100 to 100", async () => {
       render(
         <TargetWeightDialog
           modalOpen={true}
@@ -380,8 +390,13 @@ describe("TargetWeightDialog Component", () => {
         />,
       )
 
-      const input = screen.getByRole("spinbutton")
-      expect(input).toHaveAttribute("max", "100")
+      const input = screen.getByRole("textbox")
+      fireEvent.change(input, { target: { value: "150" } })
+      fireEvent.blur(input) // MathInput evaluates on blur
+
+      await waitFor(() => {
+        expect(input).toHaveValue("100")
+      })
     })
   })
 })

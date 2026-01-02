@@ -1,6 +1,8 @@
 import React, { useState } from "react"
 import { Asset } from "types/beancounter"
 import { useTranslation } from "next-i18next"
+import MathInput from "@components/ui/MathInput"
+import DateInput from "@components/ui/DateInput"
 
 // Extract display code without owner prefix (e.g., "userId.WISE" -> "WISE")
 function getDisplayCode(code: string): string {
@@ -75,10 +77,9 @@ export default function SetPriceDialog({
             <label className="block text-sm font-medium text-gray-700 mb-1">
               {t("price.date")}
             </label>
-            <input
-              type="date"
+            <DateInput
               value={date}
-              onChange={(e) => setDate(e.target.value)}
+              onChange={setDate}
               className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-green-500 focus:border-green-500"
             />
           </div>
@@ -88,12 +89,9 @@ export default function SetPriceDialog({
               {t("price.value")} (
               {asset.priceSymbol || asset.market?.currency?.code || "USD"})
             </label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
+            <MathInput
+              value={price ? parseFloat(price) : 0}
+              onChange={(value) => setPrice(String(value))}
               placeholder={t("price.value.hint")}
               className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-green-500 focus:border-green-500"
             />

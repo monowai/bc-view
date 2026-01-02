@@ -14,6 +14,8 @@ export type TrnType =
   | "REDUCE"
   | "BALANCE"
 
+export type TrnStatus = "CONFIRMED" | "PROPOSED" | "SETTLED"
+
 export interface QuickSellData {
   asset: string
   market: string
@@ -241,6 +243,7 @@ interface TrnInput {
 
 interface TradeFormData {
   type: { value: string; label: string }
+  status?: { value: string; label: string }
   asset: string
   market: string
   tradeDate: string
@@ -266,6 +269,7 @@ interface Transaction {
   id: string
   callerRef: CallerRef
   trnType: TrnType
+  status: TrnStatus
   portfolio: Portfolio
   asset: Asset
   tradeDate: string

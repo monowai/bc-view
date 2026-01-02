@@ -7,6 +7,7 @@ import { useHoldingState } from "@lib/holdings/holdingState"
 import Link from "next/link"
 import { getTodayDate } from "@lib/dateUtils"
 import { ViewMode } from "./ViewToggle"
+import DateInput from "@components/ui/DateInput"
 
 export const headers = [
   {
@@ -75,9 +76,9 @@ export function SummaryHeaderMobile({
   )
 
   const handleDateChange = useCallback(
-    (field: any) => (event: React.ChangeEvent<HTMLInputElement>) => {
-      field.onChange(event)
-      const date = new Date(event.target.value)
+    (field: any) => (dateValue: string) => {
+      field.onChange(dateValue)
+      const date = new Date(dateValue)
       if (!isNaN(date.getTime())) {
         handleSubmit(onSubmit)()
       }
@@ -107,12 +108,10 @@ export function SummaryHeaderMobile({
               name="date"
               control={control}
               render={({ field }) => (
-                <input
-                  {...field}
-                  type="date"
-                  defaultValue={getTodayDate(holdingState.asAt)}
-                  className="input text-xs w-28"
+                <DateInput
+                  value={field.value || getTodayDate(holdingState.asAt)}
                   onChange={handleDateChange(field)}
+                  className="input text-xs w-28"
                 />
               )}
             />
@@ -139,12 +138,10 @@ export function SummaryHeaderMobile({
               name="date"
               control={control}
               render={({ field }) => (
-                <input
-                  {...field}
-                  type="date"
-                  defaultValue={getTodayDate(holdingState.asAt)}
-                  className="input text-sm"
+                <DateInput
+                  value={field.value || getTodayDate(holdingState.asAt)}
                   onChange={handleDateChange(field)}
+                  className="input text-sm"
                 />
               )}
             />
@@ -271,9 +268,9 @@ export default function SummaryHeader({
   )
 
   const handleDateChange = useCallback(
-    (field: any) => (event: React.ChangeEvent<HTMLInputElement>) => {
-      field.onChange(event)
-      const date = new Date(event.target.value)
+    (field: any) => (dateValue: string) => {
+      field.onChange(dateValue)
+      const date = new Date(dateValue)
       if (!isNaN(date.getTime())) {
         handleSubmit(onSubmit)()
       }
@@ -320,12 +317,10 @@ export default function SummaryHeader({
               name="date"
               control={control}
               render={({ field }) => (
-                <input
-                  {...field}
-                  type="date"
-                  defaultValue={getTodayDate(holdingState.asAt)}
-                  className="input text-xs md:text-sm font-medium"
+                <DateInput
+                  value={field.value || getTodayDate(holdingState.asAt)}
                   onChange={handleDateChange(field)}
+                  className="input text-xs md:text-sm font-medium"
                 />
               )}
             />

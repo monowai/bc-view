@@ -7,6 +7,7 @@ import {
   calculateCashAdjustment,
   CashBalanceAdjustment,
 } from "@lib/trns/tradeUtils"
+import MathInput from "@components/ui/MathInput"
 
 interface AssetPosition {
   portfolio: Portfolio
@@ -260,15 +261,14 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
                       })}
                     </td>
                     <td className="px-4 py-3">
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={entry.targetBalance}
-                        onChange={(e) =>
-                          handleBalanceChange(
-                            entry.portfolio.id,
-                            e.target.value,
-                          )
+                      <MathInput
+                        value={
+                          entry.targetBalance
+                            ? parseFloat(entry.targetBalance)
+                            : 0
+                        }
+                        onChange={(value) =>
+                          handleBalanceChange(entry.portfolio.id, String(value))
                         }
                         className="w-full text-right border-gray-300 rounded-md shadow-sm px-2 py-1 border focus:ring-blue-500 focus:border-blue-500"
                         disabled={isSubmitting || submitSuccess}

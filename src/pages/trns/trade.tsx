@@ -43,8 +43,11 @@ const TradeTypeValues = [
   "SPLIT",
 ] as const
 
+const StatusValues = ["SETTLED", "CONFIRMED", "PROPOSED"] as const
+
 const defaultValues = {
   type: { value: "BUY", label: "BUY" },
+  status: { value: "SETTLED", label: "SETTLED" },
   asset: "",
   market: "US",
   tradeDate: new Date().toISOString().split("T")[0],
@@ -65,6 +68,13 @@ const schema = yup.object().shape({
     .shape({
       value: yup.string().required().default(defaultValues.type.value),
       label: yup.string().required().default(defaultValues.type.label),
+    })
+    .required(),
+  status: yup
+    .object()
+    .shape({
+      value: yup.string().required().default(defaultValues.status.value),
+      label: yup.string().required().default(defaultValues.status.label),
     })
     .required(),
   asset: yup.string().required(),
@@ -463,6 +473,34 @@ const TradeInputForm: React.FC<{
                     ),
                   },
                   {
+                    name: "status",
+                    label: t("trn.status"),
+                    component: (
+                      <Controller
+                        name="status"
+                        control={control}
+                        render={({ field }) => (
+                          <select
+                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
+                            value={field.value.value}
+                            onChange={(e) => {
+                              field.onChange({
+                                value: e.target.value,
+                                label: e.target.value,
+                              })
+                            }}
+                          >
+                            {StatusValues.map((status) => (
+                              <option key={status} value={status}>
+                                {status}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      />
+                    ),
+                  },
+                  {
                     name: "tradeDate",
                     label: t("trn.tradeDate"),
                     component: (
@@ -596,13 +634,10 @@ const TradeInputForm: React.FC<{
                     label: t("trn.invest.value", "Invest Value"),
                     component: (
                       <div className="relative">
-                        <input
-                          type="number"
-                          step="100"
-                          min="0"
-                          value={tradeValue}
-                          onChange={(e) =>
-                            handleTradeValueChange(e.target.value)
+                        <MathInput
+                          value={tradeValue ? parseFloat(tradeValue) : 0}
+                          onChange={(value) =>
+                            handleTradeValueChange(String(value))
                           }
                           placeholder={
                             price > 0
@@ -724,16 +759,11 @@ const TradeInputForm: React.FC<{
                       <span className="text-sm font-medium text-purple-800">
                         {t("rebalance.targetWeight")}:
                       </span>
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.1"
-                        value={targetWeight}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value)
-                          if (e.target.value === "" || val >= 0) {
-                            handleTargetWeightChange(e.target.value)
+                      <MathInput
+                        value={targetWeight ? parseFloat(targetWeight) : 0}
+                        onChange={(value) => {
+                          if (value >= 0) {
+                            handleTargetWeightChange(String(value))
                           }
                         }}
                         placeholder={currentPositionWeight.toFixed(1)}

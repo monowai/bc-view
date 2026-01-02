@@ -1,10 +1,14 @@
 import React, { useState, useEffect, useCallback } from "react"
+import { useRouter } from "next/router"
 import TradeInputForm from "@pages/trns/trade"
 import CashInputForm from "@pages/trns/cash"
 import CopyPopup from "@components/ui/CopyPopup"
+import CreateModelFromHoldingsDialog from "@components/features/rebalance/models/CreateModelFromHoldingsDialog"
+import SelectPlanDialog from "@components/features/rebalance/execution/SelectPlanDialog"
 import { HoldingContract, Holdings, QuickSellData } from "types/beancounter"
 import { ViewMode } from "./ViewToggle"
 import { AllocationSlice } from "@lib/allocation/aggregateHoldings"
+import { ModelDto, PlanDto } from "types/rebalance"
 
 // Summary columns available for copying
 const SUMMARY_COLUMNS = [
@@ -43,10 +47,13 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
   allocationData = [],
   holdings,
 }) => {
+  const router = useRouter()
   const [tradeModalOpen, setTradeModalOpen] = useState(false)
   const [cashModalOpen, setCashModalOpen] = useState(false)
   const [copyModalOpen, setCopyModalOpen] = useState(false)
   const [summaryCopyModalOpen, setSummaryCopyModalOpen] = useState(false)
+  const [selectPlanModalOpen, setSelectPlanModalOpen] = useState(false)
+  const [createModelModalOpen, setCreateModelModalOpen] = useState(false)
   const [selectedSummaryColumns, setSelectedSummaryColumns] = useState<
     SummaryColumn[]
   >(DEFAULT_SUMMARY_COLUMNS)
@@ -206,6 +213,15 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
         <i className="fas fa-dollar-sign mr-2"></i>
         Add Cash
       </button>
+      {!emptyHoldings && (
+        <button
+          className="mobile-portrait:hidden w-full sm:w-auto bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center"
+          onClick={() => setSelectPlanModalOpen(true)}
+        >
+          <i className="fas fa-balance-scale mr-2"></i>
+          Rebalance
+        </button>
+      )}
       <TradeInputForm
         portfolio={holdingResults.portfolio}
         modalOpen={tradeModalOpen}
@@ -265,6 +281,36 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
             </div>
           </div>
         </div>
+      )}
+      {/* Select Plan Dialog for Rebalancing */}
+      <SelectPlanDialog
+        modalOpen={selectPlanModalOpen}
+        portfolioId={holdingResults.portfolio.id}
+        onClose={() => setSelectPlanModalOpen(false)}
+        onSelectPlan={(model: ModelDto, plan: PlanDto) => {
+          setSelectPlanModalOpen(false)
+          const source = encodeURIComponent(router.asPath)
+          router.push(
+            `/rebalance/execute?planId=${plan.id}&modelId=${model.id}&portfolios=${holdingResults.portfolio.code}&source=${source}`
+          )
+        }}
+        onCreateNew={() => {
+          setSelectPlanModalOpen(false)
+          setCreateModelModalOpen(true)
+        }}
+      />
+      {/* Create Model from Holdings Dialog */}
+      {createModelModalOpen && holdings && (
+        <CreateModelFromHoldingsDialog
+          modalOpen={createModelModalOpen}
+          holdings={holdings}
+          portfolioCode={holdingResults.portfolio.code}
+          onClose={() => setCreateModelModalOpen(false)}
+          onSuccess={(model) => {
+            setCreateModelModalOpen(false)
+            router.push(`/rebalance/models/${model.id}`)
+          }}
+        />
       )}
     </div>
   )
