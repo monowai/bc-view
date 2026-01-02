@@ -60,8 +60,8 @@ const getCellClasses = (headerIndex: number): string => {
   // Reduce padding for mobile-visible columns to maximize space
   const isChangeColumn = headerIndex === 1
   const isMarketValueColumn = headerIndex === 5
-  const isWeightColumn = headerIndex === 6
-  const isIrrColumn = headerIndex === 10
+  const isIrrColumn = headerIndex === 6
+  const isWeightColumn = headerIndex === 10
 
   let padding
   if (isChangeColumn || isMarketValueColumn || isIrrColumn || isWeightColumn) {
@@ -458,6 +458,53 @@ export default function Rows({
               </Link>
             </td>
             <td className={getCellClasses(6)}>
+              {!isCashRelated(asset) && (
+                <span
+                  className={`relative group ${
+                    moneyValues[valueIn].irr < 0
+                      ? "text-red-500"
+                      : moneyValues[valueIn].irr > 0
+                        ? "text-green-500"
+                        : ""
+                  }`}
+                >
+                  <FormatValue
+                    value={Math.abs(moneyValues[valueIn].irr)}
+                    multiplier={100}
+                  />
+                  {"%"}
+                  <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full mb-1 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap z-50">
+                    ROI: {(Math.abs(moneyValues[valueIn].roi) * 100).toFixed(2)}
+                    %
+                  </span>
+                </span>
+              )}
+            </td>
+            <td className={getCellClasses(7)}>
+              <span className="relative group">
+                <Link
+                  href={`/trns/events`}
+                  as={`/trns/events/${portfolio.id}/${asset.id}`}
+                  className="text-blue-600 hover:text-blue-800"
+                >
+                  <FormatValue
+                    value={convert(moneyValues[valueIn].dividends)}
+                  />
+                </Link>
+                <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full mb-1 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap z-50">
+                  Last Event: {dateValues?.lastDividend || "N/A"}
+                </span>
+              </span>
+            </td>
+            <td className={getCellClasses(8)}>
+              <FormatValue
+                value={convert(moneyValues[valueIn].unrealisedGain)}
+              />
+            </td>
+            <td className={getCellClasses(9)}>
+              <FormatValue value={convert(moneyValues[valueIn].realisedGain)} />
+            </td>
+            <td className={getCellClasses(10)}>
               <span
                 className={`${
                   moneyValues[valueIn].weight < 0
@@ -492,53 +539,6 @@ export default function Rows({
                 />
                 %
               </span>
-            </td>
-            <td className={getCellClasses(7)}>
-              <span className="relative group">
-                <Link
-                  href={`/trns/events`}
-                  as={`/trns/events/${portfolio.id}/${asset.id}`}
-                  className="text-blue-600 hover:text-blue-800"
-                >
-                  <FormatValue
-                    value={convert(moneyValues[valueIn].dividends)}
-                  />
-                </Link>
-                <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full mb-1 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap z-50">
-                  Last Event: {dateValues?.lastDividend || "N/A"}
-                </span>
-              </span>
-            </td>
-            <td className={getCellClasses(8)}>
-              <FormatValue
-                value={convert(moneyValues[valueIn].unrealisedGain)}
-              />
-            </td>
-            <td className={getCellClasses(9)}>
-              <FormatValue value={convert(moneyValues[valueIn].realisedGain)} />
-            </td>
-            <td className={getCellClasses(10)}>
-              {!isCashRelated(asset) && (
-                <span
-                  className={`relative group ${
-                    moneyValues[valueIn].irr < 0
-                      ? "text-red-500"
-                      : moneyValues[valueIn].irr > 0
-                        ? "text-green-500"
-                        : ""
-                  }`}
-                >
-                  <FormatValue
-                    value={Math.abs(moneyValues[valueIn].irr)}
-                    multiplier={100}
-                  />
-                  {"%"}
-                  <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full mb-1 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap z-50">
-                    ROI: {(Math.abs(moneyValues[valueIn].roi) * 100).toFixed(2)}
-                    %
-                  </span>
-                </span>
-              )}
             </td>
             <td className={`${getCellClasses(11)} relative overflow-visible`}>
               <AlphaProgress

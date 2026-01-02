@@ -11,11 +11,11 @@ export const HEADER_INDICES = {
   QUANTITY: 3, // quantity
   COST: 4, // cost
   MARKET_VALUE: 5, // summary.value
-  WEIGHT: 6, // weight (moved between value and income)
+  IRR: 6, // irr (swapped with weight)
   DIVIDENDS: 7, // summary.dividends
   UNREALISED_GAIN: 8, // gain.unrealised
   REALISED_GAIN: 9, // gain.realised
-  IRR: 10, // irr
+  WEIGHT: 10, // weight (swapped with irr)
   ALPHA: 11, // alpha
   TOTAL_GAIN: 12, // gain
 } as const
@@ -84,12 +84,12 @@ export const headers = [
     sortKey: "marketValue",
   },
   {
-    key: "weight",
+    key: "irr",
     align: "right",
-    mobile: true, // Visible on mobile - important for portfolio balance view
+    mobile: true,
     medium: true,
     sortable: true,
-    sortKey: "weight",
+    sortKey: "irr",
   },
   {
     key: "summary.dividends",
@@ -118,12 +118,12 @@ export const headers = [
     costRelated: true,
   },
   {
-    key: "irr",
+    key: "weight",
     align: "right",
-    mobile: true,
+    mobile: true, // Visible on mobile - important for portfolio balance view
     medium: true,
     sortable: true,
-    sortKey: "irr",
+    sortKey: "weight",
   },
   {
     key: "alpha",
@@ -178,8 +178,8 @@ export default function Header({
     // Apply same logic as data cells for mobile-visible columns
     const isChangeColumn = headerIndex === 1
     const isMarketValueColumn = headerIndex === 5
-    const isIrrColumn = headerIndex === 9
-    const isWeightColumn = headerIndex === 11
+    const isIrrColumn = headerIndex === 6
+    const isWeightColumn = headerIndex === 10
 
     if (
       isChangeColumn ||

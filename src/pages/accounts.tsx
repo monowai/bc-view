@@ -23,18 +23,11 @@ interface SectorOption {
 }
 
 // Categories that can be used for user-owned custom assets
-const USER_ASSET_CATEGORIES = [
-  "ACCOUNT",
-  "TRADE",
-  "RE",
-  "MUTUAL FUND",
-  "POLICY",
-]
+const USER_ASSET_CATEGORIES = ["ACCOUNT", "RE", "MUTUAL FUND", "POLICY"]
 
 // Category icons mapping
 const CATEGORY_ICONS: Record<string, string> = {
   ACCOUNT: "fa-university",
-  TRADE: "fa-exchange-alt",
   RE: "fa-home",
   "MUTUAL FUND": "fa-chart-pie",
   POLICY: "fa-shield-alt",

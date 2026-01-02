@@ -26,11 +26,11 @@ export default function GrandTotal({
     { value: null, colSpan: 1 }, // Maps to QUANTITY (headers[3]) - no total for quantity
     { value: holdings.viewTotals.costValue, colSpan: 1 }, // Maps to COST (headers[4])
     { value: holdings.viewTotals.marketValue, colSpan: 1 }, // Maps to MARKET_VALUE (headers[5])
-    { value: holdings.viewTotals.weight, colSpan: 1, multiplier: 100 }, // Maps to WEIGHT (headers[6])
+    { value: holdings.viewTotals.irr, colSpan: 1, multiplier: 100 }, // Maps to IRR (headers[6]) - swapped with weight
     { value: holdings.viewTotals.dividends, colSpan: 1 }, // Maps to DIVIDENDS (headers[7])
     { value: holdings.viewTotals.unrealisedGain, colSpan: 1 }, // Maps to UNREALISED_GAIN (headers[8])
     { value: holdings.viewTotals.realisedGain, colSpan: 1 }, // Maps to REALISED_GAIN (headers[9])
-    { value: holdings.viewTotals.irr, colSpan: 1, multiplier: 100 }, // Maps to IRR (headers[10])
+    { value: holdings.viewTotals.weight, colSpan: 1, multiplier: 100 }, // Maps to WEIGHT (headers[10]) - swapped with irr
     { value: null, colSpan: 1 }, // Maps to ALPHA (headers[11])
     { value: holdings.viewTotals.totalGain, colSpan: 1 }, // Maps to TOTAL_GAIN (headers[12])
   ]
@@ -73,8 +73,8 @@ export default function GrandTotal({
               headerIndex = HEADER_INDICES.MARKET_VALUE
               break // marketValue
             case 5:
-              headerIndex = HEADER_INDICES.WEIGHT
-              break // weight (now between value and income)
+              headerIndex = HEADER_INDICES.IRR
+              break // irr (swapped with weight)
             case 6:
               headerIndex = HEADER_INDICES.DIVIDENDS
               break // dividends
@@ -85,8 +85,8 @@ export default function GrandTotal({
               headerIndex = HEADER_INDICES.REALISED_GAIN
               break // realisedGain
             case 9:
-              headerIndex = HEADER_INDICES.IRR
-              break // irr
+              headerIndex = HEADER_INDICES.WEIGHT
+              break // weight (swapped with irr)
             case 10:
               headerIndex = HEADER_INDICES.ALPHA
               break // alpha (null)

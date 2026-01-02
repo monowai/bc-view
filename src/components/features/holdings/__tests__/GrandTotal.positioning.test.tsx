@@ -17,17 +17,17 @@ describe("GrandTotal Column Positioning Tests", () => {
       expect(dataCells[0]).toHaveTextContent("72.76") // HEADER_INDICES.CHANGE - gainOnDay sum
 
       // Verify data using constants (accounting for new data array structure)
-      // New order: Change, GainOnDay, Quantity, Cost, MarketValue, Weight, Dividends, UnrealisedGain, RealisedGain, IRR, Alpha, TotalGain
+      // New order: Change, GainOnDay, Quantity, Cost, MarketValue, IRR, Dividends, UnrealisedGain, RealisedGain, Weight, Alpha, TotalGain
       expect(dataCells[1]).toHaveTextContent("72.76") // HEADER_INDICES.GAIN_ON_DAY - gainOnDay value
       expect(dataCells[2]).toHaveAttribute("colSpan", "1") // HEADER_INDICES.QUANTITY - empty (no total for quantity)
       expect(dataCells[2]).toHaveTextContent("") // empty quantity column
       expect(dataCells[3].textContent).toMatch(/8,?150\.65/) // HEADER_INDICES.COST - costValue
       expect(dataCells[4].textContent).toMatch(/12,?643\.74/) // HEADER_INDICES.MARKET_VALUE - marketValue
-      expect(dataCells[5]).toHaveTextContent("100.00%") // HEADER_INDICES.WEIGHT - weight with % (moved between value and income)
+      expect(dataCells[5]).toHaveTextContent("15.00") // HEADER_INDICES.IRR - irr (no %) - swapped with weight
       expect(dataCells[6].textContent).toMatch(/299\.02/) // HEADER_INDICES.DIVIDENDS - dividends
       expect(dataCells[7].textContent).toMatch(/3,?503\.85/) // HEADER_INDICES.UNREALISED_GAIN - unrealisedGain
       expect(dataCells[8].textContent).toMatch(/481\.44/) // HEADER_INDICES.REALISED_GAIN - realisedGain
-      expect(dataCells[9]).toHaveTextContent("15.00") // HEADER_INDICES.IRR - irr (no %)
+      expect(dataCells[9]).toHaveTextContent("100.00%") // HEADER_INDICES.WEIGHT - weight with % - swapped with irr
       expect(dataCells[10]).toHaveTextContent("") // HEADER_INDICES.ALPHA - empty spacer
       expect(dataCells[11].textContent).toMatch(/4,?284\.31/) // HEADER_INDICES.TOTAL_GAIN - totalGain
     })
@@ -40,9 +40,9 @@ describe("GrandTotal Column Positioning Tests", () => {
       const dataCells = Array.from(cells!).slice(2)
 
       // IRR should contain irr value (15.00) and NOT totalGain value
-      // IRR is now at position 9 (after realised gain at 8)
-      expect(dataCells[9]).toHaveTextContent("15.00") // HEADER_INDICES.IRR
-      expect(dataCells[9].textContent).not.toMatch(/4,?284\.31/)
+      // IRR is now at position 5 (swapped with weight)
+      expect(dataCells[5]).toHaveTextContent("15.00") // HEADER_INDICES.IRR
+      expect(dataCells[5].textContent).not.toMatch(/4,?284\.31/)
 
       // totalGain should contain totalGain value in correct position
       expect(dataCells[11].textContent).toMatch(/4,?284\.31/) // HEADER_INDICES.TOTAL_GAIN
@@ -68,10 +68,13 @@ describe("GrandTotal Column Positioning Tests", () => {
       // marketValue should be visible on mobile
       expect(dataCells[4]).not.toHaveClass("hidden") // HEADER_INDICES.MARKET_VALUE
 
-      // weight should be visible on mobile (mobile: true in header) - now at position 5 (between value and income)
-      expect(dataCells[5]).not.toHaveClass("hidden") // HEADER_INDICES.WEIGHT
+      // IRR should be visible on mobile (mobile: true in header) - now at position 5 (swapped with weight)
+      expect(dataCells[5]).not.toHaveClass("hidden") // HEADER_INDICES.IRR
 
-      // alpha should be hidden on mobile (mobile: false, medium: false in header) - now at position 10
+      // weight should be visible on mobile (mobile: true in header) - now at position 9 (swapped with irr)
+      expect(dataCells[9]).not.toHaveClass("hidden") // HEADER_INDICES.WEIGHT
+
+      // alpha should be hidden on mobile (mobile: false, medium: false in header) - at position 10
       expect(dataCells[10]).toHaveClass("hidden", "xl:table-cell") // HEADER_INDICES.ALPHA
 
       // totalGain should be hidden on mobile portrait, visible on landscape+ (mobile: false in header)
@@ -83,13 +86,13 @@ describe("GrandTotal Column Positioning Tests", () => {
   describe("Constants Verification", () => {
     it("verifies HEADER_INDICES constants are correctly defined", () => {
       // These constants are critical for correct mapping
-      // New order: Price(0), Change(1), GainOnDay(2), Quantity(3), Cost(4), MarketValue(5), Weight(6), Dividends(7), Unrealised(8), Realised(9), IRR(10), Alpha(11), TotalGain(12)
+      // New order: Price(0), Change(1), GainOnDay(2), Quantity(3), Cost(4), MarketValue(5), IRR(6), Dividends(7), Unrealised(8), Realised(9), Weight(10), Alpha(11), TotalGain(12)
       expect(HEADER_INDICES.GAIN_ON_DAY).toBe(2)
       expect(HEADER_INDICES.COST).toBe(4)
       expect(HEADER_INDICES.MARKET_VALUE).toBe(5)
-      expect(HEADER_INDICES.WEIGHT).toBe(6) // moved between value and income
+      expect(HEADER_INDICES.IRR).toBe(6) // swapped with weight
       expect(HEADER_INDICES.DIVIDENDS).toBe(7)
-      expect(HEADER_INDICES.IRR).toBe(10)
+      expect(HEADER_INDICES.WEIGHT).toBe(10) // swapped with irr
       expect(HEADER_INDICES.ALPHA).toBe(11)
       expect(HEADER_INDICES.TOTAL_GAIN).toBe(12)
     })
@@ -124,12 +127,12 @@ describe("GrandTotal Column Positioning Tests", () => {
       const cells = dataRow?.querySelectorAll("td")
       const dataCells = Array.from(cells!).slice(2)
 
-      // Weight should be multiplied by 100 and show % - now at position 5 (between value and income)
-      expect(dataCells[5]).toHaveTextContent("100.00%") // HEADER_INDICES.WEIGHT
+      // IRR should be multiplied by 100 but NOT show % (cleaner appearance) - now at position 5 (swapped with weight)
+      expect(dataCells[5]).toHaveTextContent("15.00") // HEADER_INDICES.IRR - 0.15 * 100 = 15.00
+      expect(dataCells[5]).not.toHaveTextContent("%")
 
-      // IRR should be multiplied by 100 but NOT show % (cleaner appearance) - now at position 9
-      expect(dataCells[9]).toHaveTextContent("15.00") // HEADER_INDICES.IRR - 0.15 * 100 = 15.00
-      expect(dataCells[9]).not.toHaveTextContent("%")
+      // Weight should be multiplied by 100 and show % - now at position 9 (swapped with irr)
+      expect(dataCells[9]).toHaveTextContent("100.00%") // HEADER_INDICES.WEIGHT
     })
   })
 
