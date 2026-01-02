@@ -199,6 +199,7 @@ describe("TradeUtils", () => {
       fees: 2,
       cashAmount: -550,
       comments: "Test comment",
+      status: "SETTLED", // Default status
     })
   })
 

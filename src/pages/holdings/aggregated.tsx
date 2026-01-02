@@ -140,6 +140,16 @@ function AggregatedHoldingsPage(): React.ReactElement {
             <i className="fas fa-copy mr-2"></i>
             Copy Data
           </button>
+          <button
+            className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center"
+            onClick={() => {
+              const portfolioParams = codes ? `?portfolios=${encodeURIComponent(codes)}` : ""
+              router.push(`/rebalance/wizard${portfolioParams}`)
+            }}
+          >
+            <i className="fas fa-balance-scale mr-2"></i>
+            Rebalance
+          </button>
         </div>
 
         {viewMode === "summary" ? (

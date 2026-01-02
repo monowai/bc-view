@@ -7,6 +7,7 @@ import {
   calculateCashAdjustment,
   CashBalanceAdjustment,
 } from "@lib/trns/tradeUtils"
+import MathInput from "@components/ui/MathInput"
 
 interface SetCashBalanceDialogProps {
   modalOpen: boolean
@@ -148,14 +149,11 @@ const SetCashBalanceDialog: React.FC<SetCashBalanceDialogProps> = ({
             </label>
             <div className="flex items-center gap-2">
               <span className="text-gray-500">{currency}</span>
-              <input
-                type="number"
-                step="0.01"
-                value={targetBalance}
-                onChange={(e) => setTargetBalance(e.target.value)}
+              <MathInput
+                value={targetBalance ? parseFloat(targetBalance) : 0}
+                onChange={(value) => setTargetBalance(String(value))}
                 placeholder={currentBalance.toFixed(2)}
                 className="flex-1 border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-purple-500 focus:border-purple-500"
-                autoFocus
               />
             </div>
           </div>

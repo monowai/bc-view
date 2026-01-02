@@ -26,6 +26,8 @@ import { yupResolver } from "@hookform/resolvers/yup"
 import * as yup from "yup"
 import { currencyOptions } from "@lib/currency"
 import TradeTypeController from "@components/features/transactions/TradeTypeController"
+import MathInput from "@components/ui/MathInput"
+import DateInput from "@components/ui/DateInput"
 
 // Transaction type options based on market type
 const MarketTradeTypeValues = [
@@ -59,7 +61,7 @@ interface EditFormData {
   comments?: string | null
 }
 
-// Reusable number input field component
+// Reusable number input field component using MathInput
 function NumberField({
   name,
   label,
@@ -78,7 +80,11 @@ function NumberField({
         name={name}
         control={control}
         render={({ field }) => (
-          <input {...field} type="number" step="any" className={inputClass} />
+          <MathInput
+            value={field.value}
+            onChange={field.onChange}
+            className={inputClass}
+          />
         )}
       />
       {errors[name] && (
@@ -374,7 +380,11 @@ function EditTransactionForm({
                 name="tradeDate"
                 control={control}
                 render={({ field }) => (
-                  <input {...field} type="date" className={inputClass} />
+                  <DateInput
+                    value={field.value}
+                    onChange={field.onChange}
+                    className={inputClass}
+                  />
                 )}
               />
               {errors.tradeDate && (
@@ -472,18 +482,15 @@ function EditTransactionForm({
                   name="quantity"
                   control={control}
                   render={({ field }) => (
-                    <input
-                      {...field}
-                      type="number"
-                      step="any"
-                      className={inputClass}
-                      onChange={(e) => {
-                        field.onChange(e)
-                        const value = parseFloat(e.target.value) || 0
+                    <MathInput
+                      value={field.value}
+                      onChange={(value) => {
+                        field.onChange(value)
                         setValue("tradeAmount", value, { shouldDirty: true })
                         setValue("cashAmount", value, { shouldDirty: true })
                         setValue("price", 1, { shouldDirty: true })
                       }}
+                      className={inputClass}
                     />
                   )}
                 />
