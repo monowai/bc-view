@@ -66,7 +66,7 @@ export default withApiAuthRequired(async function getAssetPositions(
         requestInit(accessToken, "GET", req),
       ),
       fetch(
-        `${dataUrl}/portfolios/asset/${assetId}/${date}`,
+        `${dataUrl}/portfolios/asset/${assetId}?asAt=${date}`,
         requestInit(accessToken, "GET", req),
       ),
     ])
@@ -115,7 +115,7 @@ export default withApiAuthRequired(async function getAssetPositions(
         allPortfolios.map(async (portfolio): Promise<void> => {
           try {
             const holdingsResponse = await fetch(
-              `${positionUrl}/${portfolio.code}/${date}?value=true`,
+              `${positionUrl}/${portfolio.code}?asAt=${date}&value=true`,
               requestInit(accessToken, "GET", req),
             )
 
@@ -150,7 +150,7 @@ export default withApiAuthRequired(async function getAssetPositions(
       portfolios.map(async (portfolio): Promise<AssetPosition> => {
         try {
           const holdingsResponse = await fetch(
-            `${positionUrl}/${portfolio.code}/${date}?value=true`,
+            `${positionUrl}/${portfolio.code}?asAt=${date}&value=true`,
             requestInit(accessToken, "GET", req),
           )
 

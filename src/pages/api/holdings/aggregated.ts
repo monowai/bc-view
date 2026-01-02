@@ -16,10 +16,10 @@ export default withApiAuthRequired(async function aggregatedHoldings(
     const asAt = (req.query.asAt as string) || "today"
     const codes = req.query.codes as string | undefined
 
-    // Build URL with optional codes parameter
-    let url = `${baseUrl}/aggregated/${asAt}`
+    // Build URL with query parameters
+    let url = `${baseUrl}/aggregated?asAt=${asAt}`
     if (codes) {
-      url += `?codes=${encodeURIComponent(codes)}`
+      url += `&codes=${encodeURIComponent(codes)}`
     }
 
     const response = await fetch(url, requestInit(accessToken, "GET", req))

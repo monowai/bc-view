@@ -24,7 +24,7 @@ export default withApiAuthRequired(async function loadCorporateEvents(
     }
 
     const [portfolioId, asAtDate] = params
-    const url = getEventUrl(`/load/${portfolioId}/${asAtDate}`)
+    const url = getEventUrl(`/load/${portfolioId}?asAt=${asAtDate}`)
 
     await Sentry.startSpan(
       {

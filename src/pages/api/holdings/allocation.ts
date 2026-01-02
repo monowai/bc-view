@@ -16,10 +16,10 @@ export default withApiAuthRequired(async function allocation(
     const asAt = (req.query.asAt as string) || "today"
     const ids = req.query.ids as string | undefined
 
-    // Build URL with optional ids parameter
-    let url = `${baseUrl}/allocation/${asAt}`
+    // Build URL with query parameters
+    let url = `${baseUrl}/allocation?asAt=${asAt}`
     if (ids) {
-      url += `?ids=${encodeURIComponent(ids)}`
+      url += `&ids=${encodeURIComponent(ids)}`
     }
 
     const response = await fetch(url, requestInit(accessToken, "GET", req))

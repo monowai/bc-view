@@ -21,7 +21,7 @@ export default withApiAuthRequired(async function corporateEvents(
 
     let url: string
     if (fromDate && toDate) {
-      url = getEventUrl(`/events/${assetId}/${fromDate}/${toDate}`)
+      url = getEventUrl(`/events/${assetId}?fromDate=${fromDate}&toDate=${toDate}`)
     } else {
       url = getEventUrl(`/events/${assetId}`)
     }
