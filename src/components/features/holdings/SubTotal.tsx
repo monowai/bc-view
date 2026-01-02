@@ -74,6 +74,13 @@ export default function SubTotal({
     "-", // quantity
     <FormatValue key="costValue" value={subTotals[valueIn].costValue} />, // cost
     <FormatValue key="marketValue" value={subTotals[valueIn].marketValue} />, // summary.value
+    irrElement, // weighted irr (swapped with weight)
+    <FormatValue key="dividends" value={subTotals[valueIn].dividends} />, // summary.dividends
+    <FormatValue
+      key="unrealisedGain"
+      value={subTotals[valueIn].unrealisedGain}
+    />, // gain.unrealised
+    <FormatValue key="realisedGain" value={subTotals[valueIn].realisedGain} />, // gain.realised
     <span
       key="weight"
       className={`${
@@ -85,14 +92,7 @@ export default function SubTotal({
       }`}
     >
       <FormatValue value={subTotals[valueIn].weight} multiplier={100} />%
-    </span>, // weight (moved between value and income)
-    <FormatValue key="dividends" value={subTotals[valueIn].dividends} />, // summary.dividends
-    <FormatValue
-      key="unrealisedGain"
-      value={subTotals[valueIn].unrealisedGain}
-    />, // gain.unrealised
-    <FormatValue key="realisedGain" value={subTotals[valueIn].realisedGain} />, // gain.realised
-    irrElement, // weighted irr (when enabled)
+    </span>, // weight (swapped with irr)
     "-", // alpha
     <FormatValue key="totalGain" value={subTotals[valueIn].totalGain} />, // gain
   ]

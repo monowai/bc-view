@@ -62,8 +62,11 @@ describe("GrandTotal Component", () => {
       // Check marketValue (allow for comma formatting)
       expect(dataCells[4]).toHaveTextContent(/12,?643\.74/)
 
-      // Check weight (100.00%) - weight is now at data[5] (moved between value and income)
-      expect(dataCells[5]).toHaveTextContent("100.00%")
+      // Check IRR (15.00) - IRR is now at data[5] (swapped with weight)
+      expect(dataCells[5]).toHaveTextContent("15.00")
+
+      // Check weight (100.00%) - weight is now at data[9] (swapped with irr)
+      expect(dataCells[9]).toHaveTextContent("100.00%")
 
       // Check totalGain is in the last position (allow for comma formatting) - totalGain is at data[11]
       expect(dataCells[11]).toHaveTextContent(/4,?284\.31/)
@@ -128,11 +131,11 @@ describe("GrandTotal Component", () => {
       // data[4] → HEADER_INDICES.MARKET_VALUE (5)
       expect(dataCells[4]).toHaveTextContent(/12,?643\.74/) // marketValue
 
-      // data[5] → HEADER_INDICES.WEIGHT (6) - moved between value and income
-      expect(dataCells[5]).toHaveTextContent("100.00%") // weight
+      // data[5] → HEADER_INDICES.IRR (6) - swapped with weight
+      expect(dataCells[5]).toHaveTextContent("15.00") // irr (15.00 without %)
 
-      // data[9] → HEADER_INDICES.IRR (10)
-      expect(dataCells[9]).toHaveTextContent("15.00") // irr (15.00 without %)
+      // data[9] → HEADER_INDICES.WEIGHT (10) - swapped with irr
+      expect(dataCells[9]).toHaveTextContent("100.00%") // weight
 
       // data[11] → HEADER_INDICES.TOTAL_GAIN (12)
       expect(dataCells[11]).toHaveTextContent(/4,?284\.31/) // totalGain
@@ -206,11 +209,15 @@ describe("GrandTotal Component", () => {
       expect(dataCells[4]).not.toHaveClass("hidden")
       expect(dataCells[4]).toHaveTextContent(/12,?643\.74/)
 
-      // weight should be visible on mobile (mobile: true) - weight is now at data[5] (moved between value and income)
+      // IRR should be visible on mobile (mobile: true) - IRR is now at data[5] (swapped with weight)
       expect(dataCells[5]).not.toHaveClass("hidden")
-      expect(dataCells[5]).toHaveTextContent("100.00%")
+      expect(dataCells[5]).toHaveTextContent("15.00")
 
-      // alpha should be hidden on mobile (mobile: false, medium: false in header) - alpha is now at data[10]
+      // weight should be visible on mobile (mobile: true) - weight is now at data[9] (swapped with irr)
+      expect(dataCells[9]).not.toHaveClass("hidden")
+      expect(dataCells[9]).toHaveTextContent("100.00%")
+
+      // alpha should be hidden on mobile (mobile: false, medium: false in header) - alpha is at data[10]
       expect(dataCells[10]).toHaveClass("hidden", "xl:table-cell") // alpha column is hidden on mobile
 
       // totalGain should be hidden on mobile portrait, visible on landscape+ (mobile: false) - totalGain is at data[11]
@@ -290,13 +297,13 @@ describe("GrandTotal Component", () => {
       renderGrandTotal()
 
       // Verify constants are correctly defined
-      // New order: Price(0), Change(1), GainOnDay(2), Quantity(3), Cost(4), MarketValue(5), Weight(6), Dividends(7), Unrealised(8), Realised(9), IRR(10), Alpha(11), TotalGain(12)
+      // New order: Price(0), Change(1), GainOnDay(2), Quantity(3), Cost(4), MarketValue(5), IRR(6), Dividends(7), Unrealised(8), Realised(9), Weight(10), Alpha(11), TotalGain(12)
       expect(HEADER_INDICES.GAIN_ON_DAY).toBe(2)
       expect(HEADER_INDICES.COST).toBe(4)
       expect(HEADER_INDICES.MARKET_VALUE).toBe(5)
-      expect(HEADER_INDICES.WEIGHT).toBe(6) // moved between value and income
+      expect(HEADER_INDICES.IRR).toBe(6) // swapped with weight
       expect(HEADER_INDICES.DIVIDENDS).toBe(7)
-      expect(HEADER_INDICES.IRR).toBe(10)
+      expect(HEADER_INDICES.WEIGHT).toBe(10) // swapped with irr
       expect(HEADER_INDICES.ALPHA).toBe(11)
       expect(HEADER_INDICES.TOTAL_GAIN).toBe(12)
 
@@ -326,12 +333,12 @@ describe("GrandTotal Component", () => {
         GRANDTOTAL_LAYOUT.DATA_CELLS_SLICE_START,
       )
 
-      // Weight should show % and be multiplied by 100 - Weight is now at data[5] (between value and income)
-      expect(dataCells[5]).toHaveTextContent("100.00%") // 1.0 * 100 = 100.00%
+      // IRR should not show % (removed for cleaner appearance) - IRR is now at data[5] (swapped with weight)
+      expect(dataCells[5]).toHaveTextContent("15.00") // 0.15 * 100 = 15.00, no %
+      expect(dataCells[5]).not.toHaveTextContent("%")
 
-      // IRR should not show % (removed for cleaner appearance) - IRR is now at data[9]
-      expect(dataCells[9]).toHaveTextContent("15.00") // 0.15 * 100 = 15.00, no %
-      expect(dataCells[9]).not.toHaveTextContent("%")
+      // Weight should show % and be multiplied by 100 - Weight is now at data[9] (swapped with irr)
+      expect(dataCells[9]).toHaveTextContent("100.00%") // 1.0 * 100 = 100.00%
     })
   })
 
