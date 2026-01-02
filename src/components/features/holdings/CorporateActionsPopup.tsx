@@ -109,7 +109,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
 
     try {
       // Use fromDate so the backend loads events from the start of the user's selected range
-      const loadUrl = `/api/corporate-events/load/${portfolioId}/${fromDate}`
+      const loadUrl = `/api/corporate-events/load/${portfolioId}?asAt=${fromDate}`
       console.log(`[CorporateActions] Load URL: ${loadUrl}`)
       const response = await fetch(loadUrl, { method: "POST" })
       console.log(`[CorporateActions] Response status: ${response.status}`)
