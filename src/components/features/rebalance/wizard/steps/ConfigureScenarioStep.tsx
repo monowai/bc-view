@@ -72,11 +72,9 @@ const ConfigureScenarioStep: React.FC<ConfigureScenarioStepProps> = ({
             className={`text-sm ${cashDelta > 0 ? "text-green-600" : "text-red-600"}`}
           >
             {cashDelta > 0
-              ? t(
-                  "rebalance.wizard.cashAdd",
-                  "Adding {{amount}} to deploy",
-                  { amount: cashDelta.toLocaleString() },
-                )
+              ? t("rebalance.wizard.cashAdd", "Adding {{amount}} to deploy", {
+                  amount: cashDelta.toLocaleString(),
+                })
               : t(
                   "rebalance.wizard.cashRemove",
                   "Removing {{amount}} from portfolios",

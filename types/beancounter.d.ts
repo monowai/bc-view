@@ -463,6 +463,11 @@ export interface FxResponse {
 export interface FxRequest {
   rateDate?: string
   pairs: Array<{ from: string; to: string }>
+  provider?: string // Optional: FRANKFURTER, EXCHANGE_RATES_API, or undefined for composite
+}
+
+export interface FxProvidersResponse {
+  providers: string[]
 }
 
 // Asset Allocation types

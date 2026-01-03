@@ -14,7 +14,9 @@ export interface UsePlanResult {
 // Cache for asset lookups to avoid repeated fetches
 const assetCache: Record<string, { code: string; name: string }> = {}
 
-async function fetchAssetDetails(assetId: string): Promise<{ code: string; name: string } | null> {
+async function fetchAssetDetails(
+  assetId: string,
+): Promise<{ code: string; name: string } | null> {
   if (assetCache[assetId]) {
     return assetCache[assetId]
   }
@@ -60,7 +62,9 @@ export function usePlan(planId: string | undefined): UsePlanResult {
     key ? simpleFetcher(key) : null,
   )
 
-  const [enrichedPlan, setEnrichedPlan] = useState<RebalancePlanDto | undefined>(undefined)
+  const [enrichedPlan, setEnrichedPlan] = useState<
+    RebalancePlanDto | undefined
+  >(undefined)
 
   useEffect(() => {
     if (data?.data?.items) {

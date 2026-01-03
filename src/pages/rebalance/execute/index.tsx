@@ -51,9 +51,7 @@ function ExecuteRebalancePage(): React.ReactElement {
       setLoading(true)
       setError(null)
       try {
-        const response = await fetch(
-          `/api/rebalance/executions/${executionId}`,
-        )
+        const response = await fetch(`/api/rebalance/executions/${executionId}`)
         if (!response.ok) {
           setError(`Failed to load execution: ${response.status}`)
           return
@@ -97,14 +95,17 @@ function ExecuteRebalancePage(): React.ReactElement {
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}))
           setError(
-            errorData.message || `Failed to create execution: ${response.status}`,
+            errorData.message ||
+              `Failed to create execution: ${response.status}`,
           )
           return
         }
         const data = await response.json()
         setExecution(data.data)
         // Update URL to include executionId (for resuming later), preserve source
-        const sourceParam = source ? `&source=${encodeURIComponent(source as string)}` : ""
+        const sourceParam = source
+          ? `&source=${encodeURIComponent(source as string)}`
+          : ""
         router.replace(
           `/rebalance/execute?executionId=${data.data.id}${sourceParam}`,
           undefined,
@@ -123,10 +124,21 @@ function ExecuteRebalancePage(): React.ReactElement {
 
   // Initialize on mount
   useEffect(() => {
-    if (!execution && !loading && (executionId || (planId && portfolioIds.length > 0))) {
+    if (
+      !execution &&
+      !loading &&
+      (executionId || (planId && portfolioIds.length > 0))
+    ) {
       initializeExecution()
     }
-  }, [execution, loading, executionId, planId, portfolioIds.length, initializeExecution])
+  }, [
+    execution,
+    loading,
+    executionId,
+    planId,
+    portfolioIds.length,
+    initializeExecution,
+  ])
 
   // Save execution changes
   const handleSave = useCallback(async () => {
@@ -134,11 +146,13 @@ function ExecuteRebalancePage(): React.ReactElement {
 
     setSaving(true)
     try {
-      const itemUpdates: ExecutionItemUpdate[] = execution.items.map((item) => ({
-        assetId: item.assetId,
-        effectiveTargetOverride: localOverrides[item.assetId],
-        excluded: localExclusions[item.assetId] ?? false,
-      }))
+      const itemUpdates: ExecutionItemUpdate[] = execution.items.map(
+        (item) => ({
+          assetId: item.assetId,
+          effectiveTargetOverride: localOverrides[item.assetId],
+          excluded: localExclusions[item.assetId] ?? false,
+        }),
+      )
 
       const response = await fetch(
         `/api/rebalance/executions/${execution.id}`,
@@ -319,15 +333,21 @@ function ExecuteRebalancePage(): React.ReactElement {
         // Scale asset based on its PLAN target weight proportion
         // Assets with 0% target in plan get 0% effective target
         // Excluded assets use same calculation - they just won't generate transactions
-        effectiveTarget = totalPlanTargetWeights > 0
-          ? (item.planTargetWeight / totalPlanTargetWeights) * availableForAssets
-          : 0
+        effectiveTarget =
+          totalPlanTargetWeights > 0
+            ? (item.planTargetWeight / totalPlanTargetWeights) *
+              availableForAssets
+            : 0
       }
 
       const targetValue = totalPortfolioValue * effectiveTarget
       const deltaValue = targetValue - item.snapshotValue
       const price = item.snapshotPrice || 0
-      const deltaQuantity = isCash ? deltaValue : (price > 0 ? Math.round(deltaValue / price) : 0)
+      const deltaQuantity = isCash
+        ? deltaValue
+        : price > 0
+          ? Math.round(deltaValue / price)
+          : 0
 
       return {
         ...item,
@@ -342,17 +362,25 @@ function ExecuteRebalancePage(): React.ReactElement {
 
   // Filter active items (non-zero delta, not excluded, not cash)
   const activeItems = displayItems.filter(
-    (item) => !item.isExcluded && !item.isCash && Math.abs(item.deltaValue) > 100,
+    (item) =>
+      !item.isExcluded && !item.isCash && Math.abs(item.deltaValue) > 100,
   )
 
   // Compute cash summary from display items (updates in real-time with user changes)
   const computedCashSummary = useMemo(() => {
     if (!execution) {
-      return { currentMarketValue: 0, currentCash: 0, targetCash: 0, cashFromSales: 0, cashForPurchases: 0 }
+      return {
+        currentMarketValue: 0,
+        currentCash: 0,
+        targetCash: 0,
+        cashFromSales: 0,
+        cashForPurchases: 0,
+      }
     }
 
     const cashItem = displayItems.find((item) => item.isCash)
-    const targetCash = execution.totalPortfolioValue * (cashItem?.effectiveTarget ?? 0)
+    const targetCash =
+      execution.totalPortfolioValue * (cashItem?.effectiveTarget ?? 0)
 
     let cashFromSales = 0
     let cashForPurchases = 0
@@ -558,8 +586,10 @@ function ExecuteRebalancePage(): React.ReactElement {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {displayItems.map((item) => {
                     const isCash = item.isCash
-                    const isBuy = !item.isExcluded && !isCash && item.deltaValue > 100
-                    const isSell = !item.isExcluded && !isCash && item.deltaValue < -100
+                    const isBuy =
+                      !item.isExcluded && !isCash && item.deltaValue > 100
+                    const isSell =
+                      !item.isExcluded && !isCash && item.deltaValue < -100
                     const rowClass = isCash
                       ? "bg-blue-50 border-b-2 border-blue-200"
                       : item.isExcluded
@@ -597,8 +627,12 @@ function ExecuteRebalancePage(): React.ReactElement {
                           )}
                         </td>
                         <td className="px-4 py-3">
-                          <div className={`font-medium ${isCash ? "text-blue-900" : "text-gray-900"}`}>
-                            {isCash && <i className="fas fa-coins mr-2 text-blue-500"></i>}
+                          <div
+                            className={`font-medium ${isCash ? "text-blue-900" : "text-gray-900"}`}
+                          >
+                            {isCash && (
+                              <i className="fas fa-coins mr-2 text-blue-500"></i>
+                            )}
                             {item.assetCode || item.assetId}
                           </div>
                           {item.assetName && !isCash && (
@@ -622,10 +656,16 @@ function ExecuteRebalancePage(): React.ReactElement {
                               <i className="fas fa-arrow-right text-xs"></i>
                             </button>
                             <div>
-                              <div className={isCash ? "text-blue-900" : "text-gray-900"}>
+                              <div
+                                className={
+                                  isCash ? "text-blue-900" : "text-gray-900"
+                                }
+                              >
                                 {formatPercent(item.snapshotWeight)}
                               </div>
-                              <div className={`text-xs ${isCash ? "text-blue-600" : "text-gray-500"}`}>
+                              <div
+                                className={`text-xs ${isCash ? "text-blue-600" : "text-gray-500"}`}
+                              >
                                 {formatCurrency(item.snapshotValue)}
                               </div>
                             </div>
@@ -640,7 +680,11 @@ function ExecuteRebalancePage(): React.ReactElement {
                             >
                               <i className="fas fa-arrow-right text-xs"></i>
                             </button>
-                            <span className={isCash ? "text-blue-600" : "text-gray-500"}>
+                            <span
+                              className={
+                                isCash ? "text-blue-600" : "text-gray-500"
+                              }
+                            >
                               {formatPercent(item.planTargetWeight)}
                             </span>
                           </div>
@@ -758,9 +802,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                   {activeItems.map((item) => {
                     const isBuy = item.deltaValue > 0
                     const rowClass = isBuy ? "bg-green-50" : "bg-red-50"
-                    const valueClass = isBuy
-                      ? "text-green-700"
-                      : "text-red-700"
+                    const valueClass = isBuy ? "text-green-700" : "text-red-700"
 
                     return (
                       <tr key={item.assetId} className={rowClass}>

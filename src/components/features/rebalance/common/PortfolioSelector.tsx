@@ -87,7 +87,9 @@ const PortfolioSelector: React.FC<PortfolioSelectorProps> = ({
               : t("selectAll", "Select All")}
           </button>
           <span className="text-sm text-gray-500">
-            {t("selected", "{{count}} selected", { count: selectedCodes.length })}
+            {t("selected", "{{count}} selected", {
+              count: selectedCodes.length,
+            })}
           </span>
         </div>
       )}

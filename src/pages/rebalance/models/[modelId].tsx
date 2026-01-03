@@ -16,7 +16,9 @@ function ModelDetailPage(): React.ReactElement {
   const { modelId } = router.query
 
   const isNew = modelId === "__NEW__"
-  const { model, isLoading, error, mutate } = useModel(isNew ? undefined : (modelId as string))
+  const { model, isLoading, error, mutate } = useModel(
+    isNew ? undefined : (modelId as string),
+  )
   const [isEditing, setIsEditing] = useState(isNew)
 
   if (!isNew && isLoading) {
@@ -106,8 +108,8 @@ function ModelDetailPage(): React.ReactElement {
                   </span>
                   {model?.currentPlanVersion && (
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">
-                      <i className="fas fa-check-circle mr-1"></i>
-                      v{model.currentPlanVersion}
+                      <i className="fas fa-check-circle mr-1"></i>v
+                      {model.currentPlanVersion}
                     </span>
                   )}
                 </div>

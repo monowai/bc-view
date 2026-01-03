@@ -8,10 +8,7 @@
  * @param fractionDigits - Number of decimal places (default: 2)
  * @returns Formatted currency string (e.g., "1,234.56")
  */
-export const formatCurrency = (
-  value: number,
-  fractionDigits = 2
-): string => {
+export const formatCurrency = (value: number, fractionDigits = 2): string => {
   return new Intl.NumberFormat(undefined, {
     style: "decimal",
     minimumFractionDigits: fractionDigits,
@@ -25,10 +22,7 @@ export const formatCurrency = (
  * @param fractionDigits - Number of decimal places (default: 2)
  * @returns Formatted percentage string (e.g., "25.00%")
  */
-export const formatPercent = (
-  value: number,
-  fractionDigits = 2
-): string => {
+export const formatPercent = (value: number, fractionDigits = 2): string => {
   return `${(value * 100).toFixed(fractionDigits)}%`
 }
 
@@ -40,7 +34,7 @@ export const formatPercent = (
  */
 export const formatPercentValue = (
   value: number,
-  fractionDigits = 1
+  fractionDigits = 1,
 ): string => {
   return `${value.toFixed(fractionDigits)}%`
 }
@@ -53,7 +47,7 @@ export const formatPercentValue = (
  */
 export const formatDate = (
   dateString: string,
-  options?: Intl.DateTimeFormatOptions
+  options?: Intl.DateTimeFormatOptions,
 ): string => {
   const defaultOptions: Intl.DateTimeFormatOptions = {
     year: "numeric",
@@ -62,7 +56,7 @@ export const formatDate = (
   }
   return new Date(dateString).toLocaleDateString(
     undefined,
-    options || defaultOptions
+    options || defaultOptions,
   )
 }
 
@@ -89,7 +83,7 @@ export const formatDateTime = (dateString: string): string => {
  */
 export const formatSignedNumber = (
   value: number,
-  fractionDigits = 2
+  fractionDigits = 2,
 ): string => {
   const formatted = formatCurrency(Math.abs(value), fractionDigits)
   return value >= 0 ? `+${formatted}` : `-${formatted}`

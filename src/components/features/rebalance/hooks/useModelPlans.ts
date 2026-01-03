@@ -5,7 +5,9 @@ export interface UseModelPlansResult extends UseListResult<PlanDto> {
   plans: PlanDto[]
 }
 
-export function useModelPlans(modelId: string | undefined): UseModelPlansResult {
+export function useModelPlans(
+  modelId: string | undefined,
+): UseModelPlansResult {
   const key = modelId ? `/api/rebalance/models/${modelId}/plans` : null
   const result = useRebalanceList<PlanDto>(key)
   return {

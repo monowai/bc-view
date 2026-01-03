@@ -17,7 +17,9 @@ export default withApiAuthRequired(async function calculateRebalance(
   try {
     const { modelId, planId } = req.query
     const { accessToken } = await getAccessToken(req, res)
-    const calculateUrl = getRebalanceUrl(`/models/${modelId}/plans/${planId}/calculate`)
+    const calculateUrl = getRebalanceUrl(
+      `/models/${modelId}/plans/${planId}/calculate`,
+    )
 
     const response = await fetch(calculateUrl, {
       ...requestInit(accessToken, "POST", req),

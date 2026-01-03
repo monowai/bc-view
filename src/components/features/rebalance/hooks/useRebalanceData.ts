@@ -33,12 +33,10 @@ export interface UseListResult<T> {
  *   modelId ? `/api/rebalance/models/${modelId}` : null
  * )
  */
-export function useRebalanceItem<T>(
-  key: string | null
-): UseDataResult<T> {
+export function useRebalanceItem<T>(key: string | null): UseDataResult<T> {
   const { data, error, isLoading, mutate } = useSwr<{ data: T }>(
     key,
-    key ? simpleFetcher(key) : null
+    key ? simpleFetcher(key) : null,
   )
   return {
     data: data?.data,
@@ -58,12 +56,10 @@ export function useRebalanceItem<T>(
  * @example
  * const { data: models, isLoading } = useRebalanceList<ModelDto>("/api/rebalance/models")
  */
-export function useRebalanceList<T>(
-  key: string | null
-): UseListResult<T> {
+export function useRebalanceList<T>(key: string | null): UseListResult<T> {
   const { data, error, isLoading, mutate } = useSwr<{ data: T[] }>(
     key,
-    key ? simpleFetcher(key) : null
+    key ? simpleFetcher(key) : null,
   )
   return {
     data: data?.data || [],

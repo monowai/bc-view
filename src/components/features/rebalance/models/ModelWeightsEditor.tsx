@@ -42,7 +42,10 @@ const ModelWeightsEditor: React.FC<ModelWeightsEditorProps> = ({
     onChange(updated)
   }
 
-  const handlePriceChange = (index: number, price: number | undefined): void => {
+  const handlePriceChange = (
+    index: number,
+    price: number | undefined,
+  ): void => {
     const updated = [...weights]
     updated[index] = { ...updated[index], capturedPrice: price }
     onChange(updated)
@@ -64,10 +67,7 @@ const ModelWeightsEditor: React.FC<ModelWeightsEditorProps> = ({
   }
 
   const handleAddAsset = (newAsset: AssetWeightWithDetails): void => {
-    const updated = [
-      ...weights,
-      { ...newAsset, sortOrder: weights.length },
-    ]
+    const updated = [...weights, { ...newAsset, sortOrder: weights.length }]
     onChange(updated)
   }
 
@@ -78,15 +78,17 @@ const ModelWeightsEditor: React.FC<ModelWeightsEditorProps> = ({
           {t("rebalance.models.weights", "Asset Weights")}
         </label>
         <div className="flex items-center gap-3">
-          {!readOnly && weights.length > 0 && Math.abs(totalWeight - 100) > 0.01 && (
-            <button
-              type="button"
-              onClick={handleNormalize}
-              className="text-sm text-blue-600 hover:text-blue-800"
-            >
-              {t("rebalance.models.normalize", "Normalize to 100%")}
-            </button>
-          )}
+          {!readOnly &&
+            weights.length > 0 &&
+            Math.abs(totalWeight - 100) > 0.01 && (
+              <button
+                type="button"
+                onClick={handleNormalize}
+                className="text-sm text-blue-600 hover:text-blue-800"
+              >
+                {t("rebalance.models.normalize", "Normalize to 100%")}
+              </button>
+            )}
           {!readOnly && (
             <>
               {onFromHoldings && (
@@ -106,7 +108,9 @@ const ModelWeightsEditor: React.FC<ModelWeightsEditorProps> = ({
                   disabled={fetchingPrices}
                   className="text-sm text-gray-700 bg-gray-100 px-3 py-1 rounded hover:bg-gray-200 transition-colors flex items-center disabled:opacity-50"
                 >
-                  <i className={`fas ${fetchingPrices ? "fa-spinner fa-spin" : "fa-sync-alt"} mr-1`}></i>
+                  <i
+                    className={`fas ${fetchingPrices ? "fa-spinner fa-spin" : "fa-sync-alt"} mr-1`}
+                  ></i>
                   {t("rebalance.plans.fetchPrices", "Fetch Prices")}
                 </button>
               )}
@@ -140,7 +144,9 @@ const ModelWeightsEditor: React.FC<ModelWeightsEditorProps> = ({
               capturedPrice={weight.capturedPrice}
               priceCurrency={weight.priceCurrency}
               onChange={(newWeight) => handleWeightChange(index, newWeight)}
-              onRationaleChange={(rationale) => handleRationaleChange(index, rationale)}
+              onRationaleChange={(rationale) =>
+                handleRationaleChange(index, rationale)
+              }
               onPriceChange={(price) => handlePriceChange(index, price)}
               onRemove={readOnly ? undefined : () => handleRemove(index)}
               readOnly={readOnly}

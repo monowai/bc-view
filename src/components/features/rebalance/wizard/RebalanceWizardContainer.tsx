@@ -74,7 +74,11 @@ const RebalanceWizardContainer: React.FC<RebalanceWizardContainerProps> = ({
   }
 
   const handleSubmit = async (): Promise<void> => {
-    if (!selectedModel || selectedPortfolioIds.length === 0 || !planName.trim()) {
+    if (
+      !selectedModel ||
+      selectedPortfolioIds.length === 0 ||
+      !planName.trim()
+    ) {
       return
     }
 

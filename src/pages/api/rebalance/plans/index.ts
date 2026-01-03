@@ -3,10 +3,7 @@ import { requestInit } from "@utils/api/fetchHelper"
 import handleResponse, { fetchError } from "@utils/api/responseWriter"
 import { getRebalanceUrl } from "@utils/api/bcConfig"
 import { NextApiRequest, NextApiResponse } from "next"
-import {
-  RebalancePlanDto,
-  RebalancePlanSummaryDto,
-} from "types/rebalance"
+import { RebalancePlanDto, RebalancePlanSummaryDto } from "types/rebalance"
 
 const baseUrl = getRebalanceUrl("/plans")
 

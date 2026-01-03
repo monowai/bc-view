@@ -39,9 +39,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({
 
   // Convert status to i18n key (lowercase, replace underscores with hyphens)
   const statusKey = status.toLowerCase().replace(/_/g, "-")
-  const label = i18nPrefix
-    ? t(`${i18nPrefix}.${statusKey}`, status)
-    : status
+  const label = i18nPrefix ? t(`${i18nPrefix}.${statusKey}`, status) : status
 
   // Get color from config or use default
   const resolvedColorClass =

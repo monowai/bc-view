@@ -21,7 +21,10 @@ const ModelPlans: React.FC<ModelPlansProps> = ({ modelId }) => {
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent): void => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setShowDropdown(false)
       }
     }
@@ -108,9 +111,13 @@ const ModelPlans: React.FC<ModelPlansProps> = ({ modelId }) => {
                     className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
                   >
                     <i className="fas fa-copy mr-3 text-gray-400 w-4"></i>
-                    {t("rebalance.plans.copyFromApproved", "Copy from v{{version}}", {
-                      version: latestApprovedPlan.version,
-                    })}
+                    {t(
+                      "rebalance.plans.copyFromApproved",
+                      "Copy from v{{version}}",
+                      {
+                        version: latestApprovedPlan.version,
+                      },
+                    )}
                     <span className="ml-auto text-xs text-green-600">
                       {t("rebalance.plans.approved", "Approved")}
                     </span>
@@ -122,9 +129,13 @@ const ModelPlans: React.FC<ModelPlansProps> = ({ modelId }) => {
                     className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
                   >
                     <i className="fas fa-copy mr-3 text-gray-400 w-4"></i>
-                    {t("rebalance.plans.copyFromLatest", "Copy from v{{version}}", {
-                      version: latestPlan.version,
-                    })}
+                    {t(
+                      "rebalance.plans.copyFromLatest",
+                      "Copy from v{{version}}",
+                      {
+                        version: latestPlan.version,
+                      },
+                    )}
                     <span className="ml-auto text-xs text-yellow-600">
                       {t("rebalance.plans.draft", "Draft")}
                     </span>

@@ -92,7 +92,10 @@ const ModelPortfolioForm: React.FC<ModelPortfolioFormProps> = ({
           onChange={(e) => setName(e.target.value)}
           required
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-          placeholder={t("rebalance.models.namePlaceholder", "e.g., Conservative Growth")}
+          placeholder={t(
+            "rebalance.models.namePlaceholder",
+            "e.g., Conservative Growth",
+          )}
         />
       </div>
 
@@ -109,7 +112,10 @@ const ModelPortfolioForm: React.FC<ModelPortfolioFormProps> = ({
           value={objective}
           onChange={(e) => setObjective(e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-          placeholder={t("rebalance.models.objectivePlaceholder", "e.g., Long-term growth with moderate risk")}
+          placeholder={t(
+            "rebalance.models.objectivePlaceholder",
+            "e.g., Long-term growth with moderate risk",
+          )}
         />
       </div>
 
@@ -126,7 +132,10 @@ const ModelPortfolioForm: React.FC<ModelPortfolioFormProps> = ({
           onChange={(e) => setDescription(e.target.value)}
           rows={2}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-          placeholder={t("rebalance.models.descriptionPlaceholder", "Optional description")}
+          placeholder={t(
+            "rebalance.models.descriptionPlaceholder",
+            "Optional description",
+          )}
         />
       </div>
 

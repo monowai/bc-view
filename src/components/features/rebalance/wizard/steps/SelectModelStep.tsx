@@ -65,9 +65,13 @@ const SelectModelStep: React.FC<SelectModelStepProps> = ({
             {selectedModel.currentPlanVersion ? (
               <p className="text-green-600 mt-1">
                 <i className="fas fa-check mr-1"></i>
-                {t("rebalance.wizard.currentPlan", "Current Plan: v{{version}}", {
-                  version: selectedModel.currentPlanVersion,
-                })}
+                {t(
+                  "rebalance.wizard.currentPlan",
+                  "Current Plan: v{{version}}",
+                  {
+                    version: selectedModel.currentPlanVersion,
+                  },
+                )}
               </p>
             ) : (
               <p className="text-amber-600 mt-1">

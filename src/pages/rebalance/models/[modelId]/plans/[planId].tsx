@@ -89,7 +89,14 @@ function PlanDetailPage(): React.ReactElement {
   }
 
   const handleApprove = async (): Promise<void> => {
-    if (!confirm(t("rebalance.plans.approveConfirm", "Approve this plan? This will lock the allocations."))) {
+    if (
+      !confirm(
+        t(
+          "rebalance.plans.approveConfirm",
+          "Approve this plan? This will lock the allocations.",
+        ),
+      )
+    ) {
       return
     }
 
@@ -115,7 +122,9 @@ function PlanDetailPage(): React.ReactElement {
   }
 
   const handleDelete = async (): Promise<void> => {
-    if (!confirm(t("rebalance.plans.deleteConfirm", "Delete this draft plan?"))) {
+    if (
+      !confirm(t("rebalance.plans.deleteConfirm", "Delete this draft plan?"))
+    ) {
       return
     }
 
@@ -144,10 +153,12 @@ function PlanDetailPage(): React.ReactElement {
       if (response.ok) {
         const data = await response.json()
         const priceMap = new Map<string, { price: number; currency: string }>(
-          (data.data || []).map((p: { assetId: string; price: number; currency: string }) => [
-            p.assetId,
-            { price: p.price, currency: p.currency },
-          ]),
+          (data.data || []).map(
+            (p: { assetId: string; price: number; currency: string }) => [
+              p.assetId,
+              { price: p.price, currency: p.currency },
+            ],
+          ),
         )
         setWeights((prev) =>
           prev.map((w) => {
@@ -172,7 +183,9 @@ function PlanDetailPage(): React.ReactElement {
   }
 
   // Handle portfolio selection for loading weights from holdings
-  const handlePortfoliosSelected = async (portfolioCodes: string[]): Promise<void> => {
+  const handlePortfoliosSelected = async (
+    portfolioCodes: string[],
+  ): Promise<void> => {
     if (portfolioCodes.length === 0) return
 
     setLoadingHoldings(true)
@@ -183,14 +196,17 @@ function PlanDetailPage(): React.ReactElement {
       if (response.ok) {
         const data = await response.json()
         const newWeights: AssetWeightWithDetails[] = (data.weights || []).map(
-          (w: {
-            assetId: string
-            weight: number
-            assetCode?: string
-            assetName?: string
-            price?: number
-            priceCurrency?: string
-          }, index: number) => ({
+          (
+            w: {
+              assetId: string
+              weight: number
+              assetCode?: string
+              assetName?: string
+              price?: number
+              priceCurrency?: string
+            },
+            index: number,
+          ) => ({
             assetId: w.assetId,
             weight: Math.round(w.weight * 10000) / 100,
             sortOrder: index,
@@ -205,11 +221,13 @@ function PlanDetailPage(): React.ReactElement {
         const total = newWeights.reduce((sum, w) => sum + w.weight, 0)
         if (total > 100 && newWeights.length > 0) {
           const largestIndex = newWeights.reduce(
-            (maxIdx, w, idx, arr) => (w.weight > arr[maxIdx].weight ? idx : maxIdx),
+            (maxIdx, w, idx, arr) =>
+              w.weight > arr[maxIdx].weight ? idx : maxIdx,
             0,
           )
           const excess = Math.round((total - 100) * 100) / 100
-          newWeights[largestIndex].weight = Math.round((newWeights[largestIndex].weight - excess) * 100) / 100
+          newWeights[largestIndex].weight =
+            Math.round((newWeights[largestIndex].weight - excess) * 100) / 100
         }
 
         setWeights(newWeights)
@@ -299,7 +317,9 @@ function PlanDetailPage(): React.ReactElement {
 
   // Import allocations from CSV file
   // Format: Asset (MARKET:CODE), Weight %, Price, Currency
-  const handleImportCSV = (event: React.ChangeEvent<HTMLInputElement>): void => {
+  const handleImportCSV = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ): void => {
     const file = event.target.files?.[0]
     if (!file) return
 
@@ -326,9 +346,13 @@ function PlanDetailPage(): React.ReactElement {
 
           if (rawAssetCode && !isNaN(weightPercent)) {
             // Default to US market if no market code provided
-            const assetCode = rawAssetCode.includes(":") ? rawAssetCode : `US:${rawAssetCode}`
+            const assetCode = rawAssetCode.includes(":")
+              ? rawAssetCode
+              : `US:${rawAssetCode}`
             // Try to find existing asset to get its UUID
-            const existing = weights.find((w) => w.assetCode === assetCode || w.assetId === assetCode)
+            const existing = weights.find(
+              (w) => w.assetCode === assetCode || w.assetId === assetCode,
+            )
             newWeights.push({
               assetId: existing?.assetId || assetCode,
               assetCode: assetCode, // MARKET:CODE format
@@ -418,7 +442,9 @@ function PlanDetailPage(): React.ReactElement {
             <span className="text-gray-500">
               {t("rebalance.plans.created", "Created")}:
             </span>
-            <span className="ml-2 text-gray-900">{formatDate(plan.createdAt)}</span>
+            <span className="ml-2 text-gray-900">
+              {formatDate(plan.createdAt)}
+            </span>
           </div>
           {plan.approvedAt && (
             <div>
@@ -568,7 +594,9 @@ function PlanDetailPage(): React.ReactElement {
                               {asset.assetCode || asset.assetId}
                             </span>
                             {asset.assetName && (
-                              <div className="text-xs text-gray-500">{asset.assetName}</div>
+                              <div className="text-xs text-gray-500">
+                                {asset.assetName}
+                              </div>
                             )}
                             {asset.rationale && (
                               <div className="text-xs text-blue-600 italic mt-1">
@@ -600,7 +628,9 @@ function PlanDetailPage(): React.ReactElement {
                         <td className="px-4 py-3 text-right text-gray-700">
                           {formatWeight(plan.cashWeight)}
                         </td>
-                        <td className="px-4 py-3 text-right text-gray-500">-</td>
+                        <td className="px-4 py-3 text-right text-gray-500">
+                          -
+                        </td>
                       </tr>
                     )}
                   </tbody>

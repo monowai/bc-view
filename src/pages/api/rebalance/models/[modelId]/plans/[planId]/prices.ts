@@ -22,7 +22,9 @@ export default withApiAuthRequired(async function planPrices(
       query: { modelId, planId },
     } = req
     const { accessToken } = await getAccessToken(req, res)
-    const pricesUrl = getRebalanceUrl(`/models/${modelId}/plans/${planId}/prices`)
+    const pricesUrl = getRebalanceUrl(
+      `/models/${modelId}/plans/${planId}/prices`,
+    )
 
     switch (method?.toUpperCase()) {
       case "GET": {
