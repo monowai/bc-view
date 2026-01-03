@@ -125,16 +125,14 @@ const ExecutionDialog: React.FC<ExecutionDialogProps> = ({
                     <span className="text-green-600">
                       <i className="fas fa-plus mr-1"></i>
                       {
-                        eligibleItems.filter((i) => i.action === "BUY")
-                          .length
+                        eligibleItems.filter((i) => i.action === "BUY").length
                       }{" "}
                       buys
                     </span>
                     <span className="text-red-600">
                       <i className="fas fa-minus mr-1"></i>
                       {
-                        eligibleItems.filter((i) => i.action === "SELL")
-                          .length
+                        eligibleItems.filter((i) => i.action === "SELL").length
                       }{" "}
                       sells
                     </span>

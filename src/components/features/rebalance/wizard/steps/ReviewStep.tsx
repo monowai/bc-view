@@ -51,7 +51,10 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
           value={planName}
           onChange={(e) => onPlanNameChange(e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-          placeholder={t("rebalance.wizard.planNamePlaceholder", "e.g., Q1 2024 Rebalance")}
+          placeholder={t(
+            "rebalance.wizard.planNamePlaceholder",
+            "e.g., Q1 2024 Rebalance",
+          )}
         />
       </div>
 
@@ -67,9 +70,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
             <span className="text-gray-600">
               {t("rebalance.wizard.model", "Model Portfolio")}
             </span>
-            <span className="font-medium">
-              {selectedModel?.name || "-"}
-            </span>
+            <span className="font-medium">{selectedModel?.name || "-"}</span>
           </div>
           <div className="px-4 py-3 flex justify-between">
             <span className="text-gray-600">

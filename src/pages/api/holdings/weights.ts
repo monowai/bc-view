@@ -36,23 +36,30 @@ export default withApiAuthRequired(async function holdingsWeights(
     const portfolioIds = req.query.portfolioIds as string
 
     if (!portfolioIds) {
-      return res.status(400).json({ error: "portfolioIds query parameter required" })
+      return res
+        .status(400)
+        .json({ error: "portfolioIds query parameter required" })
     }
 
     const codes = portfolioIds.split(",").filter(Boolean)
     if (codes.length === 0) {
-      return res.status(400).json({ error: "At least one portfolio code required" })
+      return res
+        .status(400)
+        .json({ error: "At least one portfolio code required" })
     }
 
     // Fetch holdings for each portfolio
-    const assetValues: Record<string, {
-      assetId: string
-      assetCode: string
-      assetName: string
-      value: number
-      price?: number
-      priceCurrency?: string
-    }> = {}
+    const assetValues: Record<
+      string,
+      {
+        assetId: string
+        assetCode: string
+        assetName: string
+        value: number
+        price?: number
+        priceCurrency?: string
+      }
+    > = {}
     let totalValue = 0
     let currency = "USD"
 
@@ -61,10 +68,15 @@ export default withApiAuthRequired(async function holdingsWeights(
       const today = new Date().toISOString().split("T")[0]
       const holdingsUrl = getPositionsUrl(`/${portfolioCode}/${today}`)
 
-      const response = await fetch(holdingsUrl, requestInit(accessToken, "GET", req))
+      const response = await fetch(
+        holdingsUrl,
+        requestInit(accessToken, "GET", req),
+      )
 
       if (!response.ok) {
-        console.error(`[weights] Failed to fetch holdings for portfolio ${portfolioCode}: ${response.status}`)
+        console.error(
+          `[weights] Failed to fetch holdings for portfolio ${portfolioCode}: ${response.status}`,
+        )
         continue
       }
 
@@ -82,7 +94,8 @@ export default withApiAuthRequired(async function holdingsWeights(
         if (getReportCategory(asset) === REPORT_CATEGORIES.CASH) continue
 
         // Use marketValue in portfolio currency
-        const value = position.moneyValues?.[VALUE_IN_OPTIONS.PORTFOLIO]?.marketValue || 0
+        const value =
+          position.moneyValues?.[VALUE_IN_OPTIONS.PORTFOLIO]?.marketValue || 0
         if (value <= 0) continue
 
         const assetId = asset.id
@@ -90,7 +103,8 @@ export default withApiAuthRequired(async function holdingsWeights(
         // Get price from TRADE money values (price in trade currency)
         const tradeMoneyValues = position.moneyValues?.[VALUE_IN_OPTIONS.TRADE]
         const price = tradeMoneyValues?.priceData?.close
-        const priceCurrency = tradeMoneyValues?.currency?.code || asset.market?.currency?.code
+        const priceCurrency =
+          tradeMoneyValues?.currency?.code || asset.market?.currency?.code
 
         if (assetValues[assetId]) {
           assetValues[assetId].value += value

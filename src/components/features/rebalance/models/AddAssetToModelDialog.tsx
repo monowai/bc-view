@@ -144,7 +144,9 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
               loadingMessage={() =>
                 t("rebalance.models.searching", "Searching...")
               }
-              onChange={(selected) => setSelectedAsset(selected as AssetOption | null)}
+              onChange={(selected) =>
+                setSelectedAsset(selected as AssetOption | null)
+              }
               value={selectedAsset}
               isClearable
               menuPortalTarget={

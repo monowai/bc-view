@@ -22,9 +22,7 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
 
   const handleDelete = async (modelId: string): Promise<void> => {
     if (
-      !window.confirm(
-        t("rebalance.models.deleteConfirm", "Delete this model?"),
-      )
+      !window.confirm(t("rebalance.models.deleteConfirm", "Delete this model?"))
     ) {
       return
     }
@@ -47,7 +45,7 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
   if (error) {
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-        {t("rebalance.models.error", "Failed to load models")}
+        {t("rebalance.models.loadError", "Failed to load models")}
       </div>
     )
   }

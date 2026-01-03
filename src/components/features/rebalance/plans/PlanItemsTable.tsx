@@ -86,7 +86,10 @@ const PlanItemsTable: React.FC<PlanItemsTableProps> = ({
                 } ${item.excluded ? "opacity-60" : ""}`}
               >
                 <td className="px-4 py-3">
-                  <div className="font-medium text-sm" title={item.assetName || item.assetId}>
+                  <div
+                    className="font-medium text-sm"
+                    title={item.assetName || item.assetId}
+                  >
                     {item.assetCode || item.assetId}
                   </div>
                   {item.assetName && (

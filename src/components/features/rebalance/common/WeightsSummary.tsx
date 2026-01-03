@@ -16,7 +16,9 @@ const WeightsSummary: React.FC<WeightsSummaryProps> = ({
   return (
     <div
       className={`flex items-center justify-between p-3 rounded-lg ${
-        isValid ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"
+        isValid
+          ? "bg-green-50 border border-green-200"
+          : "bg-red-50 border border-red-200"
       }`}
     >
       <div className="flex items-center gap-2">

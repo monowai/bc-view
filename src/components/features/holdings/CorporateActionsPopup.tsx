@@ -83,7 +83,9 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
 
   // Fetch corporate events from bc-event service
   const eventUrl = corporateEventsKey(asset.id, fromDate, toDate)
-  console.log(`[CorporateActions] Fetching events for asset: ${asset.id} (${asset.code}), from: ${fromDate}, to: ${toDate}`)
+  console.log(
+    `[CorporateActions] Fetching events for asset: ${asset.id} (${asset.code}), from: ${fromDate}, to: ${toDate}`,
+  )
   console.log(`[CorporateActions] Event URL: ${eventUrl}`)
 
   const { data, error, isLoading, mutate } = useSwr(
@@ -104,7 +106,9 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
     setLoadError(null)
     setLoadSuccess(false)
 
-    console.log(`[CorporateActions] Loading events for portfolio: ${portfolioId}, fromDate: ${fromDate}`)
+    console.log(
+      `[CorporateActions] Loading events for portfolio: ${portfolioId}, fromDate: ${fromDate}`,
+    )
     console.log(`[CorporateActions] Asset: ${asset.id} (${asset.code})`)
 
     try {
@@ -119,7 +123,11 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
         console.error(`[CorporateActions] Load failed: ${errorText}`)
         try {
           const errorData = JSON.parse(errorText)
-          setLoadError(errorData.message || errorData.detail || `Failed to load events (${response.status})`)
+          setLoadError(
+            errorData.message ||
+              errorData.detail ||
+              `Failed to load events (${response.status})`,
+          )
         } catch {
           setLoadError(`Failed to load events (${response.status})`)
         }

@@ -17,7 +17,9 @@ export default withApiAuthRequired(async function approvePlan(
   try {
     const { modelId, planId } = req.query
     const { accessToken } = await getAccessToken(req, res)
-    const approveUrl = getRebalanceUrl(`/models/${modelId}/plans/${planId}/approve`)
+    const approveUrl = getRebalanceUrl(
+      `/models/${modelId}/plans/${planId}/approve`,
+    )
 
     const response = await fetch(
       approveUrl,

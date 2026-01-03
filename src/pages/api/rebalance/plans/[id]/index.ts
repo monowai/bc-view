@@ -21,10 +21,7 @@ export default withApiAuthRequired(async function plansById(
 
     switch (method?.toUpperCase()) {
       case "GET": {
-        const response = await fetch(
-          byId,
-          requestInit(accessToken, "GET", req),
-        )
+        const response = await fetch(byId, requestInit(accessToken, "GET", req))
         await handleResponse<RebalancePlanDto>(response, res)
         break
       }

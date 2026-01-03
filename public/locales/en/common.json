@@ -446,6 +446,7 @@
   "rebalance.models.create": "Create Model",
   "rebalance.models.edit": "Edit Model",
   "rebalance.models.error": "Failed to load model",
+  "rebalance.models.loadError": "Failed to load models",
   "rebalance.models.empty": "No model portfolios yet",
   "rebalance.models.empty.hint": "Create a model portfolio to define target allocations",
   "rebalance.models.name": "Model Name",
@@ -558,5 +559,15 @@
   "rebalance.execution.success": "Execution Complete",
   "rebalance.execution.results.executed": "Executed",
   "rebalance.execution.results.skipped": "Skipped",
-  "rebalance.execution.results.failed": "Failed"
+  "rebalance.execution.results.failed": "Failed",
+
+  "fx.title": "FX Rates",
+  "fx.from": "From",
+  "fx.to": "To",
+  "fx.asOf": "As of",
+  "fx.loading": "Loading rates...",
+  "fx.noCurrencies": "No currencies available",
+  "fx.description": "Cross rates between supported currencies. Rates are updated daily.",
+  "fx.error.currencies": "Error loading currencies",
+  "fx.error.rates": "Error loading FX rates"
 }

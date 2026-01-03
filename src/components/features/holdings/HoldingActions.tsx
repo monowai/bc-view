@@ -291,7 +291,7 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
           setSelectPlanModalOpen(false)
           const source = encodeURIComponent(router.asPath)
           router.push(
-            `/rebalance/execute?planId=${plan.id}&modelId=${model.id}&portfolios=${holdingResults.portfolio.code}&source=${source}`
+            `/rebalance/execute?planId=${plan.id}&modelId=${model.id}&portfolios=${holdingResults.portfolio.code}&source=${source}`,
           )
         }}
         onCreateNew={() => {

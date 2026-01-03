@@ -170,6 +170,32 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
               </div>
             </Link>
 
+            {/* FX Rates Matrix */}
+            <Link href="/fx" className="group">
+              <div className="bg-linear-to-br from-cyan-50 to-blue-50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-8 border border-cyan-100 hover:border-cyan-200 relative overflow-hidden">
+                <div className="flex items-center mb-4">
+                  <div className="p-3 bg-cyan-100 rounded-lg mr-4 group-hover:bg-cyan-200 transition-colors">
+                    <i className="fas fa-exchange-alt text-2xl text-cyan-600"></i>
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900">
+                    {t("fx.title")}
+                  </h3>
+                </div>
+                <p className="text-gray-600 mb-4">
+                  {t(
+                    "home.fxDescription",
+                    "View cross rates between supported currencies in a convenient matrix format.",
+                  )}
+                </p>
+                <div className="flex items-center text-cyan-600 group-hover:text-cyan-700">
+                  <span className="font-medium">
+                    {t("home.viewRates", "View Rates")}
+                  </span>
+                  <i className="fas fa-arrow-right ml-2 transform group-hover:translate-x-1 transition-transform"></i>
+                </div>
+              </div>
+            </Link>
+
             {/* AI Insights (Coming Soon) */}
             <div className="bg-linear-to-br from-indigo-50 to-purple-50 rounded-2xl shadow-lg p-8 border border-indigo-100 relative overflow-hidden">
               <div className="absolute top-4 right-4">

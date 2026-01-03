@@ -25,7 +25,11 @@ const SelectPortfoliosStep: React.FC<SelectPortfoliosStepProps> = ({
 
   // Preselect portfolios if provided
   useEffect(() => {
-    if (preselectedIds && preselectedIds.length > 0 && selectedPortfolioIds.length === 0) {
+    if (
+      preselectedIds &&
+      preselectedIds.length > 0 &&
+      selectedPortfolioIds.length === 0
+    ) {
       onChange(preselectedIds)
     }
   }, [preselectedIds, selectedPortfolioIds.length, onChange])
@@ -130,7 +134,9 @@ const SelectPortfoliosStep: React.FC<SelectPortfoliosStepProps> = ({
                 key={portfolio.id}
                 onClick={() => handleToggle(portfolio.id)}
                 className={`hover:bg-slate-100 transition-colors cursor-pointer ${
-                  selectedPortfolioIds.includes(portfolio.id) ? "bg-blue-50" : ""
+                  selectedPortfolioIds.includes(portfolio.id)
+                    ? "bg-blue-50"
+                    : ""
                 }`}
               >
                 <td className="px-4 py-3">

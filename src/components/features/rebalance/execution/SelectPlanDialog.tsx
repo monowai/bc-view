@@ -25,14 +25,14 @@ const SelectPlanDialog: React.FC<SelectPlanDialogProps> = ({
   // Fetch models
   const { data: modelsData, isLoading: loadingModels } = useSWR(
     modalOpen ? "/api/rebalance/models" : null,
-    simpleFetcher("/api/rebalance/models")
+    simpleFetcher("/api/rebalance/models"),
   )
 
   const models: ModelDto[] = modelsData?.data || []
 
   // Filter models that have approved plans
   const modelsWithApprovedPlans = models.filter(
-    (m) => m.currentPlanId && m.currentPlanVersion
+    (m) => m.currentPlanId && m.currentPlanVersion,
   )
 
   const handleSelectModel = async (model: ModelDto): Promise<void> => {
@@ -44,7 +44,7 @@ const SelectPlanDialog: React.FC<SelectPlanDialogProps> = ({
     try {
       // Fetch the approved plan
       const response = await fetch(
-        `/api/rebalance/models/${model.id}/plans/approved`
+        `/api/rebalance/models/${model.id}/plans/approved`,
       )
       if (response.ok) {
         const planData = await response.json()
@@ -73,7 +73,7 @@ const SelectPlanDialog: React.FC<SelectPlanDialogProps> = ({
         <p className="text-sm text-gray-600 mb-4">
           {t(
             "rebalance.selectPlan.description",
-            "Choose an approved model plan to rebalance against, or create a new model from your current holdings."
+            "Choose an approved model plan to rebalance against, or create a new model from your current holdings.",
           )}
         </p>
 
@@ -89,7 +89,7 @@ const SelectPlanDialog: React.FC<SelectPlanDialogProps> = ({
               <p>
                 {t(
                   "rebalance.selectPlan.noPlans",
-                  "No approved plans found. Create a model and approve a plan first."
+                  "No approved plans found. Create a model and approve a plan first.",
                 )}
               </p>
             </div>
@@ -122,8 +122,8 @@ const SelectPlanDialog: React.FC<SelectPlanDialogProps> = ({
                         {model.baseCurrency}
                       </span>
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">
-                        <i className="fas fa-check-circle mr-1"></i>
-                        v{model.currentPlanVersion}
+                        <i className="fas fa-check-circle mr-1"></i>v
+                        {model.currentPlanVersion}
                       </span>
                     </div>
                   </div>
@@ -152,7 +152,7 @@ const SelectPlanDialog: React.FC<SelectPlanDialogProps> = ({
                 <div className="text-sm text-gray-500">
                   {t(
                     "rebalance.selectPlan.createNewDesc",
-                    "Create a model from your current holdings"
+                    "Create a model from your current holdings",
                   )}
                 </div>
               </div>

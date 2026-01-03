@@ -413,7 +413,9 @@ export default withPageAuthRequired(function Portfolios({
                   className="bg-indigo-500 text-white py-2 px-4 rounded hover:bg-indigo-600 transition-colors flex items-center"
                   onClick={() => {
                     const codes = Array.from(selectedPortfolios).join(",")
-                    router.push(`/rebalance/wizard?portfolios=${encodeURIComponent(codes)}`)
+                    router.push(
+                      `/rebalance/wizard?portfolios=${encodeURIComponent(codes)}`,
+                    )
                   }}
                 >
                   <i className="fas fa-balance-scale mr-2"></i>

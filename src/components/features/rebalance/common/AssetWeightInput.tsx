@@ -59,7 +59,9 @@ const AssetWeightInput: React.FC<AssetWeightInputProps> = ({
                 disabled={readOnly}
                 className="w-24 px-2 py-1 text-right border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
               />
-              <span className="text-gray-400 text-xs w-8">{priceCurrency || ""}</span>
+              <span className="text-gray-400 text-xs w-8">
+                {priceCurrency || ""}
+              </span>
             </>
           )}
           <MathInput
@@ -119,7 +121,7 @@ const AssetWeightInput: React.FC<AssetWeightInputProps> = ({
               onChange={(e) => onRationaleChange?.(e.target.value)}
               placeholder={t(
                 "rebalance.plans.rationalePlaceholder",
-                "Why include this asset? (optional)"
+                "Why include this asset? (optional)",
               )}
               rows={2}
               className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 resize-none"

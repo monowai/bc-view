@@ -109,7 +109,11 @@ const CashSummaryPanel: React.FC<CashSummaryPanelProps> = ({
         <div className="col-span-2 border-t border-gray-200 pt-2 mt-1 space-y-2">
           <div className="flex justify-between">
             <span className="text-gray-700 font-medium">
-              {t("rebalance.execute.projectedMarketValue", "Projected Market Value")}:
+              {t(
+                "rebalance.execute.projectedMarketValue",
+                "Projected Market Value",
+              )}
+              :
             </span>
             <span className="font-bold text-gray-900">
               {formatCurrency(currentMarketValue)} {currency}

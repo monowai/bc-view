@@ -35,7 +35,9 @@ function PlanDetailPage(): React.ReactElement {
   }
 
   const handleCancel = async (): Promise<void> => {
-    if (!window.confirm(t("rebalance.plans.cancelConfirm", "Cancel this plan?"))) {
+    if (
+      !window.confirm(t("rebalance.plans.cancelConfirm", "Cancel this plan?"))
+    ) {
       return
     }
     setIsCancelling(true)
@@ -69,7 +71,9 @@ function PlanDetailPage(): React.ReactElement {
 
   const canExecute =
     plan.status === "READY" &&
-    plan.items.some((item) => !item.locked && !item.excluded && item.action !== "HOLD")
+    plan.items.some(
+      (item) => !item.locked && !item.excluded && item.action !== "HOLD",
+    )
   const canRefresh = plan.status !== "COMPLETED" && plan.status !== "CANCELLED"
   const canCancel = plan.status !== "COMPLETED" && plan.status !== "CANCELLED"
 
@@ -89,7 +93,10 @@ function PlanDetailPage(): React.ReactElement {
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-gray-900">{plan.name}</h1>
-            <StatusBadge status={plan.status} i18nPrefix="rebalance.plans.status" />
+            <StatusBadge
+              status={plan.status}
+              i18nPrefix="rebalance.plans.status"
+            />
           </div>
           <p className="text-sm text-gray-600 mt-1">
             {t("rebalance.plans.model", "Model")}: {plan.modelPortfolioName}
@@ -102,7 +109,9 @@ function PlanDetailPage(): React.ReactElement {
               disabled={isRefreshing}
               className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors flex items-center disabled:bg-gray-400"
             >
-              <i className={`fas fa-sync-alt mr-2 ${isRefreshing ? "fa-spin" : ""}`}></i>
+              <i
+                className={`fas fa-sync-alt mr-2 ${isRefreshing ? "fa-spin" : ""}`}
+              ></i>
               {t("rebalance.plans.refresh", "Refresh")}
             </button>
           )}
@@ -150,7 +159,9 @@ function PlanDetailPage(): React.ReactElement {
           <div className="text-sm text-gray-500">
             {t("rebalance.plans.cashDelta", "Cash Delta")}
           </div>
-          <div className={`text-xl font-bold ${plan.cashDelta > 0 ? "text-green-600" : plan.cashDelta < 0 ? "text-red-600" : ""}`}>
+          <div
+            className={`text-xl font-bold ${plan.cashDelta > 0 ? "text-green-600" : plan.cashDelta < 0 ? "text-red-600" : ""}`}
+          >
             {plan.cashDelta > 0 ? "+" : ""}
             <FormatValue value={plan.cashDelta} />
           </div>
@@ -172,10 +183,7 @@ function PlanDetailPage(): React.ReactElement {
         <h2 className="text-lg font-semibold text-gray-700 mb-3">
           {t("rebalance.items.title", "Plan Items")}
         </h2>
-        <PlanItemsTable
-          items={plan.items}
-          currencySymbol={plan.planCurrency}
-        />
+        <PlanItemsTable items={plan.items} currencySymbol={plan.planCurrency} />
       </div>
 
       {/* Execution Dialog */}

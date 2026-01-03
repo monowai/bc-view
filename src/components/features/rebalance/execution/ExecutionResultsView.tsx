@@ -54,24 +54,28 @@ const ExecutionResultsView: React.FC<ExecutionResultsViewProps> = ({
           <div>
             <div className="font-medium">
               {hasFailed
-                ? t("rebalance.execution.partial", "Partial execution completed")
+                ? t(
+                    "rebalance.execution.partial",
+                    "Partial execution completed",
+                  )
                 : hasExecuted
                   ? t(
                       "rebalance.execution.success",
                       "Successfully executed {{count}} items",
                       { count: results.executedCount },
                     )
-                  : t(
-                      "rebalance.execution.noItems",
-                      "No items were executed",
-                    )}
+                  : t("rebalance.execution.noItems", "No items were executed")}
             </div>
             <div className="text-sm text-gray-600 mt-1">
-              {t("rebalance.execution.summary", "Executed: {{executed}}, Skipped: {{skipped}}, Failed: {{failed}}", {
-                executed: results.executedCount,
-                skipped: results.skippedCount,
-                failed: results.failedCount,
-              })}
+              {t(
+                "rebalance.execution.summary",
+                "Executed: {{executed}}, Skipped: {{skipped}}, Failed: {{failed}}",
+                {
+                  executed: results.executedCount,
+                  skipped: results.skippedCount,
+                  failed: results.failedCount,
+                },
+              )}
             </div>
           </div>
         </div>

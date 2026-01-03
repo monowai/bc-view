@@ -13,13 +13,9 @@ interface CreateModelFromHoldingsDialogProps {
   onSuccess?: (model: ModelDto) => void
 }
 
-const CreateModelFromHoldingsDialog: React.FC<CreateModelFromHoldingsDialogProps> = ({
-  modalOpen,
-  onClose,
-  holdings,
-  portfolioCode,
-  onSuccess,
-}) => {
+const CreateModelFromHoldingsDialog: React.FC<
+  CreateModelFromHoldingsDialogProps
+> = ({ modalOpen, onClose, holdings, portfolioCode, onSuccess }) => {
   const { t } = useTranslation("common")
   const router = useRouter()
 
@@ -48,9 +44,11 @@ const CreateModelFromHoldingsDialog: React.FC<CreateModelFromHoldingsDialogProps
       assetId: p.asset.id,
       assetCode: p.asset.code,
       assetName: p.asset.name,
-      weight: Math.round(
-        ((p.moneyValues?.PORTFOLIO?.marketValue || 0) / totalMarketValue) * 10000,
-      ) / 100, // Round to 2 decimal places
+      weight:
+        Math.round(
+          ((p.moneyValues?.PORTFOLIO?.marketValue || 0) / totalMarketValue) *
+            10000,
+        ) / 100, // Round to 2 decimal places
       currentValue: p.moneyValues?.PORTFOLIO?.marketValue || 0,
       currentWeight:
         ((p.moneyValues?.PORTFOLIO?.marketValue || 0) / totalMarketValue) * 100,
@@ -61,7 +59,8 @@ const CreateModelFromHoldingsDialog: React.FC<CreateModelFromHoldingsDialogProps
   const [name, setName] = useState(`${portfolioCode} Model`)
   const [objective, setObjective] = useState("")
   const [description, setDescription] = useState("")
-  const [weights, setWeights] = useState<AssetWeightWithDetails[]>(initialWeights)
+  const [weights, setWeights] =
+    useState<AssetWeightWithDetails[]>(initialWeights)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -118,11 +117,14 @@ const CreateModelFromHoldingsDialog: React.FC<CreateModelFromHoldingsDialogProps
         })),
       }
 
-      const planResponse = await fetch(`/api/rebalance/models/${model.id}/plans`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(planPayload),
-      })
+      const planResponse = await fetch(
+        `/api/rebalance/models/${model.id}/plans`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(planPayload),
+        },
+      )
 
       if (!planResponse.ok) {
         // Plan creation failed, but model was created - navigate to it anyway
@@ -157,7 +159,10 @@ const CreateModelFromHoldingsDialog: React.FC<CreateModelFromHoldingsDialogProps
       >
         <header className="flex justify-between items-center border-b p-4">
           <h2 className="text-xl font-semibold">
-            {t("rebalance.models.createFromHoldings", "Create Model from Holdings")}
+            {t(
+              "rebalance.models.createFromHoldings",
+              "Create Model from Holdings",
+            )}
           </h2>
           <button
             className="text-gray-500 hover:text-gray-700 text-2xl leading-none"
@@ -205,7 +210,10 @@ const CreateModelFromHoldingsDialog: React.FC<CreateModelFromHoldingsDialogProps
                 value={objective}
                 onChange={(e) => setObjective(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                placeholder={t("rebalance.models.objectivePlaceholder", "e.g., Long-term growth")}
+                placeholder={t(
+                  "rebalance.models.objectivePlaceholder",
+                  "e.g., Long-term growth",
+                )}
               />
             </div>
 
@@ -222,7 +230,10 @@ const CreateModelFromHoldingsDialog: React.FC<CreateModelFromHoldingsDialogProps
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                placeholder={t("rebalance.models.descriptionPlaceholder", "Optional description")}
+                placeholder={t(
+                  "rebalance.models.descriptionPlaceholder",
+                  "Optional description",
+                )}
               />
             </div>
 
