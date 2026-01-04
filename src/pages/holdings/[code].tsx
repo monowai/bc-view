@@ -386,6 +386,7 @@ function HoldingsPage(): React.ReactElement {
             valueIn={holdingState.valueIn.value}
             groupBy={holdingState.groupBy.value}
             viewByGroup={true}
+            portfolioTotalValue={holdings.viewTotals.marketValue}
           />
         </div>
       ) : null}
