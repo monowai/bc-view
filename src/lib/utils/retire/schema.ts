@@ -157,4 +157,5 @@ export const defaultWizardValues = {
   equityAllocation: 60,
   housingAllocation: 20,
   selectedPortfolioIds: [],
+  lifeEvents: [],
 }

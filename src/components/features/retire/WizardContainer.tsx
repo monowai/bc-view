@@ -5,8 +5,9 @@ import { useRouter } from "next/router"
 import WizardProgress from "./WizardProgress"
 import WizardNavigation from "./WizardNavigation"
 import PersonalInfoStep from "./steps/PersonalInfoStep"
-import PreRetirementStep from "./steps/PreRetirementStep"
+import EmploymentStep from "./steps/EmploymentStep"
 import IncomeSourcesStep from "./steps/IncomeSourcesStep"
+import LifeEventsStep from "./steps/LifeEventsStep"
 import ExpensesStep from "./steps/ExpensesStep"
 import GoalsAssumptionsStep from "./steps/GoalsAssumptionsStep"
 import { wizardSchema, defaultWizardValues } from "@lib/retire/schema"
@@ -176,6 +177,10 @@ export default function WizardContainer({
         investmentAllocationPercent: toDecimal(
           formData.investmentAllocationPercent,
         ),
+        lifeEvents:
+          formData.lifeEvents?.length > 0
+            ? JSON.stringify(formData.lifeEvents)
+            : undefined,
       }
 
       const url = isEditMode
@@ -259,8 +264,6 @@ export default function WizardContainer({
       case 1:
         return <PersonalInfoStep control={control} errors={errors} />
       case 2:
-        return <PreRetirementStep control={control} errors={errors} />
-      case 3:
         return (
           <GoalsAssumptionsStep
             control={control}
@@ -268,9 +271,13 @@ export default function WizardContainer({
             setValue={setValue}
           />
         )
+      case 3:
+        return <LifeEventsStep control={control} />
       case 4:
         return <IncomeSourcesStep control={control} errors={errors} />
       case 5:
+        return <EmploymentStep control={control} errors={errors} />
+      case 6:
         return (
           <ExpensesStep control={control} errors={errors} setValue={setValue} />
         )

@@ -22,8 +22,18 @@ export interface RetirementPlan {
   workingIncomeMonthly: number
   workingExpensesMonthly: number
   investmentAllocationPercent: number
+  lifeEvents?: string // JSON array of life events
   createdDate: string
   updatedDate: string
+}
+
+// Life event type for one-off income/expense at specific age
+export interface LifeEvent {
+  id: string
+  age: number
+  amount: number
+  description: string
+  eventType: "income" | "expense"
 }
 
 export interface PlanRequest {
@@ -47,6 +57,7 @@ export interface PlanRequest {
   workingIncomeMonthly?: number
   workingExpensesMonthly?: number
   investmentAllocationPercent?: number
+  lifeEvents?: string
 }
 
 export interface PlanResponse {
@@ -289,6 +300,9 @@ export interface WizardFormData {
 
   // Portfolio Integration
   selectedPortfolioIds: string[]
+
+  // Life Events (one-off income/expense at specific ages)
+  lifeEvents: LifeEvent[]
 }
 
 // ============ Import/Export ============
@@ -324,6 +338,7 @@ export interface PlanExport {
   workingExpensesMonthly: number
   investmentAllocationPercent: number
   expenses: ExportedExpense[]
+  lifeEvents?: string
 }
 
 export interface PlanExportResponse {

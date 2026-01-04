@@ -9,15 +9,15 @@ import {
   SummaryItem,
 } from "../form"
 
-interface PreRetirementStepProps {
+interface EmploymentStepProps {
   control: Control<WizardFormData>
   errors: FieldErrors<WizardFormData>
 }
 
-export default function PreRetirementStep({
+export default function EmploymentStep({
   control,
   errors,
-}: PreRetirementStepProps): React.ReactElement {
+}: EmploymentStepProps): React.ReactElement {
   const workingIncomeMonthly =
     useWatch({ control, name: "workingIncomeMonthly" }) || 0
   const workingExpensesMonthly =
@@ -55,7 +55,7 @@ export default function PreRetirementStep({
   return (
     <div className="space-y-6">
       <StepHeader
-        title="Pre-Retirement Finances"
+        title="Employment Finances"
         description="Enter your current after-tax income and expenses while working. This helps calculate your projected savings until retirement."
       />
 
