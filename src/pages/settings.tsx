@@ -20,8 +20,9 @@ import {
 
 const HOLDINGS_VIEW_UI_OPTIONS: { value: HoldingsView; labelKey: string }[] = [
   { value: "SUMMARY", labelKey: "settings.holdingsView.summary" },
-  { value: "TABLE", labelKey: "settings.holdingsView.table" },
+  { value: "CARDS", labelKey: "settings.holdingsView.cards" },
   { value: "HEATMAP", labelKey: "settings.holdingsView.heatmap" },
+  { value: "TABLE", labelKey: "settings.holdingsView.table" },
   { value: "ALLOCATION", labelKey: "settings.holdingsView.allocation" },
 ]
 

@@ -28,7 +28,7 @@ interface UserPreferencesContextValue {
 
 const defaultPreferences: UserPreferences = {
   id: "",
-  defaultHoldingsView: "SUMMARY",
+  defaultHoldingsView: "CARDS",
   defaultValueIn: VALUE_IN_OPTIONS.PORTFOLIO,
   defaultGroupBy: GROUP_BY_API_VALUES.ASSET_CLASS,
   baseCurrencyCode: "USD",
@@ -103,10 +103,12 @@ export function useUserPreferences(): UserPreferencesContextValue {
  */
 export function toViewMode(
   holdingsView: HoldingsView | undefined,
-): "summary" | "table" | "heatmap" {
+): "summary" | "table" | "cards" | "heatmap" {
   switch (holdingsView) {
     case "TABLE":
       return "table"
+    case "CARDS":
+      return "cards"
     case "HEATMAP":
       return "heatmap"
     case "ALLOCATION":

@@ -294,7 +294,12 @@ interface Registration {
   since: string
 }
 
-export type HoldingsView = "SUMMARY" | "TABLE" | "HEATMAP" | "ALLOCATION"
+export type HoldingsView =
+  | "SUMMARY"
+  | "TABLE"
+  | "CARDS"
+  | "HEATMAP"
+  | "ALLOCATION"
 
 // Type aliases for UserPreferences - runtime values defined in types/constants.ts
 export type ValueInOption = "PORTFOLIO" | "BASE" | "TRADE"

@@ -306,6 +306,7 @@
   "settings.defaultHoldingsView.description": "The view to show when opening the Holdings page",
   "settings.holdingsView.summary": "Summary",
   "settings.holdingsView.table": "Table",
+  "settings.holdingsView.cards": "Cards",
   "settings.holdingsView.heatmap": "Heatmap",
   "settings.holdingsView.allocation": "Allocation",
   "settings.defaultValueIn": "Default Value Currency",
