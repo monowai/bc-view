@@ -35,6 +35,7 @@ import GrandTotal from "@components/features/holdings/GrandTotal"
 import HoldingActions from "@components/features/holdings/HoldingActions"
 import PerformanceHeatmap from "@components/ui/PerformanceHeatmap"
 import SummaryView from "@components/features/holdings/SummaryView"
+import CardView from "@components/features/holdings/CardView"
 import { compareByReportCategory, compareBySector } from "@lib/categoryMapping"
 import { GroupBy } from "@components/features/holdings/GroupByOptions"
 import HoldingsToolbar from "@components/features/holdings/HoldingsToolbar"
@@ -360,6 +361,16 @@ function HoldingsPage(): React.ReactElement {
               />
             </table>
           </div>
+        </div>
+      ) : viewMode === "cards" ? (
+        <div className="grid grid-cols-1 gap-3">
+          <HoldingsToolbar viewMode={viewMode} onViewModeChange={setViewMode} />
+          <CardView
+            holdings={holdings}
+            portfolio={holdingResults.portfolio}
+            valueIn={holdingState.valueIn.value}
+            groupBy={holdingState.groupBy.value}
+          />
         </div>
       ) : viewMode === "heatmap" ? (
         <div className="grid grid-cols-1 gap-3">

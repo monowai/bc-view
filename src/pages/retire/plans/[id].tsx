@@ -288,7 +288,11 @@ function PlanView(): React.ReactElement {
 
   // Initialize spendable categories and return rates (all except property by default)
   useEffect(() => {
-    if (categorySlices.length > 0 && !hasCategoriesInitialized.current && plan) {
+    if (
+      categorySlices.length > 0 &&
+      !hasCategoriesInitialized.current &&
+      plan
+    ) {
       const allCategories = categorySlices.map((s) => s.key)
       const spendable = allCategories.filter(
         (cat) => !DEFAULT_NON_SPENDABLE.includes(cat),
@@ -612,9 +616,13 @@ function PlanView(): React.ReactElement {
       const investment = startingBalance * adjustedReturnRate
 
       // After property sale, "other income" (rent) stops
-      const otherIncome = hasLiquidatedProperty ? 0 : effectiveOtherIncomeMonthly
+      const otherIncome = hasLiquidatedProperty
+        ? 0
+        : effectiveOtherIncomeMonthly
       const income =
-        (effectivePensionMonthly + effectiveSocialSecurityMonthly + otherIncome) *
+        (effectivePensionMonthly +
+          effectiveSocialSecurityMonthly +
+          otherIncome) *
         12
       const withdrawals = balance > 0 ? Math.max(0, expenses - income) : 0
 
@@ -650,7 +658,9 @@ function PlanView(): React.ReactElement {
     const runwayYears =
       depletionYear >= 0 ? depletionYear + 1 : adjustedYearlyProjections.length
     const depletionAge =
-      depletionYear >= 0 ? effectiveRetirementAge + depletionYear + 1 : undefined
+      depletionYear >= 0
+        ? effectiveRetirementAge + depletionYear + 1
+        : undefined
 
     return {
       ...projection,
@@ -730,8 +740,7 @@ function PlanView(): React.ReactElement {
       const updates = {
         monthlyExpenses:
           scenarioOverrides.monthlyExpenses ?? plan.monthlyExpenses,
-        pensionMonthly:
-          scenarioOverrides.pensionMonthly ?? plan.pensionMonthly,
+        pensionMonthly: scenarioOverrides.pensionMonthly ?? plan.pensionMonthly,
         socialSecurityMonthly:
           scenarioOverrides.socialSecurityMonthly ?? plan.socialSecurityMonthly,
         otherIncomeMonthly:
@@ -770,8 +779,7 @@ function PlanView(): React.ReactElement {
         monthlyExpenses:
           scenarioOverrides.monthlyExpenses ?? plan.monthlyExpenses,
         expensesCurrency: plan.expensesCurrency,
-        pensionMonthly:
-          scenarioOverrides.pensionMonthly ?? plan.pensionMonthly,
+        pensionMonthly: scenarioOverrides.pensionMonthly ?? plan.pensionMonthly,
         socialSecurityMonthly:
           scenarioOverrides.socialSecurityMonthly ?? plan.socialSecurityMonthly,
         otherIncomeMonthly:
@@ -1102,7 +1110,9 @@ function PlanView(): React.ReactElement {
                               />
                               <span
                                 className={
-                                  isSpendable ? "text-gray-900" : "text-gray-500"
+                                  isSpendable
+                                    ? "text-gray-900"
+                                    : "text-gray-500"
                                 }
                               >
                                 {slice.label}
@@ -1181,9 +1191,7 @@ function PlanView(): React.ReactElement {
                       </div>
                     )}
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">
-                        Blended Return Rate
-                      </span>
+                      <span className="text-gray-500">Blended Return Rate</span>
                       <span className="font-medium text-blue-600">
                         {(blendedReturnRate * 100).toFixed(1)}%
                       </span>
@@ -1593,7 +1601,10 @@ function PlanView(): React.ReactElement {
                     <div className="flex gap-2">
                       <button
                         onClick={() =>
-                          setNewEvent((prev) => ({ ...prev, eventType: "expense" }))
+                          setNewEvent((prev) => ({
+                            ...prev,
+                            eventType: "expense",
+                          }))
                         }
                         className={`flex-1 py-1 px-2 text-sm rounded ${
                           newEvent.eventType === "expense"
@@ -1606,7 +1617,10 @@ function PlanView(): React.ReactElement {
                       </button>
                       <button
                         onClick={() =>
-                          setNewEvent((prev) => ({ ...prev, eventType: "income" }))
+                          setNewEvent((prev) => ({
+                            ...prev,
+                            eventType: "income",
+                          }))
                         }
                         className={`flex-1 py-1 px-2 text-sm rounded ${
                           newEvent.eventType === "income"

@@ -1,6 +1,6 @@
 import React from "react"
 
-export type ViewMode = "summary" | "table" | "heatmap"
+export type ViewMode = "summary" | "table" | "cards" | "heatmap"
 
 interface ViewToggleProps {
   viewMode: ViewMode
@@ -38,13 +38,13 @@ const ViewToggle: React.FC<ViewToggleProps> = ({
         <span className="hidden sm:inline text-xs">Summary</span>
       </button>
       <button
-        onClick={() => onViewModeChange("table")}
+        onClick={() => onViewModeChange("cards")}
         className={`flex items-center space-x-1 px-2 py-1.5 text-sm font-medium rounded-md transition-colors ${
-          viewMode === "table"
+          viewMode === "cards"
             ? "bg-white text-gray-900 shadow-sm"
             : "text-gray-600 hover:text-gray-900"
         }`}
-        aria-label="Table view"
+        aria-label="Cards view"
       >
         <svg
           className="w-3.5 h-3.5"
@@ -56,10 +56,10 @@ const ViewToggle: React.FC<ViewToggleProps> = ({
             strokeLinecap="round"
             strokeLinejoin="round"
             strokeWidth={2}
-            d="M3 4h18M3 10h18M3 16h18"
+            d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"
           />
         </svg>
-        <span className="hidden sm:inline text-xs">Table</span>
+        <span className="hidden sm:inline text-xs">Cards</span>
       </button>
       <button
         onClick={() => onViewModeChange("heatmap")}
@@ -84,6 +84,30 @@ const ViewToggle: React.FC<ViewToggleProps> = ({
           />
         </svg>
         <span className="hidden sm:inline text-xs">Heatmap</span>
+      </button>
+      <button
+        onClick={() => onViewModeChange("table")}
+        className={`flex items-center space-x-1 px-2 py-1.5 text-sm font-medium rounded-md transition-colors ${
+          viewMode === "table"
+            ? "bg-white text-gray-900 shadow-sm"
+            : "text-gray-600 hover:text-gray-900"
+        }`}
+        aria-label="Table view"
+      >
+        <svg
+          className="w-3.5 h-3.5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M3 4h18M3 10h18M3 16h18"
+          />
+        </svg>
+        <span className="hidden sm:inline text-xs">Table</span>
       </button>
     </div>
   )
