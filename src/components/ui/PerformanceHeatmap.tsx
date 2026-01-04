@@ -11,6 +11,7 @@ interface PerformanceHeatmapProps {
   valueIn: string
   groupBy?: string
   viewByGroup?: boolean // When true, show groups as cells instead of positions
+  portfolioTotalValue?: number // Total portfolio value for weight calculation (includes cash)
   className?: string
 }
 
@@ -72,6 +73,7 @@ export const PerformanceHeatmap: React.FC<PerformanceHeatmapProps> = ({
   valueIn,
   groupBy,
   viewByGroup = false,
+  portfolioTotalValue,
   className = "",
 }) => {
   const [selectedMetric, setSelectedMetric] =
@@ -129,6 +131,9 @@ export const PerformanceHeatmap: React.FC<PerformanceHeatmapProps> = ({
   )
 
   // Build group-level cells for viewByGroup mode
+  // Use portfolioTotalValue (includes cash) for weight calculation if provided
+  const weightDenominator = portfolioTotalValue ?? totalMarketValue
+
   const groupCells: HeatmapCell[] = React.useMemo(() => {
     if (!viewByGroup) return []
 
@@ -147,13 +152,13 @@ export const PerformanceHeatmap: React.FC<PerformanceHeatmapProps> = ({
         totalGain,
         totalGainPercent,
         weight:
-          totalMarketValue > 0 ? g.groupMarketValue / totalMarketValue : 0,
+          weightDenominator > 0 ? g.groupMarketValue / weightDenominator : 0,
         unrealisedGain: subTotals?.unrealisedGain || 0,
         irr,
         gainOnDay,
       }
     })
-  }, [viewByGroup, groupedCells, holdingGroups, valueIn, totalMarketValue])
+  }, [viewByGroup, groupedCells, holdingGroups, valueIn, weightDenominator])
 
   const getMetricValue = (cell: HeatmapCell, metric: MetricType): number => {
     switch (metric) {
