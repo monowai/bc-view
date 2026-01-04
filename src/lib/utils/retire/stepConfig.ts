@@ -25,15 +25,6 @@ export const WIZARD_STEPS: WizardStep[] = [
   },
   {
     id: 2,
-    name: "Pre-Retirement",
-    fields: [
-      "workingIncomeMonthly",
-      "workingExpensesMonthly",
-      "investmentAllocationPercent",
-    ],
-  },
-  {
-    id: 3,
     name: "Goals",
     fields: [
       "targetBalance",
@@ -48,12 +39,26 @@ export const WIZARD_STEPS: WizardStep[] = [
     ],
   },
   {
+    id: 3,
+    name: "Life Events",
+    fields: ["lifeEvents"],
+  },
+  {
     id: 4,
     name: "Income",
     fields: ["pensionMonthly", "socialSecurityMonthly", "otherIncomeMonthly"],
   },
   {
     id: 5,
+    name: "Employment",
+    fields: [
+      "workingIncomeMonthly",
+      "workingExpensesMonthly",
+      "investmentAllocationPercent",
+    ],
+  },
+  {
+    id: 6,
     name: "Expenses",
     fields: ["expenses"],
   },
