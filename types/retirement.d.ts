@@ -76,6 +76,41 @@ export interface CategoryLabelsResponse {
   data: CategoryLabel[]
 }
 
+// ============ Quick Scenarios ============
+export interface QuickScenario {
+  id: string
+  ownerId: string
+  name: string
+  description?: string
+  sortOrder: number
+  retirementAgeOffset: number
+  expensesPercent: number
+  returnRateOffset: number
+  inflationOffset: number
+  contributionPercent: number
+  createdDate: string
+  updatedDate: string
+}
+
+export interface QuickScenarioRequest {
+  name: string
+  description?: string
+  sortOrder?: number
+  retirementAgeOffset?: number
+  expensesPercent?: number
+  returnRateOffset?: number
+  inflationOffset?: number
+  contributionPercent?: number
+}
+
+export interface QuickScenarioResponse {
+  data: QuickScenario
+}
+
+export interface QuickScenariosResponse {
+  data: QuickScenario[]
+}
+
 // ============ Plan Expenses ============
 export interface PlanExpense {
   id: string
@@ -170,6 +205,8 @@ export interface YearlyProjection {
   nonSpendableValue: number
   /** Total wealth = endingBalance + nonSpendableValue */
   totalWealth: number
+  /** True if property was liquidated this year (when liquid assets fell below 10%) */
+  propertyLiquidated?: boolean
 }
 
 export interface RetirementProjection {

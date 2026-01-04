@@ -12,13 +12,15 @@ describe("<Home />", () => {
     const git = simpleGit()
     expect(git)
     fetchMock.mockResponseOnce(JSON.stringify(registrationSuccess))
+    fetchMock.mockResponseOnce(JSON.stringify({ data: [] })) // portfolios response
     render(<Home />)
     // Use waitFor for elements that will appear due to async operations
     await waitFor(() => {
       expect(screen.getByText("home.welcome")).toBeInTheDocument()
     })
 
-    expect(screen.getByText("home.portfolios")).toBeInTheDocument()
-    expect(screen.getByText("user.logout")).toBeInTheDocument()
+    // Check for capability cards on the new landing page
+    expect(screen.getByText("All Your Assets")).toBeInTheDocument()
+    expect(screen.getByText("Multi-Currency")).toBeInTheDocument()
   })
 })

@@ -161,6 +161,7 @@ interface MathInputProps {
   max?: number
   step?: number | string
   disabled?: boolean
+  id?: string
 }
 
 /**
@@ -176,6 +177,7 @@ export default function MathInput({
   max,
   step,
   disabled,
+  id,
 }: MathInputProps): React.ReactElement {
   const [displayValue, setDisplayValue] = useState<string>(String(value || ""))
   const [isExpression, setIsExpression] = useState(false)
@@ -228,6 +230,7 @@ export default function MathInput({
 
   return (
     <input
+      id={id}
       type="text"
       inputMode="decimal"
       value={displayValue}
