@@ -4,7 +4,7 @@ import HeaderUserControls from "@components/layout/HeaderUserControls"
 import { useTranslation } from "next-i18next"
 
 export default function Header(): React.ReactElement {
-  const { t } = useTranslation("common")
+  const { t, ready } = useTranslation("common")
 
   return (
     <header className="relative">
@@ -27,7 +27,7 @@ export default function Header(): React.ReactElement {
           </div>
         </div>
         <div className="flex mt-2 sm:mt-0 sm:mr-4">
-          <small>{t("tagline")}&nbsp;&nbsp;</small>
+          {ready && <small>{t("tagline")}&nbsp;&nbsp;</small>}
           <i className="fas fa-euro-sign mr-2"></i>
           <i className="fas fa-dollar-sign mr-2"></i>
           <i className="fas fa-pound-sign"></i>

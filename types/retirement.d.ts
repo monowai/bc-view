@@ -243,6 +243,10 @@ export interface RetirementProjection {
   nonSpendableAtRetirement: number
   /** Housing return rate used for non-spendable asset growth during retirement */
   housingReturnRate: number
+  /** Liquid balance at the point when illiquid assets were sold */
+  liquidBalanceAtLiquidation?: number
+  /** Threshold % at which illiquid assets are sold */
+  liquidationThresholdPercent?: number
 }
 
 export interface ProjectionResponse {
