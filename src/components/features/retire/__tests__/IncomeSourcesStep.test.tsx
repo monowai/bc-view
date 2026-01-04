@@ -46,9 +46,10 @@ describe("IncomeSourcesStep", () => {
       </TestWrapper>,
     )
 
-    expect(screen.getByLabelText(/monthly pension/i)).toHaveValue(0)
-    expect(screen.getByLabelText(/government benefits/i)).toHaveValue(0)
-    expect(screen.getByLabelText(/other monthly income/i)).toHaveValue(0)
+    // MathInput uses type="text", so values are strings
+    expect(screen.getByLabelText(/monthly pension/i)).toHaveValue("0")
+    expect(screen.getByLabelText(/government benefits/i)).toHaveValue("0")
+    expect(screen.getByLabelText(/other monthly income/i)).toHaveValue("0")
   })
 
   it("displays total monthly income", () => {

@@ -1,6 +1,7 @@
 import React from "react"
 import { Control, Controller, FieldErrors } from "react-hook-form"
 import { WizardFormData } from "types/retirement"
+import MathInput from "@components/ui/MathInput"
 
 // Fields that are percentages and can be used with PercentInput
 type PercentField = Extract<
@@ -51,14 +52,14 @@ export default function PercentInput({
           name={name}
           control={control}
           render={({ field }) => (
-            <input
-              {...field}
+            <MathInput
               id={name}
-              type="number"
+              value={field.value}
+              onChange={field.onChange}
               min={min}
               max={max}
               step={step}
-              onChange={(e) => field.onChange(Number(e.target.value))}
+              placeholder="0"
               className={`
                 w-full pr-8 pl-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500
                 ${error ? "border-red-500" : "border-gray-300"}
@@ -71,7 +72,11 @@ export default function PercentInput({
       {error && (
         <p className="mt-1 text-sm text-red-600">{error.message as string}</p>
       )}
-      {helperText && <p className="mt-1 text-sm text-gray-500">{helperText}</p>}
+      {helperText && (
+        <p className="mt-1 text-sm text-gray-500">
+          {helperText} • Supports expressions
+        </p>
+      )}
     </div>
   )
 }

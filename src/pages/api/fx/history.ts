@@ -42,7 +42,9 @@ async function handler(
 
     if (!response.ok) {
       console.error("FX history backend error:", response.status)
-      res.status(response.status).json({ error: `Backend error: ${response.status}` })
+      res
+        .status(response.status)
+        .json({ error: `Backend error: ${response.status}` })
       return
     }
 

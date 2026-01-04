@@ -58,6 +58,15 @@ export default withPageAuthRequired(function AdminPage(): React.ReactElement {
       icon: "fa-tags",
     },
     {
+      title: t("admin.cards.scenarios.title", "Quick Scenarios"),
+      description: t(
+        "admin.cards.scenarios.description",
+        "Manage What-If scenario presets for retirement planning.",
+      ),
+      href: "/admin/scenarios",
+      icon: "fa-sliders-h",
+    },
+    {
       title: t("admin.cards.tasks.title", "Scheduled Tasks"),
       description: t(
         "admin.cards.tasks.description",

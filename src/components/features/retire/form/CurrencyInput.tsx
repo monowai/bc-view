@@ -1,6 +1,7 @@
 import React from "react"
 import { Control, Controller, FieldErrors } from "react-hook-form"
 import { WizardFormData } from "types/retirement"
+import MathInput from "@components/ui/MathInput"
 
 // Fields that are numeric and can be used with CurrencyInput
 type NumericField = Extract<
@@ -45,18 +46,20 @@ export default function CurrencyInput({
         {label}
       </label>
       <div className="relative">
-        <span className="absolute left-3 top-2.5 text-gray-500">{symbol}</span>
+        <span className="absolute left-3 top-2.5 text-gray-500 z-10">
+          {symbol}
+        </span>
         <Controller
           name={name}
           control={control}
           render={({ field }) => (
-            <input
-              {...field}
+            <MathInput
               id={name}
-              type="number"
+              value={field.value}
+              onChange={field.onChange}
               min={min}
               step={step}
-              onChange={(e) => field.onChange(Number(e.target.value))}
+              placeholder="0"
               className={`
                 w-full pl-8 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500
                 ${error ? "border-red-500" : "border-gray-300"}
@@ -68,7 +71,16 @@ export default function CurrencyInput({
       {error && (
         <p className="mt-1 text-sm text-red-600">{error.message as string}</p>
       )}
-      {helperText && <p className="mt-1 text-sm text-gray-500">{helperText}</p>}
+      {helperText && (
+        <p className="mt-1 text-sm text-gray-500">
+          {helperText} • Supports expressions (e.g., 1000*12)
+        </p>
+      )}
+      {!helperText && (
+        <p className="mt-1 text-xs text-gray-400">
+          Supports math: 1000+500, 5000*12
+        </p>
+      )}
     </div>
   )
 }
