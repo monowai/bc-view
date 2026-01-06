@@ -43,6 +43,17 @@ export function simpleFetcher(requestInfo: RequestInfo): any {
     return res.json()
   }
 }
+
+/**
+ * Standard SWR fetcher - receives URL from useSwr key
+ */
+export const fetcher = async (url: string): Promise<any> => {
+  const res = await fetch(url)
+  if (!res.ok) {
+    throw await res.json()
+  }
+  return res.json()
+}
 const apiRoot = "/api"
 export const ccyKey = `${apiRoot}/currencies`
 export const marketsKey = `${apiRoot}/markets`

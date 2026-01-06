@@ -315,6 +315,8 @@ export type ExecutionPlanStatus =
   | "COMPLETED"
   | "CANCELLED"
 
+export type ExecutionMode = "REBALANCE" | "INVEST_CASH"
+
 export interface ExecutionDto {
   id: string
   planId: string
@@ -328,6 +330,9 @@ export interface ExecutionDto {
   totalPortfolioValue: number
   currency: string
   status: ExecutionPlanStatus
+  mode: ExecutionMode
+  /** Investment amount for INVEST_CASH mode */
+  investmentAmount?: number
   items: ExecutionItemDto[]
   cashSummary: CashSummaryDto
   createdAt: string
@@ -343,6 +348,7 @@ export interface ExecutionSummaryDto {
   name?: string
   portfolioCount: number
   status: ExecutionPlanStatus
+  mode: ExecutionMode
   snapshotTotalValue: number
   currency: string
   createdAt: string
@@ -371,6 +377,8 @@ export interface ExecutionItemDto {
   sortOrder: number
   /** Whether this item represents cash position */
   isCash?: boolean
+  /** Rationale for why this asset is in the model */
+  rationale?: string
 }
 
 export interface CashSummaryDto {
@@ -386,6 +394,25 @@ export interface CreateExecutionRequest {
   planId: string
   portfolioIds: string[]
   name?: string
+  /** Execution mode: REBALANCE (default) or INVEST_CASH */
+  mode?: ExecutionMode
+  /** Amount of cash to invest (only used in INVEST_CASH mode) */
+  investmentAmount?: number
+}
+
+export interface CommitExecutionRequest {
+  /** Portfolio ID to create transactions for */
+  portfolioId: string
+  /** Transaction status: PROPOSED (default) or SETTLED */
+  transactionStatus?: "PROPOSED" | "SETTLED"
+}
+
+export interface CommitExecutionResponse {
+  data: {
+    transactionsCreated: number
+    transactionIds: string[]
+    portfolioId: string
+  }
 }
 
 export interface UpdateExecutionRequest {

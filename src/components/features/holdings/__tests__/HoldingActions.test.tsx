@@ -53,6 +53,27 @@ jest.mock("@components/ui/CopyPopup", () => {
   }
 })
 
+jest.mock("@components/features/rebalance/execution/SelectPlanDialog", () => {
+  return function SelectPlanDialog() {
+    return <div data-testid="select-plan-dialog" />
+  }
+})
+
+jest.mock(
+  "@components/features/rebalance/models/CreateModelFromHoldingsDialog",
+  () => {
+    return function CreateModelFromHoldingsDialog() {
+      return <div data-testid="create-model-dialog" />
+    }
+  },
+)
+
+jest.mock("@components/features/rebalance/execution/InvestCashDialog", () => {
+  return function InvestCashDialog() {
+    return <div data-testid="invest-cash-dialog" />
+  }
+})
+
 // Mock HoldingContract data
 const mockHoldingResults: HoldingContract = {
   portfolio: {
@@ -134,7 +155,7 @@ describe("HoldingActions Mobile Portrait Tests (TDD)", () => {
       expect(copyButton).toHaveClass("mobile-portrait:hidden")
     })
 
-    it("should have mobile-portrait:hidden class on Add Trade button", () => {
+    it("should have mobile-portrait:hidden class on Trade dropdown button", () => {
       render(
         <HoldingActions
           holdingResults={mockHoldingResults}
@@ -143,11 +164,11 @@ describe("HoldingActions Mobile Portrait Tests (TDD)", () => {
         />,
       )
 
-      const tradeButton = screen.getByText("Add Trade")
+      const tradeButton = screen.getByText("Trade")
       expect(tradeButton).toHaveClass("mobile-portrait:hidden")
     })
 
-    it("should have mobile-portrait:hidden class on Add Cash button", () => {
+    it("should have mobile-portrait:hidden class on Rebalance dropdown button", () => {
       render(
         <HoldingActions
           holdingResults={mockHoldingResults}
@@ -156,8 +177,8 @@ describe("HoldingActions Mobile Portrait Tests (TDD)", () => {
         />,
       )
 
-      const cashButton = screen.getByText("Add Cash")
-      expect(cashButton).toHaveClass("mobile-portrait:hidden")
+      const rebalanceButton = screen.getByText("Rebalance")
+      expect(rebalanceButton).toHaveClass("mobile-portrait:hidden")
     })
   })
 
@@ -187,13 +208,13 @@ describe("HoldingActions Mobile Portrait Tests (TDD)", () => {
       )
 
       const copyButton = screen.getByText("Copy Holdings")
-      const tradeButton = screen.getByText("Add Trade")
-      const cashButton = screen.getByText("Add Cash")
+      const tradeButton = screen.getByText("Trade")
+      const rebalanceButton = screen.getByText("Rebalance")
 
       // Buttons have the class but won't be hidden because not in portrait orientation
       expect(copyButton).toHaveClass("mobile-portrait:hidden")
       expect(tradeButton).toHaveClass("mobile-portrait:hidden")
-      expect(cashButton).toHaveClass("mobile-portrait:hidden")
+      expect(rebalanceButton).toHaveClass("mobile-portrait:hidden")
     })
   })
 
@@ -223,13 +244,13 @@ describe("HoldingActions Mobile Portrait Tests (TDD)", () => {
       )
 
       const copyButton = screen.getByText("Copy Holdings")
-      const tradeButton = screen.getByText("Add Trade")
-      const cashButton = screen.getByText("Add Cash")
+      const tradeButton = screen.getByText("Trade")
+      const rebalanceButton = screen.getByText("Rebalance")
 
       // Buttons have the class but won't be hidden because not in mobile portrait mode
       expect(copyButton).toHaveClass("mobile-portrait:hidden")
       expect(tradeButton).toHaveClass("mobile-portrait:hidden")
-      expect(cashButton).toHaveClass("mobile-portrait:hidden")
+      expect(rebalanceButton).toHaveClass("mobile-portrait:hidden")
     })
   })
 })

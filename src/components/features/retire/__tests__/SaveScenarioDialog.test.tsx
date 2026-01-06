@@ -33,9 +33,7 @@ describe("SaveScenarioDialog", () => {
   it("shows update option with plan name", () => {
     render(<SaveScenarioDialog {...defaultProps} />)
 
-    expect(
-      screen.getByText('Update "My Retirement Plan"'),
-    ).toBeInTheDocument()
+    expect(screen.getByText('Update "My Retirement Plan"')).toBeInTheDocument()
     expect(
       screen.getByText("Apply changes to the existing plan"),
     ).toBeInTheDocument()
@@ -63,7 +61,9 @@ describe("SaveScenarioDialog", () => {
     const newPlanRadio = screen.getAllByRole("radio")[1]
     fireEvent.click(newPlanRadio)
 
-    expect(screen.getByPlaceholderText("My Retirement Plan (Scenario)")).toBeInTheDocument()
+    expect(
+      screen.getByPlaceholderText("My Retirement Plan (Scenario)"),
+    ).toBeInTheDocument()
   })
 
   it("hides new plan name input when update is selected", () => {
@@ -109,7 +109,9 @@ describe("SaveScenarioDialog", () => {
     fireEvent.click(newPlanRadio)
 
     // Enter new plan name
-    const nameInput = screen.getByPlaceholderText("My Retirement Plan (Scenario)")
+    const nameInput = screen.getByPlaceholderText(
+      "My Retirement Plan (Scenario)",
+    )
     fireEvent.change(nameInput, { target: { value: "New Test Plan" } })
 
     // Click save
@@ -143,7 +145,9 @@ describe("SaveScenarioDialog", () => {
     // Select "new" mode and enter name
     const newPlanRadio = screen.getAllByRole("radio")[1]
     fireEvent.click(newPlanRadio)
-    const nameInput = screen.getByPlaceholderText("My Retirement Plan (Scenario)")
+    const nameInput = screen.getByPlaceholderText(
+      "My Retirement Plan (Scenario)",
+    )
     fireEvent.change(nameInput, { target: { value: "Test" } })
 
     // Click cancel - this should call handleClose which resets state

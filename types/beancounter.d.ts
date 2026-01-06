@@ -49,6 +49,16 @@ export interface SetCashBalanceData {
   assetName?: string // Asset name for display
 }
 
+export interface CashTransferData {
+  portfolioId: string
+  portfolioCode: string
+  assetId: string
+  assetCode: string
+  assetName: string
+  currency: string
+  currentBalance: number
+}
+
 export interface SetPriceData {
   asset: Asset
 }
@@ -365,6 +375,7 @@ export interface Asset {
   effectiveReportCategory?: string // Computed: reportCategory if set, otherwise mapped from assetCategory
   sector?: string // Sector classification (e.g., "Technology", "Health Care")
   industry?: string // Industry classification (more granular than sector)
+  expectedReturnRate?: number // Expected annual return rate (decimal, e.g., 0.03 for 3%)
 }
 
 export interface AssetCategory {
@@ -394,6 +405,7 @@ export interface AssetInput {
   currency?: string
   category: string
   owner: string
+  expectedReturnRate?: number // Expected annual return rate (decimal, e.g., 0.03 for 3%)
 }
 
 // Request wrapper for bulk asset operations
@@ -534,4 +546,59 @@ export interface AssetHolding {
 
 export interface AssetHoldingsResponse {
   data: AssetHolding[]
+}
+
+// ============ Private Asset Config ============
+
+/**
+ * Configuration for private assets (Real Estate, etc.).
+ * Stores income assumptions, expenses, and planning parameters.
+ */
+export interface PrivateAssetConfig {
+  assetId: string
+  // Income settings
+  monthlyRentalIncome: number
+  rentalCurrency: string
+  // Expense settings - management
+  monthlyManagementFee: number
+  managementFeePercent: number
+  // Expense settings - property costs
+  monthlyBodyCorporateFee: number
+  annualPropertyTax: number
+  annualInsurance: number
+  monthlyOtherExpenses: number
+  // Planning settings
+  isPrimaryResidence: boolean
+  liquidationPriority: number
+  // Transaction generation settings
+  transactionDayOfMonth: number
+  creditAccountId?: string
+  autoGenerateTransactions: boolean
+  // Timestamps
+  createdDate: string
+  updatedDate: string
+}
+
+export interface PrivateAssetConfigRequest {
+  monthlyRentalIncome?: number
+  rentalCurrency?: string
+  monthlyManagementFee?: number
+  managementFeePercent?: number
+  monthlyBodyCorporateFee?: number
+  annualPropertyTax?: number
+  annualInsurance?: number
+  monthlyOtherExpenses?: number
+  isPrimaryResidence?: boolean
+  liquidationPriority?: number
+  transactionDayOfMonth?: number
+  creditAccountId?: string
+  autoGenerateTransactions?: boolean
+}
+
+export interface PrivateAssetConfigResponse {
+  data: PrivateAssetConfig
+}
+
+export interface PrivateAssetConfigsResponse {
+  data: PrivateAssetConfig[]
 }

@@ -6,6 +6,7 @@ import {
   WeightClickData,
   SetCashBalanceData,
   SetPriceData,
+  CashTransferData,
   Asset,
 } from "types/beancounter"
 import { NumericFormat } from "react-number-format"
@@ -41,6 +42,7 @@ interface RowsProps extends HoldingValues {
   onSetCashBalance?: (data: SetCashBalanceData) => void
   onSetPrice?: (data: SetPriceData) => void
   onSectorWeightings?: (data: SectorWeightingsData) => void
+  onCashTransfer?: (data: CashTransferData) => void
 }
 
 // Helper function to generate responsive classes for table cells
@@ -232,6 +234,7 @@ export default function Rows({
   onSetCashBalance,
   onSetPrice,
   onSectorWeightings,
+  onCashTransfer,
 }: RowsProps): React.ReactElement {
   const { t } = useTranslation("common")
 
@@ -359,6 +362,37 @@ export default function Rows({
                       title={t("cash.setBalance")}
                     >
                       <i className="fas fa-balance-scale text-xs"></i>
+                    </button>
+                  </div>
+                )}
+                {supportsBalanceSetting(asset) && onCashTransfer && (
+                  <div className="hidden sm:flex items-center">
+                    <button
+                      type="button"
+                      aria-label={`${t("cash.transfer.title")} ${asset.name}`}
+                      className="inline-flex items-center justify-center w-6 h-6 text-blue-500 hover:text-blue-700 hover:bg-blue-100 rounded transition-colors duration-200"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        // For accounts, currency comes from priceSymbol or market currency
+                        // For cash, the code IS the currency
+                        const isAccountAsset = isAccount(asset)
+                        onCashTransfer({
+                          portfolioId: portfolio.id,
+                          portfolioCode: portfolio.code,
+                          assetId: asset.id,
+                          assetCode: asset.code,
+                          assetName: asset.name || asset.code,
+                          currency: isAccountAsset
+                            ? asset.priceSymbol ||
+                              asset.market.currency?.code ||
+                              asset.code
+                            : asset.code,
+                          currentBalance: moneyValues["TRADE"].marketValue,
+                        })
+                      }}
+                      title={t("cash.transfer.title")}
+                    >
+                      <i className="fas fa-exchange-alt text-xs"></i>
                     </button>
                   </div>
                 )}

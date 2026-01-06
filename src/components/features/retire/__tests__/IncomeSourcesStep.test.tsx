@@ -90,7 +90,7 @@ describe("IncomeSourcesStep", () => {
       screen.getByText(/expected monthly government retirement benefits/i),
     ).toBeInTheDocument()
     expect(
-      screen.getByText(/rental income, part-time work/i),
+      screen.getByText(/part-time work, annuities, or other sources/i),
     ).toBeInTheDocument()
   })
 })

@@ -36,8 +36,15 @@ export default withApiAuthRequired(async function trnApi(
         body: JSON.stringify(req.body),
       })
       await handleResponse<Transaction>(response, res)
+    } else if (req.method === "DELETE") {
+      console.log(`DELETE trn ${trnId}`)
+      const response = await fetch(
+        `${baseUrl}/${trnId}`,
+        requestInit(accessToken, "DELETE", req),
+      )
+      await handleResponse<Transaction>(response, res)
     } else {
-      res.setHeader("Allow", ["GET", "PATCH"])
+      res.setHeader("Allow", ["GET", "PATCH", "DELETE"])
       res.status(405).json({ error: `Method ${req.method} not allowed` })
     }
   } catch (error: any) {

@@ -53,14 +53,16 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
 
           const data = await response.json()
           const options: AssetOption[] = (data.data || [])
-            .filter(
-              (result: AssetSearchResult) =>
-                !existingAssetIds.includes(result.assetId || ""),
-            )
+            .filter((result: AssetSearchResult) => {
+              // Use assetId if available, otherwise use symbol for uniqueness
+              const identifier = result.assetId || result.symbol
+              return !existingAssetIds.includes(identifier)
+            })
             .map((result: AssetSearchResult) => ({
               value: result.assetId || result.symbol,
               label: `${result.symbol} - ${result.name}`,
-              assetId: result.assetId || "",
+              // Use symbol as assetId fallback for search results without persisted assetId
+              assetId: result.assetId || result.symbol,
               assetCode: result.symbol,
               assetName: result.name,
             }))
@@ -73,15 +75,28 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
     [existingAssetIds],
   )
 
-  const handleAdd = (): void => {
+  const handleAdd = async (): Promise<void> => {
     if (!selectedAsset || weight <= 0) return
 
     setIsAdding(true)
     try {
+      // Resolve the asset to get a real UUID from svc-data
+      const resolvedAsset = await resolveAsset(selectedAsset.assetCode)
+
+      // Format asset code: omit "US:" prefix for US market (default)
+      const formatAssetCode = (
+        marketCode: string,
+        assetCode: string,
+      ): string => {
+        return marketCode === "US" ? assetCode : `${marketCode}:${assetCode}`
+      }
+
       const newWeight: AssetWeightWithDetails = {
-        assetId: selectedAsset.assetId,
-        assetCode: selectedAsset.assetCode,
-        assetName: selectedAsset.assetName,
+        assetId: resolvedAsset?.id || selectedAsset.assetId,
+        assetCode: resolvedAsset
+          ? formatAssetCode(resolvedAsset.market.code, resolvedAsset.code)
+          : selectedAsset.assetCode,
+        assetName: resolvedAsset?.name || selectedAsset.assetName,
         weight: weight,
         sortOrder: 0,
       }
@@ -91,6 +106,32 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
       onClose()
     } finally {
       setIsAdding(false)
+    }
+  }
+
+  /**
+   * Resolve asset code to get real UUID from svc-data.
+   * Creates the asset if it doesn't exist.
+   */
+  const resolveAsset = async (
+    code: string,
+  ): Promise<{
+    id: string
+    code: string
+    name: string
+    market: { code: string }
+  } | null> => {
+    try {
+      const response = await fetch(`/api/assets/resolve?code=${code}`)
+      if (!response.ok) {
+        console.warn(`Failed to resolve asset ${code}:`, response.status)
+        return null
+      }
+      const data = await response.json()
+      return data.data
+    } catch (error) {
+      console.warn(`Error resolving asset ${code}:`, error)
+      return null
     }
   }
 
@@ -130,7 +171,7 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
               {t("rebalance.models.searchAsset", "Search Asset")}
             </label>
             <AsyncSelect
-              cacheOptions
+              key={existingAssetIds.join(",")}
               loadOptions={loadOptions}
               placeholder={t(
                 "rebalance.models.searchPlaceholder",

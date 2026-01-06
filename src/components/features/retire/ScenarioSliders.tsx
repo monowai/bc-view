@@ -67,9 +67,7 @@ export default function ScenarioSliders({
           max={10}
           step={1}
           unit=" years"
-          formatValue={(v) =>
-            `${retirementAge + v} (${v >= 0 ? "+" : ""}${v})`
-          }
+          formatValue={(v) => `${retirementAge + v} (${v >= 0 ? "+" : ""}${v})`}
         />
 
         <WhatIfSlider

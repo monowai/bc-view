@@ -2,6 +2,7 @@ import React from "react"
 import { Control, FieldErrors, useWatch } from "react-hook-form"
 import { WizardFormData } from "types/retirement"
 import { StepHeader, CurrencyInput, SummaryBox } from "../form"
+import { usePrivateAssetConfigs } from "@utils/assets/usePrivateAssetConfigs"
 
 interface IncomeSourcesStepProps {
   control: Control<WizardFormData>
@@ -18,6 +19,40 @@ export default function IncomeSourcesStep({
   const otherIncomeMonthly =
     useWatch({ control, name: "otherIncomeMonthly" }) || 0
 
+  // Fetch rental income from RE assets
+  const { configs, isLoading: configsLoading } = usePrivateAssetConfigs()
+
+  // Calculate net rental income (after all expenses) grouped by currency
+  const rentalIncomeByCurrency = React.useMemo(() => {
+    if (!configs) return {}
+    return configs
+      .filter((c) => !c.isPrimaryResidence && c.monthlyRentalIncome > 0)
+      .reduce(
+        (acc, c) => {
+          const currency = c.rentalCurrency || "NZD"
+          // Management fee: use greater of fixed or percentage
+          const percentFee = c.monthlyRentalIncome * c.managementFeePercent
+          const effectiveMgmtFee = Math.max(c.monthlyManagementFee, percentFee)
+          // Convert annual amounts to monthly
+          const monthlyTax = (c.annualPropertyTax || 0) / 12
+          const monthlyInsurance = (c.annualInsurance || 0) / 12
+          // Total expenses
+          const totalExpenses =
+            effectiveMgmtFee +
+            (c.monthlyBodyCorporateFee || 0) +
+            monthlyTax +
+            monthlyInsurance +
+            (c.monthlyOtherExpenses || 0)
+          const netIncome = c.monthlyRentalIncome - totalExpenses
+          acc[currency] = (acc[currency] || 0) + netIncome
+          return acc
+        },
+        {} as Record<string, number>,
+      )
+  }, [configs])
+
+  const hasRentalIncome = Object.keys(rentalIncomeByCurrency).length > 0
+
   const totalMonthlyIncome =
     pensionMonthly + socialSecurityMonthly + otherIncomeMonthly
 
@@ -27,6 +62,40 @@ export default function IncomeSourcesStep({
         title="Income Sources"
         description="Tell us about your expected retirement income. These amounts will offset your monthly expenses."
       />
+
+      {/* Property Rental Income (read-only) */}
+      {!configsLoading && hasRentalIncome && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="flex items-center mb-2">
+            <i className="fas fa-home text-green-600 mr-2"></i>
+            <h3 className="text-sm font-semibold text-green-800">
+              Property Rental Income
+            </h3>
+          </div>
+          <div className="space-y-1">
+            {Object.entries(rentalIncomeByCurrency).map(
+              ([currency, amount]) => (
+                <div
+                  key={currency}
+                  className="flex justify-between text-sm text-green-700"
+                >
+                  <span>Net Monthly Rental ({currency})</span>
+                  <span className="font-medium">
+                    {amount.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                </div>
+              ),
+            )}
+          </div>
+          <p className="text-xs text-green-600 mt-2">
+            <i className="fas fa-info-circle mr-1"></i>
+            Net of all expenses. Configure in Accounts &gt; Real Estate.
+          </p>
+        </div>
+      )}
 
       <div className="space-y-4">
         <CurrencyInput
@@ -48,7 +117,7 @@ export default function IncomeSourcesStep({
         <CurrencyInput
           name="otherIncomeMonthly"
           label="Other Monthly Income"
-          helperText="Rental income, part-time work, annuities, or other sources."
+          helperText="Part-time work, annuities, or other sources (excl. property above)."
           control={control}
           errors={errors}
         />
