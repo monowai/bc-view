@@ -26,7 +26,7 @@ import {
   QuickScenario,
   QuickScenariosResponse,
 } from "types/retirement"
-import { Portfolio, HoldingContract } from "types/beancounter"
+import { Portfolio, HoldingContract, FxResponse } from "types/beancounter"
 import {
   transformToAllocationSlices,
   AllocationSlice,
@@ -39,14 +39,16 @@ import {
   TABS,
   DEFAULT_NON_SPENDABLE,
   DEFAULT_WHAT_IF_ADJUSTMENTS,
-  getCategoryReturnType,
   hasScenarioChanges,
   useRetirementProjection,
+  RentalIncomeData,
   WhatIfModal,
   ScenarioImpact,
   SaveScenarioDialog,
   EditPlanDetailsModal,
+  IncomeBreakdownTable,
 } from "@components/features/retire"
+import { usePrivateAssetConfigs } from "@utils/assets/usePrivateAssetConfigs"
 
 interface PortfoliosResponse {
   data: Portfolio[]
@@ -74,19 +76,10 @@ function PlanView(): React.ReactElement {
   const [showSaveDialog, setShowSaveDialog] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
 
-  // Category-specific return rates (key = category name, value = return rate as decimal)
-  const [categoryReturnRates, setCategoryReturnRates] = useState<
-    Record<string, number>
-  >({})
-
   // Scenario overrides - holds edited values until user decides to save
-  const [scenarioOverrides, setScenarioOverrides] = useState<{
-    pensionMonthly?: number
-    socialSecurityMonthly?: number
-    otherIncomeMonthly?: number
-    inflationRate?: number
-    targetBalance?: number
-  }>({})
+  const [scenarioOverrides, setScenarioOverrides] = useState<ScenarioOverrides>(
+    {},
+  )
 
   // Edit details modal state
   const [showEditDetailsModal, setShowEditDetailsModal] = useState(false)
@@ -119,8 +112,84 @@ function PlanView(): React.ReactElement {
     [scenariosData?.data],
   )
 
+  // Fetch rental income from RE asset configs
+  const { configs: assetConfigs, getNetRentalByCurrency } =
+    usePrivateAssetConfigs()
+
   const plan = planData?.data
   const planCurrency = plan?.expensesCurrency || "NZD"
+
+  // Get raw rental income by currency (not yet converted)
+  const monthlyNetByCurrency = useMemo(() => {
+    if (!assetConfigs || assetConfigs.length === 0) return {}
+    return getNetRentalByCurrency()
+  }, [assetConfigs, getNetRentalByCurrency])
+
+  // State for FX-converted rental income
+  const [convertedRentalTotal, setConvertedRentalTotal] = useState<number>(0)
+
+  // Fetch FX rates and convert rental income to plan currency
+  useEffect(() => {
+    const convertRentalIncome = async (): Promise<void> => {
+      const currencies = Object.keys(monthlyNetByCurrency)
+      if (currencies.length === 0 || !planCurrency) {
+        setConvertedRentalTotal(0)
+        return
+      }
+
+      // Build pairs for currencies that need conversion
+      const pairs = currencies
+        .filter((currency) => currency !== planCurrency)
+        .map((currency) => ({ from: currency, to: planCurrency }))
+
+      const fxRates: Record<string, number> = {}
+
+      if (pairs.length > 0) {
+        try {
+          const response = await fetch("/api/fx", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ rateDate: "today", pairs }),
+          })
+          const fxResponse: FxResponse = await response.json()
+          // Extract rates from response (keyed as "FROM:TO")
+          if (fxResponse.data?.rates) {
+            Object.entries(fxResponse.data.rates).forEach(([key, value]) => {
+              fxRates[key] = value.rate
+            })
+          }
+        } catch (err) {
+          console.error("Failed to fetch FX rates for rental income:", err)
+        }
+      }
+
+      // Convert and sum all rental income
+      let total = 0
+      Object.entries(monthlyNetByCurrency).forEach(([currency, amount]) => {
+        if (currency === planCurrency) {
+          total += amount
+        } else {
+          const rateKey = `${currency}:${planCurrency}`
+          const rate = fxRates[rateKey] || 1
+          total += amount * rate
+        }
+      })
+
+      setConvertedRentalTotal(total)
+    }
+
+    convertRentalIncome()
+  }, [monthlyNetByCurrency, planCurrency])
+
+  // Build rental income data for projections
+  const rentalIncome = useMemo((): RentalIncomeData | undefined => {
+    if (Object.keys(monthlyNetByCurrency).length === 0) return undefined
+
+    return {
+      monthlyNetByCurrency,
+      totalMonthlyInPlanCurrency: convertedRentalTotal,
+    }
+  }, [monthlyNetByCurrency, convertedRentalTotal])
 
   // Filter to only show portfolios with non-zero balance
   const portfolios = useMemo(() => {
@@ -148,7 +217,7 @@ function PlanView(): React.ReactElement {
     }
   }, [portfolios])
 
-  // Initialize spendable categories and return rates (all except property by default)
+  // Initialize spendable categories (all except property by default)
   useEffect(() => {
     if (
       categorySlices.length > 0 &&
@@ -160,21 +229,6 @@ function PlanView(): React.ReactElement {
         (cat) => !DEFAULT_NON_SPENDABLE.includes(cat),
       )
       setSpendableCategories(spendable)
-
-      // Initialize category return rates with plan defaults
-      const defaultRates: Record<string, number> = {}
-      allCategories.forEach((cat) => {
-        const returnType = getCategoryReturnType(cat)
-        if (returnType === "cash") {
-          defaultRates[cat] = plan.cashReturnRate
-        } else if (returnType === "housing") {
-          defaultRates[cat] = plan.housingReturnRate
-        } else {
-          defaultRates[cat] = plan.equityReturnRate
-        }
-      })
-      setCategoryReturnRates(defaultRates)
-
       hasCategoriesInitialized.current = true
     }
   }, [categorySlices, plan])
@@ -198,11 +252,14 @@ function PlanView(): React.ReactElement {
       .reduce((sum, slice) => sum + slice.value, 0)
   }, [categorySlices, spendableCategories])
 
-  // Calculate weighted blended return rate based on category allocations
+  // Default expected return rate for assets without a configured rate (3%)
+  const DEFAULT_EXPECTED_RETURN = 0.03
+
+  // Calculate weighted blended return rate from per-asset expected return rates
   const blendedReturnRate = useMemo(() => {
-    if (totalAssets === 0 || Object.keys(categoryReturnRates).length === 0) {
+    if (!holdingsData?.positions) {
       // Fall back to plan's allocation-based blended rate
-      if (!plan) return 0
+      if (!plan) return DEFAULT_EXPECTED_RETURN
       return (
         plan.equityReturnRate * plan.equityAllocation +
         plan.cashReturnRate * plan.cashAllocation +
@@ -210,15 +267,30 @@ function PlanView(): React.ReactElement {
       )
     }
 
-    // Calculate weighted average return based on actual holdings
+    // Calculate weighted average return based on per-asset rates
+    let totalValue = 0
     let weightedSum = 0
-    categorySlices.forEach((slice) => {
-      const rate = categoryReturnRates[slice.key] ?? 0
-      const weight = slice.value / totalAssets
-      weightedSum += rate * weight
-    })
-    return weightedSum
-  }, [categorySlices, categoryReturnRates, totalAssets, plan])
+
+    for (const positionKey of Object.keys(holdingsData.positions)) {
+      const position = holdingsData.positions[positionKey]
+      const moneyValues = position.moneyValues[ValueIn.PORTFOLIO]
+      if (!moneyValues) continue
+
+      const marketValue = moneyValues.marketValue || 0
+      // Skip non-spendable assets (Property) in blended rate calculation
+      const reportCategory =
+        position.asset.effectiveReportCategory ||
+        position.asset.assetCategory?.name ||
+        "Equity"
+      if (DEFAULT_NON_SPENDABLE.includes(reportCategory)) continue
+
+      const rate = position.asset.expectedReturnRate ?? DEFAULT_EXPECTED_RETURN
+      totalValue += marketValue
+      weightedSum += marketValue * rate
+    }
+
+    return totalValue > 0 ? weightedSum / totalValue : DEFAULT_EXPECTED_RETURN
+  }, [holdingsData, plan])
 
   // Calculate current age from yearOfBirth
   const currentYear = new Date().getFullYear()
@@ -258,12 +330,17 @@ function PlanView(): React.ReactElement {
       (acc, scenario) => ({
         ...acc,
         // Additive for offsets
-        retirementAgeOffset: acc.retirementAgeOffset + scenario.retirementAgeOffset,
+        retirementAgeOffset:
+          acc.retirementAgeOffset + scenario.retirementAgeOffset,
         returnRateOffset: acc.returnRateOffset + scenario.returnRateOffset,
         inflationOffset: acc.inflationOffset + scenario.inflationOffset,
         // Multiplicative for percentages (e.g., 90% * 110% = 99%)
-        expensesPercent: Math.round((acc.expensesPercent * scenario.expensesPercent) / 100),
-        contributionPercent: Math.round((acc.contributionPercent * scenario.contributionPercent) / 100),
+        expensesPercent: Math.round(
+          (acc.expensesPercent * scenario.expensesPercent) / 100,
+        ),
+        contributionPercent: Math.round(
+          (acc.contributionPercent * scenario.contributionPercent) / 100,
+        ),
       }),
       { ...whatIfAdjustments },
     )
@@ -279,25 +356,23 @@ function PlanView(): React.ReactElement {
   }
 
   // Use retirement projection hook
-  const {
-    adjustedProjection,
-    isCalculating,
-    resetProjection,
-  } = useRetirementProjection({
-    plan,
-    liquidAssets,
-    nonSpendableAssets,
-    selectedPortfolioIds,
-    currentAge,
-    retirementAge,
-    lifeExpectancy,
-    monthlyInvestment,
-    blendedReturnRate,
-    planCurrency,
-    whatIfAdjustments: combinedAdjustments,
-    scenarioOverrides,
-    spendableCategories,
-  })
+  const { adjustedProjection, isCalculating, resetProjection } =
+    useRetirementProjection({
+      plan,
+      liquidAssets,
+      nonSpendableAssets,
+      selectedPortfolioIds,
+      currentAge,
+      retirementAge,
+      lifeExpectancy,
+      monthlyInvestment,
+      blendedReturnRate,
+      planCurrency,
+      whatIfAdjustments: combinedAdjustments,
+      scenarioOverrides,
+      spendableCategories,
+      rentalIncome,
+    })
 
   // Toggle category spendable status
   const toggleCategory = (category: string): void => {
@@ -520,103 +595,198 @@ function PlanView(): React.ReactElement {
             </nav>
           </div>
 
+          {/* Global What-If toolbar - available on all tabs */}
+          <div className="flex flex-wrap items-center gap-3 mb-4">
+            <button
+              onClick={() => setShowWhatIfModal(true)}
+              className="py-1.5 px-3 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors flex items-center"
+            >
+              <i className="fas fa-sliders-h mr-2"></i>
+              What-If
+            </button>
+            {/* Quick scenario toggles */}
+            {quickScenarios.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {quickScenarios.map((scenario: QuickScenario) => {
+                  const isSelected = selectedScenarioIds.includes(scenario.id)
+                  return (
+                    <button
+                      key={scenario.id}
+                      onClick={() => toggleScenario(scenario.id)}
+                      className={`px-2 py-1 text-xs rounded-full transition-colors ${
+                        isSelected
+                          ? "bg-orange-500 text-white"
+                          : "border border-gray-300 text-gray-600 hover:bg-gray-50"
+                      }`}
+                      title={scenario.description}
+                    >
+                      {isSelected && <i className="fas fa-check mr-1"></i>}
+                      {scenario.name}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+            {/* Show indicator if there are unsaved changes */}
+            {(hasScenarioChanges(whatIfAdjustments) ||
+              Object.keys(scenarioOverrides).length > 0 ||
+              selectedScenarioIds.length > 0) && (
+              <span className="text-xs text-orange-600">
+                <i className="fas fa-circle text-[6px] mr-1"></i>
+                Unsaved changes
+              </span>
+            )}
+          </div>
+
           {/* Tab Content */}
-          {activeTab === "details" && (
-            <div className="bg-white rounded-xl shadow-md p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  {t("retire.planDetails")}
-                </h2>
-                <button
-                  onClick={() => setShowEditDetailsModal(true)}
-                  className="text-sm text-orange-600 hover:text-orange-700"
-                >
-                  <i className="fas fa-edit mr-1"></i>
-                  Edit
-                </button>
-              </div>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <InfoTooltip text={t("retire.monthlyExpenses.tooltip")}>
-                    <span className="text-gray-500">
-                      {t("retire.monthlyExpenses")}
-                    </span>
-                  </InfoTooltip>
-                  <span className="font-medium">
-                    ${plan.monthlyExpenses.toLocaleString()}{" "}
-                    {plan.expensesCurrency}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">{t("retire.pension")}</span>
-                  <span className="font-medium">
-                    ${(plan.pensionMonthly || 0).toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">
-                    {t("retire.governmentBenefits")}
-                  </span>
-                  <span className="font-medium">
-                    ${(plan.socialSecurityMonthly || 0).toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">
-                    {t("retire.otherIncome")}
-                  </span>
-                  <span className="font-medium">
-                    ${(plan.otherIncomeMonthly || 0).toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <InfoTooltip text={t("retire.netMonthlyNeed.tooltip")}>
-                    <span className="text-gray-500">
-                      {t("retire.netMonthlyNeed")}
-                    </span>
-                  </InfoTooltip>
-                  <span className="font-medium text-orange-600">
-                    $
-                    {(
-                      plan.monthlyExpenses -
-                      (plan.pensionMonthly || 0) -
-                      (plan.socialSecurityMonthly || 0) -
-                      (plan.otherIncomeMonthly || 0)
-                    ).toLocaleString()}
-                  </span>
-                </div>
-                <hr />
-                <div className="flex justify-between">
-                  <InfoTooltip text={t("retire.inflation.tooltip")}>
-                    <span className="text-gray-500">
-                      {t("retire.inflation")}
-                    </span>
-                  </InfoTooltip>
-                  <span className="font-medium">
-                    {(plan.inflationRate * 100).toFixed(1)}%
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Blended Return Rate</span>
-                  <span className="font-medium text-blue-600">
-                    {(blendedReturnRate * 100).toFixed(1)}%
-                  </span>
-                </div>
-                {plan.targetBalance && plan.targetBalance > 0 && (
-                  <div className="flex justify-between">
-                    <InfoTooltip text={t("retire.targetBalance.tooltip")}>
-                      <span className="text-gray-500">
-                        {t("retire.targetBalance")}
-                      </span>
-                    </InfoTooltip>
-                    <span className="font-medium">
-                      ${plan.targetBalance.toLocaleString()}
-                    </span>
+          {activeTab === "details" &&
+            (() => {
+              // Use in-memory state (scenarioOverrides) with plan as fallback
+              const effectiveExpenses =
+                scenarioOverrides.monthlyExpenses ?? plan.monthlyExpenses
+              const effectivePension =
+                scenarioOverrides.pensionMonthly ?? plan.pensionMonthly ?? 0
+              const effectiveSocialSecurity =
+                scenarioOverrides.socialSecurityMonthly ??
+                plan.socialSecurityMonthly ??
+                0
+              const effectiveOtherIncome =
+                scenarioOverrides.otherIncomeMonthly ??
+                plan.otherIncomeMonthly ??
+                0
+              const effectiveInflation =
+                scenarioOverrides.inflationRate ?? plan.inflationRate
+              const effectiveTarget =
+                scenarioOverrides.targetBalance ?? plan.targetBalance
+              const effectiveEquityReturn =
+                scenarioOverrides.equityReturnRate ?? plan.equityReturnRate
+              const effectiveCashReturn =
+                scenarioOverrides.cashReturnRate ?? plan.cashReturnRate
+              const effectiveHousingReturn =
+                scenarioOverrides.housingReturnRate ?? plan.housingReturnRate
+              const netMonthlyNeed =
+                effectiveExpenses -
+                effectivePension -
+                effectiveSocialSecurity -
+                effectiveOtherIncome -
+                (rentalIncome?.totalMonthlyInPlanCurrency || 0)
+
+              return (
+                <div className="bg-white rounded-xl shadow-md p-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-lg font-semibold text-gray-900">
+                      {t("retire.planDetails")}
+                    </h2>
+                    <button
+                      onClick={() => setShowEditDetailsModal(true)}
+                      className="text-sm text-orange-600 hover:text-orange-700"
+                    >
+                      <i className="fas fa-edit mr-1"></i>
+                      Edit
+                    </button>
                   </div>
-                )}
-              </div>
-            </div>
-          )}
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <InfoTooltip text={t("retire.monthlyExpenses.tooltip")}>
+                        <span className="text-gray-500">
+                          {t("retire.monthlyExpenses")}
+                        </span>
+                      </InfoTooltip>
+                      <span className="font-medium">
+                        ${effectiveExpenses.toLocaleString()}{" "}
+                        {plan.expensesCurrency}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">
+                        {t("retire.pension")}
+                      </span>
+                      <span className="font-medium">
+                        ${effectivePension.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">
+                        {t("retire.governmentBenefits")}
+                      </span>
+                      <span className="font-medium">
+                        ${effectiveSocialSecurity.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">
+                        {t("retire.otherIncome")}
+                      </span>
+                      <span className="font-medium">
+                        ${effectiveOtherIncome.toLocaleString()}
+                      </span>
+                    </div>
+                    {rentalIncome &&
+                      rentalIncome.totalMonthlyInPlanCurrency > 0 && (
+                        <div className="flex justify-between">
+                          <InfoTooltip text="Net rental income from properties (after all expenses). Stops if property is liquidated.">
+                            <span className="text-gray-500">
+                              <i className="fas fa-home text-xs mr-1"></i>
+                              Property Rental
+                            </span>
+                          </InfoTooltip>
+                          <span className="font-medium text-green-600">
+                            $
+                            {rentalIncome.totalMonthlyInPlanCurrency.toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+                    <div className="flex justify-between">
+                      <InfoTooltip text={t("retire.netMonthlyNeed.tooltip")}>
+                        <span className="text-gray-500">
+                          {t("retire.netMonthlyNeed")}
+                        </span>
+                      </InfoTooltip>
+                      <span className="font-medium text-orange-600">
+                        ${netMonthlyNeed.toLocaleString()}
+                      </span>
+                    </div>
+                    <hr />
+                    <div className="flex justify-between">
+                      <InfoTooltip text={t("retire.inflation.tooltip")}>
+                        <span className="text-gray-500">
+                          {t("retire.inflation")}
+                        </span>
+                      </InfoTooltip>
+                      <span className="font-medium">
+                        {(effectiveInflation * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Return Rates</span>
+                      <span className="font-medium text-blue-600">
+                        E:{(effectiveEquityReturn * 100).toFixed(0)}% C:
+                        {(effectiveCashReturn * 100).toFixed(0)}% H:
+                        {(effectiveHousingReturn * 100).toFixed(0)}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Blended Return Rate</span>
+                      <span className="font-medium text-blue-600">
+                        {(blendedReturnRate * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                    {effectiveTarget && effectiveTarget > 0 && (
+                      <div className="flex justify-between">
+                        <InfoTooltip text={t("retire.targetBalance.tooltip")}>
+                          <span className="text-gray-500">
+                            {t("retire.targetBalance")}
+                          </span>
+                        </InfoTooltip>
+                        <span className="font-medium">
+                          ${effectiveTarget.toLocaleString()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })()}
 
           {/* Assets Tab */}
           {activeTab === "assets" && (
@@ -644,83 +814,59 @@ function PlanView(): React.ReactElement {
                     {t("retire.assets.selectCategories")}
                   </p>
                   <div className="space-y-2">
-                    {categorySlices.map((slice) => {
-                      const isSpendable = spendableCategories.includes(
-                        slice.key,
+                    {/* Only show liquid/spendable asset categories */}
+                    {categorySlices
+                      .filter(
+                        (slice) => !DEFAULT_NON_SPENDABLE.includes(slice.key),
                       )
-                      const isProperty = slice.key === "Property"
-                      const returnRate = categoryReturnRates[slice.key] ?? 0
-                      return (
-                        <div
-                          key={slice.key}
-                          className={`p-3 rounded-lg border transition-colors ${
-                            isSpendable
-                              ? "border-orange-200 bg-orange-50"
-                              : "border-gray-200 bg-gray-50"
-                          }`}
-                        >
-                          <label className="flex items-center justify-between cursor-pointer">
-                            <div className="flex items-center gap-3">
-                              <input
-                                type="checkbox"
-                                checked={isSpendable}
-                                onChange={() => toggleCategory(slice.key)}
-                                className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500"
-                              />
-                              <div
-                                className="w-3 h-3 rounded-full"
-                                style={{ backgroundColor: slice.color }}
-                              />
-                              <span
-                                className={
-                                  isSpendable
-                                    ? "text-gray-900"
-                                    : "text-gray-500"
-                                }
-                              >
-                                {slice.label}
-                              </span>
-                            </div>
-                            <span
-                              className={`font-medium ${
-                                isSpendable ? "text-gray-900" : "text-gray-400"
-                              }`}
-                            >
-                              ${Math.round(slice.value).toLocaleString()}
-                            </span>
-                          </label>
-                          {/* Return rate input - not for Property */}
-                          {!isProperty && (
-                            <div className="mt-2 flex items-center justify-end gap-2">
-                              <span className="text-xs text-gray-500">
-                                Expected Return:
-                              </span>
-                              <div className="relative w-20">
+                      .map((slice) => {
+                        const isSpendable = spendableCategories.includes(
+                          slice.key,
+                        )
+                        return (
+                          <div
+                            key={slice.key}
+                            className={`p-3 rounded-lg border transition-colors ${
+                              isSpendable
+                                ? "border-orange-200 bg-orange-50"
+                                : "border-gray-200 bg-gray-50"
+                            }`}
+                          >
+                            <label className="flex items-center justify-between cursor-pointer">
+                              <div className="flex items-center gap-3">
                                 <input
-                                  type="number"
-                                  value={Math.round(returnRate * 1000) / 10}
-                                  onChange={(e) => {
-                                    const newRate =
-                                      parseFloat(e.target.value) / 100
-                                    setCategoryReturnRates((prev) => ({
-                                      ...prev,
-                                      [slice.key]: newRate,
-                                    }))
-                                  }}
-                                  className="w-full pl-2 pr-6 py-1 text-sm border rounded focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
-                                  step="0.5"
-                                  min="0"
-                                  max="50"
+                                  type="checkbox"
+                                  checked={isSpendable}
+                                  onChange={() => toggleCategory(slice.key)}
+                                  className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500"
                                 />
-                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-500">
-                                  %
+                                <div
+                                  className="w-3 h-3 rounded-full"
+                                  style={{ backgroundColor: slice.color }}
+                                />
+                                <span
+                                  className={
+                                    isSpendable
+                                      ? "text-gray-900"
+                                      : "text-gray-500"
+                                  }
+                                >
+                                  {slice.label}
                                 </span>
                               </div>
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })}
+                              <span
+                                className={`font-medium ${
+                                  isSpendable
+                                    ? "text-gray-900"
+                                    : "text-gray-400"
+                                }`}
+                              >
+                                ${Math.round(slice.value).toLocaleString()}
+                              </span>
+                            </label>
+                          </div>
+                        )
+                      })}
                   </div>
 
                   <div className="border-t pt-4 space-y-2">
@@ -808,6 +954,13 @@ function PlanView(): React.ReactElement {
                 </div>
               ) : (
                 <>
+                  {/* Income Breakdown Table */}
+                  <div className="mb-8">
+                    <IncomeBreakdownTable
+                      projections={displayProjection.yearlyProjections}
+                    />
+                  </div>
+
                   <div className="h-72 mb-8">
                     <ResponsiveContainer width="100%" height="100%">
                       <ComposedChart
@@ -946,65 +1099,57 @@ function PlanView(): React.ReactElement {
           {/* Scenarios Tab - What-If Analysis */}
           {activeTab === "scenarios" && (
             <div className="space-y-6">
-              {/* Projected Balance Chart - Primary visual feedback at top (full width) */}
+              {/* Projected Balance Chart - Primary visual feedback */}
               {displayProjection &&
                 displayProjection.yearlyProjections.length > 0 && (
                   <div className="bg-white rounded-xl shadow-md p-6">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        Projected Balance
-                      </h3>
-                      {/* Quick scenario toggle buttons */}
-                      {quickScenarios.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                          {quickScenarios.map((scenario: QuickScenario) => {
-                            const isSelected = selectedScenarioIds.includes(scenario.id)
-                            return (
-                              <button
-                                key={scenario.id}
-                                onClick={() => toggleScenario(scenario.id)}
-                                className={`px-3 py-1 text-xs rounded-full transition-colors ${
-                                  isSelected
-                                    ? "bg-orange-500 text-white border-orange-500"
-                                    : "border border-gray-300 text-gray-600 hover:bg-gray-50"
-                                }`}
-                                title={scenario.description}
-                              >
-                                {isSelected && <i className="fas fa-check mr-1"></i>}
-                                {scenario.name}
-                              </button>
-                            )
-                          })}
-                        </div>
-                      )}
-                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                      Projected Balance
+                    </h3>
                     {/* Combined scenario impact summary */}
                     {selectedScenarioIds.length > 0 && (
                       <div className="mb-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
                         <div className="flex items-center gap-2 text-sm">
-                          <span className="font-medium text-orange-700">Combined Impact:</span>
+                          <span className="font-medium text-orange-700">
+                            Combined Impact:
+                          </span>
                           <div className="flex flex-wrap gap-3 text-orange-600">
                             {combinedAdjustments.retirementAgeOffset !== 0 && (
                               <span>
-                                Retire {combinedAdjustments.retirementAgeOffset > 0 ? "+" : ""}
+                                Retire{" "}
+                                {combinedAdjustments.retirementAgeOffset > 0
+                                  ? "+"
+                                  : ""}
                                 {combinedAdjustments.retirementAgeOffset} yr
                               </span>
                             )}
                             {combinedAdjustments.expensesPercent !== 100 && (
-                              <span>Expenses {combinedAdjustments.expensesPercent}%</span>
+                              <span>
+                                Expenses {combinedAdjustments.expensesPercent}%
+                              </span>
                             )}
-                            {combinedAdjustments.contributionPercent !== 100 && (
-                              <span>Savings {combinedAdjustments.contributionPercent}%</span>
+                            {combinedAdjustments.contributionPercent !==
+                              100 && (
+                              <span>
+                                Savings{" "}
+                                {combinedAdjustments.contributionPercent}%
+                              </span>
                             )}
                             {combinedAdjustments.returnRateOffset !== 0 && (
                               <span>
-                                Returns {combinedAdjustments.returnRateOffset > 0 ? "+" : ""}
+                                Returns{" "}
+                                {combinedAdjustments.returnRateOffset > 0
+                                  ? "+"
+                                  : ""}
                                 {combinedAdjustments.returnRateOffset}%
                               </span>
                             )}
                             {combinedAdjustments.inflationOffset !== 0 && (
                               <span>
-                                Inflation {combinedAdjustments.inflationOffset > 0 ? "+" : ""}
+                                Inflation{" "}
+                                {combinedAdjustments.inflationOffset > 0
+                                  ? "+"
+                                  : ""}
                                 {combinedAdjustments.inflationOffset}%
                               </span>
                             )}
@@ -1018,21 +1163,32 @@ function PlanView(): React.ReactElement {
                           data={displayProjection.yearlyProjections}
                           margin={{ top: 10, right: 30, left: 20, bottom: 20 }}
                         >
-                          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            stroke="#e5e7eb"
+                          />
                           <XAxis
                             dataKey="age"
-                            label={{ value: "Age", position: "insideBottom", offset: -10 }}
+                            label={{
+                              value: "Age",
+                              position: "insideBottom",
+                              offset: -10,
+                            }}
                             tick={{ fontSize: 12 }}
                           />
                           <YAxis
-                            tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                            tickFormatter={(value) =>
+                              `$${(value / 1000).toFixed(0)}k`
+                            }
                             tick={{ fontSize: 12 }}
                           />
                           <ChartTooltip
                             formatter={(value, name) => {
                               const formatted = `$${Number(value || 0).toLocaleString()}`
-                              if (name === "totalWealth") return [formatted, "Total Wealth"]
-                              if (name === "endingBalance") return [formatted, "Liquid Assets"]
+                              if (name === "totalWealth")
+                                return [formatted, "Total Wealth"]
+                              if (name === "endingBalance")
+                                return [formatted, "Liquid Assets"]
                               return [formatted, name]
                             }}
                             labelFormatter={(label) => `Age ${label}`}
@@ -1046,14 +1202,29 @@ function PlanView(): React.ReactElement {
                                   : value
                             }
                           />
-                          <ReferenceLine y={0} stroke="#ef4444" strokeWidth={2} />
-                          {displayProjection.yearlyProjections.find((y) => y.propertyLiquidated) && (
+                          <ReferenceLine
+                            y={0}
+                            stroke="#ef4444"
+                            strokeWidth={2}
+                          />
+                          {displayProjection.yearlyProjections.find(
+                            (y) => y.propertyLiquidated,
+                          ) && (
                             <ReferenceLine
-                              x={displayProjection.yearlyProjections.find((y) => y.propertyLiquidated)?.age}
+                              x={
+                                displayProjection.yearlyProjections.find(
+                                  (y) => y.propertyLiquidated,
+                                )?.age
+                              }
                               stroke="#8b5cf6"
                               strokeWidth={2}
                               strokeDasharray="5 5"
-                              label={{ value: "Property Sold", position: "top", fontSize: 10, fill: "#8b5cf6" }}
+                              label={{
+                                value: "Property Sold",
+                                position: "top",
+                                fontSize: 10,
+                                fill: "#8b5cf6",
+                              }}
                             />
                           )}
                           {displayProjection.nonSpendableAtRetirement > 0 && (
@@ -1101,21 +1272,9 @@ function PlanView(): React.ReactElement {
                 {/* Action buttons - narrower */}
                 <div className="lg:col-span-1">
                   <div className="bg-white rounded-xl shadow-md p-4 space-y-3">
-                    <button
-                      onClick={() => setShowWhatIfModal(true)}
-                      className="w-full py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors flex items-center justify-center"
-                    >
-                      <i className="fas fa-sliders-h mr-2"></i>
-                      What-If Analysis
-                    </button>
-                    <button
-                      onClick={() => setShowEditDetailsModal(true)}
-                      className="w-full py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors flex items-center justify-center"
-                    >
-                      <i className="fas fa-edit mr-2 text-orange-500"></i>
-                      Edit Plan Details
-                    </button>
-                    {(scenarioHasChanges || hasScenarioOverrides || selectedScenarioIds.length > 0) && (
+                    {(scenarioHasChanges ||
+                      hasScenarioOverrides ||
+                      selectedScenarioIds.length > 0) && (
                       <>
                         <button
                           onClick={() => setShowSaveDialog(true)}
@@ -1169,11 +1328,16 @@ function PlanView(): React.ReactElement {
         plan={plan}
         whatIfAdjustments={whatIfAdjustments}
         onAdjustmentsChange={setWhatIfAdjustments}
-        onReset={resetWhatIf}
+        scenarioOverrides={scenarioOverrides}
+        onScenarioOverridesChange={setScenarioOverrides}
+        onReset={() => {
+          resetWhatIf()
+          resetScenarioOverrides()
+        }}
         retirementAge={retirementAge}
         monthlyInvestment={monthlyInvestment}
+        rentalIncome={rentalIncome}
       />
-
     </>
   )
 }

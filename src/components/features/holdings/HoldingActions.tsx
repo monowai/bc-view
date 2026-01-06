@@ -1,14 +1,80 @@
-import React, { useState, useEffect, useCallback } from "react"
+import React, { useState, useEffect, useCallback, useRef } from "react"
 import { useRouter } from "next/router"
 import TradeInputForm from "@pages/trns/trade"
 import CashInputForm from "@pages/trns/cash"
 import CopyPopup from "@components/ui/CopyPopup"
 import CreateModelFromHoldingsDialog from "@components/features/rebalance/models/CreateModelFromHoldingsDialog"
 import SelectPlanDialog from "@components/features/rebalance/execution/SelectPlanDialog"
+import InvestCashDialog from "@components/features/rebalance/execution/InvestCashDialog"
 import { HoldingContract, Holdings, QuickSellData } from "types/beancounter"
 import { ViewMode } from "./ViewToggle"
 import { AllocationSlice } from "@lib/allocation/aggregateHoldings"
 import { ModelDto, PlanDto } from "types/rebalance"
+
+// Dropdown Menu Component
+interface DropdownMenuProps {
+  label: string
+  icon: string
+  colorClass: string
+  items: { label: string; icon: string; onClick: () => void }[]
+  disabled?: boolean
+}
+
+const DropdownMenu: React.FC<DropdownMenuProps> = ({
+  label,
+  icon,
+  colorClass,
+  items,
+  disabled = false,
+}) => {
+  const [isOpen, setIsOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent): void => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        className={`mobile-portrait:hidden w-full sm:w-auto ${colorClass} text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        disabled={disabled}
+      >
+        <i className={`fas ${icon} mr-2`}></i>
+        {label}
+        <i className={`fas fa-chevron-down ml-2 text-xs`}></i>
+      </button>
+      {isOpen && (
+        <div className="absolute left-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+          {items.map((item, index) => (
+            <button
+              key={index}
+              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 first:rounded-t-lg last:rounded-b-lg flex items-center"
+              onClick={() => {
+                setIsOpen(false)
+                item.onClick()
+              }}
+            >
+              <i className={`fas ${item.icon} mr-2 w-4 text-gray-500`}></i>
+              {item.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 // Summary columns available for copying
 const SUMMARY_COLUMNS = [
@@ -54,6 +120,7 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
   const [summaryCopyModalOpen, setSummaryCopyModalOpen] = useState(false)
   const [selectPlanModalOpen, setSelectPlanModalOpen] = useState(false)
   const [createModelModalOpen, setCreateModelModalOpen] = useState(false)
+  const [investCashModalOpen, setInvestCashModalOpen] = useState(false)
   const [selectedSummaryColumns, setSelectedSummaryColumns] = useState<
     SummaryColumn[]
   >(DEFAULT_SUMMARY_COLUMNS)
@@ -182,6 +249,42 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
     return viewMode === "summary" ? "Copy Summary" : "Copy Holdings"
   }
 
+  // Trade dropdown items
+  const tradeItems = [
+    {
+      label: "Asset Trade",
+      icon: "fa-chart-line",
+      onClick: () => setTradeModalOpen(true),
+    },
+    {
+      label: "Cash Transaction",
+      icon: "fa-dollar-sign",
+      onClick: () => setCashModalOpen(true),
+    },
+    {
+      label: "Review Proposed",
+      icon: "fa-clipboard-list",
+      onClick: () =>
+        router.push(
+          `/trns/proposed?portfolioId=${holdingResults.portfolio.id}`,
+        ),
+    },
+  ]
+
+  // Rebalance dropdown items
+  const rebalanceItems = [
+    {
+      label: "Rebalance Model",
+      icon: "fa-balance-scale",
+      onClick: () => setSelectPlanModalOpen(true),
+    },
+    {
+      label: "Invest Cash",
+      icon: "fa-chart-pie",
+      onClick: () => setInvestCashModalOpen(true),
+    },
+  ]
+
   return (
     <div
       className={`flex flex-col sm:flex-row py-2 space-y-2 sm:space-y-0 sm:space-x-2 mb-4 ${emptyHoldings ? "justify-start" : "justify-end"}`}
@@ -199,29 +302,20 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
           {getCopyButtonText()}
         </button>
       )}
-      <button
-        className="mobile-portrait:hidden w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center"
-        onClick={() => setTradeModalOpen(true)}
-      >
-        <i className="fas fa-chart-line mr-2"></i>
-        Add Trade
-      </button>
-      <button
-        className="mobile-portrait:hidden w-full sm:w-auto bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center"
-        onClick={() => setCashModalOpen(true)}
-      >
-        <i className="fas fa-dollar-sign mr-2"></i>
-        Add Cash
-      </button>
-      {!emptyHoldings && (
-        <button
-          className="mobile-portrait:hidden w-full sm:w-auto bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center"
-          onClick={() => setSelectPlanModalOpen(true)}
-        >
-          <i className="fas fa-balance-scale mr-2"></i>
-          Rebalance
-        </button>
-      )}
+      {/* Trade Dropdown */}
+      <DropdownMenu
+        label="Trade"
+        icon="fa-exchange-alt"
+        colorClass="bg-green-500 hover:bg-green-600"
+        items={tradeItems}
+      />
+      {/* Rebalance Dropdown */}
+      <DropdownMenu
+        label="Rebalance"
+        icon="fa-balance-scale"
+        colorClass="bg-indigo-500 hover:bg-indigo-600"
+        items={rebalanceItems}
+      />
       <TradeInputForm
         portfolio={holdingResults.portfolio}
         modalOpen={tradeModalOpen}
@@ -312,6 +406,16 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
           }}
         />
       )}
+      {/* Invest Cash Dialog */}
+      <InvestCashDialog
+        modalOpen={investCashModalOpen}
+        portfolioId={holdingResults.portfolio.id}
+        onClose={() => setInvestCashModalOpen(false)}
+        onSuccess={() => {
+          setInvestCashModalOpen(false)
+          router.replace(router.asPath)
+        }}
+      />
     </div>
   )
 }

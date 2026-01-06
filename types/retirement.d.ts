@@ -203,6 +203,22 @@ export interface PreRetirementAccumulation {
   housingReturnRate: number
 }
 
+/** Breakdown of income sources for a projection year */
+export interface IncomeBreakdown {
+  /** Investment returns (growth on portfolio balance) */
+  investmentReturns: number
+  /** Pension income (not inflation-indexed) */
+  pension: number
+  /** Government benefits / Social Security (inflation-indexed) */
+  socialSecurity: number
+  /** Other income sources (not indexed) */
+  otherIncome: number
+  /** Property rental income (stops if liquidated) */
+  rentalIncome: number
+  /** Total income from all sources */
+  totalIncome: number
+}
+
 export interface YearlyProjection {
   year: number
   age?: number
@@ -218,6 +234,8 @@ export interface YearlyProjection {
   totalWealth: number
   /** True if property was liquidated this year (when liquid assets fell below 10%) */
   propertyLiquidated?: boolean
+  /** Breakdown of income sources for this year */
+  incomeBreakdown?: IncomeBreakdown
 }
 
 export interface RetirementProjection {
@@ -347,4 +365,40 @@ export interface PlanExport {
 
 export interface PlanExportResponse {
   data: PlanExport
+}
+
+// ============ Property Income ============
+
+/**
+ * Property income configuration for retirement planning.
+ * Links a property asset to rental income settings within a plan.
+ */
+export interface PlanPropertyIncome {
+  id: string
+  planId: string
+  assetId: string
+  assetName?: string
+  monthlyRentalIncome: number
+  rentalCurrency: string
+  isPrimaryResidence: boolean
+  liquidationPriority: number
+  createdDate: string
+  updatedDate: string
+}
+
+export interface PropertyIncomeRequest {
+  assetId: string
+  assetName?: string
+  monthlyRentalIncome?: number
+  rentalCurrency?: string
+  isPrimaryResidence?: boolean
+  liquidationPriority?: number
+}
+
+export interface PropertyIncomeResponse {
+  data: PlanPropertyIncome
+}
+
+export interface PropertyIncomesResponse {
+  data: PlanPropertyIncome[]
 }

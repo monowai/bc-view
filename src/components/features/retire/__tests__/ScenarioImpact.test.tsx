@@ -104,7 +104,10 @@ describe("ScenarioImpact", () => {
     })
 
     render(
-      <ScenarioImpact {...defaultProps} projection={projectionWithLiquidation} />,
+      <ScenarioImpact
+        {...defaultProps}
+        projection={projectionWithLiquidation}
+      />,
     )
 
     expect(screen.getByText("Age 80")).toBeInTheDocument()
@@ -203,11 +206,12 @@ describe("ScenarioImpact", () => {
     })
 
     render(
-      <ScenarioImpact {...defaultProps} projection={projectionWithLiquidation} />,
+      <ScenarioImpact
+        {...defaultProps}
+        projection={projectionWithLiquidation}
+      />,
     )
 
-    expect(
-      screen.getByText(/Property sold at age 75/i),
-    ).toBeInTheDocument()
+    expect(screen.getByText(/Property sold at age 75/i)).toBeInTheDocument()
   })
 })

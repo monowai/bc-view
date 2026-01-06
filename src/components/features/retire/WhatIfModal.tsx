@@ -1,7 +1,8 @@
 import React from "react"
 import WhatIfSlider from "./WhatIfSlider"
-import { WhatIfAdjustments } from "./types"
+import { WhatIfAdjustments, ScenarioOverrides } from "./types"
 import { RetirementPlan } from "types/retirement"
+import { RentalIncomeData } from "./useRetirementProjection"
 
 interface WhatIfModalProps {
   isOpen: boolean
@@ -9,9 +10,16 @@ interface WhatIfModalProps {
   plan: RetirementPlan
   whatIfAdjustments: WhatIfAdjustments
   onAdjustmentsChange: (adjustments: WhatIfAdjustments) => void
+  scenarioOverrides: ScenarioOverrides
+  onScenarioOverridesChange: (
+    updater:
+      | ScenarioOverrides
+      | ((prev: ScenarioOverrides) => ScenarioOverrides),
+  ) => void
   onReset: () => void
   retirementAge: number
   monthlyInvestment: number
+  rentalIncome?: RentalIncomeData
 }
 
 export default function WhatIfModal({
@@ -20,9 +28,12 @@ export default function WhatIfModal({
   plan,
   whatIfAdjustments,
   onAdjustmentsChange,
+  scenarioOverrides,
+  onScenarioOverridesChange,
   onReset,
   retirementAge,
   monthlyInvestment,
+  rentalIncome,
 }: WhatIfModalProps): React.ReactElement | null {
   if (!isOpen) return null
 
@@ -35,6 +46,26 @@ export default function WhatIfModal({
       [key]: value,
     })
   }
+
+  const updateOverride = <K extends keyof ScenarioOverrides>(
+    key: K,
+    value: ScenarioOverrides[K],
+  ): void => {
+    // Use functional update to avoid stale closure issues with rapid slider changes
+    onScenarioOverridesChange((prev) => ({
+      ...prev,
+      [key]: value,
+    }))
+  }
+
+  // Get effective income values (override or plan default)
+  const effectivePension =
+    scenarioOverrides.pensionMonthly ?? plan.pensionMonthly ?? 0
+  const effectiveSocialSecurity =
+    scenarioOverrides.socialSecurityMonthly ?? plan.socialSecurityMonthly ?? 0
+  const effectiveOtherIncome =
+    scenarioOverrides.otherIncomeMonthly ?? plan.otherIncomeMonthly ?? 0
+  const totalRentalIncome = rentalIncome?.totalMonthlyInPlanCurrency ?? 0
 
   // Calculate base return rate for display
   const baseReturnRate =
@@ -73,89 +104,162 @@ export default function WhatIfModal({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-          <WhatIfSlider
-            label="Retirement Age"
-            value={whatIfAdjustments.retirementAgeOffset}
-            onChange={(v) => updateAdjustment("retirementAgeOffset", v)}
-            min={-5}
-            max={10}
-            step={1}
-            unit=" years"
-            formatValue={(v) =>
-              `${retirementAge + v} (${v >= 0 ? "+" : ""}${v})`
-            }
-          />
+        {/* Income Sources Section */}
+        <div className="mb-6">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
+            <i className="fas fa-coins text-green-500 mr-2"></i>
+            Monthly Income
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+            <WhatIfSlider
+              label="Pension"
+              value={effectivePension}
+              onChange={(v) => updateOverride("pensionMonthly", v)}
+              min={0}
+              max={Math.max(10000, (plan.pensionMonthly ?? 0) * 2)}
+              step={100}
+              unit=""
+              formatValue={(v) => `$${v.toLocaleString()}/mo`}
+            />
 
-          <WhatIfSlider
-            label="Employment Investment"
-            value={whatIfAdjustments.contributionPercent}
-            onChange={(v) => updateAdjustment("contributionPercent", v)}
-            min={0}
-            max={200}
-            step={10}
-            unit="%"
-            formatValue={(v) => {
-              const adjusted = Math.round(monthlyInvestment * (v / 100))
-              return `$${adjusted.toLocaleString()}/mo (${v}%)`
-            }}
-          />
+            <WhatIfSlider
+              label="Government Benefits"
+              value={effectiveSocialSecurity}
+              onChange={(v) => updateOverride("socialSecurityMonthly", v)}
+              min={0}
+              max={Math.max(5000, (plan.socialSecurityMonthly ?? 0) * 2)}
+              step={50}
+              unit=""
+              formatValue={(v) => `$${v.toLocaleString()}/mo`}
+            />
 
-          <WhatIfSlider
-            label="Monthly Expenses"
-            value={whatIfAdjustments.expensesPercent}
-            onChange={(v) => updateAdjustment("expensesPercent", v)}
-            min={50}
-            max={150}
-            step={5}
-            unit="%"
-            formatValue={(v) =>
-              `${v}% ($${Math.round((plan.monthlyExpenses * v) / 100).toLocaleString()})`
-            }
-          />
+            <WhatIfSlider
+              label="Other Income"
+              value={effectiveOtherIncome}
+              onChange={(v) => updateOverride("otherIncomeMonthly", v)}
+              min={0}
+              max={Math.max(5000, (plan.otherIncomeMonthly ?? 0) * 2)}
+              step={50}
+              unit=""
+              formatValue={(v) => `$${v.toLocaleString()}/mo`}
+            />
 
-          <WhatIfSlider
-            label="Investment Returns"
-            value={whatIfAdjustments.returnRateOffset}
-            onChange={(v) => updateAdjustment("returnRateOffset", v)}
-            min={-4}
-            max={4}
-            step={0.5}
-            unit="%"
-            formatValue={(v) => {
-              const adjusted = baseReturnRate + v
-              return `${adjusted.toFixed(1)}% (${v >= 0 ? "+" : ""}${v})`
-            }}
-          />
+            {totalRentalIncome > 0 && (
+              <div className="flex flex-col justify-center p-3 bg-green-50 rounded-lg border border-green-200">
+                <span className="text-xs text-green-600 font-medium">
+                  Property Rental (read-only)
+                </span>
+                <span className="text-sm font-semibold text-green-700">
+                  ${totalRentalIncome.toLocaleString()}/mo
+                </span>
+                <span className="text-xs text-green-500">
+                  Configure in Accounts
+                </span>
+              </div>
+            )}
+          </div>
+          <div className="mt-3 p-2 bg-gray-50 rounded text-sm text-gray-600">
+            <strong>Total Income:</strong> $
+            {(
+              effectivePension +
+              effectiveSocialSecurity +
+              effectiveOtherIncome +
+              totalRentalIncome
+            ).toLocaleString()}
+            /mo
+          </div>
+        </div>
 
-          <WhatIfSlider
-            label="Inflation Rate"
-            value={whatIfAdjustments.inflationOffset}
-            onChange={(v) => updateAdjustment("inflationOffset", v)}
-            min={-2}
-            max={4}
-            step={0.5}
-            unit="%"
-            formatValue={(v) => {
-              const baseRate = plan.inflationRate * 100
-              const adjusted = baseRate + v
-              return `${adjusted.toFixed(1)}% (${v >= 0 ? "+" : ""}${v})`
-            }}
-          />
+        {/* Scenario Adjustments Section */}
+        <div className="border-t pt-4">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
+            <i className="fas fa-sliders-h text-orange-500 mr-2"></i>
+            Scenario Adjustments
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+            <WhatIfSlider
+              label="Retirement Age"
+              value={whatIfAdjustments.retirementAgeOffset}
+              onChange={(v) => updateAdjustment("retirementAgeOffset", v)}
+              min={-5}
+              max={10}
+              step={1}
+              unit=" years"
+              formatValue={(v) =>
+                `${retirementAge + v} (${v >= 0 ? "+" : ""}${v})`
+              }
+            />
 
-          <WhatIfSlider
-            label="Equity Allocation"
-            value={whatIfAdjustments.equityPercent ?? defaultEquityPercent}
-            onChange={(v) => updateAdjustment("equityPercent", v)}
-            min={0}
-            max={100}
-            step={5}
-            unit="%"
-            formatValue={(v) => {
-              const cashPct = 100 - v
-              return `${v}% Equity / ${cashPct}% Cash`
-            }}
-          />
+            <WhatIfSlider
+              label="Employment Investment"
+              value={whatIfAdjustments.contributionPercent}
+              onChange={(v) => updateAdjustment("contributionPercent", v)}
+              min={0}
+              max={200}
+              step={10}
+              unit="%"
+              formatValue={(v) => {
+                const adjusted = Math.round(monthlyInvestment * (v / 100))
+                return `$${adjusted.toLocaleString()}/mo (${v}%)`
+              }}
+            />
+
+            <WhatIfSlider
+              label="Monthly Expenses"
+              value={whatIfAdjustments.expensesPercent}
+              onChange={(v) => updateAdjustment("expensesPercent", v)}
+              min={50}
+              max={150}
+              step={5}
+              unit="%"
+              formatValue={(v) =>
+                `${v}% ($${Math.round((plan.monthlyExpenses * v) / 100).toLocaleString()})`
+              }
+            />
+
+            <WhatIfSlider
+              label="Investment Returns"
+              value={whatIfAdjustments.returnRateOffset}
+              onChange={(v) => updateAdjustment("returnRateOffset", v)}
+              min={-4}
+              max={4}
+              step={0.5}
+              unit="%"
+              formatValue={(v) => {
+                const adjusted = baseReturnRate + v
+                return `${adjusted.toFixed(1)}% (${v >= 0 ? "+" : ""}${v})`
+              }}
+            />
+
+            <WhatIfSlider
+              label="Inflation Rate"
+              value={whatIfAdjustments.inflationOffset}
+              onChange={(v) => updateAdjustment("inflationOffset", v)}
+              min={-2}
+              max={4}
+              step={0.5}
+              unit="%"
+              formatValue={(v) => {
+                const baseRate = plan.inflationRate * 100
+                const adjusted = baseRate + v
+                return `${adjusted.toFixed(1)}% (${v >= 0 ? "+" : ""}${v})`
+              }}
+            />
+
+            <WhatIfSlider
+              label="Equity Allocation"
+              value={whatIfAdjustments.equityPercent ?? defaultEquityPercent}
+              onChange={(v) => updateAdjustment("equityPercent", v)}
+              min={0}
+              max={100}
+              step={5}
+              unit="%"
+              formatValue={(v) => {
+                const cashPct = 100 - v
+                return `${v}% Equity / ${cashPct}% Cash`
+              }}
+            />
+          </div>
         </div>
 
         <div className="mt-6 pt-4 border-t">
@@ -163,7 +267,7 @@ export default function WhatIfModal({
             onClick={onClose}
             className="w-full py-2 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 transition-colors"
           >
-            Done
+            Apply
           </button>
         </div>
       </div>

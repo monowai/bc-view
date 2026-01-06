@@ -47,7 +47,9 @@ describe("types constants", () => {
     })
 
     it("has correct icons", () => {
-      expect(TABS.find((t) => t.id === "details")?.icon).toBe("fa-clipboard-list")
+      expect(TABS.find((t) => t.id === "details")?.icon).toBe(
+        "fa-clipboard-list",
+      )
       expect(TABS.find((t) => t.id === "assets")?.icon).toBe("fa-wallet")
       expect(TABS.find((t) => t.id === "timeline")?.icon).toBe("fa-chart-line")
       expect(TABS.find((t) => t.id === "scenarios")?.icon).toBe("fa-sliders-h")

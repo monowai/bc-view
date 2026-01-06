@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { GetServerSideProps } from "next"
@@ -6,10 +6,11 @@ import { useTranslation } from "next-i18next"
 import { useRouter } from "next/router"
 import Link from "next/link"
 import { useModelPlan } from "@components/features/rebalance/hooks/useModelPlan"
+import { useModelPlans } from "@components/features/rebalance/hooks/useModelPlans"
 import { useModel } from "@components/features/rebalance/hooks/useModel"
 import { TableSkeletonLoader } from "@components/ui/SkeletonLoader"
 import ModelWeightsEditor from "@components/features/rebalance/models/ModelWeightsEditor"
-import PortfolioSelector from "@components/features/rebalance/common/PortfolioSelector"
+import ImportHoldingsDialog from "@components/features/rebalance/models/ImportHoldingsDialog"
 import { PlanAssetDto, AssetWeightWithDetails } from "types/rebalance"
 
 function PlanDetailPage(): React.ReactElement {
@@ -22,15 +23,37 @@ function PlanDetailPage(): React.ReactElement {
     modelId as string,
     planId as string,
   )
+  const { plans } = useModelPlans(modelId as string)
 
   const [approving, setApproving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [saving, setSaving] = useState(false)
   const [fetchingPrices, setFetchingPrices] = useState(false)
+  const [creatingVersion, setCreatingVersion] = useState(false)
+  const [showImportDropdown, setShowImportDropdown] = useState(false)
+  const [showImportHoldingsDialog, setShowImportHoldingsDialog] =
+    useState(false)
   const [weights, setWeights] = useState<AssetWeightWithDetails[]>([])
   const [hasChanges, setHasChanges] = useState(false)
-  const [showPortfolioSelector, setShowPortfolioSelector] = useState(false)
-  const [loadingHoldings, setLoadingHoldings] = useState(false)
+  const importDropdownRef = useRef<HTMLDivElement>(null)
+  const csvInputRef = useRef<HTMLInputElement>(null)
+
+  // Find previous plan (any other plan that's not the current one)
+  const previousPlan = plans.find((p) => p.id !== planId)
+
+  // Close import dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent): void => {
+      if (
+        importDropdownRef.current &&
+        !importDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowImportDropdown(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
 
   // Initialize weights from plan
   useEffect(() => {
@@ -69,6 +92,7 @@ function PlanDetailPage(): React.ReactElement {
               assetId: w.assetId,
               weight: Math.round(w.weight * 100) / 10000, // Convert from percentage to decimal, rounded to 6dp
               assetCode: w.assetCode, // MARKET:CODE format (e.g., NASDAQ:VOO)
+              assetName: w.assetName,
               capturedPrice: w.capturedPrice,
               priceCurrency: w.priceCurrency,
               rationale: w.rationale || undefined,
@@ -144,9 +168,117 @@ function PlanDetailPage(): React.ReactElement {
     }
   }
 
+  const handleCreateNewVersion = async (): Promise<void> => {
+    setCreatingVersion(true)
+    try {
+      const response = await fetch(`/api/rebalance/models/${modelId}/plans`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sourcePlanId: planId }),
+      })
+      if (response.ok) {
+        const result = await response.json()
+        router.push(`/rebalance/models/${modelId}/plans/${result.data.id}`)
+      }
+    } catch (err) {
+      console.error("Failed to create new version:", err)
+    } finally {
+      setCreatingVersion(false)
+    }
+  }
+
+  const handleImportFromPlan = async (sourcePlanId: string): Promise<void> => {
+    setShowImportDropdown(false)
+    try {
+      const response = await fetch(
+        `/api/rebalance/models/${modelId}/plans/${sourcePlanId}`,
+      )
+      if (response.ok) {
+        const result = await response.json()
+        const sourcePlan = result.data
+        if (sourcePlan?.assets) {
+          const newWeights: AssetWeightWithDetails[] = sourcePlan.assets.map(
+            (asset: PlanAssetDto, index: number) => ({
+              assetId: asset.assetId,
+              weight: Math.round(asset.weight * 10000) / 100,
+              assetCode: asset.assetCode,
+              assetName: asset.assetName,
+              rationale: asset.rationale,
+              capturedPrice: asset.capturedPrice,
+              priceCurrency: asset.priceCurrency,
+              sortOrder: asset.sortOrder ?? index,
+            }),
+          )
+          setWeights(newWeights)
+          setHasChanges(true)
+        }
+      }
+    } catch (err) {
+      console.error("Failed to import from plan:", err)
+    }
+  }
+
+  // Check if a string looks like a UUID (vs a symbol like "VOO" or "US:VOO")
+  // Supports both standard format (36 chars with hyphens) and URL-safe base64 format (22 chars)
+  const isUuid = (id: string): boolean => {
+    // Standard UUID format: 8-4-4-4-12 hex chars
+    const standardUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    // URL-safe base64 encoded UUID: 22 chars of alphanumeric, - and _
+    const base64Uuid = /^[A-Za-z0-9_-]{22}$/
+    return standardUuid.test(id) || base64Uuid.test(id)
+  }
+
   const handleFetchPrices = async (): Promise<void> => {
     setFetchingPrices(true)
     try {
+      // First, ensure all assets exist in svc-data (create if needed)
+      const assetsToCreate = weights.filter((w) => !isUuid(w.assetId))
+
+      let updatedWeights = [...weights]
+
+      if (assetsToCreate.length > 0) {
+        // Build asset creation request
+        // assetCode format is "MARKET:CODE" (e.g., "US:VOO") or just "CODE"
+        const assetInputs: Record<
+          string,
+          { market: string; code: string; name?: string }
+        > = {}
+        for (const w of assetsToCreate) {
+          const [market, code] = w.assetCode?.includes(":")
+            ? w.assetCode.split(":")
+            : ["US", w.assetCode || w.assetId]
+          assetInputs[w.assetId] = {
+            market,
+            code,
+            name: w.assetName,
+          }
+        }
+
+        const createResponse = await fetch("/api/assets", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ data: assetInputs }),
+        })
+
+        if (createResponse.ok) {
+          const createData = await createResponse.json()
+          // Update weights with real asset IDs
+          updatedWeights = weights.map((w) => {
+            if (!isUuid(w.assetId) && createData.data?.[w.assetId]) {
+              return {
+                ...w,
+                assetId: createData.data[w.assetId].id,
+              }
+            }
+            return w
+          })
+          setWeights(updatedWeights)
+          setHasChanges(true)
+        }
+      }
+
+      // Now fetch prices for all assets
       const response = await fetch(
         `/api/rebalance/models/${modelId}/plans/${planId}/prices`,
       )
@@ -182,63 +314,12 @@ function PlanDetailPage(): React.ReactElement {
     }
   }
 
-  // Handle portfolio selection for loading weights from holdings
-  const handlePortfoliosSelected = async (
-    portfolioCodes: string[],
-  ): Promise<void> => {
-    if (portfolioCodes.length === 0) return
-
-    setLoadingHoldings(true)
-    try {
-      const response = await fetch(
-        `/api/holdings/weights?portfolioIds=${portfolioCodes.join(",")}`,
-      )
-      if (response.ok) {
-        const data = await response.json()
-        const newWeights: AssetWeightWithDetails[] = (data.weights || []).map(
-          (
-            w: {
-              assetId: string
-              weight: number
-              assetCode?: string
-              assetName?: string
-              price?: number
-              priceCurrency?: string
-            },
-            index: number,
-          ) => ({
-            assetId: w.assetId,
-            weight: Math.round(w.weight * 10000) / 100,
-            sortOrder: index,
-            assetCode: w.assetCode,
-            assetName: w.assetName,
-            capturedPrice: w.price,
-            priceCurrency: w.priceCurrency,
-          }),
-        )
-
-        // If rounding caused total > 100, adjust the largest weight
-        const total = newWeights.reduce((sum, w) => sum + w.weight, 0)
-        if (total > 100 && newWeights.length > 0) {
-          const largestIndex = newWeights.reduce(
-            (maxIdx, w, idx, arr) =>
-              w.weight > arr[maxIdx].weight ? idx : maxIdx,
-            0,
-          )
-          const excess = Math.round((total - 100) * 100) / 100
-          newWeights[largestIndex].weight =
-            Math.round((newWeights[largestIndex].weight - excess) * 100) / 100
-        }
-
-        setWeights(newWeights)
-        setHasChanges(true)
-      }
-    } catch (err) {
-      console.error("Failed to load holdings weights:", err)
-    } finally {
-      setLoadingHoldings(false)
-      setShowPortfolioSelector(false)
-    }
+  // Handle import from holdings dialog
+  const handleImportHoldings = (
+    importedWeights: AssetWeightWithDetails[],
+  ): void => {
+    setWeights(importedWeights)
+    setHasChanges(true)
   }
 
   const formatDate = (dateString: string): string => {
@@ -264,16 +345,17 @@ function PlanDetailPage(): React.ReactElement {
   }
 
   // Export allocations to CSV file
-  // Format: Asset (MARKET:CODE), Weight %, Price, Currency
+  // Format: Asset (MARKET:CODE), Weight %, Price, Currency, Description
   const handleExportCSV = (): void => {
     if (!weights.length) return
 
-    const headers = ["Asset", "Weight %", "Price", "Currency"]
+    const headers = ["Asset", "Weight %", "Price", "Currency", "Description"]
     const rows = weights.map((w) => [
       escapeCSV(w.assetCode || w.assetId), // MARKET:CODE format (e.g., NASDAQ:VOO)
       w.weight.toFixed(2),
       w.capturedPrice?.toString() || "",
       w.priceCurrency || "",
+      escapeCSV(w.rationale || ""),
     ])
 
     const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n")
@@ -316,7 +398,8 @@ function PlanDetailPage(): React.ReactElement {
   }
 
   // Import allocations from CSV file
-  // Format: Asset (MARKET:CODE), Weight %, Price, Currency
+  // Format: Asset (MARKET:CODE), Weight %, Price, Currency, Description
+  // If prices are missing, automatically fetches them after import
   const handleImportCSV = (
     event: React.ChangeEvent<HTMLInputElement>,
   ): void => {
@@ -324,7 +407,7 @@ function PlanDetailPage(): React.ReactElement {
     if (!file) return
 
     const reader = new FileReader()
-    reader.onload = (e) => {
+    reader.onload = (e): void => {
       const text = e.target?.result as string
       if (!text) return
 
@@ -338,11 +421,12 @@ function PlanDetailPage(): React.ReactElement {
       for (const line of dataLines) {
         const parts = parseCSVLine(line)
         if (parts.length >= 2) {
-          // Format: Asset (MARKET:CODE), Weight %, Price, Currency
+          // Format: Asset (MARKET:CODE), Weight %, Price, Currency, Description
           const rawAssetCode = parts[0]
           const weightPercent = parseFloat(parts[1])
           const price = parts[2] ? parseFloat(parts[2]) : undefined
           const currency = parts[3] || undefined
+          const rationale = parts[4] || undefined
 
           if (rawAssetCode && !isNaN(weightPercent)) {
             // Default to US market if no market code provided
@@ -359,6 +443,7 @@ function PlanDetailPage(): React.ReactElement {
               weight: weightPercent,
               capturedPrice: price,
               priceCurrency: currency,
+              rationale: rationale,
               sortOrder: newWeights.length,
             })
           }
@@ -366,9 +451,19 @@ function PlanDetailPage(): React.ReactElement {
       }
 
       if (newWeights.length > 0) {
+        // Check if any assets are missing prices
+        const missingPrices = newWeights.some((w) => !w.capturedPrice)
+
         setWeights(newWeights)
         setHasChanges(true)
-        alert(`Imported ${newWeights.length} allocations`)
+
+        // Auto-fetch prices for assets without prices
+        if (missingPrices) {
+          // Use setTimeout to ensure state is updated before fetching
+          setTimeout(() => {
+            handleFetchPrices()
+          }, 100)
+        }
       }
     }
     reader.readAsText(file)
@@ -426,15 +521,29 @@ function PlanDetailPage(): React.ReactElement {
               <p className="text-sm text-gray-600 mt-1">{plan.description}</p>
             )}
           </div>
-          <span
-            className={`px-3 py-1 text-sm font-medium rounded ${
-              plan.status === "APPROVED"
-                ? "bg-green-100 text-green-800"
-                : "bg-yellow-100 text-yellow-800"
-            }`}
-          >
-            {plan.status}
-          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleCreateNewVersion}
+              disabled={creatingVersion}
+              className="bg-violet-600 text-white px-3 py-1.5 rounded text-sm hover:bg-violet-700 transition-colors flex items-center disabled:opacity-50"
+            >
+              {creatingVersion ? (
+                <i className="fas fa-spinner fa-spin mr-2"></i>
+              ) : (
+                <i className="fas fa-copy mr-2"></i>
+              )}
+              {t("rebalance.plans.createNewVersion", "New Version")}
+            </button>
+            <span
+              className={`px-3 py-1.5 text-sm font-medium rounded ${
+                plan.status === "APPROVED"
+                  ? "bg-green-100 text-green-800"
+                  : "bg-yellow-100 text-yellow-800"
+              }`}
+            >
+              {plan.status}
+            </span>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4 text-sm">
@@ -503,26 +612,6 @@ function PlanDetailPage(): React.ReactElement {
         )}
       </div>
 
-      {/* Portfolio Selector for importing from holdings */}
-      {showPortfolioSelector && (
-        <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6 max-w-2xl mx-auto mb-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">
-            {t("rebalance.plans.selectPortfolios", "Select Portfolios")}
-          </h2>
-          <p className="text-sm text-gray-600 mb-4">
-            {t(
-              "rebalance.plans.selectPortfoliosDesc",
-              "Choose portfolios to calculate target weights from their current holdings.",
-            )}
-          </p>
-          <PortfolioSelector
-            onSelect={handlePortfoliosSelected}
-            onCancel={() => setShowPortfolioSelector(false)}
-            loading={loadingHoldings}
-          />
-        </div>
-      )}
-
       {/* Assets Editor/Table */}
       <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6 max-w-2xl mx-auto">
         <div className="flex items-center justify-between mb-4">
@@ -537,19 +626,68 @@ function PlanDetailPage(): React.ReactElement {
                   className="text-sm bg-gray-100 text-gray-700 px-3 py-1.5 rounded hover:bg-gray-200 transition-colors flex items-center"
                 >
                   <i className="fas fa-download mr-1.5"></i>
-                  {t("export", "Export CSV")}
+                  {t("export", "Export")}
                 </button>
               )}
-              <label className="text-sm bg-gray-100 text-gray-700 px-3 py-1.5 rounded hover:bg-gray-200 transition-colors flex items-center cursor-pointer">
-                <i className="fas fa-upload mr-1.5"></i>
-                {t("import", "Import CSV")}
-                <input
-                  type="file"
-                  accept=".csv,.txt"
-                  onChange={handleImportCSV}
-                  className="hidden"
-                />
-              </label>
+              {/* Import dropdown */}
+              <div className="relative" ref={importDropdownRef}>
+                <button
+                  onClick={() => setShowImportDropdown(!showImportDropdown)}
+                  className="text-sm bg-gray-100 text-gray-700 px-3 py-1.5 rounded hover:bg-gray-200 transition-colors flex items-center"
+                >
+                  <i className="fas fa-upload mr-1.5"></i>
+                  {t("import", "Import")}
+                  <i className="fas fa-chevron-down ml-1.5 text-xs"></i>
+                </button>
+                {showImportDropdown && (
+                  <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                    <div className="py-1">
+                      <button
+                        onClick={() => {
+                          setShowImportDropdown(false)
+                          setShowImportHoldingsDialog(true)
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                      >
+                        <i className="fas fa-chart-pie mr-3 text-gray-400 w-4"></i>
+                        {t("rebalance.plans.importHoldings", "Holdings")}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowImportDropdown(false)
+                          csvInputRef.current?.click()
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                      >
+                        <i className="fas fa-file-csv mr-3 text-gray-400 w-4"></i>
+                        {t("rebalance.plans.importCSV", "CSV")}
+                      </button>
+                      {previousPlan && (
+                        <button
+                          onClick={() => handleImportFromPlan(previousPlan.id)}
+                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                        >
+                          <i className="fas fa-copy mr-3 text-gray-400 w-4"></i>
+                          {t(
+                            "rebalance.plans.importLastPlan",
+                            "Plan v{{version}}",
+                            {
+                              version: previousPlan.version,
+                            },
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <input
+                ref={csvInputRef}
+                type="file"
+                accept=".csv,.txt"
+                onChange={handleImportCSV}
+                className="hidden"
+              />
             </div>
           )}
         </div>
@@ -558,7 +696,6 @@ function PlanDetailPage(): React.ReactElement {
           <ModelWeightsEditor
             weights={weights}
             onChange={handleWeightsChange}
-            onFromHoldings={() => setShowPortfolioSelector(true)}
             onFetchPrices={handleFetchPrices}
             fetchingPrices={fetchingPrices}
             showPrice={true}
@@ -640,6 +777,14 @@ function PlanDetailPage(): React.ReactElement {
           </>
         )}
       </div>
+
+      {/* Import from Holdings Dialog */}
+      <ImportHoldingsDialog
+        modalOpen={showImportHoldingsDialog}
+        modelId={modelId as string}
+        onClose={() => setShowImportHoldingsDialog(false)}
+        onImport={handleImportHoldings}
+      />
     </div>
   )
 }

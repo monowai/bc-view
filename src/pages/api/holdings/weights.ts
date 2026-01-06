@@ -114,10 +114,11 @@ export default withApiAuthRequired(async function holdingsWeights(
             assetValues[assetId].priceCurrency = priceCurrency
           }
         } else {
-          // Build MARKET:CODE format (e.g., NASDAQ:VOO)
+          // Build asset code: omit "US:" prefix for US market (default)
           const marketCode = asset.market?.code
           const code = asset.code || assetId
-          const fullCode = marketCode ? `${marketCode}:${code}` : code
+          const fullCode =
+            marketCode && marketCode !== "US" ? `${marketCode}:${code}` : code
 
           assetValues[assetId] = {
             assetId,

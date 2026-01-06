@@ -8,7 +8,6 @@ import { AssetWeightWithDetails } from "types/rebalance"
 interface ModelWeightsEditorProps {
   weights: AssetWeightWithDetails[]
   onChange: (weights: AssetWeightWithDetails[]) => void
-  onFromHoldings?: () => void
   onFetchPrices?: () => void
   fetchingPrices?: boolean
   readOnly?: boolean
@@ -18,7 +17,6 @@ interface ModelWeightsEditorProps {
 const ModelWeightsEditor: React.FC<ModelWeightsEditorProps> = ({
   weights,
   onChange,
-  onFromHoldings,
   onFetchPrices,
   fetchingPrices = false,
   readOnly = false,
@@ -91,25 +89,15 @@ const ModelWeightsEditor: React.FC<ModelWeightsEditorProps> = ({
             )}
           {!readOnly && (
             <>
-              {onFromHoldings && (
-                <button
-                  type="button"
-                  onClick={onFromHoldings}
-                  className="text-sm text-gray-700 bg-gray-100 px-3 py-1 rounded hover:bg-gray-200 transition-colors flex items-center"
-                >
-                  <i className="fas fa-chart-pie mr-1"></i>
-                  {t("rebalance.models.fromHoldings", "From Holdings")}
-                </button>
-              )}
               {showPrice && onFetchPrices && weights.length > 0 && (
                 <button
                   type="button"
                   onClick={onFetchPrices}
                   disabled={fetchingPrices}
-                  className="text-sm text-gray-700 bg-gray-100 px-3 py-1 rounded hover:bg-gray-200 transition-colors flex items-center disabled:opacity-50"
+                  className="text-sm text-gray-700 bg-gray-100 px-3 py-1.5 rounded hover:bg-gray-200 transition-colors flex items-center disabled:opacity-50"
                 >
                   <i
-                    className={`fas ${fetchingPrices ? "fa-spinner fa-spin" : "fa-sync-alt"} mr-1`}
+                    className={`fas ${fetchingPrices ? "fa-spinner fa-spin" : "fa-sync-alt"} mr-1.5`}
                   ></i>
                   {t("rebalance.plans.fetchPrices", "Fetch Prices")}
                 </button>
@@ -117,9 +105,9 @@ const ModelWeightsEditor: React.FC<ModelWeightsEditorProps> = ({
               <button
                 type="button"
                 onClick={() => setAddAssetModalOpen(true)}
-                className="text-sm bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition-colors flex items-center"
+                className="text-sm bg-gray-100 text-gray-700 px-3 py-1.5 rounded hover:bg-gray-200 transition-colors flex items-center"
               >
-                <i className="fas fa-plus mr-1"></i>
+                <i className="fas fa-plus mr-1.5"></i>
                 {t("rebalance.models.addAsset", "Add Asset")}
               </button>
             </>

@@ -49,6 +49,9 @@ export default async function handleResponse<T>(
 ): Promise<void> {
   if (hasError(response)) {
     await handleErrors(response)
+  } else if (response.status === 204) {
+    // No content - just return the status
+    res.status(204).end()
   } else {
     const json: T = await response.json()
     res.status(response.status || 200).json(json)

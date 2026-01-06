@@ -6,6 +6,10 @@ interface EditFormData {
   pensionMonthly: number
   socialSecurityMonthly: number
   otherIncomeMonthly: number
+  monthlyExpenses: number
+  equityReturnRate: number
+  cashReturnRate: number
+  housingReturnRate: number
   inflationRate: number
   targetBalance: number
 }
@@ -27,6 +31,10 @@ export default function EditPlanDetailsModal({
     pensionMonthly: 0,
     socialSecurityMonthly: 0,
     otherIncomeMonthly: 0,
+    monthlyExpenses: 0,
+    equityReturnRate: 0,
+    cashReturnRate: 0,
+    housingReturnRate: 0,
     inflationRate: 0,
     targetBalance: 0,
   })
@@ -38,7 +46,11 @@ export default function EditPlanDetailsModal({
         pensionMonthly: plan.pensionMonthly,
         socialSecurityMonthly: plan.socialSecurityMonthly,
         otherIncomeMonthly: plan.otherIncomeMonthly ?? 0,
-        inflationRate: plan.inflationRate * 100, // Convert to percentage
+        monthlyExpenses: plan.monthlyExpenses,
+        equityReturnRate: plan.equityReturnRate * 100, // Convert to percentage
+        cashReturnRate: plan.cashReturnRate * 100,
+        housingReturnRate: plan.housingReturnRate * 100,
+        inflationRate: plan.inflationRate * 100,
         targetBalance: plan.targetBalance ?? 0,
       })
     }
@@ -51,14 +63,18 @@ export default function EditPlanDetailsModal({
       pensionMonthly: formData.pensionMonthly,
       socialSecurityMonthly: formData.socialSecurityMonthly,
       otherIncomeMonthly: formData.otherIncomeMonthly,
-      inflationRate: formData.inflationRate / 100, // Convert back to decimal
+      monthlyExpenses: formData.monthlyExpenses,
+      equityReturnRate: formData.equityReturnRate / 100, // Convert back to decimal
+      cashReturnRate: formData.cashReturnRate / 100,
+      housingReturnRate: formData.housingReturnRate / 100,
+      inflationRate: formData.inflationRate / 100,
       targetBalance: formData.targetBalance || undefined,
     })
     onClose()
   }
 
   const netMonthlyNeed =
-    plan.monthlyExpenses -
+    formData.monthlyExpenses -
     formData.pensionMonthly -
     formData.socialSecurityMonthly -
     formData.otherIncomeMonthly
@@ -137,6 +153,108 @@ export default function EditPlanDetailsModal({
                 min={0}
                 step={100}
               />
+            </div>
+          </div>
+
+          {/* Monthly Expenses */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Monthly Expenses
+            </label>
+            <div className="relative">
+              <span className="absolute left-3 top-2.5 text-gray-500">$</span>
+              <input
+                type="number"
+                value={formData.monthlyExpenses}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    monthlyExpenses: parseFloat(e.target.value) || 0,
+                  }))
+                }
+                className="w-full pl-8 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                min={0}
+                step={100}
+              />
+            </div>
+          </div>
+
+          {/* Return Rates */}
+          <div className="border-t pt-4 mt-4">
+            <h3 className="text-sm font-medium text-gray-700 mb-3">
+              Return Rates
+            </h3>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">
+                  Equity
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={formData.equityReturnRate}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        equityReturnRate: parseFloat(e.target.value) || 0,
+                      }))
+                    }
+                    className="w-full pl-2 pr-6 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    min={0}
+                    max={30}
+                    step={0.5}
+                  />
+                  <span className="absolute right-2 top-2.5 text-xs text-gray-500">
+                    %
+                  </span>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Cash</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={formData.cashReturnRate}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        cashReturnRate: parseFloat(e.target.value) || 0,
+                      }))
+                    }
+                    className="w-full pl-2 pr-6 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    min={0}
+                    max={20}
+                    step={0.5}
+                  />
+                  <span className="absolute right-2 top-2.5 text-xs text-gray-500">
+                    %
+                  </span>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">
+                  Housing
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={formData.housingReturnRate}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        housingReturnRate: parseFloat(e.target.value) || 0,
+                      }))
+                    }
+                    className="w-full pl-2 pr-6 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    min={0}
+                    max={20}
+                    step={0.5}
+                  />
+                  <span className="absolute right-2 top-2.5 text-xs text-gray-500">
+                    %
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 

@@ -200,9 +200,9 @@ describe("useRetirementProjection", () => {
     })
 
     // With +2 years offset, first projection year should be age 67
-    expect(
-      result.current.adjustedProjection?.yearlyProjections[0]?.age,
-    ).toBe(67)
+    expect(result.current.adjustedProjection?.yearlyProjections[0]?.age).toBe(
+      67,
+    )
   })
 
   it("applies expenses percentage to adjusted projection", async () => {
@@ -262,9 +262,9 @@ describe("useRetirementProjection", () => {
       expect(result.current.adjustedProjection).not.toBeNull()
     })
 
-    expect(
-      result.current.adjustedProjection?.liquidationThresholdPercent,
-    ).toBe(20)
+    expect(result.current.adjustedProjection?.liquidationThresholdPercent).toBe(
+      20,
+    )
   })
 
   it("handles API error gracefully", async () => {

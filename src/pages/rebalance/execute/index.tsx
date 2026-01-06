@@ -837,6 +837,37 @@ function ExecuteRebalancePage(): React.ReactElement {
                     )
                   })}
                 </tbody>
+                <tfoot className="bg-gray-100 border-t-2 border-gray-300">
+                  <tr>
+                    <td className="px-4 py-3 font-semibold text-gray-900">
+                      {t("total", "Total")}
+                    </td>
+                    <td className="px-4 py-3"></td>
+                    <td className="px-4 py-3"></td>
+                    <td className="px-4 py-3 text-right font-semibold text-gray-900">
+                      {(() => {
+                        const total = activeItems.reduce(
+                          (sum, item) => sum + item.deltaValue,
+                          0,
+                        )
+                        return (
+                          <span
+                            className={
+                              total > 0
+                                ? "text-green-700"
+                                : total < 0
+                                  ? "text-red-700"
+                                  : ""
+                            }
+                          >
+                            {total > 0 ? "+" : ""}
+                            {formatCurrency(total)}
+                          </span>
+                        )
+                      })()}
+                    </td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
           </div>

@@ -405,6 +405,7 @@ function AccountsPage(): React.ReactElement {
       currency: string,
       category: string,
       sector?: string,
+      expectedReturnRate?: number,
     ) => {
       const response = await fetch(`/api/assets/${assetId}`, {
         method: "PATCH",
@@ -415,6 +416,7 @@ function AccountsPage(): React.ReactElement {
           name,
           currency,
           category,
+          expectedReturnRate,
         }),
       })
       if (!response.ok) {
@@ -692,8 +694,44 @@ interface EditAccountDialogProps {
     currency: string,
     category: string,
     sector?: string,
+    expectedReturnRate?: number,
   ) => Promise<void>
 }
+
+// Private Asset Config state interface
+interface AssetConfigState {
+  monthlyRentalIncome: string
+  rentalCurrency: string
+  monthlyManagementFee: string
+  managementFeePercent: string
+  monthlyBodyCorporateFee: string
+  annualPropertyTax: string
+  annualInsurance: string
+  monthlyOtherExpenses: string
+  isPrimaryResidence: boolean
+  liquidationPriority: string
+  transactionDayOfMonth: string
+  creditAccountId: string
+  autoGenerateTransactions: boolean
+}
+
+const defaultConfigState: AssetConfigState = {
+  monthlyRentalIncome: "0",
+  rentalCurrency: "NZD",
+  monthlyManagementFee: "0",
+  managementFeePercent: "0",
+  monthlyBodyCorporateFee: "0",
+  annualPropertyTax: "0",
+  annualInsurance: "0",
+  monthlyOtherExpenses: "0",
+  isPrimaryResidence: false,
+  liquidationPriority: "100",
+  transactionDayOfMonth: "1",
+  creditAccountId: "",
+  autoGenerateTransactions: false,
+}
+
+type EditTab = "details" | "income"
 
 const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
   asset,
@@ -704,6 +742,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
   onSave,
 }) => {
   const { t } = useTranslation("common")
+  const [activeTab, setActiveTab] = useState<EditTab>("details")
   const [code, setCode] = useState(getDisplayCode(asset.code))
   const [name, setName] = useState(asset.name || "")
   const [currency, setCurrency] = useState(
@@ -711,8 +750,19 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
   )
   const [category, setCategory] = useState(asset.assetCategory?.id || "ACCOUNT")
   const [sector, setSector] = useState("")
+  // Expected return rate as percentage (e.g., 3.0 for 3%)
+  const [expectedReturnRate, setExpectedReturnRate] = useState(
+    asset.expectedReturnRate ? (asset.expectedReturnRate * 100).toString() : "",
+  )
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Private Asset Config state (for RE category)
+  const [config, setConfig] = useState<AssetConfigState>(defaultConfigState)
+  const [configLoading, setConfigLoading] = useState(false)
+
+  // Show income tab for RE category
+  const showIncomeTab = category === "RE"
 
   // Fetch current sector classification on mount
   useEffect(() => {
@@ -737,10 +787,58 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
     fetchCurrentSector()
   }, [asset.id])
 
+  // Fetch existing private asset config for RE assets
+  useEffect(() => {
+    async function fetchAssetConfig(): Promise<void> {
+      if (asset.assetCategory?.id !== "RE") return
+
+      setConfigLoading(true)
+      try {
+        const response = await fetch(`/api/assets/config/${asset.id}`)
+        if (response.ok) {
+          const data = await response.json()
+          if (data.data) {
+            setConfig({
+              monthlyRentalIncome: String(data.data.monthlyRentalIncome || 0),
+              rentalCurrency: data.data.rentalCurrency || "NZD",
+              monthlyManagementFee: String(data.data.monthlyManagementFee || 0),
+              managementFeePercent: String(
+                (data.data.managementFeePercent || 0) * 100,
+              ),
+              monthlyBodyCorporateFee: String(
+                data.data.monthlyBodyCorporateFee || 0,
+              ),
+              annualPropertyTax: String(data.data.annualPropertyTax || 0),
+              annualInsurance: String(data.data.annualInsurance || 0),
+              monthlyOtherExpenses: String(data.data.monthlyOtherExpenses || 0),
+              isPrimaryResidence: data.data.isPrimaryResidence || false,
+              liquidationPriority: String(data.data.liquidationPriority || 100),
+              transactionDayOfMonth: String(
+                data.data.transactionDayOfMonth || 1,
+              ),
+              creditAccountId: data.data.creditAccountId || "",
+              autoGenerateTransactions:
+                data.data.autoGenerateTransactions || false,
+            })
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch asset config:", err)
+      } finally {
+        setConfigLoading(false)
+      }
+    }
+    fetchAssetConfig()
+  }, [asset.id, asset.assetCategory?.id])
+
   const handleSave = async (): Promise<void> => {
     setIsSubmitting(true)
     setError(null)
     try {
+      // Convert percentage to decimal (e.g., 3.0 -> 0.03)
+      const returnRate = expectedReturnRate
+        ? parseFloat(expectedReturnRate) / 100
+        : undefined
       await onSave(
         asset.id,
         code,
@@ -748,7 +846,33 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
         currency,
         category,
         sector || undefined,
+        returnRate,
       )
+
+      // Save private asset config for RE category
+      if (category === "RE") {
+        await fetch(`/api/assets/config/${asset.id}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            monthlyRentalIncome: parseFloat(config.monthlyRentalIncome) || 0,
+            rentalCurrency: config.rentalCurrency,
+            monthlyManagementFee: parseFloat(config.monthlyManagementFee) || 0,
+            managementFeePercent:
+              (parseFloat(config.managementFeePercent) || 0) / 100,
+            monthlyBodyCorporateFee:
+              parseFloat(config.monthlyBodyCorporateFee) || 0,
+            annualPropertyTax: parseFloat(config.annualPropertyTax) || 0,
+            annualInsurance: parseFloat(config.annualInsurance) || 0,
+            monthlyOtherExpenses: parseFloat(config.monthlyOtherExpenses) || 0,
+            isPrimaryResidence: config.isPrimaryResidence,
+            liquidationPriority: parseInt(config.liquidationPriority) || 100,
+            transactionDayOfMonth: parseInt(config.transactionDayOfMonth) || 1,
+            creditAccountId: config.creditAccountId || null,
+            autoGenerateTransactions: config.autoGenerateTransactions,
+          }),
+        })
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save")
     } finally {
@@ -776,94 +900,453 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
           </button>
         </header>
 
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("accounts.code")}
-            </label>
-            <input
-              type="text"
-              value={code}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
-              className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
-            />
+        {/* Tabs - only show if RE category */}
+        {showIncomeTab && (
+          <div className="border-b border-gray-200 mb-4">
+            <nav className="-mb-px flex space-x-6">
+              <button
+                onClick={() => setActiveTab("details")}
+                className={`py-2 px-1 border-b-2 text-sm font-medium ${
+                  activeTab === "details"
+                    ? "border-indigo-500 text-indigo-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                {t("asset.tab.details", "Details")}
+              </button>
+              <button
+                onClick={() => setActiveTab("income")}
+                className={`py-2 px-1 border-b-2 text-sm font-medium ${
+                  activeTab === "income"
+                    ? "border-indigo-500 text-indigo-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                {t("asset.tab.income", "Income & Planning")}
+              </button>
+            </nav>
           </div>
+        )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("accounts.name")}
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("accounts.currency")}
-            </label>
-            <select
-              value={currency}
-              onChange={(e) => setCurrency(e.target.value)}
-              className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
-            >
-              {currencies.map((ccy) => (
-                <option key={ccy.value} value={ccy.value}>
-                  {ccy.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("accounts.category")}
-            </label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
-            >
-              {categories.map((cat) => (
-                <option key={cat.value} value={cat.value}>
-                  {cat.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Only show sector for MUTUAL FUND category */}
-          {category === "MUTUAL FUND" && (
+        {/* Details Tab */}
+        {activeTab === "details" && (
+          <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t("account.sector", "Sector")}
+                {t("accounts.code")}
+              </label>
+              <input
+                type="text"
+                value={code}
+                onChange={(e) => setCode(e.target.value.toUpperCase())}
+                className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t("accounts.name")}
+              </label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t("accounts.currency")}
               </label>
               <select
-                value={sector}
-                onChange={(e) => setSector(e.target.value)}
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value)}
                 className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
               >
-                <option value="">
-                  {t("account.sector.hint", "Select sector (optional)")}
-                </option>
-                {sectors.map((s) => (
-                  <option key={s.value} value={s.value}>
-                    {s.label}
+                {currencies.map((ccy) => (
+                  <option key={ccy.value} value={ccy.value}>
+                    {ccy.label}
                   </option>
                 ))}
               </select>
             </div>
-          )}
 
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm">
-              {error}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t("accounts.category")}
+              </label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                {categories.map((cat) => (
+                  <option key={cat.value} value={cat.value}>
+                    {cat.label}
+                  </option>
+                ))}
+              </select>
             </div>
-          )}
-        </div>
+
+            {/* Only show sector for MUTUAL FUND category */}
+            {category === "MUTUAL FUND" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t("account.sector", "Sector")}
+                </label>
+                <select
+                  value={sector}
+                  onChange={(e) => setSector(e.target.value)}
+                  className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                  <option value="">
+                    {t("account.sector.hint", "Select sector (optional)")}
+                  </option>
+                  {sectors.map((s) => (
+                    <option key={s.value} value={s.value}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Expected Return Rate - for retirement projections */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t("asset.expectedReturn", "Expected Return (%)")}
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="50"
+                  value={expectedReturnRate}
+                  onChange={(e) => setExpectedReturnRate(e.target.value)}
+                  placeholder="3.0"
+                  className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500 pr-8"
+                />
+                <span className="absolute right-3 top-2.5 text-gray-500">
+                  %
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                {t(
+                  "asset.expectedReturn.hint",
+                  "Annual return rate for retirement projections (default 3%)",
+                )}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Income & Planning Tab (RE only) */}
+        {activeTab === "income" && showIncomeTab && (
+          <div className="space-y-4">
+            {configLoading ? (
+              <div className="text-sm text-gray-500">
+                <i className="fas fa-spinner fa-spin mr-2"></i>
+                {t("loading")}
+              </div>
+            ) : (
+              <>
+                {/* Primary Residence Toggle */}
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="isPrimaryResidence"
+                    checked={config.isPrimaryResidence}
+                    onChange={(e) =>
+                      setConfig({
+                        ...config,
+                        isPrimaryResidence: e.target.checked,
+                        monthlyRentalIncome: e.target.checked
+                          ? "0"
+                          : config.monthlyRentalIncome,
+                      })
+                    }
+                    className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                  />
+                  <label
+                    htmlFor="isPrimaryResidence"
+                    className="ml-2 text-sm text-gray-700"
+                  >
+                    {t("asset.config.primaryResidence", "Primary Residence")}
+                  </label>
+                </div>
+
+                {/* Rental Income & Management Fees (hidden for primary residence) */}
+                {!config.isPrimaryResidence && (
+                  <>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          {t("asset.config.monthlyRental", "Monthly Rental")}
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={config.monthlyRentalIncome}
+                          onChange={(e) =>
+                            setConfig({
+                              ...config,
+                              monthlyRentalIncome: e.target.value,
+                            })
+                          }
+                          className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          {t("asset.config.rentalCurrency", "Currency")}
+                        </label>
+                        <select
+                          value={config.rentalCurrency}
+                          onChange={(e) =>
+                            setConfig({
+                              ...config,
+                              rentalCurrency: e.target.value,
+                            })
+                          }
+                          className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
+                        >
+                          {currencies.map((ccy) => (
+                            <option key={ccy.value} value={ccy.value}>
+                              {ccy.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Management Fee */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          {t("asset.config.mgmtFeeFixed", "Mgmt Fee (Fixed)")}
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={config.monthlyManagementFee}
+                          onChange={(e) =>
+                            setConfig({
+                              ...config,
+                              monthlyManagementFee: e.target.value,
+                            })
+                          }
+                          className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          {t("asset.config.mgmtFeePercent", "Mgmt Fee (%)")}
+                        </label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          max="100"
+                          value={config.managementFeePercent}
+                          onChange={(e) =>
+                            setConfig({
+                              ...config,
+                              managementFeePercent: e.target.value,
+                            })
+                          }
+                          className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Property Expenses */}
+                    <div className="border-t pt-4 mt-4">
+                      <h4 className="text-sm font-medium text-gray-700 mb-3">
+                        {t("asset.config.expenses", "Property Expenses")}
+                      </h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {t(
+                              "asset.config.bodyCorporate",
+                              "Body Corp (Monthly)",
+                            )}
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={config.monthlyBodyCorporateFee}
+                            onChange={(e) =>
+                              setConfig({
+                                ...config,
+                                monthlyBodyCorporateFee: e.target.value,
+                              })
+                            }
+                            className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {t(
+                              "asset.config.propertyTax",
+                              "Property Tax (Annual)",
+                            )}
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={config.annualPropertyTax}
+                            onChange={(e) =>
+                              setConfig({
+                                ...config,
+                                annualPropertyTax: e.target.value,
+                              })
+                            }
+                            className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {t("asset.config.insurance", "Insurance (Annual)")}
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={config.annualInsurance}
+                            onChange={(e) =>
+                              setConfig({
+                                ...config,
+                                annualInsurance: e.target.value,
+                              })
+                            }
+                            className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {t("asset.config.otherExpenses", "Other (Monthly)")}
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={config.monthlyOtherExpenses}
+                            onChange={(e) =>
+                              setConfig({
+                                ...config,
+                                monthlyOtherExpenses: e.target.value,
+                              })
+                            }
+                            className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Net Income Display */}
+                    {(() => {
+                      const rental = parseFloat(config.monthlyRentalIncome) || 0
+                      const fixedFee =
+                        parseFloat(config.monthlyManagementFee) || 0
+                      const percentFee =
+                        rental *
+                        ((parseFloat(config.managementFeePercent) || 0) / 100)
+                      const effectiveMgmtFee = Math.max(fixedFee, percentFee)
+                      const bodyCorp =
+                        parseFloat(config.monthlyBodyCorporateFee) || 0
+                      const monthlyTax =
+                        (parseFloat(config.annualPropertyTax) || 0) / 12
+                      const monthlyInsurance =
+                        (parseFloat(config.annualInsurance) || 0) / 12
+                      const otherExpenses =
+                        parseFloat(config.monthlyOtherExpenses) || 0
+                      const totalExpenses =
+                        effectiveMgmtFee +
+                        bodyCorp +
+                        monthlyTax +
+                        monthlyInsurance +
+                        otherExpenses
+                      const netIncome = rental - totalExpenses
+                      return (
+                        <div className="bg-gray-50 rounded-md p-3 text-sm mt-4">
+                          <div className="flex justify-between text-gray-600">
+                            <span>
+                              {t("asset.config.netIncome", "Net Monthly")}:
+                            </span>
+                            <span
+                              className={`font-medium ${netIncome >= 0 ? "text-green-700" : "text-red-600"}`}
+                            >
+                              {config.rentalCurrency}{" "}
+                              {netIncome.toLocaleString(undefined, {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}
+                            </span>
+                          </div>
+                          {totalExpenses > 0 && (
+                            <div className="flex justify-between text-gray-500 text-xs mt-1">
+                              <span>
+                                ({t("asset.config.totalExpenses", "Expenses")}:{" "}
+                                {totalExpenses.toLocaleString(undefined, {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}
+                                )
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })()}
+                  </>
+                )}
+
+                {/* Liquidation Priority */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {t(
+                      "asset.config.liquidationPriority",
+                      "Liquidation Priority",
+                    )}
+                  </label>
+                  <input
+                    type="number"
+                    step="1"
+                    min="1"
+                    value={config.liquidationPriority}
+                    onChange={(e) =>
+                      setConfig({
+                        ...config,
+                        liquidationPriority: e.target.value,
+                      })
+                    }
+                    className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {t(
+                      "asset.config.liquidationPriority.hint",
+                      "Lower number = sold first during retirement",
+                    )}
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Error display */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm mt-4">
+            {error}
+          </div>
+        )}
 
         <div className="flex justify-end space-x-2 mt-6">
           <button

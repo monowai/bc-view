@@ -5,6 +5,7 @@ import {
   RebalanceData,
   SetCashBalanceData,
   SetPriceData,
+  CashTransferData,
   Asset,
 } from "types/beancounter"
 import {
@@ -43,6 +44,7 @@ import CorporateActionsPopup from "@components/features/holdings/CorporateAction
 import TargetWeightDialog from "@components/features/holdings/TargetWeightDialog"
 import SetCashBalanceDialog from "@components/features/holdings/SetCashBalanceDialog"
 import SetPriceDialog from "@components/features/holdings/SetPriceDialog"
+import CashTransferDialog from "@components/features/holdings/CashTransferDialog"
 import TrnDropZone from "@components/ui/DropZone"
 
 function HoldingsPage(): React.ReactElement {
@@ -88,6 +90,15 @@ function HoldingsPage(): React.ReactElement {
   const [sectorWeightingsAsset, setSectorWeightingsAsset] = useState<
     Asset | undefined
   >(undefined)
+  const [cashTransferData, setCashTransferData] = useState<
+    CashTransferData | undefined
+  >(undefined)
+
+  // Fetch portfolios for cash transfer dialog
+  const { data: portfoliosData } = useSwr(
+    "/api/portfolios",
+    simpleFetcher("/api/portfolios"),
+  )
 
   // Handle quick sell from position row
   const handleQuickSell = useCallback((data: QuickSellData) => {
@@ -161,6 +172,18 @@ function HoldingsPage(): React.ReactElement {
   const handleSectorWeightingsClose = useCallback(() => {
     setSectorWeightingsAsset(undefined)
   }, [])
+
+  // Handle cash transfer from cash row
+  const handleCashTransfer = useCallback((data: CashTransferData) => {
+    setCashTransferData(data)
+  }, [])
+
+  // Close cash transfer dialog
+  const handleCashTransferClose = useCallback(() => {
+    setCashTransferData(undefined)
+    // Refresh holdings data after transfer
+    router.replace(router.asPath)
+  }, [router])
 
   // Save price via API
   const handleSetPriceSave = useCallback(
@@ -341,6 +364,7 @@ function HoldingsPage(): React.ReactElement {
                           onSetCashBalance={handleSetCashBalance}
                           onSetPrice={handleSetPrice}
                           onSectorWeightings={handleSectorWeightings}
+                          onCashTransfer={handleCashTransfer}
                         />
                         <SubTotal
                           groupBy={groupKey}
@@ -437,6 +461,14 @@ function HoldingsPage(): React.ReactElement {
           asset={sectorWeightingsAsset}
           modalOpen={!!sectorWeightingsAsset}
           onClose={handleSectorWeightingsClose}
+        />
+      )}
+      {cashTransferData && (
+        <CashTransferDialog
+          modalOpen={!!cashTransferData}
+          onClose={handleCashTransferClose}
+          sourceData={cashTransferData}
+          portfolios={portfoliosData?.data || []}
         />
       )}
     </div>
