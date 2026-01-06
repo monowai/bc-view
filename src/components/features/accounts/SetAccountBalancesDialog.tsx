@@ -263,9 +263,9 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
                     <td className="px-4 py-3">
                       <MathInput
                         value={
-                          entry.targetBalance
-                            ? parseFloat(entry.targetBalance)
-                            : 0
+                          entry.targetBalance === ""
+                            ? ""
+                            : parseFloat(entry.targetBalance)
                         }
                         onChange={(value) =>
                           handleBalanceChange(entry.portfolio.id, String(value))

@@ -46,54 +46,38 @@ export function usePrivateAssetConfigs(): UsePrivateAssetConfigsResult {
     assetId: string,
     request: PrivateAssetConfigRequest,
   ): Promise<PrivateAssetConfig | null> => {
-    try {
-      const response = await fetch(
-        `${API_URL}/${encodeURIComponent(assetId)}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(request),
-        },
-      )
+    const response = await fetch(`${API_URL}/${encodeURIComponent(assetId)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request),
+    })
 
-      if (!response.ok) {
-        throw new Error("Failed to save asset config")
-      }
-
-      const result: PrivateAssetConfigResponse = await response.json()
-
-      // Revalidate the configs list
-      await mutate(API_URL)
-
-      return result.data
-    } catch (err) {
-      console.error("Failed to save asset config:", err)
-      throw err
+    if (!response.ok) {
+      throw new Error("Failed to save asset config")
     }
+
+    const result: PrivateAssetConfigResponse = await response.json()
+
+    // Revalidate the configs list
+    await mutate(API_URL)
+
+    return result.data
   }
 
   /**
    * Delete a private asset configuration.
    */
   const deleteConfig = async (assetId: string): Promise<void> => {
-    try {
-      const response = await fetch(
-        `${API_URL}/${encodeURIComponent(assetId)}`,
-        {
-          method: "DELETE",
-        },
-      )
+    const response = await fetch(`${API_URL}/${encodeURIComponent(assetId)}`, {
+      method: "DELETE",
+    })
 
-      if (!response.ok) {
-        throw new Error("Failed to delete asset config")
-      }
-
-      // Revalidate the configs list
-      await mutate(API_URL)
-    } catch (err) {
-      console.error("Failed to delete asset config:", err)
-      throw err
+    if (!response.ok) {
+      throw new Error("Failed to delete asset config")
     }
+
+    // Revalidate the configs list
+    await mutate(API_URL)
   }
 
   /**

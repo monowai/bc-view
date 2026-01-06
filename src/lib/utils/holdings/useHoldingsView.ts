@@ -44,14 +44,11 @@ export function useHoldingsView(
   const holdingState = useHoldingState()
   const { preferences, isLoading: preferencesLoading } = useUserPreferences()
 
-  // View state - initialize from user preferences
-  const [viewMode, setViewMode] = useState<ViewMode>("summary")
-  const [hasInitialized, setHasInitialized] = useState(false)
-
   // Set initial view mode, valueIn, and groupBy from user preferences once loaded
+  // Uses global hasInitialized to prevent resetting on page navigation
   useEffect(() => {
-    if (!preferencesLoading && preferences && !hasInitialized) {
-      setViewMode(toViewMode(preferences.defaultHoldingsView))
+    if (!preferencesLoading && preferences && !holdingState.hasInitialized) {
+      holdingState.setViewMode(toViewMode(preferences.defaultHoldingsView))
       // Set valueIn from preferences
       const defaultValueIn = toValueIn(preferences.defaultValueIn)
       holdingState.setValueIn({
@@ -64,9 +61,9 @@ export function useHoldingsView(
         value: defaultGroupBy,
         label: defaultGroupBy,
       })
-      setHasInitialized(true)
+      holdingState.setHasInitialized(true)
     }
-  }, [preferences, preferencesLoading, hasInitialized, holdingState])
+  }, [preferences, preferencesLoading, holdingState])
 
   // Derive allocation groupBy from the shared holdingState groupBy
   const allocationGroupBy = useMemo(
@@ -161,8 +158,8 @@ export function useHoldingsView(
   }, [allocationData])
 
   return {
-    viewMode,
-    setViewMode,
+    viewMode: holdingState.viewMode,
+    setViewMode: holdingState.setViewMode,
     sortConfig,
     allocationGroupBy,
     excludedCategories,

@@ -243,6 +243,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
               portfolio={holdingResults.portfolio}
               valueIn={holdingState.valueIn.value}
               groupBy={holdingState.groupBy.value}
+              isMixedCurrencies={holdingResults.isMixedCurrencies}
             />
           </div>
         ) : viewMode === "heatmap" ? (

@@ -8,16 +8,52 @@ import {
 } from "types/app"
 import { useValuationOptions } from "@components/ui/ValueIn"
 import { useGroupOptions } from "@components/features/holdings/GroupByOptions"
+import { ViewMode } from "@components/features/holdings/ViewToggle"
 
 const defaultDisplayCurrency: DisplayCurrencyOption = { mode: "PORTFOLIO" }
 
+const STORAGE_KEY = "bc-holding-state"
+
+// Load initial state from sessionStorage if available
+function loadPersistedState(): Record<string, unknown> | null {
+  if (typeof window === "undefined") {
+    return null
+  }
+  try {
+    const stored = sessionStorage.getItem(STORAGE_KEY)
+    if (stored) {
+      return JSON.parse(stored)
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return null
+}
+
+const persistedState = loadPersistedState()
+
 const holdingDefaults = hookstate(
   {
-    hideEmpty: true,
-    asAt: "today",
-  } as HoldingDefaults,
+    hideEmpty: persistedState?.hideEmpty ?? true,
+    asAt: persistedState?.asAt ?? "today",
+    hasInitialized: persistedState?.hasInitialized ?? false,
+    viewMode: (persistedState?.viewMode ?? "summary") as ViewMode,
+    valueIn: persistedState?.valueIn ?? null,
+    groupBy: persistedState?.groupBy ?? null,
+    displayCurrency: persistedState?.displayCurrency ?? null,
+  } as HoldingDefaults & { hasInitialized: boolean; viewMode: ViewMode },
   devtools({ key: "holdings" }),
 )
+
+// Persist state changes to sessionStorage
+function persistState(state: Record<string, unknown>): void {
+  if (typeof window === "undefined") return
+  try {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+  } catch {
+    // Ignore storage errors
+  }
+}
 
 // This function wraps the state by an interface,
 // i.e. the state link is not accessible directly outside of this module.
@@ -27,6 +63,19 @@ export function useHoldingState(): HoldingDefaults {
   const state = useHookstate(holdingDefaults)
   const { valuationDefault } = useValuationOptions()
   const { groupDefault } = useGroupOptions()
+
+  // Helper to persist current state to sessionStorage
+  const saveState = (): void => {
+    persistState({
+      hideEmpty: state.hideEmpty.get(),
+      asAt: state.asAt.get(),
+      hasInitialized: state.hasInitialized.get(),
+      viewMode: state.viewMode.get(),
+      valueIn: state.valueIn.get(),
+      groupBy: state.groupBy.get(),
+      displayCurrency: state.displayCurrency.get(),
+    })
+  }
 
   return {
     /**
@@ -42,6 +91,7 @@ export function useHoldingState(): HoldingDefaults {
     },
     toggleHideEmpty(): void {
       state.hideEmpty.set((hide) => !hide)
+      saveState()
     },
     get valueIn(): ValuationOption {
       return state.valueIn.get() || valuationDefault
@@ -52,15 +102,18 @@ export function useHoldingState(): HoldingDefaults {
       state.displayCurrency.set({
         mode: value.value as "PORTFOLIO" | "BASE" | "TRADE",
       })
+      saveState()
     },
     get groupBy(): GroupOption {
       return state.groupBy.get() || groupDefault
     },
     setGroupBy(value: GroupOption): void {
       state.groupBy.set(value)
+      saveState()
     },
     setAsAt(value: string) {
       state.asAt.set(value)
+      saveState()
     },
     get asAt(): string {
       return state.asAt.get() || "today"
@@ -70,6 +123,21 @@ export function useHoldingState(): HoldingDefaults {
     },
     setDisplayCurrency(value: DisplayCurrencyOption): void {
       state.displayCurrency.set(value)
+      saveState()
+    },
+    get hasInitialized(): boolean {
+      return state.hasInitialized.get() || false
+    },
+    setHasInitialized(value: boolean): void {
+      state.hasInitialized.set(value)
+      saveState()
+    },
+    get viewMode(): ViewMode {
+      return state.viewMode.get() || "summary"
+    },
+    setViewMode(value: ViewMode): void {
+      state.viewMode.set(value)
+      saveState()
     },
   }
 }

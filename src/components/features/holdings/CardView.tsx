@@ -12,6 +12,7 @@ interface CardViewProps {
   portfolio: Portfolio
   valueIn: string
   groupBy?: string
+  isMixedCurrencies?: boolean
 }
 
 interface PositionCardProps {
@@ -30,8 +31,12 @@ const PositionCard: React.FC<PositionCardProps> = ({
   const { asset, moneyValues, quantityValues } = position
   const values = moneyValues[valueIn]
 
+  // For TRADE view, use the position's own trade currency, not the passed sourceCurrency
+  const positionCurrency =
+    valueIn === "TRADE" ? moneyValues.TRADE?.currency : sourceCurrency
+
   const { convert, currencySymbol } = useDisplayCurrencyConversion({
-    sourceCurrency,
+    sourceCurrency: positionCurrency,
     portfolio,
   })
 
@@ -160,6 +165,7 @@ const CardView: React.FC<CardViewProps> = ({
   portfolio,
   valueIn,
   groupBy,
+  isMixedCurrencies = false,
 }) => {
   // Group positions by holdingGroups, sorted by group comparator
   const groupedPositions = useMemo((): GroupedPositions[] => {
@@ -208,12 +214,15 @@ const CardView: React.FC<CardViewProps> = ({
   }, [])
 
   // Source currency based on valueIn selection
+  // For TRADE with mixed currencies, use BASE for header totals
   const sourceCurrency: Currency | undefined = useMemo(() => {
     if (valueIn === "PORTFOLIO") return portfolio.currency
     if (valueIn === "BASE") return portfolio.base
+    // TRADE mode: use BASE if mixed currencies, otherwise use first position's trade currency
+    if (isMixedCurrencies) return portfolio.base
     const firstPosition = groupedPositions[0]?.positions[0]
     return firstPosition?.moneyValues?.TRADE?.currency || portfolio.currency
-  }, [valueIn, portfolio, groupedPositions])
+  }, [valueIn, portfolio, groupedPositions, isMixedCurrencies])
 
   const { convert, currencySymbol } = useDisplayCurrencyConversion({
     sourceCurrency,
@@ -221,12 +230,30 @@ const CardView: React.FC<CardViewProps> = ({
   })
 
   // Calculate totals for summary
+  // When in TRADE mode with mixed currencies, sum BASE values instead
   const totals = useMemo(() => {
-    const marketValue = convert(holdings.viewTotals.marketValue)
-    const totalGain = convert(holdings.viewTotals.totalGain)
-    const gainOnDay = convert(holdings.viewTotals.gainOnDay)
-    return { marketValue, totalGain, gainOnDay }
-  }, [holdings, convert])
+    const useBase = valueIn === "TRADE" && isMixedCurrencies
+    const bucket = useBase ? "BASE" : valueIn
+
+    // Sum from group subTotals to get the correct bucket values
+    let marketValue = 0
+    let totalGain = 0
+    let gainOnDay = 0
+    Object.values(holdings.holdingGroups).forEach((group) => {
+      const subTotal = group.subTotals?.[bucket]
+      if (subTotal) {
+        marketValue += subTotal.marketValue || 0
+        totalGain += subTotal.totalGain || 0
+        gainOnDay += subTotal.gainOnDay || 0
+      }
+    })
+
+    return {
+      marketValue: convert(marketValue),
+      totalGain: convert(totalGain),
+      gainOnDay: convert(gainOnDay),
+    }
+  }, [holdings, convert, valueIn, isMixedCurrencies])
 
   const isPositive = totals.totalGain >= 0
   const isDayPositive = totals.gainOnDay >= 0

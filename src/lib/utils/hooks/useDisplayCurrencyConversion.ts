@@ -97,8 +97,12 @@ export function useDisplayCurrencyConversion({
   const [isLoading, setIsLoading] = useState(false)
 
   // Determine target currency based on display mode
+  // Reset fxRate to 1 immediately when mode changes to prevent stale rates
   useEffect(() => {
     const { mode, customCode } = displayCurrencyOption
+
+    // Reset rate immediately to prevent stale values during transition
+    setFxRate(1)
 
     if (mode === "TRADE") {
       setTargetCurrency(sourceCurrency || null)
