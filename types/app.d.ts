@@ -71,4 +71,8 @@ export interface HoldingDefaults {
    * This happens when Display Currency differs from the Value In bucket.
    */
   readonly isCostApproximate: boolean
+  readonly hasInitialized: boolean
+  setHasInitialized(value: boolean): void
+  readonly viewMode: "summary" | "table" | "cards" | "heatmap"
+  setViewMode(value: "summary" | "table" | "cards" | "heatmap"): void
 }

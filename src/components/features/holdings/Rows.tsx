@@ -289,7 +289,7 @@ export default function Rows({
       {holdingGroup.positions.map(
         ({ asset, moneyValues, quantityValues, dateValues }, index) => (
           <tr
-            key={groupBy + index}
+            key={`${groupBy}-${valueIn}-${index}`}
             className="holding-row text-sm bg-white hover:!bg-slate-200 transition-colors duration-200 cursor-pointer"
           >
             <td className="px-0.5 py-1 sm:px-2 md:px-3 text-ellipsis min-w-0">

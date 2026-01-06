@@ -45,27 +45,22 @@ export function usePropertyIncomes(
   ): Promise<PlanPropertyIncome | null> => {
     if (!planId) return null
 
-    try {
-      const response = await fetch(`/api/retire/plans/${planId}/properties`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(request),
-      })
+    const response = await fetch(`/api/retire/plans/${planId}/properties`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request),
+    })
 
-      if (!response.ok) {
-        throw new Error("Failed to save property income")
-      }
-
-      const result: PropertyIncomeResponse = await response.json()
-
-      // Revalidate the property incomes list
-      await mutate(apiUrl)
-
-      return result.data
-    } catch (err) {
-      console.error("Failed to save property income:", err)
-      throw err
+    if (!response.ok) {
+      throw new Error("Failed to save property income")
     }
+
+    const result: PropertyIncomeResponse = await response.json()
+
+    // Revalidate the property incomes list
+    await mutate(apiUrl)
+
+    return result.data
   }
 
   /**
@@ -74,24 +69,19 @@ export function usePropertyIncomes(
   const deletePropertyIncome = async (assetId: string): Promise<void> => {
     if (!planId) return
 
-    try {
-      const response = await fetch(
-        `/api/retire/plans/${planId}/properties/${encodeURIComponent(assetId)}`,
-        {
-          method: "DELETE",
-        },
-      )
+    const response = await fetch(
+      `/api/retire/plans/${planId}/properties/${encodeURIComponent(assetId)}`,
+      {
+        method: "DELETE",
+      },
+    )
 
-      if (!response.ok) {
-        throw new Error("Failed to delete property income")
-      }
-
-      // Revalidate the property incomes list
-      await mutate(apiUrl)
-    } catch (err) {
-      console.error("Failed to delete property income:", err)
-      throw err
+    if (!response.ok) {
+      throw new Error("Failed to delete property income")
     }
+
+    // Revalidate the property incomes list
+    await mutate(apiUrl)
   }
 
   /**
