@@ -276,12 +276,14 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                         />
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                        {trn.cashAsset?.market?.code === "CASH"
-                          ? trn.cashAsset.name ||
-                            `${trn.cashAsset.code} Balance`
-                          : trn.cashAsset?.name ||
-                            trn.cashAsset?.code ||
-                            `${(trn.cashCurrency as any)?.code || trn.tradeCurrency?.code} Balance`}
+                        {["ADD", "REDUCE", "SPLIT"].includes(trn.trnType)
+                          ? "-"
+                          : trn.cashAsset?.market?.code === "CASH"
+                            ? trn.cashAsset.name ||
+                              `${trn.cashAsset.code} Balance`
+                            : trn.cashAsset?.name ||
+                              trn.cashAsset?.code ||
+                              `${(trn.cashCurrency as any)?.code || trn.tradeCurrency?.code} Balance`}
                       </td>
                     </tr>
                   ))}

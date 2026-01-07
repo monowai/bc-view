@@ -19,6 +19,7 @@ import {
 } from "@lib/assets/assetUtils"
 import { headers } from "./Header"
 import Link from "next/link"
+import { useRouter } from "next/router"
 import { AlphaProgress } from "@components/ui/ProgressBar"
 import { useTranslation } from "next-i18next"
 import { useDisplayCurrencyConversion } from "@lib/hooks/useDisplayCurrencyConversion"
@@ -237,6 +238,7 @@ export default function Rows({
   onCashTransfer,
 }: RowsProps): React.ReactElement {
   const { t } = useTranslation("common")
+  const router = useRouter()
 
   // Source currency based on valueIn selection
   const sourceCurrency = useMemo(() => {
@@ -291,6 +293,9 @@ export default function Rows({
           <tr
             key={`${groupBy}-${valueIn}-${index}`}
             className="holding-row text-sm bg-white hover:!bg-slate-200 transition-colors duration-200 cursor-pointer"
+            onClick={() =>
+              router.push(`/trns/trades/${portfolio.id}/${asset.id}`)
+            }
           >
             <td className="px-0.5 py-1 sm:px-2 md:px-3 text-ellipsis min-w-0">
               {/* Unified layout: code on top, name below for both mobile and desktop */}
@@ -480,16 +485,10 @@ export default function Rows({
               </span>
             </td>
             <td className={getCellClasses(5)}>
-              <Link
-                href={`/trns/trades`}
-                as={`/trns/trades/${portfolio.id}/${asset.id}`}
-                className="text-blue-600 hover:text-blue-800"
-              >
-                <FormatValue
-                  value={convert(moneyValues[valueIn].marketValue)}
-                  defaultValue="0"
-                />
-              </Link>
+              <FormatValue
+                value={convert(moneyValues[valueIn].marketValue)}
+                defaultValue="0"
+              />
             </td>
             <td className={getCellClasses(6)}>
               {!isCashRelated(asset) && (
@@ -520,6 +519,7 @@ export default function Rows({
                   href={`/trns/events`}
                   as={`/trns/events/${portfolio.id}/${asset.id}`}
                   className="text-blue-600 hover:text-blue-800"
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <FormatValue
                     value={convert(moneyValues[valueIn].dividends)}
