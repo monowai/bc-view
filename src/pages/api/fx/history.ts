@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next"
 import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0"
+import { getDataUrl } from "@utils/api/bcConfig"
 
 export interface FxHistoryResponse {
   from: string
@@ -30,8 +31,7 @@ async function handler(
     const { accessToken } = await getAccessToken(req, res)
 
     // Call bc-data backend for historical rates from our database
-    const bcDataUrl = process.env.BC_DATA_URL || "http://localhost:9510"
-    const url = `${bcDataUrl}/api/fx/history?from=${from}&to=${to}&months=${months}`
+    const url = getDataUrl(`/fx/history?from=${from}&to=${to}&months=${months}`)
 
     const response = await fetch(url, {
       headers: {

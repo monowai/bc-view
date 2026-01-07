@@ -81,7 +81,18 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
     setIsAdding(true)
     try {
       // Resolve the asset to get a real UUID from svc-data
+      // This also creates the asset if it doesn't exist and fetches its price
       const resolvedAsset = await resolveAsset(selectedAsset.assetCode)
+
+      if (!resolvedAsset?.id) {
+        alert(
+          t(
+            "rebalance.models.resolveError",
+            "Could not resolve asset. Please try again.",
+          ),
+        )
+        return
+      }
 
       // Format asset code: omit "US:" prefix for US market (default)
       const formatAssetCode = (
@@ -92,11 +103,9 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
       }
 
       const newWeight: AssetWeightWithDetails = {
-        assetId: resolvedAsset?.id || selectedAsset.assetId,
-        assetCode: resolvedAsset
-          ? formatAssetCode(resolvedAsset.market.code, resolvedAsset.code)
-          : selectedAsset.assetCode,
-        assetName: resolvedAsset?.name || selectedAsset.assetName,
+        assetId: resolvedAsset.id,
+        assetCode: formatAssetCode(resolvedAsset.market.code, resolvedAsset.code),
+        assetName: resolvedAsset.name,
         weight: weight,
         sortOrder: 0,
       }
