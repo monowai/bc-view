@@ -24,12 +24,14 @@ interface SettlementAccountSelectProps {
   control: Control<any>
   accounts: Asset[]
   bankAccounts?: Asset[] // Optional bank accounts (category: ACCOUNT)
+  cashAssets?: Asset[] // Optional cash assets (CASH market - generic balances)
   currencies?: Currency[]
   trnType: string
   defaultValue?: SettlementAccountOption
   currenciesLabel?: string // Label for currencies group
   accountsLabel?: string // Label for accounts group
   bankAccountsLabel?: string // Label for bank accounts group
+  cashAssetsLabel?: string // Label for cash assets group
 }
 
 // Convert accounts to select options with currency display
@@ -56,6 +58,18 @@ export const toCurrencyOptions = (
   }))
 }
 
+// Convert cash assets (CASH market) to select options
+export const toCashAssetOptions = (
+  cashAssets: Asset[],
+): SettlementAccountOption[] => {
+  return cashAssets.map((asset) => ({
+    value: asset.id,
+    label: `${asset.name || asset.code} Balance`,
+    currency: asset.code,
+    market: "CASH",
+  }))
+}
+
 // Check if the transaction type requires no cash settlement
 export const isNoCashImpact = (trnType: string): boolean => {
   return NO_CASH_IMPACT_TYPES.includes(
@@ -68,12 +82,14 @@ const SettlementAccountSelect: React.FC<SettlementAccountSelectProps> = ({
   control,
   accounts,
   bankAccounts = [],
+  cashAssets = [],
   currencies = [],
   trnType,
   defaultValue,
   currenciesLabel,
   accountsLabel,
   bankAccountsLabel,
+  cashAssetsLabel,
 }) => {
   const { t } = useTranslation("common")
   const disabled = isNoCashImpact(trnType)
@@ -82,8 +98,16 @@ const SettlementAccountSelect: React.FC<SettlementAccountSelectProps> = ({
   const groupedOptions = useMemo((): GroupedOption[] => {
     const groups: GroupedOption[] = []
 
-    // Add currencies group
-    if (currencies.length > 0) {
+    // Add cash assets group first (generic balances like "USD Balance")
+    if (cashAssets.length > 0) {
+      groups.push({
+        label: cashAssetsLabel || t("settlement.cashBalances", "Cash Balances"),
+        options: toCashAssetOptions(cashAssets),
+      })
+    }
+
+    // Add currencies group (fallback if no cash assets)
+    if (currencies.length > 0 && cashAssets.length === 0) {
       groups.push({
         label: currenciesLabel || t("settlement.currencies", "Currencies"),
         options: toCurrencyOptions(currencies),
@@ -111,11 +135,13 @@ const SettlementAccountSelect: React.FC<SettlementAccountSelectProps> = ({
   }, [
     accounts,
     bankAccounts,
+    cashAssets,
     currencies,
     t,
     currenciesLabel,
     accountsLabel,
     bankAccountsLabel,
+    cashAssetsLabel,
   ])
 
   // No Settlement option shown when disabled

@@ -63,6 +63,7 @@ export const portfoliosKey = `${apiRoot}/portfolios`
 export const assetsKey = `${apiRoot}/assets`
 export const accountsKey = `${assetsKey}?category=ACCOUNT`
 export const tradeAccountsKey = `${assetsKey}?category=TRADE`
+export const cashKey = `${apiRoot}/cash`
 
 export const trnsKey = `${apiRoot}/trns`
 export const assetKey = (assetId: string): string =>

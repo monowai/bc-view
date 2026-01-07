@@ -54,6 +54,8 @@
   "trn.status": "Status",
   "trn.delete": "Permanently delete this transaction?",
   "trn.noTransactions": "No transactions found",
+  "trades": "Trades",
+  "events": "Events",
   "trn.currency": "Currency",
   "trn.currency.cash": "Settlement Currency",
   "trn.settlement.account": "Settlement Account",

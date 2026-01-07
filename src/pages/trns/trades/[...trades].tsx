@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import { NumericFormat } from "react-number-format"
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
@@ -7,17 +7,18 @@ import { useRouter } from "next/router"
 import {
   assetKey,
   ccyKey,
+  cashKey,
+  accountsKey,
   simpleFetcher,
   tradeKey,
   trnKey,
 } from "@utils/api/fetchHelper"
 import { useTranslation } from "next-i18next"
-import Link from "next/link"
 import { Transaction } from "types/beancounter"
 import { rootLoader } from "@components/ui/PageLoader"
 import { errorOut } from "@components/errors/ErrorOut"
 import useSwr, { mutate } from "swr"
-import { deleteTrn, updateTrn, TrnUpdatePayload } from "@lib/trns/apiHelper"
+import { updateTrn, TrnUpdatePayload } from "@lib/trns/apiHelper"
 import { convert } from "@lib/trns/tradeUtils"
 import { copyToClipboard } from "@lib/trns/formUtils"
 import { postData } from "@components/ui/DropZone"
@@ -26,6 +27,9 @@ import { yupResolver } from "@hookform/resolvers/yup"
 import * as yup from "yup"
 import { currencyOptions } from "@lib/currency"
 import TradeTypeController from "@components/features/transactions/TradeTypeController"
+import SettlementAccountSelect, {
+  SettlementAccountOption,
+} from "@components/features/transactions/SettlementAccountSelect"
 import MathInput from "@components/ui/MathInput"
 import DateInput from "@components/ui/DateInput"
 
@@ -53,6 +57,7 @@ interface EditFormData {
   price: number
   tradeCurrency: { value: string; label: string }
   cashCurrency: { value: string; label: string }
+  settlementAccount?: SettlementAccountOption | null
   tradeAmount: number
   cashAmount: number
   tradeCashRate?: number | null
@@ -161,6 +166,16 @@ const editSchema = yup.object().shape({
       label: yup.string().required(),
     })
     .required(),
+  settlementAccount: yup
+    .object()
+    .shape({
+      value: yup.string().required(),
+      label: yup.string().required(),
+      currency: yup.string().required(),
+      market: yup.string(),
+    })
+    .nullable()
+    .notRequired(),
   tradeAmount: yup.number().required(),
   cashAmount: yup.number().required(),
   tradeCashRate: yup.number().notRequired(),
@@ -173,22 +188,45 @@ const editSchema = yup.object().shape({
 function EditTransactionForm({
   trn,
   onClose,
+  onDelete,
 }: {
   trn: Transaction
   onClose: () => void
+  onDelete: () => void
 }): React.ReactElement {
   const { t } = useTranslation("common")
   const marketCode = trn.asset.market.code
   const assetCode = trn.asset.code
+  const assetName = trn.asset.name
   const isCashTransaction = marketCode === "CASH"
   const isFxTransaction = trn.trnType === "FX" || trn.trnType.startsWith("FX_")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
+  // Handle Escape key to close modal
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent): void => {
+      if (e.key === "Escape") {
+        onClose()
+      }
+    }
+    window.addEventListener("keydown", handleEscape)
+    return () => window.removeEventListener("keydown", handleEscape)
+  }, [onClose])
+
   // Fetch currencies for dropdown
   const { data: ccyData, isLoading: ccyLoading } = useSwr(
     ccyKey,
     simpleFetcher(ccyKey),
+  )
+
+  // Fetch cash assets (generic balances like "USD Balance")
+  const { data: cashAssetsData } = useSwr(cashKey, simpleFetcher(cashKey))
+
+  // Fetch bank accounts (ACCOUNT category)
+  const { data: bankAccountsData } = useSwr(
+    accountsKey,
+    simpleFetcher(accountsKey),
   )
 
   // cashCurrency can be an object or string depending on API version
@@ -197,6 +235,21 @@ function EditTransactionForm({
     typeof cashCcy === "object" && cashCcy !== null
       ? (cashCcy as { code: string }).code
       : (cashCcy as string) || trn.tradeCurrency.code
+
+  // Build initial settlement account option from transaction's cashAsset if available
+  const initialSettlementAccount: SettlementAccountOption | null = trn.cashAsset
+    ? {
+        value: trn.cashAsset.id,
+        label:
+          trn.cashAsset.name ||
+          `${trn.cashAsset.code} ${trn.cashAsset.market?.code === "CASH" ? "Balance" : ""}`,
+        currency:
+          trn.cashAsset.priceSymbol ||
+          trn.cashAsset.code ||
+          trn.tradeCurrency.code,
+        market: trn.cashAsset.market?.code,
+      }
+    : null
 
   // For cash transactions, use tradeAmount as the displayed "Amount" value
   // since quantity might differ from the actual amount
@@ -210,6 +263,7 @@ function EditTransactionForm({
       label: trn.tradeCurrency.code,
     },
     cashCurrency: { value: cashCcyCode, label: cashCcyCode },
+    settlementAccount: initialSettlementAccount,
     tradeAmount: trn.tradeAmount,
     cashAmount: trn.cashAmount,
     tradeCashRate: trn.tradeCashRate,
@@ -223,11 +277,94 @@ function EditTransactionForm({
     handleSubmit,
     getValues,
     setValue,
+    watch,
     formState: { errors, isDirty },
   } = useForm({
     resolver: yupResolver(editSchema),
     defaultValues,
   })
+
+  const tradeCurrency = watch("tradeCurrency")
+  const trnType = watch("type")
+
+  // Helper to get currency from an asset
+  const getAssetCurrency = (asset: any): string => {
+    if (asset.market?.code === "CASH") {
+      return asset.code
+    }
+    return asset.priceSymbol || asset.market?.currency?.code || ""
+  }
+
+  // Filter settlement accounts by trade currency
+  const currentTradeCurrency = tradeCurrency?.value || trn.tradeCurrency.code
+
+  // Filtered bank accounts matching trade currency
+  const filteredBankAccounts = useMemo(() => {
+    const accounts = bankAccountsData?.data
+      ? Object.values(bankAccountsData.data)
+      : []
+    return (accounts as any[]).filter(
+      (asset) => getAssetCurrency(asset) === currentTradeCurrency,
+    )
+  }, [bankAccountsData, currentTradeCurrency])
+
+  // Filtered cash assets matching trade currency (these are the generic balances)
+  const filteredCashAssets = useMemo(() => {
+    const assets = cashAssetsData?.data
+      ? Object.values(cashAssetsData.data)
+      : []
+    return (assets as any[]).filter(
+      (asset: any) => asset.code === currentTradeCurrency,
+    )
+  }, [cashAssetsData, currentTradeCurrency])
+
+  // Find the default cash balance asset for the current currency
+  const defaultCashAsset = useMemo((): SettlementAccountOption => {
+    const cashAsset = filteredCashAssets[0] as any
+    if (cashAsset) {
+      return {
+        value: cashAsset.id,
+        label: `${cashAsset.name || cashAsset.code} Balance`,
+        currency: cashAsset.code,
+        market: "CASH",
+      }
+    }
+    // Fallback: no asset ID, let backend create generic cash balance from currency
+    return {
+      value: "", // Empty - backend will use cashCurrency to create/find generic balance
+      label: `${currentTradeCurrency} Balance`,
+      currency: currentTradeCurrency,
+      market: "CASH",
+    }
+  }, [filteredCashAssets, currentTradeCurrency])
+
+  // Cash assets for dropdown - always include a {currency} Balance option
+  const cashAssetsForDropdown = useMemo(() => {
+    if (filteredCashAssets.length > 0) {
+      return filteredCashAssets
+    }
+    // Create a synthetic cash asset for the dropdown when none exists
+    return [
+      {
+        id: "",
+        code: currentTradeCurrency,
+        name: currentTradeCurrency,
+        market: { code: "CASH" },
+      },
+    ]
+  }, [filteredCashAssets, currentTradeCurrency])
+
+  // Auto-set default settlement account when trade currency changes
+  useEffect(() => {
+    const currentSettlement = watch("settlementAccount")
+    // Only set default if no settlement is selected or if currency changed
+    if (
+      !currentSettlement?.value ||
+      currentSettlement.currency !== currentTradeCurrency
+    ) {
+      setValue("settlementAccount", defaultCashAsset)
+    }
+  }, [currentTradeCurrency, defaultCashAsset, setValue, watch])
 
   const handleCopy = (): void => {
     const formData = getValues()
@@ -298,10 +435,12 @@ function EditTransactionForm({
           tradeCurrency: data.tradeCurrency.value,
           tradeAmount: data.tradeAmount,
           cashCurrency: data.cashCurrency.value,
+          cashAssetId: data.settlementAccount?.value || undefined,
           cashAmount: data.cashAmount,
           fees: data.fees,
           tax: data.tax,
           comments: data.comments ?? undefined,
+          status: trn.status, // Preserve the original status
         }
 
         const response = await updateTrn(trn.portfolio.id, trn.id, payload)
@@ -339,23 +478,22 @@ function EditTransactionForm({
         className="fixed inset-0 bg-black opacity-50"
         onClick={onClose}
       ></div>
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl mx-auto p-6 z-50">
-        <header className="flex justify-between items-center border-b pb-2 mb-4">
-          <h2 className="text-xl font-semibold">
-            {isCashTransaction
-              ? t("trade.cash.title")
-              : t("trade.market.title")}{" "}
-            - {assetCode}
-          </h2>
+      <div className="bg-white rounded-lg shadow-lg w-full max-w-6xl mx-4 md:mx-auto p-4 md:p-6 z-50 max-h-[90vh] overflow-y-auto text-sm">
+        <header className="flex items-center border-b pb-2 mb-4">
           <button
-            className="text-gray-500 hover:text-gray-700"
+            className="text-gray-500 hover:text-gray-700 text-xl"
             onClick={onClose}
           >
             &times;
           </button>
+          <h2 className="flex-1 text-lg font-semibold text-center">
+            {assetName || assetCode}
+            <span className="text-gray-500 text-sm ml-2">{marketCode}</span>
+          </h2>
+          <div className="w-6"></div>
         </header>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {/* Transaction Type */}
             <div>
               <label className="block text-sm font-medium text-gray-700">
@@ -472,6 +610,24 @@ function EditTransactionForm({
               </div>
             )}
 
+            {/* Settlement Account - only for non-cash market transactions */}
+            {!isCashTransaction && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  {t("trn.settlement.account")}
+                </label>
+                <SettlementAccountSelect
+                  name="settlementAccount"
+                  control={control}
+                  accounts={[]}
+                  bankAccounts={filteredBankAccounts as any[]}
+                  cashAssets={cashAssetsForDropdown as any[]}
+                  trnType={trnType?.value || trn.trnType}
+                  defaultValue={defaultCashAsset}
+                />
+              </div>
+            )}
+
             {/* For cash transactions: single Amount field mapped to quantity */}
             {isCashTransaction ? (
               <div className="md:col-span-2">
@@ -570,33 +726,43 @@ function EditTransactionForm({
           )}
 
           {/* Form Actions */}
-          <div className="flex justify-end space-x-2 pt-4 border-t">
+          <div className="flex justify-between pt-4 border-t">
             <button
               type="button"
-              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
-              onClick={handleCopy}
+              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
+              onClick={onDelete}
             >
-              <i className="fas fa-copy mr-2"></i>
-              Copy
+              <i className="fas fa-trash-can mr-2"></i>
+              {t("delete")}
             </button>
-            <button
-              type="submit"
-              disabled={isSubmitting || !isDirty}
-              className={`px-4 py-2 rounded text-white ${
-                isSubmitting || !isDirty
-                  ? "bg-blue-300 cursor-not-allowed"
-                  : "bg-blue-500 hover:bg-blue-600"
-              }`}
-            >
-              {isSubmitting ? t("saving") : t("save")}
-            </button>
-            <button
-              type="button"
-              className="bg-gray-300 text-gray-700 px-4 py-2 rounded"
-              onClick={onClose}
-            >
-              {t("cancel")}
-            </button>
+            <div className="flex space-x-2">
+              <button
+                type="button"
+                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
+                onClick={handleCopy}
+              >
+                <i className="fas fa-copy mr-2"></i>
+                Copy
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting || !isDirty}
+                className={`px-4 py-2 rounded text-white ${
+                  isSubmitting || !isDirty
+                    ? "bg-blue-300 cursor-not-allowed"
+                    : "bg-blue-500 hover:bg-blue-600"
+                }`}
+              >
+                {isSubmitting ? t("saving") : t("save")}
+              </button>
+              <button
+                type="button"
+                className="bg-gray-300 text-gray-700 px-4 py-2 rounded"
+                onClick={onClose}
+              >
+                {t("cancel")}
+              </button>
+            </div>
           </div>
         </form>
       </div>
@@ -692,8 +858,26 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
       router.back()
     }
 
+    const handleDelete = async (): Promise<void> => {
+      if (!confirm(t("trn.delete"))) return
+      try {
+        const response = await fetch(`/api/trns/trades/${transaction.id}`, {
+          method: "DELETE",
+        })
+        if (response.ok) {
+          router.back()
+        }
+      } catch (err) {
+        console.error("Error deleting transaction:", err)
+      }
+    }
+
     return editModalOpen ? (
-      <EditTransactionForm trn={transaction} onClose={handleClose} />
+      <EditTransactionForm
+        trn={transaction}
+        onClose={handleClose}
+        onDelete={handleDelete}
+      />
     ) : (
       <></>
     )
@@ -714,45 +898,222 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
     return <div id="root">{t("trn.noTransactions")}</div>
   }
   return (
-    <div>
-      <nav className="container mx-auto p-4">
-        <div className="flex justify-between items-center">
-          <div className="text-lg font-semibold">
-            {asset.data.data.name}:{asset.data.data.market.code}
+    <div className="min-h-screen bg-gray-50 text-sm">
+      {/* Header with back button */}
+      <nav className="bg-white shadow-sm sticky top-0 z-10">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex items-center">
+            <button
+              onClick={() => router.back()}
+              className="flex items-center text-gray-600 hover:text-gray-900"
+            >
+              <i className="fa fa-arrow-left mr-2"></i>
+              <span className="hidden sm:inline">{t("back")}</span>
+            </button>
+            <div className="flex-1 text-lg font-semibold text-center truncate">
+              {asset.data.data.name}
+              <span className="text-gray-500 text-sm ml-2">
+                {asset.data.data.market.code}
+              </span>
+            </div>
+            <div className="w-16"></div>
           </div>
         </div>
       </nav>
-      <div className="bg-gray-100 p-4 rounded-lg shadow-md">
-        <div className="container mx-auto">
-          <table className="min-w-full bg-white">
-            <thead>
+
+      {/* Tabs for switching between Trades and Events */}
+      <div className="bg-white border-b">
+        <div className="container mx-auto px-4">
+          <div className="flex">
+            <button
+              className="px-4 py-2 font-medium border-b-2 border-blue-500 text-blue-600"
+              onClick={() =>
+                router.replace(`/trns/trades/${portfolioId}/${assetId}`)
+              }
+            >
+              {t("trades")}
+            </button>
+            <button
+              className="px-4 py-2 font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700"
+              onClick={() =>
+                router.replace(`/trns/events/${portfolioId}/${assetId}`)
+              }
+            >
+              {t("events")}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-4 py-4">
+        {/* Mobile: Card layout */}
+        <div className="md:hidden space-y-3">
+          {trnResults.map((trn: Transaction) => (
+            <div
+              key={trn.id}
+              className="bg-white rounded-lg shadow p-4 space-y-2 cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() =>
+                router.push(`/trns/trades/edit/${trn.portfolio.id}/${trn.id}`)
+              }
+            >
+              <div className="flex justify-between items-start">
+                <div>
+                  <span
+                    className={`inline-block px-2 py-1 text-xs font-medium rounded ${
+                      trn.trnType === "BUY"
+                        ? "bg-green-100 text-green-800"
+                        : trn.trnType === "SELL"
+                          ? "bg-red-100 text-red-800"
+                          : "bg-blue-100 text-blue-800"
+                    }`}
+                  >
+                    {trn.trnType}
+                  </span>
+                  <span className="ml-2 text-sm text-gray-500">
+                    {trn.tradeCurrency.code}
+                  </span>
+                </div>
+                <div className="text-sm text-gray-500">{trn.tradeDate}</div>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <span className="text-gray-500">{t("quantity")}:</span>
+                  <span className="ml-1 font-medium">
+                    <NumericFormat
+                      value={trn.quantity}
+                      displayType={"text"}
+                      decimalScale={2}
+                      thousandSeparator={true}
+                    />
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-500">{t("trn.price")}:</span>
+                  <span className="ml-1 font-medium">
+                    <NumericFormat
+                      value={trn.price}
+                      displayType={"text"}
+                      decimalScale={2}
+                      thousandSeparator={true}
+                    />
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-500">
+                    {t("trn.amount.trade")}:
+                  </span>
+                  <span className="ml-1 font-medium">
+                    <NumericFormat
+                      value={trn.tradeAmount}
+                      displayType={"text"}
+                      decimalScale={2}
+                      fixedDecimalScale={true}
+                      thousandSeparator={true}
+                    />
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-500">{t("trn.amount.cash")}:</span>
+                  <span className="ml-1 font-medium">
+                    <NumericFormat
+                      value={trn.cashAmount}
+                      displayType={"text"}
+                      decimalScale={2}
+                      thousandSeparator={true}
+                    />
+                  </span>
+                </div>
+                {(trn.fees > 0 || trn.tax > 0) && (
+                  <>
+                    <div>
+                      <span className="text-gray-500">
+                        {t("trn.amount.charges")}:
+                      </span>
+                      <span className="ml-1 font-medium">
+                        <NumericFormat
+                          value={trn.fees}
+                          displayType={"text"}
+                          decimalScale={2}
+                          thousandSeparator={true}
+                        />
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">
+                        {t("trn.amount.tax")}:
+                      </span>
+                      <span className="ml-1 font-medium">
+                        <NumericFormat
+                          value={trn.tax}
+                          displayType={"text"}
+                          decimalScale={2}
+                          thousandSeparator={true}
+                        />
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop: Table layout */}
+        <div className="hidden md:block bg-white rounded-lg shadow overflow-x-auto">
+          <table className="min-w-full">
+            <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-2">{t("trn.type")}</th>
-                <th className="px-4 py-2">{t("trn.currency")}</th>
-                <th className="px-4 py-2">{t("trn.tradeDate")}</th>
-                <th className="px-4 py-2 text-right">{t("quantity")}</th>
-                <th className="px-4 py-2 text-right">{t("trn.price")}</th>
-                <th className="px-4 py-2 text-right">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  {t("trn.type")}
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  {t("trn.currency")}
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  {t("trn.tradeDate")}
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  {t("quantity")}
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  {t("trn.price")}
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                   {t("trn.amount.trade")}
                 </th>
-                <th className="px-4 py-2 text-right">{t("trn.rate.tb")}</th>
-                <th className="px-4 py-2 text-right">{t("trn.rate.tc")}</th>
-                <th className="px-4 py-2 text-right">{t("trn.rate.tp")}</th>
-                <th className="px-4 py-2 text-right">{t("trn.amount.cash")}</th>
-                <th className="px-4 py-2 text-right">{t("trn.amount.tax")}</th>
-                <th className="px-4 py-2 text-right">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  {t("trn.settlement.account")}
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  {t("trn.amount.cash")}
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  {t("trn.amount.tax")}
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                   {t("trn.amount.charges")}
                 </th>
-                <th className="px-4 py-2 text-right">{t("trn.action")}</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-gray-200">
               {trnResults.map((trn: Transaction) => (
-                <tr key={trn.id}>
-                  <td className="px-4 py-2">{trn.trnType}</td>
-                  <td className="px-4 py-2">{trn.tradeCurrency.code}</td>
-                  <td className="px-4 py-2">{trn.tradeDate}</td>
-                  <td className="px-4 py-2 text-right">
+                <tr
+                  key={trn.id}
+                  className="hover:bg-gray-50 cursor-pointer"
+                  onClick={() =>
+                    router.push(
+                      `/trns/trades/edit/${trn.portfolio.id}/${trn.id}`,
+                    )
+                  }
+                >
+                  <td className="px-4 py-3 whitespace-nowrap">{trn.trnType}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    {trn.tradeCurrency.code}
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    {trn.tradeDate}
+                  </td>
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
                     <NumericFormat
                       value={trn.quantity}
                       displayType={"text"}
@@ -761,7 +1122,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                       thousandSeparator={true}
                     />
                   </td>
-                  <td className="px-4 py-2 text-right">
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
                     <NumericFormat
                       value={trn.price}
                       displayType={"text"}
@@ -770,43 +1131,23 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                       thousandSeparator={true}
                     />
                   </td>
-                  <td className="px-4 py-2 text-right">
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
                     <NumericFormat
                       value={trn.tradeAmount}
                       displayType={"text"}
-                      decimalScale={0}
+                      decimalScale={2}
                       fixedDecimalScale={true}
                       thousandSeparator={true}
                     />
                   </td>
-                  <td className="px-4 py-2 text-right">
-                    <NumericFormat
-                      value={trn.tradeBaseRate}
-                      displayType={"text"}
-                      decimalScale={4}
-                      fixedDecimalScale={true}
-                      thousandSeparator={true}
-                    />
+                  <td className="px-4 py-3 whitespace-nowrap text-gray-600">
+                    {trn.cashAsset?.market?.code === "CASH"
+                      ? trn.cashAsset.name || `${trn.cashAsset.code} Balance`
+                      : trn.cashAsset?.name ||
+                        trn.cashAsset?.code ||
+                        `${(trn.cashCurrency as any)?.code || trn.tradeCurrency?.code} Balance`}
                   </td>
-                  <td className="px-4 py-2 text-right">
-                    <NumericFormat
-                      value={trn.tradeCashRate}
-                      displayType={"text"}
-                      decimalScale={4}
-                      fixedDecimalScale={true}
-                      thousandSeparator={true}
-                    />
-                  </td>
-                  <td className="px-4 py-2 text-right">
-                    <NumericFormat
-                      value={trn.tradePortfolioRate}
-                      displayType={"text"}
-                      decimalScale={4}
-                      fixedDecimalScale={true}
-                      thousandSeparator={true}
-                    />
-                  </td>
-                  <td className="px-4 py-2 text-right">
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
                     <NumericFormat
                       value={trn.cashAmount}
                       displayType={"text"}
@@ -815,7 +1156,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                       thousandSeparator={true}
                     />
                   </td>
-                  <td className="px-4 py-2 text-right">
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
                     <NumericFormat
                       value={trn.tax}
                       displayType={"text"}
@@ -824,7 +1165,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                       thousandSeparator={true}
                     />
                   </td>
-                  <td className="px-4 py-2 text-right">
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
                     <NumericFormat
                       value={trn.fees}
                       displayType={"text"}
@@ -832,20 +1173,6 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                       fixedDecimalScale={true}
                       thousandSeparator={true}
                     />
-                  </td>
-                  <td className="px-4 py-2 text-left">
-                    <Link
-                      href={`/trns/trades/edit/${trn.portfolio.id}/${trn.id}`}
-                      className="text-blue-500 hover:text-blue-700"
-                    >
-                      <i className="fa fa-edit"></i>
-                    </Link>
-                    <button
-                      onClick={() => deleteTrn(trn.id, t("trn.delete"))}
-                      className="ml-2 text-red-500 hover:text-red-700"
-                    >
-                      <i className="fa fa-trash-can"></i>
-                    </button>
                   </td>
                 </tr>
               ))}
