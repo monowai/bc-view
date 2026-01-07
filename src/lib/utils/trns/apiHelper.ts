@@ -14,11 +14,13 @@ export interface TrnUpdatePayload {
   tradeCurrency: string
   tradeAmount: number
   cashCurrency: string
+  cashAssetId?: string
   cashAmount: number
   tradeCashRate?: number
   fees: number
   tax: number
   comments?: string
+  status?: string
 }
 
 export function updateTrn(

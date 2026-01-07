@@ -31,7 +31,7 @@ const TradeTypeValues = [
   "FX",
 ] as const
 
-const StatusValues = ["SETTLED", "CONFIRMED", "PROPOSED"] as const
+const StatusValues = ["SETTLED", "PROPOSED"] as const
 
 // Extended option that includes market info for accounts
 interface AssetOption extends CurrencyOption {

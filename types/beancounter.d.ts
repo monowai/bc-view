@@ -14,7 +14,7 @@ export type TrnType =
   | "REDUCE"
   | "BALANCE"
 
-export type TrnStatus = "CONFIRMED" | "PROPOSED" | "SETTLED"
+export type TrnStatus = "PROPOSED" | "SETTLED"
 
 export interface QuickSellData {
   asset: string
@@ -282,6 +282,7 @@ interface Transaction {
   status: TrnStatus
   portfolio: Portfolio
   asset: Asset
+  cashAsset?: Asset // Settlement account asset
   tradeDate: string
   quantity: number
   price: number

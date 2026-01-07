@@ -7,7 +7,7 @@ import { NextApiRequest, NextApiResponse } from "next"
 /**
  * GET /api/trns/portfolio/{portfolioId}/status/{status}
  * Gets transactions for a portfolio with a specific status.
- * Valid statuses: PROPOSED, CONFIRMED, SETTLED
+ * Valid statuses: PROPOSED, SETTLED
  */
 export default withApiAuthRequired(async function transactionsByStatus(
   req: NextApiRequest,

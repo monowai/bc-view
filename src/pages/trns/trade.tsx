@@ -16,6 +16,7 @@ import {
   tradeAccountsKey,
   accountsKey,
   ccyKey,
+  cashKey,
 } from "@utils/api/fetchHelper"
 import { rootLoader } from "@components/ui/PageLoader"
 import TradeTypeController from "@components/features/transactions/TradeTypeController"
@@ -43,7 +44,7 @@ const TradeTypeValues = [
   "SPLIT",
 ] as const
 
-const StatusValues = ["SETTLED", "CONFIRMED", "PROPOSED"] as const
+const StatusValues = ["SETTLED", "PROPOSED"] as const
 
 const defaultValues = {
   type: { value: "BUY", label: "BUY" },
@@ -191,10 +192,8 @@ const TradeInputForm: React.FC<{
     accountsKey,
     simpleFetcher(accountsKey),
   )
-  const { data: ccyData, isLoading: ccyLoading } = useSwr(
-    ccyKey,
-    simpleFetcher(ccyKey),
-  )
+  const { isLoading: ccyLoading } = useSwr(ccyKey, simpleFetcher(ccyKey))
+  const { data: cashAssetsData } = useSwr(cashKey, simpleFetcher(cashKey))
   const { t } = useTranslation("common")
 
   const quantity = watch("quantity")
@@ -202,6 +201,7 @@ const TradeInputForm: React.FC<{
   const tax = watch("tax")
   const fees = watch("fees")
   const type = watch("type")
+  const tradeCurrency = watch("tradeCurrency")
 
   // Calculate current weight from position data
   // Use currentPositionQuantity if available (rebalance), otherwise use quantity (quick sell)
@@ -400,19 +400,97 @@ const TradeInputForm: React.FC<{
 
   useEscapeHandler(isDirty, setModalOpen)
 
+  // Helper to get currency from an asset
+  const getAssetCurrency = (asset: any): string => {
+    if (asset.market?.code === "CASH") {
+      return asset.code
+    }
+    return asset.priceSymbol || asset.market?.currency?.code || ""
+  }
+
+  // Filter settlement accounts by trade currency
+  const currentTradeCurrency = tradeCurrency?.value || "USD"
+
+  // Filtered bank accounts matching trade currency
+  const filteredBankAccounts = useMemo(() => {
+    const accounts = bankAccountsData?.data
+      ? Object.values(bankAccountsData.data)
+      : []
+    return (accounts as any[]).filter(
+      (asset) => getAssetCurrency(asset) === currentTradeCurrency,
+    )
+  }, [bankAccountsData, currentTradeCurrency])
+
+  // Filtered trade accounts matching trade currency
+  const filteredTradeAccounts = useMemo(() => {
+    const accounts = tradeAccountsData?.data
+      ? Object.values(tradeAccountsData.data)
+      : []
+    return (accounts as any[]).filter(
+      (asset) => getAssetCurrency(asset) === currentTradeCurrency,
+    )
+  }, [tradeAccountsData, currentTradeCurrency])
+
+  // Filtered cash assets matching trade currency (these are the generic balances)
+  const filteredCashAssets = useMemo(() => {
+    const assets = cashAssetsData?.data
+      ? Object.values(cashAssetsData.data)
+      : []
+    return (assets as any[]).filter(
+      (asset: any) => asset.code === currentTradeCurrency,
+    )
+  }, [cashAssetsData, currentTradeCurrency])
+
+  // Find the default cash balance asset for the current currency
+  const defaultCashAsset = useMemo(() => {
+    const cashAsset = filteredCashAssets[0] as any
+    if (cashAsset) {
+      return {
+        value: cashAsset.id,
+        label: `${cashAsset.name || cashAsset.code} Balance`,
+        currency: cashAsset.code,
+        market: "CASH",
+      }
+    }
+    // Fallback: no asset ID, let backend create generic cash balance from currency
+    return {
+      value: "", // Empty - backend will use cashCurrency to create/find generic balance
+      label: `${currentTradeCurrency} Balance`,
+      currency: currentTradeCurrency,
+      market: "CASH",
+    }
+  }, [filteredCashAssets, currentTradeCurrency])
+
+  // Cash assets for dropdown - always include a {currency} Balance option
+  const cashAssetsForDropdown = useMemo(() => {
+    if (filteredCashAssets.length > 0) {
+      return filteredCashAssets
+    }
+    // Create a synthetic cash asset for the dropdown when none exists
+    return [
+      {
+        id: "",
+        code: currentTradeCurrency,
+        name: currentTradeCurrency,
+        market: { code: "CASH" },
+      },
+    ]
+  }, [filteredCashAssets, currentTradeCurrency])
+
+  // Auto-set default settlement account when trade currency changes
+  useEffect(() => {
+    const currentSettlement = watch("settlementAccount")
+    // Only set default if no settlement is selected or if currency changed
+    if (
+      !currentSettlement?.value ||
+      currentSettlement.currency !== currentTradeCurrency
+    ) {
+      setValue("settlementAccount", defaultCashAsset)
+    }
+  }, [currentTradeCurrency, defaultCashAsset, setValue, watch])
+
   if (marketsLoading || tradeAccountsLoading || ccyLoading)
     return rootLoader(t("loading"))
-
-  // Get trade accounts for settlement account dropdown
-  const tradeAccounts = tradeAccountsData?.data
-    ? Object.values(tradeAccountsData.data)
-    : []
-  // Get bank accounts for settlement account dropdown
-  const bankAccounts = bankAccountsData?.data
-    ? Object.values(bankAccountsData.data)
-    : []
-  // Get currencies for settlement account dropdown
-  const currencies = ccyData?.data || []
 
   // Get market options from the fetched data
   // Filter out CASH and US exchange markets (use US market instead)
@@ -683,10 +761,11 @@ const TradeInputForm: React.FC<{
                       <SettlementAccountSelect
                         name="settlementAccount"
                         control={control}
-                        accounts={tradeAccounts as any[]}
-                        bankAccounts={bankAccounts as any[]}
-                        currencies={currencies}
+                        accounts={filteredTradeAccounts as any[]}
+                        bankAccounts={filteredBankAccounts as any[]}
+                        cashAssets={cashAssetsForDropdown as any[]}
                         trnType={type?.value || "BUY"}
+                        defaultValue={defaultCashAsset}
                         accountsLabel={t(
                           "settlement.tradeAccounts",
                           "Trade Accounts",
