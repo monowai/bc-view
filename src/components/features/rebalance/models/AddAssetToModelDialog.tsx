@@ -29,6 +29,7 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
   const [selectedAsset, setSelectedAsset] = useState<AssetOption | null>(null)
   const [weight, setWeight] = useState<number>(10)
   const [isAdding, setIsAdding] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
   const loadOptions = useCallback(
@@ -79,13 +80,14 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
     if (!selectedAsset || weight <= 0) return
 
     setIsAdding(true)
+    setError(null)
     try {
       // Resolve the asset to get a real UUID from svc-data
       // This also creates the asset if it doesn't exist and fetches its price
       const resolvedAsset = await resolveAsset(selectedAsset.assetCode)
 
       if (!resolvedAsset?.id) {
-        alert(
+        setError(
           t(
             "rebalance.models.resolveError",
             "Could not resolve asset. Please try again.",
@@ -147,6 +149,7 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
   const handleClose = (): void => {
     setSelectedAsset(null)
     setWeight(10)
+    setError(null)
     onClose()
   }
 
@@ -175,6 +178,11 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
         </header>
 
         <div className="p-4 space-y-4">
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm">
+              {error}
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               {t("rebalance.models.searchAsset", "Search Asset")}

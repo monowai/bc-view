@@ -893,11 +893,12 @@ function ExecuteRebalancePage(): React.ReactElement {
               {t("back", "Back")}
             </button>
             <button
-              onClick={() => {
-                // TODO: Execute transactions
-                alert("Transaction execution coming soon!")
-              }}
-              className="px-4 py-2 rounded text-white bg-green-500 hover:bg-green-600 transition-colors"
+              disabled
+              className="px-4 py-2 rounded text-white bg-gray-400 cursor-not-allowed"
+              title={t(
+                "rebalance.execute.comingSoon",
+                "Transaction execution coming soon",
+              )}
             >
               <i className="fas fa-check mr-2"></i>
               {t("rebalance.execute.execute", "Execute Transactions")}
