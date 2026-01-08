@@ -453,7 +453,7 @@ function ExecuteRebalancePage(): React.ReactElement {
     <div className="w-full py-4">
       {/* Breadcrumb */}
       <nav className="text-sm text-gray-500 mb-4">
-        <Link href={sourceUrl} className="hover:text-blue-600">
+        <Link href={sourceUrl} className="hover:text-emerald-600">
           {isAggregated
             ? t("holdings.aggregated", "Aggregated Holdings")
             : t("holdings.title", "Holdings")}
@@ -492,7 +492,7 @@ function ExecuteRebalancePage(): React.ReactElement {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="px-3 py-2 text-sm text-white bg-blue-500 rounded hover:bg-blue-600 disabled:opacity-50"
+                className="px-3 py-2 text-sm text-white bg-emerald-500 rounded hover:bg-emerald-600 disabled:opacity-50"
               >
                 <i
                   className={`fas ${saving ? "fa-spinner fa-spin" : "fa-save"} mr-1`}
@@ -650,7 +650,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                                   item.snapshotWeight,
                                 )
                               }
-                              className="text-gray-400 hover:text-blue-600 p-0.5"
+                              className="text-gray-400 hover:text-emerald-600 p-0.5"
                               title="Copy to %"
                             >
                               <i className="fas fa-arrow-right text-xs"></i>
@@ -675,7 +675,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                           <div className="flex items-center justify-end gap-1">
                             <button
                               onClick={() => handleSetToTarget(item.assetId)}
-                              className="text-gray-400 hover:text-blue-600 p-0.5"
+                              className="text-gray-400 hover:text-emerald-600 p-0.5"
                               title="Copy to %"
                             >
                               <i className="fas fa-arrow-right text-xs"></i>
@@ -701,7 +701,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                               handleTargetChange(item.assetId, val / 100)
                             }}
                             disabled={item.isExcluded}
-                            className={`w-20 px-2 py-1 text-right border rounded focus:ring-blue-500 focus:border-blue-500 ${
+                            className={`w-20 px-2 py-1 text-right border rounded focus:ring-emerald-500 focus:border-emerald-500 ${
                               isCash
                                 ? "border-blue-300 bg-blue-50"
                                 : item.isExcluded
@@ -752,7 +752,7 @@ function ExecuteRebalancePage(): React.ReactElement {
               disabled={activeItems.length === 0}
               className={`px-4 py-2 rounded text-white transition-colors ${
                 activeItems.length > 0
-                  ? "bg-blue-500 hover:bg-blue-600"
+                  ? "bg-emerald-500 hover:bg-emerald-600"
                   : "bg-gray-400 cursor-not-allowed"
               }`}
             >
