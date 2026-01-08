@@ -43,7 +43,7 @@ function ModelDetailPage(): React.ReactElement {
     <div className="w-full py-4">
       {/* Breadcrumb */}
       <nav className="text-sm text-gray-500 mb-4 max-w-2xl mx-auto">
-        <Link href="/rebalance/models" className="hover:text-blue-600">
+        <Link href="/rebalance/models" className="hover:text-emerald-600">
           {t("rebalance.models.title", "Model Portfolios")}
         </Link>
         <span className="mx-2">/</span>
@@ -121,7 +121,7 @@ function ModelDetailPage(): React.ReactElement {
               </div>
               <button
                 onClick={() => setIsEditing(true)}
-                className="ml-4 text-sm text-blue-600 hover:text-blue-800 flex items-center"
+                className="ml-4 text-sm text-emerald-600 hover:text-emerald-800 flex items-center"
               >
                 <i className="fas fa-edit mr-1"></i>
                 {t("edit", "Edit")}

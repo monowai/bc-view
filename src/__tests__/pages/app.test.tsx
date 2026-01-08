@@ -19,8 +19,9 @@ describe("<Home />", () => {
       expect(screen.getByText("home.welcome")).toBeInTheDocument()
     })
 
-    // Check for capability cards on the new landing page
-    expect(screen.getByText("All Your Assets")).toBeInTheDocument()
-    expect(screen.getByText("Multi-Currency")).toBeInTheDocument()
+    // Check for the three domain cards on the landing page
+    expect(screen.getByText("Wealth")).toBeInTheDocument()
+    expect(screen.getByText("Invest")).toBeInTheDocument()
+    expect(screen.getByText("Retirement")).toBeInTheDocument()
   })
 })

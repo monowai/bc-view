@@ -53,8 +53,8 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
   if (models.length === 0) {
     return (
       <div className="border border-gray-200 rounded-lg p-8 text-center">
-        <div className="inline-flex items-center justify-center w-14 h-14 bg-violet-100 rounded-full mb-3">
-          <i className="fas fa-balance-scale text-2xl text-violet-600"></i>
+        <div className="inline-flex items-center justify-center w-14 h-14 bg-emerald-100 rounded-full mb-3">
+          <i className="fas fa-balance-scale text-2xl text-emerald-600"></i>
         </div>
         <h3 className="text-lg font-semibold text-gray-900 mb-1">
           {t("rebalance.models.empty", "No investment models yet")}
@@ -67,7 +67,7 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
         </p>
         <button
           onClick={() => router.push("/rebalance/models/__NEW__")}
-          className="bg-violet-600 text-white px-4 py-2 rounded hover:bg-violet-700 transition-colors inline-flex items-center"
+          className="bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700 transition-colors inline-flex items-center"
         >
           <i className="fas fa-plus mr-2"></i>
           {t("rebalance.models.create", "Create Model")}
@@ -116,7 +116,7 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
                 }
               }}
               className={`hover:bg-slate-100 transition-colors cursor-pointer ${
-                selectable && selectedId === model.id ? "bg-blue-50" : ""
+                selectable && selectedId === model.id ? "bg-emerald-50" : ""
               }`}
             >
               {selectable && (
@@ -126,12 +126,14 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
                     name="selectedModel"
                     checked={selectedId === model.id}
                     onChange={() => onSelect?.(model)}
-                    className="w-4 h-4 text-blue-600"
+                    className="w-4 h-4 text-emerald-600"
                   />
                 </td>
               )}
               <td className="px-4 py-3">
-                <span className="font-medium text-blue-600">{model.name}</span>
+                <span className="font-medium text-emerald-600">
+                  {model.name}
+                </span>
                 {model.description && (
                   <p className="text-xs text-gray-500 mt-1 truncate max-w-xs">
                     {model.description}
@@ -170,7 +172,7 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
                         e.stopPropagation()
                         router.push(`/rebalance/models/${model.id}`)
                       }}
-                      className="text-blue-500 hover:text-blue-700 transition-colors"
+                      className="text-emerald-500 hover:text-emerald-700 transition-colors"
                       title={t("edit", "Edit")}
                     >
                       <i className="far fa-edit"></i>

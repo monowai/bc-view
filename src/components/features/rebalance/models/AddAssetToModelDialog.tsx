@@ -106,7 +106,10 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
 
       const newWeight: AssetWeightWithDetails = {
         assetId: resolvedAsset.id,
-        assetCode: formatAssetCode(resolvedAsset.market.code, resolvedAsset.code),
+        assetCode: formatAssetCode(
+          resolvedAsset.market.code,
+          resolvedAsset.code,
+        ),
         assetName: resolvedAsset.name,
         weight: weight,
         sortOrder: 0,

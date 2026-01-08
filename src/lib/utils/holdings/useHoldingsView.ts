@@ -135,7 +135,9 @@ export function useHoldingsView(
           return Sentry.startSpan(
             { name: "holdings.sort", op: "function" },
             () => {
-              const sortedHoldingGroups = { ...calculatedHoldings.holdingGroups }
+              const sortedHoldingGroups = {
+                ...calculatedHoldings.holdingGroups,
+              }
               Object.keys(sortedHoldingGroups).forEach((groupKey) => {
                 sortedHoldingGroups[groupKey] = sortPositions(
                   sortedHoldingGroups[groupKey],

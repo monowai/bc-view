@@ -13,7 +13,12 @@ import {
   ccyKey,
   holdingKey,
 } from "@utils/api/fetchHelper"
-import { Portfolio, Currency, FxResponse, HoldingContract } from "types/beancounter"
+import {
+  Portfolio,
+  Currency,
+  FxResponse,
+  HoldingContract,
+} from "types/beancounter"
 import { rootLoader } from "@components/ui/PageLoader"
 import { errorOut } from "@components/errors/ErrorOut"
 import { FormatValue } from "@components/ui/MoneyUtils"
@@ -460,10 +465,7 @@ function WealthDashboard(): React.ReactElement {
                           const item = summary.classificationBreakdown.find(
                             (c) => c.classification === name,
                           )
-                          return [
-                            `${item?.percentage.toFixed(1) || 0}%`,
-                            name,
-                          ]
+                          return [`${item?.percentage.toFixed(1) || 0}%`, name]
                         }}
                       />
                       <Legend />
@@ -515,8 +517,7 @@ function WealthDashboard(): React.ReactElement {
                         onClick={() => handleSort("value")}
                       >
                         <div className="flex items-center justify-end">
-                          Value ({displayCurrency?.code})
-                          {getSortIcon("value")}
+                          Value ({displayCurrency?.code}){getSortIcon("value")}
                         </div>
                       </th>
                       <th
