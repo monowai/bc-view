@@ -1,6 +1,7 @@
 import React from "react"
 import HeaderBrand from "@components/layout/HeaderBrand"
 import HeaderUserControls from "@components/layout/HeaderUserControls"
+import ProposedBadge from "@components/layout/ProposedBadge"
 import { useTranslation } from "next-i18next"
 
 export default function Header(): React.ReactElement {
@@ -22,7 +23,8 @@ export default function Header(): React.ReactElement {
       <nav className="flex flex-col sm:flex-row items-center justify-between px-2 py-2 sm:px-3 bg-gray-800 text-white">
         <div className="flex justify-between w-full sm:w-auto">
           <HeaderBrand />
-          <div className="sm:hidden">
+          <div className="sm:hidden flex items-center gap-2">
+            <ProposedBadge />
             <HeaderUserControls />
           </div>
         </div>
@@ -32,7 +34,8 @@ export default function Header(): React.ReactElement {
           <i className="fas fa-dollar-sign mr-2"></i>
           <i className="fas fa-pound-sign"></i>
         </div>
-        <div className="hidden sm:flex items-center">
+        <div className="hidden sm:flex items-center gap-2">
+          <ProposedBadge />
           <HeaderUserControls />
         </div>
       </nav>
