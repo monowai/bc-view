@@ -103,8 +103,15 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
 
       <div className="container mx-auto px-4 py-4">
         {!hasEvents ? (
-          <div className="text-center text-gray-500 py-8">
-            {t("trn.noTransactions")}
+          <div className="text-center py-8">
+            <p className="text-gray-500 mb-4">{t("trn.noTransactions")}</p>
+            <button
+              onClick={() => router.back()}
+              className="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 transition-colors"
+            >
+              <i className="fa fa-arrow-left mr-2"></i>
+              {t("back")}
+            </button>
           </div>
         ) : (
           <>
@@ -129,7 +136,22 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                         {trn.tradeCurrency.code}
                       </span>
                     </div>
-                    <div className="text-sm text-gray-500">{trn.tradeDate}</div>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`inline-block px-2 py-1 text-xs font-medium rounded ${
+                          trn.status === "SETTLED"
+                            ? "bg-green-100 text-green-800"
+                            : trn.status === "PROPOSED"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
+                        {trn.status}
+                      </span>
+                      <span className="text-sm text-gray-500">
+                        {trn.tradeDate}
+                      </span>
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>
@@ -217,6 +239,9 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                       {t("trn.settlement.account")}
                     </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      {t("trn.status")}
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -284,6 +309,19 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                             : trn.cashAsset?.name ||
                               trn.cashAsset?.code ||
                               `${(trn.cashCurrency as any)?.code || trn.tradeCurrency?.code} Balance`}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span
+                          className={`inline-block px-2 py-1 text-xs font-medium rounded ${
+                            trn.status === "SETTLED"
+                              ? "bg-green-100 text-green-800"
+                              : trn.status === "PROPOSED"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : "bg-gray-100 text-gray-800"
+                          }`}
+                        >
+                          {trn.status}
+                        </span>
                       </td>
                     </tr>
                   ))}

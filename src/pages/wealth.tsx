@@ -5,9 +5,15 @@ import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { GetServerSideProps } from "next"
 import Head from "next/head"
 import Link from "next/link"
+import { useRouter } from "next/router"
 import useSwr from "swr"
-import { portfoliosKey, simpleFetcher, ccyKey } from "@utils/api/fetchHelper"
-import { Portfolio, Currency, FxResponse } from "types/beancounter"
+import {
+  portfoliosKey,
+  simpleFetcher,
+  ccyKey,
+  holdingKey,
+} from "@utils/api/fetchHelper"
+import { Portfolio, Currency, FxResponse, HoldingContract } from "types/beancounter"
 import { rootLoader } from "@components/ui/PageLoader"
 import { errorOut } from "@components/errors/ErrorOut"
 import { FormatValue } from "@components/ui/MoneyUtils"
@@ -36,7 +42,11 @@ const COLORS = [
 interface WealthSummary {
   totalValue: number
   portfolioCount: number
-  currencyBreakdown: { currency: string; value: number; percentage: number }[]
+  classificationBreakdown: {
+    classification: string
+    value: number
+    percentage: number
+  }[]
   portfolioBreakdown: {
     code: string
     name: string
@@ -46,9 +56,19 @@ interface WealthSummary {
   }[]
 }
 
+type SortConfig = {
+  key: string | null
+  direction: "asc" | "desc"
+}
+
 function WealthDashboard(): React.ReactElement {
   const { t, ready } = useTranslation("common")
   const { preferences } = useUserPreferences()
+  const router = useRouter()
+  const [sortConfig, setSortConfig] = useState<SortConfig>({
+    key: "value",
+    direction: "desc",
+  })
 
   // Fetch portfolios
   const {
@@ -56,6 +76,13 @@ function WealthDashboard(): React.ReactElement {
     error: portfolioError,
     isLoading: portfolioLoading,
   } = useSwr(portfoliosKey, simpleFetcher(portfoliosKey))
+
+  // Fetch aggregated holdings for asset classification breakdown
+  const holdingKeyUrl = holdingKey("aggregated", "today")
+  const { data: holdingsData } = useSwr<{ data: HoldingContract }>(
+    holdingKeyUrl,
+    simpleFetcher(holdingKeyUrl),
+  )
 
   // Fetch currencies
   const { data: currencyData } = useSwr<{ data: Currency[] }>(
@@ -137,19 +164,40 @@ function WealthDashboard(): React.ReactElement {
       .catch(console.error)
   }, [displayCurrency, portfolios])
 
+  // Handle sorting
+  const handleSort = (key: string): void => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        return { key, direction: prev.direction === "asc" ? "desc" : "asc" }
+      }
+      return { key, direction: key === "code" ? "asc" : "desc" }
+    })
+  }
+
+  // Sort icon component
+  const getSortIcon = (headerKey: string): React.ReactElement => {
+    if (sortConfig.key !== headerKey) {
+      return <span className="ml-1 text-gray-400">↕</span>
+    }
+    return sortConfig.direction === "asc" ? (
+      <span className="ml-1 text-blue-500">↑</span>
+    ) : (
+      <span className="ml-1 text-blue-500">↓</span>
+    )
+  }
+
   // Calculate wealth summary
   const summary: WealthSummary = useMemo(() => {
     if (portfolios.length === 0 || Object.keys(fxRates).length === 0) {
       return {
         totalValue: 0,
         portfolioCount: 0,
-        currencyBreakdown: [],
+        classificationBreakdown: [],
         portfolioBreakdown: [],
       }
     }
 
     let totalValue = 0
-    const currencyTotals: Record<string, number> = {}
     const portfolioValues: {
       code: string
       name: string
@@ -164,11 +212,6 @@ function WealthDashboard(): React.ReactElement {
 
       totalValue += convertedValue
 
-      // Track by original currency
-      const currCode = portfolio.currency.code
-      currencyTotals[currCode] =
-        (currencyTotals[currCode] || 0) + convertedValue
-
       portfolioValues.push({
         code: portfolio.code,
         name: portfolio.name,
@@ -177,30 +220,79 @@ function WealthDashboard(): React.ReactElement {
       })
     })
 
-    // Sort portfolios by value descending
-    portfolioValues.sort((a, b) => b.value - a.value)
+    // Calculate asset classification breakdown from holdings
+    const classificationTotals: Record<string, number> = {}
+    if (holdingsData?.data?.positions) {
+      Object.values(holdingsData.data.positions).forEach((position) => {
+        let classification =
+          position.asset?.assetCategory?.name || "Uncategorised"
+        // Merge "Bank Account" into "Cash" as they represent the same thing
+        if (classification === "Bank Account") {
+          classification = "Cash"
+        }
+        const positionValue = position.moneyValues?.BASE?.marketValue || 0
+        classificationTotals[classification] =
+          (classificationTotals[classification] || 0) + positionValue
+      })
+    }
 
-    // Calculate percentages
-    const currencyBreakdown = Object.entries(currencyTotals)
-      .map(([currency, value]) => ({
-        currency,
+    const classificationTotal = Object.values(classificationTotals).reduce(
+      (sum, val) => sum + val,
+      0,
+    )
+    const classificationBreakdown = Object.entries(classificationTotals)
+      .map(([classification, value]) => ({
+        classification,
         value,
-        percentage: totalValue > 0 ? (value / totalValue) * 100 : 0,
+        percentage:
+          classificationTotal > 0 ? (value / classificationTotal) * 100 : 0,
       }))
       .sort((a, b) => b.value - a.value)
 
-    const portfolioBreakdown = portfolioValues.map((p) => ({
-      ...p,
-      percentage: totalValue > 0 ? (p.value / totalValue) * 100 : 0,
-    }))
+    const portfolioBreakdown = portfolioValues
+      .map((p) => ({
+        ...p,
+        percentage: totalValue > 0 ? (p.value / totalValue) * 100 : 0,
+      }))
+      .sort((a, b) => {
+        if (!sortConfig.key) return 0
+        let aVal: string | number
+        let bVal: string | number
+        switch (sortConfig.key) {
+          case "code":
+            aVal = a.code.toLowerCase()
+            bVal = b.code.toLowerCase()
+            break
+          case "value":
+            aVal = a.value
+            bVal = b.value
+            break
+          case "percentage":
+            aVal = a.percentage
+            bVal = b.percentage
+            break
+          case "irr":
+            aVal = a.irr
+            bVal = b.irr
+            break
+          default:
+            return 0
+        }
+        if (typeof aVal === "string" && typeof bVal === "string") {
+          const result = aVal.localeCompare(bVal)
+          return sortConfig.direction === "asc" ? result : -result
+        }
+        const result = (aVal as number) - (bVal as number)
+        return sortConfig.direction === "asc" ? result : -result
+      })
 
     return {
       totalValue,
       portfolioCount: portfolios.length,
-      currencyBreakdown,
+      classificationBreakdown,
       portfolioBreakdown,
     }
-  }, [portfolios, fxRates])
+  }, [portfolios, fxRates, sortConfig, holdingsData])
 
   // Chart data
   const portfolioChartData = summary.portfolioBreakdown.map((p) => ({
@@ -208,8 +300,8 @@ function WealthDashboard(): React.ReactElement {
     value: p.value,
   }))
 
-  const currencyChartData = summary.currencyBreakdown.map((c) => ({
-    name: c.currency,
+  const classificationChartData = summary.classificationBreakdown.map((c) => ({
+    name: c.classification,
     value: c.value,
   }))
 
@@ -291,7 +383,7 @@ function WealthDashboard(): React.ReactElement {
                 </Link>
                 <Link
                   href="/retire"
-                  className="bg-white text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg font-medium transition-colors flex items-center"
+                  className="bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600 px-4 py-2 rounded-lg font-medium transition-colors flex items-center shadow-md"
                 >
                   <i className="fas fa-umbrella-beach mr-2"></i>
                   Plan Retirement
@@ -339,16 +431,16 @@ function WealthDashboard(): React.ReactElement {
                 </div>
               </div>
 
-              {/* Currency Breakdown Chart */}
+              {/* Asset Classification Breakdown Chart */}
               <div className="bg-white rounded-xl shadow-md p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                  By Original Currency
+                  By Asset Classification
                 </h2>
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        data={currencyChartData}
+                        data={classificationChartData}
                         cx="50%"
                         cy="50%"
                         innerRadius={60}
@@ -356,7 +448,7 @@ function WealthDashboard(): React.ReactElement {
                         paddingAngle={2}
                         dataKey="value"
                       >
-                        {currencyChartData.map((_, index) => (
+                        {classificationChartData.map((_, index) => (
                           <Cell
                             key={`cell-${index}`}
                             fill={COLORS[index % COLORS.length]}
@@ -364,10 +456,15 @@ function WealthDashboard(): React.ReactElement {
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(value) => [
-                          `${displayCurrency?.symbol}${Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
-                          "Value",
-                        ]}
+                        formatter={(value, name) => {
+                          const item = summary.classificationBreakdown.find(
+                            (c) => c.classification === name,
+                          )
+                          return [
+                            `${item?.percentage.toFixed(1) || 0}%`,
+                            name,
+                          ]
+                        }}
                       />
                       <Legend />
                     </PieChart>
@@ -404,20 +501,41 @@ function WealthDashboard(): React.ReactElement {
                 <table className="min-w-full">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Portfolio
+                      <th
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                        onClick={() => handleSort("code")}
+                      >
+                        <div className="flex items-center">
+                          Portfolio
+                          {getSortIcon("code")}
+                        </div>
                       </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Value ({displayCurrency?.code})
+                      <th
+                        className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                        onClick={() => handleSort("value")}
+                      >
+                        <div className="flex items-center justify-end">
+                          Value ({displayCurrency?.code})
+                          {getSortIcon("value")}
+                        </div>
                       </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        % of Total
+                      <th
+                        className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                        onClick={() => handleSort("percentage")}
+                      >
+                        <div className="flex items-center justify-end">
+                          % of Total
+                          {getSortIcon("percentage")}
+                        </div>
                       </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        IRR
-                      </th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
+                      <th
+                        className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                        onClick={() => handleSort("irr")}
+                      >
+                        <div className="flex items-center justify-end">
+                          IRR
+                          {getSortIcon("irr")}
+                        </div>
                       </th>
                     </tr>
                   </thead>
@@ -425,7 +543,10 @@ function WealthDashboard(): React.ReactElement {
                     {summary.portfolioBreakdown.map((portfolio, index) => (
                       <tr
                         key={portfolio.code}
-                        className="hover:bg-gray-50 transition-colors"
+                        className="hover:bg-slate-100 transition-colors cursor-pointer"
+                        onClick={() =>
+                          router.push(`/holdings/${portfolio.code}`)
+                        }
                       >
                         <td className="px-6 py-4">
                           <div className="flex items-center">
@@ -436,9 +557,13 @@ function WealthDashboard(): React.ReactElement {
                               }}
                             ></div>
                             <div>
-                              <p className="font-medium text-gray-900">
+                              <Link
+                                href={`/holdings/${portfolio.code}`}
+                                className="font-medium text-blue-600 hover:text-blue-800"
+                                onClick={(e) => e.stopPropagation()}
+                              >
                                 {portfolio.code}
-                              </p>
+                              </Link>
                               <p className="text-sm text-gray-500">
                                 {portfolio.name}
                               </p>
@@ -449,20 +574,8 @@ function WealthDashboard(): React.ReactElement {
                           {displayCurrency?.symbol}
                           <FormatValue value={portfolio.value} />
                         </td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <div className="w-16 bg-gray-200 rounded-full h-2">
-                              <div
-                                className="bg-blue-600 h-2 rounded-full"
-                                style={{
-                                  width: `${Math.min(portfolio.percentage, 100)}%`,
-                                }}
-                              ></div>
-                            </div>
-                            <span className="text-gray-600 text-sm w-12">
-                              {portfolio.percentage.toFixed(1)}%
-                            </span>
-                          </div>
+                        <td className="px-6 py-4 text-right text-gray-600">
+                          {portfolio.percentage.toFixed(1)}%
                         </td>
                         <td className="px-6 py-4 text-right">
                           <span
@@ -470,14 +583,6 @@ function WealthDashboard(): React.ReactElement {
                           >
                             {(portfolio.irr * 100).toFixed(2)}%
                           </span>
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <Link
-                            href={`/holdings/${portfolio.code}`}
-                            className="text-blue-600 hover:text-blue-700 font-medium text-sm"
-                          >
-                            View Holdings
-                          </Link>
                         </td>
                       </tr>
                     ))}
@@ -494,7 +599,6 @@ function WealthDashboard(): React.ReactElement {
                       <td className="px-6 py-4 text-right font-bold text-gray-600">
                         100%
                       </td>
-                      <td className="px-6 py-4"></td>
                       <td className="px-6 py-4"></td>
                     </tr>
                   </tfoot>

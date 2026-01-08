@@ -35,12 +35,8 @@ export const onSubmit = (
     return
   }
   const row = convert(data)
-  if (window.confirm("Submit the transaction?")) {
-    postData(portfolio, false, row.split(",")).then()
-    setTradeModalOpen(false)
-  } else {
-    console.log("Transaction submission canceled")
-  }
+  postData(portfolio, false, row.split(",")).then()
+  setTradeModalOpen(false)
 }
 
 export const useEscapeHandler = (
