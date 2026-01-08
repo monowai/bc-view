@@ -15,6 +15,7 @@ import {
   toGroupBy,
 } from "@contexts/UserPreferencesContext"
 import { toAllocationGroupBy } from "@components/features/holdings/GroupByOptions"
+import * as Sentry from "@sentry/nextjs"
 
 interface UseHoldingsViewResult {
   // State
@@ -112,29 +113,46 @@ export function useHoldingsView(
   const holdings = useMemo(() => {
     if (!holdingContract) return null
 
-    const calculatedHoldings = calculateHoldings(
-      holdingContract,
-      holdingState.hideEmpty,
-      holdingState.valueIn.value,
-      holdingState.groupBy.value,
-    ) as Holdings
-
-    // Apply sorting to each holding group
-    if (sortConfig.key) {
-      const sortedHoldingGroups = { ...calculatedHoldings.holdingGroups }
-      Object.keys(sortedHoldingGroups).forEach((groupKey) => {
-        sortedHoldingGroups[groupKey] = sortPositions(
-          sortedHoldingGroups[groupKey],
-          sortConfig,
+    return Sentry.startSpan(
+      {
+        name: "holdings.calculate",
+        op: "function",
+        attributes: {
+          "holdings.positions": Object.keys(holdingContract.positions).length,
+          "holdings.portfolio": holdingContract.portfolio?.code,
+        },
+      },
+      () => {
+        const calculatedHoldings = calculateHoldings(
+          holdingContract,
+          holdingState.hideEmpty,
           holdingState.valueIn.value,
-        )
-      })
-      return {
-        ...calculatedHoldings,
-        holdingGroups: sortedHoldingGroups,
-      }
-    }
-    return calculatedHoldings
+          holdingState.groupBy.value,
+        ) as Holdings
+
+        // Apply sorting to each holding group
+        if (sortConfig.key) {
+          return Sentry.startSpan(
+            { name: "holdings.sort", op: "function" },
+            () => {
+              const sortedHoldingGroups = { ...calculatedHoldings.holdingGroups }
+              Object.keys(sortedHoldingGroups).forEach((groupKey) => {
+                sortedHoldingGroups[groupKey] = sortPositions(
+                  sortedHoldingGroups[groupKey],
+                  sortConfig,
+                  holdingState.valueIn.value,
+                )
+              })
+              return {
+                ...calculatedHoldings,
+                holdingGroups: sortedHoldingGroups,
+              }
+            },
+          )
+        }
+        return calculatedHoldings
+      },
+    )
   }, [
     holdingContract,
     holdingState.hideEmpty,

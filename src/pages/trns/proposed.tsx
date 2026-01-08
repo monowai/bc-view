@@ -3,11 +3,11 @@ import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { useTranslation } from "next-i18next"
 import useSwr, { mutate } from "swr"
-import { fetcher, portfoliosKey } from "@utils/api/fetchHelper"
+import { fetcher } from "@utils/api/fetchHelper"
 import { rootLoader } from "@components/ui/PageLoader"
-import { Portfolio, Transaction, TrnStatus } from "types/beancounter"
-import { useRouter } from "next/router"
+import { Transaction, TrnStatus } from "types/beancounter"
 import Head from "next/head"
+import { useUser } from "@auth0/nextjs-auth0/client"
 
 interface ProposedTransaction extends Transaction {
   editedPrice?: number
@@ -16,26 +16,19 @@ interface ProposedTransaction extends Transaction {
   editedTradeDate?: string
 }
 
+// Get today's date in YYYY-MM-DD format
+const getToday = (): string => new Date().toISOString().split("T")[0]
+
 export default function ProposedTransactions(): React.JSX.Element {
   const { t } = useTranslation("common")
-  const router = useRouter()
-  const { portfolioId } = router.query
+  const { user, isLoading: userLoading } = useUser()
 
   const [transactions, setTransactions] = useState<ProposedTransaction[]>([])
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Fetch portfolios
-  const { data: portfoliosData } = useSwr<{ data: Portfolio[] }>(
-    portfoliosKey,
-    fetcher,
-  )
-  const portfolios: Portfolio[] = portfoliosData?.data || []
-
-  // Fetch proposed transactions when portfolioId is available
-  const proposedKey = portfolioId
-    ? `/api/trns/portfolio/${portfolioId}/status/PROPOSED`
-    : null
+  // Fetch proposed transactions across all portfolios
+  const proposedKey = user ? "/api/trns/proposed" : null
   const { data: proposedData, error: fetchError } = useSwr<{
     data: Transaction[]
   }>(proposedKey, fetcher, { refreshInterval: 0 })
@@ -54,15 +47,6 @@ export default function ProposedTransactions(): React.JSX.Element {
     }
   }, [proposedData])
 
-  const handlePortfolioChange = (
-    e: React.ChangeEvent<HTMLSelectElement>,
-  ): void => {
-    const newPortfolioId = e.target.value
-    if (newPortfolioId) {
-      router.push(`/trns/proposed?portfolioId=${newPortfolioId}`)
-    }
-  }
-
   const handlePriceChange = (id: string, value: number): void => {
     setTransactions((prev) =>
       prev.map((trn) => (trn.id === id ? { ...trn, editedPrice: value } : trn)),
@@ -77,9 +61,15 @@ export default function ProposedTransactions(): React.JSX.Element {
 
   const handleStatusChange = (id: string, value: TrnStatus): void => {
     setTransactions((prev) =>
-      prev.map((trn) =>
-        trn.id === id ? { ...trn, editedStatus: value } : trn,
-      ),
+      prev.map((trn) => {
+        if (trn.id !== id) return trn
+        // When changing to SETTLED, default tradeDate to today
+        const updates: Partial<ProposedTransaction> = { editedStatus: value }
+        if (value === "SETTLED" && trn.editedStatus !== "SETTLED") {
+          updates.editedTradeDate = getToday()
+        }
+        return { ...trn, ...updates }
+      }),
     )
   }
 
@@ -126,21 +116,24 @@ export default function ProposedTransactions(): React.JSX.Element {
     if (!hasChanges(trn)) return true
 
     try {
-      const response = await fetch(`/api/trns/patch/${portfolioId}/${trn.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          assetId: trn.asset.id,
-          trnType: trn.trnType,
-          quantity: trn.quantity,
-          tradeCurrency: trn.tradeCurrency.code,
-          price: trn.editedPrice,
-          fees: trn.editedFees,
-          status: trn.editedStatus,
-          tradeDate: trn.editedTradeDate,
-          tradeAmount: (trn.editedPrice || trn.price) * trn.quantity,
-        }),
-      })
+      const response = await fetch(
+        `/api/trns/patch/${trn.portfolio.id}/${trn.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            assetId: trn.asset.id,
+            trnType: trn.trnType,
+            quantity: trn.quantity,
+            tradeCurrency: trn.tradeCurrency.code,
+            price: trn.editedPrice,
+            fees: trn.editedFees,
+            status: trn.editedStatus,
+            tradeDate: trn.editedTradeDate,
+            tradeAmount: (trn.editedPrice || trn.price) * trn.quantity,
+          }),
+        },
+      )
 
       if (!response.ok) {
         console.error(`Failed to update transaction: ${response.statusText}`)
@@ -172,7 +165,7 @@ export default function ProposedTransactions(): React.JSX.Element {
 
   const anyChanges = transactions.some(hasChanges)
 
-  if (!portfoliosData || portfolios.length === 0) {
+  if (userLoading) {
     return rootLoader(t("loading"))
   }
 
@@ -187,24 +180,10 @@ export default function ProposedTransactions(): React.JSX.Element {
           Review Proposed Transactions
         </h1>
 
-        {/* Portfolio Selector */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Portfolio
-          </label>
-          <select
-            value={(portfolioId as string) || ""}
-            onChange={handlePortfolioChange}
-            className="block w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="">Select a portfolio...</option>
-            {portfolios.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.code} - {p.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <p className="text-gray-600 mb-6">
+          These transactions are pending review. Change status to SETTLED to
+          include them in your holdings calculations.
+        </p>
 
         {fetchError && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
@@ -218,9 +197,9 @@ export default function ProposedTransactions(): React.JSX.Element {
           </div>
         )}
 
-        {portfolioId && transactions.length === 0 && !fetchError && (
+        {!fetchError && transactions.length === 0 && (
           <div className="bg-gray-50 border border-gray-200 text-gray-600 px-4 py-8 rounded text-center">
-            No proposed transactions found for this portfolio.
+            No proposed transactions found. All caught up!
           </div>
         )}
 
@@ -247,6 +226,9 @@ export default function ProposedTransactions(): React.JSX.Element {
               <table className="min-w-full divide-y divide-gray-200 text-xs">
                 <thead className="bg-gray-50">
                   <tr>
+                    <th className="px-2 py-2 text-left font-medium text-gray-500 uppercase">
+                      Portfolio
+                    </th>
                     <th className="px-2 py-2 text-left font-medium text-gray-500 uppercase">
                       Type
                     </th>
@@ -280,11 +262,18 @@ export default function ProposedTransactions(): React.JSX.Element {
                   {transactions.map((trn) => (
                     <tr key={trn.id} className="hover:bg-gray-50">
                       <td className="px-2 py-1.5 whitespace-nowrap">
+                        <span className="text-gray-600">
+                          {trn.portfolio.code}
+                        </span>
+                      </td>
+                      <td className="px-2 py-1.5 whitespace-nowrap">
                         <span
                           className={`px-1.5 py-0.5 font-medium rounded ${
-                            trn.trnType === "BUY"
-                              ? "bg-green-100 text-green-800"
-                              : "bg-red-100 text-red-800"
+                            trn.trnType === "DIVI"
+                              ? "bg-blue-100 text-blue-800"
+                              : trn.trnType === "BUY"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-red-100 text-red-800"
                           }`}
                         >
                           {trn.trnType}
