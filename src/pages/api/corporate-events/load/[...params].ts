@@ -15,25 +15,30 @@ export default withApiAuthRequired(async function loadCorporateEvents(
   }
 
   try {
-    const { params } = req.query
+    const { params, asAt } = req.query
     const { accessToken } = await getAccessToken(req, res)
 
-    if (!params || !Array.isArray(params) || params.length < 2) {
-      res.status(400).json({ error: "portfolioId and asAtDate are required" })
+    if (!params || !Array.isArray(params) || params.length !== 1) {
+      res.status(400).json({ error: "portfolioId is required" })
       return
     }
 
-    const [portfolioId, asAtDate] = params
-    const url = getEventUrl(`/load/${portfolioId}?asAt=${asAtDate}`)
+    if (!asAt) {
+      res.status(400).json({ error: "asAt query parameter is required" })
+      return
+    }
+
+    const portfolioId = params[0]
+    const url = getEventUrl(`/load/${portfolioId}?asAt=${asAt}`)
 
     await Sentry.startSpan(
       {
         op: "http.client",
-        name: `POST /load/${portfolioId}/${asAtDate}`,
+        name: `POST /load/${portfolioId}?asAt=${asAt}`,
         attributes: {
           "http.url": url,
           "corporate_events.portfolio_id": portfolioId,
-          "corporate_events.as_at_date": asAtDate,
+          "corporate_events.as_at_date": asAt as string,
         },
       },
       async () => {
@@ -44,7 +49,7 @@ export default withApiAuthRequired(async function loadCorporateEvents(
 
         Sentry.setContext("corporate_events_load", {
           portfolioId,
-          asAtDate,
+          asAt,
           responseStatus: response.status,
         })
 
