@@ -12,10 +12,10 @@ import {
 import { NumericFormat } from "react-number-format"
 import { FormatValue } from "@components/ui/MoneyUtils"
 import {
-  isCashRelated,
   isCash,
-  supportsBalanceSetting,
+  isCashRelated,
   isAccount,
+  supportsBalanceSetting,
 } from "@lib/assets/assetUtils"
 import { headers } from "./Header"
 import Link from "next/link"
@@ -294,7 +294,9 @@ export default function Rows({
             key={`${groupBy}-${valueIn}-${index}`}
             className="holding-row text-sm bg-white hover:!bg-slate-200 transition-colors duration-200 cursor-pointer"
             onClick={() =>
-              router.push(`/trns/trades/${portfolio.id}/${asset.id}`)
+              supportsBalanceSetting(asset)
+                ? router.push(`/trns/cash-ladder/${portfolio.id}/${asset.id}`)
+                : router.push(`/trns/trades/${portfolio.id}/${asset.id}`)
             }
           >
             <td className="px-0.5 py-1 sm:px-2 md:px-3 text-ellipsis min-w-0">
