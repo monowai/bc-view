@@ -46,19 +46,25 @@ describe("Portfolios Page", () => {
     })
 
     expect(screen.getByText("portfolio.code")).toBeInTheDocument()
-    expect(screen.getByText("P123")).toBeInTheDocument()
-    expect(screen.getByText("Portfolio 1")).toBeInTheDocument()
+    // Page has both mobile and desktop layouts, so P123 appears twice
+    expect(screen.getAllByText("P123").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("Portfolio 1").length).toBeGreaterThan(0)
+    // Currency symbols appear in both mobile and desktop layouts
     expect(
-      screen.getByText((content, element) => {
-        return element?.textContent === "$USD"
-      }),
-    ).toBeInTheDocument()
+      screen.getAllByText((content, element) => {
+        return (
+          element?.textContent === "$USD" || element?.textContent === "$ USD"
+        )
+      }).length,
+    ).toBeGreaterThan(0)
 
     expect(
-      screen.getByText((content, element) => {
-        return element?.textContent === "€EUR"
-      }),
-    ).toBeInTheDocument()
+      screen.getAllByText((content, element) => {
+        return (
+          element?.textContent === "€EUR" || element?.textContent === "€ EUR"
+        )
+      }).length,
+    ).toBeGreaterThan(0)
   })
 
   it("handles no portfolios correctly", async () => {

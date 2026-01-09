@@ -10,7 +10,6 @@ export default withApiAuthRequired(async function currencies(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
-  console.log(`Registering user @ \`${baseUrl}/register`)
   try {
     const { accessToken } = await getAccessToken(req, res)
     const response = await fetch(`${baseUrl}/register`, {

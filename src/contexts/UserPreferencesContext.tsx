@@ -19,6 +19,7 @@ import {
   VALUE_IN_OPTIONS,
   ValueInOption,
 } from "types/constants"
+import { useRegistration } from "./RegistrationContext"
 
 interface UserPreferencesContextValue {
   preferences: UserPreferences | null
@@ -32,6 +33,7 @@ const defaultPreferences: UserPreferences = {
   defaultValueIn: VALUE_IN_OPTIONS.PORTFOLIO,
   defaultGroupBy: GROUP_BY_API_VALUES.ASSET_CLASS,
   baseCurrencyCode: "USD",
+  reportingCurrencyCode: "USD",
   showWeightedIrr: true,
 }
 
@@ -47,12 +49,13 @@ export function UserPreferencesProvider({
   children: React.ReactNode
 }): React.ReactElement {
   const { user, isLoading: userLoading } = useUser()
+  const { isRegistered, isChecking: registrationChecking } = useRegistration()
   const [preferences, setPreferences] = useState<UserPreferences | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   const fetchPreferences = useCallback(async (): Promise<void> => {
-    if (!user) {
-      setPreferences(null)
+    if (!user || !isRegistered) {
+      setPreferences(defaultPreferences)
       setIsLoading(false)
       return
     }
@@ -77,13 +80,14 @@ export function UserPreferencesProvider({
     } finally {
       setIsLoading(false)
     }
-  }, [user])
+  }, [user, isRegistered])
 
   useEffect(() => {
-    if (!userLoading) {
+    // Wait for both user loading and registration to complete
+    if (!userLoading && !registrationChecking) {
       fetchPreferences()
     }
-  }, [userLoading, fetchPreferences])
+  }, [userLoading, registrationChecking, fetchPreferences])
 
   return (
     <UserPreferencesContext.Provider

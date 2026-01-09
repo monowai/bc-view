@@ -126,42 +126,47 @@ export default withPageAuthRequired(
             // Fetch classifications for assets that exist in BC
             const assetsWithIds = results.filter((r) => r.assetId)
             if (assetsWithIds.length > 0) {
-              const classificationPromises = assetsWithIds.map(async (asset) => {
-                try {
-                  // Fetch both classifications and exposures
-                  const [classResponse, exposuresResponse] = await Promise.all([
-                    fetch(`/api/classifications/${asset.assetId}`),
-                    fetch(`/api/classifications/${asset.assetId}/exposures`),
-                  ])
+              const classificationPromises = assetsWithIds.map(
+                async (asset) => {
+                  try {
+                    // Fetch both classifications and exposures
+                    const [classResponse, exposuresResponse] =
+                      await Promise.all([
+                        fetch(`/api/classifications/${asset.assetId}`),
+                        fetch(
+                          `/api/classifications/${asset.assetId}/exposures`,
+                        ),
+                      ])
 
-                  let sector: string | undefined
+                    let sector: string | undefined
 
-                  // Check direct classification first
-                  if (classResponse.ok) {
-                    const classData = await classResponse.json()
-                    if (classData.data?.sector) {
-                      sector = classData.data.sector
+                    // Check direct classification first
+                    if (classResponse.ok) {
+                      const classData = await classResponse.json()
+                      if (classData.data?.sector) {
+                        sector = classData.data.sector
+                      }
                     }
-                  }
 
-                  // If no direct classification, check exposures (ETFs)
-                  if (!sector && exposuresResponse.ok) {
-                    const exposuresData: { data: ExposureItem[] } =
-                      await exposuresResponse.json()
-                    if (exposuresData.data && exposuresData.data.length > 0) {
-                      const primaryExposure = exposuresData.data.reduce(
-                        (max, exp) => (exp.weight > max.weight ? exp : max),
-                      )
-                      sector = primaryExposure.item.name
+                    // If no direct classification, check exposures (ETFs)
+                    if (!sector && exposuresResponse.ok) {
+                      const exposuresData: { data: ExposureItem[] } =
+                        await exposuresResponse.json()
+                      if (exposuresData.data && exposuresData.data.length > 0) {
+                        const primaryExposure = exposuresData.data.reduce(
+                          (max, exp) => (exp.weight > max.weight ? exp : max),
+                        )
+                        sector = primaryExposure.item.name
+                      }
                     }
-                  }
 
-                  return { assetId: asset.assetId, sector }
-                } catch {
-                  // Ignore classification fetch errors
-                  return { assetId: asset.assetId, sector: undefined }
-                }
-              })
+                    return { assetId: asset.assetId, sector }
+                  } catch {
+                    // Ignore classification fetch errors
+                    return { assetId: asset.assetId, sector: undefined }
+                  }
+                },
+              )
 
               const classifications = await Promise.all(classificationPromises)
               const classMap = new Map(
@@ -510,7 +515,9 @@ export default withPageAuthRequired(
                         <span className="font-medium text-gray-900">
                           {result.symbol}
                         </span>
-                        <span className="text-gray-500 ml-2">{result.name}</span>
+                        <span className="text-gray-500 ml-2">
+                          {result.name}
+                        </span>
                       </div>
                       <div className="text-sm text-gray-400">
                         {result.market || result.region}

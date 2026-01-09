@@ -1,0 +1,3 @@
+provider,type,tradeDate,settleDate,market,code,name,quantity,price,tradeCurrency,cashCurrency,tradeAmount,comments
+BC,DEPOSIT,2024-01-01,2024-01-01,PRIVATE,SAVINGS,My Savings Account,10000,1,NZD,NZD,10000,Initial deposit
+BC,BUY,2024-01-15,2024-01-17,NASDAQ,VOO,Vanguard S&P 500 ETF,10,400,USD,NZD,4000,First investment

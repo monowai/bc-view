@@ -324,7 +324,7 @@ function WealthDashboard(): React.ReactElement {
         <title>Net Worth | Holdsworth</title>
       </Head>
 
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-6">
+      <div className="min-h-screen bg-linear-to-br from-slate-50 to-blue-50 py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
@@ -360,7 +360,7 @@ function WealthDashboard(): React.ReactElement {
           </div>
 
           {/* Total Net Worth Card */}
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl shadow-xl p-8 mb-8 text-white">
+          <div className="bg-linear-to-r from-blue-600 to-blue-700 rounded-2xl shadow-xl p-8 mb-8 text-white">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
               <div>
                 <p className="text-blue-100 text-sm font-medium uppercase tracking-wider mb-1">
@@ -388,7 +388,7 @@ function WealthDashboard(): React.ReactElement {
                 </Link>
                 <Link
                   href="/retire"
-                  className="bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600 px-4 py-2 rounded-lg font-medium transition-colors flex items-center shadow-md"
+                  className="bg-linear-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600 px-4 py-2 rounded-lg font-medium transition-colors flex items-center shadow-md"
                 >
                   <i className="fas fa-umbrella-beach mr-2"></i>
                   Plan Retirement

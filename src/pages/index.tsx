@@ -1,6 +1,6 @@
 import { useUser, withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import Link from "next/link"
-import React from "react"
+import React, { useEffect, useState } from "react"
 import { useTranslation } from "next-i18next"
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
@@ -8,6 +8,8 @@ import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import useSwr from "swr"
 import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { Portfolio } from "types/beancounter"
+import { useRouter } from "next/router"
+import { useRegistration } from "@contexts/RegistrationContext"
 
 const capitalize = (str: string): string =>
   str ? str.charAt(0).toUpperCase() + str.slice(1) : ""
@@ -15,10 +17,52 @@ const capitalize = (str: string): string =>
 export default withPageAuthRequired(function Home(): React.ReactElement {
   const { user, error, isLoading } = useUser()
   const { t } = useTranslation("common")
-  const { preferences } = useUserPreferences()
+  const { preferences, isLoading: prefsLoading } = useUserPreferences()
+  const router = useRouter()
+  const [checkingOnboarding, setCheckingOnboarding] = useState(true)
+
+  // Get registration state from context
+  const { isChecking, isRegistered, isOnboardingComplete } = useRegistration()
 
   // Pre-fetch portfolios so they're cached for subsequent pages
-  useSwr<{ data: Portfolio[] }>(portfoliosKey, simpleFetcher(portfoliosKey))
+  const { data: portfoliosData } = useSwr<{ data: Portfolio[] }>(
+    // Only fetch portfolios once registered
+    isRegistered ? portfoliosKey : null,
+    simpleFetcher(portfoliosKey),
+  )
+
+  // Check if user needs onboarding
+  useEffect(() => {
+    if (isLoading || isChecking || prefsLoading) return
+
+    // If onboarding is complete (from context), show the home page
+    if (isOnboardingComplete) {
+      setCheckingOnboarding(false)
+      return
+    }
+
+    // Wait for portfolios data to load before deciding
+    if (!isRegistered || portfoliosData === undefined) {
+      return // Still loading portfolios
+    }
+
+    // If user has portfolios, they've completed onboarding (even if localStorage was cleared)
+    if (portfoliosData?.data?.length > 0) {
+      setCheckingOnboarding(false)
+      return
+    }
+
+    // No portfolios - redirect to onboarding
+    router.replace("/onboarding")
+  }, [
+    isLoading,
+    isChecking,
+    prefsLoading,
+    isRegistered,
+    isOnboardingComplete,
+    portfoliosData,
+    router,
+  ])
 
   const displayName = preferences?.preferredName
     ? preferences.preferredName
@@ -26,7 +70,7 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
       ? capitalize(user.nickname)
       : user?.name || ""
 
-  if (isLoading)
+  if (isLoading || isChecking || checkingOnboarding)
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>

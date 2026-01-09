@@ -336,7 +336,8 @@ export interface UserPreferences {
   defaultHoldingsView: HoldingsView
   defaultValueIn: ValueInOption
   defaultGroupBy: GroupByApiValue // Backend stores enum names
-  baseCurrencyCode: string
+  baseCurrencyCode: string // System base currency for cost tracking
+  reportingCurrencyCode: string // Default currency for displaying values
   showWeightedIrr: boolean
 }
 
@@ -346,6 +347,7 @@ export interface UserPreferencesRequest {
   defaultValueIn?: ValueInOption
   defaultGroupBy?: GroupByApiValue // Send enum names to backend
   baseCurrencyCode?: string
+  reportingCurrencyCode?: string
   showWeightedIrr?: boolean
 }
 

@@ -364,9 +364,7 @@ export default withPageAuthRequired(function Portfolios({
             <h2 className="text-xl font-semibold text-gray-900 mb-2">
               {t("portfolios.empty.title", "No portfolios yet")}
             </h2>
-            <p className="text-gray-600 mb-6">
-              {t("error.portfolios.empty")}
-            </p>
+            <p className="text-gray-600 mb-6">{t("error.portfolios.empty")}</p>
             <CreatePortfolioButton />
           </div>
         </div>
@@ -644,7 +642,9 @@ export default withPageAuthRequired(function Portfolios({
                     onClick={(e) => {
                       if (
                         !(e.target as HTMLElement).closest(".action-buttons") &&
-                        !(e.target as HTMLElement).closest(".selection-checkbox")
+                        !(e.target as HTMLElement).closest(
+                          ".selection-checkbox",
+                        )
                       ) {
                         router.push(`/holdings/${portfolio.code}`)
                       }
@@ -654,7 +654,9 @@ export default withPageAuthRequired(function Portfolios({
                       <input
                         type="checkbox"
                         checked={selectedPortfolios.has(portfolio.code)}
-                        onChange={() => togglePortfolioSelection(portfolio.code)}
+                        onChange={() =>
+                          togglePortfolioSelection(portfolio.code)
+                        }
                         onClick={(e) => e.stopPropagation()}
                         className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
                       />
@@ -721,7 +723,10 @@ export default withPageAuthRequired(function Portfolios({
                             )
                           }}
                           className="text-gray-400 hover:text-red-600 transition-colors"
-                          title={t("portfolio.delete.title", "Delete Portfolio")}
+                          title={t(
+                            "portfolio.delete.title",
+                            "Delete Portfolio",
+                          )}
                         >
                           <i className="far fa-trash-alt text-lg"></i>
                         </button>
@@ -732,7 +737,10 @@ export default withPageAuthRequired(function Portfolios({
               </tbody>
               <tfoot className="bg-gray-50 border-t-2 border-gray-200">
                 <tr>
-                  <td colSpan={5} className="px-4 py-3 text-right font-bold text-gray-700">
+                  <td
+                    colSpan={5}
+                    className="px-4 py-3 text-right font-bold text-gray-700"
+                  >
                     {t("portfolios.total")}
                   </td>
                   <td className="px-4 py-3 text-right font-bold text-gray-900 text-lg">
