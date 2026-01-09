@@ -10,6 +10,7 @@ export type TrnType =
   | "INCOME"
   | "DEDUCTION"
   | "FX"
+  | "FX_BUY"
   | "ADD"
   | "REDUCE"
   | "BALANCE"

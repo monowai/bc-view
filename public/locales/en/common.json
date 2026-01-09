@@ -139,6 +139,8 @@
   "cash.transfer.insufficientBalance": "Amount exceeds available balance",
   "cash.transfer.receivedExceedsSent": "Received amount cannot exceed sent amount",
   "cash.transfer.confirm": "Transfer",
+  "cash.ladder.title": "Cash Ladder",
+  "cash.ladder.balance": "Balance",
   "trn.amount.trade": "Amount",
   "trn.asset.code": "Asset",
   "trn.asset.search.placeholder": "Search for asset...",
