@@ -4,6 +4,8 @@
   "cancel": "Cancel",
   "next": "Next",
   "back": "Back",
+  "new": "New",
+  "selected": "selected",
   "optional": "optional",
   "loading": "Loading...",
   "user.logout": "Logout",
