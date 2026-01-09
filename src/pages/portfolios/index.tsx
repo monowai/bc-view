@@ -56,9 +56,10 @@ const PortfolioActions = ({
   }
 
   return (
-    <div className="flex space-x-2">
+    <div className="flex items-center space-x-2">
+      {/* Import/Export hidden on mobile */}
       <button
-        className="bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition-colors flex items-center"
+        className="hidden md:flex bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition-colors items-center"
         onClick={handleExport}
         disabled={isExporting}
       >
@@ -70,17 +71,19 @@ const PortfolioActions = ({
         {t("portfolios.export")}
       </button>
       <button
-        className="bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition-colors flex items-center"
+        className="hidden md:flex bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition-colors items-center"
         onClick={onImportClick}
       >
         <i className="fas fa-upload mr-2"></i>
         {t("portfolios.import")}
       </button>
       <button
-        className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition-colors"
+        className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors flex items-center shadow-sm"
         onClick={() => router.push(`/portfolios/__NEW__`)}
       >
-        {t("portfolio.create")}
+        <i className="fas fa-plus mr-2"></i>
+        <span className="hidden sm:inline">{t("portfolio.create")}</span>
+        <span className="sm:hidden">{t("new")}</span>
       </button>
     </div>
   )
@@ -92,9 +95,10 @@ const CreatePortfolioButton = (): React.ReactElement => {
 
   return (
     <button
-      className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition-colors"
+      className="bg-blue-500 text-white py-3 px-6 rounded-lg hover:bg-blue-600 transition-colors shadow-sm flex items-center"
       onClick={() => router.push(`/portfolios/__NEW__`)}
     >
+      <i className="fas fa-plus mr-2"></i>
       {t("portfolio.create")}
     </button>
   )
@@ -352,11 +356,17 @@ export default withPageAuthRequired(function Portfolios({
   function listPortfolios(portfolios: Portfolio[]): React.ReactElement {
     if (!portfolios || portfolios.length == 0) {
       return (
-        <div className="w-full py-4">
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
-            <div className="text-gray-600 mb-4">
-              {t("error.portfolios.empty")}
+        <div className="min-h-screen bg-gray-50 px-4 py-8">
+          <div className="max-w-lg mx-auto bg-white border border-gray-200 rounded-xl p-8 text-center shadow-sm">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <i className="fas fa-folder-open text-2xl text-gray-400"></i>
             </div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              {t("portfolios.empty.title", "No portfolios yet")}
+            </h2>
+            <p className="text-gray-600 mb-6">
+              {t("error.portfolios.empty")}
+            </p>
             <CreatePortfolioButton />
           </div>
         </div>
@@ -373,44 +383,61 @@ export default withPageAuthRequired(function Portfolios({
       portfolios.length > 0 && selectedPortfolios.size === portfolios.length
 
     return (
-      <div className="w-full py-4">
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex items-center space-x-4">
-            <h1 className="text-2xl font-bold text-gray-900">
-              {t("portfolios.title", "Portfolios")}
-            </h1>
-            {currencies.length > 0 && displayCurrency && (
-              <select
-                value={displayCurrency.code}
-                onChange={(e) => {
-                  const selected = currencies.find(
-                    (c) => c.code === e.target.value,
-                  )
-                  if (selected) setDisplayCurrency(selected)
-                }}
-                className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                title={t("portfolios.currency.display")}
-              >
-                {currencies.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.symbol}
-                    {c.code}
-                  </option>
-                ))}
-              </select>
-            )}
-            {selectedPortfolios.size > 0 && (
-              <>
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+          <div className="px-4 py-4">
+            {/* Title row */}
+            <div className="flex justify-between items-center mb-3">
+              <div className="flex items-center space-x-3">
                 <button
-                  className="bg-amber-500 text-white py-2 px-4 rounded hover:bg-amber-600 transition-colors flex items-center"
+                  onClick={() => router.push("/wealth")}
+                  className="text-gray-500 hover:text-gray-700 p-1 -ml-1"
+                  title={t("wealth.title", "Wealth")}
+                >
+                  <i className="fas fa-arrow-left text-lg"></i>
+                </button>
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+                  {t("portfolios.title", "Portfolios")}
+                </h1>
+                {currencies.length > 0 && displayCurrency && (
+                  <select
+                    value={displayCurrency.code}
+                    onChange={(e) => {
+                      const selected = currencies.find(
+                        (c) => c.code === e.target.value,
+                      )
+                      if (selected) setDisplayCurrency(selected)
+                    }}
+                    className="border border-gray-300 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                    title={t("portfolios.currency.display")}
+                  >
+                    {currencies.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.symbol} {c.code}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+              <PortfolioActions onImportClick={handleImportClick} />
+            </div>
+
+            {/* Selection actions - only show when portfolios selected */}
+            {selectedPortfolios.size > 0 && (
+              <div className="flex items-center space-x-2 pt-2 border-t border-gray-100">
+                <span className="text-sm text-gray-600">
+                  {selectedPortfolios.size} {t("selected")}
+                </span>
+                <button
+                  className="bg-amber-500 text-white py-1.5 px-3 rounded-lg hover:bg-amber-600 transition-colors flex items-center text-sm"
                   onClick={handleViewAggregated}
                 >
-                  <i className="fas fa-layer-group mr-2"></i>
-                  {t("portfolios.viewHoldings", "View Holdings")} (
-                  {selectedPortfolios.size})
+                  <i className="fas fa-layer-group mr-1.5"></i>
+                  {t("portfolios.viewHoldings", "Holdings")}
                 </button>
                 <button
-                  className="bg-indigo-500 text-white py-2 px-4 rounded hover:bg-indigo-600 transition-colors flex items-center"
+                  className="bg-indigo-500 text-white py-1.5 px-3 rounded-lg hover:bg-indigo-600 transition-colors flex items-center text-sm"
                   onClick={() => {
                     const codes = Array.from(selectedPortfolios).join(",")
                     router.push(
@@ -418,194 +445,305 @@ export default withPageAuthRequired(function Portfolios({
                     )
                   }}
                 >
-                  <i className="fas fa-balance-scale mr-2"></i>
-                  {t("portfolios.rebalance", "Rebalance")} (
-                  {selectedPortfolios.size})
+                  <i className="fas fa-balance-scale mr-1.5"></i>
+                  {t("portfolios.rebalance", "Rebalance")}
                 </button>
-              </>
+              </div>
             )}
           </div>
-          <PortfolioActions onImportClick={handleImportClick} />
         </div>
 
-        <div className="bg-white shadow-sm border border-gray-200 rounded-lg overflow-hidden">
-          <table className="min-w-full">
-            <thead className="bg-gray-100">
-              <tr className="border-b border-gray-200">
-                <th className="px-4 py-3 text-center w-10">
-                  <input
-                    type="checkbox"
-                    checked={allSelected}
-                    onChange={toggleAllSelection}
-                    className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
-                    title={t("portfolios.selectAll", "Select all")}
-                  />
-                </th>
-                <th
-                  className="px-4 py-3 text-left text-xs sm:text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors select-none"
-                  onClick={() => handleSort("code")}
-                >
-                  <div className="flex items-center">
-                    {t("portfolio.code")}
-                    {getSortIcon("code")}
-                  </div>
-                </th>
-                <th
-                  className="px-4 py-3 text-left text-xs sm:text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors select-none"
-                  onClick={() => handleSort("name")}
-                >
-                  <div className="flex items-center">
-                    {t("portfolio.name")}
-                    {getSortIcon("name")}
-                  </div>
-                </th>
-                <th
-                  className="px-4 py-3 text-left text-xs sm:text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors select-none hidden md:table-cell"
-                  onClick={() => handleSort("currency")}
-                >
-                  <div className="flex items-center">
-                    {t("portfolio.currency.report")}
-                    {getSortIcon("currency")}
-                  </div>
-                </th>
-                <th
-                  className="px-4 py-3 text-left text-xs sm:text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors select-none hidden lg:table-cell"
-                  onClick={() => handleSort("base")}
-                >
-                  <div className="flex items-center">
-                    {t("portfolio.currency.base")}
-                    {getSortIcon("base")}
-                  </div>
-                </th>
-                <th
-                  className="px-4 py-3 text-right text-xs sm:text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors select-none"
-                  onClick={() => handleSort("marketValue")}
-                >
-                  <div className="flex items-center justify-end">
-                    {t("portfolio.marketvalue")}
-                    {getSortIcon("marketValue")}
-                  </div>
-                </th>
-                <th
-                  className="px-4 py-3 text-right text-xs sm:text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors select-none hidden sm:table-cell"
-                  onClick={() => handleSort("irr")}
-                >
-                  <div className="flex items-center justify-end">
-                    {t("portfolio.irr")}
-                    {getSortIcon("irr")}
-                  </div>
-                </th>
-                <th className="px-4 py-3 text-center text-xs sm:text-sm font-medium text-gray-700">
-                  {t("portfolio.actions")}
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {portfolios.map((portfolio) => (
-                <tr
-                  key={portfolio.id}
-                  className={`hover:!bg-slate-200 transition-colors duration-200 cursor-pointer ${
-                    selectedPortfolios.has(portfolio.code) ? "bg-blue-50" : ""
-                  }`}
-                  onClick={(e) => {
-                    // Don't navigate if clicking on action buttons or checkbox
-                    if (
-                      !(e.target as HTMLElement).closest(".action-buttons") &&
-                      !(e.target as HTMLElement).closest(".selection-checkbox")
-                    ) {
-                      router.push(`/holdings/${portfolio.code}`)
-                    }
-                  }}
-                >
-                  <td className="px-4 py-3 text-center selection-checkbox">
+        {/* Mobile: Card layout */}
+        <div className="md:hidden px-4 py-4 space-y-3">
+          {portfolios.map((portfolio) => (
+            <div
+              key={portfolio.id}
+              className={`bg-white rounded-xl shadow-sm border overflow-hidden ${
+                selectedPortfolios.has(portfolio.code)
+                  ? "border-blue-300 bg-blue-50"
+                  : "border-gray-200"
+              }`}
+            >
+              <div
+                className="p-4 cursor-pointer"
+                onClick={() => router.push(`/holdings/${portfolio.code}`)}
+              >
+                <div className="flex justify-between items-start mb-3">
+                  <div className="flex items-center space-x-3">
                     <input
                       type="checkbox"
                       checked={selectedPortfolios.has(portfolio.code)}
                       onChange={() => togglePortfolioSelection(portfolio.code)}
                       onClick={(e) => e.stopPropagation()}
-                      className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                      className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
                     />
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="text-blue-600 font-medium">
-                      {portfolio.code}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-900">{portfolio.name}</td>
-                  <td className="px-4 py-3 text-gray-600 hidden md:table-cell">
+                    <div>
+                      <div className="font-semibold text-blue-600">
+                        {portfolio.code}
+                      </div>
+                      <div className="text-gray-900">{portfolio.name}</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-lg font-bold text-gray-900">
+                      {displayCurrency?.symbol}
+                      <FormatValue
+                        value={
+                          (portfolio.marketValue ? portfolio.marketValue : 0) *
+                          fxRate
+                        }
+                      />
+                    </div>
+                    <div
+                      className={`text-sm font-medium ${
+                        (portfolio.irr || 0) >= 0
+                          ? "text-green-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      <FormatValue value={portfolio.irr} multiplier={100} />%
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between text-sm text-gray-500">
+                  <span>
                     {portfolio.currency.symbol}
                     {portfolio.currency.code}
-                  </td>
-                  <td className="px-4 py-3 text-gray-600 hidden lg:table-cell">
-                    {portfolio.base.symbol}
-                    {portfolio.base.code}
-                  </td>
-                  <td className="px-4 py-3 text-right font-medium text-gray-900">
-                    <FormatValue
-                      value={
-                        (portfolio.marketValue ? portfolio.marketValue : 0) *
-                        fxRate
+                  </span>
+                  <div
+                    className="flex items-center space-x-4"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      onClick={() => setCorporateActionsPortfolio(portfolio)}
+                      className="text-blue-500 hover:text-blue-700 p-1"
+                      title={t("corporate.portfolio.scan")}
+                    >
+                      <i className="fas fa-calendar-check"></i>
+                    </button>
+                    <Link
+                      href={`/portfolios/${portfolio.id}`}
+                      className="text-blue-500 hover:text-blue-700 p-1"
+                      title={t("portfolio.edit", "Edit")}
+                    >
+                      <i className="far fa-edit"></i>
+                    </Link>
+                    <button
+                      onClick={() =>
+                        deletePortfolio(
+                          portfolio.id,
+                          t("portfolio.delete", { code: portfolio.code }),
+                        )
                       }
+                      className="text-red-500 hover:text-red-700 p-1"
+                      title={t("portfolio.delete.title", "Delete")}
+                    >
+                      <i className="far fa-trash-alt"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {/* Mobile total */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+            <div className="flex justify-between items-center">
+              <span className="font-semibold text-gray-700">
+                {t("portfolios.total")}
+              </span>
+              <span className="text-xl font-bold text-gray-900">
+                {displayCurrency?.symbol}
+                <FormatValue value={totalMarketValue} />
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop: Table layout */}
+        <div className="hidden md:block px-4 py-4">
+          <div className="bg-white shadow-sm border border-gray-200 rounded-xl overflow-hidden">
+            <table className="min-w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-4 py-3 text-center w-12">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={toggleAllSelection}
+                      className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                      title={t("portfolios.selectAll", "Select all")}
                     />
-                  </td>
-                  <td className="px-4 py-3 text-right font-medium text-gray-900 hidden sm:table-cell">
-                    <FormatValue value={portfolio.irr} multiplier={100} />%
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="action-buttons flex items-center justify-center space-x-2">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setCorporateActionsPortfolio(portfolio)
-                        }}
-                        className="text-blue-500 hover:text-blue-700 transition-colors"
-                        title={t("corporate.portfolio.scan")}
-                      >
-                        <span className="fas fa-calendar-check text-lg"></span>
-                      </button>
-                      <Link
-                        href={`/portfolios/${portfolio.id}`}
-                        className="text-blue-500 hover:text-blue-700 transition-colors"
-                        title={t("portfolio.edit", "Edit Portfolio")}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <span className="far fa-edit text-lg"></span>
-                      </Link>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          deletePortfolio(
-                            portfolio.id,
-                            t("portfolio.delete", { code: portfolio.code }),
-                          )
-                        }}
-                        className="text-red-500 hover:text-red-700 transition-colors"
-                        title={t("portfolio.delete.title", "Delete Portfolio")}
-                      >
-                        <span className="far fa-trash-alt text-lg"></span>
-                      </button>
+                  </th>
+                  <th
+                    className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("code")}
+                  >
+                    <div className="flex items-center">
+                      {t("portfolio.code")}
+                      {getSortIcon("code")}
                     </div>
-                  </td>
+                  </th>
+                  <th
+                    className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("name")}
+                  >
+                    <div className="flex items-center">
+                      {t("portfolio.name")}
+                      {getSortIcon("name")}
+                    </div>
+                  </th>
+                  <th
+                    className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("currency")}
+                  >
+                    <div className="flex items-center">
+                      {t("portfolio.currency.report")}
+                      {getSortIcon("currency")}
+                    </div>
+                  </th>
+                  <th
+                    className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors hidden lg:table-cell"
+                    onClick={() => handleSort("base")}
+                  >
+                    <div className="flex items-center">
+                      {t("portfolio.currency.base")}
+                      {getSortIcon("base")}
+                    </div>
+                  </th>
+                  <th
+                    className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("marketValue")}
+                  >
+                    <div className="flex items-center justify-end">
+                      {t("portfolio.marketvalue")}
+                      {getSortIcon("marketValue")}
+                    </div>
+                  </th>
+                  <th
+                    className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("irr")}
+                  >
+                    <div className="flex items-center justify-end">
+                      {t("portfolio.irr")}
+                      {getSortIcon("irr")}
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider w-32">
+                    {t("portfolio.actions")}
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-            <tfoot className="bg-gray-100 border-t-2 border-gray-300">
-              <tr>
-                <td
-                  colSpan={5}
-                  className="px-4 py-3 text-right font-bold text-gray-900"
-                >
-                  {t("portfolios.total")}
-                </td>
-                <td className="px-4 py-3 text-right font-bold text-gray-900">
-                  {displayCurrency?.symbol}
-                  <FormatValue value={totalMarketValue} />
-                </td>
-                <td className="hidden sm:table-cell"></td>
-                <td></td>
-              </tr>
-            </tfoot>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {portfolios.map((portfolio) => (
+                  <tr
+                    key={portfolio.id}
+                    className={`hover:bg-gray-50 transition-colors cursor-pointer ${
+                      selectedPortfolios.has(portfolio.code) ? "bg-blue-50" : ""
+                    }`}
+                    onClick={(e) => {
+                      if (
+                        !(e.target as HTMLElement).closest(".action-buttons") &&
+                        !(e.target as HTMLElement).closest(".selection-checkbox")
+                      ) {
+                        router.push(`/holdings/${portfolio.code}`)
+                      }
+                    }}
+                  >
+                    <td className="px-4 py-3 text-center selection-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={selectedPortfolios.has(portfolio.code)}
+                        onChange={() => togglePortfolioSelection(portfolio.code)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-blue-600 font-semibold">
+                        {portfolio.code}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-900 font-medium">
+                      {portfolio.name}
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">
+                      {portfolio.currency.symbol} {portfolio.currency.code}
+                    </td>
+                    <td className="px-4 py-3 text-gray-600 hidden lg:table-cell">
+                      {portfolio.base.symbol} {portfolio.base.code}
+                    </td>
+                    <td className="px-4 py-3 text-right font-semibold text-gray-900">
+                      <FormatValue
+                        value={
+                          (portfolio.marketValue ? portfolio.marketValue : 0) *
+                          fxRate
+                        }
+                      />
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <span
+                        className={`font-semibold ${
+                          (portfolio.irr || 0) >= 0
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        <FormatValue value={portfolio.irr} multiplier={100} />%
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="action-buttons flex items-center justify-center space-x-3">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setCorporateActionsPortfolio(portfolio)
+                          }}
+                          className="text-gray-400 hover:text-blue-600 transition-colors"
+                          title={t("corporate.portfolio.scan")}
+                        >
+                          <i className="fas fa-calendar-check text-lg"></i>
+                        </button>
+                        <Link
+                          href={`/portfolios/${portfolio.id}`}
+                          className="text-gray-400 hover:text-blue-600 transition-colors"
+                          title={t("portfolio.edit", "Edit Portfolio")}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <i className="far fa-edit text-lg"></i>
+                        </Link>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            deletePortfolio(
+                              portfolio.id,
+                              t("portfolio.delete", { code: portfolio.code }),
+                            )
+                          }}
+                          className="text-gray-400 hover:text-red-600 transition-colors"
+                          title={t("portfolio.delete.title", "Delete Portfolio")}
+                        >
+                          <i className="far fa-trash-alt text-lg"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot className="bg-gray-50 border-t-2 border-gray-200">
+                <tr>
+                  <td colSpan={5} className="px-4 py-3 text-right font-bold text-gray-700">
+                    {t("portfolios.total")}
+                  </td>
+                  <td className="px-4 py-3 text-right font-bold text-gray-900 text-lg">
+                    {displayCurrency?.symbol}
+                    <FormatValue value={totalMarketValue} />
+                  </td>
+                  <td colSpan={2}></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
         </div>
       </div>
     )
