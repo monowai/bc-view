@@ -64,6 +64,8 @@ function SettingsPage(): React.ReactElement {
     GROUP_BY_API_VALUES.ASSET_CLASS,
   )
   const [baseCurrencyCode, setBaseCurrencyCode] = useState<string>("USD")
+  const [reportingCurrencyCode, setReportingCurrencyCode] =
+    useState<string>("USD")
   const [showWeightedIrr, setShowWeightedIrr] = useState<boolean>(false)
 
   // Fetch current preferences and currencies
@@ -88,6 +90,10 @@ function SettingsPage(): React.ReactElement {
                 GROUP_BY_API_VALUES.ASSET_CLASS,
             )
             setBaseCurrencyCode(meData.preferences.baseCurrencyCode)
+            setReportingCurrencyCode(
+              meData.preferences.reportingCurrencyCode ||
+                meData.preferences.baseCurrencyCode,
+            )
             setShowWeightedIrr(meData.preferences.showWeightedIrr ?? false)
           }
         }
@@ -121,6 +127,7 @@ function SettingsPage(): React.ReactElement {
         defaultValueIn,
         defaultGroupBy,
         baseCurrencyCode,
+        reportingCurrencyCode,
         showWeightedIrr,
       }
 
@@ -263,7 +270,7 @@ function SettingsPage(): React.ReactElement {
               </p>
             </div>
 
-            {/* Base Currency */}
+            {/* System Base Currency */}
             <div>
               <label
                 htmlFor="baseCurrency"
@@ -285,6 +292,31 @@ function SettingsPage(): React.ReactElement {
               </select>
               <p className="mt-1 text-sm text-gray-500">
                 {t("settings.baseCurrency.description")}
+              </p>
+            </div>
+
+            {/* Reporting Currency */}
+            <div>
+              <label
+                htmlFor="reportingCurrency"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                {t("settings.reportingCurrency")}
+              </label>
+              <select
+                id="reportingCurrency"
+                value={reportingCurrencyCode}
+                onChange={(e) => setReportingCurrencyCode(e.target.value)}
+                className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-500 focus:border-blue-500"
+              >
+                {currencies.map((currency) => (
+                  <option key={currency.code} value={currency.code}>
+                    {currency.code} - {currency.name} ({currency.symbol})
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-sm text-gray-500">
+                {t("settings.reportingCurrency.description")}
               </p>
             </div>
 

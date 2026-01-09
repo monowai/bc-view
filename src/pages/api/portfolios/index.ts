@@ -14,7 +14,7 @@ export default withApiAuthRequired(async function portfolios(
   try {
     const { accessToken } = await getAccessToken(req, res)
     const { method } = req
-    console.log(`${method} / portfolios`)
+    console.log(`${method} /portfolios`)
     switch (method?.toUpperCase()) {
       case "GET": {
         const response = await fetch(
@@ -24,6 +24,17 @@ export default withApiAuthRequired(async function portfolios(
         await handleResponse<Portfolio[]>(response, res)
         break
       }
+      case "POST": {
+        const response = await fetch(`${baseUrl}`, {
+          ...requestInit(accessToken, "POST", req),
+          body: JSON.stringify(req.body),
+        })
+        await handleResponse<Portfolio>(response, res)
+        break
+      }
+      default:
+        res.setHeader("Allow", ["GET", "POST"])
+        res.status(405).end(`Method ${method} Not Allowed`)
     }
   } catch (error: any) {
     fetchError(res, req, error)

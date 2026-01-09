@@ -17,7 +17,7 @@ export default handleAuth({
           // Add additional security parameters
           prompt: "login", // Force re-authentication for sensitive apps
         },
-        returnTo: (req.query.returnTo as string) || "/portfolios",
+        returnTo: (req.query.returnTo as string) || "/",
       })
     } catch (error: any) {
       fetchError(res, req, error)

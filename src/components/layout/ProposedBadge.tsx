@@ -2,7 +2,7 @@ import React from "react"
 import useSwr from "swr"
 import Link from "next/link"
 import { fetcher } from "@utils/api/fetchHelper"
-import { useUser } from "@auth0/nextjs-auth0/client"
+import { useRegistration } from "@contexts/RegistrationContext"
 
 interface ProposedCountResponse {
   count: number
@@ -13,11 +13,11 @@ interface ProposedCountResponse {
  * that need user review. Clicking navigates to the proposed transactions page.
  */
 export default function ProposedBadge(): React.ReactElement | null {
-  const { user, isLoading: userLoading } = useUser()
+  const { isRegistered, isChecking } = useRegistration()
 
-  // Only fetch when user is authenticated
+  // Only fetch when user is registered (not just authenticated)
   const { data, error } = useSwr<ProposedCountResponse>(
-    user ? "/api/trns/proposed/count" : null,
+    isRegistered ? "/api/trns/proposed/count" : null,
     fetcher,
     {
       refreshInterval: 60000, // Refresh every minute
@@ -25,8 +25,8 @@ export default function ProposedBadge(): React.ReactElement | null {
     },
   )
 
-  // Don't show anything while loading or if there's an error
-  if (userLoading || error || !data) {
+  // Don't show anything while checking registration or if there's an error
+  if (isChecking || error || !data) {
     return null
   }
 

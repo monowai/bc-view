@@ -1,14 +1,14 @@
-import React, {useCallback, useMemo} from "react"
-import {NumericFormat} from "react-number-format"
-import {GetServerSideProps} from "next"
-import {serverSideTranslations} from "next-i18next/serverSideTranslations"
-import {withPageAuthRequired} from "@auth0/nextjs-auth0/client"
-import {useRouter} from "next/router"
-import {assetKey, portfolioKey, simpleFetcher} from "@utils/api/fetchHelper"
-import {useTranslation} from "next-i18next"
-import {Asset, Portfolio, Transaction} from "types/beancounter"
-import {rootLoader} from "@components/ui/PageLoader"
-import {errorOut} from "@components/errors/ErrorOut"
+import React, { useCallback, useMemo } from "react"
+import { NumericFormat } from "react-number-format"
+import { GetServerSideProps } from "next"
+import { serverSideTranslations } from "next-i18next/serverSideTranslations"
+import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
+import { useRouter } from "next/router"
+import { assetKey, portfolioKey, simpleFetcher } from "@utils/api/fetchHelper"
+import { useTranslation } from "next-i18next"
+import { Asset, Portfolio, Transaction } from "types/beancounter"
+import { rootLoader } from "@components/ui/PageLoader"
+import { errorOut } from "@components/errors/ErrorOut"
 import useSwr from "swr"
 
 // SWR key for cash ladder
@@ -127,7 +127,11 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
       const balanceAfterTrn = balance
       const signedAmount = getSignedCashAmount(trn, cashAssetId)
       balance -= signedAmount
-      return {...trn, runningBalance: balanceAfterTrn, signedCashAmount: signedAmount}
+      return {
+        ...trn,
+        runningBalance: balanceAfterTrn,
+        signedCashAmount: signedAmount,
+      }
     })
   }, [cashLadderData.data, getSignedCashAmount, cashAssetId])
 

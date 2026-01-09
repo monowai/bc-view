@@ -1,0 +1,64 @@
+{
+  "title": "Account Setup",
+  "subtitle": "Let's get your account ready",
+  "back": "Back",
+  "continue": "Continue",
+  "skipForNow": "Skip for now",
+  "completeSetup": "Complete Setup",
+  "goToWealth": "Go to Wealth Dashboard",
+  "creating": "Creating...",
+  "steps": {
+    "welcome": "Welcome",
+    "currency": "Currency",
+    "portfolio": "Portfolio",
+    "assets": "Assets",
+    "complete": "Complete"
+  },
+  "welcome": {
+    "title": "Welcome to Beancounter!",
+    "description": "Let's set up your account in a few quick steps. We'll help you create your first portfolio and add your accounts.",
+    "whatWellCover": "What we'll cover:",
+    "step1": "Choose your base currency",
+    "step2": "Create your first portfolio",
+    "step3": "Add your bank accounts & property",
+    "skipNote": "You can skip this setup and complete it later from settings."
+  },
+  "currency": {
+    "title": "Set your currencies",
+    "description": "Choose your base currency for cost tracking and your reporting currency for displaying values.",
+    "base": "System Base Currency",
+    "baseDescription": "Used for cost tracking and as the default jurisdiction for new portfolios.",
+    "reporting": "Reporting Currency",
+    "reportingDescription": "The currency used to display portfolio values and reports.",
+    "useSame": "Use the same currency for reporting values"
+  },
+  "portfolio": {
+    "title": "Name your first portfolio",
+    "description": "A portfolio groups your investments together. You might have separate portfolios for different goals like retirement, savings, or trading.",
+    "label": "Portfolio Name",
+    "placeholder": "My Portfolio",
+    "hint": "Example: Personal Investments, Retirement Fund, Trading Account"
+  },
+  "assets": {
+    "title": "Add your accounts",
+    "description": "Add bank accounts and property to track your complete wealth. This step is optional - you can add these later.",
+    "bankAccounts": "Bank Accounts",
+    "accountName": "Account name",
+    "balance": "Balance",
+    "property": "Property",
+    "propertyName": "Property name",
+    "purchasePrice": "Purchase price",
+    "currentValue": "Current",
+    "propertyHint": "Leave current value blank to use purchase price"
+  },
+  "complete": {
+    "title": "You're all set!",
+    "description": "Your account has been set up successfully. Here's what was created:",
+    "portfolio": "Portfolio:",
+    "bankAccounts": "{{count}} bank account(s)",
+    "properties": "{{count}} property(ies)",
+    "csvTitle": "Import Your Transactions",
+    "csvDescription": "Download our example CSV to see the format for importing transactions like deposits and stock purchases.",
+    "downloadCsv": "Download CSV Template"
+  }
+}
