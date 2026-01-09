@@ -974,9 +974,10 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
             <div
               key={trn.id}
               className="bg-white rounded-lg shadow p-4 space-y-2 cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() =>
+              onDoubleClick={() =>
                 router.push(`/trns/trades/edit/${trn.portfolio.id}/${trn.id}`)
               }
+              title={t("actions.doubleClickToEdit")}
             >
               <div className="flex justify-between items-start">
                 <div>
@@ -1138,11 +1139,12 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                 <tr
                   key={trn.id}
                   className="hover:bg-gray-50 cursor-pointer"
-                  onClick={() =>
+                  onDoubleClick={() =>
                     router.push(
                       `/trns/trades/edit/${trn.portfolio.id}/${trn.id}`,
                     )
                   }
+                  title={t("actions.doubleClickToEdit")}
                 >
                   <td className="px-4 py-3 whitespace-nowrap">{trn.trnType}</td>
                   <td className="px-4 py-3 whitespace-nowrap">

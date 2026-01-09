@@ -205,6 +205,8 @@
   "actions.menu": "Actions",
   "actions.quickSell": "Quick Sell",
   "actions.rebalance": "Rebalance",
+  "actions.doubleClickToOpen": "Double-click to open",
+  "actions.doubleClickToEdit": "Double-click to edit",
   "rebalance.title": "Rebalance Position",
   "rebalance.currentWeight": "Current Weight",
   "rebalance.targetWeight": "Target Weight",

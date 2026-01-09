@@ -293,11 +293,12 @@ export default function Rows({
           <tr
             key={`${groupBy}-${valueIn}-${index}`}
             className="holding-row text-sm bg-white hover:!bg-slate-200 transition-colors duration-200 cursor-pointer"
-            onClick={() =>
+            onDoubleClick={() =>
               supportsBalanceSetting(asset)
                 ? router.push(`/trns/cash-ladder/${portfolio.id}/${asset.id}`)
                 : router.push(`/trns/trades/${portfolio.id}/${asset.id}`)
             }
+            title={t("actions.doubleClickToOpen")}
           >
             <td className="px-0.5 py-1 sm:px-2 md:px-3 text-ellipsis min-w-0">
               {/* Unified layout: code on top, name below for both mobile and desktop */}

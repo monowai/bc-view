@@ -243,7 +243,8 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
                 <div
                   key={trn.id}
                   className="bg-white rounded-lg shadow p-4 space-y-2 cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => handleEditClick(trn)}
+                  onDoubleClick={() => handleEditClick(trn)}
+                  title={t("actions.doubleClickToEdit")}
                 >
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
@@ -343,7 +344,8 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
                     <tr
                       key={trn.id}
                       className="hover:bg-gray-50 cursor-pointer"
-                      onClick={() => handleEditClick(trn)}
+                      onDoubleClick={() => handleEditClick(trn)}
+                      title={t("actions.doubleClickToEdit")}
                     >
                       <td className="px-4 py-3 whitespace-nowrap">
                         {trn.tradeDate}

@@ -20,6 +20,13 @@ interface ClassificationResult {
   industry?: string
 }
 
+interface ExposureItem {
+  item: {
+    name: string
+  }
+  weight: number
+}
+
 interface SearchResult extends AssetSearchResult {
   currentSector?: string
 }
@@ -114,7 +121,62 @@ export default withPageAuthRequired(
           )
           if (response.ok) {
             const data = await response.json()
-            setSearchResults(data.data || [])
+            const results: SearchResult[] = data.data || []
+
+            // Fetch classifications for assets that exist in BC
+            const assetsWithIds = results.filter((r) => r.assetId)
+            if (assetsWithIds.length > 0) {
+              const classificationPromises = assetsWithIds.map(async (asset) => {
+                try {
+                  // Fetch both classifications and exposures
+                  const [classResponse, exposuresResponse] = await Promise.all([
+                    fetch(`/api/classifications/${asset.assetId}`),
+                    fetch(`/api/classifications/${asset.assetId}/exposures`),
+                  ])
+
+                  let sector: string | undefined
+
+                  // Check direct classification first
+                  if (classResponse.ok) {
+                    const classData = await classResponse.json()
+                    if (classData.data?.sector) {
+                      sector = classData.data.sector
+                    }
+                  }
+
+                  // If no direct classification, check exposures (ETFs)
+                  if (!sector && exposuresResponse.ok) {
+                    const exposuresData: { data: ExposureItem[] } =
+                      await exposuresResponse.json()
+                    if (exposuresData.data && exposuresData.data.length > 0) {
+                      const primaryExposure = exposuresData.data.reduce(
+                        (max, exp) => (exp.weight > max.weight ? exp : max),
+                      )
+                      sector = primaryExposure.item.name
+                    }
+                  }
+
+                  return { assetId: asset.assetId, sector }
+                } catch {
+                  // Ignore classification fetch errors
+                  return { assetId: asset.assetId, sector: undefined }
+                }
+              })
+
+              const classifications = await Promise.all(classificationPromises)
+              const classMap = new Map(
+                classifications.map((c) => [c.assetId, c.sector]),
+              )
+
+              // Merge classifications into results
+              const enrichedResults = results.map((r) => ({
+                ...r,
+                currentSector: r.assetId ? classMap.get(r.assetId) : undefined,
+              }))
+              setSearchResults(enrichedResults)
+            } else {
+              setSearchResults(results)
+            }
           }
         } catch (error) {
           console.error("Search failed:", error)
@@ -139,26 +201,73 @@ export default withPageAuthRequired(
       setCustomSector("")
       setMessage(null)
       setCurrentAssetSector(null)
-      setSelectedAsset(result)
 
-      // If we have an assetId, fetch current classification
-      if (result.assetId) {
+      let assetId = result.assetId
+      let updatedResult = result
+
+      // If no assetId, resolve (find/create) the asset in bc-data first
+      if (!assetId) {
         try {
-          const response = await fetch(`/api/classifications/${result.assetId}`)
-          if (response.ok) {
-            const data: { data: ClassificationResult } = await response.json()
-            if (data.data?.sector) {
-              setCurrentAssetSector(data.data.sector)
-              // Pre-select the current sector
-              const existingInDb = dbSectors.find(
-                (s) => s.name === data.data.sector,
+          const market = result.market || result.region || "US"
+          const resolveResponse = await fetch(
+            `/api/assets/resolve?market=${encodeURIComponent(market)}&code=${encodeURIComponent(result.symbol)}`,
+          )
+          if (resolveResponse.ok) {
+            const resolveData = await resolveResponse.json()
+            if (resolveData.data?.id) {
+              assetId = resolveData.data.id
+              updatedResult = { ...result, assetId }
+            }
+          }
+        } catch (error) {
+          console.error("Failed to resolve asset:", error)
+        }
+      }
+
+      setSelectedAsset(updatedResult)
+
+      // Fetch current classification and exposures
+      if (assetId) {
+        try {
+          // Fetch both classifications and exposures in parallel
+          const [classResponse, exposuresResponse] = await Promise.all([
+            fetch(`/api/classifications/${assetId}`),
+            fetch(`/api/classifications/${assetId}/exposures`),
+          ])
+
+          let sector: string | undefined
+
+          // Check direct classification first (equities)
+          if (classResponse.ok) {
+            const classData: { data: ClassificationResult } =
+              await classResponse.json()
+            if (classData.data?.sector) {
+              sector = classData.data.sector
+            }
+          }
+
+          // If no direct classification, check exposures (ETFs) for primary sector
+          if (!sector && exposuresResponse.ok) {
+            const exposuresData: { data: ExposureItem[] } =
+              await exposuresResponse.json()
+            if (exposuresData.data && exposuresData.data.length > 0) {
+              // Find the highest weighted sector
+              const primaryExposure = exposuresData.data.reduce((max, exp) =>
+                exp.weight > max.weight ? exp : max,
               )
-              if (existingInDb) {
-                setSelectedSector(data.data.sector)
-              } else {
-                setSelectedSector("custom")
-                setCustomSector(data.data.sector)
-              }
+              sector = primaryExposure.item.name
+            }
+          }
+
+          if (sector) {
+            setCurrentAssetSector(sector)
+            // Pre-select the current sector
+            const existingInDb = dbSectors.find((s) => s.name === sector)
+            if (existingInDb) {
+              setSelectedSector(sector)
+            } else {
+              setSelectedSector("custom")
+              setCustomSector(sector)
             }
           }
         } catch (error) {
@@ -393,21 +502,30 @@ export default withPageAuthRequired(
                 {searchResults.map((result, index) => (
                   <div
                     key={`${result.symbol}-${result.market}-${index}`}
-                    className="px-4 py-2 hover:bg-gray-50 cursor-pointer flex justify-between items-center"
+                    className="px-4 py-2 hover:bg-gray-50 cursor-pointer"
                     onClick={() => handleSelectAsset(result)}
                   >
-                    <div>
-                      <span className="font-medium text-gray-900">
-                        {result.symbol}
-                      </span>
-                      <span className="text-gray-500 ml-2">{result.name}</span>
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <span className="font-medium text-gray-900">
+                          {result.symbol}
+                        </span>
+                        <span className="text-gray-500 ml-2">{result.name}</span>
+                      </div>
+                      <div className="text-sm text-gray-400">
+                        {result.market || result.region}
+                        {result.type && (
+                          <span className="ml-2">({result.type})</span>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-400">
-                      {result.market || result.region}
-                      {result.type && (
-                        <span className="ml-2">({result.type})</span>
-                      )}
-                    </div>
+                    {result.currentSector && (
+                      <div className="mt-1">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                          {result.currentSector}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
