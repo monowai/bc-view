@@ -136,8 +136,7 @@ export default withPageAuthRequired(function Portfolios({
   // Currency display state
   const [currencies, setCurrencies] = useState<Currency[]>([])
   const [displayCurrency, setDisplayCurrency] = useState<Currency | null>(null)
-  const [fxRate, setFxRate] = useState<number>(1)
-  const [baseCurrency, setBaseCurrency] = useState<Currency | null>(null)
+  const [fxRates, setFxRates] = useState<Record<string, number>>({})
 
   // Fetch available currencies
   useEffect(() => {
@@ -153,7 +152,7 @@ export default withPageAuthRequired(function Portfolios({
 
   // Set default display currency from user's preferred base currency
   useEffect(() => {
-    if (currencies.length === 0 || baseCurrency) return
+    if (currencies.length === 0 || displayCurrency) return
 
     // Use user's preferred base currency if available
     if (preferences?.baseCurrencyCode) {
@@ -161,46 +160,59 @@ export default withPageAuthRequired(function Portfolios({
         (c) => c.code === preferences.baseCurrencyCode,
       )
       if (preferredCurrency) {
-        setBaseCurrency(preferredCurrency)
         setDisplayCurrency(preferredCurrency)
         return
       }
     }
 
-    // Fall back to first portfolio's currency if no preference
-    if (data?.data && data.data.length > 0) {
-      const reportCurrency = data.data[0].currency
-      setBaseCurrency(reportCurrency)
-      setDisplayCurrency(reportCurrency)
-    }
-  }, [data, baseCurrency, currencies, preferences?.baseCurrencyCode])
+    // Fall back to USD or first currency
+    const usd = currencies.find((c) => c.code === "USD")
+    setDisplayCurrency(usd || currencies[0])
+  }, [currencies, displayCurrency, preferences?.baseCurrencyCode])
 
-  // Fetch FX rate when display currency changes
+  // Fetch FX rates for portfolio base currencies
+  // Note: portfolio.marketValue is stored in the portfolio's BASE currency
   useEffect(() => {
-    if (!baseCurrency || !displayCurrency) return
-    if (baseCurrency.code === displayCurrency.code) {
-      setFxRate(1)
+    const portfolioList = data?.data
+    if (!displayCurrency || !portfolioList || portfolioList.length === 0) return
+
+    const uniqueCurrencies: string[] = [
+      ...new Set<string>(portfolioList.map((p: Portfolio) => p.base.code)),
+    ]
+    const pairs = uniqueCurrencies
+      .filter((code) => code !== displayCurrency.code)
+      .map((code) => ({ from: code, to: displayCurrency.code }))
+
+    if (pairs.length === 0) {
+      // All portfolios are in display currency
+      const rates: Record<string, number> = {}
+      uniqueCurrencies.forEach((code) => {
+        rates[code] = 1
+      })
+      setFxRates(rates)
       return
     }
 
     fetch("/api/fx", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        rateDate: "today",
-        pairs: [{ from: baseCurrency.code, to: displayCurrency.code }],
-      }),
+      body: JSON.stringify({ rateDate: "today", pairs }),
     })
       .then((res) => res.json())
       .then((fxResponse: FxResponse) => {
-        const pairKey = `${baseCurrency.code}:${displayCurrency.code}`
-        const rate = fxResponse.data?.rates?.[pairKey]?.rate
-        if (rate) {
-          setFxRate(rate)
-        }
+        const rates: Record<string, number> = {}
+        rates[displayCurrency.code] = 1
+
+        Object.entries(fxResponse.data?.rates || {}).forEach(
+          ([key, rateData]) => {
+            const [from] = key.split(":")
+            rates[from] = rateData.rate
+          },
+        )
+        setFxRates(rates)
       })
       .catch(console.error)
-  }, [baseCurrency, displayCurrency])
+  }, [displayCurrency, data?.data])
 
   const handleCorporateActionsClose = useCallback(() => {
     setCorporateActionsPortfolio(null)
@@ -372,8 +384,9 @@ export default withPageAuthRequired(function Portfolios({
     }
 
     // Calculate total market value with FX conversion
+    // marketValue is stored in portfolio.base currency, convert to displayCurrency
     const totalMarketValue = portfolios.reduce(
-      (sum, p) => sum + (p.marketValue || 0) * fxRate,
+      (sum, p) => sum + (p.marketValue || 0) * (fxRates[p.base.code] || 1),
       0,
     )
 
@@ -488,7 +501,7 @@ export default withPageAuthRequired(function Portfolios({
                       <FormatValue
                         value={
                           (portfolio.marketValue ? portfolio.marketValue : 0) *
-                          fxRate
+                          (fxRates[portfolio.base.code] || 1)
                         }
                       />
                     </div>
@@ -679,7 +692,7 @@ export default withPageAuthRequired(function Portfolios({
                       <FormatValue
                         value={
                           (portfolio.marketValue ? portfolio.marketValue : 0) *
-                          fxRate
+                          (fxRates[portfolio.base.code] || 1)
                         }
                       />
                     </td>

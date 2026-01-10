@@ -221,8 +221,8 @@ function EditTransactionForm({
     simpleFetcher(ccyKey),
   )
 
-  // Fetch cash assets (generic balances like "USD Balance")
-  const { data: cashAssetsData } = useSwr(cashKey, optionalFetcher(cashKey))
+  // Cash endpoint not implemented on backend - disable for now
+  const { data: cashAssetsData } = useSwr(null, optionalFetcher(cashKey))
 
   // Fetch bank accounts (ACCOUNT category)
   const { data: bankAccountsData } = useSwr(

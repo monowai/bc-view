@@ -194,7 +194,8 @@ const TradeInputForm: React.FC<{
     simpleFetcher(accountsKey),
   )
   const { isLoading: ccyLoading } = useSwr(ccyKey, simpleFetcher(ccyKey))
-  const { data: cashAssetsData } = useSwr(cashKey, optionalFetcher(cashKey))
+  // Cash endpoint not implemented on backend - disable for now
+  const { data: cashAssetsData } = useSwr(null, optionalFetcher(cashKey))
   const { t } = useTranslation("common")
 
   const quantity = watch("quantity")

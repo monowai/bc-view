@@ -38,11 +38,8 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
   const [submitSuccess, setSubmitSuccess] = useState(false)
   const [description, setDescription] = useState<string>("")
 
-  // Fetch available cash assets (CASH market) - optional endpoint
-  const { data: cashAssetsData } = useSWR(
-    modalOpen ? "/api/cash" : null,
-    optionalFetcher("/api/cash"),
-  )
+  // Cash endpoint not implemented on backend - disable for now
+  const { data: cashAssetsData } = useSWR(null, optionalFetcher("/api/cash"))
 
   // Fetch available account assets (ACCOUNT category - bank accounts)
   const { data: accountAssetsData } = useSWR(
