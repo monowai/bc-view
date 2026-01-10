@@ -127,12 +127,13 @@ function WealthDashboard(): React.ReactElement {
     setDisplayCurrency(usd || currencies[0])
   }, [currencies, displayCurrency, preferences?.baseCurrencyCode])
 
-  // Fetch FX rates for all portfolio currencies
+  // Fetch FX rates for portfolio base currencies
+  // Note: portfolio.marketValue is stored in the portfolio's BASE currency
   useEffect(() => {
     if (!displayCurrency || portfolios.length === 0) return
 
     const uniqueCurrencies = [
-      ...new Set(portfolios.map((p) => p.currency.code)),
+      ...new Set(portfolios.map((p) => p.base.code)),
     ]
     const pairs = uniqueCurrencies
       .filter((code) => code !== displayCurrency.code)
@@ -211,8 +212,9 @@ function WealthDashboard(): React.ReactElement {
     }[] = []
 
     portfolios.forEach((portfolio) => {
+      // marketValue is stored in the portfolio's BASE currency
       const marketValue = portfolio.marketValue || 0
-      const rate = fxRates[portfolio.currency.code] || 1
+      const rate = fxRates[portfolio.base.code] || 1
       const convertedValue = marketValue * rate
 
       totalValue += convertedValue
