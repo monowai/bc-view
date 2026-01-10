@@ -3,7 +3,7 @@ import { useTranslation } from "next-i18next"
 import { Portfolio, CashTransferData, Asset } from "types/beancounter"
 import MathInput from "@components/ui/MathInput"
 import useSWR from "swr"
-import { simpleFetcher } from "@utils/api/fetchHelper"
+import { simpleFetcher, optionalFetcher } from "@utils/api/fetchHelper"
 
 interface CashTransferDialogProps {
   modalOpen: boolean
@@ -38,10 +38,10 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
   const [submitSuccess, setSubmitSuccess] = useState(false)
   const [description, setDescription] = useState<string>("")
 
-  // Fetch available cash assets (CASH market)
+  // Fetch available cash assets (CASH market) - optional endpoint
   const { data: cashAssetsData } = useSWR(
     modalOpen ? "/api/cash" : null,
-    simpleFetcher("/api/cash"),
+    optionalFetcher("/api/cash"),
   )
 
   // Fetch available account assets (ACCOUNT category - bank accounts)

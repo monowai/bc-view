@@ -135,8 +135,14 @@ export const calculateCashAmount = (data: TradeFormData): number => {
   if (data.type.value === "SPLIT") {
     return 0
   }
+  // For FX trades, use cashAmount (the buy amount calculated from FX rate)
+  // For other CASH market transactions, use quantity
   const cashAmount =
-    data.market === "CASH" ? data.quantity : (data.cashAmount ?? 0)
+    data.type.value === "FX"
+      ? (data.cashAmount ?? 0)
+      : data.market === "CASH"
+        ? data.quantity
+        : (data.cashAmount ?? 0)
   return data.type.value === "WITHDRAWAL" || data.type.value === "BUY"
     ? -Math.abs(cashAmount)
     : Math.abs(cashAmount)
@@ -204,6 +210,23 @@ export const getTradeRow = (data: TradeFormData): string => {
 // CSV columns: Batch,CallerId,Type,Market,Code,Name,CashAccount,CashCurrency,Date,Quantity,BaseRate,TradeCurrency,Price,Fees,PortfolioRate,TradeAmount,CashAmount,Comments,Status
 export const getCashRow = (data: TradeFormData): string => {
   const tradeImport = convertToTradeImport(data)
+
+  // For FX trades, the format is different:
+  // - Type: FX_BUY
+  // - Code: Buy currency (cashCurrency)
+  // - CashCurrency: Sell currency (tradeCurrency)
+  // - Quantity: Buy amount (cashAmount)
+  // - TradeCurrency: Buy currency
+  // - CashAmount: Negative sell amount
+  if (data.type.value === "FX") {
+    const sellAmount = data.quantity ?? 0
+    const buyAmount = data.cashAmount ?? 0
+    const sellCurrency = tradeImport.tradeCurrency
+    const buyCurrency = tradeImport.cashCurrency
+    const comment = `Buy ${buyCurrency}/Sell ${sellCurrency}`
+    return `${tradeImport.batchId},,FX_BUY,${tradeImport.market},${buyCurrency},,,${sellCurrency},${tradeImport.tradeDate},${buyAmount},,${buyCurrency},1,${tradeImport.fees},,,-${sellAmount},${comment},${tradeImport.status}`
+  }
+
   return `${tradeImport.batchId},,${tradeImport.type},${tradeImport.market},${tradeImport.asset},,,${tradeImport.cashCurrency},${tradeImport.tradeDate},${tradeImport.cashAmount},,${tradeImport.tradeCurrency},${tradeImport.price},${tradeImport.fees},,,${tradeImport.cashAmount},${tradeImport.comments},${tradeImport.status}`
 }
 

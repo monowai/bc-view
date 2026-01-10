@@ -24,19 +24,31 @@ export const copyToClipboard = async (text: string): Promise<boolean> => {
   }
 }
 
-export const onSubmit = (
+export const onSubmit = async (
   portfolio: Portfolio,
   errors: any,
   data: any,
   setTradeModalOpen: (open: boolean) => void,
-): void => {
+): Promise<void> => {
   if (Object.keys(errors).length > 0) {
     console.log("Validation errors:", errors)
     return
   }
-  const row = convert(data)
-  postData(portfolio, false, row.split(",")).then()
-  setTradeModalOpen(false)
+  try {
+    const row = convert(data)
+    console.log("Submitting transaction:", row)
+    const response = await postData(portfolio, false, row.split(","))
+    if (response.ok) {
+      setTradeModalOpen(false)
+    } else {
+      const errorData = await response.json().catch(() => ({}))
+      console.error("Transaction failed:", response.status, errorData)
+      alert(`Failed to submit transaction: ${errorData.error || response.statusText}`)
+    }
+  } catch (error) {
+    console.error("Transaction submission error:", error)
+    alert(`Failed to submit transaction: ${error instanceof Error ? error.message : "Unknown error"}`)
+  }
 }
 
 export const useEscapeHandler = (

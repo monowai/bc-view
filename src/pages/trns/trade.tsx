@@ -13,6 +13,7 @@ import useSwr from "swr"
 import {
   marketsKey,
   simpleFetcher,
+  optionalFetcher,
   tradeAccountsKey,
   accountsKey,
   ccyKey,
@@ -193,7 +194,7 @@ const TradeInputForm: React.FC<{
     simpleFetcher(accountsKey),
   )
   const { isLoading: ccyLoading } = useSwr(ccyKey, simpleFetcher(ccyKey))
-  const { data: cashAssetsData } = useSwr(cashKey, simpleFetcher(cashKey))
+  const { data: cashAssetsData } = useSwr(cashKey, optionalFetcher(cashKey))
   const { t } = useTranslation("common")
 
   const quantity = watch("quantity")

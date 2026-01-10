@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useMemo, useRef } from "react"
+import React, { useEffect, useState, useMemo, useRef, useCallback } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
 import * as yup from "yup"
-import { Asset, CurrencyOption, Portfolio } from "types/beancounter"
+import { Asset, CurrencyOption, FxResponse, Portfolio } from "types/beancounter"
 import { SelectInstance } from "react-select"
 import { calculateTradeAmount } from "@lib/trns/tradeUtils"
 import { useTranslation } from "next-i18next"
@@ -22,6 +22,21 @@ import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import DateInput from "@components/ui/DateInput"
 import MathInput from "@components/ui/MathInput"
+
+// Fetcher for FX rates
+const fxFetcher = async (
+  from: string,
+  to: string,
+): Promise<FxResponse | null> => {
+  if (!from || !to || from === to) return null
+  const response = await fetch("/api/fx", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ pairs: [{ from, to }] }),
+  })
+  if (!response.ok) return null
+  return response.json()
+}
 
 const TradeTypeValues = [
   "DEPOSIT",
@@ -168,10 +183,11 @@ const CashInputForm: React.FC<{
   const type = watch("type")
   const qty = watch("quantity")
   const asset = watch("asset")
+  const cashCurrency = watch("cashCurrency")
 
   useEscapeHandler(isDirty, setModalOpen)
 
-  // Combine currency options with account options
+  // Combine currency options with account options (must be before FX rate logic)
   const combinedOptions = useMemo(() => {
     const options: AssetOption[] = []
 
@@ -218,6 +234,66 @@ const CashInputForm: React.FC<{
     return options
   }, [ccyData?.data, accountsData?.data, tradeAccountsData?.data])
 
+  // FX rate state
+  const [fxRate, setFxRate] = useState<number | null>(null)
+  const [fxRateLoading, setFxRateLoading] = useState(false)
+  const [manualBuyAmount, setManualBuyAmount] = useState(false)
+
+  // Fetch FX rate when currencies change (for FX transactions)
+  useEffect(() => {
+    if (type.value !== "FX" || !asset || !cashCurrency?.value) {
+      setFxRate(null)
+      return
+    }
+
+    // Get the sell currency (from asset or its currency property)
+    const sellCurrency = combinedOptions.find(
+      (opt) => opt.value === asset,
+    )?.currency
+    const buyCurrency = cashCurrency.value
+
+    if (!sellCurrency || sellCurrency === buyCurrency) {
+      setFxRate(null)
+      return
+    }
+
+    setFxRateLoading(true)
+    fxFetcher(sellCurrency, buyCurrency)
+      .then((response) => {
+        if (response?.data?.rates) {
+          const key = `${sellCurrency}:${buyCurrency}`
+          const rate = response.data.rates[key]?.rate
+          setFxRate(rate ?? null)
+        } else {
+          setFxRate(null)
+        }
+      })
+      .catch(() => setFxRate(null))
+      .finally(() => setFxRateLoading(false))
+  }, [type.value, asset, cashCurrency?.value, combinedOptions])
+
+  // Auto-calculate buy amount when sell amount or rate changes
+  useEffect(() => {
+    if (type.value === "FX" && fxRate && qty > 0 && !manualBuyAmount) {
+      const buyAmount = qty * fxRate
+      setValue("cashAmount", parseFloat(buyAmount.toFixed(2)))
+    }
+  }, [type.value, fxRate, qty, manualBuyAmount, setValue])
+
+  // Reset manual override when currencies change
+  useEffect(() => {
+    setManualBuyAmount(false)
+  }, [asset, cashCurrency?.value])
+
+  // Handle manual buy amount change
+  const handleBuyAmountChange = useCallback(
+    (value: number) => {
+      setManualBuyAmount(true)
+      setValue("cashAmount", value)
+    },
+    [setValue],
+  )
+
   // Update market and currency when asset changes
   useEffect(() => {
     if (asset) {
@@ -226,16 +302,23 @@ const CashInputForm: React.FC<{
         setSelectedMarket(selected.market || "CASH")
         const currency = selected.currency || asset
         setValue("tradeCurrency", { value: currency, label: currency })
-        setValue("cashCurrency", { value: currency, label: currency })
+        // For FX transactions, don't sync cashCurrency to sell currency
+        // User needs to select a different buy currency
+        if (type.value !== "FX") {
+          setValue("cashCurrency", { value: currency, label: currency })
+        }
         setValue("market", selected.market || "CASH")
       }
     }
-  }, [asset, combinedOptions, setValue])
+  }, [asset, combinedOptions, setValue, type.value])
 
   useEffect(() => {
     const tradeAmount = calculateTradeAmount(qty, 1, tax, fees, type.value)
     setValue("tradeAmount", parseFloat(tradeAmount.toFixed(2)))
-    setValue("cashAmount", parseFloat(tradeAmount.toFixed(2)))
+    // For FX transactions, cashAmount is calculated from FX rate, not tradeAmount
+    if (type.value !== "FX") {
+      setValue("cashAmount", parseFloat(tradeAmount.toFixed(2)))
+    }
   }, [tax, fees, type, qty, setValue])
 
   // Only wait for currencies - accounts are optional enhancement
@@ -256,7 +339,11 @@ const CashInputForm: React.FC<{
             onClick={(e) => e.stopPropagation()}
           >
             <header className="flex justify-between items-center border-b pb-2 mb-4">
-              <h2 className="text-xl font-semibold">{t("trade.cash.title")}</h2>
+              <h2 className="text-xl font-semibold">
+                {type.value === "FX"
+                  ? t("trade.fx.title", "FX Trade")
+                  : t("trade.cash.title")}
+              </h2>
               <button
                 className="text-gray-500 hover:text-gray-700"
                 onClick={() => setModalOpen(false)}
@@ -264,6 +351,54 @@ const CashInputForm: React.FC<{
                 &times;
               </button>
             </header>
+            {/* FX Trade Summary */}
+            {type.value === "FX" && (
+              <div className="mb-4 p-3 bg-gradient-to-r from-red-50 to-green-50 border border-gray-200 rounded-lg">
+                <div className="flex items-center justify-center gap-4 text-sm">
+                  <div className="text-center">
+                    <div className="text-xs text-red-600 font-medium uppercase">
+                      Sell
+                    </div>
+                    <div className="font-bold text-red-700">
+                      {qty > 0 ? qty.toLocaleString() : "—"} {asset}
+                    </div>
+                  </div>
+                  <div className="text-center text-gray-500">
+                    <i className="fas fa-arrow-right"></i>
+                    {fxRateLoading ? (
+                      <div className="text-xs mt-1">
+                        <i className="fas fa-spinner fa-spin"></i>
+                      </div>
+                    ) : fxRate ? (
+                      <div className="text-xs mt-1 font-mono">
+                        @{fxRate.toFixed(4)}
+                      </div>
+                    ) : null}
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs text-green-600 font-medium uppercase">
+                      Buy
+                    </div>
+                    <div className="font-bold text-green-700">
+                      {(watch("cashAmount") ?? 0) > 0
+                        ? (watch("cashAmount") ?? 0).toLocaleString()
+                        : "—"}{" "}
+                      {watch("cashCurrency")?.value ?? "—"}
+                    </div>
+                  </div>
+                </div>
+                {fxRate && !manualBuyAmount && (
+                  <div className="text-center text-xs text-gray-500 mt-2">
+                    Rate auto-applied from FX service
+                  </div>
+                )}
+                {manualBuyAmount && (
+                  <div className="text-center text-xs text-amber-600 mt-2">
+                    Manual amount entered
+                  </div>
+                )}
+              </div>
+            )}
             <form
               onSubmit={handleSubmit((data) =>
                 onSubmit(portfolio, errors, data, setModalOpen),
@@ -315,26 +450,34 @@ const CashInputForm: React.FC<{
                       />
                     ),
                   },
-                  {
-                    name: "tradeDate",
-                    label: t("trn.tradeDate"),
-                    component: (
-                      <Controller
-                        name="tradeDate"
-                        control={control}
-                        render={({ field }) => (
-                          <DateInput
-                            value={field.value}
-                            onChange={field.onChange}
-                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
-                          />
-                        )}
-                      />
-                    ),
-                  },
+                  // Trade Date - show here for non-FX, moved later for FX
+                  ...(type.value !== "FX"
+                    ? [
+                        {
+                          name: "tradeDate",
+                          label: t("trn.tradeDate"),
+                          component: (
+                            <Controller
+                              name="tradeDate"
+                              control={control}
+                              render={({ field }) => (
+                                <DateInput
+                                  value={field.value}
+                                  onChange={field.onChange}
+                                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
+                                />
+                              )}
+                            />
+                          ),
+                        },
+                      ]
+                    : []),
                   {
                     name: "asset",
-                    label: t("trade.cash.account"),
+                    label:
+                      type.value === "FX"
+                        ? t("trn.fx.sellCurrency", "Sell Currency")
+                        : t("trade.cash.account"),
                     component: (
                       <Controller
                         name="asset"
@@ -343,7 +486,11 @@ const CashInputForm: React.FC<{
                         render={({ field }) => (
                           <select
                             {...field}
-                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
+                            className={`mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height ${
+                              type.value === "FX"
+                                ? "border-red-200 bg-red-50"
+                                : ""
+                            }`}
                             value={field.value}
                           >
                             <optgroup label="Currencies">
@@ -395,19 +542,44 @@ const CashInputForm: React.FC<{
                       />
                     ),
                   },
-                  // Cash Currency - only shown for FX transactions
+                  // Sell Amount - immediately after Sell Currency
+                  {
+                    name: "quantity",
+                    label:
+                      type.value === "FX"
+                        ? t("trn.fx.sellAmount", "Sell Amount")
+                        : t("trn.amount.trade"),
+                    component: (
+                      <Controller
+                        name="quantity"
+                        control={control}
+                        render={({ field }) => (
+                          <MathInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            className={`mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height ${
+                              type.value === "FX"
+                                ? "border-red-200 bg-red-50"
+                                : ""
+                            }`}
+                          />
+                        )}
+                      />
+                    ),
+                  },
+                  // Buy Currency - only shown for FX transactions
                   ...(type.value === "FX"
                     ? [
                         {
                           name: "cashCurrency",
-                          label: t("trn.currency.cash"),
+                          label: t("trn.fx.buyCurrency", "Buy Currency"),
                           component: (
                             <Controller
                               name="cashCurrency"
                               control={control}
                               render={({ field }) => (
                                 <select
-                                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
+                                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height border-green-200 bg-green-50"
                                   value={field.value.value}
                                   onChange={(e) => {
                                     const selected = ccyOptions.find(
@@ -432,25 +604,44 @@ const CashInputForm: React.FC<{
                             />
                           ),
                         },
+                        // Buy Amount - immediately after Buy Currency
+                        {
+                          name: "cashAmount",
+                          label: t("trn.fx.buyAmount", "Buy Amount"),
+                          component: (
+                            <Controller
+                              name="cashAmount"
+                              control={control}
+                              render={({ field }) => (
+                                <MathInput
+                                  value={field.value}
+                                  onChange={handleBuyAmountChange}
+                                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height border-green-200 bg-green-50"
+                                />
+                              )}
+                            />
+                          ),
+                        },
+                        // Trade Date - for FX, placed after the currency pairs
+                        {
+                          name: "tradeDate",
+                          label: t("trn.tradeDate"),
+                          component: (
+                            <Controller
+                              name="tradeDate"
+                              control={control}
+                              render={({ field }) => (
+                                <DateInput
+                                  value={field.value}
+                                  onChange={field.onChange}
+                                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
+                                />
+                              )}
+                            />
+                          ),
+                        },
                       ]
                     : []),
-                  {
-                    name: "quantity",
-                    label: t("trn.amount.trade"),
-                    component: (
-                      <Controller
-                        name="quantity"
-                        control={control}
-                        render={({ field }) => (
-                          <MathInput
-                            value={field.value}
-                            onChange={field.onChange}
-                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
-                          />
-                        )}
-                      />
-                    ),
-                  },
                   {
                     name: "fees",
                     label: t("trn.amount.charges"),

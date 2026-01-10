@@ -3,16 +3,24 @@ import { BcApiError } from "@components/errors/bcApiError"
 
 export async function handleErrors(response: Response): Promise<void> {
   let result: Record<string, unknown> = {}
+  let rawBody = ""
   try {
-    result = await response.json()
+    rawBody = await response.text()
+    result = JSON.parse(rawBody)
   } catch {
-    // Response body is not valid JSON - use status text
+    // Response body is not valid JSON - log it for debugging
+    console.error(
+      `[Backend Error] ${response.status} ${response.url}: ${rawBody || response.statusText}`,
+    )
   }
-  // Handle RFC 7807 problem detail format (detail) and legacy format (message)
+  // Handle RFC 7807 problem detail format (detail) and legacy format (message/error)
   const errorMessage =
     (result.detail as string) ||
     (result.message as string) ||
-    response.statusText
+    (result.error as string) ||
+    rawBody ||
+    response.statusText ||
+    `HTTP ${response.status}`
   if (response.status == 401 || response.status == 403) {
     throw new BcApiError(
       response.status,
@@ -34,17 +42,44 @@ export async function handleErrors(response: Response): Promise<void> {
 export function fetchError(
   res: NextApiResponse,
   req: NextApiRequest,
-  error: any,
+  error: unknown,
 ): void {
-  const apiError = new BcApiError(
-    error.statusCode,
-    error.message,
-    error.code,
-    req.url,
-    error.stack,
-  )
-  console.error(apiError)
-  res.status(apiError.statusCode).json(apiError)
+  // Handle different error types gracefully
+  let statusCode = 500
+  let message = "An unexpected error occurred"
+  let code = "INTERNAL_ERROR"
+  let stack: string | undefined
+
+  if (error instanceof BcApiError) {
+    statusCode = error.statusCode
+    message = error.message
+    code = error.code || code
+    stack = error.stack
+  } else if (error instanceof Error) {
+    message = error.message
+    stack = error.stack
+    // Check for common network errors
+    if (error.message.includes("ECONNREFUSED")) {
+      statusCode = 503
+      code = "SERVICE_UNAVAILABLE"
+      message = "Backend service is unavailable"
+    } else if (error.message.includes("fetch failed")) {
+      statusCode = 502
+      code = "BAD_GATEWAY"
+      message = "Failed to connect to backend service"
+    }
+  } else if (typeof error === "object" && error !== null) {
+    const err = error as Record<string, unknown>
+    statusCode = (err.statusCode as number) || statusCode
+    message = (err.message as string) || message
+    code = (err.code as string) || code
+  }
+
+  console.error(`[API Error] ${req.method} ${req.url} - ${statusCode}: ${message}`)
+  if (stack) {
+    console.error(stack)
+  }
+  res.status(statusCode).json({ error: message, code, path: req.url })
 }
 
 export function hasError(response: Response): boolean {
