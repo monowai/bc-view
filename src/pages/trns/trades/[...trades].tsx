@@ -10,6 +10,7 @@ import {
   cashKey,
   accountsKey,
   simpleFetcher,
+  optionalFetcher,
   tradeKey,
   trnKey,
 } from "@utils/api/fetchHelper"
@@ -221,7 +222,7 @@ function EditTransactionForm({
   )
 
   // Fetch cash assets (generic balances like "USD Balance")
-  const { data: cashAssetsData } = useSwr(cashKey, simpleFetcher(cashKey))
+  const { data: cashAssetsData } = useSwr(cashKey, optionalFetcher(cashKey))
 
   // Fetch bank accounts (ACCOUNT category)
   const { data: bankAccountsData } = useSwr(

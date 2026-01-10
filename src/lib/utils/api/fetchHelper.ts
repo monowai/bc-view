@@ -45,6 +45,24 @@ export function simpleFetcher(requestInfo: RequestInfo): any {
 }
 
 /**
+ * Fetcher that returns undefined on error instead of throwing
+ * Use for optional endpoints that may not exist
+ */
+export function optionalFetcher(requestInfo: RequestInfo): any {
+  return async () => {
+    try {
+      const res = await fetch(requestInfo)
+      if (!res.ok) {
+        return undefined
+      }
+      return res.json()
+    } catch {
+      return undefined
+    }
+  }
+}
+
+/**
  * Standard SWR fetcher - receives URL from useSwr key
  */
 export const fetcher = async (url: string): Promise<any> => {

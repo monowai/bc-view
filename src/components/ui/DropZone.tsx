@@ -23,12 +23,12 @@ function readFile(file: Blob): Promise<string[][]> {
 }
 
 // Function to post data to API
-export async function postData(
+export function postData(
   portfolio: Portfolio,
   purge: boolean,
   row: string[],
-): Promise<void> {
-  await fetch(`/api/trns/import`, {
+): Promise<Response> {
+  return fetch(`/api/trns/import`, {
     method: "POST",
     mode: "cors",
     headers: {
