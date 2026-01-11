@@ -105,7 +105,7 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
             {/* Wealth - Blue */}
             <Link
               href="/wealth"
-              className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+              className="group relative overflow-hidden rounded-2xl bg-linear-to-br from-blue-500 to-blue-700 p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
             >
               <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white/10"></div>
               <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-32 w-32 rounded-full bg-white/5"></div>
@@ -141,7 +141,7 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
             {/* Invest - Green */}
             <Link
               href="/rebalance/models"
-              className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+              className="group relative overflow-hidden rounded-2xl bg-linear-to-br from-emerald-500 to-emerald-700 p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
             >
               <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white/10"></div>
               <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-32 w-32 rounded-full bg-white/5"></div>
@@ -172,10 +172,10 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
               </div>
             </Link>
 
-            {/* Retirement - Sunset */}
+            {/* Independence - Sunset */}
             <Link
-              href="/retire"
-              className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-400 via-orange-500 to-rose-500 p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+              href="/independence"
+              className="group relative overflow-hidden rounded-2xl bg-linear-to-br from-orange-400 via-orange-500 to-rose-500 p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
             >
               <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white/10"></div>
               <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-32 w-32 rounded-full bg-white/5"></div>
@@ -184,11 +184,11 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
                   <i className="fas fa-umbrella-beach text-4xl text-white/90"></i>
                 </div>
                 <h2 className="text-2xl font-bold text-white mb-2">
-                  Retirement
+                  Independence
                 </h2>
                 <p className="text-orange-100 text-sm mb-4">
-                  Plan how to spend your wealth with withdrawal strategies and
-                  see how long your money will last.
+                  Plan your financial independence with withdrawal strategies
+                  and see how long your money will last.
                 </p>
                 <ul className="text-orange-100 text-xs space-y-1">
                   <li>
@@ -202,7 +202,7 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
                   </li>
                 </ul>
                 <div className="mt-4 flex items-center text-white font-medium">
-                  Plan Retirement
+                  Plan Independence
                   <i className="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
                 </div>
               </div>

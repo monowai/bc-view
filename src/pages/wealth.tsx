@@ -387,11 +387,11 @@ function WealthDashboard(): React.ReactElement {
                   Portfolios
                 </Link>
                 <Link
-                  href="/retire"
+                  href="/independence"
                   className="bg-linear-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600 px-4 py-2 rounded-lg font-medium transition-colors flex items-center shadow-md"
                 >
                   <i className="fas fa-umbrella-beach mr-2"></i>
-                  Plan Retirement
+                  Plan Independence
                 </Link>
               </div>
             </div>
