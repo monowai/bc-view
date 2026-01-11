@@ -8,6 +8,8 @@ export {
 } from "./useRetirementProjection"
 
 // Components
+export { default as FiMetrics } from "./FiMetrics"
+export { default as FiSummaryBar } from "./FiSummaryBar"
 export { default as WhatIfSlider } from "./WhatIfSlider"
 export { default as ScenarioImpact } from "./ScenarioImpact"
 export { default as ScenarioSliders } from "./ScenarioSliders"

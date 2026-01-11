@@ -1,19 +1,24 @@
 import React, { useState } from "react"
 import { YearlyProjection } from "types/independence"
+import { usePrivacyMode } from "@hooks/usePrivacyMode"
+
+const HIDDEN_VALUE = "****"
 
 interface IncomeBreakdownTableProps {
   projections: YearlyProjection[]
-}
-
-const formatCurrency = (value: number): string => {
-  if (value === 0) return "-"
-  return `$${Math.round(value).toLocaleString()}`
 }
 
 export default function IncomeBreakdownTable({
   projections,
 }: IncomeBreakdownTableProps): React.ReactElement {
   const [isExpanded, setIsExpanded] = useState(false)
+  const { hideValues } = usePrivacyMode()
+
+  const formatCurrency = (value: number): string => {
+    if (hideValues) return HIDDEN_VALUE
+    if (value === 0) return "-"
+    return `$${Math.round(value).toLocaleString()}`
+  }
 
   if (!projections || projections.length === 0) {
     return <></>

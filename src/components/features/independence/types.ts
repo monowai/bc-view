@@ -30,7 +30,7 @@ export interface ScenarioOverrides {
 }
 
 // Tab identifiers for plan view
-export type TabId = "details" | "assets" | "timeline" | "scenarios"
+export type TabId = "details" | "assets" | "fire" | "timeline" | "scenarios"
 
 // Tab configuration
 export interface TabConfig {
@@ -42,6 +42,7 @@ export interface TabConfig {
 export const TABS: TabConfig[] = [
   { id: "details", label: "Details", icon: "fa-clipboard-list" },
   { id: "assets", label: "Assets", icon: "fa-wallet" },
+  { id: "fire", label: "FIRE", icon: "fa-fire" },
   { id: "timeline", label: "Timeline", icon: "fa-chart-line" },
   { id: "scenarios", label: "Scenarios", icon: "fa-sliders-h" },
 ]

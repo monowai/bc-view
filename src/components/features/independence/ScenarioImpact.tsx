@@ -1,10 +1,14 @@
 import React from "react"
 import { DisplayProjection, WhatIfAdjustments } from "./types"
+import { usePrivacyMode } from "@hooks/usePrivacyMode"
+
+const HIDDEN_VALUE = "****"
 
 interface ScenarioImpactProps {
   projection: DisplayProjection | null
   lifeExpectancy: number
-  planCurrency: string
+  currency: string
+  fxRate?: number
   whatIfAdjustments: WhatIfAdjustments
   onLiquidationThresholdChange: (value: number) => void
 }
@@ -12,10 +16,18 @@ interface ScenarioImpactProps {
 export default function ScenarioImpact({
   projection,
   lifeExpectancy,
-  planCurrency,
+  currency,
+  fxRate = 1,
   whatIfAdjustments,
   onLiquidationThresholdChange,
 }: ScenarioImpactProps): React.ReactElement {
+  const { hideValues } = usePrivacyMode()
+
+  const formatMoney = (value: number): string =>
+    hideValues
+      ? HIDDEN_VALUE
+      : `${currency}${Math.round(value * fxRate).toLocaleString()}`
+
   if (!projection) {
     return (
       <div className="bg-white rounded-xl shadow-md p-6">
@@ -67,11 +79,8 @@ export default function ScenarioImpact({
                   <i className="fas fa-piggy-bank text-orange-500 mr-2"></i>
                   Liquid balance at sale
                 </span>
-                <span className="font-semibold text-gray-900">
-                  {planCurrency}
-                  {Math.round(
-                    projection.liquidBalanceAtLiquidation,
-                  ).toLocaleString()}
+                <span className={`font-semibold ${hideValues ? "text-gray-400" : "text-gray-900"}`}>
+                  {formatMoney(projection.liquidBalanceAtLiquidation)}
                 </span>
               </div>
             )}
@@ -82,7 +91,7 @@ export default function ScenarioImpact({
                 <i className="fas fa-home text-purple-500 mr-2"></i>
                 Illiquid funds realise
               </span>
-              <span className="font-semibold text-gray-900">
+              <span className={`font-semibold ${hideValues ? "text-gray-400" : "text-gray-900"}`}>
                 {(() => {
                   if (liquidationYear) {
                     const idx =
@@ -92,14 +101,14 @@ export default function ScenarioImpact({
                       prevYear?.nonSpendableValue ||
                       projection.yearlyProjections[0]?.nonSpendableValue ||
                       0
-                    return `${planCurrency}${Math.round(realizedValue).toLocaleString()}`
+                    return formatMoney(realizedValue)
                   }
                   // Not liquidated - show projected final value
                   const finalYear =
                     projection.yearlyProjections[
                       projection.yearlyProjections.length - 1
                     ]
-                  return `${planCurrency}${Math.round(finalYear?.nonSpendableValue || 0).toLocaleString()}`
+                  return formatMoney(finalYear?.nonSpendableValue || 0)
                 })()}
               </span>
             </div>

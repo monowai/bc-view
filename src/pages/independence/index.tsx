@@ -6,11 +6,14 @@ import { useRouter } from "next/router"
 import useSwr from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import { PlansResponse, RetirementPlan, PlanExport } from "types/independence"
+import { usePrivacyMode } from "@hooks/usePrivacyMode"
 
 const plansKey = "/api/independence/plans"
+const HIDDEN_VALUE = "****"
 
 function RetirementPlanning(): React.ReactElement {
   const router = useRouter()
+  const { hideValues } = usePrivacyMode()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isImporting, setIsImporting] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
@@ -244,15 +247,23 @@ function RetirementPlanning(): React.ReactElement {
                   <div className="space-y-2 mb-4">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">Monthly Expenses</span>
-                      <span className="font-medium">
-                        ${plan.monthlyExpenses.toLocaleString()}
+                      <span
+                        className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
+                      >
+                        {hideValues
+                          ? HIDDEN_VALUE
+                          : `$${plan.monthlyExpenses.toLocaleString()}`}
                       </span>
                     </div>
                     {plan.targetBalance && (
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-500">Target Balance</span>
-                        <span className="font-medium">
-                          ${plan.targetBalance.toLocaleString()}
+                        <span
+                          className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
+                        >
+                          {hideValues
+                            ? HIDDEN_VALUE
+                            : `$${plan.targetBalance.toLocaleString()}`}
                         </span>
                       </div>
                     )}

@@ -30,10 +30,11 @@ describe("types constants", () => {
 
   describe("TABS", () => {
     it("has all expected tabs", () => {
-      expect(TABS).toHaveLength(4)
+      expect(TABS).toHaveLength(5)
       expect(TABS.map((t) => t.id)).toEqual([
         "details",
         "assets",
+        "fire",
         "timeline",
         "scenarios",
       ])
@@ -42,6 +43,7 @@ describe("types constants", () => {
     it("has correct labels", () => {
       expect(TABS.find((t) => t.id === "details")?.label).toBe("Details")
       expect(TABS.find((t) => t.id === "assets")?.label).toBe("Assets")
+      expect(TABS.find((t) => t.id === "fire")?.label).toBe("FIRE")
       expect(TABS.find((t) => t.id === "timeline")?.label).toBe("Timeline")
       expect(TABS.find((t) => t.id === "scenarios")?.label).toBe("Scenarios")
     })
@@ -51,6 +53,7 @@ describe("types constants", () => {
         "fa-clipboard-list",
       )
       expect(TABS.find((t) => t.id === "assets")?.icon).toBe("fa-wallet")
+      expect(TABS.find((t) => t.id === "fire")?.icon).toBe("fa-fire")
       expect(TABS.find((t) => t.id === "timeline")?.icon).toBe("fa-chart-line")
       expect(TABS.find((t) => t.id === "scenarios")?.icon).toBe("fa-sliders-h")
     })

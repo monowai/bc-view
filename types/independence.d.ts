@@ -166,6 +166,8 @@ export interface ProjectionRequest {
   lifeExpectancy?: number
   /** Monthly contribution during working years (for accumulation phase) */
   monthlyContribution?: number
+  /** Monthly rental income from properties (in target currency) */
+  rentalIncomeMonthly?: number
   /** Target currency for calculations */
   currency?: string
   /** Portfolio IDs to fetch values from (optional - auto-resolves totalAssets) */
@@ -238,6 +240,33 @@ export interface YearlyProjection {
   incomeBreakdown?: IncomeBreakdown
 }
 
+/**
+ * Financial Independence (FIRE) metrics.
+ * Based on the 4% safe withdrawal rate (25× multiplier).
+ */
+export interface FiMetrics {
+  /** FI Number = 25× net annual expenses (after income sources) */
+  fiNumber: number
+  /** Progress toward FI as percentage (liquidAssets / fiNumber × 100) */
+  fiProgress: number
+  /** Monthly expenses after subtracting income sources */
+  netMonthlyExpenses: number
+  /** Total monthly income (pension + social security + other + rental) */
+  totalMonthlyIncome: number
+  /** Savings rate as percentage of working income (null if not working) */
+  savingsRate?: number
+  /** Estimated years to reach FI at current savings rate (null if already FI or no savings) */
+  yearsToFi?: number
+  /** Coast FI number - amount needed now to reach FI by retirement with no further contributions */
+  coastFiNumber?: number
+  /** Progress toward Coast FI as percentage */
+  coastFiProgress?: number
+  /** Whether Coast FIRE has been achieved */
+  isCoastFire: boolean
+  /** Whether full Financial Independence has been achieved */
+  isFinanciallyIndependent: boolean
+}
+
 export interface RetirementProjection {
   planId: string
   asOfDate: string
@@ -265,6 +294,8 @@ export interface RetirementProjection {
   liquidBalanceAtLiquidation?: number
   /** Threshold % at which illiquid assets are sold */
   liquidationThresholdPercent?: number
+  /** Financial Independence (FIRE) metrics */
+  fiMetrics?: FiMetrics
 }
 
 export interface ProjectionResponse {
