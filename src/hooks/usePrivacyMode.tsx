@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
@@ -16,7 +17,7 @@ interface PrivacyModeContextValue {
 }
 
 // Session state for privacy mode - persists across page refreshes, syncs across micro-frontends
-const privacyState = createSessionState<boolean | null>("common", null)
+const privacyState = createSessionState<boolean | null>("hideValues", null)
 
 // Context for sharing privacy state across components within a React tree
 const PrivacyModeContext = createContext<PrivacyModeContextValue>({
@@ -49,12 +50,20 @@ export function PrivacyModeProvider({
     privacyState.get(),
   )
 
+  // Track whether we initiated the change (to avoid double-processing our own events)
+  const isLocalChange = useRef(false)
+
   // Compute effective value: local override > preferences > false
   const hideValues = localHideValues ?? preferences?.hideValues ?? false
 
   // Subscribe to changes from other tabs/micro-frontends
   useEffect(() => {
     return privacyState.subscribe((value: boolean | null) => {
+      // Skip if this is our own change (already handled by setState)
+      if (isLocalChange.current) {
+        isLocalChange.current = false
+        return
+      }
       setLocalHideValues(value)
     })
   }, [])
@@ -63,6 +72,8 @@ export function PrivacyModeProvider({
     setLocalHideValues((prev) => {
       const currentValue = prev ?? preferences?.hideValues ?? false
       const newValue = !currentValue
+      // Mark as local change so subscription skips it
+      isLocalChange.current = true
       // Persist to session storage and notify other listeners
       privacyState.set(newValue)
       return newValue
