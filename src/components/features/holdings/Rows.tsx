@@ -9,8 +9,7 @@ import {
   CashTransferData,
   Asset,
 } from "types/beancounter"
-import { NumericFormat } from "react-number-format"
-import { FormatValue } from "@components/ui/MoneyUtils"
+import { FormatValue, PrivateQuantity } from "@components/ui/MoneyUtils"
 import {
   isCash,
   isCashRelated,
@@ -416,6 +415,7 @@ export default function Rows({
                   </span>
                   <FormatValue
                     value={moneyValues[valueIn].priceData?.close || " "}
+                    isPublic
                   />
                   <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full mb-1 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap z-50">
                     {moneyValues[valueIn].priceData.priceDate}
@@ -469,12 +469,9 @@ export default function Rows({
               hideValue(moneyValues[valueIn].priceData) ? (
                 " "
               ) : (
-                <NumericFormat
+                <PrivateQuantity
                   value={quantityValues.total}
-                  displayType="text"
-                  decimalScale={quantityValues.precision}
-                  fixedDecimalScale
-                  thousandSeparator
+                  precision={quantityValues.precision}
                 />
               )}
             </td>
@@ -507,6 +504,7 @@ export default function Rows({
                   <FormatValue
                     value={Math.abs(moneyValues[valueIn].irr)}
                     multiplier={100}
+                    isPublic
                   />
                   {"%"}
                   <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full mb-1 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap z-50">
@@ -573,6 +571,7 @@ export default function Rows({
                 <FormatValue
                   value={moneyValues[valueIn].weight}
                   multiplier={100}
+                  isPublic
                 />
                 %
               </span>

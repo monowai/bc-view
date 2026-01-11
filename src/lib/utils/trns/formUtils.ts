@@ -43,11 +43,15 @@ export const onSubmit = async (
     } else {
       const errorData = await response.json().catch(() => ({}))
       console.error("Transaction failed:", response.status, errorData)
-      alert(`Failed to submit transaction: ${errorData.error || response.statusText}`)
+      alert(
+        `Failed to submit transaction: ${errorData.error || response.statusText}`,
+      )
     }
   } catch (error) {
     console.error("Transaction submission error:", error)
-    alert(`Failed to submit transaction: ${error instanceof Error ? error.message : "Unknown error"}`)
+    alert(
+      `Failed to submit transaction: ${error instanceof Error ? error.message : "Unknown error"}`,
+    )
   }
 }
 

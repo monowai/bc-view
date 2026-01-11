@@ -1,13 +1,23 @@
 import React, { ReactElement } from "react"
 import { FormatNumber } from "types/app"
 import { NumericFormat } from "react-number-format"
+import { usePrivacyMode } from "@hooks/usePrivacyMode"
+
+const HIDDEN_VALUE = "****"
 
 export function FormatValue({
   value,
   scale,
   multiplier,
   defaultValue = " ",
+  isPublic = false,
 }: FormatNumber): ReactElement {
+  const { hideValues } = usePrivacyMode()
+
+  if (hideValues && !isPublic) {
+    return <span className="text-gray-400">{HIDDEN_VALUE}</span>
+  }
+
   if (typeof value === "number") {
     return (
       <NumericFormat
@@ -32,7 +42,14 @@ export function ResponsiveFormatValue({
   scale,
   multiplier,
   defaultValue = " ",
+  isPublic = false,
 }: FormatNumber): ReactElement {
+  const { hideValues } = usePrivacyMode()
+
+  if (hideValues && !isPublic) {
+    return <span className="text-gray-400">{HIDDEN_VALUE}</span>
+  }
+
   if (typeof value !== "number") {
     return <span>{defaultValue}</span>
   }
@@ -63,5 +80,35 @@ export function ResponsiveFormatValue({
         />
       </span>
     </>
+  )
+}
+
+interface PrivateQuantityProps {
+  value: number
+  precision?: number
+}
+
+/**
+ * Privacy-aware quantity display component.
+ * Shows "****" when privacy mode is enabled.
+ */
+export function PrivateQuantity({
+  value,
+  precision = 0,
+}: PrivateQuantityProps): ReactElement {
+  const { hideValues } = usePrivacyMode()
+
+  if (hideValues) {
+    return <span className="text-gray-400">{HIDDEN_VALUE}</span>
+  }
+
+  return (
+    <NumericFormat
+      value={value}
+      displayType="text"
+      decimalScale={precision}
+      fixedDecimalScale
+      thousandSeparator
+    />
   )
 }

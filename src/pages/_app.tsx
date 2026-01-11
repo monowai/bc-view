@@ -10,6 +10,7 @@ import GitInfo from "@components/ui/GitInfo"
 import { useRouter } from "next/router"
 import { RegistrationProvider } from "@contexts/RegistrationContext"
 import { UserPreferencesProvider } from "@contexts/UserPreferencesContext"
+import { PrivacyModeProvider } from "@hooks/usePrivacyMode"
 
 // Inner component that renders the app content
 interface AppContentProps {
@@ -43,11 +44,13 @@ const App: React.FC<AppProps> = ({ Component, pageProps }) => {
     <UserProvider>
       <RegistrationProvider>
         <UserPreferencesProvider>
-          <AppContent
-            Component={Component}
-            pageProps={pageProps}
-            alwaysVisible={alwaysVisible}
-          />
+          <PrivacyModeProvider>
+            <AppContent
+              Component={Component}
+              pageProps={pageProps}
+              alwaysVisible={alwaysVisible}
+            />
+          </PrivacyModeProvider>
         </UserPreferencesProvider>
       </RegistrationProvider>
     </UserProvider>

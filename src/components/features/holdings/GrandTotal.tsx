@@ -167,6 +167,10 @@ export default function GrandTotal({
                         ? 100
                         : 1
                     }
+                    isPublic={
+                      headerIndex === HEADER_INDICES.IRR ||
+                      headerIndex === HEADER_INDICES.WEIGHT
+                    }
                   />
                   {headerIndex === HEADER_INDICES.WEIGHT && "%"}
                   {/* Remove % signs from IRR for cleaner appearance */}

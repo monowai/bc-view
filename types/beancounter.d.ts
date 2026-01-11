@@ -339,6 +339,7 @@ export interface UserPreferences {
   baseCurrencyCode: string // System base currency for cost tracking
   reportingCurrencyCode: string // Default currency for displaying values
   showWeightedIrr: boolean
+  hideValues?: boolean // Privacy mode - hide monetary values and quantities
 }
 
 export interface UserPreferencesRequest {
@@ -349,6 +350,7 @@ export interface UserPreferencesRequest {
   baseCurrencyCode?: string
   reportingCurrencyCode?: string
   showWeightedIrr?: boolean
+  hideValues?: boolean
 }
 
 export interface RegistrationResponse {

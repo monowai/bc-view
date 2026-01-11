@@ -132,9 +132,7 @@ function WealthDashboard(): React.ReactElement {
   useEffect(() => {
     if (!displayCurrency || portfolios.length === 0) return
 
-    const uniqueCurrencies = [
-      ...new Set(portfolios.map((p) => p.base.code)),
-    ]
+    const uniqueCurrencies = [...new Set(portfolios.map((p) => p.base.code))]
     const pairs = uniqueCurrencies
       .filter((code) => code !== displayCurrency.code)
       .map((code) => ({ from: code, to: displayCurrency.code }))

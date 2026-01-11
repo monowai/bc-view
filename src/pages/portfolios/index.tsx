@@ -512,7 +512,12 @@ export default withPageAuthRequired(function Portfolios({
                           : "text-red-600"
                       }`}
                     >
-                      <FormatValue value={portfolio.irr} multiplier={100} />%
+                      <FormatValue
+                        value={portfolio.irr}
+                        multiplier={100}
+                        isPublic
+                      />
+                      %
                     </div>
                   </div>
                 </div>
@@ -704,7 +709,12 @@ export default withPageAuthRequired(function Portfolios({
                             : "text-red-600"
                         }`}
                       >
-                        <FormatValue value={portfolio.irr} multiplier={100} />%
+                        <FormatValue
+                          value={portfolio.irr}
+                          multiplier={100}
+                          isPublic
+                        />
+                        %
                       </span>
                     </td>
                     <td className="px-4 py-3">

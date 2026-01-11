@@ -58,7 +58,7 @@ export default function SubTotal({
   const weightedIrr = subTotals[valueIn].weightedIrr
   const irrElement = showWeightedIrr ? (
     <span key="weightedIrr" className="group relative cursor-help">
-      <FormatValue value={weightedIrr} multiplier={100} />%
+      <FormatValue value={weightedIrr} multiplier={100} isPublic />%
       <span className="invisible group-hover:visible absolute right-0 bottom-full mb-1 z-10 w-48 p-2 bg-gray-900 text-white text-xs rounded shadow-lg">
         {t("irr.weighted.tooltip")}
       </span>
@@ -91,7 +91,12 @@ export default function SubTotal({
             : ""
       }`}
     >
-      <FormatValue value={subTotals[valueIn].weight} multiplier={100} />%
+      <FormatValue
+        value={subTotals[valueIn].weight}
+        multiplier={100}
+        isPublic
+      />
+      %
     </span>, // weight (swapped with irr)
     "-", // alpha
     <FormatValue key="totalGain" value={subTotals[valueIn].totalGain} />, // gain

@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useCallback, useEffect } from "react"
 import { Holdings, Portfolio, Position, Currency } from "types/beancounter"
-import { FormatValue } from "@components/ui/MoneyUtils"
+import { FormatValue, PrivateQuantity } from "@components/ui/MoneyUtils"
 import { isCash, isCashRelated } from "@lib/assets/assetUtils"
 import { useDisplayCurrencyConversion } from "@lib/hooks/useDisplayCurrencyConversion"
 import { compareByReportCategory, compareBySector } from "@lib/categoryMapping"
@@ -124,7 +124,13 @@ const PositionCard: React.FC<PositionCardProps> = ({
       {/* Quantity for non-cash assets */}
       {!isCashRelated(asset) && (
         <div className="mt-3 pt-3 border-t border-gray-100 flex justify-between text-sm text-gray-500">
-          <span>{quantityValues.total.toLocaleString()} shares</span>
+          <span>
+            <PrivateQuantity
+              value={quantityValues.total}
+              precision={quantityValues.precision}
+            />{" "}
+            shares
+          </span>
           <span>
             {currencySymbol}
             {values.priceData?.close?.toFixed(2) || "-"} each

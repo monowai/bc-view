@@ -75,7 +75,9 @@ export function fetchError(
     code = (err.code as string) || code
   }
 
-  console.error(`[API Error] ${req.method} ${req.url} - ${statusCode}: ${message}`)
+  console.error(
+    `[API Error] ${req.method} ${req.url} - ${statusCode}: ${message}`,
+  )
   if (stack) {
     console.error(stack)
   }
