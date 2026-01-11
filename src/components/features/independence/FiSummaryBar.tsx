@@ -16,6 +16,8 @@ interface FiSummaryBarProps {
   isCoastFire?: boolean
   /** Years to retirement (for Coast FIRE context) */
   yearsToRetirement?: number
+  /** Pre-calculated FI Progress from backend (overrides local calculation) */
+  backendFiProgress?: number
 }
 
 /**
@@ -29,10 +31,13 @@ export default function FiSummaryBar({
   currency,
   isCoastFire,
   yearsToRetirement,
+  backendFiProgress,
 }: FiSummaryBarProps): React.ReactElement {
   const { hideValues } = usePrivacyMode()
 
-  const fiProgress = fiNumber > 0 ? (liquidAssets / fiNumber) * 100 : 0
+  // Use backend FI Progress if provided, otherwise calculate locally
+  const localFiProgress = fiNumber > 0 ? (liquidAssets / fiNumber) * 100 : 0
+  const fiProgress = backendFiProgress ?? localFiProgress
   const fiProgressClamped = Math.min(fiProgress, 100)
   const isFinanciallyIndependent = fiProgress >= 100
 

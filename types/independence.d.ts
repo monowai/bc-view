@@ -267,6 +267,31 @@ export interface FiMetrics {
   isFinanciallyIndependent: boolean
 }
 
+/**
+ * Lightweight FI summary for display on plan cards.
+ * Contains just the essential FI metrics without full projection details.
+ */
+export interface FiSummary {
+  /** FI Number = 25× net annual expenses */
+  fiNumber: number
+  /** Progress toward FI as percentage (liquidAssets / fiNumber × 100) */
+  fiProgress: number
+  /** Current liquid (spendable) assets */
+  liquidAssets: number
+  /** Current non-spendable assets (e.g., property) */
+  nonSpendableAssets: number
+  /** Total assets (liquid + non-spendable) */
+  totalAssets: number
+  /** Currency for all values */
+  currency: string
+  /** Whether full Financial Independence has been achieved */
+  isFinanciallyIndependent: boolean
+}
+
+export interface FiSummaryResponse {
+  data: FiSummary
+}
+
 export interface RetirementProjection {
   planId: string
   asOfDate: string

@@ -770,16 +770,26 @@ function PlanView(): React.ReactElement {
             </div>
           </div>
 
-          {/* FIRE Summary Bar - Always visible */}
-          {fiMetrics && (
+          {/* FIRE Summary Bar - Only show when backend data is available */}
+          {adjustedProjection?.fiMetrics ? (
             <FiSummaryBar
-              fiNumber={fiMetrics.fiNumber * effectiveFxRate}
+              fiNumber={adjustedProjection.fiMetrics.fiNumber * effectiveFxRate}
               liquidAssets={liquidAssets * effectiveFxRate}
               illiquidAssets={nonSpendableAssets * effectiveFxRate}
               currency={effectiveCurrency}
-              isCoastFire={fiMetrics.isCoastFire}
-              yearsToRetirement={fiMetrics.yearsToRetirement ?? undefined}
+              isCoastFire={adjustedProjection.fiMetrics.isCoastFire}
+              yearsToRetirement={fiMetrics?.yearsToRetirement ?? undefined}
+              backendFiProgress={adjustedProjection.fiMetrics.fiProgress}
             />
+          ) : (
+            isCalculating && (
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
+                <div className="flex items-center gap-2 text-gray-500">
+                  <i className="fas fa-spinner fa-spin"></i>
+                  <span>Calculating FI metrics...</span>
+                </div>
+              </div>
+            )
           )}
 
           {/* Tab Navigation */}
@@ -1197,7 +1207,7 @@ function PlanView(): React.ReactElement {
 
               return (
                 <div className="space-y-6">
-                  {/* Main FIRE Metrics - uses NET expenses */}
+                  {/* Main FIRE Metrics - uses backend values for consistency with PlanCard */}
                   <FiMetrics
                     monthlyExpenses={netExpenses * effectiveFxRate}
                     liquidAssets={liquidAssets * effectiveFxRate}
@@ -1207,6 +1217,11 @@ function PlanView(): React.ReactElement {
                     expectedReturnRate={blendedReturnRate}
                     currentAge={currentAge}
                     retirementAge={retirementAge}
+                    backendFiNumber={adjustedProjection?.fiMetrics?.fiNumber ? adjustedProjection.fiMetrics.fiNumber * effectiveFxRate : undefined}
+                    backendFiProgress={adjustedProjection?.fiMetrics?.fiProgress}
+                    backendCoastFiNumber={adjustedProjection?.fiMetrics?.coastFiNumber ? adjustedProjection.fiMetrics.coastFiNumber * effectiveFxRate : undefined}
+                    backendCoastFiProgress={adjustedProjection?.fiMetrics?.coastFiProgress}
+                    backendIsCoastFire={adjustedProjection?.fiMetrics?.isCoastFire}
                   />
 
                   {/* Income from Assets explanation */}
