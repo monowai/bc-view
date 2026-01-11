@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react"
 import { RetirementPlan } from "types/independence"
 import { ScenarioOverrides } from "./types"
+import { usePrivacyMode } from "@hooks/usePrivacyMode"
+
+const HIDDEN_VALUE = "****"
 
 interface EditFormData {
   pensionMonthly: number
@@ -21,12 +24,61 @@ interface EditPlanDetailsModalProps {
   plan: RetirementPlan
 }
 
+/**
+ * Privacy-aware money input that masks the display value but allows editing
+ */
+function PrivacyMoneyInput({
+  value,
+  onChange,
+  hideValues,
+  min = 0,
+  step = 100,
+  placeholder,
+}: {
+  value: number
+  onChange: (value: number) => void
+  hideValues: boolean
+  min?: number
+  step?: number
+  placeholder?: string
+}): React.ReactElement {
+  const [isFocused, setIsFocused] = useState(false)
+
+  // When privacy mode is on and not focused, show masked value
+  const displayValue = hideValues && !isFocused ? "" : value
+
+  return (
+    <div className="relative">
+      <span className="absolute left-3 top-2.5 text-gray-500">$</span>
+      {hideValues && !isFocused && (
+        <div className="absolute inset-0 flex items-center pl-8 text-gray-400 pointer-events-none">
+          {HIDDEN_VALUE}
+        </div>
+      )}
+      <input
+        type="number"
+        value={displayValue}
+        onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+        className={`w-full pl-8 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+          hideValues && !isFocused ? "text-transparent" : ""
+        }`}
+        min={min}
+        step={step}
+        placeholder={placeholder}
+      />
+    </div>
+  )
+}
+
 export default function EditPlanDetailsModal({
   isOpen,
   onClose,
   onApply,
   plan,
 }: EditPlanDetailsModalProps): React.ReactElement | null {
+  const { hideValues } = usePrivacyMode()
   const [formData, setFormData] = useState<EditFormData>({
     pensionMonthly: 0,
     socialSecurityMonthly: 0,
@@ -92,22 +144,13 @@ export default function EditPlanDetailsModal({
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Pension (Monthly)
             </label>
-            <div className="relative">
-              <span className="absolute left-3 top-2.5 text-gray-500">$</span>
-              <input
-                type="number"
-                value={formData.pensionMonthly}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    pensionMonthly: parseFloat(e.target.value) || 0,
-                  }))
-                }
-                className="w-full pl-8 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                min={0}
-                step={100}
-              />
-            </div>
+            <PrivacyMoneyInput
+              value={formData.pensionMonthly}
+              onChange={(value) =>
+                setFormData((prev) => ({ ...prev, pensionMonthly: value }))
+              }
+              hideValues={hideValues}
+            />
           </div>
 
           {/* Government Benefits */}
@@ -115,22 +158,16 @@ export default function EditPlanDetailsModal({
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Government Benefits (Monthly)
             </label>
-            <div className="relative">
-              <span className="absolute left-3 top-2.5 text-gray-500">$</span>
-              <input
-                type="number"
-                value={formData.socialSecurityMonthly}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    socialSecurityMonthly: parseFloat(e.target.value) || 0,
-                  }))
-                }
-                className="w-full pl-8 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                min={0}
-                step={100}
-              />
-            </div>
+            <PrivacyMoneyInput
+              value={formData.socialSecurityMonthly}
+              onChange={(value) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  socialSecurityMonthly: value,
+                }))
+              }
+              hideValues={hideValues}
+            />
           </div>
 
           {/* Other Income */}
@@ -138,22 +175,13 @@ export default function EditPlanDetailsModal({
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Other Income (Monthly)
             </label>
-            <div className="relative">
-              <span className="absolute left-3 top-2.5 text-gray-500">$</span>
-              <input
-                type="number"
-                value={formData.otherIncomeMonthly}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    otherIncomeMonthly: parseFloat(e.target.value) || 0,
-                  }))
-                }
-                className="w-full pl-8 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                min={0}
-                step={100}
-              />
-            </div>
+            <PrivacyMoneyInput
+              value={formData.otherIncomeMonthly}
+              onChange={(value) =>
+                setFormData((prev) => ({ ...prev, otherIncomeMonthly: value }))
+              }
+              hideValues={hideValues}
+            />
           </div>
 
           {/* Monthly Expenses */}
@@ -161,22 +189,13 @@ export default function EditPlanDetailsModal({
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Monthly Expenses
             </label>
-            <div className="relative">
-              <span className="absolute left-3 top-2.5 text-gray-500">$</span>
-              <input
-                type="number"
-                value={formData.monthlyExpenses}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    monthlyExpenses: parseFloat(e.target.value) || 0,
-                  }))
-                }
-                className="w-full pl-8 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                min={0}
-                step={100}
-              />
-            </div>
+            <PrivacyMoneyInput
+              value={formData.monthlyExpenses}
+              onChange={(value) =>
+                setFormData((prev) => ({ ...prev, monthlyExpenses: value }))
+              }
+              hideValues={hideValues}
+            />
           </div>
 
           {/* Return Rates */}
@@ -287,23 +306,14 @@ export default function EditPlanDetailsModal({
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Target Balance (Optional)
             </label>
-            <div className="relative">
-              <span className="absolute left-3 top-2.5 text-gray-500">$</span>
-              <input
-                type="number"
-                value={formData.targetBalance || ""}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    targetBalance: parseFloat(e.target.value) || 0,
-                  }))
-                }
-                placeholder="0"
-                className="w-full pl-8 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                min={0}
-                step={10000}
-              />
-            </div>
+            <PrivacyMoneyInput
+              value={formData.targetBalance}
+              onChange={(value) =>
+                setFormData((prev) => ({ ...prev, targetBalance: value }))
+              }
+              hideValues={hideValues}
+              step={10000}
+            />
             <p className="text-xs text-gray-500 mt-1">
               Minimum balance to maintain at end of life
             </p>
@@ -313,8 +323,10 @@ export default function EditPlanDetailsModal({
           <div className="bg-gray-50 rounded-lg p-3">
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Net Monthly Need</span>
-              <span className="font-medium text-orange-600">
-                ${netMonthlyNeed.toLocaleString()}
+              <span
+                className={`font-medium ${hideValues ? "text-gray-400" : "text-orange-600"}`}
+              >
+                {hideValues ? HIDDEN_VALUE : `$${netMonthlyNeed.toLocaleString()}`}
               </span>
             </div>
           </div>

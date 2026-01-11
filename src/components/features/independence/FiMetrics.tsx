@@ -21,6 +21,16 @@ interface FiMetricsProps {
   currentAge?: number
   /** Target retirement age (for Coast FIRE calculation) */
   retirementAge?: number
+  /** Pre-calculated FI Number from backend (overrides local calculation) */
+  backendFiNumber?: number
+  /** Pre-calculated FI Progress from backend (overrides local calculation) */
+  backendFiProgress?: number
+  /** Pre-calculated Coast FI Number from backend */
+  backendCoastFiNumber?: number
+  /** Pre-calculated Coast FI Progress from backend */
+  backendCoastFiProgress?: number
+  /** Pre-calculated is Coast FIRE achieved from backend */
+  backendIsCoastFire?: boolean
 }
 
 /**
@@ -63,15 +73,24 @@ export default function FiMetrics({
   expectedReturnRate = 0.07,
   currentAge,
   retirementAge,
+  backendFiNumber,
+  backendFiProgress,
+  backendCoastFiNumber,
+  backendCoastFiProgress,
+  backendIsCoastFire,
 }: FiMetricsProps): React.ReactElement {
   const { hideValues } = usePrivacyMode()
 
   // FI Number = Annual Expenses × 25 (based on 4% SWR)
+  // Use backend value if provided for consistency with PlanCard
   const annualExpenses = monthlyExpenses * 12
-  const fiNumber = annualExpenses * 25
+  const localFiNumber = annualExpenses * 25
+  const fiNumber = backendFiNumber ?? localFiNumber
 
   // FI Progress = (Liquid Assets / FI Number) × 100
-  const fiProgress = fiNumber > 0 ? (liquidAssets / fiNumber) * 100 : 0
+  // Use backend value if provided for consistency
+  const localFiProgress = fiNumber > 0 ? (liquidAssets / fiNumber) * 100 : 0
+  const fiProgress = backendFiProgress ?? localFiProgress
   const fiProgressClamped = Math.min(fiProgress, 100)
 
   // Savings Rate = Monthly Investment / Income × 100
@@ -94,19 +113,22 @@ export default function FiMetrics({
   // Coast FIRE calculations
   // Coast FI Number = FI Number / (1 + returnRate)^yearsToRetirement
   // This is the amount you need now such that compound growth alone reaches FI
+  // Use backend values if provided for consistency
   const yearsToRetirement =
     currentAge && retirementAge && retirementAge > currentAge
       ? retirementAge - currentAge
       : null
-  const coastFiNumber =
+  const localCoastFiNumber =
     yearsToRetirement && expectedReturnRate > 0
       ? fiNumber / Math.pow(1 + expectedReturnRate, yearsToRetirement)
       : null
-  const coastFiProgress =
+  const coastFiNumber = backendCoastFiNumber ?? localCoastFiNumber
+  const localCoastFiProgress =
     coastFiNumber && coastFiNumber > 0
       ? (liquidAssets / coastFiNumber) * 100
       : null
-  const isCoastFire = coastFiProgress !== null && coastFiProgress >= 100
+  const coastFiProgress = backendCoastFiProgress ?? localCoastFiProgress
+  const isCoastFire = backendIsCoastFire ?? (coastFiProgress !== null && coastFiProgress >= 100)
 
   // Determine status color based on progress
   const getProgressColor = (): string => {
