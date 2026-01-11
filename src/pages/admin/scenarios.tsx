@@ -6,7 +6,7 @@ import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { rootLoader } from "@components/ui/PageLoader"
 import { useIsAdmin } from "@hooks/useIsAdmin"
 import Link from "next/link"
-import { QuickScenario, QuickScenarioRequest } from "types/retirement"
+import { QuickScenario, QuickScenarioRequest } from "types/independence"
 
 interface FormData {
   name: string

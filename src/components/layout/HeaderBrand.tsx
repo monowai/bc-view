@@ -44,10 +44,10 @@ const navSections: NavSection[] = [
     title: "Planning",
     items: [
       {
-        href: "/retire",
-        label: "Retirement",
+        href: "/independence",
+        label: "Independence",
         icon: "fa-umbrella-beach",
-        description: "Retirement projections & scenarios",
+        description: "Financial independence projections",
       },
       {
         href: "/rebalance/models",
@@ -103,6 +103,8 @@ function DesktopDropdown({
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    if (!isOpen) return () => {}
+
     function handleClickOutside(event: MouseEvent): void {
       if (
         dropdownRef.current &&
@@ -111,10 +113,8 @@ function DesktopDropdown({
         setIsOpen(false)
       }
     }
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside)
-      return () => document.removeEventListener("mousedown", handleClickOutside)
-    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [isOpen])
 
   const filteredItems = section.items.filter(
@@ -195,6 +195,8 @@ function HeaderBrand(): React.ReactElement {
 
   // Close mobile menu when clicking outside
   useEffect(() => {
+    if (!mobileMenuOpen) return () => {}
+
     function handleClickOutside(event: MouseEvent): void {
       if (
         mobileMenuRef.current &&
@@ -204,10 +206,8 @@ function HeaderBrand(): React.ReactElement {
       }
     }
 
-    if (mobileMenuOpen) {
-      document.addEventListener("mousedown", handleClickOutside)
-      return () => document.removeEventListener("mousedown", handleClickOutside)
-    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [mobileMenuOpen])
 
   // Close mobile menu on route change
@@ -244,7 +244,7 @@ function HeaderBrand(): React.ReactElement {
         {/* Mobile Dropdown Menu */}
         {mobileMenuOpen && (
           <div className="absolute left-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden">
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3">
+            <div className="bg-linear-to-r from-blue-600 to-blue-700 px-4 py-3">
               <p className="text-white text-sm font-medium">Navigation</p>
             </div>
 

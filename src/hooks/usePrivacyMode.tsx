@@ -7,8 +7,8 @@ import React, {
   useEffect,
   useState,
 } from "react"
-import {useUserPreferences} from "@contexts/UserPreferencesContext"
-import {createSessionState} from "@lib/storage/sessionState"
+import { useUserPreferences } from "@contexts/UserPreferencesContext"
+import { createSessionState } from "@lib/storage/sessionState"
 
 interface PrivacyModeContextValue {
   hideValues: boolean
