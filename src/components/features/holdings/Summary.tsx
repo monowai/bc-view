@@ -239,6 +239,7 @@ export default function SummaryHeader({
               defaultValue="-"
               multiplier={100}
               scale={2}
+              isPublic
             />
             {"%"}
           </>

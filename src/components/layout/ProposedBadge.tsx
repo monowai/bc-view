@@ -21,7 +21,8 @@ export default function ProposedBadge(): React.ReactElement | null {
     fetcher,
     {
       refreshInterval: 60000, // Refresh every minute
-      revalidateOnFocus: true,
+      revalidateOnFocus: false,
+      dedupingInterval: 30000, // Prevent duplicate requests within 30 seconds
     },
   )
 

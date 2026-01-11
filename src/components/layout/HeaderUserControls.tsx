@@ -5,12 +5,14 @@ import { useTranslation } from "next-i18next"
 import { getAvatar } from "@pages/profile"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { useIsAdmin } from "@hooks/useIsAdmin"
+import { usePrivacyMode } from "@hooks/usePrivacyMode"
 
 export default function HeaderUserControls(): React.ReactElement {
   const { user, error, isLoading } = useUser()
   const { t } = useTranslation("common")
   const { preferences } = useUserPreferences()
   const { isAdmin } = useIsAdmin()
+  const { hideValues, toggleHideValues } = usePrivacyMode()
   const [dropdownOpen, setDropdownOpen] = useState(false)
 
   // Get display name: prefer user's preferred name, fall back to nickname
@@ -39,6 +41,14 @@ export default function HeaderUserControls(): React.ReactElement {
   return (
     <div className="relative">
       <div className="flex items-center">
+        <button
+          onClick={toggleHideValues}
+          className="p-2 mr-2 hover:bg-gray-700 rounded transition-colors"
+          title={hideValues ? "Show values" : "Hide values"}
+          aria-label={hideValues ? "Show values" : "Hide values"}
+        >
+          <i className={`fas ${hideValues ? "fa-eye-slash" : "fa-eye"}`} />
+        </button>
         {getAvatar(user, 30)}
         <div
           onClick={() => setDropdownOpen(!dropdownOpen)}

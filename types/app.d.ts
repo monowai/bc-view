@@ -10,6 +10,7 @@ interface FormatNumber {
   scale?: number
   multiplier?: number
   defaultValue?: string
+  isPublic?: boolean // If true, value is not hidden in privacy mode (e.g., percentages)
 }
 
 export interface DelimitedImport {
