@@ -151,13 +151,13 @@ describe("usePrivacyMode", () => {
       })
 
       expect(sessionStorageMock.setItem).toHaveBeenCalledWith(
-        "bc:common",
+        "bc:hideValues",
         "true",
       )
     })
 
     it("reads initial state from sessionStorage", () => {
-      mockSessionStorage["bc:common"] = "true"
+      mockSessionStorage["bc:hideValues"] = "true"
 
       const { result } = renderHook(() => usePrivacyMode(), { wrapper })
 
