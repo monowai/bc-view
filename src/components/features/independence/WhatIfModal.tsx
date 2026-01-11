@@ -3,6 +3,9 @@ import WhatIfSlider from "./WhatIfSlider"
 import { WhatIfAdjustments, ScenarioOverrides } from "./types"
 import { RetirementPlan } from "types/independence"
 import { RentalIncomeData } from "./useRetirementProjection"
+import { usePrivacyMode } from "@hooks/usePrivacyMode"
+
+const HIDDEN_VALUE = "****"
 
 interface WhatIfModalProps {
   isOpen: boolean
@@ -35,7 +38,12 @@ export default function WhatIfModal({
   monthlyInvestment,
   rentalIncome,
 }: WhatIfModalProps): React.ReactElement | null {
+  const { hideValues } = usePrivacyMode()
+
   if (!isOpen) return null
+
+  const formatMoney = (v: number): string =>
+    hideValues ? HIDDEN_VALUE : `$${v.toLocaleString()}`
 
   const updateAdjustment = <K extends keyof WhatIfAdjustments>(
     key: K,
@@ -119,7 +127,7 @@ export default function WhatIfModal({
               max={Math.max(10000, (plan.pensionMonthly ?? 0) * 2)}
               step={100}
               unit=""
-              formatValue={(v) => `$${v.toLocaleString()}/mo`}
+              formatValue={(v) => `${formatMoney(v)}/mo`}
             />
 
             <WhatIfSlider
@@ -130,7 +138,7 @@ export default function WhatIfModal({
               max={Math.max(5000, (plan.socialSecurityMonthly ?? 0) * 2)}
               step={50}
               unit=""
-              formatValue={(v) => `$${v.toLocaleString()}/mo`}
+              formatValue={(v) => `${formatMoney(v)}/mo`}
             />
 
             <WhatIfSlider
@@ -141,7 +149,7 @@ export default function WhatIfModal({
               max={Math.max(5000, (plan.otherIncomeMonthly ?? 0) * 2)}
               step={50}
               unit=""
-              formatValue={(v) => `$${v.toLocaleString()}/mo`}
+              formatValue={(v) => `${formatMoney(v)}/mo`}
             />
 
             {totalRentalIncome > 0 && (
@@ -149,8 +157,8 @@ export default function WhatIfModal({
                 <span className="text-xs text-green-600 font-medium">
                   Property Rental (read-only)
                 </span>
-                <span className="text-sm font-semibold text-green-700">
-                  ${totalRentalIncome.toLocaleString()}/mo
+                <span className={`text-sm font-semibold ${hideValues ? "text-gray-400" : "text-green-700"}`}>
+                  {formatMoney(totalRentalIncome)}/mo
                 </span>
                 <span className="text-xs text-green-500">
                   Configure in Accounts
@@ -159,14 +167,15 @@ export default function WhatIfModal({
             )}
           </div>
           <div className="mt-3 p-2 bg-gray-50 rounded text-sm text-gray-600">
-            <strong>Total Income:</strong> $
-            {(
-              effectivePension +
-              effectiveSocialSecurity +
-              effectiveOtherIncome +
-              totalRentalIncome
-            ).toLocaleString()}
-            /mo
+            <strong>Total Income:</strong>{" "}
+            {hideValues
+              ? HIDDEN_VALUE
+              : `$${(
+                  effectivePension +
+                  effectiveSocialSecurity +
+                  effectiveOtherIncome +
+                  totalRentalIncome
+                ).toLocaleString()}/mo`}
           </div>
         </div>
 
@@ -200,7 +209,9 @@ export default function WhatIfModal({
               unit="%"
               formatValue={(v) => {
                 const adjusted = Math.round(monthlyInvestment * (v / 100))
-                return `$${adjusted.toLocaleString()}/mo (${v}%)`
+                return hideValues
+                  ? `${HIDDEN_VALUE}/mo (${v}%)`
+                  : `$${adjusted.toLocaleString()}/mo (${v}%)`
               }}
             />
 
@@ -213,7 +224,9 @@ export default function WhatIfModal({
               step={5}
               unit="%"
               formatValue={(v) =>
-                `${v}% ($${Math.round((plan.monthlyExpenses * v) / 100).toLocaleString()})`
+                hideValues
+                  ? `${v}% (${HIDDEN_VALUE})`
+                  : `${v}% ($${Math.round((plan.monthlyExpenses * v) / 100).toLocaleString()})`
               }
             />
 

@@ -77,6 +77,7 @@ export function useRetirementProjection({
           retirementAge,
           lifeExpectancy,
           monthlyContribution: monthlyInvestment,
+          rentalIncomeMonthly: rentalIncome?.totalMonthlyInPlanCurrency || 0,
         }),
       })
 
@@ -98,6 +99,7 @@ export function useRetirementProjection({
     retirementAge,
     lifeExpectancy,
     monthlyInvestment,
+    rentalIncome,
   ])
 
   // Auto-calculate projection when data is ready

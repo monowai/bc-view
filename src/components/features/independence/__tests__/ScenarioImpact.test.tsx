@@ -53,7 +53,7 @@ describe("ScenarioImpact", () => {
   const defaultProps = {
     projection: createMockProjection(),
     lifeExpectancy: 90,
-    planCurrency: "$",
+    currency: "$",
     whatIfAdjustments: DEFAULT_WHAT_IF_ADJUSTMENTS,
     onLiquidationThresholdChange: jest.fn(),
   }

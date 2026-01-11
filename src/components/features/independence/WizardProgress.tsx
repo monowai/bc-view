@@ -31,7 +31,7 @@ export default function WizardProgress({
           const isClickable = isEditMode && onStepClick
 
           return (
-            <li key={step.id} className="flex-1 relative">
+            <li key={step.id} className="flex-1 relative min-w-0">
               <div
                 className={`flex flex-col items-center relative z-10 ${isClickable ? "cursor-pointer" : ""}`}
                 onClick={() => handleStepClick(step.id)}
@@ -46,38 +46,39 @@ export default function WizardProgress({
               >
                 <div
                   className={`
-                    w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-all
-                    ${hasError ? "bg-red-500 text-white ring-4 ring-red-200" : ""}
+                    w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium transition-all flex-shrink-0
+                    ${hasError ? "bg-red-500 text-white ring-2 sm:ring-4 ring-red-200" : ""}
                     ${!hasError && isCompleted ? "bg-orange-600 text-white" : ""}
-                    ${!hasError && isCurrent ? "bg-orange-600 text-white ring-4 ring-orange-200" : ""}
+                    ${!hasError && isCurrent ? "bg-orange-600 text-white ring-2 sm:ring-4 ring-orange-200" : ""}
                     ${!hasError && isUpcoming ? "bg-gray-200 text-gray-500" : ""}
                     ${isClickable && !isCurrent ? "hover:ring-2 hover:ring-orange-300" : ""}
                   `}
                 >
                   {hasError ? (
-                    <i className="fas fa-exclamation"></i>
+                    <i className="fas fa-exclamation text-xs"></i>
                   ) : isCompleted ? (
-                    <i className="fas fa-check"></i>
+                    <i className="fas fa-check text-xs"></i>
                   ) : (
                     step.id
                   )}
                 </div>
                 <span
                   className={`
-                    mt-2 text-xs font-medium transition-colors
+                    mt-1 sm:mt-2 text-[10px] sm:text-xs font-medium transition-colors text-center truncate max-w-full px-1
                     ${hasError ? "text-red-600" : ""}
                     ${!hasError && isCurrent ? "text-orange-600" : ""}
                     ${!hasError && !isCurrent ? "text-gray-500" : ""}
                     ${isClickable ? "hover:text-orange-600" : ""}
                   `}
                 >
-                  {step.name}
+                  <span className="hidden sm:inline">{step.name}</span>
+                  <span className="sm:hidden">{step.id}</span>
                 </span>
               </div>
               {index < WIZARD_STEPS.length - 1 && (
                 <div
                   className={`
-                    absolute top-5 left-1/2 w-full h-0.5 -translate-y-1/2
+                    absolute top-4 sm:top-5 left-1/2 w-full h-0.5 -translate-y-1/2
                     ${isCompleted && !stepErrors.has(step.id + 1) ? "bg-orange-600" : "bg-gray-200"}
                   `}
                 />

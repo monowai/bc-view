@@ -47,8 +47,13 @@ import {
   SaveScenarioDialog,
   EditPlanDetailsModal,
   IncomeBreakdownTable,
+  FiMetrics,
+  FiSummaryBar,
 } from "@components/features/independence"
 import { usePrivateAssetConfigs } from "@utils/assets/usePrivateAssetConfigs"
+import { usePrivacyMode } from "@hooks/usePrivacyMode"
+
+const HIDDEN_VALUE = "****"
 
 interface PortfoliosResponse {
   data: Portfolio[]
@@ -58,6 +63,7 @@ function PlanView(): React.ReactElement {
   const { t } = useTranslation("common")
   const router = useRouter()
   const { id } = router.query
+  const { hideValues } = usePrivacyMode()
   const hasAutoSelected = useRef(false)
   const hasCategoriesInitialized = useRef(false)
   const [activeTab, setActiveTab] = useState<TabId>("details")
@@ -101,6 +107,7 @@ function PlanView(): React.ReactElement {
     simpleFetcher("/api/holdings/aggregated?asAt=today"),
   )
   const holdingsData = holdingsResponse?.data
+  const holdingsCurrency = holdingsData?.portfolio?.currency?.code
 
   // Fetch quick scenarios for What-If analysis
   const { data: scenariosData } = useSwr<QuickScenariosResponse>(
@@ -118,6 +125,93 @@ function PlanView(): React.ReactElement {
 
   const plan = planData?.data
   const planCurrency = plan?.expensesCurrency || "NZD"
+
+  // Display currency conversion (all plan values are in planCurrency)
+  const [displayCurrency, setDisplayCurrency] = useState<string | null>(null)
+  const [fxRate, setFxRate] = useState<number>(1)
+  const [fxRateLoaded, setFxRateLoaded] = useState<boolean>(true) // true when no conversion needed
+  // Only use display currency when fxRate has been loaded to avoid showing wrong values
+  const effectiveCurrency =
+    displayCurrency && fxRateLoaded ? displayCurrency : planCurrency
+  const effectiveFxRate =
+    displayCurrency && fxRateLoaded && displayCurrency !== planCurrency
+      ? fxRate
+      : 1
+
+  // Fetch available currencies
+  const { data: currenciesData } = useSwr<{
+    data: { code: string; name: string; symbol: string }[]
+  }>("/api/currencies", simpleFetcher("/api/currencies"))
+  const availableCurrencies = currenciesData?.data || []
+
+  // Fetch FX rate when display currency changes
+  useEffect(() => {
+    const fetchFxRate = async (): Promise<void> => {
+      if (!displayCurrency || displayCurrency === planCurrency) {
+        setFxRate(1)
+        setFxRateLoaded(true)
+        return
+      }
+      // Mark as loading while fetching
+      setFxRateLoaded(false)
+      try {
+        const response = await fetch("/api/fx", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            rateDate: "today",
+            pairs: [{ from: planCurrency, to: displayCurrency }],
+          }),
+        })
+        const fxResponse: FxResponse = await response.json()
+        const rateKey = `${planCurrency}:${displayCurrency}`
+        const rate = fxResponse.data?.rates?.[rateKey]?.rate
+        if (rate && rate !== 1) {
+          setFxRate(rate)
+          setFxRateLoaded(true)
+        } else {
+          // Rate not found or is 1 - stay in plan currency
+          console.warn(`FX rate not found for ${rateKey}, using plan currency`)
+          setFxRate(1)
+          setFxRateLoaded(false) // Keep showing plan currency
+        }
+      } catch (err) {
+        console.error("Failed to fetch FX rate:", err)
+        setFxRate(1)
+        setFxRateLoaded(false) // Keep showing plan currency on error
+      }
+    }
+    fetchFxRate()
+  }, [planCurrency, displayCurrency])
+
+  // FX rate to convert holdings from portfolio currency to plan currency
+  const [holdingsToPlanRate, setHoldingsToPlanRate] = useState<number>(1)
+
+  useEffect(() => {
+    const fetchHoldingsFxRate = async (): Promise<void> => {
+      if (!holdingsCurrency || !planCurrency || holdingsCurrency === planCurrency) {
+        setHoldingsToPlanRate(1)
+        return
+      }
+      try {
+        const response = await fetch("/api/fx", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            rateDate: "today",
+            pairs: [{ from: holdingsCurrency, to: planCurrency }],
+          }),
+        })
+        const fxResponse: FxResponse = await response.json()
+        const rateKey = `${holdingsCurrency}:${planCurrency}`
+        setHoldingsToPlanRate(fxResponse.data?.rates?.[rateKey]?.rate || 1)
+      } catch (err) {
+        console.error("Failed to fetch holdings FX rate:", err)
+        setHoldingsToPlanRate(1)
+      }
+    }
+    fetchHoldingsFxRate()
+  }, [holdingsCurrency, planCurrency])
 
   // Get raw rental income by currency (not yet converted)
   const monthlyNetByCurrency = useMemo(() => {
@@ -233,24 +327,31 @@ function PlanView(): React.ReactElement {
     }
   }, [categorySlices, plan])
 
-  // Calculate total assets from category slices
+  // Calculate total assets from category slices (converted to plan currency)
   const totalAssets = useMemo(() => {
-    return categorySlices.reduce((sum, slice) => sum + slice.value, 0)
-  }, [categorySlices])
+    return (
+      categorySlices.reduce((sum, slice) => sum + slice.value, 0) *
+      holdingsToPlanRate
+    )
+  }, [categorySlices, holdingsToPlanRate])
 
-  // Calculate liquid (spendable) assets - only selected categories
+  // Calculate liquid (spendable) assets - only selected categories (in plan currency)
   const liquidAssets = useMemo(() => {
-    return categorySlices
-      .filter((slice) => spendableCategories.includes(slice.key))
-      .reduce((sum, slice) => sum + slice.value, 0)
-  }, [categorySlices, spendableCategories])
+    return (
+      categorySlices
+        .filter((slice) => spendableCategories.includes(slice.key))
+        .reduce((sum, slice) => sum + slice.value, 0) * holdingsToPlanRate
+    )
+  }, [categorySlices, spendableCategories, holdingsToPlanRate])
 
-  // Calculate non-spendable assets (e.g., property)
+  // Calculate non-spendable assets (e.g., property) (in plan currency)
   const nonSpendableAssets = useMemo(() => {
-    return categorySlices
-      .filter((slice) => !spendableCategories.includes(slice.key))
-      .reduce((sum, slice) => sum + slice.value, 0)
-  }, [categorySlices, spendableCategories])
+    return (
+      categorySlices
+        .filter((slice) => !spendableCategories.includes(slice.key))
+        .reduce((sum, slice) => sum + slice.value, 0) * holdingsToPlanRate
+    )
+  }, [categorySlices, spendableCategories, holdingsToPlanRate])
 
   // Default expected return rate for assets without a configured rate (3%)
   const DEFAULT_EXPECTED_RETURN = 0.03
@@ -373,6 +474,86 @@ function PlanView(): React.ReactElement {
       spendableCategories,
       rentalIncome,
     })
+
+  // Calculate FI metrics for summary bar
+  // Prefers backend-provided metrics, falls back to local calculation
+  const fiMetrics = useMemo(() => {
+    // Use backend fiMetrics when available (from adjustedProjection)
+    if (adjustedProjection?.fiMetrics) {
+      const backendMetrics = adjustedProjection.fiMetrics
+      return {
+        fiNumber: backendMetrics.fiNumber,
+        netMonthlyExpenses: backendMetrics.netMonthlyExpenses,
+        totalMonthlyIncome: backendMetrics.totalMonthlyIncome,
+        isCoastFire: backendMetrics.isCoastFire,
+        yearsToRetirement:
+          currentAge && retirementAge && retirementAge > currentAge
+            ? retirementAge - currentAge
+            : null,
+        fiProgress: backendMetrics.fiProgress,
+        savingsRate: backendMetrics.savingsRate,
+        yearsToFi: backendMetrics.yearsToFi,
+        coastFiNumber: backendMetrics.coastFiNumber,
+        coastFiProgress: backendMetrics.coastFiProgress,
+        isFinanciallyIndependent: backendMetrics.isFinanciallyIndependent,
+      }
+    }
+
+    // Fallback: calculate locally when projection not yet loaded
+    if (!plan) return null
+
+    // Apply what-if expensesPercent adjustment to gross expenses
+    const effectiveGrossExpenses = Math.round(
+      plan.monthlyExpenses * (combinedAdjustments.expensesPercent / 100),
+    )
+
+    // Calculate income from all sources (pension, benefits, rental, etc.)
+    const totalMonthlyIncome =
+      (plan.pensionMonthly || 0) +
+      (plan.socialSecurityMonthly || 0) +
+      (plan.otherIncomeMonthly || 0) +
+      (rentalIncome?.totalMonthlyInPlanCurrency || 0)
+
+    // Net expenses = what you actually need from investments
+    const netMonthlyExpenses = Math.max(
+      0,
+      effectiveGrossExpenses - totalMonthlyIncome,
+    )
+
+    // FI Number based on NET expenses (accounts for rental income, pension, etc.)
+    const annualNetExpenses = netMonthlyExpenses * 12
+    const fiNumber = annualNetExpenses * 25
+
+    // Coast FIRE calculation
+    const yearsToRetirement =
+      currentAge && retirementAge && retirementAge > currentAge
+        ? retirementAge - currentAge
+        : null
+    const coastFiNumber =
+      yearsToRetirement && blendedReturnRate > 0
+        ? fiNumber / Math.pow(1 + blendedReturnRate, yearsToRetirement)
+        : null
+    const isCoastFire = coastFiNumber
+      ? liquidAssets >= coastFiNumber
+      : undefined
+
+    return {
+      fiNumber,
+      netMonthlyExpenses,
+      totalMonthlyIncome,
+      isCoastFire,
+      yearsToRetirement,
+    }
+  }, [
+    adjustedProjection?.fiMetrics,
+    plan,
+    combinedAdjustments.expensesPercent,
+    rentalIncome?.totalMonthlyInPlanCurrency,
+    currentAge,
+    retirementAge,
+    blendedReturnRate,
+    liquidAssets,
+  ])
 
   // Toggle category spendable status
   const toggleCategory = (category: string): void => {
@@ -555,6 +736,23 @@ function PlanView(): React.ReactElement {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              {/* Currency selector */}
+              <select
+                value={displayCurrency || planCurrency}
+                onChange={(e) =>
+                  setDisplayCurrency(
+                    e.target.value === planCurrency ? null : e.target.value,
+                  )
+                }
+                className="text-sm border border-gray-300 rounded px-2 py-1 bg-white"
+                title="Display currency"
+              >
+                {availableCurrencies.map((curr) => (
+                  <option key={curr.code} value={curr.code}>
+                    {curr.code}
+                  </option>
+                ))}
+              </select>
               <button
                 onClick={handleExport}
                 className="text-gray-400 hover:text-gray-600 p-2"
@@ -571,6 +769,18 @@ function PlanView(): React.ReactElement {
               </Link>
             </div>
           </div>
+
+          {/* FIRE Summary Bar - Always visible */}
+          {fiMetrics && (
+            <FiSummaryBar
+              fiNumber={fiMetrics.fiNumber * effectiveFxRate}
+              liquidAssets={liquidAssets * effectiveFxRate}
+              illiquidAssets={nonSpendableAssets * effectiveFxRate}
+              currency={effectiveCurrency}
+              isCoastFire={fiMetrics.isCoastFire}
+              yearsToRetirement={fiMetrics.yearsToRetirement ?? undefined}
+            />
+          )}
 
           {/* Tab Navigation */}
           <div className="border-b border-gray-200 mb-4">
@@ -642,8 +852,12 @@ function PlanView(): React.ReactElement {
           {activeTab === "details" &&
             (() => {
               // Use in-memory state (scenarioOverrides) with plan as fallback
-              const effectiveExpenses =
+              // Apply what-if expensesPercent adjustment (e.g., Frugal = 90%)
+              const baseExpenses =
                 scenarioOverrides.monthlyExpenses ?? plan.monthlyExpenses
+              const effectiveExpenses = Math.round(
+                baseExpenses * (combinedAdjustments.expensesPercent / 100),
+              )
               const effectivePension =
                 scenarioOverrides.pensionMonthly ?? plan.pensionMonthly ?? 0
               const effectiveSocialSecurity =
@@ -672,117 +886,148 @@ function PlanView(): React.ReactElement {
                 (rentalIncome?.totalMonthlyInPlanCurrency || 0)
 
               return (
-                <div className="bg-white rounded-xl shadow-md p-6">
-                  <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-lg font-semibold text-gray-900">
-                      {t("retire.planDetails")}
-                    </h2>
-                    <button
-                      onClick={() => setShowEditDetailsModal(true)}
-                      className="text-sm text-orange-600 hover:text-orange-700"
-                    >
-                      <i className="fas fa-edit mr-1"></i>
-                      Edit
-                    </button>
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <InfoTooltip text={t("retire.monthlyExpenses.tooltip")}>
-                        <span className="text-gray-500">
-                          {t("retire.monthlyExpenses")}
-                        </span>
-                      </InfoTooltip>
-                      <span className="font-medium">
-                        ${effectiveExpenses.toLocaleString()}{" "}
-                        {plan.expensesCurrency}
-                      </span>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Plan Details */}
+                  <div className="bg-white rounded-xl shadow-md p-6">
+                    <div className="flex justify-between items-center mb-4">
+                      <h2 className="text-lg font-semibold text-gray-900">
+                        {t("retire.planDetails")}
+                      </h2>
+                      <button
+                        onClick={() => setShowEditDetailsModal(true)}
+                        className="text-sm text-orange-600 hover:text-orange-700"
+                      >
+                        <i className="fas fa-edit mr-1"></i>
+                        Edit
+                      </button>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">
-                        {t("retire.pension")}
-                      </span>
-                      <span className="font-medium">
-                        ${effectivePension.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">
-                        {t("retire.governmentBenefits")}
-                      </span>
-                      <span className="font-medium">
-                        ${effectiveSocialSecurity.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">
-                        {t("retire.otherIncome")}
-                      </span>
-                      <span className="font-medium">
-                        ${effectiveOtherIncome.toLocaleString()}
-                      </span>
-                    </div>
-                    {rentalIncome &&
-                      rentalIncome.totalMonthlyInPlanCurrency > 0 && (
-                        <div className="flex justify-between">
-                          <InfoTooltip text="Net rental income from properties (after all expenses). Stops if property is liquidated.">
-                            <span className="text-gray-500">
-                              <i className="fas fa-home text-xs mr-1"></i>
-                              Property Rental
-                            </span>
-                          </InfoTooltip>
-                          <span className="font-medium text-green-600">
-                            $
-                            {rentalIncome.totalMonthlyInPlanCurrency.toLocaleString()}
-                          </span>
-                        </div>
-                      )}
-                    <div className="flex justify-between">
-                      <InfoTooltip text={t("retire.netMonthlyNeed.tooltip")}>
-                        <span className="text-gray-500">
-                          {t("retire.netMonthlyNeed")}
-                        </span>
-                      </InfoTooltip>
-                      <span className="font-medium text-orange-600">
-                        ${netMonthlyNeed.toLocaleString()}
-                      </span>
-                    </div>
-                    <hr />
-                    <div className="flex justify-between">
-                      <InfoTooltip text={t("retire.inflation.tooltip")}>
-                        <span className="text-gray-500">
-                          {t("retire.inflation")}
-                        </span>
-                      </InfoTooltip>
-                      <span className="font-medium">
-                        {(effectiveInflation * 100).toFixed(1)}%
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">Return Rates</span>
-                      <span className="font-medium text-blue-600">
-                        E:{(effectiveEquityReturn * 100).toFixed(0)}% C:
-                        {(effectiveCashReturn * 100).toFixed(0)}% H:
-                        {(effectiveHousingReturn * 100).toFixed(0)}%
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">Blended Return Rate</span>
-                      <span className="font-medium text-blue-600">
-                        {(blendedReturnRate * 100).toFixed(1)}%
-                      </span>
-                    </div>
-                    {effectiveTarget && effectiveTarget > 0 && (
+                    <div className="space-y-3">
                       <div className="flex justify-between">
-                        <InfoTooltip text={t("retire.targetBalance.tooltip")}>
+                        <InfoTooltip text={t("retire.monthlyExpenses.tooltip")}>
                           <span className="text-gray-500">
-                            {t("retire.targetBalance")}
+                            {t("retire.monthlyExpenses")}
+                          </span>
+                        </InfoTooltip>
+                        <span
+                          className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
+                        >
+                          {hideValues
+                            ? HIDDEN_VALUE
+                            : `${effectiveCurrency}${Math.round(effectiveExpenses * effectiveFxRate).toLocaleString()}`}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">
+                          {t("retire.pension")}
+                        </span>
+                        <span
+                          className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
+                        >
+                          {hideValues
+                            ? HIDDEN_VALUE
+                            : `${effectiveCurrency}${Math.round(effectivePension * effectiveFxRate).toLocaleString()}`}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">
+                          {t("retire.governmentBenefits")}
+                        </span>
+                        <span
+                          className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
+                        >
+                          {hideValues
+                            ? HIDDEN_VALUE
+                            : `${effectiveCurrency}${Math.round(effectiveSocialSecurity * effectiveFxRate).toLocaleString()}`}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">
+                          {t("retire.otherIncome")}
+                        </span>
+                        <span
+                          className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
+                        >
+                          {hideValues
+                            ? HIDDEN_VALUE
+                            : `${effectiveCurrency}${Math.round(effectiveOtherIncome * effectiveFxRate).toLocaleString()}`}
+                        </span>
+                      </div>
+                      {rentalIncome &&
+                        rentalIncome.totalMonthlyInPlanCurrency > 0 && (
+                          <div className="flex justify-between">
+                            <InfoTooltip text="Net rental income from properties (after all expenses). Stops if property is liquidated.">
+                              <span className="text-gray-500">
+                                <i className="fas fa-home text-xs mr-1"></i>
+                                Property Rental
+                              </span>
+                            </InfoTooltip>
+                            <span
+                              className={`font-medium ${hideValues ? "text-gray-400" : "text-green-600"}`}
+                            >
+                              {hideValues
+                                ? HIDDEN_VALUE
+                                : `${effectiveCurrency}${Math.round(rentalIncome.totalMonthlyInPlanCurrency * effectiveFxRate).toLocaleString()}`}
+                            </span>
+                          </div>
+                        )}
+                      <div className="flex justify-between">
+                        <InfoTooltip text={t("retire.netMonthlyNeed.tooltip")}>
+                          <span className="text-gray-500">
+                            {t("retire.netMonthlyNeed")}
+                          </span>
+                        </InfoTooltip>
+                        <span
+                          className={`font-medium ${hideValues ? "text-gray-400" : "text-orange-600"}`}
+                        >
+                          {hideValues
+                            ? HIDDEN_VALUE
+                            : `${effectiveCurrency}${Math.round(netMonthlyNeed * effectiveFxRate).toLocaleString()}`}
+                        </span>
+                      </div>
+                      <hr />
+                      <div className="flex justify-between">
+                        <InfoTooltip text={t("retire.inflation.tooltip")}>
+                          <span className="text-gray-500">
+                            {t("retire.inflation")}
                           </span>
                         </InfoTooltip>
                         <span className="font-medium">
-                          ${effectiveTarget.toLocaleString()}
+                          {(effectiveInflation * 100).toFixed(1)}%
                         </span>
                       </div>
-                    )}
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Return Rates</span>
+                        <span className="font-medium text-blue-600">
+                          E:{(effectiveEquityReturn * 100).toFixed(0)}% C:
+                          {(effectiveCashReturn * 100).toFixed(0)}% H:
+                          {(effectiveHousingReturn * 100).toFixed(0)}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">
+                          Blended Return Rate
+                        </span>
+                        <span className="font-medium text-blue-600">
+                          {(blendedReturnRate * 100).toFixed(1)}%
+                        </span>
+                      </div>
+                      {effectiveTarget && effectiveTarget > 0 && (
+                        <div className="flex justify-between">
+                          <InfoTooltip text={t("retire.targetBalance.tooltip")}>
+                            <span className="text-gray-500">
+                              {t("retire.targetBalance")}
+                            </span>
+                          </InfoTooltip>
+                          <span
+                            className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
+                          >
+                            {hideValues
+                              ? HIDDEN_VALUE
+                              : `${effectiveCurrency}${Math.round(effectiveTarget * effectiveFxRate).toLocaleString()}`}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               )
@@ -856,12 +1101,16 @@ function PlanView(): React.ReactElement {
                               </div>
                               <span
                                 className={`font-medium ${
-                                  isSpendable
-                                    ? "text-gray-900"
-                                    : "text-gray-400"
+                                  hideValues
+                                    ? "text-gray-400"
+                                    : isSpendable
+                                      ? "text-gray-900"
+                                      : "text-gray-400"
                                 }`}
                               >
-                                ${Math.round(slice.value).toLocaleString()}
+                                {hideValues
+                                  ? HIDDEN_VALUE
+                                  : `${effectiveCurrency}${Math.round(slice.value * holdingsToPlanRate * effectiveFxRate).toLocaleString()}`}
                               </span>
                             </label>
                           </div>
@@ -874,16 +1123,20 @@ function PlanView(): React.ReactElement {
                       <span className="text-gray-500">
                         {t("retire.assets.totalAssets")}
                       </span>
-                      <span className="font-medium">
-                        ${Math.round(totalAssets).toLocaleString()}
+                      <span className={`font-medium ${hideValues ? "text-gray-400" : ""}`}>
+                        {hideValues
+                          ? HIDDEN_VALUE
+                          : `${effectiveCurrency}${Math.round(totalAssets * effectiveFxRate).toLocaleString()}`}
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">
                         {t("retire.assets.spendable")}
                       </span>
-                      <span className="font-medium text-orange-600">
-                        ${Math.round(liquidAssets).toLocaleString()}
+                      <span className={`font-medium ${hideValues ? "text-gray-400" : "text-orange-600"}`}>
+                        {hideValues
+                          ? HIDDEN_VALUE
+                          : `${effectiveCurrency}${Math.round(liquidAssets * effectiveFxRate).toLocaleString()}`}
                       </span>
                     </div>
                     {totalAssets > liquidAssets && (
@@ -892,10 +1145,9 @@ function PlanView(): React.ReactElement {
                           {t("retire.assets.nonSpendable")}
                         </span>
                         <span className="font-medium text-gray-400">
-                          $
-                          {Math.round(
-                            totalAssets - liquidAssets,
-                          ).toLocaleString()}
+                          {hideValues
+                            ? HIDDEN_VALUE
+                            : `${effectiveCurrency}${Math.round((totalAssets - liquidAssets) * effectiveFxRate).toLocaleString()}`}
                         </span>
                       </div>
                     )}
@@ -910,11 +1162,12 @@ function PlanView(): React.ReactElement {
                   <div className="border-t pt-4">
                     <div className="flex justify-between font-medium text-lg">
                       <span>{t("retire.assets.spendableAtRetirement")}</span>
-                      <span className="text-orange-600">
-                        $
-                        {Math.round(
-                          displayProjection?.liquidAssets || liquidAssets,
-                        ).toLocaleString()}
+                      <span className={hideValues ? "text-gray-400" : "text-orange-600"}>
+                        {hideValues
+                          ? HIDDEN_VALUE
+                          : `${effectiveCurrency}${Math.round(
+                              (displayProjection?.liquidAssets || liquidAssets) * effectiveFxRate,
+                            ).toLocaleString()}`}
                       </span>
                     </div>
                   </div>
@@ -929,6 +1182,174 @@ function PlanView(): React.ReactElement {
               )}
             </div>
           )}
+
+          {/* FIRE Tab */}
+          {activeTab === "fire" &&
+            (() => {
+              // Calculate effective values with what-if adjustments
+              const effectiveMonthlyInvestment = Math.round(
+                monthlyInvestment *
+                  (combinedAdjustments.contributionPercent / 100),
+              )
+
+              // Use NET expenses (after income sources) for FI calculations
+              const netExpenses = fiMetrics?.netMonthlyExpenses ?? 0
+
+              return (
+                <div className="space-y-6">
+                  {/* Main FIRE Metrics - uses NET expenses */}
+                  <FiMetrics
+                    monthlyExpenses={netExpenses * effectiveFxRate}
+                    liquidAssets={liquidAssets * effectiveFxRate}
+                    currency={effectiveCurrency}
+                    workingIncomeMonthly={(plan.workingIncomeMonthly || 0) * effectiveFxRate}
+                    monthlyInvestment={effectiveMonthlyInvestment * effectiveFxRate}
+                    expectedReturnRate={blendedReturnRate}
+                    currentAge={currentAge}
+                    retirementAge={retirementAge}
+                  />
+
+                  {/* Income from Assets explanation */}
+                  {(fiMetrics?.totalMonthlyIncome ?? 0) > 0 && (
+                    <div className="bg-white rounded-xl shadow-md p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                        <i className="fas fa-coins text-green-500 mr-2"></i>
+                        Income Reducing Your FI Target
+                      </h3>
+                      <p className="text-sm text-gray-600 mb-4">
+                        Your FI Number is based on <strong>net</strong> expenses
+                        - what you need from investments after accounting for
+                        other income sources.
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="p-4 bg-gray-50 rounded-lg">
+                          <div className="text-sm text-gray-500 mb-1">
+                            Monthly Income Sources
+                          </div>
+                          <div className="text-xl font-bold text-green-600">
+                            {hideValues ? (
+                              HIDDEN_VALUE
+                            ) : (
+                              <>
+                                {effectiveCurrency}
+                                {Math.round(
+                                  (fiMetrics?.totalMonthlyIncome ?? 0) * effectiveFxRate,
+                                ).toLocaleString()}
+                                /mo
+                              </>
+                            )}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            Pension + Benefits + Rental + Other
+                          </div>
+                        </div>
+                        <div className="p-4 bg-orange-50 rounded-lg">
+                          <div className="text-sm text-gray-500 mb-1">
+                            Net Monthly Need from Investments
+                          </div>
+                          <div className="text-xl font-bold text-orange-600">
+                            {hideValues ? (
+                              HIDDEN_VALUE
+                            ) : (
+                              <>
+                                {effectiveCurrency}
+                                {Math.round(netExpenses * effectiveFxRate).toLocaleString()}/mo
+                              </>
+                            )}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            This determines your FI Number
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Asset Breakdown */}
+                  <div className="bg-white rounded-xl shadow-md p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                      <i className="fas fa-chart-pie text-blue-500 mr-2"></i>
+                      Asset Breakdown for FI
+                    </h3>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Liquid Assets */}
+                      <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                        <div className="text-sm text-green-700 font-medium mb-1">
+                          Liquid (Spendable)
+                        </div>
+                        <div className="text-2xl font-bold text-green-800">
+                          {hideValues ? (
+                            HIDDEN_VALUE
+                          ) : (
+                            <>
+                              {effectiveCurrency}
+                              {Math.round(liquidAssets * effectiveFxRate).toLocaleString()}
+                            </>
+                          )}
+                        </div>
+                        <div className="text-xs text-green-600 mt-1">
+                          Used for FI Progress calculation
+                        </div>
+                      </div>
+
+                      {/* Illiquid Assets */}
+                      <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
+                        <div className="text-sm text-amber-700 font-medium mb-1">
+                          Illiquid (Property, etc.)
+                        </div>
+                        <div className="text-2xl font-bold text-amber-800">
+                          {hideValues ? (
+                            HIDDEN_VALUE
+                          ) : (
+                            <>
+                              {effectiveCurrency}
+                              {Math.round(nonSpendableAssets * effectiveFxRate).toLocaleString()}
+                            </>
+                          )}
+                        </div>
+                        <div className="text-xs text-amber-600 mt-1">
+                          Not included in FI - hard to liquidate
+                        </div>
+                      </div>
+
+                      {/* Total Net Worth */}
+                      <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <div className="text-sm text-blue-700 font-medium mb-1">
+                          Total Net Worth
+                        </div>
+                        <div className="text-2xl font-bold text-blue-800">
+                          {hideValues ? (
+                            HIDDEN_VALUE
+                          ) : (
+                            <>
+                              {effectiveCurrency}
+                              {Math.round(
+                                (liquidAssets + nonSpendableAssets) * effectiveFxRate,
+                              ).toLocaleString()}
+                            </>
+                          )}
+                        </div>
+                        <div className="text-xs text-blue-600 mt-1">
+                          All assets combined
+                        </div>
+                      </div>
+                    </div>
+
+                    {nonSpendableAssets > 0 && (
+                      <div className="mt-4 p-3 bg-gray-50 rounded-lg text-sm text-gray-600">
+                        <i className="fas fa-info-circle text-gray-400 mr-2"></i>
+                        <strong>Why separate liquid vs illiquid?</strong> FI
+                        calculations use liquid assets because you can&apos;t
+                        easily spend property. However, illiquid assets
+                        contribute to long-term security and could be sold if
+                        needed.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })()}
 
           {/* Timeline Tab */}
           {activeTab === "timeline" && (
@@ -979,13 +1400,15 @@ function PlanView(): React.ReactElement {
                         />
                         <YAxis
                           tickFormatter={(value) =>
-                            `$${(value / 1000).toFixed(0)}k`
+                            hideValues ? "****" : `$${(value / 1000).toFixed(0)}k`
                           }
                           tick={{ fontSize: 12 }}
                         />
                         <ChartTooltip
                           formatter={(value, name) => {
-                            const formatted = `$${Number(value || 0).toLocaleString()}`
+                            const formatted = hideValues
+                              ? HIDDEN_VALUE
+                              : `$${Number(value || 0).toLocaleString()}`
                             if (name === "totalWealth")
                               return [formatted, "Total Wealth"]
                             if (name === "endingBalance")
@@ -995,6 +1418,8 @@ function PlanView(): React.ReactElement {
                           labelFormatter={(label) => `Age ${label}`}
                         />
                         <Legend
+                          verticalAlign="top"
+                          height={36}
                           formatter={(value) =>
                             value === "totalWealth"
                               ? "Total Wealth"
@@ -1050,12 +1475,18 @@ function PlanView(): React.ReactElement {
                         />
                         <YAxis
                           tickFormatter={(value) =>
-                            `$${(value / 1000).toFixed(0)}k`
+                            hideValues ? "****" : `$${(value / 1000).toFixed(0)}k`
                           }
                           tick={{ fontSize: 12 }}
                         />
                         <ChartTooltip
                           formatter={(value, name) => {
+                            if (hideValues) {
+                              if (name === "negWithdrawals") {
+                                return [HIDDEN_VALUE, "Withdrawals"]
+                              }
+                              return [HIDDEN_VALUE, "Investment Returns"]
+                            }
                             const absVal = Math.abs(Number(value || 0))
                             if (name === "negWithdrawals") {
                               return [
@@ -1071,6 +1502,8 @@ function PlanView(): React.ReactElement {
                           labelFormatter={(label) => `Age ${label}`}
                         />
                         <Legend
+                          verticalAlign="top"
+                          height={36}
                           formatter={(value) =>
                             value === "negWithdrawals"
                               ? "Withdrawals"
@@ -1178,13 +1611,17 @@ function PlanView(): React.ReactElement {
                           />
                           <YAxis
                             tickFormatter={(value) =>
-                              `$${(value / 1000).toFixed(0)}k`
+                              hideValues
+                                ? "****"
+                                : `$${(value / 1000).toFixed(0)}k`
                             }
                             tick={{ fontSize: 12 }}
                           />
                           <ChartTooltip
                             formatter={(value, name) => {
-                              const formatted = `$${Number(value || 0).toLocaleString()}`
+                              const formatted = hideValues
+                                ? "****"
+                                : `$${Number(value || 0).toLocaleString()}`
                               if (name === "totalWealth")
                                 return [formatted, "Total Wealth"]
                               if (name === "endingBalance")
@@ -1194,6 +1631,8 @@ function PlanView(): React.ReactElement {
                             labelFormatter={(label) => `Age ${label}`}
                           />
                           <Legend
+                            verticalAlign="top"
+                            height={36}
                             formatter={(value) =>
                               value === "totalWealth"
                                 ? "Total Wealth"
@@ -1258,7 +1697,8 @@ function PlanView(): React.ReactElement {
                   <ScenarioImpact
                     projection={displayProjection}
                     lifeExpectancy={lifeExpectancy}
-                    planCurrency={planCurrency}
+                    currency={effectiveCurrency}
+                    fxRate={effectiveFxRate}
                     whatIfAdjustments={combinedAdjustments}
                     onLiquidationThresholdChange={(value) =>
                       setWhatIfAdjustments((prev) => ({
