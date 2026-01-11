@@ -14,6 +14,27 @@ jest.mock("../../contexts/UserPreferencesContext", () => ({
   }),
 }))
 
+// Mock sessionStorage
+const mockSessionStorage: Record<string, string> = {}
+const sessionStorageMock = {
+  getItem: jest.fn((key: string) => mockSessionStorage[key] || null),
+  setItem: jest.fn((key: string, value: string) => {
+    mockSessionStorage[key] = value
+  }),
+  removeItem: jest.fn((key: string) => {
+    delete mockSessionStorage[key]
+  }),
+  clear: jest.fn(() => {
+    Object.keys(mockSessionStorage).forEach(
+      (key) => delete mockSessionStorage[key],
+    )
+  }),
+}
+
+Object.defineProperty(window, "sessionStorage", {
+  value: sessionStorageMock,
+})
+
 const wrapper = ({ children }: { children: ReactNode }): ReactNode => (
   <PrivacyModeProvider>{children}</PrivacyModeProvider>
 )
@@ -21,6 +42,8 @@ const wrapper = ({ children }: { children: ReactNode }): ReactNode => (
 describe("usePrivacyMode", () => {
   beforeEach(() => {
     mockPreferences = null
+    sessionStorageMock.clear()
+    jest.clearAllMocks()
   })
 
   describe("default state", () => {
@@ -114,6 +137,29 @@ describe("usePrivacyMode", () => {
       act(() => {
         result.current.toggleHideValues()
       })
+
+      expect(result.current.hideValues).toBe(true)
+    })
+  })
+
+  describe("session storage persistence", () => {
+    it("persists toggle state to sessionStorage", () => {
+      const { result } = renderHook(() => usePrivacyMode(), { wrapper })
+
+      act(() => {
+        result.current.toggleHideValues()
+      })
+
+      expect(sessionStorageMock.setItem).toHaveBeenCalledWith(
+        "bc:common",
+        "true",
+      )
+    })
+
+    it("reads initial state from sessionStorage", () => {
+      mockSessionStorage["bc:common"] = "true"
+
+      const { result } = renderHook(() => usePrivacyMode(), { wrapper })
 
       expect(result.current.hideValues).toBe(true)
     })

@@ -9,10 +9,12 @@ import {
 import { useValuationOptions } from "@components/ui/ValueIn"
 import { useGroupOptions } from "@components/features/holdings/GroupByOptions"
 import { ViewMode } from "@components/features/holdings/ViewToggle"
+import { useEffect } from "react"
+import { BC_STORAGE_PREFIX } from "../storage/sessionState"
 
 const defaultDisplayCurrency: DisplayCurrencyOption = { mode: "PORTFOLIO" }
 
-const STORAGE_KEY = "bc-holding-state"
+const STORAGE_KEY = `${BC_STORAGE_PREFIX}wealth`
 
 // Load initial state from sessionStorage if available
 function loadPersistedState(): Record<string, unknown> | null {
@@ -46,6 +48,7 @@ const holdingDefaults = hookstate(
 )
 
 // Persist state changes to sessionStorage
+// Cross-tab sync is handled by storage events (fired automatically by the browser)
 function persistState(state: Record<string, unknown>): void {
   if (typeof window === "undefined") return
   try {
@@ -63,6 +66,46 @@ export function useHoldingState(): HoldingDefaults {
   const state = useHookstate(holdingDefaults)
   const { valuationDefault } = useValuationOptions()
   const { groupDefault } = useGroupOptions()
+
+  // Subscribe to storage changes from other tabs
+  useEffect(() => {
+    if (typeof window === "undefined") return () => {}
+
+    const handleStorageEvent = (event: StorageEvent): void => {
+      if (event.key === STORAGE_KEY && event.newValue) {
+        try {
+          const newState = JSON.parse(event.newValue)
+          if (newState.hideEmpty !== undefined)
+            state.hideEmpty.set(newState.hideEmpty as boolean)
+          if (newState.asAt !== undefined)
+            state.asAt.set(newState.asAt as string)
+          if (newState.hasInitialized !== undefined)
+            state.hasInitialized.set(newState.hasInitialized as boolean)
+          if (newState.viewMode !== undefined)
+            state.viewMode.set(newState.viewMode as ViewMode)
+          if (newState.valueIn !== undefined && newState.valueIn !== null)
+            state.valueIn.set(newState.valueIn as ValuationOption)
+          if (newState.groupBy !== undefined && newState.groupBy !== null)
+            state.groupBy.set(newState.groupBy as GroupOption)
+          if (
+            newState.displayCurrency !== undefined &&
+            newState.displayCurrency !== null
+          )
+            state.displayCurrency.set(
+              newState.displayCurrency as DisplayCurrencyOption,
+            )
+        } catch {
+          // Ignore parse errors
+        }
+      }
+    }
+
+    window.addEventListener("storage", handleStorageEvent)
+
+    return () => {
+      window.removeEventListener("storage", handleStorageEvent)
+    }
+  }, [state])
 
   // Helper to persist current state to sessionStorage
   const saveState = (): void => {
