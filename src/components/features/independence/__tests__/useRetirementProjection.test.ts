@@ -123,8 +123,10 @@ describe("useRetirementProjection", () => {
       }),
     )
 
-    // Wait a bit to ensure no call is made
-    await new Promise((resolve) => setTimeout(resolve, 100))
+    // Flush any pending effects
+    await act(async () => {
+      await Promise.resolve()
+    })
     expect(global.fetch).not.toHaveBeenCalled()
   })
 
@@ -136,7 +138,10 @@ describe("useRetirementProjection", () => {
       }),
     )
 
-    await new Promise((resolve) => setTimeout(resolve, 100))
+    // Flush any pending effects
+    await act(async () => {
+      await Promise.resolve()
+    })
     expect(global.fetch).not.toHaveBeenCalled()
   })
 
@@ -179,9 +184,13 @@ describe("useRetirementProjection", () => {
       result.current.resetProjection()
     })
 
-    // After reset, projection should be null again
-    // Note: It will auto-recalculate, so we check immediately after reset
+    // After reset, projection should be null immediately
     expect(result.current.projection).toBeNull()
+
+    // Wait for auto-recalculation to complete (reset triggers it)
+    await waitFor(() => {
+      expect(result.current.projection).not.toBeNull()
+    })
   })
 
   it("applies retirement age offset to adjusted projection", async () => {
@@ -271,7 +280,9 @@ describe("useRetirementProjection", () => {
     const consoleSpy = jest.spyOn(console, "error").mockImplementation()
     ;(global.fetch as jest.Mock).mockRejectedValue(new Error("API Error"))
 
-    const { result } = renderHook(() => useRetirementProjection(defaultProps))
+    const { result, unmount } = renderHook(() =>
+      useRetirementProjection(defaultProps),
+    )
 
     await waitFor(() => {
       expect(result.current.isCalculating).toBe(false)
@@ -283,6 +294,8 @@ describe("useRetirementProjection", () => {
     )
     expect(result.current.projection).toBeNull()
 
+    // Unmount before restoring spy to avoid act() warnings during cleanup
+    unmount()
     consoleSpy.mockRestore()
   })
 

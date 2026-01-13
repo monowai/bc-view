@@ -1,5 +1,5 @@
 import React from "react"
-import { render, screen, fireEvent } from "@testing-library/react"
+import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import { useForm, FormProvider } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
@@ -9,6 +9,15 @@ import {
   defaultWizardValues,
 } from "@lib/independence/schema"
 import { WizardFormData } from "types/independence"
+
+// Mock usePrivateAssetConfigs to avoid SWR async updates
+jest.mock("@utils/assets/usePrivateAssetConfigs", () => ({
+  usePrivateAssetConfigs: () => ({
+    configs: [],
+    isLoading: false,
+    error: undefined,
+  }),
+}))
 
 const TestWrapper: React.FC<{ children: React.ReactNode }> = () => {
   const methods = useForm<WizardFormData>({
@@ -66,7 +75,7 @@ describe("IncomeSourcesStep", () => {
     expect(screen.getByText("$0")).toBeInTheDocument()
   })
 
-  it("updates total when income values change", () => {
+  it("updates total when income values change", async () => {
     render(
       <TestWrapper>
         <div />
@@ -76,7 +85,9 @@ describe("IncomeSourcesStep", () => {
     const pensionInput = screen.getByLabelText(/monthly pension/i)
     fireEvent.change(pensionInput, { target: { value: "1000" } })
 
-    expect(screen.getByText("$1,000")).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText("$1,000")).toBeInTheDocument()
+    })
   })
 
   it("shows description for each income type", () => {
