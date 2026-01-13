@@ -155,6 +155,6 @@ export default withApiAuthRequired(async function holdingsWeights(
 
     return res.status(200).json(result)
   } catch (error: unknown) {
-    return fetchError(res, req, error)
+    return fetchError(req, res, error)
   }
 })

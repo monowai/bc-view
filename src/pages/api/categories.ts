@@ -20,6 +20,6 @@ export default withApiAuthRequired(async function categories(
     })
     await handleResponse<AssetCategory[]>(response, res)
   } catch (error: any) {
-    fetchError(res, req, error)
+    fetchError(req, res, error)
   }
 })

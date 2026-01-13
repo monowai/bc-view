@@ -189,7 +189,11 @@ function PlanView(): React.ReactElement {
 
   useEffect(() => {
     const fetchHoldingsFxRate = async (): Promise<void> => {
-      if (!holdingsCurrency || !planCurrency || holdingsCurrency === planCurrency) {
+      if (
+        !holdingsCurrency ||
+        !planCurrency ||
+        holdingsCurrency === planCurrency
+      ) {
         setHoldingsToPlanRate(1)
         return
       }
@@ -1133,7 +1137,9 @@ function PlanView(): React.ReactElement {
                       <span className="text-gray-500">
                         {t("retire.assets.totalAssets")}
                       </span>
-                      <span className={`font-medium ${hideValues ? "text-gray-400" : ""}`}>
+                      <span
+                        className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
+                      >
                         {hideValues
                           ? HIDDEN_VALUE
                           : `${effectiveCurrency}${Math.round(totalAssets * effectiveFxRate).toLocaleString()}`}
@@ -1143,7 +1149,9 @@ function PlanView(): React.ReactElement {
                       <span className="text-gray-500">
                         {t("retire.assets.spendable")}
                       </span>
-                      <span className={`font-medium ${hideValues ? "text-gray-400" : "text-orange-600"}`}>
+                      <span
+                        className={`font-medium ${hideValues ? "text-gray-400" : "text-orange-600"}`}
+                      >
                         {hideValues
                           ? HIDDEN_VALUE
                           : `${effectiveCurrency}${Math.round(liquidAssets * effectiveFxRate).toLocaleString()}`}
@@ -1172,11 +1180,16 @@ function PlanView(): React.ReactElement {
                   <div className="border-t pt-4">
                     <div className="flex justify-between font-medium text-lg">
                       <span>{t("retire.assets.spendableAtRetirement")}</span>
-                      <span className={hideValues ? "text-gray-400" : "text-orange-600"}>
+                      <span
+                        className={
+                          hideValues ? "text-gray-400" : "text-orange-600"
+                        }
+                      >
                         {hideValues
                           ? HIDDEN_VALUE
                           : `${effectiveCurrency}${Math.round(
-                              (displayProjection?.liquidAssets || liquidAssets) * effectiveFxRate,
+                              (displayProjection?.liquidAssets ||
+                                liquidAssets) * effectiveFxRate,
                             ).toLocaleString()}`}
                       </span>
                     </div>
@@ -1212,16 +1225,36 @@ function PlanView(): React.ReactElement {
                     monthlyExpenses={netExpenses * effectiveFxRate}
                     liquidAssets={liquidAssets * effectiveFxRate}
                     currency={effectiveCurrency}
-                    workingIncomeMonthly={(plan.workingIncomeMonthly || 0) * effectiveFxRate}
-                    monthlyInvestment={effectiveMonthlyInvestment * effectiveFxRate}
+                    workingIncomeMonthly={
+                      (plan.workingIncomeMonthly || 0) * effectiveFxRate
+                    }
+                    monthlyInvestment={
+                      effectiveMonthlyInvestment * effectiveFxRate
+                    }
                     expectedReturnRate={blendedReturnRate}
                     currentAge={currentAge}
                     retirementAge={retirementAge}
-                    backendFiNumber={adjustedProjection?.fiMetrics?.fiNumber ? adjustedProjection.fiMetrics.fiNumber * effectiveFxRate : undefined}
-                    backendFiProgress={adjustedProjection?.fiMetrics?.fiProgress}
-                    backendCoastFiNumber={adjustedProjection?.fiMetrics?.coastFiNumber ? adjustedProjection.fiMetrics.coastFiNumber * effectiveFxRate : undefined}
-                    backendCoastFiProgress={adjustedProjection?.fiMetrics?.coastFiProgress}
-                    backendIsCoastFire={adjustedProjection?.fiMetrics?.isCoastFire}
+                    backendFiNumber={
+                      adjustedProjection?.fiMetrics?.fiNumber
+                        ? adjustedProjection.fiMetrics.fiNumber *
+                          effectiveFxRate
+                        : undefined
+                    }
+                    backendFiProgress={
+                      adjustedProjection?.fiMetrics?.fiProgress
+                    }
+                    backendCoastFiNumber={
+                      adjustedProjection?.fiMetrics?.coastFiNumber
+                        ? adjustedProjection.fiMetrics.coastFiNumber *
+                          effectiveFxRate
+                        : undefined
+                    }
+                    backendCoastFiProgress={
+                      adjustedProjection?.fiMetrics?.coastFiProgress
+                    }
+                    backendIsCoastFire={
+                      adjustedProjection?.fiMetrics?.isCoastFire
+                    }
                   />
 
                   {/* Income from Assets explanation */}
@@ -1248,7 +1281,8 @@ function PlanView(): React.ReactElement {
                               <>
                                 {effectiveCurrency}
                                 {Math.round(
-                                  (fiMetrics?.totalMonthlyIncome ?? 0) * effectiveFxRate,
+                                  (fiMetrics?.totalMonthlyIncome ?? 0) *
+                                    effectiveFxRate,
                                 ).toLocaleString()}
                                 /mo
                               </>
@@ -1268,7 +1302,10 @@ function PlanView(): React.ReactElement {
                             ) : (
                               <>
                                 {effectiveCurrency}
-                                {Math.round(netExpenses * effectiveFxRate).toLocaleString()}/mo
+                                {Math.round(
+                                  netExpenses * effectiveFxRate,
+                                ).toLocaleString()}
+                                /mo
                               </>
                             )}
                           </div>
@@ -1299,7 +1336,9 @@ function PlanView(): React.ReactElement {
                           ) : (
                             <>
                               {effectiveCurrency}
-                              {Math.round(liquidAssets * effectiveFxRate).toLocaleString()}
+                              {Math.round(
+                                liquidAssets * effectiveFxRate,
+                              ).toLocaleString()}
                             </>
                           )}
                         </div>
@@ -1319,7 +1358,9 @@ function PlanView(): React.ReactElement {
                           ) : (
                             <>
                               {effectiveCurrency}
-                              {Math.round(nonSpendableAssets * effectiveFxRate).toLocaleString()}
+                              {Math.round(
+                                nonSpendableAssets * effectiveFxRate,
+                              ).toLocaleString()}
                             </>
                           )}
                         </div>
@@ -1340,7 +1381,8 @@ function PlanView(): React.ReactElement {
                             <>
                               {effectiveCurrency}
                               {Math.round(
-                                (liquidAssets + nonSpendableAssets) * effectiveFxRate,
+                                (liquidAssets + nonSpendableAssets) *
+                                  effectiveFxRate,
                               ).toLocaleString()}
                             </>
                           )}
@@ -1415,7 +1457,9 @@ function PlanView(): React.ReactElement {
                         />
                         <YAxis
                           tickFormatter={(value) =>
-                            hideValues ? "****" : `$${(value / 1000).toFixed(0)}k`
+                            hideValues
+                              ? "****"
+                              : `$${(value / 1000).toFixed(0)}k`
                           }
                           tick={{ fontSize: 12 }}
                         />
@@ -1490,7 +1534,9 @@ function PlanView(): React.ReactElement {
                         />
                         <YAxis
                           tickFormatter={(value) =>
-                            hideValues ? "****" : `$${(value / 1000).toFixed(0)}k`
+                            hideValues
+                              ? "****"
+                              : `$${(value / 1000).toFixed(0)}k`
                           }
                           tick={{ fontSize: 12 }}
                         />

@@ -39,9 +39,39 @@ export async function handleErrors(response: Response): Promise<void> {
   }
 }
 
+/**
+ * Check if an error is an Auth0 access token error
+ */
+function isAuth0TokenError(error: unknown): boolean {
+  if (error instanceof Error) {
+    const errorName = error.name?.toLowerCase() || ""
+    const errorMessage = error.message?.toLowerCase() || ""
+    // Auth0 SDK throws AccessTokenError when token is expired/invalid
+    // Also check for common auth-related error messages
+    return (
+      errorName.includes("accesstokenerror") ||
+      errorName.includes("accessdenied") ||
+      errorMessage.includes("access token") ||
+      errorMessage.includes("the user does not have a valid session") ||
+      errorMessage.includes("login required") ||
+      errorMessage.includes("consent required")
+    )
+  }
+  if (typeof error === "object" && error !== null) {
+    const err = error as Record<string, unknown>
+    const code = (err.code as string)?.toLowerCase() || ""
+    return (
+      code === "access_token_expired" ||
+      code === "invalid_token" ||
+      code === "login_required"
+    )
+  }
+  return false
+}
+
 export function fetchError(
-  res: NextApiResponse,
   req: NextApiRequest,
+  res: NextApiResponse,
   error: unknown,
 ): void {
   // Handle different error types gracefully
@@ -50,7 +80,15 @@ export function fetchError(
   let code = "INTERNAL_ERROR"
   let stack: string | undefined
 
-  if (error instanceof BcApiError) {
+  // Check for Auth0 token errors FIRST - return 401 to trigger re-auth
+  if (isAuth0TokenError(error)) {
+    statusCode = 401
+    code = "AUTH_TOKEN_ERROR"
+    message =
+      error instanceof Error
+        ? error.message
+        : "Session expired. Please log in again."
+  } else if (error instanceof BcApiError) {
     statusCode = error.statusCode
     message = error.message
     code = error.code || code

@@ -48,6 +48,6 @@ export default withApiAuthRequired(async function importAssets(
       res.status(response.status || 200).json(json)
     }
   } catch (error: unknown) {
-    fetchError(res, req, error)
+    fetchError(req, res, error)
   }
 })

@@ -28,6 +28,6 @@ export default withApiAuthRequired(async function exportPlan(
         res.status(405).end(`Method ${method} Not Allowed`)
     }
   } catch (error: any) {
-    fetchError(res, req, error)
+    fetchError(req, res, error)
   }
 })

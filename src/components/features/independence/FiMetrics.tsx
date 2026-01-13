@@ -128,7 +128,8 @@ export default function FiMetrics({
       ? (liquidAssets / coastFiNumber) * 100
       : null
   const coastFiProgress = backendCoastFiProgress ?? localCoastFiProgress
-  const isCoastFire = backendIsCoastFire ?? (coastFiProgress !== null && coastFiProgress >= 100)
+  const isCoastFire =
+    backendIsCoastFire ?? (coastFiProgress !== null && coastFiProgress >= 100)
 
   // Determine status color based on progress
   const getProgressColor = (): string => {

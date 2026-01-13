@@ -70,11 +70,15 @@ function PlanCard({
     (plan.pensionMonthly || 0) +
     (plan.socialSecurityMonthly || 0) +
     (plan.otherIncomeMonthly || 0)
-  const netMonthlyExpenses = Math.max(0, plan.monthlyExpenses - totalMonthlyIncome)
+  const netMonthlyExpenses = Math.max(
+    0,
+    plan.monthlyExpenses - totalMonthlyIncome,
+  )
 
   // Use server-calculated FI Number if available, otherwise fall back to local calculation
   // FI Number = 25× net annual expenses (based on 4% SWR)
-  const fiNumber = fiSummary?.fiNumber ?? Math.round(netMonthlyExpenses * 12 * 25)
+  const fiNumber =
+    fiSummary?.fiNumber ?? Math.round(netMonthlyExpenses * 12 * 25)
   const fiProgress = fiSummary?.fiProgress ?? 0
 
   const getProgressColor = (progress: number): string => {
@@ -129,7 +133,9 @@ function PlanCard({
           <span
             className={`font-bold ${hideValues ? "text-gray-400" : "text-orange-600"}`}
           >
-            {hideValues ? HIDDEN_VALUE : `${currency}${Math.round(fiNumber).toLocaleString()}`}
+            {hideValues
+              ? HIDDEN_VALUE
+              : `${currency}${Math.round(fiNumber).toLocaleString()}`}
           </span>
         </div>
 
@@ -143,19 +149,25 @@ function PlanCard({
           <div className="mt-2">
             <div className="flex justify-between items-center mb-1">
               <span className="text-xs text-gray-500">FI Progress</span>
-              <span className={`text-xs font-medium ${hideValues ? "text-gray-400" : getProgressColor(fiProgress)}`}>
+              <span
+                className={`text-xs font-medium ${hideValues ? "text-gray-400" : getProgressColor(fiProgress)}`}
+              >
                 {hideValues ? HIDDEN_VALUE : `${fiProgress.toFixed(1)}%`}
               </span>
             </div>
             <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
               <div
                 className={`h-full ${getProgressBgColor(fiProgress)} transition-all duration-500`}
-                style={{ width: hideValues ? "0%" : `${Math.min(fiProgress, 100)}%` }}
+                style={{
+                  width: hideValues ? "0%" : `${Math.min(fiProgress, 100)}%`,
+                }}
               />
             </div>
           </div>
         ) : (
-          <p className="text-xs text-gray-500 mt-1">25× annual expenses (4% SWR)</p>
+          <p className="text-xs text-gray-500 mt-1">
+            25× annual expenses (4% SWR)
+          </p>
         )}
       </div>
 
@@ -171,7 +183,9 @@ function PlanCard({
         {plan.targetBalance && (
           <div className="flex justify-between text-sm">
             <span className="text-gray-500">Target Balance</span>
-            <span className={`font-medium ${hideValues ? "text-gray-400" : ""}`}>
+            <span
+              className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
+            >
               {hideValues
                 ? HIDDEN_VALUE
                 : `${currency}${plan.targetBalance.toLocaleString()}`}

@@ -34,6 +34,6 @@ export default withApiAuthRequired(async function weightsFromHoldings(
     const response = await fetch(url, requestInit(accessToken, "GET", req))
     await handleResponse<WeightsFromHoldingsResponse>(response, res)
   } catch (error: unknown) {
-    fetchError(res, req, error)
+    fetchError(req, res, error)
   }
 })

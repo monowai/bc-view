@@ -22,6 +22,6 @@ export default withApiAuthRequired(async function currencies(
     })
     await handleResponse<Registration>(response, res)
   } catch (error: any) {
-    fetchError(res, req, error)
+    fetchError(req, res, error)
   }
 })

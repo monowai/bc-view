@@ -48,6 +48,6 @@ export default withApiAuthRequired(async function trnApi(
       res.status(405).json({ error: `Method ${req.method} not allowed` })
     }
   } catch (error: any) {
-    fetchError(res, req, error)
+    fetchError(req, res, error)
   }
 })

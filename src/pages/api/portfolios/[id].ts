@@ -70,6 +70,6 @@ export default withApiAuthRequired(async function portfoliosById(
       }
     }
   } catch (error: any) {
-    fetchError(res, req, error)
+    fetchError(req, res, error)
   }
 })

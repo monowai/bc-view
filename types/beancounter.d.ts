@@ -368,7 +368,6 @@ export interface Currency {
   code: string
   name: string
   symbol: string
-  incomeTaxRate?: number
 }
 
 export interface Asset {

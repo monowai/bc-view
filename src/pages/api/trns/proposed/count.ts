@@ -27,6 +27,6 @@ export default withApiAuthRequired(async function proposedCount(
     const response = await fetch(url, requestInit(accessToken, "GET", req))
     await handleResponse(response, res)
   } catch (error: unknown) {
-    fetchError(res, req, error)
+    fetchError(req, res, error)
   }
 })

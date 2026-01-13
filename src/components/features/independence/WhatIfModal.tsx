@@ -157,7 +157,9 @@ export default function WhatIfModal({
                 <span className="text-xs text-green-600 font-medium">
                   Property Rental (read-only)
                 </span>
-                <span className={`text-sm font-semibold ${hideValues ? "text-gray-400" : "text-green-700"}`}>
+                <span
+                  className={`text-sm font-semibold ${hideValues ? "text-gray-400" : "text-green-700"}`}
+                >
                   {formatMoney(totalRentalIncome)}/mo
                 </span>
                 <span className="text-xs text-green-500">

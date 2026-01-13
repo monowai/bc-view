@@ -12,6 +12,6 @@ export default withApiAuthRequired(function trnsApi(
     console.log("Add Trns")
     res.status(200).json({ data: {} })
   } catch (error: any) {
-    fetchError(res, req, error)
+    fetchError(req, res, error)
   }
 })

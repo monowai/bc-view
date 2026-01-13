@@ -79,7 +79,9 @@ export default function ScenarioImpact({
                   <i className="fas fa-piggy-bank text-orange-500 mr-2"></i>
                   Liquid balance at sale
                 </span>
-                <span className={`font-semibold ${hideValues ? "text-gray-400" : "text-gray-900"}`}>
+                <span
+                  className={`font-semibold ${hideValues ? "text-gray-400" : "text-gray-900"}`}
+                >
                   {formatMoney(projection.liquidBalanceAtLiquidation)}
                 </span>
               </div>
@@ -91,7 +93,9 @@ export default function ScenarioImpact({
                 <i className="fas fa-home text-purple-500 mr-2"></i>
                 Illiquid funds realise
               </span>
-              <span className={`font-semibold ${hideValues ? "text-gray-400" : "text-gray-900"}`}>
+              <span
+                className={`font-semibold ${hideValues ? "text-gray-400" : "text-gray-900"}`}
+              >
                 {(() => {
                   if (liquidationYear) {
                     const idx =

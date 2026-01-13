@@ -87,11 +87,12 @@ function SettingsPage(): React.ReactElement {
   useEffect(() => {
     const fetchData = async (): Promise<void> => {
       try {
-        const [meResponse, currenciesResponse, taxRatesResponse] = await Promise.all([
-          fetch("/api/me"),
-          fetch("/api/currencies"),
-          fetch("/api/tax-rates"),
-        ])
+        const [meResponse, currenciesResponse, taxRatesResponse] =
+          await Promise.all([
+            fetch("/api/me"),
+            fetch("/api/currencies"),
+            fetch("/api/tax-rates"),
+          ])
 
         if (meResponse.ok) {
           const meData: RegistrationResponse = await meResponse.json()
@@ -184,7 +185,12 @@ function SettingsPage(): React.ReactElement {
 
     const rate = parseFloat(newTaxRate) / 100 // Convert percentage to decimal
     if (isNaN(rate) || rate < 0 || rate > 1) {
-      setError(t("settings.taxRates.error.invalidRate", "Rate must be between 0 and 100%"))
+      setError(
+        t(
+          "settings.taxRates.error.invalidRate",
+          "Rate must be between 0 and 100%",
+        ),
+      )
       return
     }
 
@@ -205,7 +211,9 @@ function SettingsPage(): React.ReactElement {
         const data = await response.json()
         // Update or add the tax rate in the list
         setTaxRates((prev) => {
-          const existing = prev.findIndex((r) => r.countryCode === newTaxCountry)
+          const existing = prev.findIndex(
+            (r) => r.countryCode === newTaxCountry,
+          )
           if (existing >= 0) {
             const updated = [...prev]
             updated[existing] = data.data
@@ -219,7 +227,10 @@ function SettingsPage(): React.ReactElement {
         setTimeout(() => setSuccess(null), 3000)
       } else {
         const errorData = await response.json().catch(() => ({}))
-        setError(errorData.message || t("settings.taxRates.error.save", "Failed to save tax rate"))
+        setError(
+          errorData.message ||
+            t("settings.taxRates.error.save", "Failed to save tax rate"),
+        )
       }
     } catch (err) {
       console.error("Failed to save tax rate:", err)
@@ -230,24 +241,33 @@ function SettingsPage(): React.ReactElement {
   }, [newTaxCountry, newTaxRate, t])
 
   // Delete a tax rate
-  const handleDeleteTaxRate = useCallback(async (countryCode: string): Promise<void> => {
-    try {
-      const response = await fetch(`/api/tax-rates/${countryCode}`, {
-        method: "DELETE",
-      })
+  const handleDeleteTaxRate = useCallback(
+    async (countryCode: string): Promise<void> => {
+      try {
+        const response = await fetch(`/api/tax-rates/${countryCode}`, {
+          method: "DELETE",
+        })
 
-      if (response.ok || response.status === 204) {
-        setTaxRates((prev) => prev.filter((r) => r.countryCode !== countryCode))
-        setSuccess(t("settings.taxRates.deleted", "Tax rate deleted"))
-        setTimeout(() => setSuccess(null), 3000)
-      } else {
-        setError(t("settings.taxRates.error.delete", "Failed to delete tax rate"))
+        if (response.ok || response.status === 204) {
+          setTaxRates((prev) =>
+            prev.filter((r) => r.countryCode !== countryCode),
+          )
+          setSuccess(t("settings.taxRates.deleted", "Tax rate deleted"))
+          setTimeout(() => setSuccess(null), 3000)
+        } else {
+          setError(
+            t("settings.taxRates.error.delete", "Failed to delete tax rate"),
+          )
+        }
+      } catch (err) {
+        console.error("Failed to delete tax rate:", err)
+        setError(
+          t("settings.taxRates.error.delete", "Failed to delete tax rate"),
+        )
       }
-    } catch (err) {
-      console.error("Failed to delete tax rate:", err)
-      setError(t("settings.taxRates.error.delete", "Failed to delete tax rate"))
-    }
-  }, [t])
+    },
+    [t],
+  )
 
   // Get country name from code
   const getCountryName = useCallback((code: string): string => {
@@ -257,7 +277,7 @@ function SettingsPage(): React.ReactElement {
 
   // Get countries not yet configured
   const availableCountries = COUNTRY_OPTIONS.filter(
-    (c) => !taxRates.some((r) => r.countryCode === c.code)
+    (c) => !taxRates.some((r) => r.countryCode === c.code),
   )
 
   if (!ready || isLoading) {
@@ -487,7 +507,10 @@ function SettingsPage(): React.ReactElement {
                     {t("settings.taxRates.title", "Income Tax Rates")}
                   </h3>
                   <p className="text-sm text-gray-500">
-                    {t("settings.taxRates.description", "Configure tax rates by country for rental income calculations")}
+                    {t(
+                      "settings.taxRates.description",
+                      "Configure tax rates by country for rental income calculations",
+                    )}
                   </p>
                 </div>
                 <svg
@@ -498,7 +521,12 @@ function SettingsPage(): React.ReactElement {
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
                 </svg>
               </div>
 
@@ -525,12 +553,24 @@ function SettingsPage(): React.ReactElement {
                               {(rate.rate * 100).toFixed(1)}%
                             </span>
                             <button
-                              onClick={() => handleDeleteTaxRate(rate.countryCode)}
+                              onClick={() =>
+                                handleDeleteTaxRate(rate.countryCode)
+                              }
                               className="text-red-600 hover:text-red-800"
                               title={t("delete")}
                             >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              <svg
+                                className="w-5 h-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
                               </svg>
                             </button>
                           </div>
@@ -550,7 +590,12 @@ function SettingsPage(): React.ReactElement {
                         onChange={(e) => setNewTaxCountry(e.target.value)}
                         className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-500 focus:border-blue-500"
                       >
-                        <option value="">{t("settings.taxRates.selectCountry", "Select country...")}</option>
+                        <option value="">
+                          {t(
+                            "settings.taxRates.selectCountry",
+                            "Select country...",
+                          )}
+                        </option>
                         {availableCountries.map((country) => (
                           <option key={country.code} value={country.code}>
                             {country.code} - {country.name}
@@ -558,8 +603,12 @@ function SettingsPage(): React.ReactElement {
                         ))}
                         {/* Allow updating existing rates */}
                         {taxRates.map((rate) => (
-                          <option key={rate.countryCode} value={rate.countryCode}>
-                            {rate.countryCode} - {getCountryName(rate.countryCode)} (update)
+                          <option
+                            key={rate.countryCode}
+                            value={rate.countryCode}
+                          >
+                            {rate.countryCode} -{" "}
+                            {getCountryName(rate.countryCode)} (update)
                           </option>
                         ))}
                       </select>
@@ -585,9 +634,24 @@ function SettingsPage(): React.ReactElement {
                       className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {taxRateSaving ? (
-                        <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        <svg
+                          className="animate-spin h-5 w-5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
                         </svg>
                       ) : (
                         t("settings.taxRates.add", "Add")
@@ -597,7 +661,10 @@ function SettingsPage(): React.ReactElement {
 
                   {taxRates.length === 0 && (
                     <p className="text-sm text-gray-500 italic">
-                      {t("settings.taxRates.empty", "No tax rates configured. Add a rate to deduct income tax from rental properties.")}
+                      {t(
+                        "settings.taxRates.empty",
+                        "No tax rates configured. Add a rate to deduct income tax from rental properties.",
+                      )}
                     </p>
                   )}
                 </div>

@@ -30,6 +30,6 @@ export default withApiAuthRequired(async function writePrice(
     })
     await handleResponse<PriceResponse>(response, res)
   } catch (error: unknown) {
-    fetchError(res, req, error)
+    fetchError(req, res, error)
   }
 })
