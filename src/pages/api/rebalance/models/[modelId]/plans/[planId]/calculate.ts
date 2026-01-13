@@ -27,6 +27,6 @@ export default withApiAuthRequired(async function calculateRebalance(
     })
     return handleResponse<RebalanceCalculationResponse>(response, res)
   } catch (error: unknown) {
-    return fetchError(res, req, error)
+    return fetchError(req, res, error)
   }
 })

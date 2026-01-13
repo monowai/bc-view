@@ -24,6 +24,6 @@ export default withApiAuthRequired(async function fxProviders(
     const response = await fetch(baseUrl, requestInit(accessToken, "GET", req))
     await handleResponse<FxProvidersResponse>(response, res)
   } catch (error: unknown) {
-    fetchError(res, req, error)
+    fetchError(req, res, error)
   }
 })

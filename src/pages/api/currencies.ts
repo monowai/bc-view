@@ -23,6 +23,6 @@ export default withApiAuthRequired(async function currencies(
     const response = await fetch(baseUrl, requestInit(accessToken))
     await handleResponse<{ data: string[] }>(response, res)
   } catch (error: unknown) {
-    fetchError(res, req, error)
+    fetchError(req, res, error)
   }
 })

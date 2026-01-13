@@ -29,6 +29,6 @@ export default withApiAuthRequired(async function cancelPlan(
     )
     await handleResponse<void>(response, res)
   } catch (error: any) {
-    fetchError(res, req, error)
+    fetchError(req, res, error)
   }
 })

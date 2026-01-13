@@ -35,6 +35,6 @@ export default withApiAuthRequired(async function exportAssets(
     res.setHeader("Content-Disposition", 'attachment; filename="assets.csv"')
     res.status(200).send(csvContent)
   } catch (error: unknown) {
-    fetchError(res, req, error)
+    fetchError(req, res, error)
   }
 })

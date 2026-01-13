@@ -27,6 +27,6 @@ export default withApiAuthRequired(async function approvePlan(
     )
     return handleResponse<PlanResponse>(response, res)
   } catch (error: unknown) {
-    return fetchError(res, req, error)
+    return fetchError(req, res, error)
   }
 })

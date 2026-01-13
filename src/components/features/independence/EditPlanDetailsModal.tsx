@@ -326,7 +326,9 @@ export default function EditPlanDetailsModal({
               <span
                 className={`font-medium ${hideValues ? "text-gray-400" : "text-orange-600"}`}
               >
-                {hideValues ? HIDDEN_VALUE : `$${netMonthlyNeed.toLocaleString()}`}
+                {hideValues
+                  ? HIDDEN_VALUE
+                  : `$${netMonthlyNeed.toLocaleString()}`}
               </span>
             </div>
           </div>

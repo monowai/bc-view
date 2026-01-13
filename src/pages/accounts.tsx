@@ -1335,13 +1335,14 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                         htmlFor="deductIncomeTax"
                         className="ml-2 text-sm text-gray-700"
                       >
-                        {t(
-                          "asset.config.deductIncomeTax",
-                          "Deduct Income Tax",
-                        )}
+                        {t("asset.config.deductIncomeTax", "Deduct Income Tax")}
                         {countryTaxRates[config.countryCode] ? (
                           <span className="text-gray-500 ml-1">
-                            ({(countryTaxRates[config.countryCode] * 100).toFixed(0)}% for {config.countryCode})
+                            (
+                            {(
+                              countryTaxRates[config.countryCode] * 100
+                            ).toFixed(0)}
+                            % for {config.countryCode})
                           </span>
                         ) : (
                           <span className="text-orange-500 ml-1">
@@ -1377,8 +1378,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                       // Taxable income (cannot be negative)
                       const taxableIncome = Math.max(0, rental - totalExpenses)
                       // Income tax (only if deductIncomeTax is checked, uses country-based rate)
-                      const taxRate =
-                        countryTaxRates[config.countryCode] || 0
+                      const taxRate = countryTaxRates[config.countryCode] || 0
                       const incomeTax = config.deductIncomeTax
                         ? taxableIncome * taxRate
                         : 0
@@ -1415,7 +1415,8 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                             <div className="flex justify-between text-gray-500 text-xs mt-1">
                               <span>
                                 {t("asset.config.incomeTax", "Income Tax")} (
-                                {config.countryCode} {(taxRate * 100).toFixed(0)}%):{" "}
+                                {config.countryCode}{" "}
+                                {(taxRate * 100).toFixed(0)}%):{" "}
                                 {incomeTax.toLocaleString(undefined, {
                                   minimumFractionDigits: 2,
                                   maximumFractionDigits: 2,

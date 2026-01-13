@@ -20,7 +20,7 @@ export default handleAuth({
         returnTo: (req.query.returnTo as string) || "/",
       })
     } catch (error: any) {
-      fetchError(res, req, error)
+      fetchError(req, res, error)
     }
   },
   async logout(req: NextApiRequest, res: NextApiResponse) {
@@ -29,7 +29,7 @@ export default handleAuth({
         returnTo: `${process.env.AUTH0_BASE_URL}/`,
       })
     } catch (error: any) {
-      fetchError(res, req, error)
+      fetchError(req, res, error)
     }
   },
 })

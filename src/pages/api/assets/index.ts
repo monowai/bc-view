@@ -41,6 +41,6 @@ export default withApiAuthRequired(async function assets(
         res.status(405).end(`Method ${method} Not Allowed`)
     }
   } catch (error: unknown) {
-    fetchError(res, req, error)
+    fetchError(req, res, error)
   }
 })

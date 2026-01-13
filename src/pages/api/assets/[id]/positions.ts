@@ -1,6 +1,7 @@
 import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0"
 import { requestInit } from "@utils/api/fetchHelper"
 import { getDataUrl, getPositionsUrl } from "@utils/api/bcConfig"
+import { fetchError } from "@utils/api/responseWriter"
 import { NextApiRequest, NextApiResponse } from "next"
 import { Asset, Portfolio, Position } from "types/beancounter"
 
@@ -192,10 +193,6 @@ export default withApiAuthRequired(async function getAssetPositions(
 
     res.status(200).json(response)
   } catch (error: unknown) {
-    console.error("Error fetching asset positions:", error)
-    res.status(500).json({
-      error:
-        error instanceof Error ? error.message : "Failed to fetch positions",
-    })
+    fetchError(req, res, error)
   }
 })

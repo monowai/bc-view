@@ -38,6 +38,6 @@ export default withApiAuthRequired(async function exportPortfolios(
     )
     res.status(200).send(csvContent)
   } catch (error: unknown) {
-    fetchError(res, req, error)
+    fetchError(req, res, error)
   }
 })

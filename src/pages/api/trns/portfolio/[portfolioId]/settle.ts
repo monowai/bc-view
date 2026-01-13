@@ -31,6 +31,6 @@ export default withApiAuthRequired(async function settleTransactions(
     })
     await handleResponse(response, res)
   } catch (error: unknown) {
-    fetchError(res, req, error)
+    fetchError(req, res, error)
   }
 })

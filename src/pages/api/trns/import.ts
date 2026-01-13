@@ -2,6 +2,7 @@ import { TransactionUpload } from "types/app"
 import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0"
 import { NextApiRequest, NextApiResponse } from "next"
 import { getBroker, getBrokerConfig, SendResult } from "@lib/broker"
+import { fetchError } from "@utils/api/responseWriter"
 
 export default withApiAuthRequired(async function writeRows(
   req: NextApiRequest,
@@ -24,11 +25,8 @@ export default withApiAuthRequired(async function writeRows(
     }
 
     res.status(200).json("ok")
-  } catch (error) {
-    console.error("Transaction import error:", error)
-    res.status(500).json({
-      error: error instanceof Error ? error.message : "Failed to send message",
-    })
+  } catch (error: unknown) {
+    fetchError(req, res, error)
   }
 })
 

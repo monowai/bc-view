@@ -30,6 +30,6 @@ export default withApiAuthRequired(async function refreshPlan(
     )
     await handleResponse<RebalancePlanDto>(response, res)
   } catch (error: any) {
-    fetchError(res, req, error)
+    fetchError(req, res, error)
   }
 })

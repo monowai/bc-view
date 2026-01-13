@@ -30,6 +30,6 @@ export default withApiAuthRequired(async function executePlan(
     })
     await handleResponse<ExecutionResultDto>(response, res)
   } catch (error: any) {
-    fetchError(res, req, error)
+    fetchError(req, res, error)
   }
 })

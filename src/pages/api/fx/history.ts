@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next"
 import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0"
 import { getDataUrl } from "@utils/api/bcConfig"
+import { fetchError } from "@utils/api/responseWriter"
 
 export interface FxHistoryResponse {
   from: string
@@ -51,12 +52,8 @@ async function handler(
     const data = await response.json()
 
     res.status(200).json(data)
-  } catch (error) {
-    console.error("FX history fetch error:", error)
-    res.status(500).json({
-      error:
-        error instanceof Error ? error.message : "Failed to fetch FX history",
-    })
+  } catch (error: unknown) {
+    fetchError(req, res, error)
   }
 }
 

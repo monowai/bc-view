@@ -32,6 +32,6 @@ export default withApiAuthRequired(async function refreshHandler(
     const response = await fetch(url, requestInit(accessToken, "POST", req))
     await handleResponse<RefreshResponse>(response, res)
   } catch (error: unknown) {
-    fetchError(res, req, error)
+    fetchError(req, res, error)
   }
 })

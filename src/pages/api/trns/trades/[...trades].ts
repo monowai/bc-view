@@ -36,6 +36,6 @@ export default withApiAuthRequired(async function tradeTrns(
       }
     }
   } catch (error: any) {
-    fetchError(res, req, error)
+    fetchError(req, res, error)
   }
 })

@@ -21,6 +21,6 @@ export default withApiAuthRequired(async function markets(
     })
     await handleResponse<Market[]>(response, res)
   } catch (error: any) {
-    fetchError(res, req, error)
+    fetchError(req, res, error)
   }
 })

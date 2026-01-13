@@ -39,6 +39,6 @@ export default withApiAuthRequired(async function commitExecution(
     })
     await handleResponse<CommitResponse>(response, res)
   } catch (error: unknown) {
-    fetchError(res, req, error)
+    fetchError(req, res, error)
   }
 })

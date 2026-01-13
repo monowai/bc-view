@@ -55,6 +55,6 @@ export default withApiAuthRequired(async function corporateEvents(
     )
   } catch (error: unknown) {
     Sentry.captureException(error)
-    fetchError(res, req, error)
+    fetchError(req, res, error)
   }
 })

@@ -1,6 +1,6 @@
 import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0"
 import { requestInit } from "@utils/api/fetchHelper"
-import handleResponse from "@utils/api/responseWriter"
+import handleResponse, { fetchError } from "@utils/api/responseWriter"
 import { AllocationResponse } from "types/beancounter"
 import { getPositionsUrl } from "@utils/api/bcConfig"
 import { NextApiRequest, NextApiResponse } from "next"
@@ -35,13 +35,7 @@ export default withApiAuthRequired(async function allocation(
     }
 
     await handleResponse<AllocationResponse>(response, res)
-  } catch (error: any) {
-    console.error(error)
-    res.status(error.status || 500).json({
-      status: "error",
-      message:
-        error.message ||
-        "An unexpected error occurred while obtaining allocation data.",
-    })
+  } catch (error: unknown) {
+    fetchError(req, res, error)
   }
 })
