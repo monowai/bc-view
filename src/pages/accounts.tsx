@@ -702,12 +702,14 @@ interface EditAccountDialogProps {
 interface AssetConfigState {
   monthlyRentalIncome: string
   rentalCurrency: string
+  countryCode: string
   monthlyManagementFee: string
   managementFeePercent: string
   monthlyBodyCorporateFee: string
   annualPropertyTax: string
   annualInsurance: string
   monthlyOtherExpenses: string
+  deductIncomeTax: boolean
   isPrimaryResidence: boolean
   liquidationPriority: string
   transactionDayOfMonth: string
@@ -718,18 +720,29 @@ interface AssetConfigState {
 const defaultConfigState: AssetConfigState = {
   monthlyRentalIncome: "0",
   rentalCurrency: "NZD",
+  countryCode: "NZ",
   monthlyManagementFee: "0",
   managementFeePercent: "0",
   monthlyBodyCorporateFee: "0",
   annualPropertyTax: "0",
   annualInsurance: "0",
   monthlyOtherExpenses: "0",
+  deductIncomeTax: false,
   isPrimaryResidence: false,
   liquidationPriority: "100",
   transactionDayOfMonth: "1",
   creditAccountId: "",
   autoGenerateTransactions: false,
 }
+
+// Common country codes for tax jurisdictions
+const COUNTRY_OPTIONS = [
+  { code: "AU", name: "Australia" },
+  { code: "NZ", name: "New Zealand" },
+  { code: "SG", name: "Singapore" },
+  { code: "GB", name: "United Kingdom" },
+  { code: "US", name: "United States" },
+]
 
 type EditTab = "details" | "income"
 
@@ -761,8 +774,37 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
   const [config, setConfig] = useState<AssetConfigState>(defaultConfigState)
   const [configLoading, setConfigLoading] = useState(false)
 
+  // Country-based tax rates for income tax calculation
+  const [countryTaxRates, setCountryTaxRates] = useState<
+    Record<string, number>
+  >({})
+
   // Show income tab for RE category
   const showIncomeTab = category === "RE"
+
+  // Fetch country tax rates on mount
+  useEffect(() => {
+    async function fetchCountryTaxRates(): Promise<void> {
+      try {
+        const response = await fetch("/api/tax-rates")
+        if (response.ok) {
+          const data = await response.json()
+          if (data.data) {
+            const rates: Record<string, number> = {}
+            data.data.forEach(
+              (taxRate: { countryCode: string; rate: number }) => {
+                rates[taxRate.countryCode] = taxRate.rate || 0
+              },
+            )
+            setCountryTaxRates(rates)
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch country tax rates:", err)
+      }
+    }
+    fetchCountryTaxRates()
+  }, [])
 
   // Fetch current sector classification on mount
   useEffect(() => {
@@ -801,6 +843,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
             setConfig({
               monthlyRentalIncome: String(data.data.monthlyRentalIncome || 0),
               rentalCurrency: data.data.rentalCurrency || "NZD",
+              countryCode: data.data.countryCode || "NZ",
               monthlyManagementFee: String(data.data.monthlyManagementFee || 0),
               managementFeePercent: String(
                 (data.data.managementFeePercent || 0) * 100,
@@ -811,6 +854,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
               annualPropertyTax: String(data.data.annualPropertyTax || 0),
               annualInsurance: String(data.data.annualInsurance || 0),
               monthlyOtherExpenses: String(data.data.monthlyOtherExpenses || 0),
+              deductIncomeTax: data.data.deductIncomeTax || false,
               isPrimaryResidence: data.data.isPrimaryResidence || false,
               liquidationPriority: String(data.data.liquidationPriority || 100),
               transactionDayOfMonth: String(
@@ -857,6 +901,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
           body: JSON.stringify({
             monthlyRentalIncome: parseFloat(config.monthlyRentalIncome) || 0,
             rentalCurrency: config.rentalCurrency,
+            countryCode: config.countryCode,
             monthlyManagementFee: parseFloat(config.monthlyManagementFee) || 0,
             managementFeePercent:
               (parseFloat(config.managementFeePercent) || 0) / 100,
@@ -865,6 +910,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
             annualPropertyTax: parseFloat(config.annualPropertyTax) || 0,
             annualInsurance: parseFloat(config.annualInsurance) || 0,
             monthlyOtherExpenses: parseFloat(config.monthlyOtherExpenses) || 0,
+            deductIncomeTax: config.deductIncomeTax,
             isPrimaryResidence: config.isPrimaryResidence,
             liquidationPriority: parseInt(config.liquidationPriority) || 100,
             transactionDayOfMonth: parseInt(config.transactionDayOfMonth) || 1,
@@ -1080,7 +1126,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                 {/* Rental Income & Management Fees (hidden for primary residence) */}
                 {!config.isPrimaryResidence && (
                   <>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-3 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           {t("asset.config.monthlyRental", "Monthly Rental")}
@@ -1116,6 +1162,27 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                           {currencies.map((ccy) => (
                             <option key={ccy.value} value={ccy.value}>
                               {ccy.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          {t("asset.config.countryCode", "Tax Country")}
+                        </label>
+                        <select
+                          value={config.countryCode}
+                          onChange={(e) =>
+                            setConfig({
+                              ...config,
+                              countryCode: e.target.value,
+                            })
+                          }
+                          className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
+                        >
+                          {COUNTRY_OPTIONS.map((country) => (
+                            <option key={country.code} value={country.code}>
+                              {country.code} - {country.name}
                             </option>
                           ))}
                         </select>
@@ -1250,6 +1317,40 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                       </div>
                     </div>
 
+                    {/* Income Tax Toggle */}
+                    <div className="flex items-center mt-4">
+                      <input
+                        type="checkbox"
+                        id="deductIncomeTax"
+                        checked={config.deductIncomeTax}
+                        onChange={(e) =>
+                          setConfig({
+                            ...config,
+                            deductIncomeTax: e.target.checked,
+                          })
+                        }
+                        className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                      />
+                      <label
+                        htmlFor="deductIncomeTax"
+                        className="ml-2 text-sm text-gray-700"
+                      >
+                        {t(
+                          "asset.config.deductIncomeTax",
+                          "Deduct Income Tax",
+                        )}
+                        {countryTaxRates[config.countryCode] ? (
+                          <span className="text-gray-500 ml-1">
+                            ({(countryTaxRates[config.countryCode] * 100).toFixed(0)}% for {config.countryCode})
+                          </span>
+                        ) : (
+                          <span className="text-orange-500 ml-1">
+                            (no rate configured for {config.countryCode})
+                          </span>
+                        )}
+                      </label>
+                    </div>
+
                     {/* Net Income Display */}
                     {(() => {
                       const rental = parseFloat(config.monthlyRentalIncome) || 0
@@ -1261,7 +1362,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                       const effectiveMgmtFee = Math.max(fixedFee, percentFee)
                       const bodyCorp =
                         parseFloat(config.monthlyBodyCorporateFee) || 0
-                      const monthlyTax =
+                      const monthlyPropertyTax =
                         (parseFloat(config.annualPropertyTax) || 0) / 12
                       const monthlyInsurance =
                         (parseFloat(config.annualInsurance) || 0) / 12
@@ -1270,10 +1371,19 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                       const totalExpenses =
                         effectiveMgmtFee +
                         bodyCorp +
-                        monthlyTax +
+                        monthlyPropertyTax +
                         monthlyInsurance +
                         otherExpenses
-                      const netIncome = rental - totalExpenses
+                      // Taxable income (cannot be negative)
+                      const taxableIncome = Math.max(0, rental - totalExpenses)
+                      // Income tax (only if deductIncomeTax is checked, uses country-based rate)
+                      const taxRate =
+                        countryTaxRates[config.countryCode] || 0
+                      const incomeTax = config.deductIncomeTax
+                        ? taxableIncome * taxRate
+                        : 0
+                      // Net after tax
+                      const netIncome = taxableIncome - incomeTax
                       return (
                         <div className="bg-gray-50 rounded-md p-3 text-sm mt-4">
                           <div className="flex justify-between text-gray-600">
@@ -1293,12 +1403,23 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                           {totalExpenses > 0 && (
                             <div className="flex justify-between text-gray-500 text-xs mt-1">
                               <span>
-                                ({t("asset.config.totalExpenses", "Expenses")}:{" "}
+                                {t("asset.config.totalExpenses", "Expenses")}:{" "}
                                 {totalExpenses.toLocaleString(undefined, {
                                   minimumFractionDigits: 2,
                                   maximumFractionDigits: 2,
                                 })}
-                                )
+                              </span>
+                            </div>
+                          )}
+                          {config.deductIncomeTax && incomeTax > 0 && (
+                            <div className="flex justify-between text-gray-500 text-xs mt-1">
+                              <span>
+                                {t("asset.config.incomeTax", "Income Tax")} (
+                                {config.countryCode} {(taxRate * 100).toFixed(0)}%):{" "}
+                                {incomeTax.toLocaleString(undefined, {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}
                               </span>
                             </div>
                           )}
