@@ -34,7 +34,7 @@ const navSections: NavSection[] = [
       },
       {
         href: "/accounts",
-        label: "Accounts",
+        label: "Assets",
         icon: "fa-gem",
         description: "Property, bank accounts & custom assets",
       },
@@ -71,6 +71,12 @@ const navSections: NavSection[] = [
         label: "FX Rates",
         icon: "fa-exchange-alt",
         description: "Currency exchange matrix",
+      },
+      {
+        href: "/tax-rates",
+        label: "Tax Rates",
+        icon: "fa-percent",
+        description: "Income tax rates by country",
       },
       {
         href: "/settings",

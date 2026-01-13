@@ -368,6 +368,7 @@ export interface Currency {
   code: string
   name: string
   symbol: string
+  incomeTaxRate?: number
 }
 
 export interface Asset {
@@ -565,6 +566,8 @@ export interface PrivateAssetConfig {
   // Income settings
   monthlyRentalIncome: number
   rentalCurrency: string
+  // Country code for tax jurisdiction (ISO 3166-1 alpha-2, e.g., "NZ", "SG")
+  countryCode: string
   // Expense settings - management
   monthlyManagementFee: number
   managementFeePercent: number
@@ -573,6 +576,8 @@ export interface PrivateAssetConfig {
   annualPropertyTax: number
   annualInsurance: number
   monthlyOtherExpenses: number
+  // Tax settings - when true, deduct income tax using rate from user's country config
+  deductIncomeTax: boolean
   // Planning settings
   isPrimaryResidence: boolean
   liquidationPriority: number
@@ -588,12 +593,14 @@ export interface PrivateAssetConfig {
 export interface PrivateAssetConfigRequest {
   monthlyRentalIncome?: number
   rentalCurrency?: string
+  countryCode?: string
   monthlyManagementFee?: number
   managementFeePercent?: number
   monthlyBodyCorporateFee?: number
   annualPropertyTax?: number
   annualInsurance?: number
   monthlyOtherExpenses?: number
+  deductIncomeTax?: boolean
   isPrimaryResidence?: boolean
   liquidationPriority?: number
   transactionDayOfMonth?: number
@@ -607,4 +614,28 @@ export interface PrivateAssetConfigResponse {
 
 export interface PrivateAssetConfigsResponse {
   data: PrivateAssetConfig[]
+}
+
+// ============ Tax Rates ============
+
+/**
+ * User-defined tax rate for a country.
+ * Used to calculate income tax on rental properties.
+ */
+export interface TaxRate {
+  countryCode: string
+  rate: number // Decimal (e.g., 0.20 for 20%)
+}
+
+export interface TaxRateRequest {
+  countryCode: string
+  rate: number
+}
+
+export interface TaxRateResponse {
+  data: TaxRate
+}
+
+export interface TaxRatesResponse {
+  data: TaxRate[]
 }

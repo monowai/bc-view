@@ -110,9 +110,12 @@ export function usePrivateAssetConfigs(): UsePrivateAssetConfigsResult {
   }
 
   /**
-   * Calculate total monthly net rental income grouped by currency.
-   * Net = gross - all expenses (management, body corp, tax, insurance, other).
+   * Calculate total monthly net rental income grouped by currency (before income tax).
+   * Net = gross - all expenses (management, body corp, property tax, insurance, other).
    * Excludes primary residences.
+   *
+   * Note: Income tax deduction (when deductIncomeTax=true) is handled by svc-retire
+   * which has access to currency tax rates. This calculation is for display purposes.
    */
   const getNetRentalByCurrency = (): Record<string, number> => {
     if (!data?.data) return {}
