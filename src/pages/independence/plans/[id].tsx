@@ -31,6 +31,7 @@ import {
   transformToAllocationSlices,
   AllocationSlice,
 } from "@lib/allocation/aggregateHoldings"
+import { ManualAssetCategory } from "types/independence"
 import { ValueIn } from "@components/features/holdings/GroupByOptions"
 import {
   WhatIfAdjustments,
@@ -54,6 +55,80 @@ import { usePrivateAssetConfigs } from "@utils/assets/usePrivateAssetConfigs"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 
 const HIDDEN_VALUE = "****"
+
+// Manual asset category display configuration
+const MANUAL_ASSET_CONFIG: Record<
+  ManualAssetCategory,
+  { label: string; color: string; isSpendable: boolean }
+> = {
+  CASH: { label: "Cash", color: "#6B7280", isSpendable: true },
+  EQUITY: { label: "Equity", color: "#3B82F6", isSpendable: true },
+  ETF: { label: "ETF", color: "#10B981", isSpendable: true },
+  MUTUAL_FUND: { label: "Mutual Fund", color: "#8B5CF6", isSpendable: true },
+  RE: { label: "Property", color: "#F59E0B", isSpendable: false },
+}
+
+/**
+ * Convert plan's manual asset values to AllocationSlice format.
+ * Used when user has no portfolio holdings but has entered manual asset values.
+ */
+function manualAssetsToSlices(
+  manualAssets: Record<string, number> | undefined,
+): AllocationSlice[] {
+  if (!manualAssets) return []
+
+  const slices: AllocationSlice[] = []
+  const total = Object.values(manualAssets).reduce((sum, v) => sum + v, 0)
+
+  for (const [category, value] of Object.entries(manualAssets)) {
+    if (value <= 0) continue
+    const config = MANUAL_ASSET_CONFIG[category as ManualAssetCategory]
+    if (!config) continue
+
+    slices.push({
+      key: config.label,
+      label: config.label,
+      value,
+      percentage: total > 0 ? (value / total) * 100 : 0,
+      color: config.color,
+      gainOnDay: 0,
+      irr: 0,
+    })
+  }
+
+  return slices
+}
+
+/**
+ * Parse manualAssets from JSON string if needed.
+ * Backend stores as JSON string, but we need it as an object.
+ */
+function parseManualAssets(
+  manualAssets: Record<string, number> | string | undefined | null,
+): Record<string, number> | undefined {
+  if (!manualAssets) return undefined
+  // If it's already an object, return it
+  if (typeof manualAssets === "object") {
+    return manualAssets
+  }
+  // Otherwise parse from JSON string
+  try {
+    return JSON.parse(manualAssets)
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * Check if plan has manual assets with non-zero values.
+ */
+function hasManualAssets(
+  manualAssets: Record<string, number> | string | undefined | null,
+): boolean {
+  const parsed = parseManualAssets(manualAssets)
+  if (!parsed) return false
+  return Object.values(parsed).some((v) => v > 0)
+}
 
 interface PortfoliosResponse {
   data: Portfolio[]
@@ -91,9 +166,19 @@ function PlanView(): React.ReactElement {
   const [showEditDetailsModal, setShowEditDetailsModal] = useState(false)
   const [showWhatIfModal, setShowWhatIfModal] = useState(false)
 
+  // Timeline view mode - "traditional" shows work-to-retire path, "fire" shows FIRE path
+  const [timelineViewMode, setTimelineViewMode] = useState<
+    "traditional" | "fire"
+  >("traditional")
+
   const { data: planData, error: planError } = useSwr<PlanResponse>(
     id ? `/api/independence/plans/${id}` : null,
     id ? simpleFetcher(`/api/independence/plans/${id}`) : null,
+    {
+      // Always fetch fresh data when viewing a plan - avoids stale cache after edits
+      revalidateOnMount: true,
+      dedupingInterval: 0,
+    },
   )
 
   const { data: portfoliosData } = useSwr<PortfoliosResponse>(
@@ -289,6 +374,44 @@ function PlanView(): React.ReactElement {
     }
   }, [monthlyNetByCurrency, convertedRentalTotal])
 
+  // Effective plan values: What-If (scenarioOverrides) takes precedence over plan values
+  // These are the values used for ALL calculations - What-If always overrides plan
+  const effectivePlanValues = useMemo(() => {
+    if (!plan) return null
+    return {
+      monthlyExpenses:
+        scenarioOverrides.monthlyExpenses ?? plan.monthlyExpenses,
+      cashReturnRate: scenarioOverrides.cashReturnRate ?? plan.cashReturnRate,
+      equityReturnRate:
+        scenarioOverrides.equityReturnRate ?? plan.equityReturnRate,
+      housingReturnRate:
+        scenarioOverrides.housingReturnRate ?? plan.housingReturnRate,
+      inflationRate: scenarioOverrides.inflationRate ?? plan.inflationRate,
+      pensionMonthly: scenarioOverrides.pensionMonthly ?? plan.pensionMonthly,
+      socialSecurityMonthly:
+        scenarioOverrides.socialSecurityMonthly ?? plan.socialSecurityMonthly,
+      otherIncomeMonthly:
+        scenarioOverrides.otherIncomeMonthly ?? plan.otherIncomeMonthly,
+      targetBalance: scenarioOverrides.targetBalance ?? plan.targetBalance,
+      cashAllocation: plan.cashAllocation,
+      equityAllocation: plan.equityAllocation,
+      housingAllocation: plan.housingAllocation,
+    }
+  }, [plan, scenarioOverrides])
+
+  // Check if asset allocation sums to 100% (allowing 1% tolerance for rounding)
+  // Note: allocations are stored as decimals (0.20 = 20%), so we compare against 1.0
+  const allocationTotalDecimal = useMemo(() => {
+    if (!plan) return 1.0
+    return (
+      (plan.cashAllocation ?? 0) +
+      (plan.equityAllocation ?? 0) +
+      (plan.housingAllocation ?? 0)
+    )
+  }, [plan])
+  const allocationTotalPercent = Math.round(allocationTotalDecimal * 100)
+  const isAllocationValid = Math.abs(allocationTotalDecimal - 1.0) <= 0.01
+
   // Filter to only show portfolios with non-zero balance
   const portfolios = useMemo(() => {
     return (portfoliosData?.data || []).filter(
@@ -296,15 +419,31 @@ function PlanView(): React.ReactElement {
     )
   }, [portfoliosData])
 
-  // Transform holdings into category slices
+  // Determine if using manual assets (no portfolio holdings but plan has manual assets)
+  const usingManualAssets = useMemo(() => {
+    const holdingsEmpty =
+      !holdingsData?.positions ||
+      Object.keys(holdingsData.positions).length === 0
+    return holdingsEmpty && hasManualAssets(plan?.manualAssets)
+  }, [holdingsData, plan?.manualAssets])
+
+  // Transform holdings into category slices (or use manual assets if no holdings)
   const categorySlices = useMemo((): AllocationSlice[] => {
+    // If user has manual assets and no portfolio holdings, use manual assets
+    if (usingManualAssets) {
+      const parsed = parseManualAssets(plan?.manualAssets)
+      if (parsed) {
+        return manualAssetsToSlices(parsed)
+      }
+    }
+    // Otherwise use portfolio holdings
     if (!holdingsData) return []
     return transformToAllocationSlices(
       holdingsData,
       "category",
       ValueIn.PORTFOLIO,
     )
-  }, [holdingsData])
+  }, [holdingsData, usingManualAssets, plan?.manualAssets])
 
   // Auto-select all portfolios when data first loads
   useEffect(() => {
@@ -332,43 +471,87 @@ function PlanView(): React.ReactElement {
   }, [categorySlices, plan])
 
   // Calculate total assets from category slices (converted to plan currency)
+  // Manual assets are already in plan currency, so don't apply holdingsToPlanRate
   const totalAssets = useMemo(() => {
-    return (
-      categorySlices.reduce((sum, slice) => sum + slice.value, 0) *
-      holdingsToPlanRate
-    )
-  }, [categorySlices, holdingsToPlanRate])
+    const rate = usingManualAssets ? 1 : holdingsToPlanRate
+    return categorySlices.reduce((sum, slice) => sum + slice.value, 0) * rate
+  }, [categorySlices, holdingsToPlanRate, usingManualAssets])
 
   // Calculate liquid (spendable) assets - only selected categories (in plan currency)
   const liquidAssets = useMemo(() => {
+    const rate = usingManualAssets ? 1 : holdingsToPlanRate
     return (
       categorySlices
         .filter((slice) => spendableCategories.includes(slice.key))
-        .reduce((sum, slice) => sum + slice.value, 0) * holdingsToPlanRate
+        .reduce((sum, slice) => sum + slice.value, 0) * rate
     )
-  }, [categorySlices, spendableCategories, holdingsToPlanRate])
+  }, [
+    categorySlices,
+    spendableCategories,
+    holdingsToPlanRate,
+    usingManualAssets,
+  ])
 
   // Calculate non-spendable assets (e.g., property) (in plan currency)
   const nonSpendableAssets = useMemo(() => {
+    const rate = usingManualAssets ? 1 : holdingsToPlanRate
     return (
       categorySlices
         .filter((slice) => !spendableCategories.includes(slice.key))
-        .reduce((sum, slice) => sum + slice.value, 0) * holdingsToPlanRate
+        .reduce((sum, slice) => sum + slice.value, 0) * rate
     )
-  }, [categorySlices, spendableCategories, holdingsToPlanRate])
+  }, [
+    categorySlices,
+    spendableCategories,
+    holdingsToPlanRate,
+    usingManualAssets,
+  ])
 
   // Default expected return rate for assets without a configured rate (3%)
   const DEFAULT_EXPECTED_RETURN = 0.03
 
   // Calculate weighted blended return rate from per-asset expected return rates
+  // Uses effectivePlanValues which applies What-If overrides
   const blendedReturnRate = useMemo(() => {
+    // When using manual assets, calculate weighted rate based on effective rates
+    if (usingManualAssets && effectivePlanValues) {
+      const assets = parseManualAssets(plan?.manualAssets)
+      if (assets) {
+        // Map category to return rate (using What-If adjusted rates)
+        const rateMap: Record<string, number> = {
+          CASH: effectivePlanValues.cashReturnRate,
+          EQUITY: effectivePlanValues.equityReturnRate,
+          ETF: effectivePlanValues.equityReturnRate,
+          MUTUAL_FUND: effectivePlanValues.equityReturnRate,
+          // RE excluded from blended rate (non-spendable)
+        }
+
+        let totalValue = 0
+        let weightedSum = 0
+
+        for (const [category, value] of Object.entries(assets)) {
+          if (value <= 0 || category === "RE") continue
+          const rate = rateMap[category] ?? DEFAULT_EXPECTED_RETURN
+          totalValue += value
+          weightedSum += value * rate
+        }
+
+        if (totalValue > 0) {
+          return weightedSum / totalValue
+        }
+      }
+    }
+
     if (!holdingsData?.positions) {
-      // Fall back to plan's allocation-based blended rate
-      if (!plan) return DEFAULT_EXPECTED_RETURN
+      // Fall back to allocation-based blended rate (using What-If adjusted rates)
+      if (!effectivePlanValues) return DEFAULT_EXPECTED_RETURN
       return (
-        plan.equityReturnRate * plan.equityAllocation +
-        plan.cashReturnRate * plan.cashAllocation +
-        plan.housingReturnRate * plan.housingAllocation
+        effectivePlanValues.equityReturnRate *
+          effectivePlanValues.equityAllocation +
+        effectivePlanValues.cashReturnRate *
+          effectivePlanValues.cashAllocation +
+        effectivePlanValues.housingReturnRate *
+          effectivePlanValues.housingAllocation
       )
     }
 
@@ -395,7 +578,7 @@ function PlanView(): React.ReactElement {
     }
 
     return totalValue > 0 ? weightedSum / totalValue : DEFAULT_EXPECTED_RETURN
-  }, [holdingsData, plan])
+  }, [holdingsData, plan?.manualAssets, effectivePlanValues, usingManualAssets])
 
   // Calculate current age from yearOfBirth
   const currentYear = new Date().getFullYear()
@@ -471,8 +654,6 @@ function PlanView(): React.ReactElement {
       retirementAge,
       lifeExpectancy,
       monthlyInvestment,
-      blendedReturnRate,
-      planCurrency,
       whatIfAdjustments: combinedAdjustments,
       scenarioOverrides,
       spendableCategories,
@@ -480,42 +661,30 @@ function PlanView(): React.ReactElement {
     })
 
   // Calculate FI metrics for summary bar
-  // Prefers backend-provided metrics, falls back to local calculation
+  // Uses effectivePlanValues which already has What-If overrides applied
   const fiMetrics = useMemo(() => {
-    // Use backend fiMetrics when available (from adjustedProjection)
-    if (adjustedProjection?.fiMetrics) {
-      const backendMetrics = adjustedProjection.fiMetrics
-      return {
-        fiNumber: backendMetrics.fiNumber,
-        netMonthlyExpenses: backendMetrics.netMonthlyExpenses,
-        totalMonthlyIncome: backendMetrics.totalMonthlyIncome,
-        isCoastFire: backendMetrics.isCoastFire,
-        yearsToRetirement:
-          currentAge && retirementAge && retirementAge > currentAge
-            ? retirementAge - currentAge
-            : null,
-        fiProgress: backendMetrics.fiProgress,
-        savingsRate: backendMetrics.savingsRate,
-        yearsToFi: backendMetrics.yearsToFi,
-        coastFiNumber: backendMetrics.coastFiNumber,
-        coastFiProgress: backendMetrics.coastFiProgress,
-        isFinanciallyIndependent: backendMetrics.isFinanciallyIndependent,
-      }
-    }
+    if (!effectivePlanValues) return null
 
-    // Fallback: calculate locally when projection not yet loaded
-    if (!plan) return null
+    // Check if What-If adjustments are active (any value != default)
+    const hasWhatIfAdjustments =
+      combinedAdjustments.expensesPercent !== 100 ||
+      combinedAdjustments.contributionPercent !== 100 ||
+      combinedAdjustments.returnRateOffset !== 0
 
-    // Apply what-if expensesPercent adjustment to gross expenses
+    // Apply what-if expensesPercent adjustment to effective expenses
+    // effectivePlanValues.monthlyExpenses already includes direct What-If override
+    // combinedAdjustments.expensesPercent applies scenario toggle adjustments
     const effectiveGrossExpenses = Math.round(
-      plan.monthlyExpenses * (combinedAdjustments.expensesPercent / 100),
+      effectivePlanValues.monthlyExpenses *
+        (combinedAdjustments.expensesPercent / 100),
     )
 
     // Calculate income from all sources (pension, benefits, rental, etc.)
+    // All values from effectivePlanValues include What-If overrides
     const totalMonthlyIncome =
-      (plan.pensionMonthly || 0) +
-      (plan.socialSecurityMonthly || 0) +
-      (plan.otherIncomeMonthly || 0) +
+      (effectivePlanValues.pensionMonthly || 0) +
+      (effectivePlanValues.socialSecurityMonthly || 0) +
+      (effectivePlanValues.otherIncomeMonthly || 0) +
       (rentalIncome?.totalMonthlyInPlanCurrency || 0)
 
     // Net expenses = what you actually need from investments
@@ -533,13 +702,31 @@ function PlanView(): React.ReactElement {
       currentAge && retirementAge && retirementAge > currentAge
         ? retirementAge - currentAge
         : null
+
+    // Apply return rate adjustment for Coast FIRE (offset is in percentage points)
+    const adjustedReturnRate =
+      blendedReturnRate + combinedAdjustments.returnRateOffset / 100
     const coastFiNumber =
-      yearsToRetirement && blendedReturnRate > 0
-        ? fiNumber / Math.pow(1 + blendedReturnRate, yearsToRetirement)
+      yearsToRetirement && adjustedReturnRate > 0
+        ? fiNumber / Math.pow(1 + adjustedReturnRate, yearsToRetirement)
         : null
-    const isCoastFire = coastFiNumber
-      ? liquidAssets >= coastFiNumber
-      : undefined
+
+    // FI Progress calculation
+    const fiProgress = fiNumber > 0 ? (liquidAssets / fiNumber) * 100 : 0
+    const isFinanciallyIndependent = fiProgress >= 100
+
+    // Coast FI Progress
+    const coastFiProgress =
+      coastFiNumber && coastFiNumber > 0
+        ? (liquidAssets / coastFiNumber) * 100
+        : null
+    const isCoastFire = coastFiProgress ? coastFiProgress >= 100 : false
+
+    // Use backend values for fields we don't adjust locally, if available and no What-If active
+    const backendMetrics =
+      !hasWhatIfAdjustments && adjustedProjection?.fiMetrics
+        ? adjustedProjection.fiMetrics
+        : null
 
     return {
       fiNumber,
@@ -547,17 +734,76 @@ function PlanView(): React.ReactElement {
       totalMonthlyIncome,
       isCoastFire,
       yearsToRetirement,
+      fiProgress,
+      savingsRate: backendMetrics?.savingsRate,
+      yearsToFi: backendMetrics?.yearsToFi,
+      coastFiNumber,
+      coastFiProgress,
+      isFinanciallyIndependent,
     }
   }, [
     adjustedProjection?.fiMetrics,
-    plan,
+    effectivePlanValues,
     combinedAdjustments.expensesPercent,
+    combinedAdjustments.contributionPercent,
+    combinedAdjustments.returnRateOffset,
     rentalIncome?.totalMonthlyInPlanCurrency,
     currentAge,
     retirementAge,
     blendedReturnRate,
     liquidAssets,
   ])
+
+  // Combine accumulation (working years) and drawdown (retirement years) for chart
+  const fullJourneyData = useMemo(() => {
+    if (!adjustedProjection) return []
+
+    // Convert accumulation projections to chart format
+    const accumulationData = (
+      adjustedProjection.accumulationProjections || []
+    ).map((year) => ({
+      age: year.age,
+      endingBalance: year.endingBalance,
+      totalWealth: year.totalWealth,
+      contribution: year.contribution,
+      investmentGrowth: year.investmentGrowth,
+      phase: "accumulation" as const,
+    }))
+
+    // Convert retirement projections to chart format
+    const retirementData = adjustedProjection.yearlyProjections.map((year) => ({
+      age: year.age,
+      endingBalance: year.endingBalance,
+      totalWealth: year.totalWealth,
+      withdrawals: year.withdrawals,
+      investment: year.investment,
+      phase: "retirement" as const,
+    }))
+
+    return [...accumulationData, ...retirementData]
+  }, [adjustedProjection])
+
+  // FI achievement age from backend calculation
+  const fiAchievementAge = adjustedProjection?.fiAchievementAge ?? null
+
+  // Merge backend FIRE path projections into full journey data for chart display
+  const chartDataWithFirePath = useMemo(() => {
+    const firePathProjections = adjustedProjection?.firePathProjections
+    if (!firePathProjections || firePathProjections.length === 0)
+      return fullJourneyData
+
+    // Create a map of age -> fireBalance from backend projections
+    const fireBalanceMap = new Map(
+      firePathProjections.map((d) => [d.age, d.endingBalance]),
+    )
+
+    // Add fireBalance to each data point
+    return fullJourneyData.map((point) => ({
+      ...point,
+      fireBalance:
+        point.age != null ? (fireBalanceMap.get(point.age) ?? null) : null,
+    }))
+  }, [fullJourneyData, adjustedProjection?.firePathProjections])
 
   // Toggle category spendable status
   const toggleCategory = (category: string): void => {
@@ -774,8 +1020,33 @@ function PlanView(): React.ReactElement {
             </div>
           </div>
 
-          {/* FIRE Summary Bar - Only show when backend data is available */}
-          {adjustedProjection?.fiMetrics ? (
+          {/* Allocation Warning Banner */}
+          {!isAllocationValid && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <i className="fas fa-exclamation-triangle text-red-600 mt-0.5"></i>
+                <div>
+                  <p className="font-medium text-red-800">
+                    Invalid Asset Allocation
+                  </p>
+                  <p className="text-sm text-red-700 mt-1">
+                    Your asset allocation totals {allocationTotalPercent}% but
+                    must equal 100%. Projections are disabled until this is
+                    corrected.{" "}
+                    <Link
+                      href={`/independence/wizard/${plan.id}`}
+                      className="underline font-medium hover:text-red-900"
+                    >
+                      Edit plan to fix
+                    </Link>
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* FIRE Summary Bar - Only show when backend data is available and allocation valid */}
+          {adjustedProjection?.fiMetrics && isAllocationValid ? (
             <FiSummaryBar
               fiNumber={adjustedProjection.fiMetrics.fiNumber * effectiveFxRate}
               liquidAssets={liquidAssets * effectiveFxRate}
@@ -1054,7 +1325,7 @@ function PlanView(): React.ReactElement {
                 {t("retire.assets.title")}
               </h2>
 
-              {!holdingsData ? (
+              {!holdingsData && !usingManualAssets ? (
                 <div className="text-center py-8 text-gray-500">
                   <i className="fas fa-spinner fa-spin text-2xl mb-2"></i>
                   <p>{t("retire.assets.loadingHoldings")}</p>
@@ -1069,11 +1340,20 @@ function PlanView(): React.ReactElement {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <p className="text-sm text-gray-500">
-                    {t("retire.assets.selectCategories")}
-                  </p>
+                  {usingManualAssets ? (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-2">
+                      <p className="text-sm text-blue-800">
+                        <i className="fas fa-info-circle mr-2"></i>
+                        Using manually entered asset values from plan settings.
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">
+                      {t("retire.assets.selectCategories")}
+                    </p>
+                  )}
                   <div className="space-y-2">
-                    {/* Only show liquid/spendable asset categories */}
+                    {/* Show liquid/spendable asset categories */}
                     {categorySlices
                       .filter(
                         (slice) => !DEFAULT_NON_SPENDABLE.includes(slice.key),
@@ -1124,12 +1404,44 @@ function PlanView(): React.ReactElement {
                               >
                                 {hideValues
                                   ? HIDDEN_VALUE
-                                  : `${effectiveCurrency}${Math.round(slice.value * holdingsToPlanRate * effectiveFxRate).toLocaleString()}`}
+                                  : `${effectiveCurrency}${Math.round(slice.value * (usingManualAssets ? 1 : holdingsToPlanRate) * effectiveFxRate).toLocaleString()}`}
                               </span>
                             </label>
                           </div>
                         )
                       })}
+
+                    {/* Show non-spendable (Property) separately */}
+                    {categorySlices
+                      .filter((slice) =>
+                        DEFAULT_NON_SPENDABLE.includes(slice.key),
+                      )
+                      .map((slice) => (
+                        <div
+                          key={slice.key}
+                          className="p-3 rounded-lg border border-amber-200 bg-amber-50"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: slice.color }}
+                              />
+                              <span className="text-gray-700">
+                                {slice.label}
+                              </span>
+                              <span className="text-xs text-amber-600 bg-amber-100 px-2 py-0.5 rounded">
+                                Non-spendable
+                              </span>
+                            </div>
+                            <span className="font-medium text-gray-500">
+                              {hideValues
+                                ? HIDDEN_VALUE
+                                : `${effectiveCurrency}${Math.round(slice.value * (usingManualAssets ? 1 : holdingsToPlanRate) * effectiveFxRate).toLocaleString()}`}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
                   </div>
 
                   <div className="border-t pt-4 space-y-2">
@@ -1188,8 +1500,9 @@ function PlanView(): React.ReactElement {
                         {hideValues
                           ? HIDDEN_VALUE
                           : `${effectiveCurrency}${Math.round(
-                              (displayProjection?.liquidAssets ||
-                                liquidAssets) * effectiveFxRate,
+                              (displayProjection?.preRetirementAccumulation
+                                ?.liquidAssetsAtRetirement || liquidAssets) *
+                                effectiveFxRate,
                             ).toLocaleString()}`}
                       </span>
                     </div>
@@ -1255,6 +1568,21 @@ function PlanView(): React.ReactElement {
                     backendIsCoastFire={
                       adjustedProjection?.fiMetrics?.isCoastFire
                     }
+                    backendRealYearsToFi={
+                      adjustedProjection?.fiMetrics?.realYearsToFi
+                    }
+                    backendRealReturnBelowSwr={
+                      adjustedProjection?.fiMetrics?.realReturnBelowSwr
+                    }
+                    inflationRate={effectivePlanValues?.inflationRate ?? 0.025}
+                    equityReturnRate={
+                      effectivePlanValues?.equityReturnRate ?? 0.08
+                    }
+                    cashReturnRate={effectivePlanValues?.cashReturnRate ?? 0.03}
+                    equityAllocation={
+                      effectivePlanValues?.equityAllocation ?? 0.8
+                    }
+                    cashAllocation={effectivePlanValues?.cashAllocation ?? 0.2}
                   />
 
                   {/* Income from Assets explanation */}
@@ -1411,9 +1739,35 @@ function PlanView(): React.ReactElement {
           {/* Timeline Tab */}
           {activeTab === "timeline" && (
             <div className="bg-white rounded-xl shadow-md p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                {t("retire.timeline.title")}
-              </h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  {t("retire.timeline.title")}
+                </h2>
+                {fiAchievementAge && (
+                  <div className="flex bg-gray-100 rounded-lg p-1">
+                    <button
+                      onClick={() => setTimelineViewMode("traditional")}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                        timelineViewMode === "traditional"
+                          ? "bg-white text-blue-600 shadow-sm"
+                          : "text-gray-600 hover:text-gray-900"
+                      }`}
+                    >
+                      Traditional
+                    </button>
+                    <button
+                      onClick={() => setTimelineViewMode("fire")}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                        timelineViewMode === "fire"
+                          ? "bg-white text-green-600 shadow-sm"
+                          : "text-gray-600 hover:text-gray-900"
+                      }`}
+                    >
+                      FIRE
+                    </button>
+                  </div>
+                )}
+              </div>
 
               {!displayProjection ||
               displayProjection.yearlyProjections.length === 0 ? (
@@ -1432,17 +1786,14 @@ function PlanView(): React.ReactElement {
                 </div>
               ) : (
                 <>
-                  {/* Income Breakdown Table */}
-                  <div className="mb-8">
-                    <IncomeBreakdownTable
-                      projections={displayProjection.yearlyProjections}
-                    />
-                  </div>
-
                   <div className="h-72 mb-8">
                     <ResponsiveContainer width="100%" height="100%">
                       <ComposedChart
-                        data={displayProjection.yearlyProjections}
+                        data={
+                          chartDataWithFirePath.length > 0
+                            ? chartDataWithFirePath
+                            : displayProjection.yearlyProjections
+                        }
                         margin={{ top: 10, right: 30, left: 20, bottom: 20 }}
                       >
                         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -1471,7 +1822,9 @@ function PlanView(): React.ReactElement {
                             if (name === "totalWealth")
                               return [formatted, "Total Wealth"]
                             if (name === "endingBalance")
-                              return [formatted, "Liquid Assets"]
+                              return [formatted, "Work to Independence"]
+                            if (name === "fireBalance")
+                              return [formatted, "FIRE Path"]
                             return [formatted, name]
                           }}
                           labelFormatter={(label) => `Age ${label}`}
@@ -1483,29 +1836,90 @@ function PlanView(): React.ReactElement {
                             value === "totalWealth"
                               ? "Total Wealth"
                               : value === "endingBalance"
-                                ? "Liquid Assets"
-                                : value
+                                ? "Work to Independence"
+                                : value === "fireBalance"
+                                  ? "FIRE Path"
+                                  : value
                           }
                         />
                         <ReferenceLine y={0} stroke="#ef4444" strokeWidth={2} />
-                        {displayProjection.nonSpendableAtRetirement > 0 && (
-                          <Line
-                            type="monotone"
-                            dataKey="totalWealth"
-                            stroke="#3b82f6"
+                        {/* Retirement age transition line - show in traditional view */}
+                        {timelineViewMode === "traditional" &&
+                          retirementAge &&
+                          chartDataWithFirePath.length > 0 &&
+                          (chartDataWithFirePath.some(
+                            (d) => d.phase === "accumulation",
+                          ) ||
+                            (chartDataWithFirePath.some(
+                              (d) => d.age != null && d.age <= retirementAge,
+                            ) &&
+                              chartDataWithFirePath.some(
+                                (d) => d.age != null && d.age >= retirementAge,
+                              ))) && (
+                            <ReferenceLine
+                              x={retirementAge}
+                              stroke="#8b5cf6"
+                              strokeDasharray="5 5"
+                              strokeWidth={2}
+                              label={{
+                                value: "Retire",
+                                position: "top",
+                                fill: "#8b5cf6",
+                                fontSize: 11,
+                              }}
+                            />
+                          )}
+                        {/* FI achievement age line - show in FIRE view */}
+                        {timelineViewMode === "fire" && fiAchievementAge && (
+                          <ReferenceLine
+                            x={fiAchievementAge}
+                            stroke="#22c55e"
+                            strokeDasharray="3 3"
                             strokeWidth={2}
-                            dot={{ r: 2, fill: "#3b82f6" }}
-                            name="totalWealth"
+                            label={{
+                              value: "FI",
+                              position: "top",
+                              fill: "#22c55e",
+                              fontSize: 11,
+                            }}
                           />
                         )}
-                        <Line
-                          type="monotone"
-                          dataKey="endingBalance"
-                          stroke="#ea580c"
-                          strokeWidth={3}
-                          dot={{ r: 3, fill: "#ea580c" }}
-                          name="endingBalance"
-                        />
+                        {/* Total Wealth line - show in traditional view when non-spendable assets exist */}
+                        {timelineViewMode === "traditional" &&
+                          displayProjection.nonSpendableAtRetirement > 0 && (
+                            <Line
+                              type="monotone"
+                              dataKey="totalWealth"
+                              stroke="#8b5cf6"
+                              strokeWidth={2}
+                              dot={{ r: 2, fill: "#8b5cf6" }}
+                              name="totalWealth"
+                            />
+                          )}
+                        {/* Traditional path - Work to Independence */}
+                        {timelineViewMode === "traditional" && (
+                          <Line
+                            type="monotone"
+                            dataKey="endingBalance"
+                            stroke="#3b82f6"
+                            strokeWidth={3}
+                            dot={{ r: 3, fill: "#3b82f6" }}
+                            name="endingBalance"
+                          />
+                        )}
+                        {/* FIRE path - what happens if you retire at FI age */}
+                        {timelineViewMode === "fire" &&
+                          fiAchievementAge &&
+                          adjustedProjection?.firePathProjections && (
+                            <Line
+                              type="monotone"
+                              dataKey="fireBalance"
+                              stroke="#22c55e"
+                              strokeWidth={3}
+                              dot={{ r: 3, fill: "#22c55e" }}
+                              name="fireBalance"
+                            />
+                          )}
                       </ComposedChart>
                     </ResponsiveContainer>
                   </div>
@@ -1584,6 +1998,13 @@ function PlanView(): React.ReactElement {
                         />
                       </ComposedChart>
                     </ResponsiveContainer>
+                  </div>
+
+                  {/* Income Breakdown Table */}
+                  <div className="mt-8">
+                    <IncomeBreakdownTable
+                      projections={displayProjection.yearlyProjections}
+                    />
                   </div>
                 </>
               )}

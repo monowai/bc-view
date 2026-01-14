@@ -175,11 +175,13 @@ describe("FiMetrics", () => {
         <FiMetrics
           {...defaultProps}
           currentAge={35}
-          retirementAge={65}
           expectedReturnRate={0.07}
+          backendRealYearsToFi={30} // Required for Coast FI display
+          backendCoastFiNumber={197000}
+          backendCoastFiProgress={50}
         />,
       )
-      // Coast FI = 1,500,000 / (1.07)^30 ≈ 197,000
+      // Coast FI now uses backend values based on years to FI
       expect(screen.getByText("Coast FI Number")).toBeInTheDocument()
       expect(container.textContent).toContain("Coast FI Progress")
     })
@@ -188,10 +190,13 @@ describe("FiMetrics", () => {
       render(
         <FiMetrics
           {...defaultProps}
-          liquidAssets={250000} // Above Coast FI Number (~197k for 30yr at 7%)
+          liquidAssets={250000}
           currentAge={35}
-          retirementAge={65}
           expectedReturnRate={0.07}
+          backendRealYearsToFi={30}
+          backendCoastFiNumber={197000}
+          backendCoastFiProgress={127} // 250k/197k = ~127%
+          backendIsCoastFire={true}
         />,
       )
       expect(screen.getByText("Coast FIRE Achieved!")).toBeInTheDocument()
@@ -203,7 +208,7 @@ describe("FiMetrics", () => {
           {...defaultProps}
           liquidAssets={2000000} // Above full FI Number
           currentAge={35}
-          retirementAge={65}
+          backendFiProgress={133} // Above 100%
         />,
       )
       // Should show FI achieved, not Coast FIRE
@@ -211,21 +216,23 @@ describe("FiMetrics", () => {
       expect(screen.queryByText("Coast FI Number")).not.toBeInTheDocument()
     })
 
-    it("does not show Coast FIRE when ages not provided", () => {
-      render(<FiMetrics {...defaultProps} />)
+    it("does not show Coast FIRE when backendRealYearsToFi not provided", () => {
+      render(<FiMetrics {...defaultProps} currentAge={35} />)
       expect(screen.queryByText("Coast FI Number")).not.toBeInTheDocument()
     })
 
-    it("shows years to retirement in Coast FI section", () => {
+    it("shows years to FI in Coast FI section", () => {
       render(
         <FiMetrics
           {...defaultProps}
           currentAge={40}
-          retirementAge={60}
           expectedReturnRate={0.07}
+          backendRealYearsToFi={20}
+          backendCoastFiNumber={400000}
+          backendCoastFiProgress={25}
         />,
       )
-      expect(screen.getByText(/20yr to retirement/)).toBeInTheDocument()
+      expect(screen.getByText(/20yr to FI/)).toBeInTheDocument()
     })
   })
 
@@ -296,8 +303,10 @@ describe("FiMetrics", () => {
         <FiMetrics
           {...defaultProps}
           currentAge={35}
-          retirementAge={65}
           expectedReturnRate={0.07}
+          backendRealYearsToFi={30}
+          backendCoastFiNumber={197000}
+          backendCoastFiProgress={50}
         />,
       )
       // Should show the label but not the value
@@ -331,8 +340,11 @@ describe("FiMetrics", () => {
           {...defaultProps}
           liquidAssets={250000}
           currentAge={35}
-          retirementAge={65}
           expectedReturnRate={0.07}
+          backendRealYearsToFi={30}
+          backendCoastFiNumber={197000}
+          backendCoastFiProgress={127}
+          backendIsCoastFire={true}
         />,
       )
       expect(screen.queryByText("Coast FIRE Achieved!")).not.toBeInTheDocument()

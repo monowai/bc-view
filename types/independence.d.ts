@@ -1,3 +1,14 @@
+// ============ Manual Asset Categories ============
+// Asset categories for users without portfolios
+export type ManualAssetCategory =
+  | "CASH"
+  | "EQUITY"
+  | "ETF"
+  | "MUTUAL_FUND"
+  | "RE"
+
+export type ManualAssets = Record<ManualAssetCategory, number>
+
 // ============ Plan Types ============
 export interface RetirementPlan {
   id: string
@@ -23,6 +34,7 @@ export interface RetirementPlan {
   workingExpensesMonthly: number
   investmentAllocationPercent: number
   lifeEvents?: string // JSON array of life events
+  manualAssets?: Record<string, number> // JSON map of category -> value
   createdDate: string
   updatedDate: string
 }
@@ -58,6 +70,7 @@ export interface PlanRequest {
   workingExpensesMonthly?: number
   investmentAllocationPercent?: number
   lifeEvents?: string
+  manualAssets?: Record<string, number> | null
 }
 
 export interface PlanResponse {
@@ -172,6 +185,26 @@ export interface ProjectionRequest {
   currency?: string
   /** Portfolio IDs to fetch values from (optional - auto-resolves totalAssets) */
   portfolioIds?: string[]
+
+  // ========== Plan Value Overrides (for What-If scenarios) ==========
+  /** Override monthly expenses (default: use plan value) */
+  monthlyExpenses?: number
+  /** Override cash return rate (default: use plan value) */
+  cashReturnRate?: number
+  /** Override equity return rate (default: use plan value) */
+  equityReturnRate?: number
+  /** Override housing return rate (default: use plan value) */
+  housingReturnRate?: number
+  /** Override inflation rate (default: use plan value) */
+  inflationRate?: number
+  /** Override pension monthly (default: use plan value) */
+  pensionMonthly?: number
+  /** Override social security monthly (default: use plan value) */
+  socialSecurityMonthly?: number
+  /** Override other income monthly (default: use plan value) */
+  otherIncomeMonthly?: number
+  /** Override target balance (default: use plan value) */
+  targetBalance?: number
 }
 
 /**
@@ -203,6 +236,33 @@ export interface PreRetirementAccumulation {
   blendedReturnRate: number
   /** Housing return rate used for non-spendable growth */
   housingReturnRate: number
+  /** Year-by-year accumulation projections during working years */
+  yearlyProjections?: YearlyAccumulation[]
+}
+
+/**
+ * Year-by-year accumulation during working years (pre-retirement).
+ * Shows how contributions and growth build wealth before retirement.
+ */
+export interface YearlyAccumulation {
+  /** Calendar year */
+  year: number
+  /** Age at this year */
+  age: number
+  /** Balance at start of year */
+  startingBalance: number
+  /** Contribution for this year (inflation-adjusted) */
+  contribution: number
+  /** Investment growth for this year */
+  investmentGrowth: number
+  /** Balance at end of year */
+  endingBalance: number
+  /** Non-spendable asset value for this year */
+  nonSpendableValue: number
+  /** Total wealth = endingBalance + nonSpendableValue */
+  totalWealth: number
+  /** Currency code */
+  currency: string
 }
 
 /** Breakdown of income sources for a projection year */
@@ -255,8 +315,10 @@ export interface FiMetrics {
   totalMonthlyIncome: number
   /** Savings rate as percentage of working income (null if not working) */
   savingsRate?: number
-  /** Estimated years to reach FI at current savings rate (null if already FI or no savings) */
+  /** Estimated years to reach FI using nominal returns (null if already FI or no savings) */
   yearsToFi?: number
+  /** Estimated years to reach FI using real returns (inflation-adjusted, matches online calculators) */
+  realYearsToFi?: number
   /** Coast FI number - amount needed now to reach FI by retirement with no further contributions */
   coastFiNumber?: number
   /** Progress toward Coast FI as percentage */
@@ -265,6 +327,8 @@ export interface FiMetrics {
   isCoastFire: boolean
   /** Whether full Financial Independence has been achieved */
   isFinanciallyIndependent: boolean
+  /** Warning: real return rate is below the 4% safe withdrawal rate */
+  realReturnBelowSwr?: boolean
 }
 
 /**
@@ -311,6 +375,8 @@ export interface RetirementProjection {
   yearsUntilRetirement?: number
   /** Pre-retirement accumulation phase details (null if already retired or no accumulation) */
   preRetirementAccumulation?: PreRetirementAccumulation
+  /** Year-by-year accumulation projections during working years (for chart) */
+  accumulationProjections?: YearlyAccumulation[]
   /** Non-spendable assets at retirement (e.g., property) */
   nonSpendableAtRetirement: number
   /** Housing return rate used for non-spendable asset growth during retirement */
@@ -321,6 +387,10 @@ export interface RetirementProjection {
   liquidationThresholdPercent?: number
   /** Financial Independence (FIRE) metrics */
   fiMetrics?: FiMetrics
+  /** Age at which FI is achieved (liquid assets >= FI number) */
+  fiAchievementAge?: number
+  /** FIRE path projections - what happens if you retire at FI age instead of planned retirement */
+  firePathProjections?: YearlyProjection[]
 }
 
 export interface ProjectionResponse {
@@ -379,6 +449,9 @@ export interface WizardFormData {
   // Portfolio Integration
   selectedPortfolioIds: string[]
 
+  // Manual Asset Entry (for users without portfolios)
+  manualAssets: ManualAssets
+
   // Life Events (one-off income/expense at specific ages)
   lifeEvents: LifeEvent[]
 }
@@ -417,6 +490,7 @@ export interface PlanExport {
   investmentAllocationPercent: number
   expenses: ExportedExpense[]
   lifeEvents?: string
+  manualAssets?: Record<string, number>
 }
 
 export interface PlanExportResponse {

@@ -96,8 +96,8 @@ describe("GoalsAssumptionsStep", () => {
       </TestWrapper>,
     )
 
-    expect(screen.getByLabelText(/equity return rate/i)).toHaveValue(7)
-    expect(screen.getByLabelText(/cash return rate/i)).toHaveValue(3.5)
+    expect(screen.getByLabelText(/equity return rate/i)).toHaveValue(8)
+    expect(screen.getByLabelText(/cash return rate/i)).toHaveValue(3)
     expect(screen.getByLabelText(/housing return rate/i)).toHaveValue(4)
     expect(screen.getByLabelText(/inflation rate/i)).toHaveValue(2.5)
   })

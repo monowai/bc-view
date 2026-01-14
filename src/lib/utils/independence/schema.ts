@@ -85,18 +85,27 @@ export const expensesStepSchema = yup.object({
   expenses: yup.array().of(expenseSchema),
 })
 
+// Schema for manual asset entry (when no portfolios)
+export const manualAssetsSchema = yup.object({
+  CASH: yup.number().min(0, "Must be positive").default(0),
+  EQUITY: yup.number().min(0, "Must be positive").default(0),
+  ETF: yup.number().min(0, "Must be positive").default(0),
+  MUTUAL_FUND: yup.number().min(0, "Must be positive").default(0),
+  RE: yup.number().min(0, "Must be positive").default(0),
+})
+
 export const goalsSchema = yup.object({
   targetBalance: yup.number().min(0, "Must be positive").nullable(),
   cashReturnRate: yup
     .number()
     .min(0, "Must be 0% or higher")
     .max(20, "Must be 20% or less")
-    .default(3.5),
+    .default(3),
   equityReturnRate: yup
     .number()
     .min(0, "Must be 0% or higher")
     .max(30, "Must be 30% or less")
-    .default(7),
+    .default(8),
   housingReturnRate: yup
     .number()
     .min(0, "Must be 0% or higher")
@@ -116,13 +125,14 @@ export const goalsSchema = yup.object({
     .number()
     .min(0, "Must be 0% or higher")
     .max(100, "Must be 100% or less")
-    .default(60),
+    .default(80),
   housingAllocation: yup
     .number()
     .min(0, "Must be 0% or higher")
     .max(100, "Must be 100% or less")
-    .default(20),
+    .default(0),
   selectedPortfolioIds: yup.array().of(yup.string()),
+  manualAssets: manualAssetsSchema,
 })
 
 export const wizardSchema = yup.object({
@@ -132,6 +142,14 @@ export const wizardSchema = yup.object({
   ...expensesStepSchema.fields,
   ...goalsSchema.fields,
 })
+
+export const defaultManualAssets = {
+  CASH: 0,
+  EQUITY: 0,
+  ETF: 0,
+  MUTUAL_FUND: 0,
+  RE: 0,
+}
 
 export const defaultWizardValues = {
   planName: "",
@@ -149,13 +167,14 @@ export const defaultWizardValues = {
   expenses: [],
   expensesCurrency: "NZD",
   targetBalance: undefined,
-  cashReturnRate: 3.5,
-  equityReturnRate: 7,
+  cashReturnRate: 3,
+  equityReturnRate: 8,
   housingReturnRate: 4,
   inflationRate: 2.5,
   cashAllocation: 20,
-  equityAllocation: 60,
-  housingAllocation: 20,
+  equityAllocation: 80,
+  housingAllocation: 0,
   selectedPortfolioIds: [],
+  manualAssets: defaultManualAssets,
   lifeEvents: [],
 }

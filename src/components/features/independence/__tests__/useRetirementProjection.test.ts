@@ -72,8 +72,6 @@ const defaultProps = {
   retirementAge: 65,
   lifeExpectancy: 90,
   monthlyInvestment: 1600,
-  blendedReturnRate: 0.06,
-  planCurrency: "$",
   whatIfAdjustments: DEFAULT_WHAT_IF_ADJUSTMENTS,
   scenarioOverrides: {},
   spendableCategories: ["Equity", "Cash"],
@@ -193,8 +191,8 @@ describe("useRetirementProjection", () => {
     })
   })
 
-  it("applies retirement age offset to adjusted projection", async () => {
-    const { result } = renderHook(() =>
+  it("sends retirement age offset to backend", async () => {
+    renderHook(() =>
       useRetirementProjection({
         ...defaultProps,
         whatIfAdjustments: {
@@ -205,13 +203,13 @@ describe("useRetirementProjection", () => {
     )
 
     await waitFor(() => {
-      expect(result.current.adjustedProjection).not.toBeNull()
+      expect(global.fetch).toHaveBeenCalled()
     })
 
-    // With +2 years offset, first projection year should be age 67
-    expect(result.current.adjustedProjection?.yearlyProjections[0]?.age).toBe(
-      67,
-    )
+    // Verify the backend receives the adjusted retirement age (65 + 2 = 67)
+    const lastCall = (global.fetch as jest.Mock).mock.calls[0]
+    const requestBody = JSON.parse(lastCall[1].body)
+    expect(requestBody.retirementAge).toBe(67)
   })
 
   it("applies expenses percentage to adjusted projection", async () => {
@@ -256,24 +254,25 @@ describe("useRetirementProjection", () => {
     expect(result.current.adjustedProjection).toBeDefined()
   })
 
-  it("calculates liquidation threshold correctly", async () => {
-    const { result } = renderHook(() =>
+  it("sends expenses percentage to backend", async () => {
+    renderHook(() =>
       useRetirementProjection({
         ...defaultProps,
         whatIfAdjustments: {
           ...DEFAULT_WHAT_IF_ADJUSTMENTS,
-          liquidationThreshold: 20,
+          expensesPercent: 80, // 80% of plan expenses
         },
       }),
     )
 
     await waitFor(() => {
-      expect(result.current.adjustedProjection).not.toBeNull()
+      expect(global.fetch).toHaveBeenCalled()
     })
 
-    expect(result.current.adjustedProjection?.liquidationThresholdPercent).toBe(
-      20,
-    )
+    // Verify the backend receives adjusted expenses (5000 * 0.8 = 4000)
+    const lastCall = (global.fetch as jest.Mock).mock.calls[0]
+    const requestBody = JSON.parse(lastCall[1].body)
+    expect(requestBody.monthlyExpenses).toBe(4000)
   })
 
   it("handles API error gracefully", async () => {

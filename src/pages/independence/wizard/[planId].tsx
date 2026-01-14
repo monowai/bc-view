@@ -6,7 +6,12 @@ import useSwr from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import WizardContainer from "@components/features/independence/WizardContainer"
 import { toPercent } from "@lib/independence/conversions"
-import { PlanWithExpensesResponse, WizardFormData } from "types/independence"
+import {
+  PlanWithExpensesResponse,
+  WizardFormData,
+  ManualAssets,
+  LifeEvent,
+} from "types/independence"
 
 function EditPlanWizard(): React.ReactElement {
   const router = useRouter()
@@ -52,6 +57,42 @@ function EditPlanWizard(): React.ReactElement {
   const plan = data.plan
   const expenses = data.expenses || []
 
+  // Parse manualAssets from JSON string if needed
+  const parseManualAssets = (): ManualAssets => {
+    const defaultAssets: ManualAssets = {
+      CASH: 0,
+      EQUITY: 0,
+      ETF: 0,
+      MUTUAL_FUND: 0,
+      RE: 0,
+    }
+    if (!plan.manualAssets) return defaultAssets
+    // If it's already an object, use it; otherwise parse JSON string
+    if (typeof plan.manualAssets === "object") {
+      return { ...defaultAssets, ...plan.manualAssets }
+    }
+    try {
+      const parsed = JSON.parse(plan.manualAssets as unknown as string)
+      return { ...defaultAssets, ...parsed }
+    } catch {
+      return defaultAssets
+    }
+  }
+
+  // Parse lifeEvents from JSON string if needed
+  const parseLifeEvents = (): LifeEvent[] => {
+    if (!plan.lifeEvents) return []
+    // If it's already an array, use it; otherwise parse JSON string
+    if (Array.isArray(plan.lifeEvents)) {
+      return plan.lifeEvents
+    }
+    try {
+      return JSON.parse(plan.lifeEvents)
+    } catch {
+      return []
+    }
+  }
+
   // Calculate values from stored plan data
   const currentYear = new Date().getFullYear()
   const lifeExpectancy = plan.lifeExpectancy || 90
@@ -81,14 +122,16 @@ function EditPlanWizard(): React.ReactElement {
       monthlyAmount: e.monthlyAmount,
     })),
     targetBalance: plan.targetBalance,
-    cashReturnRate: toPercent(plan.cashReturnRate, 0.035),
-    equityReturnRate: toPercent(plan.equityReturnRate, 0.07),
+    cashReturnRate: toPercent(plan.cashReturnRate, 0.03),
+    equityReturnRate: toPercent(plan.equityReturnRate, 0.08),
     housingReturnRate: toPercent(plan.housingReturnRate, 0.04),
     inflationRate: toPercent(plan.inflationRate, 0.025),
     cashAllocation: toPercent(plan.cashAllocation, 0.2),
-    equityAllocation: toPercent(plan.equityAllocation, 0.6),
-    housingAllocation: toPercent(plan.housingAllocation, 0.2),
+    equityAllocation: toPercent(plan.equityAllocation, 0.8),
+    housingAllocation: toPercent(plan.housingAllocation, 0.0),
     selectedPortfolioIds: [],
+    manualAssets: parseManualAssets(),
+    lifeEvents: parseLifeEvents(),
   }
 
   return (
