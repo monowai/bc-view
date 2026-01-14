@@ -2,6 +2,7 @@ import React, { useState, useCallback } from "react"
 import { useForm } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
 import { useRouter } from "next/router"
+import { mutate } from "swr"
 import WizardProgress from "./WizardProgress"
 import WizardNavigation from "./WizardNavigation"
 import PersonalInfoStep from "./steps/PersonalInfoStep"
@@ -153,6 +154,19 @@ export default function WizardContainer({
         0,
       )
 
+      // Filter out zero-value manual assets before sending
+      const nonZeroManualAssets = formData.manualAssets
+        ? Object.fromEntries(
+            Object.entries(formData.manualAssets).filter(
+              ([, value]) => value > 0,
+            ),
+          )
+        : null
+      const manualAssets =
+        nonZeroManualAssets && Object.keys(nonZeroManualAssets).length > 0
+          ? nonZeroManualAssets
+          : null
+
       // Backend stores decimals (0.07 for 7%), so convert from percentage
       const planRequest: PlanRequest = {
         name: formData.planName,
@@ -181,6 +195,7 @@ export default function WizardContainer({
           formData.lifeEvents?.length > 0
             ? JSON.stringify(formData.lifeEvents)
             : undefined,
+        manualAssets,
       }
 
       const url = isEditMode
@@ -246,6 +261,9 @@ export default function WizardContainer({
           })
         }
       }
+
+      // Invalidate the plan cache so the detail page fetches fresh data
+      await mutate(`/api/independence/plans/${savedPlanId}`)
 
       // Navigate to the plan view
       router.push(`/independence/plans/${savedPlanId}`)

@@ -8,8 +8,55 @@ import {
 } from "react-hook-form"
 import useSwr from "swr"
 import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
-import { WizardFormData } from "types/independence"
+import { WizardFormData, ManualAssetCategory } from "types/independence"
 import { Portfolio, FxResponse, AllocationResponse } from "types/beancounter"
+
+// Asset category configuration with labels and growth rate info
+const ASSET_CATEGORIES: {
+  key: ManualAssetCategory
+  label: string
+  rateField: "cashReturnRate" | "equityReturnRate" | "housingReturnRate"
+  rateLabel: string
+}[] = [
+  {
+    key: "CASH",
+    label: "Cash & Savings",
+    rateField: "cashReturnRate",
+    rateLabel: "cash",
+  },
+  {
+    key: "EQUITY",
+    label: "Equities (Stocks)",
+    rateField: "equityReturnRate",
+    rateLabel: "equity",
+  },
+  {
+    key: "ETF",
+    label: "ETFs",
+    rateField: "equityReturnRate",
+    rateLabel: "equity",
+  },
+  {
+    key: "MUTUAL_FUND",
+    label: "Mutual Funds",
+    rateField: "equityReturnRate",
+    rateLabel: "equity",
+  },
+  {
+    key: "RE",
+    label: "Real Estate",
+    rateField: "housingReturnRate",
+    rateLabel: "housing",
+  },
+]
+
+// Categories that count as liquid (spendable)
+const LIQUID_CATEGORIES: ManualAssetCategory[] = [
+  "CASH",
+  "EQUITY",
+  "ETF",
+  "MUTUAL_FUND",
+]
 
 interface GoalsAssumptionsStepProps {
   control: Control<WizardFormData>
@@ -187,16 +234,48 @@ export default function GoalsAssumptionsStep({
   }, [selectedPortfolioIds, setValue])
 
   // Watch allocation and return values to calculate blended return
-  const cashAllocation = useWatch({ control, name: "cashAllocation" }) || 20
-  const equityAllocation = useWatch({ control, name: "equityAllocation" }) || 60
+  // Use nullish coalescing (??) instead of || to allow 0 as a valid value
+  const cashAllocation = useWatch({ control, name: "cashAllocation" }) ?? 20
+  const equityAllocation = useWatch({ control, name: "equityAllocation" }) ?? 60
   const housingAllocation =
-    useWatch({ control, name: "housingAllocation" }) || 20
-  const cashReturnRate = useWatch({ control, name: "cashReturnRate" }) || 3.5
-  const equityReturnRate = useWatch({ control, name: "equityReturnRate" }) || 7
+    useWatch({ control, name: "housingAllocation" }) ?? 20
+  const cashReturnRate = useWatch({ control, name: "cashReturnRate" }) ?? 3.5
+  const equityReturnRate = useWatch({ control, name: "equityReturnRate" }) ?? 7
   const housingReturnRate =
-    useWatch({ control, name: "housingReturnRate" }) || 4
+    useWatch({ control, name: "housingReturnRate" }) ?? 4
 
   const totalAllocation = cashAllocation + equityAllocation + housingAllocation
+
+  // Watch manual assets for display
+  const manualAssets = useWatch({ control, name: "manualAssets" })
+
+  // Calculate liquid and non-spendable totals from manual assets
+  const manualAssetTotals = useMemo(() => {
+    if (!manualAssets) return { liquid: 0, nonSpendable: 0, total: 0 }
+    const liquid = LIQUID_CATEGORIES.reduce(
+      (sum, key) => sum + (manualAssets[key] || 0),
+      0,
+    )
+    const nonSpendable = manualAssets.RE || 0
+    return { liquid, nonSpendable, total: liquid + nonSpendable }
+  }, [manualAssets])
+
+  // Get rate display value for a category
+  const getRateForCategory = useCallback(
+    (
+      rateField: "cashReturnRate" | "equityReturnRate" | "housingReturnRate",
+    ) => {
+      switch (rateField) {
+        case "cashReturnRate":
+          return cashReturnRate
+        case "equityReturnRate":
+          return equityReturnRate
+        case "housingReturnRate":
+          return housingReturnRate
+      }
+    },
+    [cashReturnRate, equityReturnRate, housingReturnRate],
+  )
   const blendedReturn = useMemo(() => {
     return (
       (cashAllocation / 100) * cashReturnRate +
@@ -233,12 +312,94 @@ export default function GoalsAssumptionsStep({
         </p>
 
         {portfoliosWithBalance.length === 0 ? (
-          <div className="bg-gray-50 rounded-lg p-4 text-center text-gray-500">
-            <i className="fas fa-folder-open text-2xl mb-2"></i>
-            <p>
-              No portfolios with balance found. Create portfolios first to
-              include them in your plan.
-            </p>
+          <div className="space-y-4">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="flex items-start">
+                <i className="fas fa-info-circle text-yellow-600 mt-0.5 mr-3"></i>
+                <div>
+                  <p className="font-medium text-yellow-800">
+                    No portfolios found
+                  </p>
+                  <p className="text-sm text-yellow-700 mt-1">
+                    Enter your current asset values by category below. Growth
+                    rates will be applied based on your assumptions.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {ASSET_CATEGORIES.map((category) => (
+                <div key={category.key}>
+                  <label
+                    htmlFor={`manualAssets.${category.key}`}
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    {category.label}
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-gray-500">
+                      $
+                    </span>
+                    <Controller
+                      name={`manualAssets.${category.key}`}
+                      control={control}
+                      render={({ field }) => (
+                        <input
+                          {...field}
+                          id={`manualAssets.${category.key}`}
+                          type="number"
+                          min={0}
+                          step={1000}
+                          value={field.value || 0}
+                          onChange={(e) =>
+                            field.onChange(Number(e.target.value) || 0)
+                          }
+                          className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                        />
+                      )}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Grows at {getRateForCategory(category.rateField)}% (
+                    {category.rateLabel} rate)
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {manualAssetTotals.total > 0 && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-blue-700">
+                    Liquid Assets (spendable)
+                  </span>
+                  <span className="font-medium text-blue-800">
+                    {planCurrency} {manualAssetTotals.liquid.toLocaleString()}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-blue-700">
+                    Real Estate (non-spendable)
+                  </span>
+                  <span className="font-medium text-blue-800">
+                    {planCurrency}{" "}
+                    {manualAssetTotals.nonSpendable.toLocaleString()}
+                  </span>
+                </div>
+                <div className="border-t border-blue-200 pt-2 flex justify-between items-center">
+                  <div className="flex items-center">
+                    <i className="fas fa-chart-pie text-blue-600 mr-2"></i>
+                    <span className="font-medium text-blue-800">
+                      Total Assets
+                    </span>
+                  </div>
+                  <span className="text-xl font-bold text-blue-700">
+                    {planCurrency} {manualAssetTotals.total.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="space-y-2">
