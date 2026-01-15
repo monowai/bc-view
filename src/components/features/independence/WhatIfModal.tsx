@@ -23,6 +23,7 @@ interface WhatIfModalProps {
   retirementAge: number
   monthlyInvestment: number
   rentalIncome?: RentalIncomeData
+  currentAge?: number
 }
 
 export default function WhatIfModal({
@@ -37,6 +38,7 @@ export default function WhatIfModal({
   retirementAge,
   monthlyInvestment,
   rentalIncome,
+  currentAge,
 }: WhatIfModalProps): React.ReactElement | null {
   const { hideValues } = usePrivacyMode()
 
@@ -192,7 +194,11 @@ export default function WhatIfModal({
               label="Independence Age"
               value={whatIfAdjustments.retirementAgeOffset}
               onChange={(v) => updateAdjustment("retirementAgeOffset", v)}
-              min={-5}
+              min={
+                currentAge !== undefined
+                  ? Math.max(-5, currentAge - retirementAge)
+                  : -5
+              }
               max={10}
               step={1}
               unit=" years"

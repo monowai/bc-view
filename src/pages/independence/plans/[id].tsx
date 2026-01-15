@@ -604,35 +604,51 @@ function PlanView(): React.ReactElement {
 
   // Combine What-If adjustments with selected quick scenarios
   const combinedAdjustments = useMemo((): WhatIfAdjustments => {
-    if (selectedScenarioIds.length === 0) {
-      return whatIfAdjustments
+    let result = whatIfAdjustments
+
+    if (selectedScenarioIds.length > 0) {
+      // Get the selected scenarios
+      const selected = quickScenarios.filter((s) =>
+        selectedScenarioIds.includes(s.id),
+      )
+
+      // Apply each selected scenario using reduce
+      result = selected.reduce(
+        (acc, scenario) => ({
+          ...acc,
+          // Additive for offsets
+          retirementAgeOffset:
+            acc.retirementAgeOffset + scenario.retirementAgeOffset,
+          returnRateOffset: acc.returnRateOffset + scenario.returnRateOffset,
+          inflationOffset: acc.inflationOffset + scenario.inflationOffset,
+          // Multiplicative for percentages (e.g., 90% * 110% = 99%)
+          expensesPercent: Math.round(
+            (acc.expensesPercent * scenario.expensesPercent) / 100,
+          ),
+          contributionPercent: Math.round(
+            (acc.contributionPercent * scenario.contributionPercent) / 100,
+          ),
+        }),
+        { ...whatIfAdjustments },
+      )
     }
 
-    // Get the selected scenarios
-    const selected = quickScenarios.filter((s) =>
-      selectedScenarioIds.includes(s.id),
-    )
+    // Ensure retirement age offset doesn't push effective age below current age
+    if (currentAge !== undefined) {
+      const minOffset = currentAge - retirementAge
+      if (result.retirementAgeOffset < minOffset) {
+        result = { ...result, retirementAgeOffset: minOffset }
+      }
+    }
 
-    // Apply each selected scenario using reduce
-    return selected.reduce(
-      (acc, scenario) => ({
-        ...acc,
-        // Additive for offsets
-        retirementAgeOffset:
-          acc.retirementAgeOffset + scenario.retirementAgeOffset,
-        returnRateOffset: acc.returnRateOffset + scenario.returnRateOffset,
-        inflationOffset: acc.inflationOffset + scenario.inflationOffset,
-        // Multiplicative for percentages (e.g., 90% * 110% = 99%)
-        expensesPercent: Math.round(
-          (acc.expensesPercent * scenario.expensesPercent) / 100,
-        ),
-        contributionPercent: Math.round(
-          (acc.contributionPercent * scenario.contributionPercent) / 100,
-        ),
-      }),
-      { ...whatIfAdjustments },
-    )
-  }, [whatIfAdjustments, selectedScenarioIds, quickScenarios])
+    return result
+  }, [
+    whatIfAdjustments,
+    selectedScenarioIds,
+    quickScenarios,
+    currentAge,
+    retirementAge,
+  ])
 
   // Toggle a quick scenario selection
   const toggleScenario = (scenarioId: string): void => {
@@ -1739,12 +1755,12 @@ function PlanView(): React.ReactElement {
           {/* Timeline Tab */}
           {activeTab === "timeline" && (
             <div className="bg-white rounded-xl shadow-md p-6">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                 <h2 className="text-lg font-semibold text-gray-900">
                   {t("retire.timeline.title")}
                 </h2>
                 {fiAchievementAge && (
-                  <div className="flex bg-gray-100 rounded-lg p-1">
+                  <div className="flex bg-gray-100 rounded-lg p-1 shrink-0">
                     <button
                       onClick={() => setTimelineViewMode("traditional")}
                       className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
@@ -2259,6 +2275,7 @@ function PlanView(): React.ReactElement {
         retirementAge={retirementAge}
         monthlyInvestment={monthlyInvestment}
         rentalIncome={rentalIncome}
+        currentAge={currentAge}
       />
     </>
   )

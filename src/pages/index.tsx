@@ -202,7 +202,7 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
                   </li>
                 </ul>
                 <div className="mt-4 flex items-center text-white font-medium">
-                  Plan Independence
+                  Independence
                   <i className="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
                 </div>
               </div>
