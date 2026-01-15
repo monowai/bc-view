@@ -1,10 +1,87 @@
-import { useState, useCallback, useEffect, useRef } from "react"
+import { useState, useCallback, useEffect, useRef, useMemo } from "react"
 import {
   RetirementPlan,
   RetirementProjection,
   ProjectionResponse,
 } from "types/independence"
 import { WhatIfAdjustments, ScenarioOverrides } from "./types"
+
+/**
+ * Simple hash function to create a numeric checksum from a string.
+ * Uses djb2 algorithm - fast and provides good distribution.
+ */
+function hashString(str: string): number {
+  let hash = 5381
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash * 33) ^ str.charCodeAt(i)
+  }
+  return hash >>> 0 // Convert to unsigned 32-bit integer
+}
+
+/**
+ * Creates a checksum from What-If values for change detection.
+ */
+export function createWhatIfChecksum(
+  scenarioOverrides: ScenarioOverrides,
+  whatIfAdjustments: WhatIfAdjustments,
+  retirementAge: number,
+): number {
+  const key = JSON.stringify({
+    scenarioOverrides,
+    whatIfAdjustments,
+    retirementAge,
+  })
+  return hashString(key)
+}
+
+/**
+ * Creates a checksum from plan details that affect projections.
+ * Used to detect when plan edits require recalculation.
+ */
+export function createPlanChecksum(plan: RetirementPlan | undefined): number {
+  if (!plan) return 0
+  const key = JSON.stringify({
+    // Core plan values that affect projections
+    monthlyExpenses: plan.monthlyExpenses,
+    pensionMonthly: plan.pensionMonthly,
+    socialSecurityMonthly: plan.socialSecurityMonthly,
+    otherIncomeMonthly: plan.otherIncomeMonthly,
+    equityReturnRate: plan.equityReturnRate,
+    cashReturnRate: plan.cashReturnRate,
+    housingReturnRate: plan.housingReturnRate,
+    inflationRate: plan.inflationRate,
+    lifeExpectancy: plan.lifeExpectancy,
+    planningHorizonYears: plan.planningHorizonYears,
+    targetBalance: plan.targetBalance,
+    equityAllocation: plan.equityAllocation,
+    cashAllocation: plan.cashAllocation,
+    housingAllocation: plan.housingAllocation,
+    workingIncomeMonthly: plan.workingIncomeMonthly,
+    workingExpensesMonthly: plan.workingExpensesMonthly,
+    investmentAllocationPercent: plan.investmentAllocationPercent,
+    yearOfBirth: plan.yearOfBirth,
+  })
+  return hashString(key)
+}
+
+/**
+ * Creates a combined checksum from plan and What-If values.
+ */
+export function createProjectionChecksum(
+  plan: RetirementPlan | undefined,
+  scenarioOverrides: ScenarioOverrides,
+  whatIfAdjustments: WhatIfAdjustments,
+  retirementAge: number,
+): number {
+  const planChecksum = createPlanChecksum(plan)
+  const whatIfChecksum = createWhatIfChecksum(
+    scenarioOverrides,
+    whatIfAdjustments,
+    retirementAge,
+  )
+  // Combine checksums using XOR and bit rotation for better distribution
+  return ((planChecksum << 16) | (planChecksum >>> 16)) ^ whatIfChecksum
+}
 
 // Rental income by currency from RE asset configs
 export interface RentalIncomeData {
@@ -33,6 +110,8 @@ interface UseRetirementProjectionResult {
   isCalculating: boolean
   calculateProjection: () => Promise<void>
   resetProjection: () => void
+  /** Checksum of current What-If values - changes when any What-If value changes */
+  whatIfChecksum: number
 }
 
 export function useRetirementProjection({
@@ -125,6 +204,7 @@ export function useRetirementProjection({
           otherIncomeMonthly:
             scenarioOverrides.otherIncomeMonthly ?? plan.otherIncomeMonthly,
           targetBalance: scenarioOverrides.targetBalance ?? plan.targetBalance,
+          liquidationThreshold: whatIfAdjustments.liquidationThreshold,
         }),
       })
 
@@ -151,8 +231,28 @@ export function useRetirementProjection({
     whatIfAdjustments,
   ])
 
-  // Track previous What-If values to detect changes
-  const prevWhatIfRef = useRef<string>("")
+  // Calculate combined checksum for plan + What-If values - memoized for efficiency
+  // This triggers recalculation when either plan details or What-If adjustments change
+  const projectionChecksum = useMemo(
+    () =>
+      createProjectionChecksum(
+        plan,
+        scenarioOverrides,
+        whatIfAdjustments,
+        retirementAge,
+      ),
+    [plan, scenarioOverrides, whatIfAdjustments, retirementAge],
+  )
+
+  // Also expose the What-If only checksum for backwards compatibility
+  const whatIfChecksum = useMemo(
+    () =>
+      createWhatIfChecksum(scenarioOverrides, whatIfAdjustments, retirementAge),
+    [scenarioOverrides, whatIfAdjustments, retirementAge],
+  )
+
+  // Track previous checksum to detect changes
+  const prevChecksumRef = useRef<number>(0)
 
   // Auto-calculate projection when data is ready
   useEffect(() => {
@@ -164,24 +264,25 @@ export function useRetirementProjection({
       !projection
     ) {
       hasAutoCalculated.current = true
+      prevChecksumRef.current = projectionChecksum
       calculateProjection()
     }
-  }, [plan, liquidAssets, spendableCategories, projection, calculateProjection])
+  }, [
+    plan,
+    liquidAssets,
+    spendableCategories,
+    projection,
+    calculateProjection,
+    projectionChecksum,
+  ])
 
-  // Recalculate when What-If values change (debounced)
+  // Recalculate when plan or What-If checksum changes (debounced)
   useEffect(() => {
-    if (!plan || liquidAssets === 0 || !hasAutoCalculated.current) return
+    if (!plan || liquidAssets === 0 || !hasAutoCalculated.current) return undefined
 
-    // Create a key from current What-If values
-    const whatIfKey = JSON.stringify({
-      scenarioOverrides,
-      whatIfAdjustments,
-      retirementAge,
-    })
-
-    // Skip if values haven't changed
-    if (whatIfKey === prevWhatIfRef.current) return
-    prevWhatIfRef.current = whatIfKey
+    // Skip if checksum hasn't changed
+    if (projectionChecksum === prevChecksumRef.current) return undefined
+    prevChecksumRef.current = projectionChecksum
 
     // Debounce recalculation to avoid excessive API calls during slider dragging
     const timeoutId = setTimeout(() => {
@@ -189,20 +290,13 @@ export function useRetirementProjection({
     }, 300)
 
     return () => clearTimeout(timeoutId)
-  }, [
-    plan,
-    liquidAssets,
-    scenarioOverrides,
-    whatIfAdjustments,
-    retirementAge,
-    calculateProjection,
-  ])
+  }, [plan, liquidAssets, projectionChecksum, calculateProjection])
 
   // Reset projection when categories change
   const resetProjection = useCallback((): void => {
     setProjection(null)
     hasAutoCalculated.current = false
-    prevWhatIfRef.current = ""
+    prevChecksumRef.current = 0
   }, [])
 
   // The backend now handles all What-If calculations.
@@ -216,5 +310,6 @@ export function useRetirementProjection({
     isCalculating,
     calculateProjection,
     resetProjection,
+    whatIfChecksum,
   }
 }

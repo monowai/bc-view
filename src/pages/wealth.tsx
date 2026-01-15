@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react"
+import React, { useCallback, useEffect, useMemo, useState } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useTranslation } from "next-i18next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
@@ -82,6 +82,21 @@ function WealthDashboard(): React.ReactElement {
     direction: "desc",
   })
 
+  // Collapsible sections state - all collapsed by default
+  const [collapsedSections, setCollapsedSections] = useState<
+    Record<string, boolean>
+  >({
+    independence: true,
+    charts: true,
+    portfolioDetails: true,
+  })
+  const toggleSection = (section: string): void => {
+    setCollapsedSections((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }))
+  }
+
   // Fetch portfolios
   const {
     data: portfolioData,
@@ -112,13 +127,30 @@ function WealthDashboard(): React.ReactElement {
   const primaryPlan = plansData?.data?.[0]
 
   // Fetch projection for the primary plan (includes FI metrics and depletion age)
+  // Uses POST request with minimal body - backend will fetch asset values
+  const projectionFetcher = useCallback(
+    async (url: string) => {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currency: primaryPlan?.expensesCurrency || "USD",
+        }),
+      })
+      if (!res.ok) throw new Error("Failed to fetch projection")
+      return res.json()
+    },
+    [primaryPlan?.expensesCurrency],
+  )
+
   const projectionUrl = primaryPlan?.id
     ? `/api/independence/projection/${primaryPlan.id}`
     : null
-  const { data: projectionData } = useSwr<ProjectionResponse>(
-    projectionUrl,
-    projectionUrl ? simpleFetcher(projectionUrl) : null,
-  )
+  const { data: projectionData, isLoading: projectionLoading } =
+    useSwr<ProjectionResponse>(
+      projectionUrl,
+      projectionUrl ? projectionFetcher : null,
+    )
 
   const currencies = useMemo(
     () => currencyData?.data || [],
@@ -141,7 +173,10 @@ function WealthDashboard(): React.ReactElement {
     yearMonth: string
     totalInvested: number
     currency?: string
-  }>(monthlyInvestmentUrl, monthlyInvestmentUrl ? simpleFetcher(monthlyInvestmentUrl) : null)
+  }>(
+    monthlyInvestmentUrl,
+    monthlyInvestmentUrl ? simpleFetcher(monthlyInvestmentUrl) : null,
+  )
 
   // Modal state for showing investment transactions
   const [showInvestmentModal, setShowInvestmentModal] = useState(false)
@@ -438,7 +473,7 @@ function WealthDashboard(): React.ReactElement {
                   className="bg-linear-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600 px-4 py-2 rounded-lg font-medium transition-colors flex items-center shadow-md"
                 >
                   <i className="fas fa-umbrella-beach mr-2"></i>
-                  Plan Independence
+                  Independence
                 </Link>
               </div>
             </div>
@@ -448,10 +483,25 @@ function WealthDashboard(): React.ReactElement {
           {primaryPlan && (
             <div className="bg-white rounded-xl shadow-md p-6 mb-8">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">
+                <button
+                  type="button"
+                  onClick={() => toggleSection("independence")}
+                  className="flex items-center text-lg font-semibold text-gray-900 hover:text-gray-700"
+                >
+                  <i
+                    className={`fas fa-chevron-${collapsedSections.independence ? "right" : "down"} text-gray-400 mr-2 w-4`}
+                  ></i>
                   <i className="fas fa-chart-line text-green-500 mr-2"></i>
                   Independence Metrics
-                </h2>
+                  {projectionLoading && (
+                    <span className="ml-2 inline-flex items-center">
+                      <i className="fas fa-spinner fa-spin text-blue-500 text-sm"></i>
+                      <span className="ml-1 text-sm font-normal text-gray-500">
+                        Calculating...
+                      </span>
+                    </span>
+                  )}
+                </button>
                 <Link
                   href={`/independence/plans/${primaryPlan.id}`}
                   className="text-sm text-blue-600 hover:text-blue-800"
@@ -460,329 +510,487 @@ function WealthDashboard(): React.ReactElement {
                 </Link>
               </div>
 
-              <div
-                className={`grid grid-cols-1 ${projectionData?.data ? "md:grid-cols-2" : ""} gap-6`}
-              >
-                {/* Monthly Investment Progress */}
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 mb-1">
-                    Monthly Investment
-                  </p>
-                  {(() => {
-                    // Monthly investment target = surplus × allocation %
-                    // Surplus = working income - working expenses
-                    const surplus =
-                      (primaryPlan.workingIncomeMonthly ?? 0) -
-                      (primaryPlan.workingExpensesMonthly ?? 0)
-                    const target = Math.round(
-                      surplus * (primaryPlan.investmentAllocationPercent ?? 0.8),
-                    )
-                    const actual = Math.round(
-                      monthlyInvestmentData?.totalInvested ?? 0,
-                    )
-                    const progress = target > 0 ? (actual / target) * 100 : 0
-                    const currencySymbol = displayCurrency?.symbol || ""
-                    const isNegative = actual < 0
-                    return (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => !hideValues && setShowInvestmentModal(true)}
-                          className={`flex items-baseline gap-2 ${!hideValues ? "cursor-pointer hover:opacity-80" : ""}`}
-                          disabled={hideValues}
-                        >
-                          {hideValues ? (
-                            <span className="text-3xl font-bold text-gray-400">
-                              ****
-                            </span>
-                          ) : (
-                            <>
-                              <span
-                                className={`text-3xl font-bold ${isNegative ? "text-red-600" : progress >= 100 ? "text-green-600" : "text-blue-600"}`}
-                              >
-                                {isNegative ? "-" : ""}
-                                {currencySymbol}
-                                {Math.abs(actual).toLocaleString()}
+              {!collapsedSections.independence && (
+                <div
+                  className={`grid grid-cols-1 ${projectionData?.data ? "sm:grid-cols-2 lg:grid-cols-4" : ""} gap-4`}
+                >
+                  {/* Monthly Investment Progress */}
+                  <div className="bg-linear-to-br from-blue-50 to-indigo-50 rounded-lg p-4">
+                    <p className="text-sm text-gray-600 mb-1">
+                      Monthly Investment
+                    </p>
+                    {(() => {
+                      // Monthly investment target = surplus × allocation %
+                      // Surplus = working income - working expenses
+                      const surplus =
+                        (primaryPlan.workingIncomeMonthly ?? 0) -
+                        (primaryPlan.workingExpensesMonthly ?? 0)
+                      const target = Math.round(
+                        surplus *
+                          (primaryPlan.investmentAllocationPercent ?? 0.8),
+                      )
+                      const actual = Math.round(
+                        monthlyInvestmentData?.totalInvested ?? 0,
+                      )
+                      const progress = target > 0 ? (actual / target) * 100 : 0
+                      const currencySymbol = displayCurrency?.symbol || ""
+                      const isNegative = actual < 0
+                      return (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              !hideValues && setShowInvestmentModal(true)
+                            }
+                            className={`flex items-baseline gap-2 ${!hideValues ? "cursor-pointer hover:opacity-80" : ""}`}
+                            disabled={hideValues}
+                          >
+                            {hideValues ? (
+                              <span className="text-3xl font-bold text-gray-400">
+                                ****
                               </span>
-                              <span className="text-sm text-gray-500">
-                                / {currencySymbol}
-                                {target.toLocaleString()}
-                              </span>
-                              <i className="fas fa-external-link-alt text-xs text-gray-400 ml-1"></i>
-                            </>
-                          )}
-                        </button>
-                        <div className="mt-2 bg-gray-200 rounded-full h-2">
-                          <div
-                            className={`h-2 rounded-full transition-all ${isNegative ? "bg-red-500" : progress >= 100 ? "bg-green-500" : "bg-blue-500"}`}
-                            style={{
-                              width: `${Math.min(Math.max(progress, 0), 100)}%`,
-                            }}
-                          />
-                        </div>
-                        <p className="text-xs text-gray-500 mt-2">
-                          {isNegative
-                            ? "Net withdrawal this month"
-                            : progress >= 100
-                              ? "Target met!"
-                              : `${progress.toFixed(0)}% of monthly target`}
-                        </p>
-                      </>
-                    )
-                  })()}
-                </div>
+                            ) : (
+                              <>
+                                <span
+                                  className={`text-3xl font-bold ${isNegative ? "text-red-600" : progress >= 100 ? "text-green-600" : "text-blue-600"}`}
+                                >
+                                  {isNegative ? "-" : ""}
+                                  {currencySymbol}
+                                  {Math.abs(actual).toLocaleString()}
+                                </span>
+                                <span className="text-sm text-gray-500">
+                                  / {currencySymbol}
+                                  {target.toLocaleString()}
+                                </span>
+                                <i className="fas fa-external-link-alt text-xs text-gray-400 ml-1"></i>
+                              </>
+                            )}
+                          </button>
+                          <div className="mt-2 bg-gray-200 rounded-full h-2">
+                            <div
+                              className={`h-2 rounded-full transition-all ${isNegative ? "bg-red-500" : progress >= 100 ? "bg-green-500" : "bg-blue-500"}`}
+                              style={{
+                                width: `${Math.min(Math.max(progress, 0), 100)}%`,
+                              }}
+                            />
+                          </div>
+                          <p className="text-xs text-gray-500 mt-2">
+                            {isNegative
+                              ? "Net withdrawal this month"
+                              : progress >= 100
+                                ? "Target met!"
+                                : `${progress.toFixed(0)}% of monthly target`}
+                          </p>
+                        </>
+                      )
+                    })()}
+                  </div>
 
-                {/* FI Progress - only shown when projection data is available */}
-                {projectionData?.data && (
-                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-4">
-                    <p className="text-sm text-gray-600 mb-1">FI Progress</p>
-                    <div className="flex items-baseline gap-2">
-                      {hideValues ? (
-                        <span className="text-3xl font-bold text-gray-400">
-                          ****
-                        </span>
+                  {/* FI Progress - show loading skeleton or data */}
+                  {(projectionLoading || projectionData?.data) && (
+                    <div className="bg-linear-to-br from-green-50 to-emerald-50 rounded-lg p-4">
+                      <p className="text-sm text-gray-600 mb-1">FI Progress</p>
+                      {projectionLoading && !projectionData?.data ? (
+                        <>
+                          <div className="h-9 w-20 bg-gray-200 rounded animate-pulse"></div>
+                          <div className="mt-2 bg-gray-200 rounded-full h-2">
+                            <div className="bg-gray-300 h-2 rounded-full w-0"></div>
+                          </div>
+                          <div className="h-4 w-32 bg-gray-200 rounded animate-pulse mt-2"></div>
+                        </>
                       ) : (
-                        <span className="text-3xl font-bold text-green-600">
-                          {projectionData.data.fiMetrics?.fiProgress?.toFixed(
-                            1,
-                          ) ?? "0"}
-                          %
-                        </span>
+                        <>
+                          <div className="flex items-baseline gap-2">
+                            {hideValues ? (
+                              <span className="text-3xl font-bold text-gray-400">
+                                ****
+                              </span>
+                            ) : (
+                              <span className="text-3xl font-bold text-green-600">
+                                {projectionData?.data?.fiMetrics?.fiProgress?.toFixed(
+                                  1,
+                                ) ?? "0"}
+                                %
+                              </span>
+                            )}
+                          </div>
+                          <div className="mt-2 bg-gray-200 rounded-full h-2">
+                            <div
+                              className="bg-green-500 h-2 rounded-full transition-all"
+                              style={{
+                                width: hideValues
+                                  ? "0%"
+                                  : `${Math.min(projectionData?.data?.fiMetrics?.fiProgress ?? 0, 100)}%`,
+                              }}
+                            />
+                          </div>
+                          <p className="text-xs text-gray-500 mt-2">
+                            {hideValues
+                              ? ""
+                              : projectionData?.data?.fiMetrics
+                                    ?.realYearsToFi != null
+                                ? `~${Math.round(projectionData.data.fiMetrics.realYearsToFi)} years to FI`
+                                : projectionData?.data?.fiMetrics
+                                      ?.isFinanciallyIndependent
+                                  ? "Financially Independent!"
+                                  : ""}
+                          </p>
+                        </>
                       )}
                     </div>
-                    <div className="mt-2 bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-green-500 h-2 rounded-full transition-all"
-                        style={{
-                          width: hideValues
-                            ? "0%"
-                            : `${Math.min(projectionData.data.fiMetrics?.fiProgress ?? 0, 100)}%`,
-                        }}
-                      />
+                  )}
+
+                  {/* FIRE Achievement Age */}
+                  {(projectionLoading || projectionData?.data) && (
+                    <div className="bg-linear-to-br from-orange-50 to-amber-50 rounded-lg p-4">
+                      <p className="text-sm text-gray-600 mb-1">FIRE Age</p>
+                      {projectionLoading && !projectionData?.data ? (
+                        <>
+                          <div className="h-9 w-16 bg-gray-200 rounded animate-pulse"></div>
+                          <div className="h-4 w-36 bg-gray-200 rounded animate-pulse mt-2"></div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex items-baseline gap-2">
+                            {hideValues ? (
+                              <span className="text-3xl font-bold text-gray-400">
+                                ****
+                              </span>
+                            ) : projectionData?.data?.fiAchievementAge ? (
+                              <>
+                                <span className="text-3xl font-bold text-orange-600">
+                                  {projectionData.data.fiAchievementAge}
+                                </span>
+                                <span className="text-sm text-gray-500">
+                                  years old
+                                </span>
+                              </>
+                            ) : (
+                              <span className="text-2xl font-bold text-gray-400">
+                                —
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-500 mt-2">
+                            {hideValues
+                              ? ""
+                              : projectionData?.data?.fiAchievementAge
+                                ? "Earliest possible retirement"
+                                : "Keep investing to reach FIRE"}
+                          </p>
+                        </>
+                      )}
                     </div>
-                    <p className="text-xs text-gray-500 mt-2">
-                      {hideValues
-                        ? ""
-                        : projectionData.data.fiMetrics?.realYearsToFi != null
-                          ? `~${Math.round(projectionData.data.fiMetrics.realYearsToFi)} years to FI`
-                          : projectionData.data.fiMetrics?.isFinanciallyIndependent
-                            ? "Financially Independent!"
-                            : ""}
-                    </p>
-                  </div>
-                )}
-              </div>
+                  )}
+
+                  {/* Property Liquidation Age */}
+                  {(projectionLoading || projectionData?.data) && (
+                    <div className="bg-linear-to-br from-purple-50 to-violet-50 rounded-lg p-4">
+                      <p className="text-sm text-gray-600 mb-1">
+                        <i className="fas fa-home text-purple-400 mr-1"></i>
+                        Property Sale Age
+                      </p>
+                      {projectionLoading && !projectionData?.data ? (
+                        <>
+                          <div className="h-9 w-24 bg-gray-200 rounded animate-pulse"></div>
+                          <div className="h-4 w-32 bg-gray-200 rounded animate-pulse mt-2"></div>
+                        </>
+                      ) : (
+                        (() => {
+                          const liquidationYear =
+                            projectionData?.data?.yearlyProjections?.find(
+                              (y) => y.propertyLiquidated,
+                            )
+                          const hasProperty =
+                            (projectionData?.data?.nonSpendableAtRetirement ??
+                              0) > 0
+                          return (
+                            <>
+                              <div className="flex items-baseline gap-2">
+                                {hideValues ? (
+                                  <span className="text-3xl font-bold text-gray-400">
+                                    ****
+                                  </span>
+                                ) : liquidationYear?.age ? (
+                                  <>
+                                    <span className="text-3xl font-bold text-purple-600">
+                                      {liquidationYear.age}
+                                    </span>
+                                    <span className="text-sm text-gray-500">
+                                      years old
+                                    </span>
+                                  </>
+                                ) : hasProperty ? (
+                                  <span className="text-2xl font-bold text-green-600">
+                                    Not needed
+                                  </span>
+                                ) : (
+                                  <span className="text-2xl font-bold text-gray-400">
+                                    N/A
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-gray-500 mt-2">
+                                {hideValues
+                                  ? ""
+                                  : liquidationYear?.age
+                                    ? "When liquid assets run low"
+                                    : hasProperty
+                                      ? "Liquid assets sufficient"
+                                      : "No illiquid assets"}
+                              </p>
+                            </>
+                          )
+                        })()
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
           {/* Charts Row */}
           {summary.portfolioBreakdown.length > 0 && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-              {/* Portfolio Breakdown Chart */}
-              <div className="bg-white rounded-xl shadow-md p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                  By Portfolio
-                </h2>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={portfolioChartData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={100}
-                        paddingAngle={2}
-                        dataKey="value"
-                      >
-                        {portfolioChartData.map((_, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={COLORS[index % COLORS.length]}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        formatter={(value) => [
-                          `${displayCurrency?.symbol}${Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
-                          "Value",
-                        ]}
-                      />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
+            <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+              <button
+                type="button"
+                onClick={() => toggleSection("charts")}
+                className="flex items-center text-lg font-semibold text-gray-900 hover:text-gray-700 mb-4"
+              >
+                <i
+                  className={`fas fa-chevron-${collapsedSections.charts ? "right" : "down"} text-gray-400 mr-2 w-4`}
+                ></i>
+                <i className="fas fa-chart-pie text-blue-500 mr-2"></i>
+                Asset Allocation
+              </button>
 
-              {/* Asset Classification Breakdown Chart */}
-              <div className="bg-white rounded-xl shadow-md p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                  By Asset Classification
-                </h2>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={classificationChartData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={100}
-                        paddingAngle={2}
-                        dataKey="value"
-                      >
-                        {classificationChartData.map((_, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={COLORS[index % COLORS.length]}
+              {!collapsedSections.charts && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Portfolio Breakdown Chart */}
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h3 className="text-md font-medium text-gray-700 mb-4">
+                      By Portfolio
+                    </h3>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={portfolioChartData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={60}
+                            outerRadius={100}
+                            paddingAngle={2}
+                            dataKey="value"
+                          >
+                            {portfolioChartData.map((_, index) => (
+                              <Cell
+                                key={`cell-${index}`}
+                                fill={COLORS[index % COLORS.length]}
+                              />
+                            ))}
+                          </Pie>
+                          <Tooltip
+                            formatter={(value) => [
+                              `${displayCurrency?.symbol}${Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
+                              "Value",
+                            ]}
                           />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        formatter={(value, name) => {
-                          const item = summary.classificationBreakdown.find(
-                            (c) => c.classification === name,
-                          )
-                          return [`${item?.percentage.toFixed(1) || 0}%`, name]
-                        }}
-                      />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
+                          <Legend />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  {/* Asset Classification Breakdown Chart */}
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h3 className="text-md font-medium text-gray-700 mb-4">
+                      By Asset Classification
+                    </h3>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={classificationChartData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={60}
+                            outerRadius={100}
+                            paddingAngle={2}
+                            dataKey="value"
+                          >
+                            {classificationChartData.map((_, index) => (
+                              <Cell
+                                key={`cell-${index}`}
+                                fill={COLORS[index % COLORS.length]}
+                              />
+                            ))}
+                          </Pie>
+                          <Tooltip
+                            formatter={(value, name) => {
+                              const item = summary.classificationBreakdown.find(
+                                (c) => c.classification === name,
+                              )
+                              return [
+                                `${item?.percentage.toFixed(1) || 0}%`,
+                                name,
+                              ]
+                            }}
+                          />
+                          <Legend />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
 
           {/* Portfolio Details Table */}
           <div className="bg-white rounded-xl shadow-md overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100">
-              <h2 className="text-lg font-semibold text-gray-900">
+              <button
+                type="button"
+                onClick={() => toggleSection("portfolioDetails")}
+                className="flex items-center text-lg font-semibold text-gray-900 hover:text-gray-700"
+              >
+                <i
+                  className={`fas fa-chevron-${collapsedSections.portfolioDetails ? "right" : "down"} text-gray-400 mr-2 w-4`}
+                ></i>
+                <i className="fas fa-table text-gray-500 mr-2"></i>
                 Portfolio Details
-              </h2>
+              </button>
             </div>
 
-            {summary.portfolioBreakdown.length === 0 ? (
-              <div className="p-12 text-center">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <i className="fas fa-chart-pie text-2xl text-gray-400"></i>
-                </div>
-                <p className="text-gray-600 mb-4">No portfolios yet</p>
-                <Link
-                  href="/portfolios/__NEW__"
-                  className="inline-flex items-center bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium"
-                >
-                  <i className="fas fa-plus mr-2"></i>
-                  Create Portfolio
-                </Link>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                        onClick={() => handleSort("code")}
-                      >
-                        <div className="flex items-center">
-                          Portfolio
-                          {getSortIcon("code")}
-                        </div>
-                      </th>
-                      <th
-                        className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                        onClick={() => handleSort("value")}
-                      >
-                        <div className="flex items-center justify-end">
-                          Value ({displayCurrency?.code}){getSortIcon("value")}
-                        </div>
-                      </th>
-                      <th
-                        className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                        onClick={() => handleSort("percentage")}
-                      >
-                        <div className="flex items-center justify-end">
-                          % of Total
-                          {getSortIcon("percentage")}
-                        </div>
-                      </th>
-                      <th
-                        className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                        onClick={() => handleSort("irr")}
-                      >
-                        <div className="flex items-center justify-end">
-                          IRR
-                          {getSortIcon("irr")}
-                        </div>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {summary.portfolioBreakdown.map((portfolio, index) => (
-                      <tr
-                        key={portfolio.code}
-                        className="hover:bg-slate-100 transition-colors cursor-pointer"
-                        onClick={() =>
-                          router.push(`/holdings/${portfolio.code}`)
-                        }
-                      >
-                        <td className="px-6 py-4">
-                          <div className="flex items-center">
-                            <div
-                              className="w-3 h-3 rounded-full mr-3"
-                              style={{
-                                backgroundColor: COLORS[index % COLORS.length],
-                              }}
-                            ></div>
-                            <div>
-                              <Link
-                                href={`/holdings/${portfolio.code}`}
-                                className="font-medium text-blue-600 hover:text-blue-800"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {portfolio.code}
-                              </Link>
-                              <p className="text-sm text-gray-500">
-                                {portfolio.name}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-right font-medium text-gray-900">
-                          {displayCurrency?.symbol}
-                          <FormatValue value={portfolio.value} />
-                        </td>
-                        <td className="px-6 py-4 text-right text-gray-600">
-                          {portfolio.percentage.toFixed(1)}%
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <span
-                            className={`font-medium ${portfolio.irr >= 0 ? "text-green-600" : "text-red-600"}`}
+            {!collapsedSections.portfolioDetails && (
+              <>
+                {summary.portfolioBreakdown.length === 0 ? (
+                  <div className="p-12 text-center">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <i className="fas fa-chart-pie text-2xl text-gray-400"></i>
+                    </div>
+                    <p className="text-gray-600 mb-4">No portfolios yet</p>
+                    <Link
+                      href="/portfolios/__NEW__"
+                      className="inline-flex items-center bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium"
+                    >
+                      <i className="fas fa-plus mr-2"></i>
+                      Create Portfolio
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                            onClick={() => handleSort("code")}
                           >
-                            {(portfolio.irr * 100).toFixed(2)}%
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot className="bg-gray-50 border-t-2 border-gray-200">
-                    <tr>
-                      <td className="px-6 py-4 font-bold text-gray-900">
-                        Total
-                      </td>
-                      <td className="px-6 py-4 text-right font-bold text-gray-900">
-                        {displayCurrency?.symbol}
-                        <FormatValue value={summary.totalValue} />
-                      </td>
-                      <td className="px-6 py-4 text-right font-bold text-gray-600">
-                        100%
-                      </td>
-                      <td className="px-6 py-4"></td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
+                            <div className="flex items-center">
+                              Portfolio
+                              {getSortIcon("code")}
+                            </div>
+                          </th>
+                          <th
+                            className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                            onClick={() => handleSort("value")}
+                          >
+                            <div className="flex items-center justify-end">
+                              Value ({displayCurrency?.code})
+                              {getSortIcon("value")}
+                            </div>
+                          </th>
+                          <th
+                            className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                            onClick={() => handleSort("percentage")}
+                          >
+                            <div className="flex items-center justify-end">
+                              % of Total
+                              {getSortIcon("percentage")}
+                            </div>
+                          </th>
+                          <th
+                            className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                            onClick={() => handleSort("irr")}
+                          >
+                            <div className="flex items-center justify-end">
+                              IRR
+                              {getSortIcon("irr")}
+                            </div>
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {summary.portfolioBreakdown.map((portfolio, index) => (
+                          <tr
+                            key={portfolio.code}
+                            className="hover:bg-slate-100 transition-colors cursor-pointer"
+                            onClick={() =>
+                              router.push(`/holdings/${portfolio.code}`)
+                            }
+                          >
+                            <td className="px-6 py-4">
+                              <div className="flex items-center">
+                                <div
+                                  className="w-3 h-3 rounded-full mr-3"
+                                  style={{
+                                    backgroundColor:
+                                      COLORS[index % COLORS.length],
+                                  }}
+                                ></div>
+                                <div>
+                                  <Link
+                                    href={`/holdings/${portfolio.code}`}
+                                    className="font-medium text-blue-600 hover:text-blue-800"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {portfolio.code}
+                                  </Link>
+                                  <p className="text-sm text-gray-500">
+                                    {portfolio.name}
+                                  </p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-right font-medium text-gray-900">
+                              {displayCurrency?.symbol}
+                              <FormatValue value={portfolio.value} />
+                            </td>
+                            <td className="px-6 py-4 text-right text-gray-600">
+                              {portfolio.percentage.toFixed(1)}%
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <span
+                                className={`font-medium ${portfolio.irr >= 0 ? "text-green-600" : "text-red-600"}`}
+                              >
+                                {(portfolio.irr * 100).toFixed(2)}%
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot className="bg-gray-50 border-t-2 border-gray-200">
+                        <tr>
+                          <td className="px-6 py-4 font-bold text-gray-900">
+                            Total
+                          </td>
+                          <td className="px-6 py-4 text-right font-bold text-gray-900">
+                            {displayCurrency?.symbol}
+                            <FormatValue value={summary.totalValue} />
+                          </td>
+                          <td className="px-6 py-4 text-right font-bold text-gray-600">
+                            100%
+                          </td>
+                          <td className="px-6 py-4"></td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
@@ -931,7 +1139,10 @@ function WealthDashboard(): React.ReactElement {
                             {trn.tradeCurrency?.symbol}
                             {Math.abs(trn.tradeAmount).toLocaleString(
                               undefined,
-                              { minimumFractionDigits: 2, maximumFractionDigits: 2 },
+                              {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              },
                             )}
                           </td>
                         </tr>
@@ -971,7 +1182,8 @@ function WealthDashboard(): React.ReactElement {
 
               {/* Footer */}
               <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 text-xs text-gray-500">
-                Shows BUY and SELL transactions only. ADD/transfers are excluded.
+                Shows BUY and SELL transactions only. ADD/transfers are
+                excluded.
               </div>
             </div>
           </div>
