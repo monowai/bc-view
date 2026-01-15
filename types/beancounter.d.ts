@@ -276,7 +276,7 @@ interface CallerRef {
   callerId: string
 }
 
-interface Transaction {
+export interface Transaction {
   id: string
   callerRef: CallerRef
   trnType: TrnType

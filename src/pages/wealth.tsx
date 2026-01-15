@@ -18,11 +18,17 @@ import {
   Currency,
   FxResponse,
   HoldingContract,
+  Transaction,
 } from "types/beancounter"
+import {
+  PlansResponse as IndependencePlansResponse,
+  ProjectionResponse,
+} from "types/independence"
 import { rootLoader } from "@components/ui/PageLoader"
 import { errorOut } from "@components/errors/ErrorOut"
 import { FormatValue } from "@components/ui/MoneyUtils"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
+import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import {
   PieChart,
   Pie,
@@ -69,6 +75,7 @@ type SortConfig = {
 function WealthDashboard(): React.ReactElement {
   const { t, ready } = useTranslation("common")
   const { preferences } = useUserPreferences()
+  const { hideValues } = usePrivacyMode()
   const router = useRouter()
   const [sortConfig, setSortConfig] = useState<SortConfig>({
     key: "value",
@@ -95,6 +102,24 @@ function WealthDashboard(): React.ReactElement {
     simpleFetcher(ccyKey),
   )
 
+  // Fetch independence plans
+  const { data: plansData } = useSwr<IndependencePlansResponse>(
+    "/api/independence/plans",
+    simpleFetcher("/api/independence/plans"),
+  )
+
+  // Get the first plan (or could allow selection)
+  const primaryPlan = plansData?.data?.[0]
+
+  // Fetch projection for the primary plan (includes FI metrics and depletion age)
+  const projectionUrl = primaryPlan?.id
+    ? `/api/independence/projection/${primaryPlan.id}`
+    : null
+  const { data: projectionData } = useSwr<ProjectionResponse>(
+    projectionUrl,
+    projectionUrl ? simpleFetcher(projectionUrl) : null,
+  )
+
   const currencies = useMemo(
     () => currencyData?.data || [],
     [currencyData?.data],
@@ -107,6 +132,28 @@ function WealthDashboard(): React.ReactElement {
   // Display currency state
   const [displayCurrency, setDisplayCurrency] = useState<Currency | null>(null)
   const [fxRates, setFxRates] = useState<Record<string, number>>({})
+
+  // Fetch monthly investment for current month (depends on display currency)
+  const monthlyInvestmentUrl = displayCurrency
+    ? `/api/trns/investments/monthly?currency=${displayCurrency.code}`
+    : null
+  const { data: monthlyInvestmentData } = useSwr<{
+    yearMonth: string
+    totalInvested: number
+    currency?: string
+  }>(monthlyInvestmentUrl, monthlyInvestmentUrl ? simpleFetcher(monthlyInvestmentUrl) : null)
+
+  // Modal state for showing investment transactions
+  const [showInvestmentModal, setShowInvestmentModal] = useState(false)
+
+  // Fetch transactions only when modal is open
+  const investmentTrnsUrl = showInvestmentModal
+    ? "/api/trns/investments/monthly/transactions"
+    : null
+  const { data: investmentTrnsData } = useSwr<{ data: Transaction[] }>(
+    investmentTrnsUrl,
+    investmentTrnsUrl ? simpleFetcher(investmentTrnsUrl) : null,
+  )
 
   // Set default display currency
   useEffect(() => {
@@ -397,6 +444,137 @@ function WealthDashboard(): React.ReactElement {
             </div>
           </div>
 
+          {/* Independence Metrics - shown if user has an independence plan */}
+          {primaryPlan && (
+            <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  <i className="fas fa-chart-line text-green-500 mr-2"></i>
+                  Independence Metrics
+                </h2>
+                <Link
+                  href={`/independence/plans/${primaryPlan.id}`}
+                  className="text-sm text-blue-600 hover:text-blue-800"
+                >
+                  View Plan →
+                </Link>
+              </div>
+
+              <div
+                className={`grid grid-cols-1 ${projectionData?.data ? "md:grid-cols-2" : ""} gap-6`}
+              >
+                {/* Monthly Investment Progress */}
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4">
+                  <p className="text-sm text-gray-600 mb-1">
+                    Monthly Investment
+                  </p>
+                  {(() => {
+                    // Monthly investment target = surplus × allocation %
+                    // Surplus = working income - working expenses
+                    const surplus =
+                      (primaryPlan.workingIncomeMonthly ?? 0) -
+                      (primaryPlan.workingExpensesMonthly ?? 0)
+                    const target = Math.round(
+                      surplus * (primaryPlan.investmentAllocationPercent ?? 0.8),
+                    )
+                    const actual = Math.round(
+                      monthlyInvestmentData?.totalInvested ?? 0,
+                    )
+                    const progress = target > 0 ? (actual / target) * 100 : 0
+                    const currencySymbol = displayCurrency?.symbol || ""
+                    const isNegative = actual < 0
+                    return (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => !hideValues && setShowInvestmentModal(true)}
+                          className={`flex items-baseline gap-2 ${!hideValues ? "cursor-pointer hover:opacity-80" : ""}`}
+                          disabled={hideValues}
+                        >
+                          {hideValues ? (
+                            <span className="text-3xl font-bold text-gray-400">
+                              ****
+                            </span>
+                          ) : (
+                            <>
+                              <span
+                                className={`text-3xl font-bold ${isNegative ? "text-red-600" : progress >= 100 ? "text-green-600" : "text-blue-600"}`}
+                              >
+                                {isNegative ? "-" : ""}
+                                {currencySymbol}
+                                {Math.abs(actual).toLocaleString()}
+                              </span>
+                              <span className="text-sm text-gray-500">
+                                / {currencySymbol}
+                                {target.toLocaleString()}
+                              </span>
+                              <i className="fas fa-external-link-alt text-xs text-gray-400 ml-1"></i>
+                            </>
+                          )}
+                        </button>
+                        <div className="mt-2 bg-gray-200 rounded-full h-2">
+                          <div
+                            className={`h-2 rounded-full transition-all ${isNegative ? "bg-red-500" : progress >= 100 ? "bg-green-500" : "bg-blue-500"}`}
+                            style={{
+                              width: `${Math.min(Math.max(progress, 0), 100)}%`,
+                            }}
+                          />
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2">
+                          {isNegative
+                            ? "Net withdrawal this month"
+                            : progress >= 100
+                              ? "Target met!"
+                              : `${progress.toFixed(0)}% of monthly target`}
+                        </p>
+                      </>
+                    )
+                  })()}
+                </div>
+
+                {/* FI Progress - only shown when projection data is available */}
+                {projectionData?.data && (
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-4">
+                    <p className="text-sm text-gray-600 mb-1">FI Progress</p>
+                    <div className="flex items-baseline gap-2">
+                      {hideValues ? (
+                        <span className="text-3xl font-bold text-gray-400">
+                          ****
+                        </span>
+                      ) : (
+                        <span className="text-3xl font-bold text-green-600">
+                          {projectionData.data.fiMetrics?.fiProgress?.toFixed(
+                            1,
+                          ) ?? "0"}
+                          %
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-2 bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-green-500 h-2 rounded-full transition-all"
+                        style={{
+                          width: hideValues
+                            ? "0%"
+                            : `${Math.min(projectionData.data.fiMetrics?.fiProgress ?? 0, 100)}%`,
+                        }}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      {hideValues
+                        ? ""
+                        : projectionData.data.fiMetrics?.realYearsToFi != null
+                          ? `~${Math.round(projectionData.data.fiMetrics.realYearsToFi)} years to FI`
+                          : projectionData.data.fiMetrics?.isFinanciallyIndependent
+                            ? "Financially Independent!"
+                            : ""}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Charts Row */}
           {summary.portfolioBreakdown.length > 0 && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -665,6 +843,140 @@ function WealthDashboard(): React.ReactElement {
           </div>
         </div>
       </div>
+
+      {/* Monthly Investment Transactions Modal */}
+      {showInvestmentModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div
+            className="fixed inset-0 bg-black/50 transition-opacity"
+            onClick={() => setShowInvestmentModal(false)}
+          />
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="relative bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Monthly Investment Transactions
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    {monthlyInvestmentData?.yearMonth || "Current month"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowInvestmentModal(false)}
+                  className="text-gray-400 hover:text-gray-600 p-2"
+                >
+                  <i className="fas fa-times text-xl"></i>
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="px-6 py-4 overflow-y-auto max-h-[60vh]">
+                {!investmentTrnsData ? (
+                  <div className="flex justify-center py-8">
+                    <i className="fas fa-spinner fa-spin text-2xl text-gray-400"></i>
+                  </div>
+                ) : investmentTrnsData.data.length === 0 ? (
+                  <p className="text-center text-gray-500 py-8">
+                    No investment transactions this month
+                  </p>
+                ) : (
+                  <table className="min-w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                          Date
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                          Type
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                          Asset
+                        </th>
+                        <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
+                          Amount
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {investmentTrnsData.data.map((trn) => (
+                        <tr key={trn.id} className="hover:bg-gray-50">
+                          <td className="px-3 py-2 text-sm text-gray-600">
+                            {trn.tradeDate}
+                          </td>
+                          <td className="px-3 py-2">
+                            <span
+                              className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${
+                                trn.trnType === "BUY"
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-red-100 text-red-800"
+                              }`}
+                            >
+                              {trn.trnType}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2 text-sm text-gray-900">
+                            {trn.asset?.code || trn.asset?.name || "Unknown"}
+                          </td>
+                          <td
+                            className={`px-3 py-2 text-sm text-right font-medium ${
+                              trn.trnType === "BUY"
+                                ? "text-green-600"
+                                : "text-red-600"
+                            }`}
+                          >
+                            {trn.trnType === "SELL" ? "-" : ""}
+                            {trn.tradeCurrency?.symbol}
+                            {Math.abs(trn.tradeAmount).toLocaleString(
+                              undefined,
+                              { minimumFractionDigits: 2, maximumFractionDigits: 2 },
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="bg-gray-50 border-t-2 border-gray-200">
+                      <tr>
+                        <td
+                          colSpan={3}
+                          className="px-3 py-2 text-sm font-semibold text-gray-900"
+                        >
+                          Net Total ({displayCurrency?.code})
+                        </td>
+                        <td
+                          className={`px-3 py-2 text-sm text-right font-bold ${
+                            (monthlyInvestmentData?.totalInvested ?? 0) >= 0
+                              ? "text-green-600"
+                              : "text-red-600"
+                          }`}
+                        >
+                          {(monthlyInvestmentData?.totalInvested ?? 0) < 0
+                            ? "-"
+                            : ""}
+                          {displayCurrency?.symbol}
+                          {Math.abs(
+                            monthlyInvestmentData?.totalInvested ?? 0,
+                          ).toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 text-xs text-gray-500">
+                Shows BUY and SELL transactions only. ADD/transfers are excluded.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
