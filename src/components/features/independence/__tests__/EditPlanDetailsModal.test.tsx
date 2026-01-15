@@ -67,6 +67,7 @@ describe("EditPlanDetailsModal", () => {
     expect(screen.getByText("Other Income (Monthly)")).toBeInTheDocument()
     expect(screen.getByText("Monthly Expenses")).toBeInTheDocument()
     expect(screen.getByText("Return Rates")).toBeInTheDocument()
+    expect(screen.getByText("Asset Allocations")).toBeInTheDocument()
     expect(screen.getByText("Inflation Rate (%)")).toBeInTheDocument()
     expect(screen.getByText("Target Balance (Optional)")).toBeInTheDocument()
   })
@@ -89,10 +90,16 @@ describe("EditPlanDetailsModal", () => {
     expect(parseFloat(inputs[5].value)).toBeCloseTo(3, 1)
     // Housing Return Rate (converted to %)
     expect(parseFloat(inputs[6].value)).toBeCloseTo(4, 1)
+    // Equity Allocation (converted to %)
+    expect(parseFloat(inputs[7].value)).toBeCloseTo(50, 1)
+    // Cash Allocation (converted to %)
+    expect(parseFloat(inputs[8].value)).toBeCloseTo(30, 1)
+    // Housing Allocation (converted to %)
+    expect(parseFloat(inputs[9].value)).toBeCloseTo(20, 1)
     // Inflation Rate (converted to %)
-    expect(parseFloat(inputs[7].value)).toBeCloseTo(2.5, 1)
+    expect(parseFloat(inputs[10].value)).toBeCloseTo(2.5, 1)
     // Target Balance
-    expect(inputs[8]).toHaveValue(100000)
+    expect(inputs[11]).toHaveValue(100000)
   })
 
   it("displays net monthly need calculation", () => {
@@ -141,6 +148,9 @@ describe("EditPlanDetailsModal", () => {
       equityReturnRate: 0.07, // Converted back to decimal
       cashReturnRate: 0.03,
       housingReturnRate: 0.04,
+      equityAllocation: 0.5, // Converted back to decimal
+      cashAllocation: 0.3,
+      housingAllocation: 0.2,
       inflationRate: 0.025,
       targetBalance: 100000,
     })
@@ -149,8 +159,8 @@ describe("EditPlanDetailsModal", () => {
   it("converts inflation rate from percentage to decimal on apply", () => {
     render(<EditPlanDetailsModal {...defaultProps} />)
 
-    // Change inflation rate (index 7 now)
-    const inflationInput = screen.getAllByRole("spinbutton")[7]
+    // Change inflation rate (index 10 now - after 3 allocation fields)
+    const inflationInput = screen.getAllByRole("spinbutton")[10]
     fireEvent.change(inflationInput, { target: { value: "3.5" } })
 
     const applyButton = screen.getByText("Apply")
@@ -166,8 +176,8 @@ describe("EditPlanDetailsModal", () => {
   it("sets targetBalance to undefined when empty", () => {
     render(<EditPlanDetailsModal {...defaultProps} />)
 
-    // Clear target balance (index 8 now)
-    const targetInput = screen.getAllByRole("spinbutton")[8]
+    // Clear target balance (index 11 now - after 3 allocation fields)
+    const targetInput = screen.getAllByRole("spinbutton")[11]
     fireEvent.change(targetInput, { target: { value: "" } })
 
     const applyButton = screen.getByText("Apply")
