@@ -1890,9 +1890,9 @@ function PlanView(): React.ReactElement {
                             <Line
                               type="monotone"
                               dataKey="totalWealth"
-                              stroke="#8b5cf6"
+                              stroke="#22c55e"
                               strokeWidth={2}
-                              dot={{ r: 2, fill: "#8b5cf6" }}
+                              dot={{ r: 2, fill: "#22c55e" }}
                               name="totalWealth"
                             />
                           )}
@@ -2152,9 +2152,9 @@ function PlanView(): React.ReactElement {
                             <Line
                               type="monotone"
                               dataKey="totalWealth"
-                              stroke="#3b82f6"
+                              stroke="#22c55e"
                               strokeWidth={2}
-                              dot={{ r: 2, fill: "#3b82f6" }}
+                              dot={{ r: 2, fill: "#22c55e" }}
                               name="totalWealth"
                             />
                           )}

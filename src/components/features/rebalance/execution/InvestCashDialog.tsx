@@ -487,11 +487,11 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
                   </div>
                 </div>
                 {cashAfter < 0 && (
-                  <div className="mt-2 text-xs text-red-600">
+                  <div className="mt-2 text-xs text-amber-600">
                     <i className="fas fa-exclamation-triangle mr-1"></i>
                     {t(
                       "rebalance.investCash.insufficientCash",
-                      "Insufficient cash. Reduce quantities or add more cash to the portfolio.",
+                      "Warning: Insufficient cash. You may still create proposed transactions for review.",
                     )}
                   </div>
                 )}
@@ -518,9 +518,9 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
               </button>
               <button
                 onClick={handleCommit}
-                disabled={committing || buyItems.length === 0 || cashAfter < 0}
+                disabled={committing || buyItems.length === 0}
                 className={`px-4 py-2 rounded text-white transition-colors ${
-                  !committing && buyItems.length > 0 && cashAfter >= 0
+                  !committing && buyItems.length > 0
                     ? "bg-green-500 hover:bg-green-600"
                     : "bg-gray-400 cursor-not-allowed"
                 }`}
