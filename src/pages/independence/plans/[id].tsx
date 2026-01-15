@@ -165,6 +165,8 @@ function PlanView(): React.ReactElement {
   // Edit details modal state
   const [showEditDetailsModal, setShowEditDetailsModal] = useState(false)
   const [showWhatIfModal, setShowWhatIfModal] = useState(false)
+  // Version counter to force modal re-initialization after save
+  const [planVersion, setPlanVersion] = useState(0)
 
   // Timeline view mode - "traditional" shows work-to-retire path, "fire" shows FIRE path
   const [timelineViewMode, setTimelineViewMode] = useState<
@@ -884,6 +886,8 @@ function PlanView(): React.ReactElement {
     setIsSaving(true)
     try {
       const updates = {
+        monthlyExpenses:
+          scenarioOverrides.monthlyExpenses ?? plan.monthlyExpenses,
         pensionMonthly: scenarioOverrides.pensionMonthly ?? plan.pensionMonthly,
         socialSecurityMonthly:
           scenarioOverrides.socialSecurityMonthly ?? plan.socialSecurityMonthly,
@@ -891,6 +895,16 @@ function PlanView(): React.ReactElement {
           scenarioOverrides.otherIncomeMonthly ?? plan.otherIncomeMonthly,
         inflationRate: scenarioOverrides.inflationRate ?? plan.inflationRate,
         targetBalance: scenarioOverrides.targetBalance ?? plan.targetBalance,
+        equityReturnRate:
+          scenarioOverrides.equityReturnRate ?? plan.equityReturnRate,
+        cashReturnRate: scenarioOverrides.cashReturnRate ?? plan.cashReturnRate,
+        housingReturnRate:
+          scenarioOverrides.housingReturnRate ?? plan.housingReturnRate,
+        equityAllocation:
+          scenarioOverrides.equityAllocation ?? plan.equityAllocation,
+        cashAllocation: scenarioOverrides.cashAllocation ?? plan.cashAllocation,
+        housingAllocation:
+          scenarioOverrides.housingAllocation ?? plan.housingAllocation,
       }
 
       if (mode === "update") {
@@ -901,9 +915,13 @@ function PlanView(): React.ReactElement {
           body: JSON.stringify(updates),
         })
         if (response.ok) {
-          mutate(`/api/independence/plans/${id}`)
+          // Use response data to update SWR cache directly (more reliable than revalidation)
+          const updatedPlan = await response.json()
+          await mutate(`/api/independence/plans/${id}`, updatedPlan, false)
           setScenarioOverrides({})
           setShowSaveDialog(false)
+          // Increment version to force modal re-initialization on next open
+          setPlanVersion((v) => v + 1)
         }
       } else {
         // POST new plan
@@ -912,18 +930,11 @@ function PlanView(): React.ReactElement {
           yearOfBirth: plan.yearOfBirth,
           lifeExpectancy: plan.lifeExpectancy,
           planningHorizonYears: plan.planningHorizonYears,
-          monthlyExpenses: plan.monthlyExpenses,
           expensesCurrency: plan.expensesCurrency,
-          ...updates,
           workingIncomeMonthly: plan.workingIncomeMonthly,
           workingExpensesMonthly: plan.workingExpensesMonthly,
           investmentAllocationPercent: plan.investmentAllocationPercent,
-          cashReturnRate: plan.cashReturnRate,
-          equityReturnRate: plan.equityReturnRate,
-          housingReturnRate: plan.housingReturnRate,
-          cashAllocation: plan.cashAllocation,
-          equityAllocation: plan.equityAllocation,
-          housingAllocation: plan.housingAllocation,
+          ...updates,
         }
         const response = await fetch("/api/independence/plans", {
           method: "POST",
@@ -2251,8 +2262,9 @@ function PlanView(): React.ReactElement {
         isSaving={isSaving}
       />
 
-      {/* Edit Details Modal */}
+      {/* Edit Details Modal - key forces remount after save */}
       <EditPlanDetailsModal
+        key={`edit-modal-v${planVersion}`}
         isOpen={showEditDetailsModal}
         onClose={() => setShowEditDetailsModal(false)}
         onApply={handleApplyDetails}

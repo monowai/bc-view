@@ -13,6 +13,9 @@ interface EditFormData {
   equityReturnRate: number
   cashReturnRate: number
   housingReturnRate: number
+  equityAllocation: number
+  cashAllocation: number
+  housingAllocation: number
   inflationRate: number
   targetBalance: number
 }
@@ -87,6 +90,9 @@ export default function EditPlanDetailsModal({
     equityReturnRate: 0,
     cashReturnRate: 0,
     housingReturnRate: 0,
+    equityAllocation: 0,
+    cashAllocation: 0,
+    housingAllocation: 0,
     inflationRate: 0,
     targetBalance: 0,
   })
@@ -102,6 +108,9 @@ export default function EditPlanDetailsModal({
         equityReturnRate: plan.equityReturnRate * 100, // Convert to percentage
         cashReturnRate: plan.cashReturnRate * 100,
         housingReturnRate: plan.housingReturnRate * 100,
+        equityAllocation: plan.equityAllocation * 100, // Convert to percentage
+        cashAllocation: plan.cashAllocation * 100,
+        housingAllocation: plan.housingAllocation * 100,
         inflationRate: plan.inflationRate * 100,
         targetBalance: plan.targetBalance ?? 0,
       })
@@ -119,6 +128,9 @@ export default function EditPlanDetailsModal({
       equityReturnRate: formData.equityReturnRate / 100, // Convert back to decimal
       cashReturnRate: formData.cashReturnRate / 100,
       housingReturnRate: formData.housingReturnRate / 100,
+      equityAllocation: formData.equityAllocation / 100, // Convert back to decimal
+      cashAllocation: formData.cashAllocation / 100,
+      housingAllocation: formData.housingAllocation / 100,
       inflationRate: formData.inflationRate / 100,
       targetBalance: formData.targetBalance || undefined,
     })
@@ -275,6 +287,92 @@ export default function EditPlanDetailsModal({
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Asset Allocations */}
+          <div className="border-t pt-4 mt-4">
+            <h3 className="text-sm font-medium text-gray-700 mb-3">
+              Asset Allocations
+            </h3>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">
+                  Equity
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={formData.equityAllocation}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        equityAllocation: parseFloat(e.target.value) || 0,
+                      }))
+                    }
+                    className="w-full pl-2 pr-6 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    min={0}
+                    max={100}
+                    step={5}
+                  />
+                  <span className="absolute right-2 top-2.5 text-xs text-gray-500">
+                    %
+                  </span>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Cash</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={formData.cashAllocation}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        cashAllocation: parseFloat(e.target.value) || 0,
+                      }))
+                    }
+                    className="w-full pl-2 pr-6 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    min={0}
+                    max={100}
+                    step={5}
+                  />
+                  <span className="absolute right-2 top-2.5 text-xs text-gray-500">
+                    %
+                  </span>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">
+                  Housing
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={formData.housingAllocation}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        housingAllocation: parseFloat(e.target.value) || 0,
+                      }))
+                    }
+                    className="w-full pl-2 pr-6 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    min={0}
+                    max={100}
+                    step={5}
+                  />
+                  <span className="absolute right-2 top-2.5 text-xs text-gray-500">
+                    %
+                  </span>
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Total:{" "}
+              {formData.equityAllocation +
+                formData.cashAllocation +
+                formData.housingAllocation}
+              % (should equal 100%)
+            </p>
           </div>
 
           {/* Inflation Rate */}

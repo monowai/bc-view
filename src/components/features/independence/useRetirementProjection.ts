@@ -278,7 +278,8 @@ export function useRetirementProjection({
 
   // Recalculate when plan or What-If checksum changes (debounced)
   useEffect(() => {
-    if (!plan || liquidAssets === 0 || !hasAutoCalculated.current) return undefined
+    if (!plan || liquidAssets === 0 || !hasAutoCalculated.current)
+      return undefined
 
     // Skip if checksum hasn't changed
     if (projectionChecksum === prevChecksumRef.current) return undefined

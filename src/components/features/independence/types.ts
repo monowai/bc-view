@@ -24,6 +24,10 @@ export interface ScenarioOverrides {
   equityReturnRate?: number
   cashReturnRate?: number
   housingReturnRate?: number
+  // Asset allocations (as decimals, e.g., 0.6 for 60%)
+  equityAllocation?: number
+  cashAllocation?: number
+  housingAllocation?: number
   // Other
   inflationRate?: number
   targetBalance?: number

@@ -262,8 +262,9 @@ export default function WizardContainer({
         }
       }
 
-      // Invalidate the plan cache so the detail page fetches fresh data
+      // Invalidate all plan cache keys so subsequent fetches get fresh data
       await mutate(`/api/independence/plans/${savedPlanId}`)
+      await mutate(`/api/independence/plans/${savedPlanId}/details`)
 
       // Navigate to the plan view
       router.push(`/independence/plans/${savedPlanId}`)
