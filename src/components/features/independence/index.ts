@@ -10,6 +10,10 @@ export {
 // Components
 export { default as FiMetrics } from "./FiMetrics"
 export { default as FiSummaryBar } from "./FiSummaryBar"
+export { default as FiAgeExplorer } from "./FiAgeExplorer"
+export { default as PlanViewHeader } from "./PlanViewHeader"
+export { default as PlanTabNavigation } from "./PlanTabNavigation"
+export { default as AnalysisToolbar } from "./AnalysisToolbar"
 export { default as WhatIfSlider } from "./WhatIfSlider"
 export { default as ScenarioImpact } from "./ScenarioImpact"
 export { default as ScenarioSliders } from "./ScenarioSliders"

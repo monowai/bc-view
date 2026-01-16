@@ -181,8 +181,10 @@ export interface ProjectionRequest {
   monthlyContribution?: number
   /** Monthly rental income from properties (in target currency) */
   rentalIncomeMonthly?: number
-  /** Target currency for calculations */
+  /** Target currency for calculations (plan currency) */
   currency?: string
+  /** Display currency for response values. If null, uses currency field. Backend converts all values. */
+  displayCurrency?: string
   /** Portfolio IDs to fetch values from (optional - auto-resolves totalAssets) */
   portfolioIds?: string[]
 
@@ -309,6 +311,8 @@ export interface FiMetrics {
   fiNumber: number
   /** Progress toward FI as percentage (liquidAssets / fiNumber × 100) */
   fiProgress: number
+  /** Gap to FI = fiNumber - liquidAssets (negative means FI achieved) */
+  gapToFi: number
   /** Monthly expenses after subtracting income sources */
   netMonthlyExpenses: number
   /** Total monthly income (pension + social security + other + rental) */
@@ -329,6 +333,10 @@ export interface FiMetrics {
   isFinanciallyIndependent: boolean
   /** Warning: real return rate is below the 4% safe withdrawal rate */
   realReturnBelowSwr?: boolean
+  /** The original plan currency before display conversion */
+  planCurrency?: string
+  /** FX rate applied for display conversion (1.0 if same as planCurrency) */
+  displayFxRate?: number
 }
 
 /**
@@ -350,10 +358,41 @@ export interface FiSummary {
   currency: string
   /** Whether full Financial Independence has been achieved */
   isFinanciallyIndependent: boolean
+  /** The original plan currency before display conversion */
+  planCurrency?: string
+  /** FX rate applied for display conversion (1.0 if same as planCurrency) */
+  displayFxRate?: number
 }
 
 export interface FiSummaryResponse {
   data: FiSummary
+}
+
+/**
+ * Plan input values used in projection calculations.
+ * Returned in display currency so frontend doesn't need FX conversion.
+ */
+export interface PlanInputs {
+  /** Monthly expenses used in calculations */
+  monthlyExpenses: number
+  /** Monthly pension income */
+  pensionMonthly: number
+  /** Monthly government benefits / social security */
+  socialSecurityMonthly: number
+  /** Monthly other income */
+  otherIncomeMonthly: number
+  /** Monthly rental income (fetched from svc-data) */
+  rentalIncomeMonthly: number
+  /** Monthly working income */
+  workingIncomeMonthly: number
+  /** Monthly contribution during working years */
+  monthlyContribution: number
+  /** Target balance at end of planning horizon */
+  targetBalance?: number
+  /** Inflation rate as decimal */
+  inflationRate: number
+  /** Blended return rate as decimal */
+  blendedReturnRate: number
 }
 
 export interface RetirementProjection {
@@ -391,6 +430,12 @@ export interface RetirementProjection {
   fiAchievementAge?: number
   /** FIRE path projections - what happens if you retire at FI age instead of planned retirement */
   firePathProjections?: YearlyProjection[]
+  /** The original plan currency before display conversion */
+  planCurrency?: string
+  /** FX rate applied for display conversion (1.0 if same as planCurrency) */
+  displayFxRate?: number
+  /** Plan input values used in calculations (in display currency) */
+  planInputs?: PlanInputs
 }
 
 export interface ProjectionResponse {

@@ -21,11 +21,7 @@ import {
 } from "recharts"
 import InfoTooltip from "@components/ui/Tooltip"
 import { simpleFetcher, portfoliosKey } from "@utils/api/fetchHelper"
-import {
-  PlanResponse,
-  QuickScenario,
-  QuickScenariosResponse,
-} from "types/independence"
+import { PlanResponse, QuickScenariosResponse } from "types/independence"
 import { Portfolio, HoldingContract, FxResponse } from "types/beancounter"
 import {
   transformToAllocationSlices,
@@ -37,7 +33,6 @@ import {
   WhatIfAdjustments,
   ScenarioOverrides,
   TabId,
-  TABS,
   DEFAULT_NON_SPENDABLE,
   DEFAULT_WHAT_IF_ADJUSTMENTS,
   hasScenarioChanges,
@@ -50,9 +45,21 @@ import {
   IncomeBreakdownTable,
   FiMetrics,
   FiSummaryBar,
+  PlanViewHeader,
+  PlanTabNavigation,
+  AnalysisToolbar,
 } from "@components/features/independence"
 import { usePrivateAssetConfigs } from "@utils/assets/usePrivateAssetConfigs"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
+import {
+  calculateFiNumber,
+  calculateFiProgress,
+  calculateCoastFiNumber,
+  calculateCoastFiProgress,
+  isFinanciallyIndependent as isFiAchieved,
+  isCoastFireAchieved,
+  calculateYearsToTarget,
+} from "@utils/independence/fiCalculations"
 
 const HIDDEN_VALUE = "****"
 
@@ -179,6 +186,7 @@ function PlanView(): React.ReactElement {
     {
       // Always fetch fresh data when viewing a plan - avoids stale cache after edits
       revalidateOnMount: true,
+      revalidateIfStale: true,
       dedupingInterval: 0,
     },
   )
@@ -189,12 +197,27 @@ function PlanView(): React.ReactElement {
   )
 
   // Fetch aggregated holdings to get category breakdown
-  const { data: holdingsResponse } = useSwr<{ data: HoldingContract }>(
+  const { data: holdingsResponse } = useSwr<{
+    data: HoldingContract
+  }>(
     "/api/holdings/aggregated?asAt=today",
     simpleFetcher("/api/holdings/aggregated?asAt=today"),
+    {
+      // Always fetch fresh holdings data to ensure projection accuracy
+      revalidateOnMount: true,
+      revalidateIfStale: true,
+      dedupingInterval: 0,
+    },
   )
   const holdingsData = holdingsResponse?.data
-  const holdingsCurrency = holdingsData?.portfolio?.currency?.code
+
+  // Force cache invalidation on mount to ensure fresh data for FI calculations
+  useEffect(() => {
+    mutate("/api/holdings/aggregated?asAt=today")
+    if (id) {
+      mutate(`/api/independence/plans/${id}`)
+    }
+  }, [id])
 
   // Fetch quick scenarios for What-If analysis
   const { data: scenariosData } = useSwr<QuickScenariosResponse>(
@@ -220,6 +243,7 @@ function PlanView(): React.ReactElement {
   // Only use display currency when fxRate has been loaded to avoid showing wrong values
   const effectiveCurrency =
     displayCurrency && fxRateLoaded ? displayCurrency : planCurrency
+  // For plan values that need frontend FX conversion
   const effectiveFxRate =
     displayCurrency && fxRateLoaded && displayCurrency !== planCurrency
       ? fxRate
@@ -271,110 +295,26 @@ function PlanView(): React.ReactElement {
     fetchFxRate()
   }, [planCurrency, displayCurrency])
 
-  // FX rate to convert holdings from portfolio currency to plan currency
-  const [holdingsToPlanRate, setHoldingsToPlanRate] = useState<number>(1)
-
-  useEffect(() => {
-    const fetchHoldingsFxRate = async (): Promise<void> => {
-      if (
-        !holdingsCurrency ||
-        !planCurrency ||
-        holdingsCurrency === planCurrency
-      ) {
-        setHoldingsToPlanRate(1)
-        return
-      }
-      try {
-        const response = await fetch("/api/fx", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            rateDate: "today",
-            pairs: [{ from: holdingsCurrency, to: planCurrency }],
-          }),
-        })
-        const fxResponse: FxResponse = await response.json()
-        const rateKey = `${holdingsCurrency}:${planCurrency}`
-        setHoldingsToPlanRate(fxResponse.data?.rates?.[rateKey]?.rate || 1)
-      } catch (err) {
-        console.error("Failed to fetch holdings FX rate:", err)
-        setHoldingsToPlanRate(1)
-      }
-    }
-    fetchHoldingsFxRate()
-  }, [holdingsCurrency, planCurrency])
-
-  // Get raw rental income by currency (not yet converted)
+  // Get rental income by currency (backend handles FX conversion)
   const monthlyNetByCurrency = useMemo(() => {
     if (!assetConfigs || assetConfigs.length === 0) return {}
     return getNetRentalByCurrency()
   }, [assetConfigs, getNetRentalByCurrency])
 
-  // State for FX-converted rental income
-  const [convertedRentalTotal, setConvertedRentalTotal] = useState<number>(0)
-
-  // Fetch FX rates and convert rental income to plan currency
-  useEffect(() => {
-    const convertRentalIncome = async (): Promise<void> => {
-      const currencies = Object.keys(monthlyNetByCurrency)
-      if (currencies.length === 0 || !planCurrency) {
-        setConvertedRentalTotal(0)
-        return
-      }
-
-      // Build pairs for currencies that need conversion
-      const pairs = currencies
-        .filter((currency) => currency !== planCurrency)
-        .map((currency) => ({ from: currency, to: planCurrency }))
-
-      const fxRates: Record<string, number> = {}
-
-      if (pairs.length > 0) {
-        try {
-          const response = await fetch("/api/fx", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ rateDate: "today", pairs }),
-          })
-          const fxResponse: FxResponse = await response.json()
-          // Extract rates from response (keyed as "FROM:TO")
-          if (fxResponse.data?.rates) {
-            Object.entries(fxResponse.data.rates).forEach(([key, value]) => {
-              fxRates[key] = value.rate
-            })
-          }
-        } catch (err) {
-          console.error("Failed to fetch FX rates for rental income:", err)
-        }
-      }
-
-      // Convert and sum all rental income
-      let total = 0
-      Object.entries(monthlyNetByCurrency).forEach(([currency, amount]) => {
-        if (currency === planCurrency) {
-          total += amount
-        } else {
-          const rateKey = `${currency}:${planCurrency}`
-          const rate = fxRates[rateKey] || 1
-          total += amount * rate
-        }
-      })
-
-      setConvertedRentalTotal(total)
-    }
-
-    convertRentalIncome()
-  }, [monthlyNetByCurrency, planCurrency])
-
-  // Build rental income data for projections
+  // Build rental income data for projections (backend fetches and converts from svc-data)
+  // We no longer do FX conversion here - backend handles it
   const rentalIncome = useMemo((): RentalIncomeData | undefined => {
     if (Object.keys(monthlyNetByCurrency).length === 0) return undefined
-
+    // Sum values without FX conversion (backend will fetch the correct values)
+    const total = Object.values(monthlyNetByCurrency).reduce(
+      (sum, val) => sum + val,
+      0,
+    )
     return {
       monthlyNetByCurrency,
-      totalMonthlyInPlanCurrency: convertedRentalTotal,
+      totalMonthlyInPlanCurrency: total, // Approximate - backend fetches accurate converted values
     }
-  }, [monthlyNetByCurrency, convertedRentalTotal])
+  }, [monthlyNetByCurrency])
 
   // Effective plan values: What-If (scenarioOverrides) takes precedence over plan values
   // These are the values used for ALL calculations - What-If always overrides plan
@@ -472,42 +412,30 @@ function PlanView(): React.ReactElement {
     }
   }, [categorySlices, plan])
 
-  // Calculate total assets from category slices (converted to plan currency)
-  // Manual assets are already in plan currency, so don't apply holdingsToPlanRate
+  // Calculate total assets from category slices (for local display only)
+  // Note: Backend fetches from svc-position with proper FX conversion for projection
   const totalAssets = useMemo(() => {
-    const rate = usingManualAssets ? 1 : holdingsToPlanRate
-    return categorySlices.reduce((sum, slice) => sum + slice.value, 0) * rate
-  }, [categorySlices, holdingsToPlanRate, usingManualAssets])
+    return categorySlices.reduce((sum, slice) => sum + slice.value, 0)
+  }, [categorySlices])
 
-  // Calculate liquid (spendable) assets - only selected categories (in plan currency)
+  // Calculate liquid (spendable) assets - only selected categories (for local display)
+  // Backend fetches from svc-position with proper FX conversion for projection
   const liquidAssets = useMemo(() => {
-    const rate = usingManualAssets ? 1 : holdingsToPlanRate
-    return (
-      categorySlices
-        .filter((slice) => spendableCategories.includes(slice.key))
-        .reduce((sum, slice) => sum + slice.value, 0) * rate
-    )
-  }, [
-    categorySlices,
-    spendableCategories,
-    holdingsToPlanRate,
-    usingManualAssets,
-  ])
+    return categorySlices
+      .filter((slice) => spendableCategories.includes(slice.key))
+      .reduce((sum, slice) => sum + slice.value, 0)
+  }, [categorySlices, spendableCategories])
 
-  // Calculate non-spendable assets (e.g., property) (in plan currency)
+  // Calculate non-spendable assets (e.g., property) (for local display)
+  // Backend fetches from svc-position with proper FX conversion for projection
   const nonSpendableAssets = useMemo(() => {
-    const rate = usingManualAssets ? 1 : holdingsToPlanRate
-    return (
-      categorySlices
-        .filter((slice) => !spendableCategories.includes(slice.key))
-        .reduce((sum, slice) => sum + slice.value, 0) * rate
-    )
-  }, [
-    categorySlices,
-    spendableCategories,
-    holdingsToPlanRate,
-    usingManualAssets,
-  ])
+    return categorySlices
+      .filter((slice) => !spendableCategories.includes(slice.key))
+      .reduce((sum, slice) => sum + slice.value, 0)
+  }, [categorySlices, spendableCategories])
+
+  // Determine if assets are loaded (for enabling asset-dependent tabs)
+  const hasAssets = liquidAssets > 0 || nonSpendableAssets > 0
 
   // Default expected return rate for assets without a configured rate (3%)
   const DEFAULT_EXPECTED_RETURN = 0.03
@@ -662,11 +590,10 @@ function PlanView(): React.ReactElement {
   }
 
   // Use retirement projection hook
+  // Backend handles FX conversion - fetches assets from svc-position in plan currency
   const { adjustedProjection, isCalculating, resetProjection } =
     useRetirementProjection({
       plan,
-      liquidAssets,
-      nonSpendableAssets,
       selectedPortfolioIds,
       currentAge,
       retirementAge,
@@ -676,7 +603,11 @@ function PlanView(): React.ReactElement {
       scenarioOverrides,
       spendableCategories,
       rentalIncome,
+      displayCurrency: displayCurrency ?? undefined,
     })
+
+  // Plan inputs from backend (already FX converted when displayCurrency differs)
+  const planInputs = adjustedProjection?.planInputs
 
   // Calculate FI metrics for summary bar
   // Uses effectivePlanValues which already has What-If overrides applied
@@ -713,32 +644,30 @@ function PlanView(): React.ReactElement {
 
     // FI Number based on NET expenses (accounts for rental income, pension, etc.)
     const annualNetExpenses = netMonthlyExpenses * 12
-    const fiNumber = annualNetExpenses * 25
+    const fiNumber = calculateFiNumber(annualNetExpenses)
 
-    // Coast FIRE calculation
-    const yearsToRetirement =
-      currentAge && retirementAge && retirementAge > currentAge
-        ? retirementAge - currentAge
-        : null
+    // Coast FIRE calculation - use shared utilities
+    const yearsToRetirement = calculateYearsToTarget(currentAge, retirementAge)
 
     // Apply return rate adjustment for Coast FIRE (offset is in percentage points)
     const adjustedReturnRate =
       blendedReturnRate + combinedAdjustments.returnRateOffset / 100
-    const coastFiNumber =
-      yearsToRetirement && adjustedReturnRate > 0
-        ? fiNumber / Math.pow(1 + adjustedReturnRate, yearsToRetirement)
-        : null
+    const coastFiNumber = calculateCoastFiNumber(
+      fiNumber,
+      yearsToRetirement ?? 0,
+      adjustedReturnRate,
+    )
 
-    // FI Progress calculation
-    const fiProgress = fiNumber > 0 ? (liquidAssets / fiNumber) * 100 : 0
-    const isFinanciallyIndependent = fiProgress >= 100
+    // FI Progress calculation - use shared utilities
+    const fiProgress = calculateFiProgress(liquidAssets, fiNumber)
+    const isFinanciallyIndependent = isFiAchieved(fiProgress)
 
-    // Coast FI Progress
-    const coastFiProgress =
-      coastFiNumber && coastFiNumber > 0
-        ? (liquidAssets / coastFiNumber) * 100
-        : null
-    const isCoastFire = coastFiProgress ? coastFiProgress >= 100 : false
+    // Coast FI Progress - use shared utilities
+    const coastFiProgress = calculateCoastFiProgress(
+      liquidAssets,
+      coastFiNumber,
+    )
+    const isCoastFire = isCoastFireAchieved(coastFiProgress)
 
     // Use backend values for fields we don't adjust locally, if available and no What-If active
     const backendMetrics =
@@ -996,56 +925,31 @@ function PlanView(): React.ReactElement {
       <div className="min-h-screen bg-gray-50 py-4">
         <div className="container mx-auto px-4">
           {/* Compact Header */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-4">
-              <Link
-                href="/independence"
-                className="text-gray-400 hover:text-orange-600 transition-colors"
-                title="Back to Plans"
-              >
-                <i className="fas fa-arrow-left"></i>
-              </Link>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">{plan.name}</h1>
-                <p className="text-sm text-gray-500">
-                  {plan.planningHorizonYears} year horizon
+          <PlanViewHeader
+            planName={plan.name}
+            planId={plan.id}
+            planningHorizonYears={plan.planningHorizonYears}
+            planCurrency={planCurrency}
+            displayCurrency={displayCurrency}
+            availableCurrencies={availableCurrencies}
+            onCurrencyChange={setDisplayCurrency}
+            onExport={handleExport}
+          />
+
+          {/* Loading Overlay - shown during initial projection calculation */}
+          {isCalculating && !adjustedProjection && (
+            <div className="fixed inset-0 bg-white/80 z-40 flex items-center justify-center">
+              <div className="text-center">
+                <i className="fas fa-spinner fa-spin text-4xl text-orange-500 mb-4"></i>
+                <p className="text-gray-600 font-medium">
+                  Calculating projections...
+                </p>
+                <p className="text-gray-400 text-sm mt-1">
+                  Fetching assets and running calculations
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              {/* Currency selector */}
-              <select
-                value={displayCurrency || planCurrency}
-                onChange={(e) =>
-                  setDisplayCurrency(
-                    e.target.value === planCurrency ? null : e.target.value,
-                  )
-                }
-                className="text-sm border border-gray-300 rounded px-2 py-1 bg-white"
-                title="Display currency"
-              >
-                {availableCurrencies.map((curr) => (
-                  <option key={curr.code} value={curr.code}>
-                    {curr.code}
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={handleExport}
-                className="text-gray-400 hover:text-gray-600 p-2"
-                title="Export plan as JSON"
-              >
-                <i className="fas fa-download"></i>
-              </button>
-              <Link
-                href={`/independence/wizard/${plan.id}`}
-                className="text-orange-600 hover:text-orange-700 text-sm font-medium"
-              >
-                <i className="fas fa-edit mr-1"></i>
-                Edit
-              </Link>
-            </div>
-          </div>
+          )}
 
           {/* Allocation Warning Banner */}
           {!isAllocationValid && (
@@ -1075,7 +979,7 @@ function PlanView(): React.ReactElement {
           {/* FIRE Summary Bar - Only show when backend data is available and allocation valid */}
           {adjustedProjection?.fiMetrics && isAllocationValid ? (
             <FiSummaryBar
-              fiNumber={adjustedProjection.fiMetrics.fiNumber * effectiveFxRate}
+              fiNumber={adjustedProjection.fiMetrics.fiNumber}
               liquidAssets={liquidAssets * effectiveFxRate}
               illiquidAssets={nonSpendableAssets * effectiveFxRate}
               currency={effectiveCurrency}
@@ -1095,70 +999,24 @@ function PlanView(): React.ReactElement {
           )}
 
           {/* Tab Navigation */}
-          <div className="border-b border-gray-200 mb-4">
-            <nav className="flex space-x-6 overflow-x-auto">
-              {TABS.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`
-                    py-2 px-1 border-b-2 font-medium text-sm flex items-center whitespace-nowrap
-                    ${
-                      activeTab === tab.id
-                        ? "border-orange-500 text-orange-600"
-                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                    }
-                  `}
-                >
-                  <i className={`fas ${tab.icon} mr-1.5 text-xs`}></i>
-                  {tab.label}
-                </button>
-              ))}
-            </nav>
-          </div>
+          <PlanTabNavigation
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            hasAssets={hasAssets}
+          />
 
           {/* Global What-If toolbar - available on all tabs */}
-          <div className="flex flex-wrap items-center gap-3 mb-4">
-            <button
-              onClick={() => setShowWhatIfModal(true)}
-              className="py-1.5 px-3 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors flex items-center"
-            >
-              <i className="fas fa-sliders-h mr-2"></i>
-              What-If
-            </button>
-            {/* Quick scenario toggles */}
-            {quickScenarios.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {quickScenarios.map((scenario: QuickScenario) => {
-                  const isSelected = selectedScenarioIds.includes(scenario.id)
-                  return (
-                    <button
-                      key={scenario.id}
-                      onClick={() => toggleScenario(scenario.id)}
-                      className={`px-2 py-1 text-xs rounded-full transition-colors ${
-                        isSelected
-                          ? "bg-orange-500 text-white"
-                          : "border border-gray-300 text-gray-600 hover:bg-gray-50"
-                      }`}
-                      title={scenario.description}
-                    >
-                      {isSelected && <i className="fas fa-check mr-1"></i>}
-                      {scenario.name}
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-            {/* Show indicator if there are unsaved changes */}
-            {(hasScenarioChanges(whatIfAdjustments) ||
+          <AnalysisToolbar
+            quickScenarios={quickScenarios}
+            selectedScenarioIds={selectedScenarioIds}
+            hasUnsavedChanges={
+              hasScenarioChanges(whatIfAdjustments) ||
               Object.keys(scenarioOverrides).length > 0 ||
-              selectedScenarioIds.length > 0) && (
-              <span className="text-xs text-orange-600">
-                <i className="fas fa-circle text-[6px] mr-1"></i>
-                Unsaved changes
-              </span>
-            )}
-          </div>
+              selectedScenarioIds.length > 0
+            }
+            onWhatIfClick={() => setShowWhatIfModal(true)}
+            onScenarioToggle={toggleScenario}
+          />
 
           {/* Tab Content */}
           {activeTab === "details" &&
@@ -1190,12 +1048,35 @@ function PlanView(): React.ReactElement {
                 scenarioOverrides.cashReturnRate ?? plan.cashReturnRate
               const effectiveHousingReturn =
                 scenarioOverrides.housingReturnRate ?? plan.housingReturnRate
-              const netMonthlyNeed =
-                effectiveExpenses -
-                effectivePension -
-                effectiveSocialSecurity -
-                effectiveOtherIncome -
-                (rentalIncome?.totalMonthlyInPlanCurrency || 0)
+
+              // Display values - use planInputs from backend when available (already FX converted)
+              // Fall back to local values with FX conversion
+              const displayExpenses =
+                planInputs?.monthlyExpenses ??
+                effectiveExpenses * effectiveFxRate
+              const displayPension =
+                planInputs?.pensionMonthly ?? effectivePension * effectiveFxRate
+              const displaySocialSecurity =
+                planInputs?.socialSecurityMonthly ??
+                effectiveSocialSecurity * effectiveFxRate
+              const displayOtherIncome =
+                planInputs?.otherIncomeMonthly ??
+                effectiveOtherIncome * effectiveFxRate
+              const displayRentalIncome =
+                planInputs?.rentalIncomeMonthly ??
+                (rentalIncome?.totalMonthlyInPlanCurrency ?? 0) *
+                  effectiveFxRate
+              const displayTarget =
+                planInputs?.targetBalance ??
+                (effectiveTarget ?? 0) * effectiveFxRate
+              const displayNetMonthlyNeed = Math.max(
+                0,
+                displayExpenses -
+                  displayPension -
+                  displaySocialSecurity -
+                  displayOtherIncome -
+                  displayRentalIncome,
+              )
 
               return (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1225,7 +1106,7 @@ function PlanView(): React.ReactElement {
                         >
                           {hideValues
                             ? HIDDEN_VALUE
-                            : `${effectiveCurrency}${Math.round(effectiveExpenses * effectiveFxRate).toLocaleString()}`}
+                            : `${effectiveCurrency}${Math.round(displayExpenses).toLocaleString()}`}
                         </span>
                       </div>
                       <div className="flex justify-between">
@@ -1237,7 +1118,7 @@ function PlanView(): React.ReactElement {
                         >
                           {hideValues
                             ? HIDDEN_VALUE
-                            : `${effectiveCurrency}${Math.round(effectivePension * effectiveFxRate).toLocaleString()}`}
+                            : `${effectiveCurrency}${Math.round(displayPension).toLocaleString()}`}
                         </span>
                       </div>
                       <div className="flex justify-between">
@@ -1249,7 +1130,7 @@ function PlanView(): React.ReactElement {
                         >
                           {hideValues
                             ? HIDDEN_VALUE
-                            : `${effectiveCurrency}${Math.round(effectiveSocialSecurity * effectiveFxRate).toLocaleString()}`}
+                            : `${effectiveCurrency}${Math.round(displaySocialSecurity).toLocaleString()}`}
                         </span>
                       </div>
                       <div className="flex justify-between">
@@ -1261,27 +1142,26 @@ function PlanView(): React.ReactElement {
                         >
                           {hideValues
                             ? HIDDEN_VALUE
-                            : `${effectiveCurrency}${Math.round(effectiveOtherIncome * effectiveFxRate).toLocaleString()}`}
+                            : `${effectiveCurrency}${Math.round(displayOtherIncome).toLocaleString()}`}
                         </span>
                       </div>
-                      {rentalIncome &&
-                        rentalIncome.totalMonthlyInPlanCurrency > 0 && (
-                          <div className="flex justify-between">
-                            <InfoTooltip text="Net rental income from properties (after all expenses). Stops if property is liquidated.">
-                              <span className="text-gray-500">
-                                <i className="fas fa-home text-xs mr-1"></i>
-                                Property Rental
-                              </span>
-                            </InfoTooltip>
-                            <span
-                              className={`font-medium ${hideValues ? "text-gray-400" : "text-green-600"}`}
-                            >
-                              {hideValues
-                                ? HIDDEN_VALUE
-                                : `${effectiveCurrency}${Math.round(rentalIncome.totalMonthlyInPlanCurrency * effectiveFxRate).toLocaleString()}`}
+                      {displayRentalIncome > 0 && (
+                        <div className="flex justify-between">
+                          <InfoTooltip text="Net rental income from properties (after all expenses). Stops if property is liquidated.">
+                            <span className="text-gray-500">
+                              <i className="fas fa-home text-xs mr-1"></i>
+                              Property Rental
                             </span>
-                          </div>
-                        )}
+                          </InfoTooltip>
+                          <span
+                            className={`font-medium ${hideValues ? "text-gray-400" : "text-green-600"}`}
+                          >
+                            {hideValues
+                              ? HIDDEN_VALUE
+                              : `${effectiveCurrency}${Math.round(displayRentalIncome).toLocaleString()}`}
+                          </span>
+                        </div>
+                      )}
                       <div className="flex justify-between">
                         <InfoTooltip text={t("retire.netMonthlyNeed.tooltip")}>
                           <span className="text-gray-500">
@@ -1293,7 +1173,7 @@ function PlanView(): React.ReactElement {
                         >
                           {hideValues
                             ? HIDDEN_VALUE
-                            : `${effectiveCurrency}${Math.round(netMonthlyNeed * effectiveFxRate).toLocaleString()}`}
+                            : `${effectiveCurrency}${Math.round(displayNetMonthlyNeed).toLocaleString()}`}
                         </span>
                       </div>
                       <hr />
@@ -1335,7 +1215,7 @@ function PlanView(): React.ReactElement {
                           >
                             {hideValues
                               ? HIDDEN_VALUE
-                              : `${effectiveCurrency}${Math.round(effectiveTarget * effectiveFxRate).toLocaleString()}`}
+                              : `${effectiveCurrency}${Math.round(displayTarget).toLocaleString()}`}
                           </span>
                         </div>
                       )}
@@ -1431,7 +1311,7 @@ function PlanView(): React.ReactElement {
                               >
                                 {hideValues
                                   ? HIDDEN_VALUE
-                                  : `${effectiveCurrency}${Math.round(slice.value * (usingManualAssets ? 1 : holdingsToPlanRate) * effectiveFxRate).toLocaleString()}`}
+                                  : `${effectiveCurrency}${Math.round(slice.value * effectiveFxRate).toLocaleString()}`}
                               </span>
                             </label>
                           </div>
@@ -1464,7 +1344,7 @@ function PlanView(): React.ReactElement {
                             <span className="font-medium text-gray-500">
                               {hideValues
                                 ? HIDDEN_VALUE
-                                : `${effectiveCurrency}${Math.round(slice.value * (usingManualAssets ? 1 : holdingsToPlanRate) * effectiveFxRate).toLocaleString()}`}
+                                : `${effectiveCurrency}${Math.round(slice.value * effectiveFxRate).toLocaleString()}`}
                             </span>
                           </div>
                         </div>
@@ -1558,36 +1438,38 @@ function PlanView(): React.ReactElement {
               // Use NET expenses (after income sources) for FI calculations
               const netExpenses = fiMetrics?.netMonthlyExpenses ?? 0
 
+              // Get planInputs from projection for display values (already FX converted by backend)
+              const planInputs = adjustedProjection?.planInputs
+              const displayWorkingIncome =
+                planInputs?.workingIncomeMonthly ??
+                (plan?.workingIncomeMonthly ?? 0) *
+                  (displayCurrency !== plan?.expensesCurrency ? 1 : 1)
+              const displayMonthlyContribution =
+                planInputs?.monthlyContribution ?? effectiveMonthlyInvestment
+
               return (
                 <div className="space-y-6">
-                  {/* Main FIRE Metrics - uses backend values for consistency with PlanCard */}
+                  {/* Main FIRE Metrics - uses backend values (already FX converted) */}
                   <FiMetrics
-                    monthlyExpenses={netExpenses * effectiveFxRate}
+                    monthlyExpenses={
+                      adjustedProjection?.fiMetrics?.netMonthlyExpenses ?? 0
+                    }
                     liquidAssets={liquidAssets * effectiveFxRate}
                     currency={effectiveCurrency}
-                    workingIncomeMonthly={
-                      (plan.workingIncomeMonthly || 0) * effectiveFxRate
-                    }
-                    monthlyInvestment={
-                      effectiveMonthlyInvestment * effectiveFxRate
-                    }
+                    workingIncomeMonthly={displayWorkingIncome}
+                    monthlyInvestment={displayMonthlyContribution}
                     expectedReturnRate={blendedReturnRate}
                     currentAge={currentAge}
                     retirementAge={retirementAge}
-                    backendFiNumber={
-                      adjustedProjection?.fiMetrics?.fiNumber
-                        ? adjustedProjection.fiMetrics.fiNumber *
-                          effectiveFxRate
-                        : undefined
-                    }
+                    backendFiNumber={adjustedProjection?.fiMetrics?.fiNumber}
                     backendFiProgress={
                       adjustedProjection?.fiMetrics?.fiProgress
                     }
+                    backendNetMonthlyExpenses={
+                      adjustedProjection?.fiMetrics?.netMonthlyExpenses
+                    }
                     backendCoastFiNumber={
                       adjustedProjection?.fiMetrics?.coastFiNumber
-                        ? adjustedProjection.fiMetrics.coastFiNumber *
-                          effectiveFxRate
-                        : undefined
                     }
                     backendCoastFiProgress={
                       adjustedProjection?.fiMetrics?.coastFiProgress

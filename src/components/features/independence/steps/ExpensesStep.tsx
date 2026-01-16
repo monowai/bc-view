@@ -44,11 +44,14 @@ export default function ExpensesStep({
   const expenses = useWatch({ control, name: "expenses" }) || []
 
   // Initialize expenses with all system categories when data loads
+  // Only do this for NEW plans that have no expenses yet
+  // Important: Check expenses.length instead of fields.length to avoid race condition
+  // where useFieldArray hasn't synced with form state yet on first render
   useEffect(() => {
     if (
       systemCategories.length > 0 &&
       !hasInitialized.current &&
-      fields.length === 0
+      expenses.length === 0
     ) {
       const initialExpenses = systemCategories.map((cat) => ({
         categoryLabelId: cat.id,
@@ -58,7 +61,7 @@ export default function ExpensesStep({
       setValue("expenses", initialExpenses)
       hasInitialized.current = true
     }
-  }, [systemCategories, setValue, fields.length])
+  }, [systemCategories, setValue, expenses.length])
 
   const totalMonthlyExpenses = expenses.reduce(
     (sum, expense) => sum + (expense?.monthlyAmount || 0),

@@ -65,8 +65,6 @@ const mockProjectionResponse = {
 
 const defaultProps = {
   plan: mockPlan,
-  liquidAssets: 500000,
-  nonSpendableAssets: 200000,
   selectedPortfolioIds: ["portfolio-1"],
   currentAge: 55,
   retirementAge: 65,
@@ -113,11 +111,10 @@ describe("useRetirementProjection", () => {
     })
   })
 
-  it("does not auto-calculate when liquidAssets is 0", async () => {
+  it("auto-calculates when plan and categories are ready (backend fetches assets from svc-position)", async () => {
     renderHook(() =>
       useRetirementProjection({
         ...defaultProps,
-        liquidAssets: 0,
       }),
     )
 
@@ -125,7 +122,8 @@ describe("useRetirementProjection", () => {
     await act(async () => {
       await Promise.resolve()
     })
-    expect(global.fetch).not.toHaveBeenCalled()
+    // Backend fetches allocation from svc-position (assets not sent from frontend)
+    expect(global.fetch).toHaveBeenCalled()
   })
 
   it("does not auto-calculate when plan is undefined", async () => {
