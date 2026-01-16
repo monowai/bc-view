@@ -9,7 +9,7 @@ import {
 import useSwr from "swr"
 import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { WizardFormData, ManualAssetCategory } from "types/independence"
-import { Portfolio, FxResponse, AllocationResponse } from "types/beancounter"
+import { Portfolio, AllocationResponse } from "types/beancounter"
 
 // Asset category configuration with labels and growth rate info
 const ASSET_CATEGORIES: {
@@ -75,7 +75,6 @@ export default function GoalsAssumptionsStep({
 }: GoalsAssumptionsStepProps): React.ReactElement {
   const hasAutoSelected = useRef(false)
   const hasAppliedAllocation = useRef(false)
-  const [fxRates, setFxRates] = useState<Record<string, number>>({})
   const [isLoadingAllocation, setIsLoadingAllocation] = useState(false)
 
   const { data: portfoliosData } = useSwr<PortfoliosResponse>(
@@ -110,74 +109,6 @@ export default function GoalsAssumptionsStep({
       hasAutoSelected.current = true
     }
   }, [portfoliosWithBalance, setValue])
-
-  // Get unique currency codes that need conversion
-  const uniqueCurrencies = useMemo(() => {
-    const currencies = new Set<string>()
-    portfoliosWithBalance.forEach((p) => {
-      const fromCurrency = p.currency?.code
-      if (fromCurrency && fromCurrency !== planCurrency) {
-        currencies.add(fromCurrency)
-      }
-    })
-    return Array.from(currencies)
-  }, [portfoliosWithBalance, planCurrency])
-
-  // Fetch FX rates when currencies change
-  useEffect(() => {
-    if (!uniqueCurrencies.length || !planCurrency) return
-
-    const pairs = uniqueCurrencies.map((from) => ({ from, to: planCurrency }))
-
-    fetch("/api/fx", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        rateDate: "today",
-        pairs,
-      }),
-    })
-      .then((res) => res.json())
-      .then((fxResponse: FxResponse) => {
-        const rates: Record<string, number> = {}
-        uniqueCurrencies.forEach((fromCurrency) => {
-          const pairKey = `${fromCurrency}:${planCurrency}`
-          const rate = fxResponse.data?.rates?.[pairKey]?.rate
-          if (rate) {
-            rates[fromCurrency] = rate
-          }
-        })
-        setFxRates(rates)
-      })
-      .catch(console.error)
-  }, [uniqueCurrencies, planCurrency])
-
-  // Get FX rate for a currency
-  const getFxRate = useCallback(
-    (fromCurrency: string): number => {
-      if (fromCurrency === planCurrency) return 1
-      return fxRates[fromCurrency] || 1
-    },
-    [fxRates, planCurrency],
-  )
-
-  // Convert portfolio value to plan currency
-  const getConvertedValue = useCallback(
-    (portfolio: Portfolio): number => {
-      const fromCurrency = portfolio.currency?.code || planCurrency
-      const rate = getFxRate(fromCurrency)
-      return (portfolio.marketValue || 0) * rate
-    },
-    [getFxRate, planCurrency],
-  )
-
-  // Calculate total in plan currency
-  const totalAssets = useMemo(() => {
-    if (!portfoliosWithBalance.length || !selectedPortfolioIds.length) return 0
-    return portfoliosWithBalance
-      .filter((p) => selectedPortfolioIds.includes(p.id))
-      .reduce((sum, p) => sum + getConvertedValue(p), 0)
-  }, [portfoliosWithBalance, selectedPortfolioIds, getConvertedValue])
 
   // Fetch and apply allocation data when portfolios are first selected
   useEffect(() => {
@@ -272,6 +203,8 @@ export default function GoalsAssumptionsStep({
           return equityReturnRate
         case "housingReturnRate":
           return housingReturnRate
+        default:
+          return cashReturnRate
       }
     },
     [cashReturnRate, equityReturnRate, housingReturnRate],
@@ -435,18 +368,11 @@ export default function GoalsAssumptionsStep({
                     </div>
                     <div className="text-right">
                       <span className="text-gray-700 font-medium">
-                        {planCurrency}{" "}
+                        {portfolio.base?.code || portfolio.currency?.code}{" "}
                         {Math.round(
-                          getConvertedValue(portfolio),
+                          portfolio.marketValue || 0,
                         ).toLocaleString()}
                       </span>
-                      {portfolio.currency?.code &&
-                        portfolio.currency.code !== planCurrency && (
-                          <div className="text-xs text-gray-400">
-                            {portfolio.currency.code}{" "}
-                            {(portfolio.marketValue || 0).toLocaleString()}
-                          </div>
-                        )}
                     </div>
                   </label>
                 )}
@@ -460,13 +386,16 @@ export default function GoalsAssumptionsStep({
             <div className="flex justify-between items-center">
               <div className="flex items-center">
                 <i className="fas fa-chart-pie text-blue-600 mr-3"></i>
-                <span className="font-medium text-blue-800">
-                  Total Selected Assets
-                </span>
+                <div>
+                  <span className="font-medium text-blue-800">
+                    {selectedPortfolioIds.length} Portfolio
+                    {selectedPortfolioIds.length > 1 ? "s" : ""} Selected
+                  </span>
+                  <p className="text-xs text-blue-600">
+                    Values will be converted to {planCurrency} for projections
+                  </p>
+                </div>
               </div>
-              <span className="text-xl font-bold text-blue-700">
-                {planCurrency} {Math.round(totalAssets).toLocaleString()}
-              </span>
             </div>
           </div>
         )}

@@ -107,7 +107,7 @@ describe("FiMetrics", () => {
     // Text includes currency code inline with the formula
     const formulaText = screen.getByText(/Based on/)
     expect(formulaText).toHaveTextContent("5,000")
-    expect(formulaText).toHaveTextContent("/mo × 12 × 25")
+    expect(formulaText).toHaveTextContent("/mo net expenses × 12 × 25")
   })
 
   it("shows current assets on progress scale", () => {

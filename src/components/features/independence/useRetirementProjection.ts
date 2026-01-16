@@ -91,8 +91,6 @@ export interface RentalIncomeData {
 
 interface UseRetirementProjectionProps {
   plan: RetirementPlan | undefined
-  liquidAssets: number
-  nonSpendableAssets: number
   selectedPortfolioIds: string[]
   currentAge: number | undefined
   retirementAge: number
@@ -101,7 +99,10 @@ interface UseRetirementProjectionProps {
   whatIfAdjustments: WhatIfAdjustments
   scenarioOverrides: ScenarioOverrides
   spendableCategories: string[]
-  rentalIncome?: RentalIncomeData // Optional rental income from RE assets
+  /** Optional rental income (backend fetches from svc-data if not provided) */
+  rentalIncome?: RentalIncomeData
+  /** Display currency for FX conversion. Backend converts all values. */
+  displayCurrency?: string
 }
 
 interface UseRetirementProjectionResult {
@@ -116,8 +117,6 @@ interface UseRetirementProjectionResult {
 
 export function useRetirementProjection({
   plan,
-  liquidAssets,
-  nonSpendableAssets,
   selectedPortfolioIds,
   currentAge,
   retirementAge,
@@ -127,6 +126,7 @@ export function useRetirementProjection({
   scenarioOverrides,
   spendableCategories,
   rentalIncome,
+  displayCurrency,
 }: UseRetirementProjectionProps): UseRetirementProjectionResult {
   const [projection, setProjection] = useState<RetirementProjection | null>(
     null,
@@ -135,7 +135,7 @@ export function useRetirementProjection({
   const hasAutoCalculated = useRef(false)
 
   const calculateProjection = useCallback(async (): Promise<void> => {
-    if (!plan || liquidAssets === 0) return
+    if (!plan) return
 
     setIsCalculating(true)
     try {
@@ -177,35 +177,42 @@ export function useRetirementProjection({
         monthlyInvestment * (whatIfAdjustments.contributionPercent / 100),
       )
 
+      // Build request body - only include asset values if provided (backend fetches if not)
+      const requestBody: Record<string, unknown> = {
+        portfolioIds: selectedPortfolioIds,
+        currency: plan.expensesCurrency,
+        displayCurrency, // Backend converts all values to this currency
+        currentAge,
+        retirementAge: effectiveRetirementAge,
+        lifeExpectancy,
+        monthlyContribution: effectiveMonthlyContribution,
+        // Plan value overrides (What-If adjusted values)
+        monthlyExpenses: effectiveMonthlyExpenses,
+        cashReturnRate: effectiveCashReturnRate,
+        equityReturnRate: effectiveEquityReturnRate,
+        housingReturnRate: effectiveHousingReturnRate,
+        inflationRate: effectiveInflationRate,
+        pensionMonthly: scenarioOverrides.pensionMonthly ?? plan.pensionMonthly,
+        socialSecurityMonthly:
+          scenarioOverrides.socialSecurityMonthly ?? plan.socialSecurityMonthly,
+        otherIncomeMonthly:
+          scenarioOverrides.otherIncomeMonthly ?? plan.otherIncomeMonthly,
+        targetBalance: scenarioOverrides.targetBalance ?? plan.targetBalance,
+        liquidationThreshold: whatIfAdjustments.liquidationThreshold,
+      }
+
+      // Asset values are NOT sent from frontend - backend fetches from svc-position
+      // This ensures proper FX conversion to plan.expensesCurrency
+      // (Frontend categorySlices are in portfolio currency, not plan currency)
+      if (rentalIncome?.totalMonthlyInPlanCurrency) {
+        requestBody.rentalIncomeMonthly =
+          rentalIncome.totalMonthlyInPlanCurrency
+      }
+
       const response = await fetch(`/api/independence/projection/${plan.id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          liquidAssets,
-          nonSpendableAssets,
-          portfolioIds: selectedPortfolioIds,
-          currency: plan.expensesCurrency,
-          currentAge,
-          retirementAge: effectiveRetirementAge,
-          lifeExpectancy,
-          monthlyContribution: effectiveMonthlyContribution,
-          rentalIncomeMonthly: rentalIncome?.totalMonthlyInPlanCurrency || 0,
-          // Plan value overrides (What-If adjusted values)
-          monthlyExpenses: effectiveMonthlyExpenses,
-          cashReturnRate: effectiveCashReturnRate,
-          equityReturnRate: effectiveEquityReturnRate,
-          housingReturnRate: effectiveHousingReturnRate,
-          inflationRate: effectiveInflationRate,
-          pensionMonthly:
-            scenarioOverrides.pensionMonthly ?? plan.pensionMonthly,
-          socialSecurityMonthly:
-            scenarioOverrides.socialSecurityMonthly ??
-            plan.socialSecurityMonthly,
-          otherIncomeMonthly:
-            scenarioOverrides.otherIncomeMonthly ?? plan.otherIncomeMonthly,
-          targetBalance: scenarioOverrides.targetBalance ?? plan.targetBalance,
-          liquidationThreshold: whatIfAdjustments.liquidationThreshold,
-        }),
+        body: JSON.stringify(requestBody),
       })
 
       if (response.ok) {
@@ -219,8 +226,6 @@ export function useRetirementProjection({
     }
   }, [
     plan,
-    liquidAssets,
-    nonSpendableAssets,
     selectedPortfolioIds,
     currentAge,
     retirementAge,
@@ -229,6 +234,7 @@ export function useRetirementProjection({
     rentalIncome,
     scenarioOverrides,
     whatIfAdjustments,
+    displayCurrency,
   ])
 
   // Calculate combined checksum for plan + What-If values - memoized for efficiency
@@ -255,10 +261,10 @@ export function useRetirementProjection({
   const prevChecksumRef = useRef<number>(0)
 
   // Auto-calculate projection when data is ready
+  // Note: liquidAssets check removed - backend fetches from svc-position if not provided
   useEffect(() => {
     if (
       plan &&
-      liquidAssets > 0 &&
       spendableCategories.length > 0 &&
       !hasAutoCalculated.current &&
       !projection
@@ -269,7 +275,6 @@ export function useRetirementProjection({
     }
   }, [
     plan,
-    liquidAssets,
     spendableCategories,
     projection,
     calculateProjection,
@@ -278,8 +283,7 @@ export function useRetirementProjection({
 
   // Recalculate when plan or What-If checksum changes (debounced)
   useEffect(() => {
-    if (!plan || liquidAssets === 0 || !hasAutoCalculated.current)
-      return undefined
+    if (!plan || !hasAutoCalculated.current) return undefined
 
     // Skip if checksum hasn't changed
     if (projectionChecksum === prevChecksumRef.current) return undefined
@@ -291,7 +295,7 @@ export function useRetirementProjection({
     }, 300)
 
     return () => clearTimeout(timeoutId)
-  }, [plan, liquidAssets, projectionChecksum, calculateProjection])
+  }, [plan, projectionChecksum, calculateProjection])
 
   // Reset projection when categories change
   const resetProjection = useCallback((): void => {
