@@ -296,9 +296,7 @@ export default function WhatIfModal({
                   value={whatIfAdjustments.retirementAgeOffset}
                   onChange={(v) => updateAdjustment("retirementAgeOffset", v)}
                   min={
-                    currentAge !== undefined
-                      ? Math.max(-5, currentAge - retirementAge)
-                      : -5
+                    currentAge !== undefined ? currentAge - retirementAge : -10
                   }
                   max={10}
                   step={1}

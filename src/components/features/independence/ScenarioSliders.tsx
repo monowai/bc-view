@@ -10,6 +10,7 @@ interface ScenarioSlidersProps {
   onReset: () => void
   retirementAge: number
   monthlyInvestment: number
+  currentAge?: number
 }
 
 export default function ScenarioSliders({
@@ -19,6 +20,7 @@ export default function ScenarioSliders({
   onReset,
   retirementAge,
   monthlyInvestment,
+  currentAge,
 }: ScenarioSlidersProps): React.ReactElement {
   const updateAdjustment = <K extends keyof WhatIfAdjustments>(
     key: K,
@@ -63,7 +65,7 @@ export default function ScenarioSliders({
           label="Independence Age"
           value={whatIfAdjustments.retirementAgeOffset}
           onChange={(v) => updateAdjustment("retirementAgeOffset", v)}
-          min={-5}
+          min={currentAge !== undefined ? currentAge - retirementAge : -10}
           max={10}
           step={1}
           unit=" years"
