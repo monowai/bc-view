@@ -98,7 +98,6 @@ interface UseRetirementProjectionProps {
   monthlyInvestment: number
   whatIfAdjustments: WhatIfAdjustments
   scenarioOverrides: ScenarioOverrides
-  spendableCategories: string[]
   /** Optional rental income (backend fetches from svc-data if not provided) */
   rentalIncome?: RentalIncomeData
   /** Display currency for FX conversion. Backend converts all values. */
@@ -124,7 +123,6 @@ export function useRetirementProjection({
   monthlyInvestment,
   whatIfAdjustments,
   scenarioOverrides,
-  spendableCategories,
   rentalIncome,
   displayCurrency,
 }: UseRetirementProjectionProps): UseRetirementProjectionResult {
@@ -260,26 +258,15 @@ export function useRetirementProjection({
   // Track previous checksum to detect changes
   const prevChecksumRef = useRef<number>(0)
 
-  // Auto-calculate projection when data is ready
-  // Note: liquidAssets check removed - backend fetches from svc-position if not provided
+  // Auto-calculate projection when plan is ready
+  // Backend fetches asset values from svc-position and determines spendable categories
   useEffect(() => {
-    if (
-      plan &&
-      spendableCategories.length > 0 &&
-      !hasAutoCalculated.current &&
-      !projection
-    ) {
+    if (plan && !hasAutoCalculated.current && !projection) {
       hasAutoCalculated.current = true
       prevChecksumRef.current = projectionChecksum
       calculateProjection()
     }
-  }, [
-    plan,
-    spendableCategories,
-    projection,
-    calculateProjection,
-    projectionChecksum,
-  ])
+  }, [plan, projection, calculateProjection, projectionChecksum])
 
   // Recalculate when plan or What-If checksum changes (debounced)
   useEffect(() => {

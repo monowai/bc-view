@@ -197,27 +197,14 @@ function PlanView(): React.ReactElement {
   )
 
   // Fetch aggregated holdings to get category breakdown
+  // Uses SWR default caching (stale-while-revalidate) for fast initial load
   const { data: holdingsResponse } = useSwr<{
     data: HoldingContract
   }>(
     "/api/holdings/aggregated?asAt=today",
     simpleFetcher("/api/holdings/aggregated?asAt=today"),
-    {
-      // Always fetch fresh holdings data to ensure projection accuracy
-      revalidateOnMount: true,
-      revalidateIfStale: true,
-      dedupingInterval: 0,
-    },
   )
   const holdingsData = holdingsResponse?.data
-
-  // Force cache invalidation on mount to ensure fresh data for FI calculations
-  useEffect(() => {
-    mutate("/api/holdings/aggregated?asAt=today")
-    if (id) {
-      mutate(`/api/independence/plans/${id}`)
-    }
-  }, [id])
 
   // Fetch quick scenarios for What-If analysis
   const { data: scenariosData } = useSwr<QuickScenariosResponse>(
@@ -601,7 +588,6 @@ function PlanView(): React.ReactElement {
       monthlyInvestment,
       whatIfAdjustments: combinedAdjustments,
       scenarioOverrides,
-      spendableCategories,
       rentalIncome,
       displayCurrency: displayCurrency ?? undefined,
     })
