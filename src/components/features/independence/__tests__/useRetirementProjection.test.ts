@@ -72,7 +72,6 @@ const defaultProps = {
   monthlyInvestment: 1600,
   whatIfAdjustments: DEFAULT_WHAT_IF_ADJUSTMENTS,
   scenarioOverrides: {},
-  spendableCategories: ["Equity", "Cash"],
 }
 
 describe("useRetirementProjection", () => {
@@ -84,11 +83,11 @@ describe("useRetirementProjection", () => {
     })
   })
 
-  it("returns initial state with null projections", () => {
+  it("returns initial state with null projections when no plan", () => {
     const { result } = renderHook(() =>
       useRetirementProjection({
         ...defaultProps,
-        spendableCategories: [], // No categories = no auto-calculate
+        plan: undefined, // No plan = no auto-calculate
       }),
     )
 
@@ -111,7 +110,7 @@ describe("useRetirementProjection", () => {
     })
   })
 
-  it("auto-calculates when plan and categories are ready (backend fetches assets from svc-position)", async () => {
+  it("auto-calculates when plan is ready (backend fetches assets from svc-position)", async () => {
     renderHook(() =>
       useRetirementProjection({
         ...defaultProps,
