@@ -607,22 +607,20 @@ function WealthDashboard(): React.ReactElement {
                           <p className="text-xs text-gray-500 mt-2">
                             {hideValues
                               ? ""
-                              : projectionData?.fiMetrics?.realYearsToFi != null
-                                ? `~${Math.round(projectionData.fiMetrics.realYearsToFi)} years to FI`
-                                : projectionData?.fiMetrics
-                                      ?.isFinanciallyIndependent
-                                  ? "Financially Independent!"
-                                  : ""}
+                              : projectionData?.fiMetrics
+                                    ?.isFinanciallyIndependent
+                                ? "Financially Independent!"
+                                : "Progress toward FI Number"}
                           </p>
                         </>
                       )}
                     </div>
                   )}
 
-                  {/* FIRE Achievement Age */}
+                  {/* Years to FI */}
                   {(projectionLoading || projectionData) && (
                     <div className="bg-linear-to-br from-orange-50 to-amber-50 rounded-lg p-4">
-                      <p className="text-sm text-gray-600 mb-1">FIRE Age</p>
+                      <p className="text-sm text-gray-600 mb-1">Years to FI</p>
                       {projectionLoading && !projectionData ? (
                         <>
                           <div className="h-9 w-16 bg-gray-200 rounded animate-pulse"></div>
@@ -635,13 +633,21 @@ function WealthDashboard(): React.ReactElement {
                               <span className="text-3xl font-bold text-gray-400">
                                 ****
                               </span>
-                            ) : projectionData?.fiAchievementAge ? (
+                            ) : projectionData?.fiMetrics
+                                ?.isFinanciallyIndependent ? (
+                              <span className="text-2xl font-bold text-green-600">
+                                FI Achieved!
+                              </span>
+                            ) : projectionData?.fiMetrics?.realYearsToFi !=
+                              null ? (
                               <>
                                 <span className="text-3xl font-bold text-orange-600">
-                                  {projectionData.fiAchievementAge}
+                                  {Math.round(
+                                    projectionData.fiMetrics.realYearsToFi,
+                                  )}
                                 </span>
                                 <span className="text-sm text-gray-500">
-                                  years old
+                                  years
                                 </span>
                               </>
                             ) : (
@@ -653,9 +659,12 @@ function WealthDashboard(): React.ReactElement {
                           <p className="text-xs text-gray-500 mt-2">
                             {hideValues
                               ? ""
-                              : projectionData?.fiAchievementAge
-                                ? "Earliest possible retirement"
-                                : "Keep investing to reach FIRE"}
+                              : projectionData?.fiMetrics
+                                    ?.isFinanciallyIndependent
+                                ? "You've reached financial independence!"
+                                : projectionData?.fiAchievementAge
+                                  ? `FI at age ${projectionData.fiAchievementAge}`
+                                  : "Keep investing to reach FIRE"}
                           </p>
                         </>
                       )}

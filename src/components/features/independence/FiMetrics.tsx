@@ -111,7 +111,7 @@ export default function FiMetrics({
   const fiNumber = backendFiNumber || localFiNumber
 
   // FI Progress and Gap - use shared utilities
-  // Using || ensures we fallback to local calculation when backend returns 0
+  // Using || fallback to local calculation when backend returns 0
   const localFiProgress = calculateFiProgress(liquidAssets, fiNumber)
   const fiProgress = backendFiProgress || localFiProgress
   const fiProgressClamped = clampFiProgress(fiProgress)
@@ -170,7 +170,7 @@ export default function FiMetrics({
 
       <div className="space-y-4">
         {/* FI Number */}
-        <div className="p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-lg border border-orange-100">
+        <div className="p-4 bg-linear-to-r from-orange-50 to-amber-50 rounded-lg border border-orange-100">
           <div className="flex justify-between items-center">
             <div>
               <InfoTooltip text="Your FI Number is 25× your annual expenses. At this amount, a 4% annual withdrawal covers your expenses indefinitely.">
