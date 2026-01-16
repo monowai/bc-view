@@ -6,6 +6,12 @@ export {
   useRetirementProjection,
   type RentalIncomeData,
 } from "./useRetirementProjection"
+export {
+  useAssetBreakdown,
+  calculateAssetBreakdown,
+  type AssetBreakdown,
+} from "./useAssetBreakdown"
+export { useFiProjection } from "./useFiProjection"
 
 // Components
 export { default as FiMetrics } from "./FiMetrics"

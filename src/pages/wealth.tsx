@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useTranslation } from "next-i18next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
@@ -20,10 +20,8 @@ import {
   HoldingContract,
   Transaction,
 } from "types/beancounter"
-import {
-  PlansResponse as IndependencePlansResponse,
-  ProjectionResponse,
-} from "types/independence"
+import { PlansResponse as IndependencePlansResponse } from "types/independence"
+import { useFiProjection } from "@components/features/independence"
 import { rootLoader } from "@components/ui/PageLoader"
 import { errorOut } from "@components/errors/ErrorOut"
 import { FormatValue } from "@components/ui/MoneyUtils"
@@ -125,32 +123,6 @@ function WealthDashboard(): React.ReactElement {
 
   // Get the first plan (or could allow selection)
   const primaryPlan = plansData?.data?.[0]
-
-  // Fetch projection for the primary plan (includes FI metrics and depletion age)
-  // Uses POST request with minimal body - backend will fetch asset values
-  const projectionFetcher = useCallback(
-    async (url: string) => {
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          currency: primaryPlan?.expensesCurrency || "USD",
-        }),
-      })
-      if (!res.ok) throw new Error("Failed to fetch projection")
-      return res.json()
-    },
-    [primaryPlan?.expensesCurrency],
-  )
-
-  const projectionUrl = primaryPlan?.id
-    ? `/api/independence/projection/${primaryPlan.id}`
-    : null
-  const { data: projectionData, isLoading: projectionLoading } =
-    useSwr<ProjectionResponse>(
-      projectionUrl,
-      projectionUrl ? projectionFetcher : null,
-    )
 
   const currencies = useMemo(
     () => currencyData?.data || [],
@@ -381,6 +353,14 @@ function WealthDashboard(): React.ReactElement {
     }
   }, [portfolios, fxRates, sortConfig, holdingsData])
 
+  // Fetch FI projection using shared hook
+  // Uses BASE currency values to match the wealth page's display currency approach
+  const { projection: projectionData, isLoading: projectionLoading } =
+    useFiProjection({
+      plan: primaryPlan,
+      holdingsData: holdingsData?.data,
+    })
+
   // Chart data
   const portfolioChartData = summary.portfolioBreakdown.map((p) => ({
     name: p.code,
@@ -512,7 +492,7 @@ function WealthDashboard(): React.ReactElement {
 
               {!collapsedSections.independence && (
                 <div
-                  className={`grid grid-cols-1 ${projectionData?.data ? "sm:grid-cols-2 lg:grid-cols-4" : ""} gap-4`}
+                  className={`grid grid-cols-1 ${projectionData ? "sm:grid-cols-2 lg:grid-cols-4" : ""} gap-4`}
                 >
                   {/* Monthly Investment Progress */}
                   <div className="bg-linear-to-br from-blue-50 to-indigo-50 rounded-lg p-4">
@@ -587,10 +567,10 @@ function WealthDashboard(): React.ReactElement {
                   </div>
 
                   {/* FI Progress - show loading skeleton or data */}
-                  {(projectionLoading || projectionData?.data) && (
+                  {(projectionLoading || projectionData) && (
                     <div className="bg-linear-to-br from-green-50 to-emerald-50 rounded-lg p-4">
                       <p className="text-sm text-gray-600 mb-1">FI Progress</p>
-                      {projectionLoading && !projectionData?.data ? (
+                      {projectionLoading && !projectionData ? (
                         <>
                           <div className="h-9 w-20 bg-gray-200 rounded animate-pulse"></div>
                           <div className="mt-2 bg-gray-200 rounded-full h-2">
@@ -607,7 +587,7 @@ function WealthDashboard(): React.ReactElement {
                               </span>
                             ) : (
                               <span className="text-3xl font-bold text-green-600">
-                                {projectionData?.data?.fiMetrics?.fiProgress?.toFixed(
+                                {projectionData?.fiMetrics?.fiProgress?.toFixed(
                                   1,
                                 ) ?? "0"}
                                 %
@@ -620,17 +600,16 @@ function WealthDashboard(): React.ReactElement {
                               style={{
                                 width: hideValues
                                   ? "0%"
-                                  : `${Math.min(projectionData?.data?.fiMetrics?.fiProgress ?? 0, 100)}%`,
+                                  : `${Math.min(projectionData?.fiMetrics?.fiProgress ?? 0, 100)}%`,
                               }}
                             />
                           </div>
                           <p className="text-xs text-gray-500 mt-2">
                             {hideValues
                               ? ""
-                              : projectionData?.data?.fiMetrics
-                                    ?.realYearsToFi != null
-                                ? `~${Math.round(projectionData.data.fiMetrics.realYearsToFi)} years to FI`
-                                : projectionData?.data?.fiMetrics
+                              : projectionData?.fiMetrics?.realYearsToFi != null
+                                ? `~${Math.round(projectionData.fiMetrics.realYearsToFi)} years to FI`
+                                : projectionData?.fiMetrics
                                       ?.isFinanciallyIndependent
                                   ? "Financially Independent!"
                                   : ""}
@@ -641,10 +620,10 @@ function WealthDashboard(): React.ReactElement {
                   )}
 
                   {/* FIRE Achievement Age */}
-                  {(projectionLoading || projectionData?.data) && (
+                  {(projectionLoading || projectionData) && (
                     <div className="bg-linear-to-br from-orange-50 to-amber-50 rounded-lg p-4">
                       <p className="text-sm text-gray-600 mb-1">FIRE Age</p>
-                      {projectionLoading && !projectionData?.data ? (
+                      {projectionLoading && !projectionData ? (
                         <>
                           <div className="h-9 w-16 bg-gray-200 rounded animate-pulse"></div>
                           <div className="h-4 w-36 bg-gray-200 rounded animate-pulse mt-2"></div>
@@ -656,10 +635,10 @@ function WealthDashboard(): React.ReactElement {
                               <span className="text-3xl font-bold text-gray-400">
                                 ****
                               </span>
-                            ) : projectionData?.data?.fiAchievementAge ? (
+                            ) : projectionData?.fiAchievementAge ? (
                               <>
                                 <span className="text-3xl font-bold text-orange-600">
-                                  {projectionData.data.fiAchievementAge}
+                                  {projectionData.fiAchievementAge}
                                 </span>
                                 <span className="text-sm text-gray-500">
                                   years old
@@ -674,7 +653,7 @@ function WealthDashboard(): React.ReactElement {
                           <p className="text-xs text-gray-500 mt-2">
                             {hideValues
                               ? ""
-                              : projectionData?.data?.fiAchievementAge
+                              : projectionData?.fiAchievementAge
                                 ? "Earliest possible retirement"
                                 : "Keep investing to reach FIRE"}
                           </p>
@@ -684,13 +663,13 @@ function WealthDashboard(): React.ReactElement {
                   )}
 
                   {/* Property Liquidation Age */}
-                  {(projectionLoading || projectionData?.data) && (
+                  {(projectionLoading || projectionData) && (
                     <div className="bg-linear-to-br from-purple-50 to-violet-50 rounded-lg p-4">
                       <p className="text-sm text-gray-600 mb-1">
                         <i className="fas fa-home text-purple-400 mr-1"></i>
                         Property Sale Age
                       </p>
-                      {projectionLoading && !projectionData?.data ? (
+                      {projectionLoading && !projectionData ? (
                         <>
                           <div className="h-9 w-24 bg-gray-200 rounded animate-pulse"></div>
                           <div className="h-4 w-32 bg-gray-200 rounded animate-pulse mt-2"></div>
@@ -698,12 +677,11 @@ function WealthDashboard(): React.ReactElement {
                       ) : (
                         (() => {
                           const liquidationYear =
-                            projectionData?.data?.yearlyProjections?.find(
+                            projectionData?.yearlyProjections?.find(
                               (y) => y.propertyLiquidated,
                             )
                           const hasProperty =
-                            (projectionData?.data?.nonSpendableAtRetirement ??
-                              0) > 0
+                            (projectionData?.nonSpendableAtRetirement ?? 0) > 0
                           return (
                             <>
                               <div className="flex items-baseline gap-2">

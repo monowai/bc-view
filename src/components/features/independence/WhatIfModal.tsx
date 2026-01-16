@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useState } from "react"
 import WhatIfSlider from "./WhatIfSlider"
 import { WhatIfAdjustments, ScenarioOverrides } from "./types"
 import { RetirementPlan } from "types/independence"
@@ -6,6 +6,8 @@ import { RentalIncomeData } from "./useRetirementProjection"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 
 const HIDDEN_VALUE = "****"
+
+type WhatIfTab = "scenarios" | "advanced"
 
 interface WhatIfModalProps {
   isOpen: boolean
@@ -41,6 +43,7 @@ export default function WhatIfModal({
   currentAge,
 }: WhatIfModalProps): React.ReactElement | null {
   const { hideValues } = usePrivacyMode()
+  const [activeTab, setActiveTab] = useState<WhatIfTab>("scenarios")
 
   if (!isOpen) return null
 
@@ -61,7 +64,6 @@ export default function WhatIfModal({
     key: K,
     value: ScenarioOverrides[K],
   ): void => {
-    // Use functional update to avoid stale closure issues with rapid slider changes
     onScenarioOverridesChange((prev) => ({
       ...prev,
       [key]: value,
@@ -77,6 +79,24 @@ export default function WhatIfModal({
     scenarioOverrides.otherIncomeMonthly ?? plan.otherIncomeMonthly ?? 0
   const totalRentalIncome = rentalIncome?.totalMonthlyInPlanCurrency ?? 0
 
+  // Working income (salary) affects monthly investment
+  const effectiveWorkingIncome =
+    scenarioOverrides.workingIncomeMonthly ?? plan.workingIncomeMonthly ?? 0
+  const workingExpenses = plan.workingExpensesMonthly ?? 0
+  const investmentAllocation = plan.investmentAllocationPercent ?? 0.8
+
+  // Calculate effective monthly investment based on salary override
+  const effectiveSurplus = effectiveWorkingIncome - workingExpenses
+  const effectiveMonthlyInvestment =
+    effectiveSurplus > 0 ? effectiveSurplus * investmentAllocation : 0
+
+  // Total independence income
+  const totalIndependenceIncome =
+    effectivePension +
+    effectiveSocialSecurity +
+    effectiveOtherIncome +
+    totalRentalIncome
+
   // Calculate base return rate for display
   const baseReturnRate =
     (plan.equityReturnRate * plan.equityAllocation +
@@ -89,6 +109,14 @@ export default function WhatIfModal({
     (plan.equityAllocation / (plan.equityAllocation + plan.cashAllocation)) *
       100,
   )
+
+  // Check if advanced tab has changes
+  const hasAdvancedChanges =
+    scenarioOverrides.pensionMonthly !== undefined ||
+    scenarioOverrides.socialSecurityMonthly !== undefined ||
+    scenarioOverrides.otherIncomeMonthly !== undefined ||
+    whatIfAdjustments.retirementAgeOffset !== 0 ||
+    whatIfAdjustments.inflationOffset !== 0
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -114,174 +142,254 @@ export default function WhatIfModal({
           </div>
         </div>
 
-        {/* Income Sources Section */}
-        <div className="mb-6">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
-            <i className="fas fa-coins text-green-500 mr-2"></i>
-            Monthly Income
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-            <WhatIfSlider
-              label="Pension"
-              value={effectivePension}
-              onChange={(v) => updateOverride("pensionMonthly", v)}
-              min={0}
-              max={Math.max(10000, (plan.pensionMonthly ?? 0) * 2)}
-              step={100}
-              unit=""
-              formatValue={(v) => `${formatMoney(v)}/mo`}
-            />
+        {/* Tab Navigation */}
+        <div className="flex border-b border-gray-200 mb-4">
+          <button
+            onClick={() => setActiveTab("scenarios")}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === "scenarios"
+                ? "border-orange-500 text-orange-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            <i className="fas fa-sliders-h mr-2"></i>
+            Scenarios
+          </button>
+          <button
+            onClick={() => setActiveTab("advanced")}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === "advanced"
+                ? "border-orange-500 text-orange-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            <i className="fas fa-cog mr-2"></i>
+            Advanced
+            {hasAdvancedChanges && (
+              <span className="ml-2 w-2 h-2 bg-orange-500 rounded-full inline-block"></span>
+            )}
+          </button>
+        </div>
 
-            <WhatIfSlider
-              label="Government Benefits"
-              value={effectiveSocialSecurity}
-              onChange={(v) => updateOverride("socialSecurityMonthly", v)}
-              min={0}
-              max={Math.max(5000, (plan.socialSecurityMonthly ?? 0) * 2)}
-              step={50}
-              unit=""
-              formatValue={(v) => `${formatMoney(v)}/mo`}
-            />
+        {/* Scenarios Tab */}
+        {activeTab === "scenarios" && (
+          <>
+            {/* Monthly Expenses */}
+            <div className="mb-6">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                <i className="fas fa-receipt text-red-500 mr-2"></i>
+                Monthly Expenses
+              </h3>
+              <WhatIfSlider
+                label="Expenses"
+                value={whatIfAdjustments.expensesPercent}
+                onChange={(v) => updateAdjustment("expensesPercent", v)}
+                min={50}
+                max={150}
+                step={5}
+                unit="%"
+                formatValue={(v) =>
+                  hideValues
+                    ? `${v}% (${HIDDEN_VALUE})`
+                    : `${v}% ($${Math.round((plan.monthlyExpenses * v) / 100).toLocaleString()}/mo)`
+                }
+              />
+            </div>
 
-            <WhatIfSlider
-              label="Other Income"
-              value={effectiveOtherIncome}
-              onChange={(v) => updateOverride("otherIncomeMonthly", v)}
-              min={0}
-              max={Math.max(5000, (plan.otherIncomeMonthly ?? 0) * 2)}
-              step={50}
-              unit=""
-              formatValue={(v) => `${formatMoney(v)}/mo`}
-            />
-
-            {totalRentalIncome > 0 && (
-              <div className="flex flex-col justify-center p-3 bg-green-50 rounded-lg border border-green-200">
-                <span className="text-xs text-green-600 font-medium">
-                  Property Rental (read-only)
-                </span>
-                <span
-                  className={`text-sm font-semibold ${hideValues ? "text-gray-400" : "text-green-700"}`}
-                >
-                  {formatMoney(totalRentalIncome)}/mo
-                </span>
-                <span className="text-xs text-green-500">
-                  Configure in Accounts
+            {/* Working Income (Salary) */}
+            <div className="mb-6">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                <i className="fas fa-briefcase text-blue-500 mr-2"></i>
+                Working Income
+              </h3>
+              <WhatIfSlider
+                label="Salary"
+                value={effectiveWorkingIncome}
+                onChange={(v) => updateOverride("workingIncomeMonthly", v)}
+                min={0}
+                max={Math.max(30000, (plan.workingIncomeMonthly ?? 0) * 2)}
+                step={500}
+                unit=""
+                formatValue={(v) => `${formatMoney(v)}/mo`}
+              />
+              <div className="mt-3 p-2 bg-blue-50 rounded text-sm text-blue-700">
+                <strong>Monthly Investment:</strong>{" "}
+                {hideValues
+                  ? HIDDEN_VALUE
+                  : `$${Math.round(effectiveMonthlyInvestment).toLocaleString()}/mo`}
+                <span className="text-xs text-blue-500 ml-2">
+                  ({Math.round(investmentAllocation * 100)}% of surplus after
+                  expenses)
                 </span>
               </div>
-            )}
-          </div>
-          <div className="mt-3 p-2 bg-gray-50 rounded text-sm text-gray-600">
-            <strong>Total Income:</strong>{" "}
-            {hideValues
-              ? HIDDEN_VALUE
-              : `$${(
-                  effectivePension +
-                  effectiveSocialSecurity +
-                  effectiveOtherIncome +
-                  totalRentalIncome
-                ).toLocaleString()}/mo`}
-          </div>
-        </div>
+            </div>
 
-        {/* Scenario Adjustments Section */}
-        <div className="border-t pt-4">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
-            <i className="fas fa-sliders-h text-orange-500 mr-2"></i>
-            Scenario Adjustments
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-            <WhatIfSlider
-              label="Independence Age"
-              value={whatIfAdjustments.retirementAgeOffset}
-              onChange={(v) => updateAdjustment("retirementAgeOffset", v)}
-              min={
-                currentAge !== undefined
-                  ? Math.max(-5, currentAge - retirementAge)
-                  : -5
-              }
-              max={10}
-              step={1}
-              unit=" years"
-              formatValue={(v) =>
-                `${retirementAge + v} (${v >= 0 ? "+" : ""}${v})`
-              }
-            />
+            {/* Projection Scenarios */}
+            <div className="border-t pt-4">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                <i className="fas fa-chart-line text-orange-500 mr-2"></i>
+                Projection Scenarios
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                <WhatIfSlider
+                  label="Employment Investment"
+                  value={whatIfAdjustments.contributionPercent}
+                  onChange={(v) => updateAdjustment("contributionPercent", v)}
+                  min={0}
+                  max={200}
+                  step={10}
+                  unit="%"
+                  formatValue={(v) => {
+                    const adjusted = Math.round(monthlyInvestment * (v / 100))
+                    return hideValues
+                      ? `${HIDDEN_VALUE}/mo (${v}%)`
+                      : `$${adjusted.toLocaleString()}/mo (${v}%)`
+                  }}
+                />
 
-            <WhatIfSlider
-              label="Employment Investment"
-              value={whatIfAdjustments.contributionPercent}
-              onChange={(v) => updateAdjustment("contributionPercent", v)}
-              min={0}
-              max={200}
-              step={10}
-              unit="%"
-              formatValue={(v) => {
-                const adjusted = Math.round(monthlyInvestment * (v / 100))
-                return hideValues
-                  ? `${HIDDEN_VALUE}/mo (${v}%)`
-                  : `$${adjusted.toLocaleString()}/mo (${v}%)`
-              }}
-            />
+                <WhatIfSlider
+                  label="Investment Returns"
+                  value={whatIfAdjustments.returnRateOffset}
+                  onChange={(v) => updateAdjustment("returnRateOffset", v)}
+                  min={-4}
+                  max={4}
+                  step={0.5}
+                  unit="%"
+                  formatValue={(v) => {
+                    const adjusted = baseReturnRate + v
+                    return `${adjusted.toFixed(1)}% (${v >= 0 ? "+" : ""}${v})`
+                  }}
+                />
 
-            <WhatIfSlider
-              label="Monthly Expenses"
-              value={whatIfAdjustments.expensesPercent}
-              onChange={(v) => updateAdjustment("expensesPercent", v)}
-              min={50}
-              max={150}
-              step={5}
-              unit="%"
-              formatValue={(v) =>
-                hideValues
-                  ? `${v}% (${HIDDEN_VALUE})`
-                  : `${v}% ($${Math.round((plan.monthlyExpenses * v) / 100).toLocaleString()})`
-              }
-            />
+                <WhatIfSlider
+                  label="Equity Allocation"
+                  value={
+                    whatIfAdjustments.equityPercent ?? defaultEquityPercent
+                  }
+                  onChange={(v) => updateAdjustment("equityPercent", v)}
+                  min={0}
+                  max={100}
+                  step={5}
+                  unit="%"
+                  formatValue={(v) => {
+                    const cashPct = 100 - v
+                    return `${v}% Equity / ${cashPct}% Cash`
+                  }}
+                />
+              </div>
+            </div>
+          </>
+        )}
 
-            <WhatIfSlider
-              label="Investment Returns"
-              value={whatIfAdjustments.returnRateOffset}
-              onChange={(v) => updateAdjustment("returnRateOffset", v)}
-              min={-4}
-              max={4}
-              step={0.5}
-              unit="%"
-              formatValue={(v) => {
-                const adjusted = baseReturnRate + v
-                return `${adjusted.toFixed(1)}% (${v >= 0 ? "+" : ""}${v})`
-              }}
-            />
+        {/* Advanced Tab */}
+        {activeTab === "advanced" && (
+          <>
+            {/* Independence Age and Inflation */}
+            <div className="mb-6">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                <i className="fas fa-calendar-alt text-purple-500 mr-2"></i>
+                Timeline Settings
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                <WhatIfSlider
+                  label="Independence Age"
+                  value={whatIfAdjustments.retirementAgeOffset}
+                  onChange={(v) => updateAdjustment("retirementAgeOffset", v)}
+                  min={
+                    currentAge !== undefined
+                      ? Math.max(-5, currentAge - retirementAge)
+                      : -5
+                  }
+                  max={10}
+                  step={1}
+                  unit=" years"
+                  formatValue={(v) =>
+                    `${retirementAge + v} (${v >= 0 ? "+" : ""}${v})`
+                  }
+                />
 
-            <WhatIfSlider
-              label="Inflation Rate"
-              value={whatIfAdjustments.inflationOffset}
-              onChange={(v) => updateAdjustment("inflationOffset", v)}
-              min={-2}
-              max={4}
-              step={0.5}
-              unit="%"
-              formatValue={(v) => {
-                const baseRate = plan.inflationRate * 100
-                const adjusted = baseRate + v
-                return `${adjusted.toFixed(1)}% (${v >= 0 ? "+" : ""}${v})`
-              }}
-            />
+                <WhatIfSlider
+                  label="Inflation Rate"
+                  value={whatIfAdjustments.inflationOffset}
+                  onChange={(v) => updateAdjustment("inflationOffset", v)}
+                  min={-2}
+                  max={4}
+                  step={0.5}
+                  unit="%"
+                  formatValue={(v) => {
+                    const baseRate = plan.inflationRate * 100
+                    const adjusted = baseRate + v
+                    return `${adjusted.toFixed(1)}% (${v >= 0 ? "+" : ""}${v})`
+                  }}
+                />
+              </div>
+            </div>
 
-            <WhatIfSlider
-              label="Equity Allocation"
-              value={whatIfAdjustments.equityPercent ?? defaultEquityPercent}
-              onChange={(v) => updateAdjustment("equityPercent", v)}
-              min={0}
-              max={100}
-              step={5}
-              unit="%"
-              formatValue={(v) => {
-                const cashPct = 100 - v
-                return `${v}% Equity / ${cashPct}% Cash`
-              }}
-            />
-          </div>
-        </div>
+            {/* Independence Income Sources */}
+            <div className="border-t pt-4">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                <i className="fas fa-coins text-green-500 mr-2"></i>
+                Independence Income
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                <WhatIfSlider
+                  label="Pension"
+                  value={effectivePension}
+                  onChange={(v) => updateOverride("pensionMonthly", v)}
+                  min={0}
+                  max={Math.max(10000, (plan.pensionMonthly ?? 0) * 2)}
+                  step={100}
+                  unit=""
+                  formatValue={(v) => `${formatMoney(v)}/mo`}
+                />
+
+                <WhatIfSlider
+                  label="Government Benefits"
+                  value={effectiveSocialSecurity}
+                  onChange={(v) => updateOverride("socialSecurityMonthly", v)}
+                  min={0}
+                  max={Math.max(5000, (plan.socialSecurityMonthly ?? 0) * 2)}
+                  step={50}
+                  unit=""
+                  formatValue={(v) => `${formatMoney(v)}/mo`}
+                />
+
+                <WhatIfSlider
+                  label="Other Income"
+                  value={effectiveOtherIncome}
+                  onChange={(v) => updateOverride("otherIncomeMonthly", v)}
+                  min={0}
+                  max={Math.max(5000, (plan.otherIncomeMonthly ?? 0) * 2)}
+                  step={50}
+                  unit=""
+                  formatValue={(v) => `${formatMoney(v)}/mo`}
+                />
+
+                {totalRentalIncome > 0 && (
+                  <div className="flex flex-col justify-center p-3 bg-green-50 rounded-lg border border-green-200">
+                    <span className="text-xs text-green-600 font-medium">
+                      Property Rental (read-only)
+                    </span>
+                    <span
+                      className={`text-sm font-semibold ${hideValues ? "text-gray-400" : "text-green-700"}`}
+                    >
+                      {formatMoney(totalRentalIncome)}/mo
+                    </span>
+                    <span className="text-xs text-green-500">
+                      Configure in Accounts
+                    </span>
+                  </div>
+                )}
+              </div>
+              <div className="mt-3 p-2 bg-gray-50 rounded text-sm text-gray-600">
+                <strong>Total Independence Income:</strong>{" "}
+                {hideValues
+                  ? HIDDEN_VALUE
+                  : `$${totalIndependenceIncome.toLocaleString()}/mo`}
+              </div>
+            </div>
+          </>
+        )}
 
         <div className="mt-6 pt-4 border-t">
           <button

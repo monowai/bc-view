@@ -14,10 +14,12 @@ export interface WhatIfAdjustments {
 // Scenario overrides - holds edited values until user decides to save
 // All plan values that can be modified in-memory before saving
 export interface ScenarioOverrides {
-  // Income sources
+  // Income sources (retirement)
   pensionMonthly?: number
   socialSecurityMonthly?: number
   otherIncomeMonthly?: number
+  // Working income (affects monthly investment)
+  workingIncomeMonthly?: number
   // Expenses
   monthlyExpenses?: number
   // Return rates (as decimals, e.g., 0.07 for 7%)

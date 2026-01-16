@@ -65,13 +65,14 @@ export function createPlanChecksum(plan: RetirementPlan | undefined): number {
 }
 
 /**
- * Creates a combined checksum from plan and What-If values.
+ * Creates a combined checksum from plan, What-If values, and asset values.
  */
 export function createProjectionChecksum(
   plan: RetirementPlan | undefined,
   scenarioOverrides: ScenarioOverrides,
   whatIfAdjustments: WhatIfAdjustments,
   retirementAge: number,
+  liquidAssets?: number,
 ): number {
   const planChecksum = createPlanChecksum(plan)
   const whatIfChecksum = createWhatIfChecksum(
@@ -79,8 +80,10 @@ export function createProjectionChecksum(
     whatIfAdjustments,
     retirementAge,
   )
+  // Include liquidAssets in checksum so changes trigger recalculation
+  const assetChecksum = Math.round(liquidAssets ?? 0)
   // Combine checksums using XOR and bit rotation for better distribution
-  return ((planChecksum << 16) | (planChecksum >>> 16)) ^ whatIfChecksum
+  return (((planChecksum << 16) | (planChecksum >>> 16)) ^ whatIfChecksum) ^ assetChecksum
 }
 
 // Rental income by currency from RE asset configs
@@ -102,6 +105,10 @@ interface UseRetirementProjectionProps {
   rentalIncome?: RentalIncomeData
   /** Display currency for FX conversion. Backend converts all values. */
   displayCurrency?: string
+  /** Pre-calculated liquid assets (avoids backend refetch from svc-position) */
+  liquidAssets?: number
+  /** Pre-calculated non-spendable assets (avoids backend refetch from svc-position) */
+  nonSpendableAssets?: number
 }
 
 interface UseRetirementProjectionResult {
@@ -125,6 +132,8 @@ export function useRetirementProjection({
   scenarioOverrides,
   rentalIncome,
   displayCurrency,
+  liquidAssets,
+  nonSpendableAssets,
 }: UseRetirementProjectionProps): UseRetirementProjectionResult {
   const [projection, setProjection] = useState<RetirementProjection | null>(
     null,
@@ -175,7 +184,15 @@ export function useRetirementProjection({
         monthlyInvestment * (whatIfAdjustments.contributionPercent / 100),
       )
 
-      // Build request body - only include asset values if provided (backend fetches if not)
+      // Debug logging for projection calculation
+      console.log("[Projection] === Request Values ===")
+      console.log("[Projection] monthlyInvestment:", monthlyInvestment)
+      console.log("[Projection] contributionPercent:", whatIfAdjustments.contributionPercent)
+      console.log("[Projection] effectiveMonthlyContribution:", effectiveMonthlyContribution)
+      console.log("[Projection] liquidAssets (input):", liquidAssets)
+      console.log("[Projection] monthlyExpenses:", effectiveMonthlyExpenses)
+
+      // Build request body - include asset values if provided to avoid backend refetch
       const requestBody: Record<string, unknown> = {
         portfolioIds: selectedPortfolioIds,
         currency: plan.expensesCurrency,
@@ -199,9 +216,14 @@ export function useRetirementProjection({
         liquidationThreshold: whatIfAdjustments.liquidationThreshold,
       }
 
-      // Asset values are NOT sent from frontend - backend fetches from svc-position
-      // This ensures proper FX conversion to plan.expensesCurrency
-      // (Frontend categorySlices are in portfolio currency, not plan currency)
+      // Pass pre-calculated asset values to avoid backend refetch from svc-position
+      // Only pass if values are > 0 (0 means data hasn't loaded yet, let backend fetch)
+      if (liquidAssets !== undefined && liquidAssets > 0) {
+        requestBody.liquidAssets = liquidAssets
+      }
+      if (nonSpendableAssets !== undefined && nonSpendableAssets > 0) {
+        requestBody.nonSpendableAssets = nonSpendableAssets
+      }
       if (rentalIncome?.totalMonthlyInPlanCurrency) {
         requestBody.rentalIncomeMonthly =
           rentalIncome.totalMonthlyInPlanCurrency
@@ -215,6 +237,11 @@ export function useRetirementProjection({
 
       if (response.ok) {
         const result: ProjectionResponse = await response.json()
+        console.log("[Projection] === Response Values ===")
+        console.log("[Projection] fiMetrics.fiNumber:", result.data.fiMetrics?.fiNumber)
+        console.log("[Projection] fiMetrics.fiProgress:", result.data.fiMetrics?.fiProgress)
+        console.log("[Projection] fiMetrics.realYearsToFi:", result.data.fiMetrics?.realYearsToFi)
+        console.log("[Projection] liquidAssets (response):", result.data.liquidAssets)
         setProjection(result.data)
       }
     } catch (err) {
@@ -233,10 +260,12 @@ export function useRetirementProjection({
     scenarioOverrides,
     whatIfAdjustments,
     displayCurrency,
+    liquidAssets,
+    nonSpendableAssets,
   ])
 
-  // Calculate combined checksum for plan + What-If values - memoized for efficiency
-  // This triggers recalculation when either plan details or What-If adjustments change
+  // Calculate combined checksum for plan + What-If values + assets - memoized for efficiency
+  // This triggers recalculation when plan details, What-If adjustments, or assets change
   const projectionChecksum = useMemo(
     () =>
       createProjectionChecksum(
@@ -244,8 +273,9 @@ export function useRetirementProjection({
         scenarioOverrides,
         whatIfAdjustments,
         retirementAge,
+        liquidAssets,
       ),
-    [plan, scenarioOverrides, whatIfAdjustments, retirementAge],
+    [plan, scenarioOverrides, whatIfAdjustments, retirementAge, liquidAssets],
   )
 
   // Also expose the What-If only checksum for backwards compatibility

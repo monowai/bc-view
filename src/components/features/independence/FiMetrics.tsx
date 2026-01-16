@@ -108,11 +108,12 @@ export default function FiMetrics({
   // FI Number = Annual Expenses × 25 (based on 4% SWR)
   // Use backend value if provided for consistency with PlanCard
   const localFiNumber = calculateFiNumberFromMonthly(monthlyExpenses)
-  const fiNumber = backendFiNumber ?? localFiNumber
+  const fiNumber = backendFiNumber || localFiNumber
 
   // FI Progress and Gap - use shared utilities
+  // Using || ensures we fallback to local calculation when backend returns 0
   const localFiProgress = calculateFiProgress(liquidAssets, fiNumber)
-  const fiProgress = backendFiProgress ?? localFiProgress
+  const fiProgress = backendFiProgress || localFiProgress
   const fiProgressClamped = clampFiProgress(fiProgress)
   const isFi = isFinanciallyIndependent(fiProgress)
 
@@ -260,37 +261,6 @@ export default function FiMetrics({
           </div>
         </div>
 
-        {/* Savings Rate */}
-        {savingsRate !== null && (
-          <div className="flex justify-between items-center py-2 border-t border-gray-100">
-            <InfoTooltip text="The percentage of your working income that goes towards savings/investments. Higher savings rates lead to faster FI.">
-              <span className="text-gray-600 flex items-center gap-2">
-                <i className="fas fa-piggy-bank text-green-500"></i>
-                Savings Rate
-              </span>
-            </InfoTooltip>
-            <div className="text-right">
-              <PrivatePercentage
-                value={savingsRate}
-                hideValues={hideValues}
-                className={`font-semibold ${hideValues ? "text-gray-400" : getSavingsRateTextColor(savingsRate)}`}
-              />
-              {monthlyInvestment !== undefined && (
-                <div className="text-xs text-gray-500">
-                  {hideValues ? (
-                    HIDDEN_VALUE
-                  ) : (
-                    <>
-                      {currency}
-                      {Math.round(monthlyInvestment).toLocaleString()}/mo
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
         {/* Years to FI */}
         {yearsToFi !== null && yearsToFi > 0 && !isFi && (
           <div className="py-2 border-t border-gray-100">
@@ -327,22 +297,6 @@ export default function FiMetrics({
                 {Math.round(yearsToFi)} years)
               </p>
             )}
-          </div>
-        )}
-
-        {/* SWR Warning */}
-        {backendRealReturnBelowSwr && !hideValues && !isFi && (
-          <div className="mt-2 p-3 bg-amber-50 rounded-lg border border-amber-200">
-            <div className="flex items-center gap-2 text-amber-700">
-              <i className="fas fa-exclamation-triangle"></i>
-              <span className="font-medium">Low Real Return Warning</span>
-            </div>
-            <p className="text-xs text-amber-600 mt-1">
-              Your real return (after inflation) is below the 4% safe withdrawal
-              rate. This means traditional FIRE calculations may be optimistic.
-              Consider increasing returns, reducing expenses, or planning for a
-              longer working period.
-            </p>
           </div>
         )}
 
@@ -406,6 +360,22 @@ export default function FiMetrics({
             </div>
           )}
 
+        {/* SWR Warning */}
+        {backendRealReturnBelowSwr && !hideValues && !isFi && (
+          <div className="mt-2 p-3 bg-amber-50 rounded-lg border border-amber-200">
+            <div className="flex items-center gap-2 text-amber-700">
+              <i className="fas fa-exclamation-triangle"></i>
+              <span className="font-medium">Low Real Return Warning</span>
+            </div>
+            <p className="text-xs text-amber-600 mt-1">
+              Your real return (after inflation) is below the 4% safe withdrawal
+              rate. This means traditional FIRE calculations may be optimistic.
+              Consider increasing returns, reducing expenses, or planning for a
+              longer working period.
+            </p>
+          </div>
+        )}
+
         {/* FI Achieved */}
         {isFi && !hideValues && (
           <div className="mt-2 p-3 bg-green-50 rounded-lg border border-green-200">
@@ -417,6 +387,37 @@ export default function FiMetrics({
               Your liquid assets exceed your FI Number. You could sustain your
               lifestyle indefinitely using the 4% rule.
             </p>
+          </div>
+        )}
+
+        {/* Savings Rate - informational, doesn't affect FIRE calculations */}
+        {savingsRate !== null && (
+          <div className="flex justify-between items-center py-2 border-t border-gray-100">
+            <InfoTooltip text="The percentage of your working income that goes towards savings/investments. Higher savings rates lead to faster FI.">
+              <span className="text-gray-600 flex items-center gap-2">
+                <i className="fas fa-piggy-bank text-green-500"></i>
+                Savings Rate
+              </span>
+            </InfoTooltip>
+            <div className="text-right">
+              <PrivatePercentage
+                value={savingsRate}
+                hideValues={hideValues}
+                className={`font-semibold ${hideValues ? "text-gray-400" : getSavingsRateTextColor(savingsRate)}`}
+              />
+              {monthlyInvestment !== undefined && (
+                <div className="text-xs text-gray-500">
+                  {hideValues ? (
+                    HIDDEN_VALUE
+                  ) : (
+                    <>
+                      {currency}
+                      {Math.round(monthlyInvestment).toLocaleString()}/mo
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
