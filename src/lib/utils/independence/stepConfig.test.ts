@@ -1,8 +1,8 @@
 import { WIZARD_STEPS, TOTAL_STEPS, getStepFields } from "./stepConfig"
 
 describe("WIZARD_STEPS", () => {
-  it("should have 6 steps", () => {
-    expect(WIZARD_STEPS).toHaveLength(6)
+  it("should have 7 steps", () => {
+    expect(WIZARD_STEPS).toHaveLength(7)
   })
 
   it("should have sequential step IDs starting from 1", () => {
@@ -13,11 +13,12 @@ describe("WIZARD_STEPS", () => {
 
   it("should have correct step names", () => {
     expect(WIZARD_STEPS[0].name).toBe("Personal Info")
-    expect(WIZARD_STEPS[1].name).toBe("Goals")
-    expect(WIZARD_STEPS[2].name).toBe("Life Events")
-    expect(WIZARD_STEPS[3].name).toBe("Income")
-    expect(WIZARD_STEPS[4].name).toBe("Employment")
+    expect(WIZARD_STEPS[1].name).toBe("Employment")
+    expect(WIZARD_STEPS[2].name).toBe("Assets")
+    expect(WIZARD_STEPS[3].name).toBe("Assumptions")
+    expect(WIZARD_STEPS[4].name).toBe("Income")
     expect(WIZARD_STEPS[5].name).toBe("Expenses")
+    expect(WIZARD_STEPS[6].name).toBe("Life Events")
   })
 
   it("should have non-empty fields array for each step", () => {
@@ -37,9 +38,26 @@ describe("WIZARD_STEPS", () => {
     })
   })
 
-  describe("Step 2 - Goals", () => {
+  describe("Step 2 - Employment", () => {
     it("should contain expected fields", () => {
       const fields = WIZARD_STEPS[1].fields
+      expect(fields).toContain("workingIncomeMonthly")
+      expect(fields).toContain("workingExpensesMonthly")
+      expect(fields).toContain("investmentAllocationPercent")
+    })
+  })
+
+  describe("Step 3 - Assets", () => {
+    it("should contain expected fields", () => {
+      const fields = WIZARD_STEPS[2].fields
+      expect(fields).toContain("selectedPortfolioIds")
+      expect(fields).toContain("manualAssets")
+    })
+  })
+
+  describe("Step 4 - Assumptions", () => {
+    it("should contain expected fields", () => {
+      const fields = WIZARD_STEPS[3].fields
       expect(fields).toContain("targetBalance")
       expect(fields).toContain("cashReturnRate")
       expect(fields).toContain("equityReturnRate")
@@ -48,32 +66,15 @@ describe("WIZARD_STEPS", () => {
       expect(fields).toContain("cashAllocation")
       expect(fields).toContain("equityAllocation")
       expect(fields).toContain("housingAllocation")
-      expect(fields).toContain("selectedPortfolioIds")
     })
   })
 
-  describe("Step 3 - Life Events", () => {
+  describe("Step 5 - Income", () => {
     it("should contain expected fields", () => {
-      const fields = WIZARD_STEPS[2].fields
-      expect(fields).toContain("lifeEvents")
-    })
-  })
-
-  describe("Step 4 - Income", () => {
-    it("should contain expected fields", () => {
-      const fields = WIZARD_STEPS[3].fields
+      const fields = WIZARD_STEPS[4].fields
       expect(fields).toContain("pensionMonthly")
       expect(fields).toContain("socialSecurityMonthly")
       expect(fields).toContain("otherIncomeMonthly")
-    })
-  })
-
-  describe("Step 5 - Employment", () => {
-    it("should contain expected fields", () => {
-      const fields = WIZARD_STEPS[4].fields
-      expect(fields).toContain("workingIncomeMonthly")
-      expect(fields).toContain("workingExpensesMonthly")
-      expect(fields).toContain("investmentAllocationPercent")
     })
   })
 
@@ -83,12 +84,19 @@ describe("WIZARD_STEPS", () => {
       expect(fields).toContain("expenses")
     })
   })
+
+  describe("Step 7 - Life Events", () => {
+    it("should contain expected fields", () => {
+      const fields = WIZARD_STEPS[6].fields
+      expect(fields).toContain("lifeEvents")
+    })
+  })
 })
 
 describe("TOTAL_STEPS", () => {
   it("should equal the number of wizard steps", () => {
     expect(TOTAL_STEPS).toBe(WIZARD_STEPS.length)
-    expect(TOTAL_STEPS).toBe(6)
+    expect(TOTAL_STEPS).toBe(7)
   })
 })
 
@@ -100,21 +108,23 @@ describe("getStepFields", () => {
     expect(getStepFields(4)).toEqual(WIZARD_STEPS[3].fields)
     expect(getStepFields(5)).toEqual(WIZARD_STEPS[4].fields)
     expect(getStepFields(6)).toEqual(WIZARD_STEPS[5].fields)
+    expect(getStepFields(7)).toEqual(WIZARD_STEPS[6].fields)
   })
 
   it("should return empty array for invalid step numbers", () => {
     expect(getStepFields(0)).toEqual([])
     expect(getStepFields(-1)).toEqual([])
-    expect(getStepFields(7)).toEqual([])
+    expect(getStepFields(8)).toEqual([])
     expect(getStepFields(100)).toEqual([])
   })
 
   it("should return correct number of fields for each step", () => {
     expect(getStepFields(1)).toHaveLength(5) // Personal Info
-    expect(getStepFields(2)).toHaveLength(9) // Goals
-    expect(getStepFields(3)).toHaveLength(1) // Life Events
-    expect(getStepFields(4)).toHaveLength(3) // Income
-    expect(getStepFields(5)).toHaveLength(3) // Employment
+    expect(getStepFields(2)).toHaveLength(3) // Employment
+    expect(getStepFields(3)).toHaveLength(2) // Assets
+    expect(getStepFields(4)).toHaveLength(8) // Assumptions
+    expect(getStepFields(5)).toHaveLength(3) // Income
     expect(getStepFields(6)).toHaveLength(1) // Expenses
+    expect(getStepFields(7)).toHaveLength(1) // Life Events
   })
 })

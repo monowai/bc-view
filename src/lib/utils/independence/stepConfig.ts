@@ -1,4 +1,5 @@
 import { WizardFormData } from "types/independence"
+import { wizardMessages } from "./messages"
 
 /**
  * Centralized wizard step configuration.
@@ -14,7 +15,7 @@ export interface WizardStep {
 export const WIZARD_STEPS: WizardStep[] = [
   {
     id: 1,
-    name: "Personal Info",
+    name: wizardMessages.steps.personalInfo.name,
     fields: [
       "planName",
       "yearOfBirth",
@@ -25,7 +26,21 @@ export const WIZARD_STEPS: WizardStep[] = [
   },
   {
     id: 2,
-    name: "Goals",
+    name: wizardMessages.steps.employment.name,
+    fields: [
+      "workingIncomeMonthly",
+      "workingExpensesMonthly",
+      "investmentAllocationPercent",
+    ],
+  },
+  {
+    id: 3,
+    name: wizardMessages.steps.assets.name,
+    fields: ["selectedPortfolioIds", "manualAssets"],
+  },
+  {
+    id: 4,
+    name: wizardMessages.steps.assumptions.name,
     fields: [
       "targetBalance",
       "cashReturnRate",
@@ -35,32 +50,22 @@ export const WIZARD_STEPS: WizardStep[] = [
       "cashAllocation",
       "equityAllocation",
       "housingAllocation",
-      "selectedPortfolioIds",
     ],
-  },
-  {
-    id: 3,
-    name: "Life Events",
-    fields: ["lifeEvents"],
-  },
-  {
-    id: 4,
-    name: "Income",
-    fields: ["pensionMonthly", "socialSecurityMonthly", "otherIncomeMonthly"],
   },
   {
     id: 5,
-    name: "Employment",
-    fields: [
-      "workingIncomeMonthly",
-      "workingExpensesMonthly",
-      "investmentAllocationPercent",
-    ],
+    name: wizardMessages.steps.income.name,
+    fields: ["pensionMonthly", "socialSecurityMonthly", "otherIncomeMonthly"],
   },
   {
     id: 6,
-    name: "Expenses",
+    name: wizardMessages.steps.expenses.name,
     fields: ["expenses"],
+  },
+  {
+    id: 7,
+    name: wizardMessages.steps.lifeEvents.name,
+    fields: ["lifeEvents"],
   },
 ]
 
