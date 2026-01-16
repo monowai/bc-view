@@ -20,9 +20,9 @@ export default function ProposedBadge(): React.ReactElement | null {
     isRegistered ? "/api/trns/proposed/count" : null,
     fetcher,
     {
-      refreshInterval: 60000, // Refresh every minute
+      refreshInterval: 1800000, // Refresh every 30 minutes
       revalidateOnFocus: false,
-      dedupingInterval: 30000, // Prevent duplicate requests within 30 seconds
+      dedupingInterval: 60000, // Prevent duplicate requests within 1 minute
     },
   )
 
