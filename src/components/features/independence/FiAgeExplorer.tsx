@@ -131,14 +131,14 @@ export default function FiAgeExplorer({
             </div>
             <input
               type="range"
-              min={currentAge + 5}
+              min={currentAge}
               max={Math.max(currentAge + 40, 65)}
               value={targetAge}
               onChange={(e) => setTargetAge(parseInt(e.target.value))}
               className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-500"
             />
             <div className="flex justify-between text-[10px] text-gray-400 mt-1">
-              <span>{currentAge + 5}</span>
+              <span>{currentAge}</span>
               <span>{yearsToTarget} years from now</span>
               <span>{Math.max(currentAge + 40, 65)}</span>
             </div>
