@@ -6,11 +6,12 @@ import { mutate } from "swr"
 import WizardProgress from "./WizardProgress"
 import WizardNavigation from "./WizardNavigation"
 import PersonalInfoStep from "./steps/PersonalInfoStep"
+import AssetsStep from "./steps/AssetsStep"
+import AssumptionsStep from "./steps/AssumptionsStep"
 import EmploymentStep from "./steps/EmploymentStep"
 import IncomeSourcesStep from "./steps/IncomeSourcesStep"
 import LifeEventsStep from "./steps/LifeEventsStep"
 import ExpensesStep from "./steps/ExpensesStep"
-import GoalsAssumptionsStep from "./steps/GoalsAssumptionsStep"
 import { wizardSchema, defaultWizardValues } from "@lib/independence/schema"
 import {
   TOTAL_STEPS,
@@ -283,23 +284,25 @@ export default function WizardContainer({
       case 1:
         return <PersonalInfoStep control={control} errors={errors} />
       case 2:
+        return <EmploymentStep control={control} errors={errors} />
+      case 3:
+        return <AssetsStep control={control} setValue={setValue} />
+      case 4:
         return (
-          <GoalsAssumptionsStep
+          <AssumptionsStep
             control={control}
             errors={errors}
             setValue={setValue}
           />
         )
-      case 3:
-        return <LifeEventsStep control={control} />
-      case 4:
-        return <IncomeSourcesStep control={control} errors={errors} />
       case 5:
-        return <EmploymentStep control={control} errors={errors} />
+        return <IncomeSourcesStep control={control} errors={errors} />
       case 6:
         return (
           <ExpensesStep control={control} errors={errors} setValue={setValue} />
         )
+      case 7:
+        return <LifeEventsStep control={control} />
       default:
         return null
     }

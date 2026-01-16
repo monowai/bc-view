@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import { useForm, FormProvider } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
-import GoalsAssumptionsStep from "../steps/GoalsAssumptionsStep"
+import AssumptionsStep from "../steps/AssumptionsStep"
 import { goalsSchema, defaultWizardValues } from "@lib/independence/schema"
 import { WizardFormData } from "types/independence"
 import { SWRConfig } from "swr"
@@ -44,7 +44,7 @@ const TestWrapper: React.FC<{ children: React.ReactNode }> = () => {
     >
       <FormProvider {...methods}>
         <form>
-          <GoalsAssumptionsStep
+          <AssumptionsStep
             control={methods.control}
             errors={methods.formState.errors}
             setValue={methods.setValue}
@@ -55,25 +55,15 @@ const TestWrapper: React.FC<{ children: React.ReactNode }> = () => {
   )
 }
 
-describe("GoalsAssumptionsStep", () => {
-  it("renders the goals step header", () => {
+describe("AssumptionsStep", () => {
+  it("renders the assumptions step header", () => {
     render(
       <TestWrapper>
         <div />
       </TestWrapper>,
     )
 
-    expect(screen.getByText(/goals & assumptions/i)).toBeInTheDocument()
-  })
-
-  it("shows portfolio selection section", () => {
-    render(
-      <TestWrapper>
-        <div />
-      </TestWrapper>,
-    )
-
-    expect(screen.getByText(/select portfolios/i)).toBeInTheDocument()
+    expect(screen.getByText(/financial assumptions/i)).toBeInTheDocument()
   })
 
   it("shows return assumption fields", () => {
@@ -109,7 +99,9 @@ describe("GoalsAssumptionsStep", () => {
       </TestWrapper>,
     )
 
-    expect(screen.getByLabelText(/target ending balance/i)).toBeInTheDocument()
+    expect(
+      screen.getByRole("spinbutton", { name: /target balance/i }),
+    ).toBeInTheDocument()
   })
 
   it("shows target balance description", () => {
@@ -124,5 +116,20 @@ describe("GoalsAssumptionsStep", () => {
         /set a target ending balance if you want to leave a legacy/i,
       ),
     ).toBeInTheDocument()
+  })
+
+  it("shows asset allocation section", () => {
+    render(
+      <TestWrapper>
+        <div />
+      </TestWrapper>,
+    )
+
+    expect(
+      screen.getByRole("heading", { name: /asset allocation/i }),
+    ).toBeInTheDocument()
+    expect(screen.getByLabelText(/equities \(%\)/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/cash \(%\)/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/housing \(%\)/i)).toBeInTheDocument()
   })
 })

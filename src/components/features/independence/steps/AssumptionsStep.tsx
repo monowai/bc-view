@@ -6,91 +6,26 @@ import {
   useWatch,
   UseFormSetValue,
 } from "react-hook-form"
-import useSwr from "swr"
-import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
-import { WizardFormData, ManualAssetCategory } from "types/independence"
-import { Portfolio, AllocationResponse } from "types/beancounter"
+import { WizardFormData } from "types/independence"
+import { AllocationResponse } from "types/beancounter"
+import { wizardMessages } from "@lib/independence/messages"
 
-// Asset category configuration with labels and growth rate info
-const ASSET_CATEGORIES: {
-  key: ManualAssetCategory
-  label: string
-  rateField: "cashReturnRate" | "equityReturnRate" | "housingReturnRate"
-  rateLabel: string
-}[] = [
-  {
-    key: "CASH",
-    label: "Cash & Savings",
-    rateField: "cashReturnRate",
-    rateLabel: "cash",
-  },
-  {
-    key: "EQUITY",
-    label: "Equities (Stocks)",
-    rateField: "equityReturnRate",
-    rateLabel: "equity",
-  },
-  {
-    key: "ETF",
-    label: "ETFs",
-    rateField: "equityReturnRate",
-    rateLabel: "equity",
-  },
-  {
-    key: "MUTUAL_FUND",
-    label: "Mutual Funds",
-    rateField: "equityReturnRate",
-    rateLabel: "equity",
-  },
-  {
-    key: "RE",
-    label: "Real Estate",
-    rateField: "housingReturnRate",
-    rateLabel: "housing",
-  },
-]
+const msg = wizardMessages.steps.assumptions
+const fields = wizardMessages.fields
 
-// Categories that count as liquid (spendable)
-const LIQUID_CATEGORIES: ManualAssetCategory[] = [
-  "CASH",
-  "EQUITY",
-  "ETF",
-  "MUTUAL_FUND",
-]
-
-interface GoalsAssumptionsStepProps {
+interface AssumptionsStepProps {
   control: Control<WizardFormData>
   errors: FieldErrors<WizardFormData>
   setValue: UseFormSetValue<WizardFormData>
 }
 
-interface PortfoliosResponse {
-  data: Portfolio[]
-}
-
-export default function GoalsAssumptionsStep({
+export default function AssumptionsStep({
   control,
   errors,
   setValue,
-}: GoalsAssumptionsStepProps): React.ReactElement {
-  const hasAutoSelected = useRef(false)
+}: AssumptionsStepProps): React.ReactElement {
   const hasAppliedAllocation = useRef(false)
   const [isLoadingAllocation, setIsLoadingAllocation] = useState(false)
-
-  const { data: portfoliosData } = useSwr<PortfoliosResponse>(
-    portfoliosKey,
-    simpleFetcher(portfoliosKey),
-  )
-
-  // Get plan currency from form
-  const planCurrency = useWatch({ control, name: "expensesCurrency" }) || "NZD"
-
-  // Filter to only show portfolios with non-zero balance
-  const portfoliosWithBalance = useMemo(() => {
-    return (portfoliosData?.data || []).filter(
-      (p) => p.marketValue && p.marketValue !== 0,
-    )
-  }, [portfoliosData])
 
   const watchedPortfolioIds = useWatch({
     control,
@@ -101,18 +36,29 @@ export default function GoalsAssumptionsStep({
     [watchedPortfolioIds],
   )
 
-  // Auto-select all portfolios with balance when data first loads
-  useEffect(() => {
-    if (portfoliosWithBalance.length > 0 && !hasAutoSelected.current) {
-      const allIds = portfoliosWithBalance.map((p) => p.id)
-      setValue("selectedPortfolioIds", allIds)
-      hasAutoSelected.current = true
-    }
-  }, [portfoliosWithBalance, setValue])
+  // Watch current allocation values to determine if they're already set
+  const currentCashAllocation =
+    useWatch({ control, name: "cashAllocation" }) ?? 0
+  const currentEquityAllocation =
+    useWatch({ control, name: "equityAllocation" }) ?? 0
+  const currentHousingAllocation =
+    useWatch({ control, name: "housingAllocation" }) ?? 0
+
+  // Only auto-apply actual allocation if all values are 0 (not set)
+  // This preserves user-saved allocations when editing a plan
+  const hasExistingAllocation =
+    currentCashAllocation > 0 ||
+    currentEquityAllocation > 0 ||
+    currentHousingAllocation > 0
 
   // Fetch and apply allocation data when portfolios are first selected
+  // but ONLY if allocations are not already set (all are 0)
   useEffect(() => {
-    if (selectedPortfolioIds.length === 0 || hasAppliedAllocation.current)
+    if (
+      selectedPortfolioIds.length === 0 ||
+      hasAppliedAllocation.current ||
+      hasExistingAllocation
+    )
       return
 
     setIsLoadingAllocation(true)
@@ -137,7 +83,7 @@ export default function GoalsAssumptionsStep({
       })
       .catch(console.error)
       .finally(() => setIsLoadingAllocation(false))
-  }, [selectedPortfolioIds, setValue])
+  }, [selectedPortfolioIds, setValue, hasExistingAllocation])
 
   // Function to refresh allocation from selected portfolios
   const refreshAllocation = useCallback((): void => {
@@ -177,38 +123,6 @@ export default function GoalsAssumptionsStep({
 
   const totalAllocation = cashAllocation + equityAllocation + housingAllocation
 
-  // Watch manual assets for display
-  const manualAssets = useWatch({ control, name: "manualAssets" })
-
-  // Calculate liquid and non-spendable totals from manual assets
-  const manualAssetTotals = useMemo(() => {
-    if (!manualAssets) return { liquid: 0, nonSpendable: 0, total: 0 }
-    const liquid = LIQUID_CATEGORIES.reduce(
-      (sum, key) => sum + (manualAssets[key] || 0),
-      0,
-    )
-    const nonSpendable = manualAssets.RE || 0
-    return { liquid, nonSpendable, total: liquid + nonSpendable }
-  }, [manualAssets])
-
-  // Get rate display value for a category
-  const getRateForCategory = useCallback(
-    (
-      rateField: "cashReturnRate" | "equityReturnRate" | "housingReturnRate",
-    ) => {
-      switch (rateField) {
-        case "cashReturnRate":
-          return cashReturnRate
-        case "equityReturnRate":
-          return equityReturnRate
-        case "housingReturnRate":
-          return housingReturnRate
-        default:
-          return cashReturnRate
-      }
-    },
-    [cashReturnRate, equityReturnRate, housingReturnRate],
-  )
   const blendedReturn = useMemo(() => {
     return (
       (cashAllocation / 100) * cashReturnRate +
@@ -227,188 +141,16 @@ export default function GoalsAssumptionsStep({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">
-          Goals & Assumptions
-        </h2>
-        <p className="text-gray-600">
-          Set your financial assumptions and select which portfolios to include
-          in your independence planning.
-        </p>
-      </div>
-
-      {/* Portfolio Selection */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium text-gray-800">Select Portfolios</h3>
-        <p className="text-sm text-gray-600">
-          Choose which portfolios to include in your independence asset
-          calculation.
-        </p>
-
-        {portfoliosWithBalance.length === 0 ? (
-          <div className="space-y-4">
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <div className="flex items-start">
-                <i className="fas fa-info-circle text-yellow-600 mt-0.5 mr-3"></i>
-                <div>
-                  <p className="font-medium text-yellow-800">
-                    No portfolios found
-                  </p>
-                  <p className="text-sm text-yellow-700 mt-1">
-                    Enter your current asset values by category below. Growth
-                    rates will be applied based on your assumptions.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {ASSET_CATEGORIES.map((category) => (
-                <div key={category.key}>
-                  <label
-                    htmlFor={`manualAssets.${category.key}`}
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    {category.label}
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-2.5 text-gray-500">
-                      $
-                    </span>
-                    <Controller
-                      name={`manualAssets.${category.key}`}
-                      control={control}
-                      render={({ field }) => (
-                        <input
-                          {...field}
-                          id={`manualAssets.${category.key}`}
-                          type="number"
-                          min={0}
-                          step={1000}
-                          value={field.value || 0}
-                          onChange={(e) =>
-                            field.onChange(Number(e.target.value) || 0)
-                          }
-                          className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                        />
-                      )}
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Grows at {getRateForCategory(category.rateField)}% (
-                    {category.rateLabel} rate)
-                  </p>
-                </div>
-              ))}
-            </div>
-
-            {manualAssetTotals.total > 0 && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-blue-700">
-                    Liquid Assets (spendable)
-                  </span>
-                  <span className="font-medium text-blue-800">
-                    {planCurrency} {manualAssetTotals.liquid.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-blue-700">
-                    Real Estate (non-spendable)
-                  </span>
-                  <span className="font-medium text-blue-800">
-                    {planCurrency}{" "}
-                    {manualAssetTotals.nonSpendable.toLocaleString()}
-                  </span>
-                </div>
-                <div className="border-t border-blue-200 pt-2 flex justify-between items-center">
-                  <div className="flex items-center">
-                    <i className="fas fa-chart-pie text-blue-600 mr-2"></i>
-                    <span className="font-medium text-blue-800">
-                      Total Assets
-                    </span>
-                  </div>
-                  <span className="text-xl font-bold text-blue-700">
-                    {planCurrency} {manualAssetTotals.total.toLocaleString()}
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {portfoliosWithBalance.map((portfolio) => (
-              <Controller
-                key={portfolio.id}
-                name="selectedPortfolioIds"
-                control={control}
-                render={({ field }) => (
-                  <label className="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={field.value?.includes(portfolio.id) || false}
-                      onChange={(e) => {
-                        const current = field.value || []
-                        if (e.target.checked) {
-                          field.onChange([...current, portfolio.id])
-                        } else {
-                          field.onChange(
-                            current.filter((id: string) => id !== portfolio.id),
-                          )
-                        }
-                      }}
-                      className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
-                    />
-                    <div className="ml-3 flex-1">
-                      <span className="font-medium text-gray-900">
-                        {portfolio.code}
-                      </span>
-                      <span className="text-gray-500 ml-2">
-                        {portfolio.name}
-                      </span>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-gray-700 font-medium">
-                        {portfolio.base?.code || portfolio.currency?.code}{" "}
-                        {Math.round(
-                          portfolio.marketValue || 0,
-                        ).toLocaleString()}
-                      </span>
-                    </div>
-                  </label>
-                )}
-              />
-            ))}
-          </div>
-        )}
-
-        {selectedPortfolioIds.length > 0 && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center">
-                <i className="fas fa-chart-pie text-blue-600 mr-3"></i>
-                <div>
-                  <span className="font-medium text-blue-800">
-                    {selectedPortfolioIds.length} Portfolio
-                    {selectedPortfolioIds.length > 1 ? "s" : ""} Selected
-                  </span>
-                  <p className="text-xs text-blue-600">
-                    Values will be converted to {planCurrency} for projections
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">{msg.title}</h2>
+        <p className="text-gray-600">{msg.description}</p>
       </div>
 
       {/* Return Rate Assumptions */}
       <div className="space-y-4">
         <h3 className="text-lg font-medium text-gray-800">
-          Return Assumptions
+          {msg.returnAssumptions}
         </h3>
-        <p className="text-sm text-gray-600">
-          Set expected annual return rates for different asset classes.
-        </p>
+        <p className="text-sm text-gray-600">{msg.returnAssumptionsDescription}</p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -416,7 +158,7 @@ export default function GoalsAssumptionsStep({
               htmlFor="equityReturnRate"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              Equity Return Rate (%)
+              {fields.equityReturnRate}
             </label>
             <Controller
               name="equityReturnRate"
@@ -449,7 +191,7 @@ export default function GoalsAssumptionsStep({
               htmlFor="cashReturnRate"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              Cash Return Rate (%)
+              {fields.cashReturnRate}
             </label>
             <Controller
               name="cashReturnRate"
@@ -482,7 +224,7 @@ export default function GoalsAssumptionsStep({
               htmlFor="housingReturnRate"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              Housing Return Rate (%)
+              {fields.housingReturnRate}
             </label>
             <Controller
               name="housingReturnRate"
@@ -515,7 +257,7 @@ export default function GoalsAssumptionsStep({
               htmlFor="inflationRate"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              Inflation Rate (%)
+              {fields.inflationRate}
             </label>
             <Controller
               name="inflationRate"
@@ -550,11 +292,10 @@ export default function GoalsAssumptionsStep({
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-medium text-gray-800">
-              Asset Allocation
+              {msg.assetAllocation}
             </h3>
             <p className="text-sm text-gray-600">
-              Set your target asset allocation. This determines the blended
-              return used in projections.
+              {msg.assetAllocationDescription}
             </p>
           </div>
           {selectedPortfolioIds.length > 0 && (
@@ -567,12 +308,12 @@ export default function GoalsAssumptionsStep({
               {isLoadingAllocation ? (
                 <>
                   <i className="fas fa-spinner fa-spin mr-2"></i>
-                  Loading...
+                  {msg.loading}
                 </>
               ) : (
                 <>
                   <i className="fas fa-sync-alt mr-2"></i>
-                  Use Actual
+                  {msg.useActual}
                 </>
               )}
             </button>
@@ -585,7 +326,7 @@ export default function GoalsAssumptionsStep({
               htmlFor="equityAllocation"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              Equities (%)
+              {fields.equityAllocation}
             </label>
             <Controller
               name="equityAllocation"
@@ -618,7 +359,7 @@ export default function GoalsAssumptionsStep({
               htmlFor="cashAllocation"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              Cash (%)
+              {fields.cashAllocation}
             </label>
             <Controller
               name="cashAllocation"
@@ -651,7 +392,7 @@ export default function GoalsAssumptionsStep({
               htmlFor="housingAllocation"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              Housing (%)
+              {fields.housingAllocation}
             </label>
             <Controller
               name="housingAllocation"
@@ -692,20 +433,16 @@ export default function GoalsAssumptionsStep({
                 <span
                   className={`font-medium ${totalAllocation === 100 ? "text-green-800" : "text-yellow-800"}`}
                 >
-                  Total Allocation: {totalAllocation}%
+                  {msg.totalAllocation}: {totalAllocation}%
                 </span>
                 {totalAllocation !== 100 && (
-                  <p className="text-sm text-yellow-700">
-                    Allocation should equal 100%
-                  </p>
+                  <p className="text-sm text-yellow-700">{msg.allocationWarning}</p>
                 )}
               </div>
             </div>
             <div className="text-right">
-              <span className="text-sm text-gray-600">Blended Return</span>
-              <p className="text-xl font-bold text-gray-900">
-                {blendedReturn}%
-              </p>
+              <span className="text-sm text-gray-600">{msg.blendedReturn}</span>
+              <p className="text-xl font-bold text-gray-900">{blendedReturn}%</p>
             </div>
           </div>
         </div>
@@ -713,19 +450,15 @@ export default function GoalsAssumptionsStep({
 
       {/* Target Balance */}
       <div className="space-y-4">
-        <h3 className="text-lg font-medium text-gray-800">
-          Target Balance (Optional)
-        </h3>
-        <p className="text-sm text-gray-600">
-          Set a target ending balance if you want to leave a legacy or buffer.
-        </p>
+        <h3 className="text-lg font-medium text-gray-800">{msg.targetBalance}</h3>
+        <p className="text-sm text-gray-600">{msg.targetBalanceDescription}</p>
 
         <div>
           <label
             htmlFor="targetBalance"
             className="block text-sm font-medium text-gray-700 mb-1"
           >
-            Target Ending Balance
+            {msg.targetBalance}
           </label>
           <div className="relative">
             <span className="absolute left-3 top-2.5 text-gray-500">$</span>
@@ -745,7 +478,7 @@ export default function GoalsAssumptionsStep({
                       e.target.value ? Number(e.target.value) : undefined,
                     )
                   }
-                  placeholder="Leave blank for $0 target"
+                  placeholder={msg.targetBalancePlaceholder}
                   className={`
                     w-full pl-8 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500
                     ${errors.targetBalance ? "border-red-500" : "border-gray-300"}
