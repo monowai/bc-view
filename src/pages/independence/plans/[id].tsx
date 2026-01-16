@@ -197,12 +197,20 @@ function PlanView(): React.ReactElement {
   )
 
   // Fetch aggregated holdings to get category breakdown
-  // Uses SWR default caching (stale-while-revalidate) for fast initial load
-  const { data: holdingsResponse } = useSwr<{
+  // Disable auto-revalidation - only refresh on manual action for performance
+  const {
+    data: holdingsResponse,
+    mutate: refreshHoldings,
+    isValidating: isRefreshingHoldings,
+  } = useSwr<{
     data: HoldingContract
   }>(
     "/api/holdings/aggregated?asAt=today",
     simpleFetcher("/api/holdings/aggregated?asAt=today"),
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+    },
   )
   const holdingsData = holdingsResponse?.data
 
@@ -512,8 +520,11 @@ function PlanView(): React.ReactElement {
     : 65
 
   // Calculate pre-retirement contributions (for passing to backend)
+  // Uses scenarioOverrides.workingIncomeMonthly if user adjusted salary in What-If
+  const effectiveWorkingIncome =
+    scenarioOverrides.workingIncomeMonthly ?? plan?.workingIncomeMonthly ?? 0
   const monthlySurplus =
-    (plan?.workingIncomeMonthly || 0) - (plan?.workingExpensesMonthly || 0)
+    effectiveWorkingIncome - (plan?.workingExpensesMonthly || 0)
   const monthlyInvestment =
     monthlySurplus > 0
       ? monthlySurplus * (plan?.investmentAllocationPercent || 0.8)
@@ -577,7 +588,7 @@ function PlanView(): React.ReactElement {
   }
 
   // Use retirement projection hook
-  // Backend handles FX conversion - fetches assets from svc-position in plan currency
+  // Pass pre-calculated assets to avoid backend refetch from svc-position
   const { adjustedProjection, isCalculating, resetProjection } =
     useRetirementProjection({
       plan,
@@ -590,6 +601,8 @@ function PlanView(): React.ReactElement {
       scenarioOverrides,
       rentalIncome,
       displayCurrency: displayCurrency ?? undefined,
+      liquidAssets,
+      nonSpendableAssets,
     })
 
   // Plan inputs from backend (already FX converted when displayCurrency differs)
@@ -972,6 +985,7 @@ function PlanView(): React.ReactElement {
               isCoastFire={adjustedProjection.fiMetrics.isCoastFire}
               yearsToRetirement={fiMetrics?.yearsToRetirement ?? undefined}
               backendFiProgress={adjustedProjection.fiMetrics.fiProgress}
+              warnings={adjustedProjection.warnings}
             />
           ) : (
             isCalculating && (
@@ -993,7 +1007,7 @@ function PlanView(): React.ReactElement {
 
           {/* Global What-If toolbar - available on all tabs */}
           <AnalysisToolbar
-            quickScenarios={quickScenarios}
+            quickScenarios={activeTab === "fire" ? [] : quickScenarios}
             selectedScenarioIds={selectedScenarioIds}
             hasUnsavedChanges={
               hasScenarioChanges(whatIfAdjustments) ||
@@ -1214,9 +1228,24 @@ function PlanView(): React.ReactElement {
           {/* Assets Tab */}
           {activeTab === "assets" && (
             <div className="bg-white rounded-xl shadow-md p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                {t("retire.assets.title")}
-              </h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  {t("retire.assets.title")}
+                </h2>
+                {!usingManualAssets && (
+                  <button
+                    onClick={() => refreshHoldings()}
+                    disabled={isRefreshingHoldings}
+                    className="text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                    title="Refresh holdings from portfolio"
+                  >
+                    <i
+                      className={`fas fa-sync-alt mr-1 ${isRefreshingHoldings ? "fa-spin" : ""}`}
+                    ></i>
+                    {isRefreshingHoldings ? "Refreshing..." : "Refresh"}
+                  </button>
+                )}
+              </div>
 
               {!holdingsData && !usingManualAssets ? (
                 <div className="text-center py-8 text-gray-500">
@@ -2139,7 +2168,7 @@ function PlanView(): React.ReactElement {
         plan={plan}
       />
 
-      {/* What-If Analysis Modal */}
+      {/* What-If Analysis Modal - context-aware: "fire" shows income/expenses, "projection" shows all scenarios */}
       <WhatIfModal
         isOpen={showWhatIfModal}
         onClose={() => setShowWhatIfModal(false)}

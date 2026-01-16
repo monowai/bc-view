@@ -163,6 +163,17 @@ export interface PlanWithExpensesResponse {
   totalMonthlyExpenses: number
 }
 
+// ============ Projection Warnings ============
+/**
+ * Warning codes for data quality issues in projections.
+ * When present, calculations may be unreliable.
+ */
+export type ProjectionWarning =
+  | "ASSETS_FROM_FALLBACK"
+  | "RENTAL_INCOME_UNAVAILABLE"
+  | "NO_LIQUID_ASSETS"
+  | "NO_MONTHLY_CONTRIBUTION"
+
 // ============ Projections ============
 export interface ProjectionRequest {
   /** Total assets (liquid + non-spendable). Auto-resolved if portfolioIds provided. */
@@ -436,6 +447,8 @@ export interface RetirementProjection {
   displayFxRate?: number
   /** Plan input values used in calculations (in display currency) */
   planInputs?: PlanInputs
+  /** Data quality warnings - empty means all data fetched successfully */
+  warnings?: ProjectionWarning[]
 }
 
 export interface ProjectionResponse {
