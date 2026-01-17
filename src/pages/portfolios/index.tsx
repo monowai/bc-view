@@ -316,6 +316,14 @@ export default withPageAuthRequired(function Portfolios({
           aValue = a.irr || 0
           bValue = b.irr || 0
           break
+        case "gainOnDay":
+          aValue = a.gainOnDay || 0
+          bValue = b.gainOnDay || 0
+          break
+        case "valuedAt":
+          aValue = a.valuedAt || ""
+          bValue = b.valuedAt || ""
+          break
         default:
           return 0
       }
@@ -363,6 +371,23 @@ export default withPageAuthRequired(function Portfolios({
     ) : (
       <span className="ml-1 text-blue-300">↓</span>
     )
+  }
+
+  // Check if valuation date is stale (not today)
+  const isStale = (valuedAt: string | undefined): boolean => {
+    if (!valuedAt) return true
+    const today = new Date().toISOString().split("T")[0]
+    return valuedAt !== today
+  }
+
+  // Format the valued at date for display
+  const formatValuedAt = (valuedAt: string | undefined): string => {
+    if (!valuedAt) return "-"
+    const date = new Date(valuedAt)
+    return date.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+    })
   }
 
   function listPortfolios(portfolios: Portfolio[]): React.ReactElement {
@@ -505,6 +530,25 @@ export default withPageAuthRequired(function Portfolios({
                         }
                       />
                     </div>
+                    {portfolio.gainOnDay !== undefined &&
+                      portfolio.gainOnDay !== 0 && (
+                        <div
+                          className={`text-sm font-medium ${
+                            portfolio.gainOnDay >= 0
+                              ? "text-green-600"
+                              : "text-red-600"
+                          }`}
+                        >
+                          {portfolio.gainOnDay >= 0 ? "+" : ""}
+                          {displayCurrency?.symbol}
+                          <FormatValue
+                            value={
+                              portfolio.gainOnDay *
+                              (fxRates[portfolio.base.code] || 1)
+                            }
+                          />
+                        </div>
+                      )}
                     <div
                       className={`text-sm font-medium ${
                         (portfolio.irr || 0) >= 0
@@ -522,10 +566,20 @@ export default withPageAuthRequired(function Portfolios({
                   </div>
                 </div>
                 <div className="flex items-center justify-between text-sm text-gray-500">
-                  <span>
-                    {portfolio.currency.symbol}
-                    {portfolio.currency.code}
-                  </span>
+                  <div className="flex items-center space-x-2">
+                    <span>
+                      {portfolio.base.symbol}
+                      {portfolio.base.code}
+                    </span>
+                    {isStale(portfolio.valuedAt) && (
+                      <span
+                        className="text-amber-500"
+                        title={`Valued: ${formatValuedAt(portfolio.valuedAt)}`}
+                      >
+                        <i className="fas fa-clock text-xs"></i>
+                      </span>
+                    )}
+                  </div>
                   <div
                     className="flex items-center space-x-4"
                     onClick={(e) => e.stopPropagation()}
@@ -611,15 +665,6 @@ export default withPageAuthRequired(function Portfolios({
                   </th>
                   <th
                     className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
-                    onClick={() => handleSort("currency")}
-                  >
-                    <div className="flex items-center">
-                      {t("portfolio.currency.report")}
-                      {getSortIcon("currency")}
-                    </div>
-                  </th>
-                  <th
-                    className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors hidden lg:table-cell"
                     onClick={() => handleSort("base")}
                   >
                     <div className="flex items-center">
@@ -638,11 +683,29 @@ export default withPageAuthRequired(function Portfolios({
                   </th>
                   <th
                     className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("gainOnDay")}
+                  >
+                    <div className="flex items-center justify-end">
+                      {t("portfolio.gainOnDay", "Day")}
+                      {getSortIcon("gainOnDay")}
+                    </div>
+                  </th>
+                  <th
+                    className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
                     onClick={() => handleSort("irr")}
                   >
                     <div className="flex items-center justify-end">
                       {t("portfolio.irr")}
                       {getSortIcon("irr")}
+                    </div>
+                  </th>
+                  <th
+                    className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors hidden xl:table-cell"
+                    onClick={() => handleSort("valuedAt")}
+                  >
+                    <div className="flex items-center justify-center">
+                      {t("portfolio.valuedAt", "Valued")}
+                      {getSortIcon("valuedAt")}
                     </div>
                   </th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider w-32">
@@ -688,9 +751,6 @@ export default withPageAuthRequired(function Portfolios({
                       {portfolio.name}
                     </td>
                     <td className="px-4 py-3 text-gray-600">
-                      {portfolio.currency.symbol} {portfolio.currency.code}
-                    </td>
-                    <td className="px-4 py-3 text-gray-600 hidden lg:table-cell">
                       {portfolio.base.symbol} {portfolio.base.code}
                     </td>
                     <td className="px-4 py-3 text-right font-semibold text-gray-900">
@@ -700,6 +760,28 @@ export default withPageAuthRequired(function Portfolios({
                           (fxRates[portfolio.base.code] || 1)
                         }
                       />
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {portfolio.gainOnDay !== undefined &&
+                      portfolio.gainOnDay !== 0 ? (
+                        <span
+                          className={`font-semibold ${
+                            portfolio.gainOnDay >= 0
+                              ? "text-green-600"
+                              : "text-red-600"
+                          }`}
+                        >
+                          {portfolio.gainOnDay >= 0 ? "+" : ""}
+                          <FormatValue
+                            value={
+                              portfolio.gainOnDay *
+                              (fxRates[portfolio.base.code] || 1)
+                            }
+                          />
+                        </span>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <span
@@ -715,6 +797,25 @@ export default withPageAuthRequired(function Portfolios({
                           isPublic
                         />
                         %
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center hidden xl:table-cell">
+                      <span
+                        className={
+                          isStale(portfolio.valuedAt)
+                            ? "text-amber-500"
+                            : "text-gray-600"
+                        }
+                        title={
+                          portfolio.valuedAt
+                            ? `Valued: ${portfolio.valuedAt}`
+                            : "Not yet valued"
+                        }
+                      >
+                        {formatValuedAt(portfolio.valuedAt)}
+                        {isStale(portfolio.valuedAt) && (
+                          <i className="fas fa-clock ml-1 text-xs"></i>
+                        )}
                       </span>
                     </td>
                     <td className="px-4 py-3">
@@ -761,7 +862,7 @@ export default withPageAuthRequired(function Portfolios({
               <tfoot className="bg-gray-50 border-t-2 border-gray-200">
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={4}
                     className="px-4 py-3 text-right font-bold text-gray-700"
                   >
                     {t("portfolios.total")}
@@ -770,7 +871,7 @@ export default withPageAuthRequired(function Portfolios({
                     {displayCurrency?.symbol}
                     <FormatValue value={totalMarketValue} />
                   </td>
-                  <td colSpan={2}></td>
+                  <td colSpan={4}></td>
                 </tr>
               </tfoot>
             </table>

@@ -141,7 +141,9 @@ export default function AssumptionsStep({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">{msg.title}</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+          {msg.title}
+        </h2>
         <p className="text-gray-600">{msg.description}</p>
       </div>
 
@@ -150,7 +152,9 @@ export default function AssumptionsStep({
         <h3 className="text-lg font-medium text-gray-800">
           {msg.returnAssumptions}
         </h3>
-        <p className="text-sm text-gray-600">{msg.returnAssumptionsDescription}</p>
+        <p className="text-sm text-gray-600">
+          {msg.returnAssumptionsDescription}
+        </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -436,13 +440,17 @@ export default function AssumptionsStep({
                   {msg.totalAllocation}: {totalAllocation}%
                 </span>
                 {totalAllocation !== 100 && (
-                  <p className="text-sm text-yellow-700">{msg.allocationWarning}</p>
+                  <p className="text-sm text-yellow-700">
+                    {msg.allocationWarning}
+                  </p>
                 )}
               </div>
             </div>
             <div className="text-right">
               <span className="text-sm text-gray-600">{msg.blendedReturn}</span>
-              <p className="text-xl font-bold text-gray-900">{blendedReturn}%</p>
+              <p className="text-xl font-bold text-gray-900">
+                {blendedReturn}%
+              </p>
             </div>
           </div>
         </div>
@@ -450,7 +458,9 @@ export default function AssumptionsStep({
 
       {/* Target Balance */}
       <div className="space-y-4">
-        <h3 className="text-lg font-medium text-gray-800">{msg.targetBalance}</h3>
+        <h3 className="text-lg font-medium text-gray-800">
+          {msg.targetBalance}
+        </h3>
         <p className="text-sm text-gray-600">{msg.targetBalanceDescription}</p>
 
         <div>

@@ -48,13 +48,15 @@ export const wizardMessages = {
       allocationWarning: "Allocation should equal 100%",
       blendedReturn: "Blended Return",
       targetBalance: "Target Balance (Optional)",
-      targetBalanceDescription: "Set a target ending balance if you want to leave a legacy or buffer.",
+      targetBalanceDescription:
+        "Set a target ending balance if you want to leave a legacy or buffer.",
       targetBalancePlaceholder: "Leave blank for $0 target",
     },
     lifeEvents: {
       name: "Life Events",
       title: "Life Events",
-      description: "Add significant financial events that will impact your plan.",
+      description:
+        "Add significant financial events that will impact your plan.",
     },
     income: {
       name: "Income",

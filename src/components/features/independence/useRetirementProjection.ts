@@ -83,7 +83,11 @@ export function createProjectionChecksum(
   // Include liquidAssets in checksum so changes trigger recalculation
   const assetChecksum = Math.round(liquidAssets ?? 0)
   // Combine checksums using XOR and bit rotation for better distribution
-  return (((planChecksum << 16) | (planChecksum >>> 16)) ^ whatIfChecksum) ^ assetChecksum
+  return (
+    ((planChecksum << 16) | (planChecksum >>> 16)) ^
+    whatIfChecksum ^
+    assetChecksum
+  )
 }
 
 // Rental income by currency from RE asset configs
@@ -187,8 +191,14 @@ export function useRetirementProjection({
       // Debug logging for projection calculation
       console.log("[Projection] === Request Values ===")
       console.log("[Projection] monthlyInvestment:", monthlyInvestment)
-      console.log("[Projection] contributionPercent:", whatIfAdjustments.contributionPercent)
-      console.log("[Projection] effectiveMonthlyContribution:", effectiveMonthlyContribution)
+      console.log(
+        "[Projection] contributionPercent:",
+        whatIfAdjustments.contributionPercent,
+      )
+      console.log(
+        "[Projection] effectiveMonthlyContribution:",
+        effectiveMonthlyContribution,
+      )
       console.log("[Projection] liquidAssets (input):", liquidAssets)
       console.log("[Projection] monthlyExpenses:", effectiveMonthlyExpenses)
 
@@ -238,10 +248,22 @@ export function useRetirementProjection({
       if (response.ok) {
         const result: ProjectionResponse = await response.json()
         console.log("[Projection] === Response Values ===")
-        console.log("[Projection] fiMetrics.fiNumber:", result.data.fiMetrics?.fiNumber)
-        console.log("[Projection] fiMetrics.fiProgress:", result.data.fiMetrics?.fiProgress)
-        console.log("[Projection] fiMetrics.realYearsToFi:", result.data.fiMetrics?.realYearsToFi)
-        console.log("[Projection] liquidAssets (response):", result.data.liquidAssets)
+        console.log(
+          "[Projection] fiMetrics.fiNumber:",
+          result.data.fiMetrics?.fiNumber,
+        )
+        console.log(
+          "[Projection] fiMetrics.fiProgress:",
+          result.data.fiMetrics?.fiProgress,
+        )
+        console.log(
+          "[Projection] fiMetrics.realYearsToFi:",
+          result.data.fiMetrics?.realYearsToFi,
+        )
+        console.log(
+          "[Projection] liquidAssets (response):",
+          result.data.liquidAssets,
+        )
         setProjection(result.data)
       }
     } catch (err) {
