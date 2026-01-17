@@ -3,7 +3,7 @@ import { Control, FieldErrors, useWatch } from "react-hook-form"
 import { WizardFormData } from "types/independence"
 import {
   StepHeader,
-  CurrencyInput,
+  CurrencyInputWithPeriod,
   PercentInput,
   SummaryBox,
   SummaryItem,
@@ -22,16 +22,27 @@ export default function EmploymentStep({
     useWatch({ control, name: "workingIncomeMonthly" }) || 0
   const workingExpensesMonthly =
     useWatch({ control, name: "workingExpensesMonthly" }) || 0
+  const taxesMonthly = useWatch({ control, name: "taxesMonthly" }) || 0
+  const bonusMonthly = useWatch({ control, name: "bonusMonthly" }) || 0
   const investmentAllocationPercent =
     useWatch({ control, name: "investmentAllocationPercent" }) || 80
 
-  const monthlySurplus = workingIncomeMonthly - workingExpensesMonthly
+  // Net income = salary + bonus - taxes
+  const netIncomeMonthly = workingIncomeMonthly + bonusMonthly - taxesMonthly
+  const monthlySurplus = netIncomeMonthly - workingExpensesMonthly
   const monthlyInvestment = Math.max(
     0,
     monthlySurplus * (investmentAllocationPercent / 100),
   )
 
   const summaryItems: SummaryItem[] = [
+    {
+      icon: "fa-money-bill-wave",
+      label: "Net Income",
+      value: netIncomeMonthly,
+      format: "currency",
+      valueClassName: "text-green-700",
+    },
     {
       icon: "fa-piggy-bank",
       label: "Monthly Surplus",
@@ -49,7 +60,7 @@ export default function EmploymentStep({
 
   const description =
     monthlySurplus < 0
-      ? "Your expenses exceed your income. Consider adjusting your budget."
+      ? "Your expenses exceed your net income. Consider adjusting your budget."
       : `You're investing ${investmentAllocationPercent}% of your $${monthlySurplus.toLocaleString()} surplus each month.`
 
   return (
@@ -60,17 +71,34 @@ export default function EmploymentStep({
       />
 
       <div className="space-y-4">
-        <CurrencyInput
+        <CurrencyInputWithPeriod
           name="workingIncomeMonthly"
-          label="Monthly Income"
-          helperText="Take-home pay after taxes and deductions."
+          label="Gross Salary"
+          helperText="Your salary before taxes (not including bonus)."
           control={control}
           errors={errors}
         />
 
-        <CurrencyInput
+        <CurrencyInputWithPeriod
+          name="bonusMonthly"
+          label="Bonus"
+          helperText="Annual bonus, commissions, or other variable income."
+          control={control}
+          errors={errors}
+          defaultPeriod="annual"
+        />
+
+        <CurrencyInputWithPeriod
+          name="taxesMonthly"
+          label="Taxes"
+          helperText="Income tax, social contributions, and other deductions."
+          control={control}
+          errors={errors}
+        />
+
+        <CurrencyInputWithPeriod
           name="workingExpensesMonthly"
-          label="Monthly Expenses"
+          label="Living Expenses"
           helperText="Your total monthly living expenses while working."
           control={control}
           errors={errors}

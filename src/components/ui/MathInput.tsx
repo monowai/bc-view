@@ -186,7 +186,8 @@ export default function MathInput({
   useEffect(() => {
     // Only update if not currently editing an expression
     if (!isExpression) {
-      setDisplayValue(value === 0 ? "0" : String(value || ""))
+      // Show empty string for zero values (better UX - cleaner form appearance)
+      setDisplayValue(value === 0 || value === undefined ? "" : String(value))
     }
   }, [value, isExpression])
 

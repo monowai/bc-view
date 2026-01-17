@@ -372,7 +372,8 @@ describe("TargetWeightDialog Component", () => {
       fireEvent.blur(input) // MathInput evaluates on blur
 
       await waitFor(() => {
-        expect(input).toHaveValue("0")
+        // MathInput shows empty string for zero values (better UX)
+        expect(input).toHaveValue("")
       })
     })
 

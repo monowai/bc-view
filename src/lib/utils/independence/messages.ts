@@ -71,8 +71,9 @@ export const wizardMessages = {
     },
     expenses: {
       name: "Expenses",
-      title: "Monthly Expenses",
+      title: "Projected Monthly Expenses after Independence",
       description: "Define your expected monthly expenses during independence.",
+      totalLabel: "Total Monthly Expenses",
     },
   },
   fields: {
