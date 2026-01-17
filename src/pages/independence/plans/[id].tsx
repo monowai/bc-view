@@ -1580,7 +1580,17 @@ function PlanView(): React.ReactElement {
                       {/* Liquid Assets */}
                       <div className="p-4 bg-green-50 rounded-lg border border-green-200">
                         <div className="text-sm text-green-700 font-medium mb-1">
-                          Liquid (Spendable)
+                          Spendable at Independence
+                          {currentAge !== undefined && retirementAge && (
+                            <span className="font-normal text-green-600">
+                              {" "}
+                              (age {retirementAge},{" "}
+                              {retirementAge - currentAge > 0
+                                ? `${retirementAge - currentAge}yr`
+                                : "now"}
+                              )
+                            </span>
+                          )}
                         </div>
                         <div className="text-2xl font-bold text-green-800">
                           {hideValues ? (
