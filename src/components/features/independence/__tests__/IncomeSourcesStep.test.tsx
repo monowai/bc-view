@@ -46,22 +46,22 @@ describe("IncomeSourcesStep", () => {
       </TestWrapper>,
     )
 
-    expect(screen.getByLabelText(/monthly pension/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/pension/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/government benefits/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/other monthly income/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/other income/i)).toBeInTheDocument()
   })
 
-  it("shows default value of 0 for all income fields", () => {
+  it("shows empty value for zero income fields", () => {
     render(
       <TestWrapper>
         <div />
       </TestWrapper>,
     )
 
-    // MathInput uses type="text", so values are strings
-    expect(screen.getByLabelText(/monthly pension/i)).toHaveValue("0")
-    expect(screen.getByLabelText(/government benefits/i)).toHaveValue("0")
-    expect(screen.getByLabelText(/other monthly income/i)).toHaveValue("0")
+    // MathInput shows empty string for zero values (better UX)
+    expect(screen.getByLabelText(/pension/i)).toHaveValue("")
+    expect(screen.getByLabelText(/government benefits/i)).toHaveValue("")
+    expect(screen.getByLabelText(/other income/i)).toHaveValue("")
   })
 
   it("displays total monthly income", () => {
@@ -82,7 +82,7 @@ describe("IncomeSourcesStep", () => {
       </TestWrapper>,
     )
 
-    const pensionInput = screen.getByLabelText(/monthly pension/i)
+    const pensionInput = screen.getByLabelText(/pension/i)
     fireEvent.change(pensionInput, { target: { value: "1000" } })
 
     await waitFor(() => {
@@ -98,10 +98,10 @@ describe("IncomeSourcesStep", () => {
     )
 
     expect(
-      screen.getByText(/expected monthly pension from employer/i),
+      screen.getByText(/expected pension from employer/i),
     ).toBeInTheDocument()
     expect(
-      screen.getByText(/expected monthly government benefits/i),
+      screen.getByText(/expected government benefits/i),
     ).toBeInTheDocument()
     expect(
       screen.getByText(/part-time work, annuities, or other sources/i),

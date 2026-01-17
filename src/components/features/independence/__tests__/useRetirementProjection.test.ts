@@ -19,6 +19,8 @@ const mockPlan: RetirementPlan = {
   otherIncomeMonthly: 200,
   workingIncomeMonthly: 8000,
   workingExpensesMonthly: 6000,
+  taxesMonthly: 1500,
+  bonusMonthly: 500,
   investmentAllocationPercent: 0.8,
   cashReturnRate: 0.03,
   equityReturnRate: 0.07,

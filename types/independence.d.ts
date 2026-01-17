@@ -32,6 +32,8 @@ export interface RetirementPlan {
   otherIncomeMonthly: number
   workingIncomeMonthly: number
   workingExpensesMonthly: number
+  taxesMonthly: number
+  bonusMonthly: number
   investmentAllocationPercent: number
   lifeEvents?: string // JSON array of life events
   manualAssets?: Record<string, number> // JSON map of category -> value
@@ -68,6 +70,8 @@ export interface PlanRequest {
   otherIncomeMonthly?: number
   workingIncomeMonthly?: number
   workingExpensesMonthly?: number
+  taxesMonthly?: number
+  bonusMonthly?: number
   investmentAllocationPercent?: number
   lifeEvents?: string
   manualAssets?: Record<string, number> | null
@@ -482,6 +486,8 @@ export interface WizardFormData {
   // Step 2: Pre-Retirement (working years)
   workingIncomeMonthly: number
   workingExpensesMonthly: number
+  taxesMonthly: number
+  bonusMonthly: number
   investmentAllocationPercent: number // Stored as percentage (e.g., 80 for 80%)
 
   // Step 3: Income Sources (retirement income)
@@ -545,6 +551,8 @@ export interface PlanExport {
   otherIncomeMonthly: number
   workingIncomeMonthly: number
   workingExpensesMonthly: number
+  taxesMonthly: number
+  bonusMonthly: number
   investmentAllocationPercent: number
   expenses: ExportedExpense[]
   lifeEvents?: string

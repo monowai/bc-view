@@ -1,7 +1,7 @@
 import React from "react"
 import { Control, FieldErrors, useWatch } from "react-hook-form"
 import { WizardFormData } from "types/independence"
-import { StepHeader, CurrencyInput, SummaryBox } from "../form"
+import { StepHeader, CurrencyInputWithPeriod, SummaryBox } from "../form"
 import { usePrivateAssetConfigs } from "@utils/assets/usePrivateAssetConfigs"
 
 interface IncomeSourcesStepProps {
@@ -98,25 +98,25 @@ export default function IncomeSourcesStep({
       )}
 
       <div className="space-y-4">
-        <CurrencyInput
+        <CurrencyInputWithPeriod
           name="pensionMonthly"
-          label="Monthly Pension"
-          helperText="Expected monthly pension from employer or private schemes."
+          label="Pension"
+          helperText="Expected pension from employer or private schemes."
           control={control}
           errors={errors}
         />
 
-        <CurrencyInput
+        <CurrencyInputWithPeriod
           name="socialSecurityMonthly"
           label="Government Benefits (Social Security)"
-          helperText="Expected monthly government benefits (e.g., Social Security, state pension)."
+          helperText="Expected government benefits (e.g., Social Security, state pension)."
           control={control}
           errors={errors}
         />
 
-        <CurrencyInput
+        <CurrencyInputWithPeriod
           name="otherIncomeMonthly"
-          label="Other Monthly Income"
+          label="Other Income"
           helperText="Part-time work, annuities, or other sources (excl. property above)."
           control={control}
           errors={errors}

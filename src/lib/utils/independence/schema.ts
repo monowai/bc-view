@@ -58,6 +58,8 @@ export const preRetirementSchema = yup.object({
     .min(0, "Must be positive")
     .required("Working expenses are required")
     .default(0),
+  taxesMonthly: yup.number().min(0, "Must be positive").default(0),
+  bonusMonthly: yup.number().min(0, "Must be positive").default(0),
   investmentAllocationPercent: yup
     .number()
     .min(0, "Must be 0% or higher")
@@ -159,6 +161,8 @@ export const defaultWizardValues = {
   // Pre-retirement (working years)
   workingIncomeMonthly: 0,
   workingExpensesMonthly: 0,
+  taxesMonthly: 0,
+  bonusMonthly: 0,
   investmentAllocationPercent: 80, // 80% of surplus invested
   // Retirement income sources
   pensionMonthly: 0,
