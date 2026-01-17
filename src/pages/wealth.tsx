@@ -50,6 +50,7 @@ const COLORS = [
 
 interface WealthSummary {
   totalValue: number
+  totalGainOnDay: number
   portfolioCount: number
   classificationBreakdown: {
     classification: string
@@ -249,6 +250,7 @@ function WealthDashboard(): React.ReactElement {
     if (portfolios.length === 0 || Object.keys(fxRates).length === 0) {
       return {
         totalValue: 0,
+        totalGainOnDay: 0,
         portfolioCount: 0,
         classificationBreakdown: [],
         portfolioBreakdown: [],
@@ -279,8 +281,9 @@ function WealthDashboard(): React.ReactElement {
       })
     })
 
-    // Calculate asset classification breakdown from holdings
+    // Calculate asset classification breakdown and total gain on day from holdings
     const classificationTotals: Record<string, number> = {}
+    let totalGainOnDay = 0
     if (holdingsData?.data?.positions) {
       Object.values(holdingsData.data.positions).forEach((position) => {
         let classification =
@@ -292,6 +295,16 @@ function WealthDashboard(): React.ReactElement {
         const positionValue = position.moneyValues?.BASE?.marketValue || 0
         classificationTotals[classification] =
           (classificationTotals[classification] || 0) + positionValue
+
+        // Sum gainOnDay only when there's price data (gainOnDay is meaningless without it)
+        // Apply FX conversion from position's BASE currency to display currency
+        const priceData = position.moneyValues?.BASE?.priceData
+        if (priceData?.changePercent) {
+          const gainOnDay = position.moneyValues?.BASE?.gainOnDay || 0
+          const positionCurrency = position.moneyValues?.BASE?.currency?.code
+          const rate = positionCurrency ? fxRates[positionCurrency] || 1 : 1
+          totalGainOnDay += gainOnDay * rate
+        }
       })
     }
 
@@ -347,6 +360,7 @@ function WealthDashboard(): React.ReactElement {
 
     return {
       totalValue,
+      totalGainOnDay,
       portfolioCount: portfolios.length,
       classificationBreakdown,
       portfolioBreakdown,
@@ -434,6 +448,18 @@ function WealthDashboard(): React.ReactElement {
                     <FormatValue value={summary.totalValue} />
                   </span>
                 </div>
+                {summary.totalGainOnDay !== 0 && !hideValues && (
+                  <div
+                    className={`text-xl md:text-2xl font-semibold mt-1 ${summary.totalGainOnDay >= 0 ? "text-green-300" : "text-red-300"}`}
+                  >
+                    {summary.totalGainOnDay >= 0 ? "+" : ""}
+                    {displayCurrency?.symbol}
+                    <FormatValue value={summary.totalGainOnDay} />
+                    <span className="text-base ml-2 opacity-75">
+                      gain on day
+                    </span>
+                  </div>
+                )}
                 <p className="text-blue-200 mt-2">
                   Across {summary.portfolioCount} portfolio
                   {summary.portfolioCount !== 1 ? "s" : ""}

@@ -49,19 +49,12 @@ describe("Portfolios Page", () => {
     // Page has both mobile and desktop layouts, so P123 appears twice
     expect(screen.getAllByText("P123").length).toBeGreaterThan(0)
     expect(screen.getAllByText("Portfolio 1").length).toBeGreaterThan(0)
-    // Currency symbols appear in both mobile and desktop layouts
+    // Base currency symbols appear in both mobile and desktop layouts
+    // (Report currency column was removed - we only show base currency now)
     expect(
       screen.getAllByText((content, element) => {
         return (
           element?.textContent === "$USD" || element?.textContent === "$ USD"
-        )
-      }).length,
-    ).toBeGreaterThan(0)
-
-    expect(
-      screen.getAllByText((content, element) => {
-        return (
-          element?.textContent === "€EUR" || element?.textContent === "€ EUR"
         )
       }).length,
     ).toBeGreaterThan(0)

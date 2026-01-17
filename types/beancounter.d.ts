@@ -177,6 +177,9 @@ export interface Portfolio {
   owner?: SystemUser
   marketValue: number
   irr: number
+  gainOnDay?: number
+  assetClassification?: Record<string, number>
+  valuedAt?: string // ISO date string (YYYY-MM-DD)
 }
 
 export interface PortfolioResponse {

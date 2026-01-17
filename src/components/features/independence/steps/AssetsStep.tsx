@@ -145,7 +145,9 @@ export default function AssetsStep({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">{msg.title}</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+          {msg.title}
+        </h2>
         <p className="text-gray-600">{msg.description}</p>
       </div>
 
@@ -154,7 +156,9 @@ export default function AssetsStep({
         <h3 className="text-lg font-medium text-gray-800">
           {msg.selectPortfolios}
         </h3>
-        <p className="text-sm text-gray-600">{msg.selectPortfoliosDescription}</p>
+        <p className="text-sm text-gray-600">
+          {msg.selectPortfoliosDescription}
+        </p>
 
         {portfoliosWithBalance.length === 0 ? (
           <div className="space-y-4">
@@ -162,7 +166,9 @@ export default function AssetsStep({
               <div className="flex items-start">
                 <i className="fas fa-info-circle text-yellow-600 mt-0.5 mr-3"></i>
                 <div>
-                  <p className="font-medium text-yellow-800">{msg.noPortfolios}</p>
+                  <p className="font-medium text-yellow-800">
+                    {msg.noPortfolios}
+                  </p>
                   <p className="text-sm text-yellow-700 mt-1">
                     {msg.noPortfoliosDescription}
                   </p>
@@ -204,7 +210,10 @@ export default function AssetsStep({
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
                     {msg.growsAt
-                      .replace("{rate}", String(getRateForCategory(category.rateField)))
+                      .replace(
+                        "{rate}",
+                        String(getRateForCategory(category.rateField)),
+                      )
                       .replace("{type}", category.rateLabel)}
                   </p>
                 </div>
@@ -268,12 +277,16 @@ export default function AssetsStep({
                       <span className="font-medium text-gray-900">
                         {portfolio.code}
                       </span>
-                      <span className="text-gray-500 ml-2">{portfolio.name}</span>
+                      <span className="text-gray-500 ml-2">
+                        {portfolio.name}
+                      </span>
                     </div>
                     <div className="text-right">
                       <span className="text-gray-700 font-medium">
                         {portfolio.base?.code || portfolio.currency?.code}{" "}
-                        {Math.round(portfolio.marketValue || 0).toLocaleString()}
+                        {Math.round(
+                          portfolio.marketValue || 0,
+                        ).toLocaleString()}
                       </span>
                     </div>
                   </label>

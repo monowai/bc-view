@@ -152,22 +152,21 @@ function createHoldingGroup(
 function addSubtotalPosition(
   subTotals: Record<ValueIn, MoneyValues>,
   position: Position,
-  valueIn: ValueIn,
 ): Record<ValueIn, MoneyValues> {
   subTotals[ValueIn.BASE] = updateSubTotal(
     subTotals[ValueIn.BASE],
     position,
-    valueIn,
+    ValueIn.BASE,
   )
   subTotals[ValueIn.PORTFOLIO] = updateSubTotal(
     subTotals[ValueIn.PORTFOLIO],
     position,
-    valueIn,
+    ValueIn.PORTFOLIO,
   )
   subTotals[ValueIn.TRADE] = updateSubTotal(
     subTotals[ValueIn.TRADE],
     position,
-    valueIn,
+    ValueIn.TRADE,
   )
   return subTotals
 }
@@ -231,7 +230,6 @@ export function calculateHoldings(
       results.holdingGroups[groupKey].subTotals = addSubtotalPosition(
         results.holdingGroups[groupKey].subTotals,
         position,
-        valueIn,
       )
       return results
     },
