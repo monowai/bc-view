@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react"
+import React, { useState, useCallback, useMemo } from "react"
 import { useForm } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
 import { useRouter } from "next/router"
@@ -20,6 +20,7 @@ import {
 } from "@lib/independence/stepConfig"
 import { toDecimal } from "@lib/independence/conversions"
 import { WizardFormData, PlanRequest } from "types/independence"
+import { useUserPreferences } from "@contexts/UserPreferencesContext"
 
 interface WizardContainerProps {
   planId?: string
@@ -36,6 +37,18 @@ export default function WizardContainer({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [stepErrors, setStepErrors] = useState<Set<number>>(new Set())
+  const { preferences } = useUserPreferences()
+
+  // Use user's preferred currency for new plans
+  const effectiveDefaults = useMemo(() => {
+    if (isEditMode && initialData) {
+      // Edit mode: use plan's saved currency
+      return { ...defaultWizardValues, ...initialData }
+    }
+    // New plan: use user's preferred reporting currency
+    const userCurrency = preferences?.reportingCurrencyCode || "USD"
+    return { ...defaultWizardValues, expensesCurrency: userCurrency }
+  }, [isEditMode, initialData, preferences?.reportingCurrencyCode])
 
   const {
     control,
@@ -45,9 +58,7 @@ export default function WizardContainer({
     getValues,
   } = useForm<WizardFormData>({
     resolver: yupResolver(wizardSchema) as any,
-    defaultValues: initialData
-      ? { ...defaultWizardValues, ...initialData }
-      : defaultWizardValues,
+    defaultValues: effectiveDefaults,
     mode: "onBlur",
   })
 

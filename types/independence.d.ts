@@ -286,8 +286,10 @@ export interface YearlyAccumulation {
 export interface IncomeBreakdown {
   /** Investment returns (growth on portfolio balance) */
   investmentReturns: number
-  /** Pension income (not inflation-indexed) */
+  /** Pension income from RetirementPlan (not inflation-indexed) */
   pension: number
+  /** Pension income from pension assets (age-dependent payouts) */
+  assetPensions?: number
   /** Government benefits / Social Security (inflation-indexed) */
   socialSecurity: number
   /** Other income sources (not indexed) */

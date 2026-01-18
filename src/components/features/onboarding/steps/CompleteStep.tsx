@@ -5,6 +5,7 @@ interface CompleteStepProps {
   portfolioName: string
   bankAccountCount: number
   propertyCount: number
+  pensionCount: number
   portfolioId: string | null
 }
 
@@ -12,18 +13,9 @@ const CompleteStep: React.FC<CompleteStepProps> = ({
   portfolioName,
   bankAccountCount,
   propertyCount,
+  pensionCount,
 }) => {
   const { t } = useTranslation("onboarding")
-
-  const handleDownloadTemplate = (): void => {
-    // Trigger download of the CSV template
-    const link = document.createElement("a")
-    link.href = "/templates/example-transactions.csv"
-    link.download = "example-transactions.csv"
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }
 
   return (
     <div className="text-center py-6">
@@ -43,7 +35,7 @@ const CompleteStep: React.FC<CompleteStepProps> = ({
       </p>
 
       {/* Summary */}
-      <div className="bg-gray-50 rounded-lg p-4 max-w-sm mx-auto mb-8">
+      <div className="bg-gray-50 rounded-lg p-4 max-w-sm mx-auto">
         <ul className="text-left space-y-2">
           <li className="flex items-center text-gray-700">
             <i className="fas fa-folder text-blue-500 w-6"></i>
@@ -72,28 +64,17 @@ const CompleteStep: React.FC<CompleteStepProps> = ({
               </span>
             </li>
           )}
-        </ul>
-      </div>
-
-      {/* CSV Template Section */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
-        <h3 className="font-medium text-blue-900 mb-2">
-          {t("complete.csvTitle", "Import Your Transactions")}
-        </h3>
-        <p className="text-sm text-blue-700 mb-4">
-          {t(
-            "complete.csvDescription",
-            "Download our example CSV to see the format for importing transactions like deposits and stock purchases.",
+          {pensionCount > 0 && (
+            <li className="flex items-center text-gray-700">
+              <i className="fas fa-piggy-bank text-purple-500 w-6"></i>
+              <span>
+                {t("complete.pensions", "{{count}} pension plan(s)", {
+                  count: pensionCount,
+                })}
+              </span>
+            </li>
           )}
-        </p>
-        <button
-          type="button"
-          onClick={handleDownloadTemplate}
-          className="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-        >
-          <i className="fas fa-download mr-2"></i>
-          {t("complete.downloadCsv", "Download CSV Template")}
-        </button>
+        </ul>
       </div>
     </div>
   )

@@ -4,20 +4,34 @@ import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { GetServerSideProps } from "next"
 import { useTranslation } from "next-i18next"
 import { useRouter } from "next/router"
+import useSwr from "swr"
+import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
+import { Portfolio } from "types/beancounter"
 import OnboardingWizard from "@components/features/onboarding/OnboardingWizard"
 import { useRegistration } from "@contexts/RegistrationContext"
 
 function OnboardingPage(): React.ReactElement {
   const { t } = useTranslation("onboarding")
   const router = useRouter()
-  const { isOnboardingComplete } = useRegistration()
+  const { isOnboardingComplete, isRegistered } = useRegistration()
+
+  // Check if user has portfolios
+  const { data: portfoliosData } = useSwr<{ data: Portfolio[] }>(
+    isRegistered ? portfoliosKey : null,
+    simpleFetcher(portfoliosKey),
+  )
 
   useEffect(() => {
-    // If onboarding already complete, redirect to wealth
-    if (isOnboardingComplete) {
-      router.replace("/wealth")
+    // Only redirect if onboarding complete AND user has portfolios
+    // This allows users with no portfolios to run onboarding even if flag is set
+    if (
+      isOnboardingComplete &&
+      portfoliosData?.data &&
+      portfoliosData.data.length > 0
+    ) {
+      router.replace("/")
     }
-  }, [isOnboardingComplete, router])
+  }, [isOnboardingComplete, portfoliosData, router])
 
   return (
     <div className="w-full py-8 px-4">

@@ -401,6 +401,7 @@ export const ASSET_CATEGORIES = {
   RE: "RE",
   ACCOUNT: "ACCOUNT",
   TRADE: "TRADE",
+  PENSION: "PENSION",
 } as const
 
 export type AssetCategoryId =
@@ -587,6 +588,11 @@ export interface PrivateAssetConfig {
   transactionDayOfMonth: number
   creditAccountId?: string
   autoGenerateTransactions: boolean
+  // Pension settings
+  expectedReturnRate?: number
+  payoutAge?: number
+  monthlyPayoutAmount?: number
+  isPension: boolean
   // Timestamps
   createdDate: string
   updatedDate: string
@@ -608,6 +614,11 @@ export interface PrivateAssetConfigRequest {
   transactionDayOfMonth?: number
   creditAccountId?: string
   autoGenerateTransactions?: boolean
+  // Pension settings
+  expectedReturnRate?: number
+  payoutAge?: number
+  monthlyPayoutAmount?: number
+  isPension?: boolean
 }
 
 export interface PrivateAssetConfigResponse {

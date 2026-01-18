@@ -9,7 +9,7 @@ import { usePrivacyMode } from "@hooks/usePrivacyMode"
 
 export default function HeaderUserControls(): React.ReactElement {
   const { user, error, isLoading } = useUser()
-  const { t } = useTranslation("common")
+  const { t, ready } = useTranslation("common")
   const { preferences } = useUserPreferences()
   const { isAdmin } = useIsAdmin()
   const { hideValues, toggleHideValues } = usePrivacyMode()
@@ -57,7 +57,7 @@ export default function HeaderUserControls(): React.ReactElement {
           {displayName}
         </div>
       </div>
-      {dropdownOpen && (
+      {dropdownOpen && ready && (
         <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow-lg z-50 text-gray-800">
           <Link
             href="/settings"
