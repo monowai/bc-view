@@ -230,7 +230,9 @@ export default function ExpensesStep({
         <div className="flex justify-between items-center">
           <div className="flex items-center">
             <i className="fas fa-calculator text-orange-600 mr-3"></i>
-            <span className="font-medium text-orange-800">{msg.totalLabel}</span>
+            <span className="font-medium text-orange-800">
+              {msg.totalLabel}
+            </span>
           </div>
           <span className="text-xl font-bold text-orange-700">
             ${totalMonthlyExpenses.toLocaleString()}

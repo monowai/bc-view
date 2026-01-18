@@ -246,6 +246,7 @@
   "accounts.delete.title": "Delete Asset",
   "accounts.delete.confirm": "Are you sure you want to delete this asset?",
   "accounts.delete.warning": "This action cannot be undone. Any transactions associated with this asset will remain but reference a deleted asset.",
+  "category.PENSION": "Pension",
   "category.ACCOUNT": "Bank Account",
   "category.TRADE": "Trade Account",
   "category.RE": "Real Estate",

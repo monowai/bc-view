@@ -17,6 +17,7 @@ import {
   Tooltip as ChartTooltip,
   ResponsiveContainer,
   ReferenceLine,
+  ReferenceArea,
   Legend,
 } from "recharts"
 import InfoTooltip from "@components/ui/Tooltip"
@@ -705,11 +706,14 @@ function PlanView(): React.ReactElement {
     if (!adjustedProjection) return []
 
     // Convert accumulation projections to chart format
+    // Use separate data keys for different line colors
     const accumulationData = (
       adjustedProjection.accumulationProjections || []
     ).map((year) => ({
       age: year.age,
       endingBalance: year.endingBalance,
+      accumulationBalance: year.endingBalance, // Blue line (working years)
+      retirementBalance: null as number | null,
       totalWealth: year.totalWealth,
       contribution: year.contribution,
       investmentGrowth: year.investmentGrowth,
@@ -717,14 +721,19 @@ function PlanView(): React.ReactElement {
     }))
 
     // Convert retirement projections to chart format
-    const retirementData = adjustedProjection.yearlyProjections.map((year) => ({
-      age: year.age,
-      endingBalance: year.endingBalance,
-      totalWealth: year.totalWealth,
-      withdrawals: year.withdrawals,
-      investment: year.investment,
-      phase: "retirement" as const,
-    }))
+    const retirementData = adjustedProjection.yearlyProjections.map(
+      (year, index) => ({
+        age: year.age,
+        endingBalance: year.endingBalance,
+        accumulationBalance:
+          index === 0 ? year.endingBalance : (null as number | null), // Connect to accumulation line
+        retirementBalance: year.endingBalance, // Purple line (independence years)
+        totalWealth: year.totalWealth,
+        withdrawals: year.withdrawals,
+        investment: year.investment,
+        phase: "retirement" as const,
+      }),
+    )
 
     return [...accumulationData, ...retirementData]
   }, [adjustedProjection])
@@ -1413,7 +1422,19 @@ function PlanView(): React.ReactElement {
 
                   <div className="border-t pt-4">
                     <div className="flex justify-between font-medium text-lg">
-                      <span>{t("retire.assets.spendableAtRetirement")}</span>
+                      <span>
+                        {t("retire.assets.spendableAtRetirement")}
+                        {currentAge !== undefined && retirementAge && (
+                          <span className="font-normal text-sm text-gray-500">
+                            {" "}
+                            (age {retirementAge},{" "}
+                            {retirementAge - currentAge > 0
+                              ? `${retirementAge - currentAge}yr`
+                              : "now"}
+                            )
+                          </span>
+                        )}
+                      </span>
                       <span
                         className={
                           hideValues ? "text-gray-400" : "text-orange-600"
@@ -1739,6 +1760,15 @@ function PlanView(): React.ReactElement {
                             offset: -10,
                           }}
                           tick={{ fontSize: 12 }}
+                          domain={[
+                            (dataMin: number) =>
+                              Math.min(
+                                dataMin,
+                                retirementAge ? retirementAge - 3 : dataMin,
+                              ),
+                            "dataMax",
+                          ]}
+                          allowDataOverflow={true}
                         />
                         <YAxis
                           tickFormatter={(value) =>
@@ -1755,8 +1785,10 @@ function PlanView(): React.ReactElement {
                               : `$${Number(value || 0).toLocaleString()}`
                             if (name === "totalWealth")
                               return [formatted, "Total Wealth"]
-                            if (name === "endingBalance")
-                              return [formatted, "Work to Independence"]
+                            if (name === "accumulationBalance")
+                              return [formatted, "Working Years"]
+                            if (name === "retirementBalance")
+                              return [formatted, "Independence Years"]
                             if (name === "fireBalance")
                               return [formatted, "FIRE Path"]
                             return [formatted, name]
@@ -1769,40 +1801,42 @@ function PlanView(): React.ReactElement {
                           formatter={(value) =>
                             value === "totalWealth"
                               ? "Total Wealth"
-                              : value === "endingBalance"
-                                ? "Work to Independence"
-                                : value === "fireBalance"
-                                  ? "FIRE Path"
-                                  : value
+                              : value === "accumulationBalance"
+                                ? "Working Years"
+                                : value === "retirementBalance"
+                                  ? "Independence Years"
+                                  : value === "fireBalance"
+                                    ? "FIRE Path"
+                                    : value
                           }
                         />
                         <ReferenceLine y={0} stroke="#ef4444" strokeWidth={2} />
+                        {/* Independence years shaded area - show in traditional view */}
+                        {timelineViewMode === "traditional" && retirementAge && (
+                          <ReferenceArea
+                            x1={retirementAge}
+                            x2={lifeExpectancy}
+                            fill="#f97316"
+                            fillOpacity={0.15}
+                            stroke="#f97316"
+                            strokeOpacity={0.3}
+                          />
+                        )}
                         {/* Retirement age transition line - show in traditional view */}
-                        {timelineViewMode === "traditional" &&
-                          retirementAge &&
-                          chartDataWithFirePath.length > 0 &&
-                          (chartDataWithFirePath.some(
-                            (d) => d.phase === "accumulation",
-                          ) ||
-                            (chartDataWithFirePath.some(
-                              (d) => d.age != null && d.age <= retirementAge,
-                            ) &&
-                              chartDataWithFirePath.some(
-                                (d) => d.age != null && d.age >= retirementAge,
-                              ))) && (
-                            <ReferenceLine
-                              x={retirementAge}
-                              stroke="#8b5cf6"
-                              strokeDasharray="5 5"
-                              strokeWidth={2}
-                              label={{
-                                value: "Retire",
-                                position: "top",
-                                fill: "#8b5cf6",
-                                fontSize: 11,
-                              }}
-                            />
-                          )}
+                        {timelineViewMode === "traditional" && retirementAge && (
+                          <ReferenceLine
+                            x={retirementAge}
+                            stroke="#f97316"
+                            strokeDasharray="5 5"
+                            strokeWidth={2}
+                            label={{
+                              value: `Independence (${retirementAge})`,
+                              position: "top",
+                              fill: "#f97316",
+                              fontSize: 11,
+                            }}
+                          />
+                        )}
                         {/* FI achievement age line - show in FIRE view */}
                         {timelineViewMode === "fire" && fiAchievementAge && (
                           <ReferenceLine
@@ -1830,15 +1864,28 @@ function PlanView(): React.ReactElement {
                               name="totalWealth"
                             />
                           )}
-                        {/* Traditional path - Work to Independence */}
+                        {/* Traditional path - Working years (blue) */}
                         {timelineViewMode === "traditional" && (
                           <Line
                             type="monotone"
-                            dataKey="endingBalance"
+                            dataKey="accumulationBalance"
                             stroke="#3b82f6"
                             strokeWidth={3}
                             dot={{ r: 3, fill: "#3b82f6" }}
-                            name="endingBalance"
+                            name="accumulationBalance"
+                            connectNulls={false}
+                          />
+                        )}
+                        {/* Traditional path - Independence years (purple) */}
+                        {timelineViewMode === "traditional" && (
+                          <Line
+                            type="monotone"
+                            dataKey="retirementBalance"
+                            stroke="#f97316"
+                            strokeWidth={3}
+                            dot={{ r: 3, fill: "#f97316" }}
+                            name="retirementBalance"
+                            connectNulls={false}
                           />
                         )}
                         {/* FIRE path - what happens if you retire at FI age */}
@@ -2071,14 +2118,14 @@ function PlanView(): React.ReactElement {
                                   (y) => y.propertyLiquidated,
                                 )?.age
                               }
-                              stroke="#8b5cf6"
+                              stroke="#f97316"
                               strokeWidth={2}
                               strokeDasharray="5 5"
                               label={{
                                 value: "Property Sold",
                                 position: "top",
                                 fontSize: 10,
-                                fill: "#8b5cf6",
+                                fill: "#f97316",
                               }}
                             />
                           )}

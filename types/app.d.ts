@@ -3,6 +3,7 @@ import { Market, Portfolio, TrnInput } from "./beancounter"
 interface TransactionUpload {
   portfolio: Portfolio
   row: string[]
+  token?: string
 }
 
 interface FormatNumber {

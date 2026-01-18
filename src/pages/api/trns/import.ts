@@ -8,12 +8,13 @@ export default withApiAuthRequired(async function writeRows(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
-  await getAccessToken(req, res)
+  const { accessToken } = await getAccessToken(req, res)
 
   try {
     const result = await writeTrn({
       portfolio: req.body.portfolio,
       row: req.body.row,
+      token: accessToken,
     })
 
     if (!result.success) {

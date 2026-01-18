@@ -89,21 +89,6 @@ const PortfolioActions = ({
   )
 }
 
-const CreatePortfolioButton = (): React.ReactElement => {
-  const router = useRouter()
-  const { t } = useTranslation("common")
-
-  return (
-    <button
-      className="bg-blue-500 text-white py-3 px-6 rounded-lg hover:bg-blue-600 transition-colors shadow-sm flex items-center"
-      onClick={() => router.push(`/portfolios/__NEW__`)}
-    >
-      <i className="fas fa-plus mr-2"></i>
-      {t("portfolio.create")}
-    </button>
-  )
-}
-
 export default withPageAuthRequired(function Portfolios({
   user,
 }: UserProfile): React.ReactElement {
@@ -394,15 +379,53 @@ export default withPageAuthRequired(function Portfolios({
     if (!portfolios || portfolios.length == 0) {
       return (
         <div className="min-h-screen bg-gray-50 px-4 py-8">
-          <div className="max-w-lg mx-auto bg-white border border-gray-200 rounded-xl p-8 text-center shadow-sm">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <i className="fas fa-folder-open text-2xl text-gray-400"></i>
-            </div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+          <div className="max-w-2xl mx-auto">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6 text-center">
               {t("portfolios.empty.title", "No portfolios yet")}
             </h2>
-            <p className="text-gray-600 mb-6">{t("error.portfolios.empty")}</p>
-            <CreatePortfolioButton />
+            <p className="text-gray-600 mb-8 text-center">
+              {t("error.portfolios.empty")}
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Guided Setup - for novice users */}
+              <Link
+                href="/onboarding"
+                className="bg-white border border-gray-200 rounded-xl p-6 text-center shadow-sm hover:border-blue-300 hover:shadow-md transition-all"
+              >
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <i className="fas fa-rocket text-xl text-blue-500"></i>
+                </div>
+                <h3 className="font-semibold text-gray-900 mb-2">
+                  {t("home.startSetup", "Start Setup")}
+                </h3>
+                <p className="text-gray-500 text-sm">
+                  {t(
+                    "portfolios.guided",
+                    "Guided setup for bank accounts, property, and pensions",
+                  )}
+                </p>
+              </Link>
+
+              {/* Direct Add - for professional users */}
+              <Link
+                href="/portfolios/__NEW__"
+                className="bg-white border border-gray-200 rounded-xl p-6 text-center shadow-sm hover:border-green-300 hover:shadow-md transition-all"
+              >
+                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <i className="fas fa-plus text-xl text-green-500"></i>
+                </div>
+                <h3 className="font-semibold text-gray-900 mb-2">
+                  {t("portfolio.create")}
+                </h3>
+                <p className="text-gray-500 text-sm">
+                  {t(
+                    "portfolios.direct",
+                    "Create a portfolio directly with full control",
+                  )}
+                </p>
+              </Link>
+            </div>
           </div>
         </div>
       )

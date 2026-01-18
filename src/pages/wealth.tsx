@@ -880,18 +880,42 @@ function WealthDashboard(): React.ReactElement {
             {!collapsedSections.portfolioDetails && (
               <>
                 {summary.portfolioBreakdown.length === 0 ? (
-                  <div className="p-12 text-center">
-                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <i className="fas fa-chart-pie text-2xl text-gray-400"></i>
+                  <div className="p-8">
+                    <p className="text-gray-600 mb-6 text-center">
+                      {t("portfolios.empty.title", "No portfolios yet")}
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-xl mx-auto">
+                      {/* Guided Setup */}
+                      <Link
+                        href="/onboarding"
+                        className="border border-gray-200 rounded-lg p-4 text-center hover:border-blue-300 hover:shadow-sm transition-all"
+                      >
+                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                          <i className="fas fa-rocket text-blue-500"></i>
+                        </div>
+                        <h4 className="font-medium text-gray-900 mb-1">
+                          {t("home.startSetup", "Start Setup")}
+                        </h4>
+                        <p className="text-gray-500 text-xs">
+                          {t("portfolios.guided", "Guided setup")}
+                        </p>
+                      </Link>
+                      {/* Direct Add */}
+                      <Link
+                        href="/portfolios/__NEW__"
+                        className="border border-gray-200 rounded-lg p-4 text-center hover:border-green-300 hover:shadow-sm transition-all"
+                      >
+                        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                          <i className="fas fa-plus text-green-500"></i>
+                        </div>
+                        <h4 className="font-medium text-gray-900 mb-1">
+                          {t("portfolio.create")}
+                        </h4>
+                        <p className="text-gray-500 text-xs">
+                          {t("portfolios.direct", "Direct control")}
+                        </p>
+                      </Link>
                     </div>
-                    <p className="text-gray-600 mb-4">No portfolios yet</p>
-                    <Link
-                      href="/portfolios/__NEW__"
-                      className="inline-flex items-center bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium"
-                    >
-                      <i className="fas fa-plus mr-2"></i>
-                      Create Portfolio
-                    </Link>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
