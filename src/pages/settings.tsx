@@ -22,11 +22,11 @@ import {
   ValueInOption,
 } from "types/constants"
 
-type SettingsTab = "profile" | "preferences" | "tax" | "account"
+type SettingsTab = "profile" | "wealth" | "tax" | "account"
 
 const TABS: { id: SettingsTab; label: string; icon: string }[] = [
   { id: "profile", label: "Profile", icon: "fa-user" },
-  { id: "preferences", label: "Preferences", icon: "fa-sliders-h" },
+  { id: "wealth", label: "Wealth", icon: "fa-chart-pie" },
   { id: "tax", label: "Tax", icon: "fa-percent" },
   { id: "account", label: "Account", icon: "fa-cog" },
 ]
@@ -333,6 +333,27 @@ function SettingsPage(): React.ReactElement {
           </div>
 
           <div className="space-y-4">
+            {/* Preferred Name */}
+            <div>
+              <label
+                htmlFor="preferredName"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                {t("settings.preferredName")}
+              </label>
+              <input
+                id="preferredName"
+                type="text"
+                value={preferredName}
+                onChange={(e) => setPreferredName(e.target.value)}
+                placeholder={t("settings.preferredName.placeholder")}
+                className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-500 focus:border-blue-500"
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                {t("settings.preferredName.description")}
+              </p>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-500">
                 Nickname
@@ -363,35 +384,25 @@ function SettingsPage(): React.ReactElement {
                 </p>
               </div>
             )}
+
+            {/* Save Button */}
+            <div className="flex justify-end pt-4 border-t">
+              <button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+              >
+                {isSaving ? t("settings.saving") : t("settings.save")}
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Preferences Tab */}
-      {activeTab === "preferences" && (
+      {/* Wealth Tab */}
+      {activeTab === "wealth" && (
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="space-y-6">
-            {/* Preferred Name */}
-            <div>
-              <label
-                htmlFor="preferredName"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                {t("settings.preferredName")}
-              </label>
-              <input
-                id="preferredName"
-                type="text"
-                value={preferredName}
-                onChange={(e) => setPreferredName(e.target.value)}
-                placeholder={t("settings.preferredName.placeholder")}
-                className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-500 focus:border-blue-500"
-              />
-              <p className="mt-1 text-sm text-gray-500">
-                {t("settings.preferredName.description")}
-              </p>
-            </div>
-
             {/* Default Holdings View */}
             <div>
               <label

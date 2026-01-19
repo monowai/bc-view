@@ -15,6 +15,32 @@ const ModelPlans: React.FC<ModelPlansProps> = ({ modelId }) => {
   const router = useRouter()
   const { plans, isLoading, error, mutate } = useModelPlans(modelId)
   const [creating, setCreating] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  const handleDeletePlan = async (
+    e: React.MouseEvent,
+    planId: string,
+  ): Promise<void> => {
+    e.stopPropagation()
+    if (!confirm(t("rebalance.plans.confirmDelete", "Delete this plan?"))) {
+      return
+    }
+
+    setDeletingId(planId)
+    try {
+      const response = await fetch(
+        `/api/rebalance/models/${modelId}/plans/${planId}`,
+        { method: "DELETE" },
+      )
+      if (response.ok || response.status === 204) {
+        mutate()
+      }
+    } catch (err) {
+      console.error("Failed to delete plan:", err)
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   const handleCreatePlan = async (): Promise<void> => {
     setCreating(true)
@@ -143,6 +169,18 @@ const ModelPlans: React.FC<ModelPlansProps> = ({ modelId }) => {
                     {plan.assets.length}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-right">
+                    <button
+                      onClick={(e) => handleDeletePlan(e, plan.id)}
+                      disabled={deletingId === plan.id}
+                      className="text-gray-400 hover:text-red-600 p-1 mr-2 disabled:opacity-50"
+                      title={t("delete", "Delete")}
+                    >
+                      {deletingId === plan.id ? (
+                        <i className="fas fa-spinner fa-spin"></i>
+                      ) : (
+                        <i className="fas fa-trash-alt"></i>
+                      )}
+                    </button>
                     <i className="fas fa-chevron-right text-gray-400"></i>
                   </td>
                 </tr>

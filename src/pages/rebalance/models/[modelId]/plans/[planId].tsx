@@ -711,13 +711,13 @@ function PlanDetailPage(): React.ReactElement {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         {t("rebalance.plans.asset", "Asset")}
                       </th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-3 sm:px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                         {t("rebalance.plans.weight", "Weight")}
                       </th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="hidden sm:table-cell px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                         {t("rebalance.plans.price", "Price")}
                       </th>
                     </tr>
@@ -725,7 +725,7 @@ function PlanDetailPage(): React.ReactElement {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {plan.assets.map((asset: PlanAssetDto) => (
                       <tr key={asset.id}>
-                        <td className="px-4 py-3">
+                        <td className="px-3 sm:px-4 py-3">
                           <div>
                             <span className="font-medium text-gray-900">
                               {asset.assetCode || asset.assetId}
@@ -733,6 +733,13 @@ function PlanDetailPage(): React.ReactElement {
                             {asset.assetName && (
                               <div className="text-xs text-gray-500">
                                 {asset.assetName}
+                              </div>
+                            )}
+                            {/* Show price on mobile below asset name */}
+                            {asset.capturedPrice && (
+                              <div className="text-xs text-gray-400 sm:hidden">
+                                {asset.capturedPrice.toFixed(2)}{" "}
+                                {asset.priceCurrency || ""}
                               </div>
                             )}
                             {asset.rationale && (
@@ -743,10 +750,10 @@ function PlanDetailPage(): React.ReactElement {
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-right text-gray-900">
+                        <td className="px-3 sm:px-4 py-3 text-right text-gray-900 whitespace-nowrap">
                           {formatWeight(asset.weight)}
                         </td>
-                        <td className="px-4 py-3 text-right text-gray-500">
+                        <td className="hidden sm:table-cell px-4 py-3 text-right text-gray-500">
                           {asset.capturedPrice
                             ? `${asset.capturedPrice.toFixed(2)} ${asset.priceCurrency || ""}`
                             : "-"}
@@ -756,16 +763,16 @@ function PlanDetailPage(): React.ReactElement {
                     {/* Cash row */}
                     {plan.cashWeight > 0 && (
                       <tr className="bg-gray-50">
-                        <td className="px-4 py-3">
+                        <td className="px-3 sm:px-4 py-3">
                           <span className="font-medium text-gray-700">
                             <i className="fas fa-coins mr-2 text-gray-400"></i>
                             {t("rebalance.plans.cash", "Cash")}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-right text-gray-700">
+                        <td className="px-3 sm:px-4 py-3 text-right text-gray-700">
                           {formatWeight(plan.cashWeight)}
                         </td>
-                        <td className="px-4 py-3 text-right text-gray-500">
+                        <td className="hidden sm:table-cell px-4 py-3 text-right text-gray-500">
                           -
                         </td>
                       </tr>
