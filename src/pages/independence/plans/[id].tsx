@@ -34,10 +34,10 @@ import {
   WhatIfAdjustments,
   ScenarioOverrides,
   TabId,
-  DEFAULT_NON_SPENDABLE,
+  DEFAULT_NON_SPENDABLE_CATEGORIES,
   DEFAULT_WHAT_IF_ADJUSTMENTS,
   hasScenarioChanges,
-  useRetirementProjection,
+  useUnifiedProjection,
   RentalIncomeData,
   WhatIfModal,
   ScenarioImpact,
@@ -52,15 +52,6 @@ import {
 } from "@components/features/independence"
 import { usePrivateAssetConfigs } from "@utils/assets/usePrivateAssetConfigs"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
-import {
-  calculateFiNumber,
-  calculateFiProgress,
-  calculateCoastFiNumber,
-  calculateCoastFiProgress,
-  isFinanciallyIndependent as isFiAchieved,
-  isCoastFireAchieved,
-  calculateYearsToTarget,
-} from "@utils/independence/fiCalculations"
 
 const HIDDEN_VALUE = "****"
 
@@ -199,8 +190,10 @@ function PlanView(): React.ReactElement {
 
   // Fetch aggregated holdings to get category breakdown
   // Disable auto-revalidation - only refresh on manual action for performance
+  // Use dedupingInterval for caching across page refreshes
   const {
     data: holdingsResponse,
+    isLoading: holdingsLoading,
     mutate: refreshHoldings,
     isValidating: isRefreshingHoldings,
   } = useSwr<{
@@ -211,9 +204,11 @@ function PlanView(): React.ReactElement {
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
+      dedupingInterval: 60000, // Cache for 60 seconds
     },
   )
-  const holdingsData = holdingsResponse?.data
+  // Only use holdings data when it has finished loading
+  const holdingsData = holdingsLoading ? undefined : holdingsResponse?.data
 
   // Fetch quick scenarios for What-If analysis
   const { data: scenariosData } = useSwr<QuickScenariosResponse>(
@@ -401,7 +396,7 @@ function PlanView(): React.ReactElement {
     ) {
       const allCategories = categorySlices.map((s) => s.key)
       const spendable = allCategories.filter(
-        (cat) => !DEFAULT_NON_SPENDABLE.includes(cat),
+        (cat) => !DEFAULT_NON_SPENDABLE_CATEGORIES.includes(cat),
       )
       setSpendableCategories(spendable)
       hasCategoriesInitialized.current = true
@@ -496,7 +491,7 @@ function PlanView(): React.ReactElement {
         position.asset.effectiveReportCategory ||
         position.asset.assetCategory?.name ||
         "Equity"
-      if (DEFAULT_NON_SPENDABLE.includes(reportCategory)) continue
+      if (DEFAULT_NON_SPENDABLE_CATEGORIES.includes(reportCategory)) continue
 
       const rate = position.asset.expectedReturnRate ?? DEFAULT_EXPECTED_RETURN
       totalValue += marketValue
@@ -588,11 +583,17 @@ function PlanView(): React.ReactElement {
     )
   }
 
-  // Use retirement projection hook
+  // Use unified projection hook
   // Pass pre-calculated assets to avoid backend refetch from svc-position
   const { adjustedProjection, isCalculating, resetProjection } =
-    useRetirementProjection({
+    useUnifiedProjection({
       plan,
+      assets: {
+        liquidAssets,
+        nonSpendableAssets,
+        totalAssets,
+        hasAssets,
+      },
       selectedPortfolioIds,
       currentAge,
       retirementAge,
@@ -602,104 +603,18 @@ function PlanView(): React.ReactElement {
       scenarioOverrides,
       rentalIncome,
       displayCurrency: displayCurrency ?? undefined,
-      liquidAssets,
-      nonSpendableAssets,
     })
 
   // Plan inputs from backend (already FX converted when displayCurrency differs)
   const planInputs = adjustedProjection?.planInputs
 
-  // Calculate FI metrics for summary bar
-  // Uses effectivePlanValues which already has What-If overrides applied
-  const fiMetrics = useMemo(() => {
-    if (!effectivePlanValues) return null
-
-    // Check if What-If adjustments are active (any value != default)
-    const hasWhatIfAdjustments =
-      combinedAdjustments.expensesPercent !== 100 ||
-      combinedAdjustments.contributionPercent !== 100 ||
-      combinedAdjustments.returnRateOffset !== 0
-
-    // Apply what-if expensesPercent adjustment to effective expenses
-    // effectivePlanValues.monthlyExpenses already includes direct What-If override
-    // combinedAdjustments.expensesPercent applies scenario toggle adjustments
-    const effectiveGrossExpenses = Math.round(
-      effectivePlanValues.monthlyExpenses *
-        (combinedAdjustments.expensesPercent / 100),
-    )
-
-    // Calculate income from all sources (pension, benefits, rental, etc.)
-    // All values from effectivePlanValues include What-If overrides
-    const totalMonthlyIncome =
-      (effectivePlanValues.pensionMonthly || 0) +
-      (effectivePlanValues.socialSecurityMonthly || 0) +
-      (effectivePlanValues.otherIncomeMonthly || 0) +
-      (rentalIncome?.totalMonthlyInPlanCurrency || 0)
-
-    // Net expenses = what you actually need from investments
-    const netMonthlyExpenses = Math.max(
-      0,
-      effectiveGrossExpenses - totalMonthlyIncome,
-    )
-
-    // FI Number based on NET expenses (accounts for rental income, pension, etc.)
-    const annualNetExpenses = netMonthlyExpenses * 12
-    const fiNumber = calculateFiNumber(annualNetExpenses)
-
-    // Coast FIRE calculation - use shared utilities
-    const yearsToRetirement = calculateYearsToTarget(currentAge, retirementAge)
-
-    // Apply return rate adjustment for Coast FIRE (offset is in percentage points)
-    const adjustedReturnRate =
-      blendedReturnRate + combinedAdjustments.returnRateOffset / 100
-    const coastFiNumber = calculateCoastFiNumber(
-      fiNumber,
-      yearsToRetirement ?? 0,
-      adjustedReturnRate,
-    )
-
-    // FI Progress calculation - use shared utilities
-    const fiProgress = calculateFiProgress(liquidAssets, fiNumber)
-    const isFinanciallyIndependent = isFiAchieved(fiProgress)
-
-    // Coast FI Progress - use shared utilities
-    const coastFiProgress = calculateCoastFiProgress(
-      liquidAssets,
-      coastFiNumber,
-    )
-    const isCoastFire = isCoastFireAchieved(coastFiProgress)
-
-    // Use backend values for fields we don't adjust locally, if available and no What-If active
-    const backendMetrics =
-      !hasWhatIfAdjustments && adjustedProjection?.fiMetrics
-        ? adjustedProjection.fiMetrics
-        : null
-
-    return {
-      fiNumber,
-      netMonthlyExpenses,
-      totalMonthlyIncome,
-      isCoastFire,
-      yearsToRetirement,
-      fiProgress,
-      savingsRate: backendMetrics?.savingsRate,
-      yearsToFi: backendMetrics?.yearsToFi,
-      coastFiNumber,
-      coastFiProgress,
-      isFinanciallyIndependent,
-    }
-  }, [
-    adjustedProjection?.fiMetrics,
-    effectivePlanValues,
-    combinedAdjustments.expensesPercent,
-    combinedAdjustments.contributionPercent,
-    combinedAdjustments.returnRateOffset,
-    rentalIncome?.totalMonthlyInPlanCurrency,
-    currentAge,
-    retirementAge,
-    blendedReturnRate,
-    liquidAssets,
-  ])
+  // FIRE data is ready when backend projection has completed with valid metrics
+  // This ensures we never show partial/inconsistent data to the user
+  const fireDataReady =
+    !!plan &&
+    !!adjustedProjection?.fiMetrics &&
+    isAllocationValid &&
+    !isCalculating
 
   // Combine accumulation (working years) and drawdown (retirement years) for chart
   const fullJourneyData = useMemo(() => {
@@ -984,20 +899,31 @@ function PlanView(): React.ReactElement {
             </div>
           )}
 
-          {/* FIRE Summary Bar - Only show when backend data is available and allocation valid */}
-          {adjustedProjection?.fiMetrics && isAllocationValid ? (
+          {/* FIRE Summary Bar - Only show when ALL FIRE data is ready */}
+          {/* Uses backend FI metrics but CURRENT asset values from local calculation */}
+          {/* This ensures consistency with the Assets tab display */}
+          {fireDataReady && adjustedProjection ? (
             <FiSummaryBar
-              fiNumber={adjustedProjection.fiMetrics.fiNumber}
-              liquidAssets={liquidAssets * effectiveFxRate}
-              illiquidAssets={nonSpendableAssets * effectiveFxRate}
+              fiNumber={adjustedProjection.fiMetrics!.fiNumber}
+              liquidAssets={
+                adjustedProjection.preRetirementAccumulation
+                  ?.currentLiquidAssets ?? liquidAssets * effectiveFxRate
+              }
+              illiquidAssets={
+                adjustedProjection.preRetirementAccumulation
+                  ?.currentNonSpendableAssets ??
+                nonSpendableAssets * effectiveFxRate
+              }
               currency={effectiveCurrency}
-              isCoastFire={adjustedProjection.fiMetrics.isCoastFire}
-              yearsToRetirement={fiMetrics?.yearsToRetirement ?? undefined}
-              backendFiProgress={adjustedProjection.fiMetrics.fiProgress}
+              isCoastFire={adjustedProjection.fiMetrics!.isCoastFire}
+              yearsToRetirement={
+                adjustedProjection.preRetirementAccumulation?.yearsToRetirement
+              }
+              backendFiProgress={adjustedProjection.fiMetrics!.fiProgress}
               warnings={adjustedProjection.warnings}
             />
           ) : (
-            isCalculating && (
+            (isCalculating || (plan && !adjustedProjection)) && (
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
                 <div className="flex items-center gap-2 text-gray-500">
                   <i className="fas fa-spinner fa-spin"></i>
@@ -1287,7 +1213,8 @@ function PlanView(): React.ReactElement {
                     {/* Show liquid/spendable asset categories */}
                     {categorySlices
                       .filter(
-                        (slice) => !DEFAULT_NON_SPENDABLE.includes(slice.key),
+                        (slice) =>
+                          !DEFAULT_NON_SPENDABLE_CATEGORIES.includes(slice.key),
                       )
                       .map((slice) => {
                         const isSpendable = spendableCategories.includes(
@@ -1345,7 +1272,7 @@ function PlanView(): React.ReactElement {
                     {/* Show non-spendable (Property) separately */}
                     {categorySlices
                       .filter((slice) =>
-                        DEFAULT_NON_SPENDABLE.includes(slice.key),
+                        DEFAULT_NON_SPENDABLE_CATEGORIES.includes(slice.key),
                       )
                       .map((slice) => (
                         <div
@@ -1375,6 +1302,7 @@ function PlanView(): React.ReactElement {
                       ))}
                   </div>
 
+                  {/* Summary totals - use local values (reflects user's spendable category selections) */}
                   <div className="border-t pt-4 space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">
@@ -1462,62 +1390,48 @@ function PlanView(): React.ReactElement {
             </div>
           )}
 
-          {/* FIRE Tab */}
+          {/* FIRE Tab - Only render when FIRE data is ready */}
           {activeTab === "fire" &&
             (() => {
-              // Calculate effective values with what-if adjustments
-              const effectiveMonthlyInvestment = Math.round(
-                monthlyInvestment *
-                  (combinedAdjustments.contributionPercent / 100),
-              )
+              // Don't render FIRE tab content until data is ready
+              if (!fireDataReady || !adjustedProjection?.fiMetrics) {
+                return (
+                  <div className="bg-white rounded-xl shadow-md p-6">
+                    <div className="flex items-center justify-center gap-2 text-gray-500">
+                      <i className="fas fa-spinner fa-spin"></i>
+                      <span>Loading FIRE metrics...</span>
+                    </div>
+                  </div>
+                )
+              }
 
-              // Use NET expenses (after income sources) for FI calculations
-              const netExpenses = fiMetrics?.netMonthlyExpenses ?? 0
-
-              // Get planInputs from projection for display values (already FX converted by backend)
-              const planInputs = adjustedProjection?.planInputs
-              const displayWorkingIncome =
-                planInputs?.workingIncomeMonthly ??
-                (plan?.workingIncomeMonthly ?? 0) *
-                  (displayCurrency !== plan?.expensesCurrency ? 1 : 1)
-              const displayMonthlyContribution =
-                planInputs?.monthlyContribution ?? effectiveMonthlyInvestment
+              // All values from backend (already FX converted when displayCurrency differs)
+              const backendFiMetrics = adjustedProjection.fiMetrics
+              const planInputs = adjustedProjection.planInputs
 
               return (
                 <div className="space-y-6">
                   {/* Main FIRE Metrics - uses backend values (already FX converted) */}
                   <FiMetrics
-                    monthlyExpenses={
-                      adjustedProjection?.fiMetrics?.netMonthlyExpenses ?? 0
-                    }
-                    liquidAssets={liquidAssets * effectiveFxRate}
+                    monthlyExpenses={backendFiMetrics.netMonthlyExpenses}
+                    liquidAssets={adjustedProjection.liquidAssets}
                     currency={effectiveCurrency}
-                    workingIncomeMonthly={displayWorkingIncome}
-                    monthlyInvestment={displayMonthlyContribution}
+                    workingIncomeMonthly={planInputs?.workingIncomeMonthly ?? 0}
+                    monthlyInvestment={planInputs?.monthlyContribution ?? 0}
                     expectedReturnRate={blendedReturnRate}
                     currentAge={currentAge}
                     retirementAge={retirementAge}
-                    backendFiNumber={adjustedProjection?.fiMetrics?.fiNumber}
-                    backendFiProgress={
-                      adjustedProjection?.fiMetrics?.fiProgress
-                    }
+                    backendFiNumber={backendFiMetrics.fiNumber}
+                    backendFiProgress={backendFiMetrics.fiProgress}
                     backendNetMonthlyExpenses={
-                      adjustedProjection?.fiMetrics?.netMonthlyExpenses
+                      backendFiMetrics.netMonthlyExpenses
                     }
-                    backendCoastFiNumber={
-                      adjustedProjection?.fiMetrics?.coastFiNumber
-                    }
-                    backendCoastFiProgress={
-                      adjustedProjection?.fiMetrics?.coastFiProgress
-                    }
-                    backendIsCoastFire={
-                      adjustedProjection?.fiMetrics?.isCoastFire
-                    }
-                    backendRealYearsToFi={
-                      adjustedProjection?.fiMetrics?.realYearsToFi
-                    }
+                    backendCoastFiNumber={backendFiMetrics.coastFiNumber}
+                    backendCoastFiProgress={backendFiMetrics.coastFiProgress}
+                    backendIsCoastFire={backendFiMetrics.isCoastFire}
+                    backendRealYearsToFi={backendFiMetrics.realYearsToFi}
                     backendRealReturnBelowSwr={
-                      adjustedProjection?.fiMetrics?.realReturnBelowSwr
+                      backendFiMetrics.realReturnBelowSwr
                     }
                     inflationRate={effectivePlanValues?.inflationRate ?? 0.025}
                     equityReturnRate={
@@ -1531,7 +1445,7 @@ function PlanView(): React.ReactElement {
                   />
 
                   {/* Income from Assets explanation */}
-                  {(fiMetrics?.totalMonthlyIncome ?? 0) > 0 && (
+                  {backendFiMetrics.totalMonthlyIncome > 0 && (
                     <div className="bg-white rounded-xl shadow-md p-6">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">
                         <i className="fas fa-coins text-green-500 mr-2"></i>
@@ -1554,8 +1468,7 @@ function PlanView(): React.ReactElement {
                               <>
                                 {effectiveCurrency}
                                 {Math.round(
-                                  (fiMetrics?.totalMonthlyIncome ?? 0) *
-                                    effectiveFxRate,
+                                  backendFiMetrics.totalMonthlyIncome,
                                 ).toLocaleString()}
                                 /mo
                               </>
@@ -1576,7 +1489,7 @@ function PlanView(): React.ReactElement {
                               <>
                                 {effectiveCurrency}
                                 {Math.round(
-                                  netExpenses * effectiveFxRate,
+                                  backendFiMetrics.netMonthlyExpenses,
                                 ).toLocaleString()}
                                 /mo
                               </>
@@ -1590,7 +1503,7 @@ function PlanView(): React.ReactElement {
                     </div>
                   )}
 
-                  {/* Asset Breakdown */}
+                  {/* Asset Breakdown - uses backend values for consistency */}
                   <div className="bg-white rounded-xl shadow-md p-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">
                       <i className="fas fa-chart-pie text-blue-500 mr-2"></i>
@@ -1620,7 +1533,7 @@ function PlanView(): React.ReactElement {
                             <>
                               {effectiveCurrency}
                               {Math.round(
-                                liquidAssets * effectiveFxRate,
+                                adjustedProjection.liquidAssets,
                               ).toLocaleString()}
                             </>
                           )}
@@ -1642,7 +1555,8 @@ function PlanView(): React.ReactElement {
                             <>
                               {effectiveCurrency}
                               {Math.round(
-                                nonSpendableAssets * effectiveFxRate,
+                                adjustedProjection.totalAssets -
+                                  adjustedProjection.liquidAssets,
                               ).toLocaleString()}
                             </>
                           )}
@@ -1664,8 +1578,7 @@ function PlanView(): React.ReactElement {
                             <>
                               {effectiveCurrency}
                               {Math.round(
-                                (liquidAssets + nonSpendableAssets) *
-                                  effectiveFxRate,
+                                adjustedProjection.totalAssets,
                               ).toLocaleString()}
                             </>
                           )}
@@ -1676,7 +1589,8 @@ function PlanView(): React.ReactElement {
                       </div>
                     </div>
 
-                    {nonSpendableAssets > 0 && (
+                    {adjustedProjection.totalAssets >
+                      adjustedProjection.liquidAssets && (
                       <div className="mt-4 p-3 bg-gray-50 rounded-lg text-sm text-gray-600">
                         <i className="fas fa-info-circle text-gray-400 mr-2"></i>
                         <strong>Why separate liquid vs illiquid?</strong> FI
@@ -1812,31 +1726,33 @@ function PlanView(): React.ReactElement {
                         />
                         <ReferenceLine y={0} stroke="#ef4444" strokeWidth={2} />
                         {/* Independence years shaded area - show in traditional view */}
-                        {timelineViewMode === "traditional" && retirementAge && (
-                          <ReferenceArea
-                            x1={retirementAge}
-                            x2={lifeExpectancy}
-                            fill="#f97316"
-                            fillOpacity={0.15}
-                            stroke="#f97316"
-                            strokeOpacity={0.3}
-                          />
-                        )}
+                        {timelineViewMode === "traditional" &&
+                          retirementAge && (
+                            <ReferenceArea
+                              x1={retirementAge}
+                              x2={lifeExpectancy}
+                              fill="#f97316"
+                              fillOpacity={0.15}
+                              stroke="#f97316"
+                              strokeOpacity={0.3}
+                            />
+                          )}
                         {/* Retirement age transition line - show in traditional view */}
-                        {timelineViewMode === "traditional" && retirementAge && (
-                          <ReferenceLine
-                            x={retirementAge}
-                            stroke="#f97316"
-                            strokeDasharray="5 5"
-                            strokeWidth={2}
-                            label={{
-                              value: `Independence (${retirementAge})`,
-                              position: "top",
-                              fill: "#f97316",
-                              fontSize: 11,
-                            }}
-                          />
-                        )}
+                        {timelineViewMode === "traditional" &&
+                          retirementAge && (
+                            <ReferenceLine
+                              x={retirementAge}
+                              stroke="#f97316"
+                              strokeDasharray="5 5"
+                              strokeWidth={2}
+                              label={{
+                                value: `Independence (${retirementAge})`,
+                                position: "top",
+                                fill: "#f97316",
+                                fontSize: 11,
+                              }}
+                            />
+                          )}
                         {/* FI achievement age line - show in FIRE view */}
                         {timelineViewMode === "fire" && fiAchievementAge && (
                           <ReferenceLine

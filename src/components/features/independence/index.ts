@@ -1,16 +1,25 @@
 // Types and constants
 export * from "./types"
 
-// Hooks
-export {
-  useRetirementProjection,
-  type RentalIncomeData,
-} from "./useRetirementProjection"
+// Asset Breakdown Hook (single source of truth for asset categorization)
 export {
   useAssetBreakdown,
   calculateAssetBreakdown,
+  DEFAULT_NON_SPENDABLE_CATEGORIES,
   type AssetBreakdown,
 } from "./useAssetBreakdown"
+
+// Unified Projection Hook (preferred - always pass assets from frontend)
+export {
+  useUnifiedProjection,
+  useFiProjectionSimple,
+  createWhatIfChecksum,
+  createPlanChecksum,
+  type RentalIncomeData,
+} from "./useUnifiedProjection"
+
+// Legacy hooks (kept for backwards compatibility)
+export { useRetirementProjection } from "./useRetirementProjection"
 export { useFiProjection } from "./useFiProjection"
 
 // Components

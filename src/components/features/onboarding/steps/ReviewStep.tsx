@@ -30,7 +30,10 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
   const hasAssets =
     bankAccounts.length > 0 || properties.length > 0 || pensions.length > 0
 
-  const formatCurrency = (amount: number | undefined, currency: string) => {
+  const formatCurrency = (
+    amount: number | undefined,
+    currency: string,
+  ): string => {
     if (amount === undefined) return "-"
     return new Intl.NumberFormat(undefined, {
       style: "currency",

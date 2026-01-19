@@ -652,3 +652,24 @@ export interface TaxRateResponse {
 export interface TaxRatesResponse {
   data: TaxRate[]
 }
+
+// ============ Offboarding ============
+
+/**
+ * Summary of user's data that can be deleted during offboarding.
+ */
+export interface OffboardingSummary {
+  portfolioCount: number
+  assetCount: number
+  taxRateCount: number
+}
+
+/**
+ * Result of a deletion operation during offboarding.
+ */
+export interface OffboardingResult {
+  success: boolean
+  deletedCount: number
+  type: string
+  message?: string
+}
