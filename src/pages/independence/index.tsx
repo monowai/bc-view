@@ -120,7 +120,7 @@ function PlanCard({
         {fiLoading ? (
           <div className="mt-2 flex items-center text-xs text-gray-400">
             <i className="fas fa-spinner fa-spin mr-1"></i>
-            Loading progress...
+            Calculating progress...
           </div>
         ) : projection?.fiMetrics ? (
           <div className="mt-2">
@@ -221,8 +221,8 @@ function RetirementPlanning(): React.ReactElement {
   // Fetch aggregated holdings once at page level for consistent FI calculation across all plans
   // Use SWR caching to persist across refreshes (revalidateOnFocus: false)
   const holdingKeyUrl = holdingKey("aggregated", "today")
-  const { data: holdingsData, isLoading: holdingsLoading } =
-    useSwr<HoldingContract>(holdingKeyUrl, simpleFetcher(holdingKeyUrl), {
+  const { data: holdingsResponse, isLoading: holdingsLoading } =
+    useSwr<{ data: HoldingContract }>(holdingKeyUrl, simpleFetcher(holdingKeyUrl), {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
       dedupingInterval: 60000, // Cache for 60 seconds
@@ -230,7 +230,8 @@ function RetirementPlanning(): React.ReactElement {
 
   // Calculate asset breakdown from holdings (shared across all PlanCards)
   // Only calculate when holdings have finished loading
-  const assets = useAssetBreakdown(holdingsLoading ? undefined : holdingsData)
+  const holdingsData = holdingsLoading ? undefined : holdingsResponse?.data
+  const assets = useAssetBreakdown(holdingsData)
 
   const plans = data?.data || []
 

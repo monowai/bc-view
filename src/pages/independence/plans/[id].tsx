@@ -196,9 +196,7 @@ function PlanView(): React.ReactElement {
     isLoading: holdingsLoading,
     mutate: refreshHoldings,
     isValidating: isRefreshingHoldings,
-  } = useSwr<{
-    data: HoldingContract
-  }>(
+  } = useSwr<{ data: HoldingContract }>(
     "/api/holdings/aggregated?asAt=today",
     simpleFetcher("/api/holdings/aggregated?asAt=today"),
     {
@@ -409,21 +407,34 @@ function PlanView(): React.ReactElement {
     return categorySlices.reduce((sum, slice) => sum + slice.value, 0)
   }, [categorySlices])
 
+  // Determine effective spendable categories for asset calculations
+  // Before user initialization, use default (all except Property/Real Estate)
+  // This ensures projection gets correct assets on first calculation
+  const effectiveSpendableCategories = useMemo(() => {
+    if (spendableCategories.length > 0) {
+      return spendableCategories
+    }
+    // Before initialization, use default: all categories except non-spendable ones
+    return categorySlices
+      .map((s) => s.key)
+      .filter((cat) => !DEFAULT_NON_SPENDABLE_CATEGORIES.includes(cat))
+  }, [spendableCategories, categorySlices])
+
   // Calculate liquid (spendable) assets - only selected categories (for local display)
   // Backend fetches from svc-position with proper FX conversion for projection
   const liquidAssets = useMemo(() => {
     return categorySlices
-      .filter((slice) => spendableCategories.includes(slice.key))
+      .filter((slice) => effectiveSpendableCategories.includes(slice.key))
       .reduce((sum, slice) => sum + slice.value, 0)
-  }, [categorySlices, spendableCategories])
+  }, [categorySlices, effectiveSpendableCategories])
 
   // Calculate non-spendable assets (e.g., property) (for local display)
   // Backend fetches from svc-position with proper FX conversion for projection
   const nonSpendableAssets = useMemo(() => {
     return categorySlices
-      .filter((slice) => !spendableCategories.includes(slice.key))
+      .filter((slice) => !effectiveSpendableCategories.includes(slice.key))
       .reduce((sum, slice) => sum + slice.value, 0)
-  }, [categorySlices, spendableCategories])
+  }, [categorySlices, effectiveSpendableCategories])
 
   // Determine if assets are loaded (for enabling asset-dependent tabs)
   const hasAssets = liquidAssets > 0 || nonSpendableAssets > 0

@@ -419,7 +419,12 @@ export function useFiProjectionSimple({
     projectionUrl && assets.hasAssets
       ? [projectionUrl, assets.liquidAssets, assets.nonSpendableAssets]
       : null,
-    async ([url]) => {
+    // Fetcher receives key array - use values from key to avoid stale closure issues
+    async ([url, liquidAssets, nonSpendableAssets]: [
+      string,
+      number,
+      number,
+    ]) => {
       if (!url || !plan) return null
       const res = await fetch(url, {
         method: "POST",
@@ -427,8 +432,8 @@ export function useFiProjectionSimple({
         body: JSON.stringify({
           currency: plan.expensesCurrency,
           displayCurrency,
-          liquidAssets: assets.liquidAssets,
-          nonSpendableAssets: assets.nonSpendableAssets,
+          liquidAssets,
+          nonSpendableAssets,
         }),
       })
       if (!res.ok) throw new Error("Failed to fetch projection")
