@@ -177,6 +177,7 @@ export type ProjectionWarning =
   | "RENTAL_INCOME_UNAVAILABLE"
   | "NO_LIQUID_ASSETS"
   | "NO_MONTHLY_CONTRIBUTION"
+  | "NO_EXPENSES"
 
 // ============ Projections ============
 export interface ProjectionRequest {

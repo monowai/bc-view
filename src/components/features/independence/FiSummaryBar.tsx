@@ -17,17 +17,22 @@ import {
 } from "@utils/independence/fiColorThemes"
 import type { ProjectionWarning } from "types/independence"
 
-/** Warning messages for data quality issues */
-const ProjectionWarningMessages: Record<ProjectionWarning, string> = {
+/** Warning messages for actual data quality issues */
+const ProjectionWarningMessages: Record<string, string> = {
   ASSETS_FROM_FALLBACK:
     "Asset values could not be fetched from portfolio service - using fallback values",
   RENTAL_INCOME_UNAVAILABLE:
     "Rental income could not be fetched - calculations exclude rental income",
-  NO_LIQUID_ASSETS:
-    "No liquid assets available - FI calculations may be incomplete",
-  NO_MONTHLY_CONTRIBUTION:
-    "No monthly contribution provided - Years to FI based on investment growth only",
+  NO_EXPENSES:
+    "No monthly expenses configured - FI calculations require expenses to be meaningful",
 }
+
+/** Warnings that represent actual data quality issues (not just valid empty states) */
+const ERROR_WARNINGS: ProjectionWarning[] = [
+  "ASSETS_FROM_FALLBACK",
+  "RENTAL_INCOME_UNAVAILABLE",
+  "NO_EXPENSES",
+]
 
 interface FiSummaryBarProps {
   /** FI Number (25x annual expenses) */
@@ -65,6 +70,9 @@ export default function FiSummaryBar({
   const { hideValues } = usePrivacyMode()
   const [showWarnings, setShowWarnings] = useState(false)
 
+  // Filter warnings to only show actual errors (not valid empty states like "no assets")
+  const errorWarnings = warnings.filter((w) => ERROR_WARNINGS.includes(w))
+
   // Use backend FI Progress if valid and > 0, otherwise calculate locally
   // Using || ensures we fallback to local calculation when backend returns 0
   // (e.g., when currency mismatch prevents passing assets to backend)
@@ -78,11 +86,11 @@ export default function FiSummaryBar({
   const gapToFi = calculateGapToFi(fiNumber, liquidAssets)
   const gapColors = getGapColorScheme(gapToFi)
 
-  const hasWarnings = warnings.length > 0
+  const hasWarnings = errorWarnings.length > 0
 
   return (
     <div className="space-y-2 mb-4">
-      {/* Warning banner */}
+      {/* Warning banner - only shows actual backend errors, not valid empty states */}
       {hasWarnings && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
           <button
@@ -92,7 +100,7 @@ export default function FiSummaryBar({
             <div className="flex items-center gap-2">
               <i className="fas fa-exclamation-triangle text-amber-500"></i>
               <span className="text-sm font-medium text-amber-800">
-                Data quality warning ({warnings.length})
+                Data quality warning ({errorWarnings.length})
               </span>
             </div>
             <i
@@ -101,7 +109,7 @@ export default function FiSummaryBar({
           </button>
           {showWarnings && (
             <ul className="mt-2 space-y-1 text-sm text-amber-700">
-              {warnings.map((warning) => (
+              {errorWarnings.map((warning) => (
                 <li key={warning} className="flex items-start gap-2">
                   <i className="fas fa-circle text-[4px] mt-2 text-amber-400"></i>
                   <span>{ProjectionWarningMessages[warning]}</span>
