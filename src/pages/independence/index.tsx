@@ -221,12 +221,13 @@ function RetirementPlanning(): React.ReactElement {
   // Fetch aggregated holdings once at page level for consistent FI calculation across all plans
   // Use SWR caching to persist across refreshes (revalidateOnFocus: false)
   const holdingKeyUrl = holdingKey("aggregated", "today")
-  const { data: holdingsResponse, isLoading: holdingsLoading } =
-    useSwr<{ data: HoldingContract }>(holdingKeyUrl, simpleFetcher(holdingKeyUrl), {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false,
-      dedupingInterval: 60000, // Cache for 60 seconds
-    })
+  const { data: holdingsResponse, isLoading: holdingsLoading } = useSwr<{
+    data: HoldingContract
+  }>(holdingKeyUrl, simpleFetcher(holdingKeyUrl), {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+    dedupingInterval: 60000, // Cache for 60 seconds
+  })
 
   // Calculate asset breakdown from holdings (shared across all PlanCards)
   // Only calculate when holdings have finished loading
