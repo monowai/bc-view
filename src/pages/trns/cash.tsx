@@ -250,7 +250,12 @@ const CashInputForm: React.FC<{
     const sellCurrency = combinedOptions.find(
       (opt) => opt.value === asset,
     )?.currency
-    const buyCurrency = cashCurrency.value
+
+    // Get the buy currency - could be a currency code or an account with a currency property
+    const buyOption = combinedOptions.find(
+      (opt) => opt.value === cashCurrency.value,
+    )
+    const buyCurrency = buyOption?.currency || cashCurrency.value
 
     if (!sellCurrency || sellCurrency === buyCurrency) {
       setFxRate(null)
@@ -324,8 +329,6 @@ const CashInputForm: React.FC<{
   // Only wait for currencies - accounts are optional enhancement
   if (ccyLoading) return rootLoader(t("loading"))
 
-  const ccyOptions = currencyOptions(ccyData.data)
-
   return (
     <>
       {modalOpen && (
@@ -353,14 +356,23 @@ const CashInputForm: React.FC<{
             </header>
             {/* FX Trade Summary */}
             {type.value === "FX" && (
-              <div className="mb-4 p-3 bg-gradient-to-r from-red-50 to-green-50 border border-gray-200 rounded-lg">
+              <div className="mb-4 p-3 bg-linear-to-r from-red-50 to-green-50 border border-gray-200 rounded-lg">
                 <div className="flex items-center justify-center gap-4 text-sm">
                   <div className="text-center">
                     <div className="text-xs text-red-600 font-medium uppercase">
                       Sell
                     </div>
                     <div className="font-bold text-red-700">
-                      {qty > 0 ? qty.toLocaleString() : "—"} {asset}
+                      {qty > 0 && <>{qty.toLocaleString()}{" "}</>}
+                      {(() => {
+                        const sellOpt = combinedOptions.find(
+                          (opt) => opt.value === asset,
+                        )
+                        // Show account name for accounts, currency code for currencies
+                        return sellOpt?.market !== "CASH"
+                          ? sellOpt?.label || asset
+                          : asset
+                      })()}
                     </div>
                   </div>
                   <div className="text-center text-gray-500">
@@ -380,10 +392,19 @@ const CashInputForm: React.FC<{
                       Buy
                     </div>
                     <div className="font-bold text-green-700">
-                      {(watch("cashAmount") ?? 0) > 0
-                        ? (watch("cashAmount") ?? 0).toLocaleString()
-                        : "—"}{" "}
-                      {watch("cashCurrency")?.value ?? "—"}
+                      {(watch("cashAmount") ?? 0) > 0 && (
+                        <>{(watch("cashAmount") ?? 0).toLocaleString()}{" "}</>
+                      )}
+                      {(() => {
+                        const buyCcy = watch("cashCurrency")
+                        const buyOpt = combinedOptions.find(
+                          (opt) => opt.value === buyCcy?.value,
+                        )
+                        // Show account name for accounts, currency code for currencies
+                        return buyOpt?.market !== "CASH"
+                          ? buyOpt?.label || buyCcy?.value
+                          : buyCcy?.value ?? ""
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -577,30 +598,88 @@ const CashInputForm: React.FC<{
                             <Controller
                               name="cashCurrency"
                               control={control}
-                              render={({ field }) => (
-                                <select
-                                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height border-green-200 bg-green-50"
-                                  value={field.value.value}
-                                  onChange={(e) => {
-                                    const selected = ccyOptions.find(
-                                      (opt: CurrencyOption) =>
-                                        opt.value === e.target.value,
-                                    )
-                                    if (selected) {
-                                      field.onChange(selected)
-                                    }
-                                  }}
-                                >
-                                  {ccyOptions.map((option: CurrencyOption) => (
-                                    <option
-                                      key={option.value}
-                                      value={option.value}
-                                    >
-                                      {option.label}
-                                    </option>
-                                  ))}
-                                </select>
-                              )}
+                              render={({ field }) => {
+                                // Get the sell currency to filter out same-currency options
+                                const sellOption = combinedOptions.find(
+                                  (opt) => opt.value === asset,
+                                )
+                                const sellCurrency = sellOption?.currency
+
+                                // Filter options to exclude same currency
+                                const buyOptions = combinedOptions.filter(
+                                  (opt) => opt.currency !== sellCurrency,
+                                )
+
+                                return (
+                                  <select
+                                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height bg-green-50"
+                                    value={field.value.value}
+                                    onChange={(e) => {
+                                      const selected = combinedOptions.find(
+                                        (opt) => opt.value === e.target.value,
+                                      )
+                                      if (selected) {
+                                        // Store the currency code for FX rate calculation
+                                        field.onChange({
+                                          value: selected.value,
+                                          label: selected.label,
+                                          currency: selected.currency,
+                                          market: selected.market,
+                                        })
+                                      }
+                                    }}
+                                  >
+                                    <optgroup label="Currencies">
+                                      {buyOptions
+                                        .filter((opt) => opt.market === "CASH")
+                                        .map((option) => (
+                                          <option
+                                            key={option.value}
+                                            value={option.value}
+                                          >
+                                            {option.label}
+                                          </option>
+                                        ))}
+                                    </optgroup>
+                                    {buyOptions.some(
+                                      (opt) => opt.market === "PRIVATE",
+                                    ) && (
+                                      <optgroup label="Bank Accounts">
+                                        {buyOptions
+                                          .filter(
+                                            (opt) => opt.market === "PRIVATE",
+                                          )
+                                          .map((option) => (
+                                            <option
+                                              key={option.value}
+                                              value={option.value}
+                                            >
+                                              {option.label}
+                                            </option>
+                                          ))}
+                                      </optgroup>
+                                    )}
+                                    {buyOptions.some(
+                                      (opt) => opt.market === "TRADE",
+                                    ) && (
+                                      <optgroup label="Trade Accounts">
+                                        {buyOptions
+                                          .filter(
+                                            (opt) => opt.market === "TRADE",
+                                          )
+                                          .map((option) => (
+                                            <option
+                                              key={option.value}
+                                              value={option.value}
+                                            >
+                                              {option.label}
+                                            </option>
+                                          ))}
+                                      </optgroup>
+                                    )}
+                                  </select>
+                                )
+                              }}
                             />
                           ),
                         },
@@ -616,7 +695,7 @@ const CashInputForm: React.FC<{
                                 <MathInput
                                   value={field.value}
                                   onChange={handleBuyAmountChange}
-                                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height border-green-200 bg-green-50"
+                                  className="mt-1 block w-full rounded-md shadow-sm input-height border-green-200 bg-green-50"
                                 />
                               )}
                             />
