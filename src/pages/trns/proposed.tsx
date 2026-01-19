@@ -50,8 +50,15 @@ export default function ProposedTransactions(): React.JSX.Element {
 
   useEffect(() => {
     if (proposedData?.data) {
+      const sorted = [...proposedData.data].sort((a, b) => {
+        // Sort by portfolio code first
+        const portfolioCompare = a.portfolio.code.localeCompare(b.portfolio.code)
+        if (portfolioCompare !== 0) return portfolioCompare
+        // Then by asset code
+        return a.asset.code.localeCompare(b.asset.code)
+      })
       setTransactions(
-        proposedData.data.map((trn) => ({
+        sorted.map((trn) => ({
           ...trn,
           editedPrice: trn.price,
           editedFees: trn.fees,
