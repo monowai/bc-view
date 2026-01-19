@@ -107,29 +107,68 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
     setLoadSuccess(false)
 
     console.log(
-      `[CorporateActions] Loading events for asset: ${asset.id} (${asset.code}), fromDate: ${fromDate}`,
+      `[CorporateActions] Loading events for asset: ${asset.id} (${asset.code}), range: ${fromDate} to ${toDate}`,
     )
 
     try {
-      // Load events for the specific asset (not portfolio-based)
-      const loadUrl = `/api/corporate-events/load/asset/${asset.id}?asAt=${fromDate}`
-      console.log(`[CorporateActions] Load URL: ${loadUrl}`)
-      const response = await fetch(loadUrl, { method: "POST" })
-      console.log(`[CorporateActions] Response status: ${response.status}`)
+      // Backend loads events within ±10 days of the specified date.
+      // To cover the full date range, we iterate at 15-day intervals.
+      const startDate = new Date(fromDate)
+      const endDate = new Date(toDate)
+      const intervalDays = 15
 
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error(`[CorporateActions] Load failed: ${errorText}`)
-        try {
-          const errorData = JSON.parse(errorText)
-          setLoadError(
-            errorData.message ||
-              errorData.detail ||
-              `Failed to load events (${response.status})`,
+      const datesToLoad: string[] = []
+      for (
+        let currentDate = new Date(startDate);
+        currentDate <= endDate;
+        currentDate.setDate(currentDate.getDate() + intervalDays)
+      ) {
+        datesToLoad.push(currentDate.toISOString().split("T")[0])
+      }
+
+      // Always include the end date to catch events near the end of range
+      const endDateStr = endDate.toISOString().split("T")[0]
+      if (!datesToLoad.includes(endDateStr)) {
+        datesToLoad.push(endDateStr)
+      }
+
+      console.log(
+        `[CorporateActions] Loading events for ${datesToLoad.length} date points: ${datesToLoad.join(", ")}`,
+      )
+
+      let hasError = false
+      let lastError = ""
+
+      for (const dateStr of datesToLoad) {
+        const loadUrl = `/api/corporate-events/load/asset/${asset.id}?asAt=${dateStr}`
+        console.log(`[CorporateActions] Load URL: ${loadUrl}`)
+        const response = await fetch(loadUrl, { method: "POST" })
+        console.log(
+          `[CorporateActions] Response status for ${dateStr}: ${response.status}`,
+        )
+
+        if (!response.ok) {
+          hasError = true
+          const errorText = await response.text()
+          console.error(
+            `[CorporateActions] Load failed for ${dateStr}: ${errorText}`,
           )
-        } catch {
-          setLoadError(`Failed to load events (${response.status})`)
+          try {
+            const errorData = JSON.parse(errorText)
+            lastError =
+              errorData.message ||
+              errorData.detail ||
+              `Failed to load events (${response.status})`
+          } catch {
+            lastError = `Failed to load events (${response.status})`
+          }
+          // Continue loading other dates even if one fails
         }
+      }
+
+      if (hasError && datesToLoad.length === 1) {
+        // Only show error if all loads failed
+        setLoadError(lastError)
         return
       }
 
