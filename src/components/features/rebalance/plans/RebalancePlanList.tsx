@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useState } from "react"
 import { useTranslation } from "next-i18next"
 import { useRouter } from "next/router"
 import { usePlans } from "../hooks/usePlans"
@@ -10,7 +10,25 @@ import { formatDate } from "@utils/formatters"
 const RebalancePlanList: React.FC = () => {
   const { t } = useTranslation("common")
   const router = useRouter()
-  const { plans, isLoading, error } = usePlans()
+  const { plans, isLoading, error, deletePlan } = usePlans()
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  const handleDelete = async (
+    e: React.MouseEvent,
+    planId: string,
+  ): Promise<void> => {
+    e.stopPropagation()
+    if (!confirm(t("rebalance.plans.confirmDelete", "Delete this plan?"))) {
+      return
+    }
+
+    setDeletingId(planId)
+    try {
+      await deletePlan(planId)
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   if (isLoading) {
     return <TableSkeletonLoader rows={3} />
@@ -67,6 +85,7 @@ const RebalancePlanList: React.FC = () => {
             <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 hidden lg:table-cell">
               {t("rebalance.plans.created", "Created")}
             </th>
+            <th className="px-4 py-3 w-12"></th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200">
@@ -101,6 +120,20 @@ const RebalancePlanList: React.FC = () => {
               </td>
               <td className="px-4 py-3 text-gray-500 text-sm hidden lg:table-cell">
                 {formatDate(plan.createdAt)}
+              </td>
+              <td className="px-4 py-3">
+                <button
+                  onClick={(e) => handleDelete(e, plan.id)}
+                  disabled={deletingId === plan.id}
+                  className="text-gray-400 hover:text-red-600 p-1 disabled:opacity-50"
+                  title={t("delete", "Delete")}
+                >
+                  {deletingId === plan.id ? (
+                    <i className="fas fa-spinner fa-spin"></i>
+                  ) : (
+                    <i className="fas fa-trash-alt"></i>
+                  )}
+                </button>
               </td>
             </tr>
           ))}

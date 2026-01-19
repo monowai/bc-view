@@ -33,8 +33,20 @@ export default withApiAuthRequired(async function plansById(
         await handleResponse<RebalancePlanDto>(response, res)
         break
       }
+      case "DELETE": {
+        const response = await fetch(
+          byId,
+          requestInit(accessToken, "DELETE", req),
+        )
+        if (response.ok || response.status === 204) {
+          res.status(204).end()
+        } else {
+          await handleResponse(response, res)
+        }
+        break
+      }
       default:
-        res.setHeader("Allow", ["GET", "PATCH"])
+        res.setHeader("Allow", ["GET", "PATCH", "DELETE"])
         res.status(405).end(`Method ${method} Not Allowed`)
     }
   } catch (error: any) {
