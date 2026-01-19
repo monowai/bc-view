@@ -1,11 +1,29 @@
 import React, { useState } from "react"
-import { useUser } from "@auth0/nextjs-auth0/client"
+import { useUser, UserProfile } from "@auth0/nextjs-auth0/client"
 import Link from "next/link"
+import Image from "next/image"
 import { useTranslation } from "next-i18next"
-import { getAvatar } from "@pages/profile"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { useIsAdmin } from "@hooks/useIsAdmin"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
+
+function Avatar({
+  user,
+  size,
+}: {
+  user: UserProfile
+  size: number
+}): React.ReactElement {
+  return (
+    <Image
+      src={user.picture as string}
+      alt={user.name as string}
+      width={size}
+      height={size}
+      className="rounded-full"
+    />
+  )
+}
 
 export default function HeaderUserControls(): React.ReactElement {
   const { user, error, isLoading } = useUser()
@@ -49,7 +67,9 @@ export default function HeaderUserControls(): React.ReactElement {
         >
           <i className={`fas ${hideValues ? "fa-eye-slash" : "fa-eye"}`} />
         </button>
-        {getAvatar(user, 30)}
+        <Link href="/settings" className="hover:opacity-80 transition-opacity">
+          <Avatar user={user} size={30} />
+        </Link>
         <div
           onClick={() => setDropdownOpen(!dropdownOpen)}
           className="ml-2 cursor-pointer hover:text-blue-600"

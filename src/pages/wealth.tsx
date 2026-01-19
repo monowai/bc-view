@@ -109,12 +109,13 @@ function WealthDashboard(): React.ReactElement {
   // Fetch aggregated holdings for asset classification breakdown
   // Use SWR caching to persist across refreshes
   const holdingKeyUrl = holdingKey("aggregated", "today")
-  const { data: holdingsResponse, isLoading: holdingsLoading } =
-    useSwr<{ data: HoldingContract }>(holdingKeyUrl, simpleFetcher(holdingKeyUrl), {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false,
-      dedupingInterval: 60000, // Cache for 60 seconds
-    })
+  const { data: holdingsResponse, isLoading: holdingsLoading } = useSwr<{
+    data: HoldingContract
+  }>(holdingKeyUrl, simpleFetcher(holdingKeyUrl), {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+    dedupingInterval: 60000, // Cache for 60 seconds
+  })
   const holdingsData = holdingsResponse?.data
 
   // Fetch currencies
