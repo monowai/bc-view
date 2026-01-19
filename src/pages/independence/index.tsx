@@ -1,75 +1,52 @@
-import React, { useRef, useState, useEffect } from "react"
+import React, { useRef, useState } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import Head from "next/head"
 import Link from "next/link"
 import { useRouter } from "next/router"
 import useSwr from "swr"
-import { simpleFetcher } from "@utils/api/fetchHelper"
-import {
-  PlansResponse,
-  RetirementPlan,
-  PlanExport,
-  FiSummary,
-} from "types/independence"
+import { simpleFetcher, holdingKey } from "@utils/api/fetchHelper"
+import { PlansResponse, RetirementPlan, PlanExport } from "types/independence"
+import { HoldingContract } from "types/beancounter"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
+import {
+  useAssetBreakdown,
+  useFiProjectionSimple,
+  AssetBreakdown,
+} from "@components/features/independence"
 
 const plansKey = "/api/independence/plans"
 const HIDDEN_VALUE = "****"
 
-// Hook to fetch FI summary for a single plan
-function useFiSummary(planId: string | undefined): {
-  fiSummary: FiSummary | null
-  isLoading: boolean
-  error: Error | null
-} {
-  const [fiSummary, setFiSummary] = useState<FiSummary | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<Error | null>(null)
-
-  useEffect(() => {
-    if (!planId) return
-
-    setIsLoading(true)
-    setError(null)
-
-    fetch(`/api/independence/plans/${planId}/fi-summary`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch FI summary")
-        return res.json()
-      })
-      .then((data) => {
-        setFiSummary(data.data)
-        setIsLoading(false)
-      })
-      .catch((err) => {
-        setError(err)
-        setIsLoading(false)
-      })
-  }, [planId])
-
-  return { fiSummary, isLoading, error }
-}
-
-// Plan card component that fetches its own FI summary
+// Plan card component that uses shared assets for consistent FI calculation
 function PlanCard({
   plan,
+  assets,
   hideValues,
   onDelete,
 }: {
   plan: RetirementPlan
+  assets: AssetBreakdown
   hideValues: boolean
   onDelete: (planId: string) => void
 }): React.ReactElement {
-  const { fiSummary, isLoading: fiLoading } = useFiSummary(plan.id)
+  // Use unified projection hook with shared assets
+  const { projection, isLoading: fiLoading } = useFiProjectionSimple({
+    plan,
+    assets,
+  })
 
   const currency = plan.expensesCurrency || "$"
 
+  // Get rental income from projection (backend fetches from svc-data)
+  const rentalIncomeMonthly = projection?.planInputs?.rentalIncomeMonthly ?? 0
+
   // Calculate net monthly expenses (same as projection page)
-  // Net = Expenses - Income Sources
+  // Net = Expenses - All Income Sources (including rental income)
   const totalMonthlyIncome =
     (plan.pensionMonthly || 0) +
     (plan.socialSecurityMonthly || 0) +
-    (plan.otherIncomeMonthly || 0)
+    (plan.otherIncomeMonthly || 0) +
+    rentalIncomeMonthly
   const netMonthlyExpenses = Math.max(
     0,
     plan.monthlyExpenses - totalMonthlyIncome,
@@ -78,8 +55,8 @@ function PlanCard({
   // Use server-calculated FI Number if available, otherwise fall back to local calculation
   // FI Number = 25× net annual expenses (based on 4% SWR)
   const fiNumber =
-    fiSummary?.fiNumber ?? Math.round(netMonthlyExpenses * 12 * 25)
-  const fiProgress = fiSummary?.fiProgress ?? 0
+    projection?.fiMetrics?.fiNumber ?? Math.round(netMonthlyExpenses * 12 * 25)
+  const fiProgress = projection?.fiMetrics?.fiProgress ?? 0
 
   const getProgressColor = (progress: number): string => {
     if (progress >= 100) return "text-green-600"
@@ -145,7 +122,7 @@ function PlanCard({
             <i className="fas fa-spinner fa-spin mr-1"></i>
             Loading progress...
           </div>
-        ) : fiSummary ? (
+        ) : projection?.fiMetrics ? (
           <div className="mt-2">
             <div className="flex justify-between items-center mb-1">
               <span className="text-xs text-gray-500">FI Progress</span>
@@ -180,6 +157,25 @@ function PlanCard({
               : `${currency}${plan.monthlyExpenses.toLocaleString()}`}
           </span>
         </div>
+        {totalMonthlyIncome > 0 && (
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500">
+              Monthly Income
+              {rentalIncomeMonthly > 0 && (
+                <span className="text-xs text-gray-400 ml-1">
+                  (incl. rental)
+                </span>
+              )}
+            </span>
+            <span
+              className={`font-medium text-green-600 ${hideValues ? "text-gray-400" : ""}`}
+            >
+              {hideValues
+                ? HIDDEN_VALUE
+                : `-${currency}${Math.round(totalMonthlyIncome).toLocaleString()}`}
+            </span>
+          </div>
+        )}
         {plan.targetBalance && (
           <div className="flex justify-between text-sm">
             <span className="text-gray-500">Target Balance</span>
@@ -221,6 +217,20 @@ function RetirementPlanning(): React.ReactElement {
     plansKey,
     simpleFetcher(plansKey),
   )
+
+  // Fetch aggregated holdings once at page level for consistent FI calculation across all plans
+  // Use SWR caching to persist across refreshes (revalidateOnFocus: false)
+  const holdingKeyUrl = holdingKey("aggregated", "today")
+  const { data: holdingsData, isLoading: holdingsLoading } =
+    useSwr<HoldingContract>(holdingKeyUrl, simpleFetcher(holdingKeyUrl), {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 60000, // Cache for 60 seconds
+    })
+
+  // Calculate asset breakdown from holdings (shared across all PlanCards)
+  // Only calculate when holdings have finished loading
+  const assets = useAssetBreakdown(holdingsLoading ? undefined : holdingsData)
 
   const plans = data?.data || []
 
@@ -414,6 +424,7 @@ function RetirementPlanning(): React.ReactElement {
                 <PlanCard
                   key={plan.id}
                   plan={plan}
+                  assets={assets}
                   hideValues={hideValues}
                   onDelete={handleDeletePlan}
                 />

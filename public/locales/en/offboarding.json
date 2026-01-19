@@ -1,0 +1,60 @@
+{
+  "pageTitle": "Remove Your Data",
+  "title": "Remove Your Data",
+  "subtitle": "Select what you'd like to remove from Beancounter. This action cannot be undone.",
+  "backToHome": "Back to Home",
+  "loading": "Loading your data...",
+  "continue": "Continue",
+  "back": "Back",
+  "deleting": "Deleting...",
+  "deleteSelected": "Delete Selected",
+  "summary": {
+    "title": "Your Data Summary",
+    "description": "Here's a summary of your data in Beancounter. You can choose what to delete in the following steps.",
+    "portfolios": "Portfolios",
+    "assets": "Custom Assets",
+    "plans": "Retirement Plans",
+    "models": "Model Portfolios",
+    "taxRates": "Tax Rates",
+    "warning": "Data deletion is permanent and cannot be undone. Please review carefully before proceeding."
+  },
+  "wealth": {
+    "title": "Delete Wealth Data",
+    "description": "Your wealth data includes portfolios, custom assets, and all associated transactions.",
+    "portfolios": "Portfolios",
+    "assets": "Custom Assets",
+    "checkbox": "Delete all my portfolios and custom assets",
+    "checkboxDescription": "This will delete all portfolios, custom assets (like real estate), and their transaction history.",
+    "warningTitle": "This action is irreversible",
+    "warningDescription": "All your portfolio and asset data will be permanently deleted, including transaction history.",
+    "noData": "You don't have any portfolios or custom assets to delete."
+  },
+  "planning": {
+    "title": "Delete Planning Data",
+    "description": "Your planning data includes retirement plans and model portfolios for rebalancing.",
+    "plansCheckbox": "Delete all {{count}} retirement plans",
+    "plansDescription": "This will delete your independence plans and their expense breakdowns.",
+    "modelsCheckbox": "Delete all {{count}} model portfolios",
+    "modelsDescription": "This will delete your rebalancing models and their allocation plans.",
+    "warningTitle": "This action is irreversible",
+    "warningDescription": "Your retirement plans and rebalancing models will be permanently deleted.",
+    "noData": "You don't have any retirement plans or model portfolios to delete."
+  },
+  "account": {
+    "title": "Delete Account",
+    "description": "Optionally, you can delete your entire Beancounter account. This will remove all your data and log you out.",
+    "checkbox": "Delete my entire account",
+    "checkboxDescription": "This will delete all your data including portfolios, assets, plans, models, preferences, and your user account.",
+    "warningTitle": "Complete account deletion",
+    "warningDescription": "Your account will be permanently deleted. You will be logged out and will need to register again to use Beancounter.",
+    "noSelections": "Please select at least one item to delete, or delete your entire account."
+  },
+  "complete": {
+    "title": "Deletion Complete",
+    "description": "The selected data has been successfully removed from Beancounter.",
+    "deleted": "deleted",
+    "accountDeleted": "Your account has been deleted. Please log out to complete the process.",
+    "logout": "Log Out",
+    "returnHome": "Return Home"
+  }
+}

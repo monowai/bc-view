@@ -1,8 +1,8 @@
 import { useMemo } from "react"
 import { HoldingContract, ValueInOption } from "types/beancounter"
 
-// Asset categories considered non-spendable (illiquid)
-const NON_SPENDABLE_CATEGORIES = ["Property", "Real Estate"]
+/** Default non-spendable categories (property typically can't be easily liquidated) */
+export const DEFAULT_NON_SPENDABLE_CATEGORIES = ["Property", "Real Estate"]
 
 export interface AssetBreakdown {
   /** Liquid/spendable assets (everything except property) */
@@ -17,19 +17,25 @@ export interface AssetBreakdown {
 
 /**
  * Calculates liquid vs non-spendable asset breakdown from holdings data.
- * Property/Real Estate is considered non-spendable, everything else is liquid.
+ * Property/Real Estate is considered non-spendable by default, everything else is liquid.
  *
  * @param holdingsData - Aggregated holdings from svc-position
  * @param valueIn - Which currency value to use (PORTFOLIO, BASE, or TRADE). Defaults to PORTFOLIO.
+ * @param nonSpendableCategories - Categories to consider non-spendable. Defaults to DEFAULT_NON_SPENDABLE_CATEGORIES.
  * @returns Asset breakdown with liquid, non-spendable, and total values
  */
 export function useAssetBreakdown(
   holdingsData: HoldingContract | undefined | null,
   valueIn: ValueInOption = "PORTFOLIO",
+  nonSpendableCategories: string[] = DEFAULT_NON_SPENDABLE_CATEGORIES,
 ): AssetBreakdown {
   return useMemo(() => {
-    return calculateAssetBreakdown(holdingsData, valueIn)
-  }, [holdingsData, valueIn])
+    return calculateAssetBreakdown(
+      holdingsData,
+      valueIn,
+      nonSpendableCategories,
+    )
+  }, [holdingsData, valueIn, nonSpendableCategories])
 }
 
 /**
@@ -37,10 +43,12 @@ export function useAssetBreakdown(
  *
  * @param holdingsData - Aggregated holdings from svc-position
  * @param valueIn - Which currency value to use (PORTFOLIO, BASE, or TRADE). Defaults to PORTFOLIO.
+ * @param nonSpendableCategories - Categories to consider non-spendable. Defaults to DEFAULT_NON_SPENDABLE_CATEGORIES.
  */
 export function calculateAssetBreakdown(
   holdingsData: HoldingContract | undefined | null,
   valueIn: ValueInOption = "PORTFOLIO",
+  nonSpendableCategories: string[] = DEFAULT_NON_SPENDABLE_CATEGORIES,
 ): AssetBreakdown {
   if (!holdingsData?.positions) {
     return {
@@ -58,7 +66,7 @@ export function calculateAssetBreakdown(
     const category = position.asset?.assetCategory?.name || "Uncategorised"
     const value = position.moneyValues?.[valueIn]?.marketValue || 0
 
-    if (NON_SPENDABLE_CATEGORIES.includes(category)) {
+    if (nonSpendableCategories.includes(category)) {
       nonSpendable += value
     } else {
       liquid += value

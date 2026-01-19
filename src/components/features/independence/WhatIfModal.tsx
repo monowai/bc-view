@@ -2,7 +2,7 @@ import React, { useState } from "react"
 import WhatIfSlider from "./WhatIfSlider"
 import { WhatIfAdjustments, ScenarioOverrides } from "./types"
 import { RetirementPlan } from "types/independence"
-import { RentalIncomeData } from "./useRetirementProjection"
+import type { RentalIncomeData } from "./useUnifiedProjection"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 
 const HIDDEN_VALUE = "****"

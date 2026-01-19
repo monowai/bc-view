@@ -1,4 +1,8 @@
 import { RetirementProjection } from "types/independence"
+import { DEFAULT_NON_SPENDABLE_CATEGORIES } from "./useAssetBreakdown"
+
+// Re-export for backwards compatibility
+export { DEFAULT_NON_SPENDABLE_CATEGORIES }
 
 // What-if adjustments for scenario planning
 export interface WhatIfAdjustments {
@@ -53,8 +57,8 @@ export const TABS: TabConfig[] = [
   { id: "scenarios", label: "Scenarios", icon: "fa-sliders-h" },
 ]
 
-// Default non-spendable categories (property typically can't be easily liquidated)
-export const DEFAULT_NON_SPENDABLE = ["Property"]
+// Alias for backwards compatibility (prefer DEFAULT_NON_SPENDABLE_CATEGORIES)
+export const DEFAULT_NON_SPENDABLE = DEFAULT_NON_SPENDABLE_CATEGORIES
 
 // Default what-if adjustment values
 export const DEFAULT_WHAT_IF_ADJUSTMENTS: WhatIfAdjustments = {

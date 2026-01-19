@@ -21,7 +21,10 @@ import {
   Transaction,
 } from "types/beancounter"
 import { PlansResponse as IndependencePlansResponse } from "types/independence"
-import { useFiProjection } from "@components/features/independence"
+import {
+  useAssetBreakdown,
+  useFiProjectionSimple,
+} from "@components/features/independence"
 import { rootLoader } from "@components/ui/PageLoader"
 import { errorOut } from "@components/errors/ErrorOut"
 import { FormatValue } from "@components/ui/MoneyUtils"
@@ -104,11 +107,14 @@ function WealthDashboard(): React.ReactElement {
   } = useSwr(portfoliosKey, simpleFetcher(portfoliosKey))
 
   // Fetch aggregated holdings for asset classification breakdown
+  // Use SWR caching to persist across refreshes
   const holdingKeyUrl = holdingKey("aggregated", "today")
-  const { data: holdingsData } = useSwr<{ data: HoldingContract }>(
-    holdingKeyUrl,
-    simpleFetcher(holdingKeyUrl),
-  )
+  const { data: holdingsData, isLoading: holdingsLoading } =
+    useSwr<HoldingContract>(holdingKeyUrl, simpleFetcher(holdingKeyUrl), {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 60000, // Cache for 60 seconds
+    })
 
   // Fetch currencies
   const { data: currencyData } = useSwr<{ data: Currency[] }>(
@@ -284,8 +290,8 @@ function WealthDashboard(): React.ReactElement {
     // Calculate asset classification breakdown and total gain on day from holdings
     const classificationTotals: Record<string, number> = {}
     let totalGainOnDay = 0
-    if (holdingsData?.data?.positions) {
-      Object.values(holdingsData.data.positions).forEach((position) => {
+    if (holdingsData?.positions) {
+      Object.values(holdingsData.positions).forEach((position) => {
         let classification =
           position.asset?.assetCategory?.name || "Uncategorised"
         // Merge "Bank Account" into "Cash" as they represent the same thing
@@ -367,12 +373,16 @@ function WealthDashboard(): React.ReactElement {
     }
   }, [portfolios, fxRates, sortConfig, holdingsData])
 
+  // Calculate asset breakdown from holdings
+  // Only calculate when holdings have finished loading
+  const assets = useAssetBreakdown(holdingsLoading ? undefined : holdingsData)
+
   // Fetch FI projection using shared hook
-  // Uses BASE currency values to match the wealth page's display currency approach
+  // Uses PORTFOLIO currency values (default) for asset breakdown
   const { projection: projectionData, isLoading: projectionLoading } =
-    useFiProjection({
+    useFiProjectionSimple({
       plan: primaryPlan,
-      holdingsData: holdingsData?.data,
+      assets,
     })
 
   // Chart data
