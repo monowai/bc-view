@@ -5,6 +5,8 @@ import { GetServerSideProps } from "next"
 import { useTranslation } from "next-i18next"
 import { useRouter } from "next/router"
 import Link from "next/link"
+import useSwr from "swr"
+import { simpleFetcher } from "@utils/api/fetchHelper"
 import { TableSkeletonLoader } from "@components/ui/SkeletonLoader"
 import CashSummaryPanel from "@components/features/rebalance/execution/CashSummaryPanel"
 import {
@@ -12,6 +14,7 @@ import {
   ExecutionItemDto,
   ExecutionItemUpdate,
 } from "types/rebalance"
+import { Asset, AssetResponse } from "types/beancounter"
 
 function ExecuteRebalancePage(): React.ReactElement {
   const { t } = useTranslation("common")
@@ -33,6 +36,7 @@ function ExecuteRebalancePage(): React.ReactElement {
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  const [committing, setCommitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hasChanges, setHasChanges] = useState(false)
 
@@ -43,6 +47,23 @@ function ExecuteRebalancePage(): React.ReactElement {
   const [localExclusions, setLocalExclusions] = useState<
     Record<string, boolean>
   >({})
+
+  // Settlement account state
+  const [selectedSettlementAccount, setSelectedSettlementAccount] = useState<
+    string | undefined
+  >(undefined)
+
+  // Fetch settlement accounts (ACCOUNT category assets)
+  const { data: accountsData } = useSwr<AssetResponse>(
+    "/api/assets?category=ACCOUNT",
+    simpleFetcher,
+  )
+
+  // Convert accounts to array for the selector
+  const settlementAccounts = useMemo((): Asset[] => {
+    if (!accountsData?.data) return []
+    return Object.values(accountsData.data)
+  }, [accountsData])
 
   // Create or load execution
   const initializeExecution = useCallback(async () => {
@@ -294,6 +315,55 @@ function ExecuteRebalancePage(): React.ReactElement {
     })
     setHasChanges(true)
   }
+
+  // Commit execution - create transactions
+  const handleCommit = useCallback(async () => {
+    if (!execution || execution.portfolioIds.length === 0) return
+
+    setCommitting(true)
+    setError(null)
+
+    try {
+      // For now, commit to the first portfolio in the list
+      // TODO: Add portfolio selection if multiple portfolios
+      const portfolioId = execution.portfolioIds[0]
+
+      const response = await fetch(
+        `/api/rebalance/executions/${execution.id}/commit`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            portfolioId,
+            transactionStatus: "PROPOSED",
+            cashAssetId: selectedSettlementAccount,
+          }),
+        },
+      )
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        setError(
+          errorData.message || `Failed to commit execution: ${response.status}`,
+        )
+        return
+      }
+
+      const result = await response.json()
+      console.log(
+        `Created ${result.data.transactionsCreated} transactions`,
+        result.data.transactionIds,
+      )
+
+      // Navigate to transactions page or show success
+      router.push(`/trns?portfolioId=${portfolioId}`)
+    } catch (err) {
+      console.error("Failed to commit execution:", err)
+      setError(err instanceof Error ? err.message : "Failed to commit")
+    } finally {
+      setCommitting(false)
+    }
+  }, [execution, selectedSettlementAccount, router])
 
   // Calculate display items with local overrides applied
   // Default: Cash stays at current weight, other assets scale based on PLAN target weights
@@ -884,6 +954,47 @@ function ExecuteRebalancePage(): React.ReactElement {
             />
           </div>
 
+          {/* Settlement Account Selection */}
+          {settlementAccounts.length > 0 && (
+            <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6 mb-6">
+              <h3 className="text-md font-medium text-gray-900 mb-3">
+                {t(
+                  "rebalance.execute.settlementAccount",
+                  "Settlement Account",
+                )}
+              </h3>
+              <p className="text-sm text-gray-500 mb-4">
+                {t(
+                  "rebalance.execute.settlementAccountDescription",
+                  "Select the brokerage account to debit/credit for these transactions",
+                )}
+              </p>
+              <select
+                value={selectedSettlementAccount || ""}
+                onChange={(e) =>
+                  setSelectedSettlementAccount(e.target.value || undefined)
+                }
+                className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500"
+              >
+                <option value="">
+                  {t(
+                    "rebalance.execute.noSettlement",
+                    "No settlement account (use default)",
+                  )}
+                </option>
+                {settlementAccounts.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name || account.code} (
+                    {account.priceSymbol ||
+                      account.market?.currency?.code ||
+                      ""}
+                    )
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Navigation */}
           <div className="flex justify-between">
             <button
@@ -893,15 +1004,20 @@ function ExecuteRebalancePage(): React.ReactElement {
               {t("back", "Back")}
             </button>
             <button
-              disabled
-              className="px-4 py-2 rounded text-white bg-gray-400 cursor-not-allowed"
-              title={t(
-                "rebalance.execute.comingSoon",
-                "Transaction execution coming soon",
-              )}
+              onClick={handleCommit}
+              disabled={committing || activeItems.length === 0}
+              className={`px-4 py-2 rounded text-white transition-colors ${
+                committing || activeItems.length === 0
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-emerald-500 hover:bg-emerald-600"
+              }`}
             >
-              <i className="fas fa-check mr-2"></i>
-              {t("rebalance.execute.execute", "Execute Transactions")}
+              <i
+                className={`fas ${committing ? "fa-spinner fa-spin" : "fa-check"} mr-2`}
+              ></i>
+              {committing
+                ? t("rebalance.execute.executing", "Executing...")
+                : t("rebalance.execute.execute", "Execute Transactions")}
             </button>
           </div>
         </>

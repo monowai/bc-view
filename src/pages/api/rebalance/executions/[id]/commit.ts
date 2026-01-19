@@ -15,7 +15,7 @@ interface CommitResponse {
 /**
  * POST /api/rebalance/executions/{id}/commit
  * Commits an execution by creating transactions in svc-data.
- * Request body: { portfolioId: string, transactionStatus?: "PROPOSED" | "SETTLED" }
+ * Request body: { portfolioId: string, transactionStatus?: "PROPOSED" | "SETTLED", cashAssetId?: string }
  */
 export default withApiAuthRequired(async function commitExecution(
   req: NextApiRequest,

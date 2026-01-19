@@ -405,6 +405,8 @@ export interface CommitExecutionRequest {
   portfolioId: string
   /** Transaction status: PROPOSED (default) or SETTLED */
   transactionStatus?: "PROPOSED" | "SETTLED"
+  /** Optional cash asset ID for settlement (e.g., a brokerage account asset) */
+  cashAssetId?: string
 }
 
 export interface CommitExecutionResponse {
