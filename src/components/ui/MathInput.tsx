@@ -1,27 +1,43 @@
 import React, { useState, useEffect } from "react"
+import { parseShorthandAmount } from "@utils/formatting/amountParser"
 
 /**
- * Safely evaluate a simple math expression.
- * Supports: +, -, *, /, parentheses, and numbers (including decimals).
- * Does NOT use eval() for security reasons.
+ * Expand shorthand notation in an expression.
+ * Supports: h=100, k=1000, m=1000000
+ * Examples: "4k" -> "4000", "4k*2" -> "4000*2", "1.5m+500k" -> "1500000+500000"
+ */
+function expandShorthand(expr: string): string {
+  // Replace patterns like "4k", "1.5m", "2h" with expanded numbers
+  return expr.replace(/(\d*\.?\d+)([hkm])/gi, (match) => {
+    const expanded = parseShorthandAmount(match)
+    return String(expanded)
+  })
+}
+
+/**
+ * Safely calculate a simple math expression using a recursive descent parser.
+ * Supports: +, -, *, /, parentheses, numbers (including decimals), and shorthand (h/k/m).
  */
 export function evaluateMathExpression(expr: string): number | null {
   // Remove whitespace
   const cleaned = expr.replace(/\s/g, "")
 
-  // Only allow safe characters: digits, operators, parentheses, decimal points
-  if (!/^[\d+\-*/().]+$/.test(cleaned)) {
+  // Only allow safe characters: digits, operators, parentheses, decimal points, and shorthand (h/k/m)
+  if (!/^[\d+\-*/().hkm]+$/i.test(cleaned)) {
     return null
   }
 
+  // Expand shorthand notation (4k -> 4000, 1m -> 1000000, 2h -> 200)
+  const expanded = expandShorthand(cleaned)
+
   // Check for empty or invalid expressions
-  if (!cleaned || cleaned === "") {
+  if (!expanded || expanded === "") {
     return null
   }
 
   try {
-    // Tokenize the expression
-    const tokens = tokenize(cleaned)
+    // Tokenize the expanded expression
+    const tokens = tokenize(expanded)
     if (tokens.length === 0) return null
 
     // Parse and evaluate
@@ -195,12 +211,13 @@ export default function MathInput({
     const newValue = e.target.value
     setDisplayValue(newValue)
 
-    // Check if it's an expression (contains operators)
+    // Check if it's an expression (contains operators or shorthand h/k/m)
     const hasOperators = /[+\-*/]/.test(newValue.replace(/^-/, "")) // ignore leading minus
-    setIsExpression(hasOperators)
+    const hasShorthand = /[hkm]/i.test(newValue)
+    setIsExpression(hasOperators || hasShorthand)
 
-    // If it's a plain number, update immediately
-    if (!hasOperators) {
+    // If it's a plain number (no operators, no shorthand), update immediately
+    if (!hasOperators && !hasShorthand) {
       const num = parseFloat(newValue)
       if (!isNaN(num)) {
         onChange(num)

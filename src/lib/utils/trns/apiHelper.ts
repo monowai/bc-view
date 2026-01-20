@@ -21,6 +21,7 @@ export interface TrnUpdatePayload {
   tax: number
   comments?: string
   status?: string
+  brokerId?: string
 }
 
 export function updateTrn(

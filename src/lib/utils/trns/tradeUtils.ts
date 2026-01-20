@@ -231,6 +231,10 @@ export const getCashRow = (data: TradeFormData): string => {
 }
 
 export const convert = (tradeFormData: TradeFormData): string => {
+  // FX transactions always use getCashRow which handles FX -> FX_BUY conversion
+  if (tradeFormData.type.value === "FX") {
+    return getCashRow(tradeFormData)
+  }
   return tradeFormData.market === "CASH"
     ? getCashRow(tradeFormData)
     : getTradeRow(tradeFormData)

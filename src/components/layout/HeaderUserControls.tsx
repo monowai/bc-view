@@ -86,6 +86,13 @@ export default function HeaderUserControls(): React.ReactElement {
           >
             {t("settings.title")}
           </Link>
+          <Link
+            href="/brokers"
+            className="block px-4 py-2 hover:bg-gray-100"
+            onClick={() => setDropdownOpen(false)}
+          >
+            {t("brokers.title", "Brokers")}
+          </Link>
           {isAdmin && (
             <Link
               href="/admin"

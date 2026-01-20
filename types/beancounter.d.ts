@@ -300,6 +300,7 @@ export interface Transaction {
   fees: number
   tax: number
   comments: string
+  broker?: Broker
 }
 
 interface Registration {
@@ -672,4 +673,30 @@ export interface OffboardingResult {
   deletedCount: number
   type: string
   message?: string
+}
+
+// ============ Brokers ============
+
+/**
+ * Broker/custodian where transactions are held.
+ */
+export interface Broker {
+  id: string
+  name: string
+  accountNumber?: string
+  notes?: string
+}
+
+export interface BrokerInput {
+  name: string
+  accountNumber?: string
+  notes?: string
+}
+
+export interface BrokerResponse {
+  data: Broker
+}
+
+export interface BrokersResponse {
+  data: Broker[]
 }

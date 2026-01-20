@@ -363,7 +363,7 @@ const CashInputForm: React.FC<{
                       Sell
                     </div>
                     <div className="font-bold text-red-700">
-                      {qty > 0 && <>{qty.toLocaleString()}{" "}</>}
+                      {qty > 0 && <>{qty.toLocaleString()} </>}
                       {(() => {
                         const sellOpt = combinedOptions.find(
                           (opt) => opt.value === asset,
@@ -393,7 +393,7 @@ const CashInputForm: React.FC<{
                     </div>
                     <div className="font-bold text-green-700">
                       {(watch("cashAmount") ?? 0) > 0 && (
-                        <>{(watch("cashAmount") ?? 0).toLocaleString()}{" "}</>
+                        <>{(watch("cashAmount") ?? 0).toLocaleString()} </>
                       )}
                       {(() => {
                         const buyCcy = watch("cashCurrency")
@@ -403,7 +403,7 @@ const CashInputForm: React.FC<{
                         // Show account name for accounts, currency code for currencies
                         return buyOpt?.market !== "CASH"
                           ? buyOpt?.label || buyCcy?.value
-                          : buyCcy?.value ?? ""
+                          : (buyCcy?.value ?? "")
                       })()}
                     </div>
                   </div>
