@@ -6,7 +6,12 @@ import {
   parseShorthandAmount,
   hasShorthandSuffix,
 } from "@utils/formatting/amountParser"
-import { ModelDto, ExecutionDto, ExecutionItemDto, PlanDto } from "types/rebalance"
+import {
+  ModelDto,
+  ExecutionDto,
+  ExecutionItemDto,
+  PlanDto,
+} from "types/rebalance"
 import { Broker } from "types/beancounter"
 
 interface InvestCashDialogProps {

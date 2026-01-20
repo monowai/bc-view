@@ -708,3 +708,48 @@ export interface BrokerResponse {
 export interface BrokersResponse {
   data: Broker[]
 }
+
+/**
+ * A single transaction for broker reconciliation drill-down.
+ */
+export interface BrokerHoldingTransaction {
+  id: string
+  portfolioId: string
+  portfolioCode: string
+  tradeDate: string
+  trnType: string
+  quantity: number
+  price: number
+  tradeAmount: number
+}
+
+/**
+ * Transactions grouped by portfolio for a specific asset.
+ */
+export interface BrokerPortfolioGroup {
+  portfolioId: string
+  portfolioCode: string
+  quantity: number
+  transactions: BrokerHoldingTransaction[]
+}
+
+/**
+ * A position held with a broker for reconciliation purposes.
+ */
+export interface BrokerHoldingPosition {
+  assetId: string
+  assetCode: string
+  assetName?: string
+  market: string
+  quantity: number
+  portfolioGroups: BrokerPortfolioGroup[]
+}
+
+/**
+ * Response containing all holdings for a specific broker.
+ */
+export interface BrokerHoldingsResponse {
+  brokerId: string
+  brokerName: string
+  holdings: BrokerHoldingPosition[]
+}

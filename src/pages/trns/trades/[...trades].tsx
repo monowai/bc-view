@@ -13,6 +13,7 @@ import {
   optionalFetcher,
   tradeKey,
   trnKey,
+  holdingKey,
 } from "@utils/api/fetchHelper"
 import { useTranslation } from "next-i18next"
 import { Portfolio, Transaction, Broker } from "types/beancounter"
@@ -409,6 +410,17 @@ function EditTransactionForm({
     copyToClipboard(row)
   }
 
+  // Invalidate holdings cache after transaction changes
+  // Uses a delay to account for message broker processing
+  const invalidateHoldingsCache = (portfolioCode: string): void => {
+    setTimeout(() => {
+      // Invalidate specific portfolio holdings
+      mutate(holdingKey(portfolioCode, "today"))
+      // Invalidate aggregated holdings
+      mutate("/api/holdings/aggregated?asAt=today")
+    }, 1500) // 1.5s delay for message broker processing
+  }
+
   const onSubmit = async (data: EditFormData): Promise<void> => {
     setIsSubmitting(true)
     setSubmitError(null)
@@ -443,6 +455,7 @@ function EditTransactionForm({
         const row = convert(formData)
         await postData(trn.portfolio, false, row.split(","))
         await mutate(trnKey(trn.id))
+        invalidateHoldingsCache(trn.portfolio.code)
         onClose()
       } else {
         // Use PATCH for all non-FX transactions (including portfolio moves)
@@ -468,6 +481,16 @@ function EditTransactionForm({
         const response = await updateTrn(selectedPortfolioId, trn.id, payload)
         if (response.ok) {
           await mutate(trnKey(trn.id))
+          invalidateHoldingsCache(trn.portfolio.code)
+          // If portfolio changed, also invalidate the new portfolio's holdings
+          if (portfolioChanged) {
+            const newPortfolio = portfolios.find(
+              (p) => p.id === selectedPortfolioId,
+            )
+            if (newPortfolio) {
+              invalidateHoldingsCache(newPortfolio.code)
+            }
+          }
           onClose()
         } else {
           const errorData = await response.json()
@@ -514,7 +537,10 @@ function EditTransactionForm({
             >
               <i className="fas fa-times"></i>
             </button>
-            <div className="text-center flex-1 px-2" title={assetName || assetCode}>
+            <div
+              className="text-center flex-1 px-2"
+              title={assetName || assetCode}
+            >
               <div className="font-semibold truncate">{assetCode}</div>
               {assetName && (
                 <div className="text-xs text-gray-500 truncate">
@@ -1065,11 +1091,27 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
   )
 
   // Group transactions by broker (must be called before any early returns for hooks rules)
-  const trnResults: Transaction[] = trades.data?.data || []
+  const trnResults = useMemo(
+    (): Transaction[] => trades.data?.data || [],
+    [trades.data?.data],
+  )
   const groupedByBroker = useMemo(() => {
     if (!trnResults || trnResults.length === 0) return []
 
-    const groups: Record<string, { broker: { id: string; name: string } | null; transactions: Transaction[]; totals: { quantity: number; tradeAmount: number; cashAmount: number; fees: number; tax: number } }> = {}
+    const groups: Record<
+      string,
+      {
+        broker: { id: string; name: string } | null
+        transactions: Transaction[]
+        totals: {
+          quantity: number
+          tradeAmount: number
+          cashAmount: number
+          fees: number
+          tax: number
+        }
+      }
+    > = {}
 
     trnResults.forEach((trn: Transaction) => {
       const brokerKey = trn.broker?.id || "__no_broker__"
@@ -1077,7 +1119,13 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
         groups[brokerKey] = {
           broker: trn.broker || null,
           transactions: [],
-          totals: { quantity: 0, tradeAmount: 0, cashAmount: 0, fees: 0, tax: 0 }
+          totals: {
+            quantity: 0,
+            tradeAmount: 0,
+            cashAmount: 0,
+            fees: 0,
+            tax: 0,
+          },
         }
       }
       groups[brokerKey].transactions.push(trn)
@@ -1142,6 +1190,11 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
           method: "DELETE",
         })
         if (response.ok) {
+          // Invalidate holdings cache after delete (with delay for message broker)
+          setTimeout(() => {
+            mutate(holdingKey(transaction.portfolio.code, "today"))
+            mutate("/api/holdings/aggregated?asAt=today")
+          }, 1500)
           router.back()
         }
       } catch (err) {
@@ -1255,7 +1308,9 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                     key={trn.id}
                     className="p-4 space-y-2 cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-100"
                     onDoubleClick={() =>
-                      router.push(`/trns/trades/edit/${trn.portfolio.id}/${trn.id}`)
+                      router.push(
+                        `/trns/trades/edit/${trn.portfolio.id}/${trn.id}`,
+                      )
                     }
                     title={t("actions.doubleClickToEdit")}
                   >
@@ -1281,7 +1336,11 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                           {trn.asset.code}
                           {trn.asset.name && (
                             <span className="text-xs text-gray-500 ml-1">
-                              ({trn.asset.name.length > 20 ? `${trn.asset.name.substring(0, 20)}...` : trn.asset.name})
+                              (
+                              {trn.asset.name.length > 20
+                                ? `${trn.asset.name.substring(0, 20)}...`
+                                : trn.asset.name}
+                              )
                             </span>
                           )}
                         </span>
@@ -1301,7 +1360,9 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                         >
                           {trn.status}
                         </span>
-                        <span className="text-sm text-gray-500">{trn.tradeDate}</span>
+                        <span className="text-sm text-gray-500">
+                          {trn.tradeDate}
+                        </span>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-sm">
@@ -1328,7 +1389,9 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                         </span>
                       </div>
                       <div>
-                        <span className="text-gray-500">{t("trn.amount.trade")}:</span>
+                        <span className="text-gray-500">
+                          {t("trn.amount.trade")}:
+                        </span>
                         <span className="ml-1 font-medium">
                           <NumericFormat
                             value={trn.tradeAmount}
@@ -1340,7 +1403,9 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                         </span>
                       </div>
                       <div>
-                        <span className="text-gray-500">{t("trn.amount.cash")}:</span>
+                        <span className="text-gray-500">
+                          {t("trn.amount.cash")}:
+                        </span>
                         <span className="ml-1 font-medium">
                           <NumericFormat
                             value={trn.cashAmount}
@@ -1358,7 +1423,9 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
               <div className="bg-indigo-50 border border-indigo-200 rounded-b-lg px-4 py-2">
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
-                    <span className="text-indigo-600">{t("trn.amount.trade")}:</span>
+                    <span className="text-indigo-600">
+                      {t("trn.amount.trade")}:
+                    </span>
                     <span className="ml-1 font-semibold text-indigo-900">
                       <NumericFormat
                         value={group.totals.tradeAmount}
@@ -1370,7 +1437,9 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                     </span>
                   </div>
                   <div>
-                    <span className="text-indigo-600">{t("trn.amount.cash")}:</span>
+                    <span className="text-indigo-600">
+                      {t("trn.amount.cash")}:
+                    </span>
                     <span className="ml-1 font-semibold text-indigo-900">
                       <NumericFormat
                         value={group.totals.cashAmount}
@@ -1384,7 +1453,9 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                   {(group.totals.fees > 0 || group.totals.tax > 0) && (
                     <>
                       <div>
-                        <span className="text-indigo-600">{t("trn.amount.charges")}:</span>
+                        <span className="text-indigo-600">
+                          {t("trn.amount.charges")}:
+                        </span>
                         <span className="ml-1 font-semibold text-indigo-900">
                           <NumericFormat
                             value={group.totals.fees}
@@ -1395,7 +1466,9 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                         </span>
                       </div>
                       <div>
-                        <span className="text-indigo-600">{t("trn.amount.tax")}:</span>
+                        <span className="text-indigo-600">
+                          {t("trn.amount.tax")}:
+                        </span>
                         <span className="ml-1 font-semibold text-indigo-900">
                           <NumericFormat
                             value={group.totals.tax}
@@ -1416,7 +1489,10 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
         {/* Desktop: Table layout grouped by broker */}
         <div className="hidden md:block space-y-4">
           {groupedByBroker.map((group) => (
-            <div key={group.broker?.id || "no-broker"} className="bg-white rounded-lg shadow overflow-hidden">
+            <div
+              key={group.broker?.id || "no-broker"}
+              className="bg-white rounded-lg shadow overflow-hidden"
+            >
               {/* Broker Header */}
               <div className="bg-indigo-50 border-b border-indigo-200 px-4 py-3 flex justify-between items-center">
                 <span className="font-medium text-indigo-900">
@@ -1482,7 +1558,9 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                         }
                         title={t("actions.doubleClickToEdit")}
                       >
-                        <td className="px-4 py-3 whitespace-nowrap">{trn.trnType}</td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          {trn.trnType}
+                        </td>
                         <td
                           className="px-4 py-3 whitespace-nowrap"
                           title={trn.asset.name || trn.asset.code}
@@ -1537,7 +1615,8 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                           )
                             ? "-"
                             : trn.cashAsset?.market?.code === "CASH"
-                              ? trn.cashAsset.name || `${trn.cashAsset.code} Balance`
+                              ? trn.cashAsset.name ||
+                                `${trn.cashAsset.code} Balance`
                               : trn.cashAsset?.name ||
                                 trn.cashAsset?.code ||
                                 `${(trn.cashCurrency as any)?.code || trn.tradeCurrency?.code} Balance`}

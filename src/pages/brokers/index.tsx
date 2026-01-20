@@ -9,6 +9,7 @@ import { simpleFetcher } from "@utils/api/fetchHelper"
 import { errorOut } from "@components/errors/ErrorOut"
 import { useRouter } from "next/router"
 import { rootLoader } from "@components/ui/PageLoader"
+import Link from "next/link"
 
 const brokersKey = "/api/brokers"
 
@@ -25,6 +26,12 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
     notes: "",
   })
   const [isSaving, setIsSaving] = useState(false)
+  const [transferringBroker, setTransferringBroker] = useState<Broker | null>(
+    null,
+  )
+  const [targetBrokerId, setTargetBrokerId] = useState<string>("")
+  const [isTransferring, setIsTransferring] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const handleCreate = useCallback(() => {
     setFormData({ name: "", accountNumber: "", notes: "" })
@@ -79,6 +86,8 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
 
   const handleDelete = useCallback(
     async (broker: Broker) => {
+      setDeleteError(null)
+
       if (
         !window.confirm(
           t("brokers.delete.confirm", { name: broker.name }) ||
@@ -96,14 +105,64 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
         if (response.ok) {
           await mutate()
         } else {
-          console.error("Failed to delete broker:", await response.text())
+          const errorData = await response.json()
+          const errorMessage =
+            errorData?.message || errorData?.error || "Failed to delete broker"
+          // If error mentions transactions, offer to transfer
+          if (errorMessage.toLowerCase().includes("transaction")) {
+            setTransferringBroker(broker)
+            setDeleteError(errorMessage)
+          } else {
+            setDeleteError(errorMessage)
+          }
         }
       } catch (err) {
         console.error("Failed to delete broker:", err)
+        setDeleteError("Failed to delete broker")
       }
     },
     [mutate, t],
   )
+
+  const handleTransfer = useCallback(async () => {
+    if (!transferringBroker || !targetBrokerId) return
+
+    setIsTransferring(true)
+    try {
+      const response = await fetch(
+        `/api/brokers/${transferringBroker.id}/transfer?toBrokerId=${targetBrokerId}`,
+        { method: "POST" },
+      )
+
+      if (response.ok) {
+        const result = await response.json()
+        await mutate()
+        setTransferringBroker(null)
+        setTargetBrokerId("")
+        setDeleteError(null)
+        alert(
+          t("brokers.transfer.success", {
+            count: result.transferred,
+            defaultValue: `Successfully transferred ${result.transferred} transaction(s)`,
+          }),
+        )
+      } else {
+        const errorData = await response.json()
+        alert(errorData?.message || "Failed to transfer transactions")
+      }
+    } catch (err) {
+      console.error("Failed to transfer:", err)
+      alert("Failed to transfer transactions")
+    } finally {
+      setIsTransferring(false)
+    }
+  }, [transferringBroker, targetBrokerId, mutate, t])
+
+  const handleCancelTransfer = useCallback(() => {
+    setTransferringBroker(null)
+    setTargetBrokerId("")
+    setDeleteError(null)
+  }, [])
 
   if (error) {
     return errorOut(t("brokers.error.retrieve", "Error loading brokers"), error)
@@ -133,16 +192,28 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
                 {t("brokers.title", "Brokers")}
               </h1>
             </div>
-            <button
-              className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors flex items-center shadow-sm"
-              onClick={handleCreate}
-            >
-              <i className="fas fa-plus mr-2"></i>
-              <span className="hidden sm:inline">
-                {t("brokers.create", "Add Broker")}
-              </span>
-              <span className="sm:hidden">{t("new", "New")}</span>
-            </button>
+            <div className="flex space-x-2">
+              <button
+                className="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition-colors flex items-center shadow-sm"
+                onClick={() => router.push("/brokers/NO_BROKER/holdings")}
+                title={t("brokers.reconcile", "Reconcile Holdings")}
+              >
+                <i className="fas fa-balance-scale mr-2"></i>
+                <span className="hidden sm:inline">
+                  {t("brokers.reconcile", "Reconcile")}
+                </span>
+              </button>
+              <button
+                className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors flex items-center shadow-sm"
+                onClick={handleCreate}
+              >
+                <i className="fas fa-plus mr-2"></i>
+                <span className="hidden sm:inline">
+                  {t("brokers.create", "Add Broker")}
+                </span>
+                <span className="sm:hidden">{t("new", "New")}</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -287,8 +358,11 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
                 className="bg-white rounded-xl shadow-sm border border-gray-200 p-4"
               >
                 <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900">
+                  <Link
+                    href={`/brokers/${broker.id}/holdings`}
+                    className="flex-1 group cursor-pointer"
+                  >
+                    <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
                       {broker.name}
                     </h3>
                     {broker.accountNumber && (
@@ -302,7 +376,7 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
                         {broker.notes}
                       </p>
                     )}
-                  </div>
+                  </Link>
                   <div className="flex items-center space-x-2 ml-4">
                     <button
                       onClick={() => handleEdit(broker)}
@@ -310,6 +384,13 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
                       title={t("edit", "Edit")}
                     >
                       <i className="far fa-edit"></i>
+                    </button>
+                    <button
+                      onClick={() => setTransferringBroker(broker)}
+                      className="text-gray-400 hover:text-orange-600 p-2 transition-colors"
+                      title={t("brokers.transfer", "Transfer Transactions")}
+                    >
+                      <i className="fas fa-exchange-alt"></i>
                     </button>
                     <button
                       onClick={() => handleDelete(broker)}
@@ -325,6 +406,97 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
           </div>
         )}
       </div>
+
+      {/* Transfer Dialog */}
+      {transferringBroker && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="fixed inset-0 bg-black opacity-50"
+            onClick={handleCancelTransfer}
+          ></div>
+          <div
+            className="bg-white rounded-lg shadow-lg w-full max-w-md mx-4 p-6 z-50"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <header className="flex justify-between items-center border-b pb-2 mb-4">
+              <h2 className="text-xl font-semibold">
+                {t("brokers.transfer.title", "Transfer Transactions")}
+              </h2>
+              <button
+                className="text-gray-500 hover:text-gray-700 text-2xl"
+                onClick={handleCancelTransfer}
+              >
+                &times;
+              </button>
+            </header>
+
+            {deleteError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                {deleteError}
+              </div>
+            )}
+
+            <p className="text-gray-600 mb-4">
+              {t(
+                "brokers.transfer.description",
+                'Transfer all transactions from "{{name}}" to another broker:',
+                { name: transferringBroker.name },
+              )}
+            </p>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t("brokers.transfer.target", "Transfer to")}
+              </label>
+              <select
+                value={targetBrokerId}
+                onChange={(e) => setTargetBrokerId(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              >
+                <option value="">
+                  {t("brokers.transfer.selectBroker", "Select a broker...")}
+                </option>
+                {brokers
+                  .filter((b) => b.id !== transferringBroker.id)
+                  .map((broker) => (
+                    <option key={broker.id} value={broker.id}>
+                      {broker.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            <div className="flex justify-end space-x-2">
+              <button
+                type="button"
+                className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors"
+                onClick={handleCancelTransfer}
+              >
+                {t("cancel", "Cancel")}
+              </button>
+              <button
+                type="button"
+                className={`px-4 py-2 rounded-lg transition-colors text-white ${
+                  isTransferring || !targetBrokerId
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-orange-500 hover:bg-orange-600"
+                }`}
+                onClick={handleTransfer}
+                disabled={isTransferring || !targetBrokerId}
+              >
+                {isTransferring ? (
+                  <span className="flex items-center">
+                    <i className="fas fa-spinner fa-spin mr-2"></i>
+                    {t("brokers.transfer.transferring", "Transferring...")}
+                  </span>
+                ) : (
+                  t("brokers.transfer.confirm", "Transfer")
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 })
