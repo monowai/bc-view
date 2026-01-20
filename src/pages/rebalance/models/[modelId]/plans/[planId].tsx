@@ -618,78 +618,81 @@ function PlanDetailPage(): React.ReactElement {
           <h2 className="text-lg font-medium text-gray-900">
             {t("rebalance.plans.allocations", "Target Allocations")}
           </h2>
-          {isDraft && (
-            <div className="flex gap-2">
-              {weights.length > 0 && (
-                <button
-                  onClick={handleExportCSV}
-                  className="text-sm bg-gray-100 text-gray-700 px-3 py-1.5 rounded hover:bg-gray-200 transition-colors flex items-center"
-                >
-                  <i className="fas fa-download mr-1.5"></i>
-                  {t("export", "Export")}
-                </button>
-              )}
-              {/* Import dropdown */}
-              <div className="relative" ref={importDropdownRef}>
-                <button
-                  onClick={() => setShowImportDropdown(!showImportDropdown)}
-                  className="text-sm bg-gray-100 text-gray-700 px-3 py-1.5 rounded hover:bg-gray-200 transition-colors flex items-center"
-                >
-                  <i className="fas fa-upload mr-1.5"></i>
-                  {t("import", "Import")}
-                  <i className="fas fa-chevron-down ml-1.5 text-xs"></i>
-                </button>
-                {showImportDropdown && (
-                  <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-10">
-                    <div className="py-1">
-                      <button
-                        onClick={() => {
-                          setShowImportDropdown(false)
-                          setShowImportHoldingsDialog(true)
-                        }}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-                      >
-                        <i className="fas fa-chart-pie mr-3 text-gray-400 w-4"></i>
-                        {t("rebalance.plans.importHoldings", "Holdings")}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowImportDropdown(false)
-                          csvInputRef.current?.click()
-                        }}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-                      >
-                        <i className="fas fa-file-csv mr-3 text-gray-400 w-4"></i>
-                        {t("rebalance.plans.importCSV", "CSV")}
-                      </button>
-                      {previousPlan && (
+          <div className="flex gap-2">
+            {/* Export button - available for both draft and approved plans */}
+            {weights.length > 0 && (
+              <button
+                onClick={handleExportCSV}
+                className="text-sm bg-gray-100 text-gray-700 px-3 py-1.5 rounded hover:bg-gray-200 transition-colors flex items-center"
+              >
+                <i className="fas fa-download mr-1.5"></i>
+                {t("export", "Export")}
+              </button>
+            )}
+            {/* Import dropdown - only for draft plans */}
+            {isDraft && (
+              <>
+                <div className="relative" ref={importDropdownRef}>
+                  <button
+                    onClick={() => setShowImportDropdown(!showImportDropdown)}
+                    className="text-sm bg-gray-100 text-gray-700 px-3 py-1.5 rounded hover:bg-gray-200 transition-colors flex items-center"
+                  >
+                    <i className="fas fa-upload mr-1.5"></i>
+                    {t("import", "Import")}
+                    <i className="fas fa-chevron-down ml-1.5 text-xs"></i>
+                  </button>
+                  {showImportDropdown && (
+                    <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                      <div className="py-1">
                         <button
-                          onClick={() => handleImportFromPlan(previousPlan.id)}
+                          onClick={() => {
+                            setShowImportDropdown(false)
+                            setShowImportHoldingsDialog(true)
+                          }}
                           className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
                         >
-                          <i className="fas fa-copy mr-3 text-gray-400 w-4"></i>
-                          {t(
-                            "rebalance.plans.importLastPlan",
-                            "Plan v{{version}}",
-                            {
-                              version: previousPlan.version,
-                            },
-                          )}
+                          <i className="fas fa-chart-pie mr-3 text-gray-400 w-4"></i>
+                          {t("rebalance.plans.importHoldings", "Holdings")}
                         </button>
-                      )}
+                        <button
+                          onClick={() => {
+                            setShowImportDropdown(false)
+                            csvInputRef.current?.click()
+                          }}
+                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                        >
+                          <i className="fas fa-file-csv mr-3 text-gray-400 w-4"></i>
+                          {t("rebalance.plans.importCSV", "CSV")}
+                        </button>
+                        {previousPlan && (
+                          <button
+                            onClick={() => handleImportFromPlan(previousPlan.id)}
+                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                          >
+                            <i className="fas fa-copy mr-3 text-gray-400 w-4"></i>
+                            {t(
+                              "rebalance.plans.importLastPlan",
+                              "Plan v{{version}}",
+                              {
+                                version: previousPlan.version,
+                              },
+                            )}
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-              <input
-                ref={csvInputRef}
-                type="file"
-                accept=".csv,.txt"
-                onChange={handleImportCSV}
-                className="hidden"
-              />
-            </div>
-          )}
+                  )}
+                </div>
+                <input
+                  ref={csvInputRef}
+                  type="file"
+                  accept=".csv,.txt"
+                  onChange={handleImportCSV}
+                  className="hidden"
+                />
+              </>
+            )}
+          </div>
         </div>
 
         {isDraft ? (
