@@ -6,7 +6,7 @@ import {
   parseShorthandAmount,
   hasShorthandSuffix,
 } from "@utils/formatting/amountParser"
-import { ModelDto, ExecutionDto, ExecutionItemDto } from "types/rebalance"
+import { ModelDto, ExecutionDto, ExecutionItemDto, PlanDto } from "types/rebalance"
 import { Broker } from "types/beancounter"
 
 interface InvestCashDialogProps {
@@ -70,6 +70,18 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
   const modelsWithApprovedPlans = models.filter(
     (m) => m.currentPlanId && m.currentPlanVersion,
   )
+
+  // Fetch plan details when a model is selected
+  const { data: planData, isLoading: loadingPlan } = useSWR<{ data: PlanDto }>(
+    selectedModel?.currentPlanId
+      ? `/api/rebalance/models/${selectedModel.id}/plans/${selectedModel.currentPlanId}`
+      : null,
+    simpleFetcher(
+      `/api/rebalance/models/${selectedModel?.id}/plans/${selectedModel?.currentPlanId}`,
+    ),
+  )
+  const planAssets = planData?.data?.assets || []
+  const cashWeight = planData?.data?.cashWeight ?? 0
 
   // Get buy items from execution (non-cash, positive quantity)
   const buyItems = useMemo(() => {
@@ -352,6 +364,90 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
                         </div>
                       </button>
                     ))}
+                  </div>
+                )}
+
+                {/* Plan Preview - show when a model is selected */}
+                {selectedModel && (
+                  <div className="mt-4 border border-gray-200 rounded-lg overflow-hidden">
+                    <div className="bg-gray-50 px-3 py-2 border-b border-gray-200">
+                      <h4 className="text-sm font-medium text-gray-700">
+                        <i className="fas fa-chart-pie mr-2 text-gray-400"></i>
+                        {t(
+                          "rebalance.investCash.planAssets",
+                          "Plan Allocations",
+                        )}
+                      </h4>
+                    </div>
+                    {loadingPlan ? (
+                      <div className="py-4 text-center text-gray-500 text-sm">
+                        <i className="fas fa-spinner fa-spin mr-2"></i>
+                        {t("loading", "Loading...")}
+                      </div>
+                    ) : planAssets.length === 0 ? (
+                      <div className="py-4 text-center text-gray-500 text-sm">
+                        {t(
+                          "rebalance.investCash.noAssets",
+                          "No assets in plan",
+                        )}
+                      </div>
+                    ) : (
+                      <div className="max-h-48 overflow-y-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50 sticky top-0">
+                            <tr>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                {t("asset", "Asset")}
+                              </th>
+                              <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase w-20">
+                                {t("weight", "Weight")}
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {planAssets
+                              .sort((a, b) => b.weight - a.weight)
+                              .map((asset) => (
+                                <tr key={asset.id}>
+                                  <td
+                                    className="px-3 py-2"
+                                    title={asset.rationale || undefined}
+                                  >
+                                    <div className="font-medium text-gray-900 text-sm">
+                                      {formatAssetCode(asset.assetCode) ||
+                                        asset.assetId}
+                                      {asset.rationale && (
+                                        <i className="fas fa-info-circle ml-1 text-gray-400 text-xs"></i>
+                                      )}
+                                    </div>
+                                    {asset.assetName && (
+                                      <div className="text-xs text-gray-500 truncate max-w-48">
+                                        {asset.assetName}
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td className="px-3 py-2 text-right text-sm text-gray-700">
+                                    {(asset.weight * 100).toFixed(1)}%
+                                  </td>
+                                </tr>
+                              ))}
+                            {cashWeight > 0 && (
+                              <tr className="bg-blue-50">
+                                <td className="px-3 py-2">
+                                  <div className="font-medium text-blue-700 text-sm">
+                                    <i className="fas fa-coins mr-1"></i>
+                                    {t("cash", "Cash")}
+                                  </div>
+                                </td>
+                                <td className="px-3 py-2 text-right text-sm text-blue-700">
+                                  {(cashWeight * 100).toFixed(1)}%
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

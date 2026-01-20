@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react"
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import { useRouter } from "next/router"
 import TradeInputForm from "@pages/trns/trade"
 import CashInputForm from "@pages/trns/cash"
@@ -10,6 +10,7 @@ import { HoldingContract, Holdings, QuickSellData } from "types/beancounter"
 import { ViewMode } from "./ViewToggle"
 import { AllocationSlice } from "@lib/allocation/aggregateHoldings"
 import { ModelDto, PlanDto } from "types/rebalance"
+import { useIsAdmin } from "@hooks/useIsAdmin"
 
 // Dropdown Menu Component
 interface DropdownMenuProps {
@@ -114,6 +115,7 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
   holdings,
 }) => {
   const router = useRouter()
+  const { isAdmin } = useIsAdmin()
   const [tradeModalOpen, setTradeModalOpen] = useState(false)
   const [cashModalOpen, setCashModalOpen] = useState(false)
   const [copyModalOpen, setCopyModalOpen] = useState(false)
@@ -271,19 +273,25 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
     },
   ]
 
-  // Rebalance dropdown items
-  const rebalanceItems = [
-    {
-      label: "Rebalance Model",
-      icon: "fa-balance-scale",
-      onClick: () => setSelectPlanModalOpen(true),
-    },
-    {
-      label: "Invest Cash",
-      icon: "fa-chart-pie",
-      onClick: () => setInvestCashModalOpen(true),
-    },
-  ]
+  // Rebalance dropdown items - "Rebalance Model" is admin-only (in development)
+  const rebalanceItems = useMemo(() => {
+    const items = [
+      {
+        label: "Invest Cash",
+        icon: "fa-chart-pie",
+        onClick: () => setInvestCashModalOpen(true),
+      },
+    ]
+    // Add "Rebalance Model" for admins only (feature in development)
+    if (isAdmin) {
+      items.unshift({
+        label: "Rebalance Model",
+        icon: "fa-balance-scale",
+        onClick: () => setSelectPlanModalOpen(true),
+      })
+    }
+    return items
+  }, [isAdmin])
 
   return (
     <div

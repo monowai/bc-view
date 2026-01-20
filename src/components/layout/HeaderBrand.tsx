@@ -38,6 +38,12 @@ const navSections: NavSection[] = [
         icon: "fa-gem",
         description: "Property, bank accounts & custom assets",
       },
+      {
+        href: "/assets/lookup",
+        label: "Asset Lookup",
+        icon: "fa-search",
+        description: "Find where an asset is held",
+      },
     ],
   },
   {
