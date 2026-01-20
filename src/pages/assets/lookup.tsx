@@ -39,9 +39,7 @@ function AssetLookupPage(): React.ReactElement {
     selectedAsset?.assetId
       ? `/api/assets/${selectedAsset.assetId}/positions?date=today`
       : null,
-    simpleFetcher(
-      `/api/assets/${selectedAsset?.assetId}/positions?date=today`,
-    ),
+    simpleFetcher(`/api/assets/${selectedAsset?.assetId}/positions?date=today`),
   )
 
   const positions = positionsData?.data || []
@@ -94,10 +92,7 @@ function AssetLookupPage(): React.ReactElement {
   }
 
   // Navigate to transactions on double-click
-  const handleRowDoubleClick = (
-    portfolioId: string,
-    assetId: string,
-  ): void => {
+  const handleRowDoubleClick = (portfolioId: string, assetId: string): void => {
     router.push(`/trns/trades/${portfolioId}/${assetId}`)
   }
 

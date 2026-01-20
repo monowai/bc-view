@@ -478,13 +478,20 @@ function WealthDashboard(): React.ReactElement {
                 </p>
               </div>
 
-              <div className="mt-6 md:mt-0 flex gap-4">
+              <div className="mt-6 md:mt-0 flex gap-4 flex-wrap">
                 <Link
                   href="/portfolios"
                   className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center"
                 >
                   <i className="fas fa-chart-pie mr-2"></i>
                   Portfolios
+                </Link>
+                <Link
+                  href="/brokers"
+                  className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center"
+                >
+                  <i className="fas fa-building mr-2"></i>
+                  Brokers
                 </Link>
                 <Link
                   href="/independence"
