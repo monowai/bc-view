@@ -7,6 +7,7 @@ import {
   SetCashBalanceData,
   SetPriceData,
   CashTransferData,
+  CostAdjustData,
   Asset,
 } from "types/beancounter"
 import { FormatValue, PrivateQuantity } from "@components/ui/MoneyUtils"
@@ -43,6 +44,7 @@ interface RowsProps extends HoldingValues {
   onSetPrice?: (data: SetPriceData) => void
   onSectorWeightings?: (data: SectorWeightingsData) => void
   onCashTransfer?: (data: CashTransferData) => void
+  onCostAdjust?: (data: CostAdjustData) => void
 }
 
 // Helper function to generate responsive classes for table cells
@@ -95,11 +97,14 @@ interface ActionsMenuProps {
   closedDate?: string
   quantity: number
   price: number
+  costBasis: number
+  tradeCurrency: { code: string; symbol: string; name: string }
   valueIn: string
   onQuickSell?: (data: QuickSellData) => void
   onCorporateActions?: (data: CorporateActionsData) => void
   onSetPrice?: (data: SetPriceData) => void
   onSectorWeightings?: (data: SectorWeightingsData) => void
+  onCostAdjust?: (data: CostAdjustData) => void
   t: (key: string) => string
 }
 
@@ -110,10 +115,13 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
   closedDate,
   quantity,
   price,
+  costBasis,
+  tradeCurrency,
   onQuickSell,
   onCorporateActions,
   onSetPrice,
   onSectorWeightings,
+  onCostAdjust,
   t,
 }) => {
   const [isOpen, setIsOpen] = useState(false)
@@ -215,6 +223,25 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
                 {t("sector.weightings.view")}
               </button>
             )}
+            {onCostAdjust && (
+              <button
+                type="button"
+                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setIsOpen(false)
+                  onCostAdjust({
+                    asset,
+                    portfolioId,
+                    currentCostBasis: costBasis,
+                    currency: tradeCurrency,
+                  })
+                }}
+              >
+                <i className="fas fa-scale-balanced text-orange-500 w-4"></i>
+                {t("costAdjust.menu")}
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -235,6 +262,7 @@ export default function Rows({
   onSetPrice,
   onSectorWeightings,
   onCashTransfer,
+  onCostAdjust,
 }: RowsProps): React.ReactElement {
   const { t } = useTranslation("common")
   const router = useRouter()
@@ -325,6 +353,7 @@ export default function Rows({
                 {!isCashRelated(asset) &&
                   (onQuickSell ||
                     onCorporateActions ||
+                    onCostAdjust ||
                     (onSetPrice && asset.market?.code === "PRIVATE")) && (
                     <div className="hidden sm:flex items-center">
                       <ActionsMenu
@@ -334,11 +363,16 @@ export default function Rows({
                         closedDate={dateValues?.closed}
                         quantity={quantityValues.total}
                         price={moneyValues[valueIn].priceData?.close || 0}
+                        costBasis={moneyValues["TRADE"]?.costBasis || 0}
+                        tradeCurrency={
+                          moneyValues["TRADE"]?.currency || portfolio.currency
+                        }
                         valueIn={valueIn}
                         onQuickSell={onQuickSell}
                         onCorporateActions={onCorporateActions}
                         onSetPrice={onSetPrice}
                         onSectorWeightings={onSectorWeightings}
+                        onCostAdjust={onCostAdjust}
                         t={t}
                       />
                     </div>

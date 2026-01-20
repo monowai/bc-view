@@ -14,6 +14,7 @@ export type TrnType =
   | "ADD"
   | "REDUCE"
   | "BALANCE"
+  | "COST_ADJUST"
 
 export type TrnStatus = "PROPOSED" | "SETTLED"
 
@@ -62,6 +63,13 @@ export interface CashTransferData {
 
 export interface SetPriceData {
   asset: Asset
+}
+
+export interface CostAdjustData {
+  asset: Asset
+  portfolioId: string
+  currentCostBasis: number // Current cost basis for reference
+  currency: Currency // Trade currency for the position
 }
 
 // As returned from the server

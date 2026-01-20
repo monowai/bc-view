@@ -42,6 +42,7 @@ const MarketTradeTypeValues = [
   "REDUCE",
   "DIVI",
   "SPLIT",
+  "COST_ADJUST",
 ] as const
 const CashTradeTypeValues = ["DEPOSIT", "WITHDRAWAL", "FX"] as const
 
@@ -203,6 +204,7 @@ function EditTransactionForm({
   const assetName = trn.asset.name
   const isCashTransaction = marketCode === "CASH"
   const isFxTransaction = trn.trnType === "FX" || trn.trnType.startsWith("FX_")
+  const isCostAdjust = trn.trnType === "COST_ADJUST"
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [showMore, setShowMore] = useState(false)
@@ -541,9 +543,12 @@ function EditTransactionForm({
           {/* Trade Value Summary */}
           {(() => {
             const currentType = trnType?.value || trn.trnType
-            const hasCashImpact = !["ADD", "REDUCE", "SPLIT"].includes(
-              currentType,
-            )
+            const hasCashImpact = ![
+              "ADD",
+              "REDUCE",
+              "SPLIT",
+              "COST_ADJUST",
+            ].includes(currentType)
             return (
               <div className="bg-gray-50 rounded-lg p-2 flex items-center justify-center">
                 <div className="text-center">
@@ -553,20 +558,26 @@ function EditTransactionForm({
                         ? "text-red-600"
                         : currentType === "ADD" || currentType === "REDUCE"
                           ? "text-blue-600"
-                          : "text-green-600"
+                          : currentType === "COST_ADJUST"
+                            ? "text-orange-600"
+                            : "text-green-600"
                     }`}
                   >
                     {currentType}
                   </div>
                   <div className="font-bold">
                     <NumericFormat
-                      value={watch("quantity") || trn.quantity}
+                      value={
+                        currentType === "COST_ADJUST"
+                          ? watch("tradeAmount") || trn.tradeAmount
+                          : watch("quantity") || trn.quantity
+                      }
                       displayType="text"
                       thousandSeparator
                       decimalScale={2}
                       fixedDecimalScale
                     />
-                    {!hasCashImpact && (
+                    {!hasCashImpact && currentType !== "COST_ADJUST" && (
                       <span className="text-gray-500 text-sm ml-1">
                         {t("trn.units", "units")}
                       </span>
@@ -674,7 +685,29 @@ function EditTransactionForm({
           </div>
 
           {/* Quantity, Price, Fees - key fields */}
-          {isCashTransaction ? (
+          {isCostAdjust ? (
+            <div>
+              <label className="block text-xs font-medium text-gray-600">
+                {t("costAdjust.adjustment")}
+              </label>
+              <Controller
+                name="tradeAmount"
+                control={control}
+                render={({ field }) => (
+                  <MathInput
+                    value={field.value}
+                    onChange={(value) => {
+                      field.onChange(value)
+                    }}
+                    className={inputClass}
+                  />
+                )}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                {t("costAdjust.edit.help")}
+              </p>
+            </div>
+          ) : isCashTransaction ? (
             <div>
               <label className="block text-xs font-medium text-gray-600">
                 {t("trn.amount.trade")}
@@ -719,8 +752,8 @@ function EditTransactionForm({
             </div>
           )}
 
-          {/* Settlement Account - important, always visible */}
-          {!isCashTransaction && (
+          {/* Settlement Account - important, always visible (except for no-cash-impact types) */}
+          {!isCashTransaction && !isCostAdjust && (
             <div>
               <label className="block text-xs font-medium text-gray-600">
                 {t("trn.settlement.account")}
@@ -1182,7 +1215,9 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                         ? "bg-green-100 text-green-800"
                         : trn.trnType === "SELL"
                           ? "bg-red-100 text-red-800"
-                          : "bg-blue-100 text-blue-800"
+                          : trn.trnType === "COST_ADJUST"
+                            ? "bg-orange-100 text-orange-800"
+                            : "bg-blue-100 text-blue-800"
                     }`}
                   >
                     {trn.trnType}
@@ -1376,7 +1411,9 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                     />
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-gray-600">
-                    {["ADD", "REDUCE", "SPLIT"].includes(trn.trnType)
+                    {["ADD", "REDUCE", "SPLIT", "COST_ADJUST"].includes(
+                      trn.trnType,
+                    )
                       ? "-"
                       : trn.cashAsset?.market?.code === "CASH"
                         ? trn.cashAsset.name || `${trn.cashAsset.code} Balance`

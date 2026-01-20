@@ -6,6 +6,7 @@ import {
   SetCashBalanceData,
   SetPriceData,
   CashTransferData,
+  CostAdjustData,
   Asset,
 } from "types/beancounter"
 import {
@@ -45,6 +46,7 @@ import TargetWeightDialog from "@components/features/holdings/TargetWeightDialog
 import SetCashBalanceDialog from "@components/features/holdings/SetCashBalanceDialog"
 import SetPriceDialog from "@components/features/holdings/SetPriceDialog"
 import CashTransferDialog from "@components/features/holdings/CashTransferDialog"
+import CostAdjustDialog from "@components/features/holdings/CostAdjustDialog"
 import TrnDropZone from "@components/ui/DropZone"
 
 function HoldingsPage(): React.ReactElement {
@@ -92,6 +94,9 @@ function HoldingsPage(): React.ReactElement {
   >(undefined)
   const [cashTransferData, setCashTransferData] = useState<
     CashTransferData | undefined
+  >(undefined)
+  const [costAdjustData, setCostAdjustData] = useState<
+    CostAdjustData | undefined
   >(undefined)
 
   // Fetch portfolios for cash transfer dialog
@@ -184,6 +189,60 @@ function HoldingsPage(): React.ReactElement {
     // Refresh holdings data after transfer
     router.replace(router.asPath)
   }, [router])
+
+  // Handle cost adjust from position row
+  const handleCostAdjust = useCallback((data: CostAdjustData) => {
+    setCostAdjustData(data)
+  }, [])
+
+  // Close cost adjust dialog
+  const handleCostAdjustClose = useCallback(() => {
+    setCostAdjustData(undefined)
+  }, [])
+
+  // Save cost adjustment via API
+  const handleCostAdjustSave = useCallback(
+    async (
+      assetId: string,
+      portfolioId: string,
+      date: string,
+      adjustmentAmount: number,
+    ): Promise<void> => {
+      // Get the trade currency from the costAdjustData
+      const tradeCurrency = costAdjustData?.currency?.code || ""
+
+      const response = await fetch("/api/trns", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          portfolioId,
+          data: [
+            {
+              trnType: "COST_ADJUST",
+              assetId,
+              tradeDate: date,
+              tradeAmount: adjustmentAmount,
+              tradeCurrency,
+              quantity: 0,
+              status: "SETTLED",
+            },
+          ],
+        }),
+      })
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(
+          errorData.message ||
+            errorData.detail ||
+            "Failed to create cost adjustment",
+        )
+      }
+      setCostAdjustData(undefined)
+      // Refresh holdings data
+      router.replace(router.asPath)
+    },
+    [router, costAdjustData],
+  )
 
   // Save price via API
   const handleSetPriceSave = useCallback(
@@ -365,6 +424,7 @@ function HoldingsPage(): React.ReactElement {
                           onSetPrice={handleSetPrice}
                           onSectorWeightings={handleSectorWeightings}
                           onCashTransfer={handleCashTransfer}
+                          onCostAdjust={handleCostAdjust}
                         />
                         <SubTotal
                           groupBy={groupKey}
@@ -470,6 +530,16 @@ function HoldingsPage(): React.ReactElement {
           onClose={handleCashTransferClose}
           sourceData={cashTransferData}
           portfolios={portfoliosData?.data || []}
+        />
+      )}
+      {costAdjustData && (
+        <CostAdjustDialog
+          asset={costAdjustData.asset}
+          portfolioId={costAdjustData.portfolioId}
+          currentCostBasis={costAdjustData.currentCostBasis}
+          currency={costAdjustData.currency}
+          onClose={handleCostAdjustClose}
+          onSave={handleCostAdjustSave}
         />
       )}
     </div>
