@@ -2,7 +2,12 @@ import React, { useState, useMemo, useCallback } from "react"
 import { useTranslation } from "next-i18next"
 import useSWR from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
+import {
+  parseShorthandAmount,
+  hasShorthandSuffix,
+} from "@utils/formatting/amountParser"
 import { ModelDto, ExecutionDto, ExecutionItemDto } from "types/rebalance"
+import { Broker } from "types/beancounter"
 
 interface InvestCashDialogProps {
   modalOpen: boolean
@@ -41,6 +46,9 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
   // Execution state - backend returns complete payload
   const [execution, setExecution] = useState<ExecutionDto | null>(null)
   const [itemEdits, setItemEdits] = useState<ItemEdits>({})
+  const [selectedBrokerId, setSelectedBrokerId] = useState<string | undefined>(
+    undefined,
+  )
   const [loading, setLoading] = useState(false)
   const [committing, setCommitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -50,6 +58,13 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
     modalOpen ? "/api/rebalance/models" : null,
     simpleFetcher("/api/rebalance/models"),
   )
+
+  // Fetch brokers
+  const { data: brokersData } = useSWR(
+    modalOpen ? "/api/brokers" : null,
+    simpleFetcher("/api/brokers"),
+  )
+  const brokers: Broker[] = brokersData?.data || []
 
   const models: ModelDto[] = modelsData?.data || []
   const modelsWithApprovedPlans = models.filter(
@@ -120,7 +135,7 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
           planId: selectedModel.currentPlanId,
           portfolioIds: [portfolioId],
           mode: "INVEST_CASH",
-          investmentAmount: parseFloat(amount),
+          investmentAmount: parseShorthandAmount(amount),
         }),
       })
 
@@ -184,6 +199,7 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
           body: JSON.stringify({
             portfolioId: portfolioId,
             transactionStatus: "PROPOSED",
+            brokerId: selectedBrokerId,
           }),
         },
       )
@@ -210,6 +226,7 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
     setSelectedModel(null)
     setExecution(null)
     setItemEdits({})
+    setSelectedBrokerId(undefined)
     setError(null)
     onClose()
   }
@@ -269,14 +286,24 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
                   {t("rebalance.investCash.amount", "Investment Amount")}
                 </label>
                 <input
-                  type="number"
-                  min="0"
-                  step="100"
+                  type="text"
+                  inputMode="decimal"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  placeholder="10000"
+                  placeholder="10k"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
                 />
+                <p className="mt-1 text-xs text-gray-500">
+                  {t(
+                    "rebalance.investCash.amountHint",
+                    "Use h=100, k=1000, m=1000000 (e.g., 4k = 4,000)",
+                  )}
+                  {amount && hasShorthandSuffix(amount) && (
+                    <span className="ml-2 text-blue-600 font-medium">
+                      = {parseShorthandAmount(amount).toLocaleString()}
+                    </span>
+                  )}
+                </p>
               </div>
 
               <div>
@@ -343,11 +370,14 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
                 disabled={
                   !selectedModel ||
                   !amount ||
-                  parseFloat(amount) <= 0 ||
+                  parseShorthandAmount(amount) <= 0 ||
                   loading
                 }
                 className={`px-4 py-2 rounded text-white transition-colors ${
-                  selectedModel && amount && parseFloat(amount) > 0 && !loading
+                  selectedModel &&
+                  amount &&
+                  parseShorthandAmount(amount) > 0 &&
+                  !loading
                     ? "bg-blue-500 hover:bg-blue-600"
                     : "bg-gray-400 cursor-not-allowed"
                 }`}
@@ -495,6 +525,39 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
                     )}
                   </div>
                 )}
+              </div>
+
+              {/* Broker Selection */}
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    {t("trn.broker", "Broker")}
+                  </label>
+                  <a
+                    href="/brokers"
+                    target="_blank"
+                    className="text-xs text-emerald-600 hover:text-emerald-700"
+                  >
+                    {t("brokers.manage", "Manage")}
+                  </a>
+                </div>
+                <select
+                  value={selectedBrokerId || ""}
+                  onChange={(e) =>
+                    setSelectedBrokerId(e.target.value || undefined)
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                >
+                  <option value="">
+                    {t("trn.broker.none", "-- No broker --")}
+                  </option>
+                  {brokers.map((broker) => (
+                    <option key={broker.id} value={broker.id}>
+                      {broker.name}
+                      {broker.accountNumber ? ` (${broker.accountNumber})` : ""}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="text-sm text-gray-500 flex items-start gap-2">

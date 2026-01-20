@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react"
+import React, { useEffect, useState } from "react"
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { useTranslation } from "next-i18next"
@@ -6,7 +6,7 @@ import { useRouter } from "next/router"
 import useSwr, { mutate } from "swr"
 import { fetcher, simpleFetcher } from "@utils/api/fetchHelper"
 import { rootLoader } from "@components/ui/PageLoader"
-import { Asset, AssetResponse, Transaction, TrnStatus } from "types/beancounter"
+import { Broker, Transaction, TrnStatus } from "types/beancounter"
 import Head from "next/head"
 import { useUser } from "@auth0/nextjs-auth0/client"
 
@@ -15,7 +15,7 @@ interface ProposedTransaction extends Transaction {
   editedFees?: number
   editedStatus?: TrnStatus
   editedTradeDate?: string
-  editedCashAssetId?: string
+  editedBrokerId?: string
 }
 
 // Get today's date in YYYY-MM-DD format
@@ -36,23 +36,25 @@ export default function ProposedTransactions(): React.JSX.Element {
     data: Transaction[]
   }>(proposedKey, fetcher, { refreshInterval: 0 })
 
-  // Fetch settlement accounts (ACCOUNT category assets)
-  const { data: accountsData } = useSwr<AssetResponse>(
-    user ? "/api/assets?category=ACCOUNT" : null,
-    simpleFetcher,
+  // Fetch brokers for dropdown
+  const { data: brokersData } = useSwr(
+    user ? "/api/brokers" : null,
+    simpleFetcher("/api/brokers"),
   )
-
-  // Convert accounts to array for the selector
-  const settlementAccounts = useMemo((): Asset[] => {
-    if (!accountsData?.data) return []
-    return Object.values(accountsData.data)
-  }, [accountsData])
+  const brokers: Broker[] = brokersData?.data || []
 
   useEffect(() => {
     if (proposedData?.data) {
       const sorted = [...proposedData.data].sort((a, b) => {
-        // Sort by portfolio code first
-        const portfolioCompare = a.portfolio.code.localeCompare(b.portfolio.code)
+        // Sort by broker name first
+        const brokerA = a.broker?.name || ""
+        const brokerB = b.broker?.name || ""
+        const brokerCompare = brokerA.localeCompare(brokerB)
+        if (brokerCompare !== 0) return brokerCompare
+        // Then by portfolio code
+        const portfolioCompare = a.portfolio.code.localeCompare(
+          b.portfolio.code,
+        )
         if (portfolioCompare !== 0) return portfolioCompare
         // Then by asset code
         return a.asset.code.localeCompare(b.asset.code)
@@ -64,7 +66,7 @@ export default function ProposedTransactions(): React.JSX.Element {
           editedFees: trn.fees,
           editedStatus: trn.status,
           editedTradeDate: trn.tradeDate,
-          editedCashAssetId: trn.cashAsset?.id,
+          editedBrokerId: trn.broker?.id,
         })),
       )
     }
@@ -104,12 +106,10 @@ export default function ProposedTransactions(): React.JSX.Element {
     )
   }
 
-  const handleCashAssetChange = (id: string, value: string): void => {
+  const handleBrokerChange = (id: string, value: string): void => {
     setTransactions((prev) =>
       prev.map((trn) =>
-        trn.id === id
-          ? { ...trn, editedCashAssetId: value || undefined }
-          : trn,
+        trn.id === id ? { ...trn, editedBrokerId: value || undefined } : trn,
       ),
     )
   }
@@ -142,7 +142,7 @@ export default function ProposedTransactions(): React.JSX.Element {
     trn.editedFees !== trn.fees ||
     trn.editedStatus !== trn.status ||
     trn.editedTradeDate !== trn.tradeDate ||
-    trn.editedCashAssetId !== trn.cashAsset?.id
+    trn.editedBrokerId !== trn.broker?.id
 
   const saveTransaction = async (
     trn: ProposedTransaction,
@@ -165,7 +165,7 @@ export default function ProposedTransactions(): React.JSX.Element {
             status: trn.editedStatus,
             tradeDate: trn.editedTradeDate,
             tradeAmount: (trn.editedPrice || trn.price) * trn.quantity,
-            cashAssetId: trn.editedCashAssetId,
+            brokerId: trn.editedBrokerId,
           }),
         },
       )
@@ -262,6 +262,9 @@ export default function ProposedTransactions(): React.JSX.Element {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-2 py-2 text-left font-medium text-gray-500 uppercase">
+                      Broker
+                    </th>
+                    <th className="px-2 py-2 text-left font-medium text-gray-500 uppercase">
                       Portfolio
                     </th>
                     <th className="px-2 py-2 text-left font-medium text-gray-500 uppercase">
@@ -288,9 +291,6 @@ export default function ProposedTransactions(): React.JSX.Element {
                     <th className="px-2 py-2 text-left font-medium text-gray-500 uppercase">
                       Date
                     </th>
-                    <th className="px-2 py-2 text-left font-medium text-gray-500 uppercase">
-                      Settlement
-                    </th>
                     <th className="px-2 py-2 text-center font-medium text-gray-500 uppercase">
                       Actions
                     </th>
@@ -299,6 +299,22 @@ export default function ProposedTransactions(): React.JSX.Element {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {transactions.map((trn) => (
                     <tr key={trn.id} className="hover:bg-gray-50">
+                      <td className="px-2 py-1.5 whitespace-nowrap">
+                        <select
+                          value={trn.editedBrokerId || ""}
+                          onChange={(e) =>
+                            handleBrokerChange(trn.id, e.target.value)
+                          }
+                          className="px-1 py-0.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 max-w-[100px]"
+                        >
+                          <option value="">--</option>
+                          {brokers.map((broker) => (
+                            <option key={broker.id} value={broker.id}>
+                              {broker.name}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
                       <td className="px-2 py-1.5 whitespace-nowrap">
                         <span className="text-gray-600">
                           {trn.portfolio.code}
@@ -382,22 +398,6 @@ export default function ProposedTransactions(): React.JSX.Element {
                           }
                           className="px-1 py-0.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                         />
-                      </td>
-                      <td className="px-2 py-1.5 whitespace-nowrap">
-                        <select
-                          value={trn.editedCashAssetId || ""}
-                          onChange={(e) =>
-                            handleCashAssetChange(trn.id, e.target.value)
-                          }
-                          className="px-1 py-0.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 max-w-[120px]"
-                        >
-                          <option value="">Default</option>
-                          {settlementAccounts.map((account) => (
-                            <option key={account.id} value={account.id}>
-                              {account.name || account.code}
-                            </option>
-                          ))}
-                        </select>
                       </td>
                       <td className="px-2 py-1.5 whitespace-nowrap text-center">
                         <button

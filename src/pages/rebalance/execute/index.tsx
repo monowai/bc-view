@@ -14,7 +14,7 @@ import {
   ExecutionItemDto,
   ExecutionItemUpdate,
 } from "types/rebalance"
-import { Asset, AssetResponse } from "types/beancounter"
+import { Asset, AssetResponse, Broker } from "types/beancounter"
 
 function ExecuteRebalancePage(): React.ReactElement {
   const { t } = useTranslation("common")
@@ -53,11 +53,23 @@ function ExecuteRebalancePage(): React.ReactElement {
     string | undefined
   >(undefined)
 
+  // Broker state
+  const [selectedBrokerId, setSelectedBrokerId] = useState<string | undefined>(
+    undefined,
+  )
+
   // Fetch settlement accounts (ACCOUNT category assets)
   const { data: accountsData } = useSwr<AssetResponse>(
     "/api/assets?category=ACCOUNT",
     simpleFetcher,
   )
+
+  // Fetch brokers for dropdown
+  const { data: brokersData } = useSwr(
+    "/api/brokers",
+    simpleFetcher("/api/brokers"),
+  )
+  const brokers: Broker[] = brokersData?.data || []
 
   // Convert accounts to array for the selector
   const settlementAccounts = useMemo((): Asset[] => {
@@ -337,6 +349,7 @@ function ExecuteRebalancePage(): React.ReactElement {
             portfolioId,
             transactionStatus: "PROPOSED",
             cashAssetId: selectedSettlementAccount,
+            brokerId: selectedBrokerId,
           }),
         },
       )
@@ -363,7 +376,7 @@ function ExecuteRebalancePage(): React.ReactElement {
     } finally {
       setCommitting(false)
     }
-  }, [execution, selectedSettlementAccount, router])
+  }, [execution, selectedSettlementAccount, selectedBrokerId, router])
 
   // Calculate display items with local overrides applied
   // Default: Cash stays at current weight, other assets scale based on PLAN target weights
@@ -954,46 +967,90 @@ function ExecuteRebalancePage(): React.ReactElement {
             />
           </div>
 
-          {/* Settlement Account Selection */}
-          {settlementAccounts.length > 0 && (
-            <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6 mb-6">
-              <h3 className="text-md font-medium text-gray-900 mb-3">
-                {t(
-                  "rebalance.execute.settlementAccount",
-                  "Settlement Account",
-                )}
-              </h3>
-              <p className="text-sm text-gray-500 mb-4">
-                {t(
-                  "rebalance.execute.settlementAccountDescription",
-                  "Select the brokerage account to debit/credit for these transactions",
-                )}
-              </p>
-              <select
-                value={selectedSettlementAccount || ""}
-                onChange={(e) =>
-                  setSelectedSettlementAccount(e.target.value || undefined)
-                }
-                className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500"
-              >
-                <option value="">
+          {/* Broker and Settlement Account Selection */}
+          <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Broker Selection */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-md font-medium text-gray-900">
+                    {t("trn.broker", "Broker")}
+                  </h3>
+                  <a
+                    href="/brokers"
+                    target="_blank"
+                    className="text-xs text-emerald-600 hover:text-emerald-700"
+                  >
+                    {t("brokers.manage", "Manage")}
+                  </a>
+                </div>
+                <p className="text-sm text-gray-500 mb-4">
                   {t(
-                    "rebalance.execute.noSettlement",
-                    "No settlement account (use default)",
+                    "rebalance.execute.brokerDescription",
+                    "Select the broker for all proposed transactions",
                   )}
-                </option>
-                {settlementAccounts.map((account) => (
-                  <option key={account.id} value={account.id}>
-                    {account.name || account.code} (
-                    {account.priceSymbol ||
-                      account.market?.currency?.code ||
-                      ""}
-                    )
+                </p>
+                <select
+                  value={selectedBrokerId || ""}
+                  onChange={(e) =>
+                    setSelectedBrokerId(e.target.value || undefined)
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500"
+                >
+                  <option value="">
+                    {t("trn.broker.none", "-- No broker --")}
                   </option>
-                ))}
-              </select>
+                  {brokers.map((broker) => (
+                    <option key={broker.id} value={broker.id}>
+                      {broker.name}
+                      {broker.accountNumber ? ` (${broker.accountNumber})` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Settlement Account Selection */}
+              {settlementAccounts.length > 0 && (
+                <div>
+                  <h3 className="text-md font-medium text-gray-900 mb-3">
+                    {t(
+                      "rebalance.execute.settlementAccount",
+                      "Settlement Account",
+                    )}
+                  </h3>
+                  <p className="text-sm text-gray-500 mb-4">
+                    {t(
+                      "rebalance.execute.settlementAccountDescription",
+                      "Select the brokerage account to debit/credit for these transactions",
+                    )}
+                  </p>
+                  <select
+                    value={selectedSettlementAccount || ""}
+                    onChange={(e) =>
+                      setSelectedSettlementAccount(e.target.value || undefined)
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500"
+                  >
+                    <option value="">
+                      {t(
+                        "rebalance.execute.noSettlement",
+                        "No settlement account (use default)",
+                      )}
+                    </option>
+                    {settlementAccounts.map((account) => (
+                      <option key={account.id} value={account.id}>
+                        {account.name || account.code} (
+                        {account.priceSymbol ||
+                          account.market?.currency?.code ||
+                          ""}
+                        )
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
-          )}
+          </div>
 
           {/* Navigation */}
           <div className="flex justify-between">
