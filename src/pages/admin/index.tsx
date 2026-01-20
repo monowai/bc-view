@@ -49,6 +49,15 @@ export default withPageAuthRequired(function AdminPage(): React.ReactElement {
 
   const adminCards: AdminCard[] = [
     {
+      title: t("admin.cards.services.title", "Service Status"),
+      description: t(
+        "admin.cards.services.description",
+        "Monitor health and version of all backend services.",
+      ),
+      href: "/admin/services",
+      icon: "fa-server",
+    },
+    {
       title: t("admin.cards.classifications.title", "Asset Classifications"),
       description: t(
         "admin.cards.classifications.description",

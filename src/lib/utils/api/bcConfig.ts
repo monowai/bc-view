@@ -2,20 +2,40 @@ export function getDataUrl(path: string = ""): string {
   return `${process.env.BC_DATA}${path}`
 }
 
+export function getDataActuatorUrl(path: string = ""): string {
+  return `${process.env.BC_DATA_ACTUATOR || process.env.BC_DATA}${path}`
+}
+
 export function getPositionsUrl(path: string = ""): string {
   return `${process.env.BC_POSITION}${path}`
+}
+
+export function getPositionActuatorUrl(path: string = ""): string {
+  return `${process.env.BC_POSITION_ACTUATOR || process.env.BC_POSITION}${path}`
 }
 
 export function getEventUrl(path: string = ""): string {
   return `${process.env.BC_EVENT}${path}`
 }
 
+export function getEventActuatorUrl(path: string = ""): string {
+  return `${process.env.BC_EVENT_ACTUATOR || process.env.BC_EVENT}${path}`
+}
+
 export function getRetireUrl(path: string = ""): string {
   return `${process.env.BC_RETIRE}${path}`
 }
 
+export function getRetireActuatorUrl(path: string = ""): string {
+  return `${process.env.BC_RETIRE_ACTUATOR || process.env.BC_RETIRE}${path}`
+}
+
 export function getRebalanceUrl(path: string = ""): string {
   return `${process.env.BC_REBALANCE}${path}`
+}
+
+export function getRebalanceActuatorUrl(path: string = ""): string {
+  return `${process.env.BC_REBALANCE_ACTUATOR || process.env.BC_REBALANCE}${path}`
 }
 
 export function getTrnTopic(): string {
