@@ -180,6 +180,7 @@ export interface Portfolio {
   id: string
   code: string
   name: string
+  active?: boolean // Defaults to true if not specified
   currency: Currency
   base: Currency
   owner?: SystemUser
@@ -203,6 +204,7 @@ export interface PortfolioRequest {
   name: string
   currency: string
   base: string
+  active?: boolean
 }
 
 export interface PortfolioRequests {
@@ -219,6 +221,7 @@ export interface PortfolioInput {
   name: string
   currency: CurrencyOption
   base: CurrencyOption
+  active?: boolean
 }
 
 export interface CurrencyOption {

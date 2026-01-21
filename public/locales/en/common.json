@@ -112,6 +112,8 @@
   "portfolio.currency.reporting": "Portfolio Reporting Currency",
   "portfolio.currency.base.label": "Cost Currency",
   "portfolio.delete.trns": "Delete existing transactions",
+  "portfolio.active": "Active",
+  "portfolio.active.hint": "Inactive portfolios are hidden from lists and aggregations",
   "portfolios.error.retrieve": "Error retrieving portfolios",
   "portfolios.error.empty": "You have no portfolios",
   "trade.market": "Trade",

@@ -32,6 +32,7 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
       name: portfolio.name,
       currency: portfolio.currency.value,
       base: portfolio.base.value,
+      active: portfolio.active,
     }
   }
 
@@ -190,7 +191,24 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
             />
           )}
         />
-        <div className="mt-4"></div>
+        <div className="mt-4">
+          <label className="flex items-center cursor-pointer">
+            <input
+              {...register("active")}
+              type="checkbox"
+              className="form-checkbox h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+              defaultChecked={
+                isNewPortfolio ? true : portfolio.active !== false
+              }
+            />
+            <span className="ml-2 text-gray-700 text-sm font-bold">
+              {t("portfolio.active")}
+            </span>
+          </label>
+          <p className="text-gray-500 text-xs mt-1 ml-7">
+            {t("portfolio.active.hint")}
+          </p>
+        </div>
         <div className="flex items-center justify-between mt-4">
           <button
             type="submit"
