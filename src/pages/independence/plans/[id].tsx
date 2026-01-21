@@ -796,6 +796,8 @@ function PlanView(): React.ReactElement {
           expensesCurrency: plan.expensesCurrency,
           workingIncomeMonthly: plan.workingIncomeMonthly,
           workingExpensesMonthly: plan.workingExpensesMonthly,
+          taxesMonthly: plan.taxesMonthly,
+          bonusMonthly: plan.bonusMonthly,
           investmentAllocationPercent: plan.investmentAllocationPercent,
           ...updates,
         }

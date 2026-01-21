@@ -501,7 +501,13 @@ function EditTransactionForm({
         }, 0)
       }
     }
-  }, [watchedCashCurrency, watchedSettlementAccount, currentTrnType, allCashBalances, setValue])
+  }, [
+    watchedCashCurrency,
+    watchedSettlementAccount,
+    currentTrnType,
+    allCashBalances,
+    setValue,
+  ])
 
   const handleCopy = (): void => {
     const formData = getValues()
@@ -1321,7 +1327,8 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
     }
 
     // Use FxEditModal for FX transactions (FX, FX_BUY, FX_SELL)
-    const isFxType = transaction.trnType === "FX" || transaction.trnType.startsWith("FX_")
+    const isFxType =
+      transaction.trnType === "FX" || transaction.trnType.startsWith("FX_")
 
     return editModalOpen ? (
       isFxType ? (

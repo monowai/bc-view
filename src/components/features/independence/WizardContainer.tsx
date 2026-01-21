@@ -200,6 +200,8 @@ export default function WizardContainer({
         otherIncomeMonthly: formData.otherIncomeMonthly,
         workingIncomeMonthly: formData.workingIncomeMonthly,
         workingExpensesMonthly: formData.workingExpensesMonthly,
+        taxesMonthly: formData.taxesMonthly,
+        bonusMonthly: formData.bonusMonthly,
         investmentAllocationPercent: toDecimal(
           formData.investmentAllocationPercent,
         ),
