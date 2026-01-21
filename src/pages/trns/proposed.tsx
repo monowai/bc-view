@@ -127,8 +127,9 @@ export default function ProposedTransactions(): React.JSX.Element {
         return
       }
 
-      // Remove from local state
+      // Remove from local state and update badge count
       setTransactions((prev) => prev.filter((t) => t.id !== id))
+      mutate("/api/trns/proposed/count")
     } catch (err) {
       console.error("Error deleting transaction:", err)
       setError(
@@ -189,8 +190,9 @@ export default function ProposedTransactions(): React.JSX.Element {
     const results = await Promise.all(editedTransactions.map(saveTransaction))
 
     if (results.every((r) => r)) {
-      // Refresh the data
+      // Refresh the data and badge count
       mutate(proposedKey)
+      mutate("/api/trns/proposed/count")
     } else {
       setError("Some transactions failed to save")
     }

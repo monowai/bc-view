@@ -318,28 +318,73 @@ function EditTransactionForm({
     return asset.priceSymbol || asset.market?.currency?.code || ""
   }
 
-  // Filter settlement accounts by trade currency
+  // Current trade currency for default selection
   const currentTradeCurrency = tradeCurrency?.value || trn.tradeCurrency.code
 
-  // Filtered bank accounts matching trade currency
-  const filteredBankAccounts = useMemo(() => {
+  // All bank accounts - show all currencies, user can choose cross-currency settlement
+  const allBankAccounts = useMemo(() => {
     const accounts = bankAccountsData?.data
       ? Object.values(bankAccountsData.data)
       : []
-    return (accounts as any[]).filter(
-      (asset) => getAssetCurrency(asset) === currentTradeCurrency,
-    )
+    // Sort: matching currency first, then alphabetically
+    return (accounts as any[]).sort((a, b) => {
+      const aCurrency = getAssetCurrency(a)
+      const bCurrency = getAssetCurrency(b)
+      const aMatches = aCurrency === currentTradeCurrency ? 0 : 1
+      const bMatches = bCurrency === currentTradeCurrency ? 0 : 1
+      if (aMatches !== bMatches) return aMatches - bMatches
+      return (a.name || a.code).localeCompare(b.name || b.code)
+    })
   }, [bankAccountsData, currentTradeCurrency])
 
-  // Filtered cash assets matching trade currency (these are the generic balances)
-  const filteredCashAssets = useMemo(() => {
-    const assets = cashAssetsData?.data
+  // Generate cash balance options from all available currencies
+  const allCashBalances = useMemo(() => {
+    // Start with any existing cash assets from the backend
+    const existingAssets = cashAssetsData?.data
       ? Object.values(cashAssetsData.data)
       : []
-    return (assets as any[]).filter(
+
+    // Get all currency codes from the currencies endpoint
+    const allCurrencies: string[] = ccyData?.data
+      ? ccyData.data.map((c: any) => c.code)
+      : []
+
+    // Build a map of existing cash assets by currency code
+    const existingByCurrency = new Map<string, any>()
+    ;(existingAssets as any[]).forEach((asset: any) => {
+      existingByCurrency.set(asset.code, asset)
+    })
+
+    // Create cash balance entries for all currencies
+    const balances = allCurrencies.map((code: string) => {
+      const existing = existingByCurrency.get(code)
+      if (existing) {
+        return existing
+      }
+      // Create synthetic cash balance for this currency
+      return {
+        id: "", // Empty - backend will create/find generic balance
+        code,
+        name: code,
+        market: { code: "CASH" },
+      }
+    })
+
+    // Sort: matching currency first, then alphabetically
+    return balances.sort((a: any, b: any) => {
+      const aMatches = a.code === currentTradeCurrency ? 0 : 1
+      const bMatches = b.code === currentTradeCurrency ? 0 : 1
+      if (aMatches !== bMatches) return aMatches - bMatches
+      return a.code.localeCompare(b.code)
+    })
+  }, [cashAssetsData, ccyData, currentTradeCurrency])
+
+  // Filtered versions for default selection (matching currency only)
+  const filteredCashAssets = useMemo(() => {
+    return allCashBalances.filter(
       (asset: any) => asset.code === currentTradeCurrency,
     )
-  }, [cashAssetsData, currentTradeCurrency])
+  }, [allCashBalances, currentTradeCurrency])
 
   // Find the default cash balance asset for the current currency
   const defaultCashAsset = useMemo((): SettlementAccountOption => {
@@ -361,21 +406,10 @@ function EditTransactionForm({
     }
   }, [filteredCashAssets, currentTradeCurrency])
 
-  // Cash assets for dropdown - always include a {currency} Balance option
+  // Cash assets for dropdown - all currency balances are already included
   const cashAssetsForDropdown = useMemo(() => {
-    if (filteredCashAssets.length > 0) {
-      return filteredCashAssets
-    }
-    // Create a synthetic cash asset for the dropdown when none exists
-    return [
-      {
-        id: "",
-        code: currentTradeCurrency,
-        name: currentTradeCurrency,
-        market: { code: "CASH" },
-      },
-    ]
-  }, [filteredCashAssets, currentTradeCurrency])
+    return allCashBalances
+  }, [allCashBalances])
 
   // Auto-set default settlement account when trade currency changes
   useEffect(() => {
@@ -388,6 +422,48 @@ function EditTransactionForm({
       setValue("settlementAccount", defaultCashAsset)
     }
   }, [currentTradeCurrency, defaultCashAsset, setValue, watch])
+
+  // Sync cashCurrency when settlementAccount changes (settlement account is the source of truth)
+  const watchedSettlementAccount = watch("settlementAccount")
+  useEffect(() => {
+    if (watchedSettlementAccount?.currency) {
+      const currentCashCcy = watch("cashCurrency")
+      if (currentCashCcy?.value !== watchedSettlementAccount.currency) {
+        setValue(
+          "cashCurrency",
+          {
+            value: watchedSettlementAccount.currency,
+            label: watchedSettlementAccount.currency,
+          },
+          { shouldDirty: true },
+        )
+      }
+    }
+  }, [watchedSettlementAccount, setValue, watch])
+
+  // When cashCurrency changes manually, auto-select the matching generic Cash Balance
+  const watchedCashCurrency = watch("cashCurrency")
+  useEffect(() => {
+    // Only trigger if cashCurrency changed and differs from current settlement
+    if (
+      watchedCashCurrency?.value &&
+      watchedSettlementAccount?.currency !== watchedCashCurrency.value
+    ) {
+      // Find matching cash balance for this currency
+      const matchingCashBalance = allCashBalances.find(
+        (asset: any) => asset.code === watchedCashCurrency.value,
+      )
+      if (matchingCashBalance) {
+        const newSettlement: SettlementAccountOption = {
+          value: (matchingCashBalance as any).id || "",
+          label: `${(matchingCashBalance as any).name || watchedCashCurrency.value} Balance`,
+          currency: watchedCashCurrency.value,
+          market: "CASH",
+        }
+        setValue("settlementAccount", newSettlement, { shouldDirty: true })
+      }
+    }
+  }, [watchedCashCurrency, watchedSettlementAccount, allCashBalances, setValue])
 
   const handleCopy = (): void => {
     const formData = getValues()
@@ -459,6 +535,9 @@ function EditTransactionForm({
         onClose()
       } else {
         // Use PATCH for all non-FX transactions (including portfolio moves)
+        // Derive cashCurrency from settlement account selection, not the separate field
+        const settlementCurrency =
+          data.settlementAccount?.currency || data.cashCurrency.value
         const payload: TrnUpdatePayload = {
           trnType: data.type.value,
           assetId: trn.asset.id,
@@ -467,7 +546,7 @@ function EditTransactionForm({
           price: data.price,
           tradeCurrency: data.tradeCurrency.value,
           tradeAmount: data.tradeAmount,
-          cashCurrency: data.cashCurrency.value,
+          cashCurrency: settlementCurrency,
           cashAssetId: data.settlementAccount?.value || undefined,
           cashAmount: data.cashAmount,
           fees: data.fees,
@@ -793,9 +872,10 @@ function EditTransactionForm({
                 name="settlementAccount"
                 control={control}
                 accounts={[]}
-                bankAccounts={filteredBankAccounts as any[]}
+                bankAccounts={allBankAccounts as any[]}
                 cashAssets={cashAssetsForDropdown as any[]}
                 trnType={trnType?.value || trn.trnType}
+                tradeCurrency={currentTradeCurrency}
                 defaultValue={defaultCashAsset}
               />
             </div>

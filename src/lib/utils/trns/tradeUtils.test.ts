@@ -191,6 +191,7 @@ describe("TradeUtils", () => {
       type: "BUY",
       market: "Market1",
       asset: "Asset1",
+      cashAccount: "", // No settlement account specified
       cashCurrency: "USD", // Default to trade currency
       tradeDate: "2023-01-01",
       quantity: 10,
