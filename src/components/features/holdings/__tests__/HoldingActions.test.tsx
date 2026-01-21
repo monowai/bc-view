@@ -74,6 +74,11 @@ jest.mock("@components/features/rebalance/execution/InvestCashDialog", () => {
   }
 })
 
+// Mock useIsAdmin to prevent async state updates
+jest.mock("@hooks/useIsAdmin", () => ({
+  useIsAdmin: () => ({ isAdmin: false, isLoading: false }),
+}))
+
 // Mock HoldingContract data
 const mockHoldingResults: HoldingContract = {
   portfolio: {
