@@ -1,0 +1,5 @@
+Market,Code,Name,Type,Date,Quantity,Price,Brokerage,Currency,Owner,Comments
+US,AAPL,Apple Inc,BUY,2024-01-15,10,185.50,9.95,USD,E2E-TEST,Test purchase
+US,MSFT,Microsoft Corp,BUY,2024-01-15,5,380.00,9.95,USD,E2E-TEST,Test purchase
+US,JNJ,Johnson & Johnson,BUY,2024-01-16,20,155.00,9.95,USD,E2E-TEST,Test purchase
+US,GOOGL,Alphabet Inc,BUY,2024-01-17,3,142.50,9.95,USD,E2E-TEST,Tech allocation
