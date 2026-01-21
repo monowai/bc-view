@@ -65,6 +65,13 @@ SENTRY.md
 .jest-cache/
 reports/
 
+# Playwright E2E testing
+e2e/.auth/*
+!e2e/.auth/.gitkeep
+playwright-report/
+test-results/
+.env.e2e
+
 # Claude Code & AI tools
 .claude/
 

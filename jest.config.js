@@ -25,6 +25,7 @@ const customJestConfig = {
   },
   testEnvironment: "jest-environment-jsdom",
   testPathIgnorePatterns: [
+    "<rootDir>/e2e/",
     "<rootDir>/src/__fixtures__/fixtures.tsx",
     "<rootDir>/src/.*/__tests__/testSetup.ts",
     "<rootDir>/src/.*/__tests__/testHelpers.tsx",
