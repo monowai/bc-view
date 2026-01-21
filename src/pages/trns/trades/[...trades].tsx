@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react"
+import React, { useState, useEffect, useMemo, useRef } from "react"
 import { NumericFormat } from "react-number-format"
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
@@ -33,6 +33,7 @@ import TradeTypeController from "@components/features/transactions/TradeTypeCont
 import SettlementAccountSelect, {
   SettlementAccountOption,
 } from "@components/features/transactions/SettlementAccountSelect"
+import FxEditModal from "@components/features/transactions/FxEditModal"
 import MathInput from "@components/ui/MathInput"
 import DateInput from "@components/ui/DateInput"
 
@@ -412,24 +413,47 @@ function EditTransactionForm({
     return allCashBalances
   }, [allCashBalances])
 
+  // Ref to prevent circular updates between settlement and cashCurrency effects
+  const isUpdatingSettlementRef = useRef(false)
+
   // Auto-set default settlement account when trade currency changes
+  // Skip for FX transactions where settlement currency intentionally differs from trade currency
+  const currentTrnType = watch("type")?.value
   useEffect(() => {
+    // For FX transactions, the settlement (sell) currency is different from trade (buy) currency
+    // Don't auto-override the settlement account
+    if (currentTrnType === "FX_BUY" || currentTrnType === "FX_SELL") {
+      return
+    }
+
     const currentSettlement = watch("settlementAccount")
     // Only set default if no settlement is selected or if currency changed
     if (
       !currentSettlement?.value ||
       currentSettlement.currency !== currentTradeCurrency
     ) {
+      isUpdatingSettlementRef.current = true
       setValue("settlementAccount", defaultCashAsset)
+      // Reset flag after a tick to allow subsequent user changes
+      setTimeout(() => {
+        isUpdatingSettlementRef.current = false
+      }, 0)
     }
-  }, [currentTradeCurrency, defaultCashAsset, setValue, watch])
+  }, [currentTradeCurrency, currentTrnType, defaultCashAsset, setValue, watch])
 
   // Sync cashCurrency when settlementAccount changes (settlement account is the source of truth)
+  // Skip for FX transactions where these intentionally differ
   const watchedSettlementAccount = watch("settlementAccount")
   useEffect(() => {
+    // Skip if we're in the middle of a programmatic update
+    if (isUpdatingSettlementRef.current) return
+    // Skip for FX transactions - settlement and trade currencies are intentionally different
+    if (currentTrnType === "FX_BUY" || currentTrnType === "FX_SELL") return
+
     if (watchedSettlementAccount?.currency) {
       const currentCashCcy = watch("cashCurrency")
       if (currentCashCcy?.value !== watchedSettlementAccount.currency) {
+        isUpdatingSettlementRef.current = true
         setValue(
           "cashCurrency",
           {
@@ -438,13 +462,22 @@ function EditTransactionForm({
           },
           { shouldDirty: true },
         )
+        setTimeout(() => {
+          isUpdatingSettlementRef.current = false
+        }, 0)
       }
     }
-  }, [watchedSettlementAccount, setValue, watch])
+  }, [watchedSettlementAccount, currentTrnType, setValue, watch])
 
   // When cashCurrency changes manually, auto-select the matching generic Cash Balance
+  // Skip for FX transactions where these intentionally differ
   const watchedCashCurrency = watch("cashCurrency")
   useEffect(() => {
+    // Skip if we're in the middle of a programmatic update
+    if (isUpdatingSettlementRef.current) return
+    // Skip for FX transactions - settlement and trade currencies are intentionally different
+    if (currentTrnType === "FX_BUY" || currentTrnType === "FX_SELL") return
+
     // Only trigger if cashCurrency changed and differs from current settlement
     if (
       watchedCashCurrency?.value &&
@@ -461,10 +494,14 @@ function EditTransactionForm({
           currency: watchedCashCurrency.value,
           market: "CASH",
         }
+        isUpdatingSettlementRef.current = true
         setValue("settlementAccount", newSettlement, { shouldDirty: true })
+        setTimeout(() => {
+          isUpdatingSettlementRef.current = false
+        }, 0)
       }
     }
-  }, [watchedCashCurrency, watchedSettlementAccount, allCashBalances, setValue])
+  }, [watchedCashCurrency, watchedSettlementAccount, currentTrnType, allCashBalances, setValue])
 
   const handleCopy = (): void => {
     const formData = getValues()
@@ -1283,12 +1320,23 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
       }
     }
 
+    // Use FxEditModal for FX transactions (FX, FX_BUY, FX_SELL)
+    const isFxType = transaction.trnType === "FX" || transaction.trnType.startsWith("FX_")
+
     return editModalOpen ? (
-      <EditTransactionForm
-        trn={transaction}
-        onClose={handleClose}
-        onDelete={handleDelete}
-      />
+      isFxType ? (
+        <FxEditModal
+          trn={transaction}
+          onClose={handleClose}
+          onDelete={handleDelete}
+        />
+      ) : (
+        <EditTransactionForm
+          trn={transaction}
+          onClose={handleClose}
+          onDelete={handleDelete}
+        />
+      )
     ) : (
       <></>
     )

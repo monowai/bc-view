@@ -223,18 +223,33 @@ export const getCashRow = (data: TradeFormData): string => {
 
   // For FX trades, the format is different:
   // - Type: FX_BUY
-  // - Code: Buy currency (cashCurrency)
-  // - CashCurrency: Sell currency (tradeCurrency)
+  // - Code: Buy asset code (for bank accounts, just the account code like "SCB-USD")
+  // - CashAccount: Sell asset code when selling from a bank account (e.g., "SCB-SGD")
+  // - CashCurrency: Sell currency code (e.g., "SGD")
   // - Quantity: Buy amount (cashAmount)
-  // - TradeCurrency: Buy currency
+  // - TradeCurrency: Buy currency code (e.g., "USD", not the asset code)
   // - CashAmount: Negative sell amount
   if (data.type.value === "FX") {
     const sellAmount = data.quantity ?? 0
     const buyAmount = data.cashAmount ?? 0
-    const sellCurrency = tradeImport.tradeCurrency
-    const buyCurrency = tradeImport.cashCurrency
+    // Use the actual currency code from tradeCurrency, not the asset code
+    // For currencies, tradeCurrency.currency equals tradeCurrency.value
+    // For bank accounts, tradeCurrency.currency is the account's currency (e.g., "USD")
+    const sellCurrency = data.tradeCurrency?.currency || tradeImport.tradeCurrency
+    // buyAssetCode is the asset code for the Code field (e.g., "SCB-USD")
+    const buyAssetCode = tradeImport.cashCurrency
+    // buyCurrency is the actual currency for the TradeCurrency field (e.g., "USD")
+    const buyCurrency = data.cashCurrency?.currency || tradeImport.cashCurrency
+
+    // For FX between bank accounts, the sell asset CODE goes in CashAccount field
+    // The backend will look it up by code (or UUID for backward compatibility)
+    // If sell side is a bank account (market is PRIVATE), use the asset code
+    // Otherwise (selling from generic cash balance), leave CashAccount empty
+    const sellAssetCode =
+      data.market === "PRIVATE" ? (data.asset || "") : ""
+
     const comment = `Buy ${buyCurrency}/Sell ${sellCurrency}`
-    return `${tradeImport.batchId},,FX_BUY,${tradeImport.market},${buyCurrency},,${tradeImport.cashAccount},${sellCurrency},${tradeImport.tradeDate},${buyAmount},,${buyCurrency},1,${tradeImport.fees},,,-${sellAmount},${comment},${tradeImport.status}`
+    return `${tradeImport.batchId},,FX_BUY,${tradeImport.market},${buyAssetCode},,${sellAssetCode},${sellCurrency},${tradeImport.tradeDate},${buyAmount},,${buyCurrency},1,${tradeImport.fees},,,-${sellAmount},${comment},${tradeImport.status}`
   }
 
   return `${tradeImport.batchId},,${tradeImport.type},${tradeImport.market},${tradeImport.asset},,${tradeImport.cashAccount},${tradeImport.cashCurrency},${tradeImport.tradeDate},${tradeImport.cashAmount},,${tradeImport.tradeCurrency},${tradeImport.price},${tradeImport.fees},,,${tradeImport.cashAmount},${tradeImport.comments},${tradeImport.status}`

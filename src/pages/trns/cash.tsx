@@ -3,6 +3,7 @@ import { Controller, useForm } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
 import * as yup from "yup"
 import { Asset, CurrencyOption, FxResponse, Portfolio } from "types/beancounter"
+import { stripOwnerPrefix } from "@lib/assets/assetUtils"
 import { SelectInstance } from "react-select"
 import { calculateTradeAmount } from "@lib/trns/tradeUtils"
 import { useTranslation } from "next-i18next"
@@ -52,6 +53,7 @@ const StatusValues = ["SETTLED", "PROPOSED"] as const
 interface AssetOption extends CurrencyOption {
   market?: string // CASH for currencies, PRIVATE for accounts
   currency?: string // For accounts, the currency of the account
+  assetId?: string // Asset ID (UUID) for bank accounts - used in CashAccount field
 }
 
 const defaultValues = {
@@ -144,6 +146,7 @@ const CashInputForm: React.FC<{
   const handleCopy = async (): Promise<void> => {
     const formData = getValues()
     // Map form fields to TradeFormData format
+    // Note: asset field contains the sell asset code for FX trades
     const data = {
       ...formData,
       market: selectedMarket,
@@ -200,32 +203,36 @@ const CashInputForm: React.FC<{
 
     // Add user's bank accounts (market: PRIVATE, category: ACCOUNT)
     // For ACCOUNT assets, the currency is stored in priceSymbol
+    // Use stripOwnerPrefix to remove owner ID prefix from codes (e.g., "userId.SCB-USD" -> "SCB-USD")
     if (accountsData?.data) {
       Object.values(accountsData.data as Record<string, Asset>).forEach(
         (account) => {
           const accountCurrency =
             account.priceSymbol || account.market?.currency?.code || "?"
           options.push({
-            value: account.code,
+            value: stripOwnerPrefix(account.code),
             label: `${account.name} (${accountCurrency})`,
             market: "PRIVATE",
             currency: accountCurrency,
+            assetId: account.id, // UUID for CashAccount field
           })
         },
       )
     }
 
     // Add user's trade accounts (market: PRIVATE, category: TRADE)
+    // Use stripOwnerPrefix to remove owner ID prefix from codes
     if (tradeAccountsData?.data) {
       Object.values(tradeAccountsData.data as Record<string, Asset>).forEach(
         (account) => {
           const accountCurrency =
             account.priceSymbol || account.market?.currency?.code || "?"
           options.push({
-            value: account.code,
+            value: stripOwnerPrefix(account.code),
             label: `${account.name} (${accountCurrency})`,
             market: "TRADE",
             currency: accountCurrency,
+            assetId: account.id, // UUID for CashAccount field
           })
         },
       )
