@@ -208,7 +208,10 @@ const TradeInputForm: React.FC<{
     accountsKey,
     simpleFetcher(accountsKey),
   )
-  const { isLoading: ccyLoading } = useSwr(ccyKey, simpleFetcher(ccyKey))
+  const { data: ccyData, isLoading: ccyLoading } = useSwr(
+    ccyKey,
+    simpleFetcher(ccyKey),
+  )
   const { data: cashAssetsData } = useSwr(null, optionalFetcher(cashKey))
 
   const quantity = watch("quantity")
@@ -414,31 +417,76 @@ const TradeInputForm: React.FC<{
 
   const currentTradeCurrency = tradeCurrency?.value || "USD"
 
-  // Filtered accounts
-  const filteredBankAccounts = useMemo(() => {
+  // All bank accounts - show all currencies for settlement flexibility
+  const allBankAccounts = useMemo(() => {
     const accounts = bankAccountsData?.data
       ? Object.values(bankAccountsData.data)
       : []
-    return (accounts as any[]).filter(
-      (a) => getAssetCurrency(a) === currentTradeCurrency,
-    )
+    // Sort: matching currency first, then alphabetically
+    return (accounts as any[]).sort((a, b) => {
+      const aCurrency = getAssetCurrency(a)
+      const bCurrency = getAssetCurrency(b)
+      const aMatches = aCurrency === currentTradeCurrency ? 0 : 1
+      const bMatches = bCurrency === currentTradeCurrency ? 0 : 1
+      if (aMatches !== bMatches) return aMatches - bMatches
+      return (a.name || a.code).localeCompare(b.name || b.code)
+    })
   }, [bankAccountsData, currentTradeCurrency])
 
-  const filteredTradeAccounts = useMemo(() => {
+  // All trade accounts - show all currencies, SettlementAccountSelect handles grouping
+  const allTradeAccounts = useMemo(() => {
     const accounts = tradeAccountsData?.data
       ? Object.values(tradeAccountsData.data)
       : []
-    return (accounts as any[]).filter(
-      (a) => getAssetCurrency(a) === currentTradeCurrency,
-    )
-  }, [tradeAccountsData, currentTradeCurrency])
+    return accounts as any[]
+  }, [tradeAccountsData])
 
-  const filteredCashAssets = useMemo(() => {
-    const assets = cashAssetsData?.data
+  // Generate cash balance options from all available currencies
+  const allCashBalances = useMemo(() => {
+    // Start with any existing cash assets from the backend
+    const existingAssets = cashAssetsData?.data
       ? Object.values(cashAssetsData.data)
       : []
-    return (assets as any[]).filter((a: any) => a.code === currentTradeCurrency)
-  }, [cashAssetsData, currentTradeCurrency])
+
+    // Get all currency codes from the currencies endpoint
+    const allCurrencies: string[] = ccyData?.data
+      ? ccyData.data.map((c: any) => c.code)
+      : []
+
+    // Build a map of existing cash assets by currency code
+    const existingByCurrency = new Map<string, any>()
+    ;(existingAssets as any[]).forEach((asset: any) => {
+      existingByCurrency.set(asset.code, asset)
+    })
+
+    // Create cash balance entries for all currencies
+    const balances = allCurrencies.map((code: string) => {
+      const existing = existingByCurrency.get(code)
+      if (existing) {
+        return existing
+      }
+      // Create synthetic cash balance for this currency
+      return {
+        id: "", // Empty - backend will create/find generic balance
+        code,
+        name: code,
+        market: { code: "CASH" },
+      }
+    })
+
+    // Sort: matching currency first, then alphabetically
+    return balances.sort((a: any, b: any) => {
+      const aMatches = a.code === currentTradeCurrency ? 0 : 1
+      const bMatches = b.code === currentTradeCurrency ? 0 : 1
+      if (aMatches !== bMatches) return aMatches - bMatches
+      return a.code.localeCompare(b.code)
+    })
+  }, [cashAssetsData, ccyData, currentTradeCurrency])
+
+  // Filtered versions for default selection (matching currency only)
+  const filteredCashAssets = useMemo(() => {
+    return allCashBalances.filter((a: any) => a.code === currentTradeCurrency)
+  }, [allCashBalances, currentTradeCurrency])
 
   const defaultCashAsset = useMemo(() => {
     const cashAsset = filteredCashAssets[0] as any
@@ -458,19 +506,10 @@ const TradeInputForm: React.FC<{
     }
   }, [filteredCashAssets, currentTradeCurrency])
 
+  // Cash assets for dropdown - all currency balances are already included
   const cashAssetsForDropdown = useMemo(() => {
-    if (filteredCashAssets.length > 0) {
-      return filteredCashAssets
-    }
-    return [
-      {
-        id: "",
-        code: currentTradeCurrency,
-        name: currentTradeCurrency,
-        market: { code: "CASH" },
-      },
-    ]
-  }, [filteredCashAssets, currentTradeCurrency])
+    return allCashBalances
+  }, [allCashBalances])
 
   // Auto-set default settlement account when trade currency changes
   useEffect(() => {
@@ -625,9 +664,21 @@ const TradeInputForm: React.FC<{
             {/* Scrollable form content */}
             <form
               id="trade-form"
-              onSubmit={handleSubmit((data) =>
-                onSubmit(portfolio, errors, data, setModalOpen),
-              )}
+              onSubmit={handleSubmit((data) => {
+                // Derive cashCurrency from settlement account (settlement account is source of truth)
+                const settlementCurrency =
+                  data.settlementAccount?.currency ||
+                  data.tradeCurrency?.value ||
+                  "USD"
+                const dataWithCashCurrency = {
+                  ...data,
+                  cashCurrency: {
+                    value: settlementCurrency,
+                    label: settlementCurrency,
+                  },
+                }
+                onSubmit(portfolio, errors, dataWithCashCurrency, setModalOpen)
+              })}
               className="flex-1 overflow-y-auto py-3 space-y-3"
             >
               {/* Type and Date */}
@@ -765,15 +816,12 @@ const TradeInputForm: React.FC<{
                 <SettlementAccountSelect
                   name="settlementAccount"
                   control={control}
-                  accounts={filteredTradeAccounts as any[]}
-                  bankAccounts={filteredBankAccounts as any[]}
+                  accounts={allTradeAccounts as any[]}
+                  bankAccounts={allBankAccounts as any[]}
                   cashAssets={cashAssetsForDropdown as any[]}
                   trnType={type?.value || "BUY"}
+                  tradeCurrency={currentTradeCurrency}
                   defaultValue={defaultCashAsset}
-                  accountsLabel={t(
-                    "settlement.tradeAccounts",
-                    "Trade Accounts",
-                  )}
                 />
               </div>
 

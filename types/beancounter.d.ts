@@ -273,7 +273,7 @@ interface TradeFormData {
   price: number
   tradeCurrency: { value: string; label: string }
   cashCurrency?: { value: string; label: string }
-  settlementAccount?: { value: string; label: string } // Asset ID and display label
+  settlementAccount?: { value: string; label: string; currency: string } // Asset ID, display label, and currency
   tradeAmount?: number
   cashAmount?: number
   fees: number

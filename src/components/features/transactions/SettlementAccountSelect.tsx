@@ -27,6 +27,7 @@ interface SettlementAccountSelectProps {
   cashAssets?: Asset[] // Optional cash assets (CASH market - generic balances)
   currencies?: Currency[]
   trnType: string
+  tradeCurrency?: string // Current trade currency for grouping recommendations
   defaultValue?: SettlementAccountOption
   currenciesLabel?: string // Label for currencies group
   accountsLabel?: string // Label for accounts group
@@ -85,6 +86,7 @@ const SettlementAccountSelect: React.FC<SettlementAccountSelectProps> = ({
   cashAssets = [],
   currencies = [],
   trnType,
+  tradeCurrency,
   defaultValue,
   currenciesLabel,
   accountsLabel,
@@ -94,41 +96,109 @@ const SettlementAccountSelect: React.FC<SettlementAccountSelectProps> = ({
   const { t } = useTranslation("common")
   const disabled = isNoCashImpact(trnType)
 
-  // Build grouped options
+  // Helper to get currency from asset
+  const getAssetCurrency = (asset: Asset): string =>
+    asset.priceSymbol || asset.market?.currency?.code || ""
+
+  // Build grouped options with "Recommended" grouping when tradeCurrency is provided
   const groupedOptions = useMemo((): GroupedOption[] => {
     const groups: GroupedOption[] = []
 
-    // Add cash assets group first (generic balances like "USD Balance")
-    if (cashAssets.length > 0) {
-      groups.push({
-        label: cashAssetsLabel || t("settlement.cashBalances", "Cash Balances"),
-        options: toCashAssetOptions(cashAssets),
-      })
-    }
+    if (tradeCurrency) {
+      // Split into recommended (matching currency) and other
+      const recommendedCashAssets = cashAssets.filter(
+        (a) => a.code === tradeCurrency,
+      )
+      const otherCashAssets = cashAssets.filter((a) => a.code !== tradeCurrency)
+      const recommendedBankAccounts = bankAccounts.filter(
+        (a) => getAssetCurrency(a) === tradeCurrency,
+      )
+      const otherBankAccounts = bankAccounts.filter(
+        (a) => getAssetCurrency(a) !== tradeCurrency,
+      )
+      const recommendedAccounts = accounts.filter(
+        (a) => getAssetCurrency(a) === tradeCurrency,
+      )
+      const otherAccounts = accounts.filter(
+        (a) => getAssetCurrency(a) !== tradeCurrency,
+      )
 
-    // Add currencies group (fallback if no cash assets)
-    if (currencies.length > 0 && cashAssets.length === 0) {
-      groups.push({
-        label: currenciesLabel || t("settlement.currencies", "Currencies"),
-        options: toCurrencyOptions(currencies),
-      })
-    }
+      // Combine all recommended options
+      const recommendedOptions: SettlementAccountOption[] = [
+        ...toCashAssetOptions(recommendedCashAssets),
+        ...toSettlementAccountOptions(recommendedBankAccounts),
+        ...toSettlementAccountOptions(recommendedAccounts),
+      ]
 
-    // Add bank accounts group (if provided)
-    if (bankAccounts.length > 0) {
-      groups.push({
-        label:
-          bankAccountsLabel || t("settlement.bankAccounts", "Bank Accounts"),
-        options: toSettlementAccountOptions(bankAccounts),
-      })
-    }
+      if (recommendedOptions.length > 0) {
+        groups.push({
+          label: t("settlement.recommended", "Recommended"),
+          options: recommendedOptions,
+        })
+      }
 
-    // Add trade accounts group
-    if (accounts.length > 0) {
-      groups.push({
-        label: accountsLabel || t("settlement.accounts", "Accounts"),
-        options: toSettlementAccountOptions(accounts),
-      })
+      // Add other cash balances
+      if (otherCashAssets.length > 0) {
+        groups.push({
+          label:
+            cashAssetsLabel || t("settlement.otherBalances", "Other Balances"),
+          options: toCashAssetOptions(otherCashAssets),
+        })
+      }
+
+      // Add other bank accounts
+      if (otherBankAccounts.length > 0) {
+        groups.push({
+          label:
+            bankAccountsLabel ||
+            t("settlement.otherBankAccounts", "Other Bank Accounts"),
+          options: toSettlementAccountOptions(otherBankAccounts),
+        })
+      }
+
+      // Add other trade accounts
+      if (otherAccounts.length > 0) {
+        groups.push({
+          label:
+            accountsLabel || t("settlement.otherAccounts", "Other Accounts"),
+          options: toSettlementAccountOptions(otherAccounts),
+        })
+      }
+    } else {
+      // Original behavior when no tradeCurrency specified
+      // Add cash assets group first (generic balances like "USD Balance")
+      if (cashAssets.length > 0) {
+        groups.push({
+          label:
+            cashAssetsLabel || t("settlement.cashBalances", "Cash Balances"),
+          options: toCashAssetOptions(cashAssets),
+        })
+      }
+
+      // Add currencies group (fallback if no cash assets)
+      if (currencies.length > 0 && cashAssets.length === 0) {
+        groups.push({
+          label: currenciesLabel || t("settlement.currencies", "Currencies"),
+          options: toCurrencyOptions(currencies),
+        })
+      }
+
+      // Add bank accounts group (if provided)
+      if (bankAccounts.length > 0) {
+        groups.push({
+          label:
+            bankAccountsLabel || t("settlement.bankAccounts", "Bank Accounts"),
+          options: toSettlementAccountOptions(bankAccounts),
+        })
+      }
+
+      // Add trade accounts group
+      if (accounts.length > 0) {
+        groups.push({
+          label: accountsLabel || t("settlement.accounts", "Accounts"),
+          options: toSettlementAccountOptions(accounts),
+        })
+      }
     }
 
     return groups
@@ -137,6 +207,7 @@ const SettlementAccountSelect: React.FC<SettlementAccountSelectProps> = ({
     bankAccounts,
     cashAssets,
     currencies,
+    tradeCurrency,
     t,
     currenciesLabel,
     accountsLabel,
