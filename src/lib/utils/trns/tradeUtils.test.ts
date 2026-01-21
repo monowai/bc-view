@@ -289,6 +289,86 @@ describe("TradeUtils", () => {
     )
   })
 
+  test("FX trade from currency to bank account uses correct format", () => {
+    // Selling from a generic currency balance (CASH market) into a bank account
+    const data: TradeFormData = {
+      type: { value: "FX", label: "FX" },
+      asset: "SGD", // Sell from SGD cash balance
+      market: "CASH",
+      tradeDate: "2023-01-21",
+      quantity: 5958.77, // Sell amount in SGD
+      price: 1,
+      tradeCurrency: {
+        value: "SGD",
+        label: "SGD",
+        currency: "SGD",
+        market: "CASH", // Selling from generic cash balance
+      },
+      cashCurrency: {
+        value: "SCB-USD", // Buy into SCB-USD bank account
+        label: "SCB USD Account (USD)",
+        currency: "USD",
+        market: "PRIVATE",
+      },
+      cashAmount: 4600, // Buy amount in USD
+      fees: 0,
+      tax: 0,
+      comments: undefined,
+    }
+    const result = getCashRow(data)
+
+    // CSV should contain:
+    // - Code: SCB-USD (the buy asset code)
+    // - CashAccount: empty (selling from generic cash balance)
+    // - CashCurrency: SGD (the sell currency)
+    // - TradeCurrency: USD (the buy currency)
+    expect(result).toContain("FX_BUY")
+    expect(result).toContain(",SCB-USD,,") // Code field, then empty CashAccount
+    expect(result).toContain(",SGD,") // CashCurrency field (sell currency)
+    expect(result).toContain(",,USD,1,") // TradeCurrency field
+    expect(result).toContain("Buy USD/Sell SGD")
+  })
+
+  test("FX trade between two bank accounts includes sell asset CODE in CashAccount", () => {
+    // Selling from SCB-SGD bank account into SCB-USD bank account
+    // The form sets market="PRIVATE" when a bank account is selected as sell asset
+    // The asset field contains the sell asset code (e.g., "SCB-SGD")
+    const data: TradeFormData = {
+      type: { value: "FX", label: "FX" },
+      asset: "SCB-SGD", // Sell from SCB-SGD bank account (code)
+      market: "PRIVATE", // This tells us we're selling from a bank account
+      tradeDate: "2023-01-21",
+      quantity: 5958.77, // Sell amount
+      price: 1,
+      tradeCurrency: {
+        value: "SGD", // The currency (form sets this to the currency, not asset code)
+        label: "SGD",
+      },
+      cashCurrency: {
+        value: "SCB-USD", // Buy into SCB-USD bank account
+        label: "SCB USD Account (USD)",
+        currency: "USD",
+        market: "PRIVATE",
+      },
+      cashAmount: 4600, // Buy amount in USD
+      fees: 0,
+      tax: 0,
+      comments: undefined,
+    }
+    const result = getCashRow(data)
+
+    // CSV should contain:
+    // - Code: SCB-USD (the buy asset code)
+    // - CashAccount: SCB-SGD (the sell asset CODE for backend lookup)
+    // - CashCurrency: SGD (the sell currency)
+    // - TradeCurrency: USD (the buy currency)
+    expect(result).toContain("FX_BUY")
+    expect(result).toContain(",SCB-USD,") // Code field (buy asset)
+    expect(result).toContain(",SCB-SGD,SGD,") // CashAccount=code, CashCurrency=SGD
+    expect(result).toContain(",,USD,1,") // TradeCurrency field
+    expect(result).toContain("Buy USD/Sell SGD") // Comment uses currencies
+  })
+
   test("tradeCurrency defaults to cashCurrency if missing", () => {
     const data: TradeFormData = {
       type: { value: "DIVI", label: "Dividend" },
