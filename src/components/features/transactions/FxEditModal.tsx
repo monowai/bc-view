@@ -204,7 +204,10 @@ export default function FxEditModal({
         market: sellAsset?.market?.code || "CASH",
       },
       cashCurrency: {
-        value: buyAsset.market.code === "CASH" ? buyCurrency : stripOwnerPrefix(buyAsset.code),
+        value:
+          buyAsset.market.code === "CASH"
+            ? buyCurrency
+            : stripOwnerPrefix(buyAsset.code),
         label: buyDisplayName,
         currency: buyCurrency,
         market: buyAsset.market.code,
@@ -256,7 +259,10 @@ export default function FxEditModal({
           market: sellAsset?.market?.code || "CASH",
         },
         cashCurrency: {
-          value: buyAsset.market.code === "CASH" ? buyCurrency : stripOwnerPrefix(buyAsset.code),
+          value:
+            buyAsset.market.code === "CASH"
+              ? buyCurrency
+              : stripOwnerPrefix(buyAsset.code),
           label: buyDisplayName,
           currency: buyCurrency,
           market: buyAsset.market.code,
@@ -343,7 +349,10 @@ export default function FxEditModal({
                     fixedDecimalScale
                   />
                 </div>
-                <div className="text-xs text-red-600 mt-1 truncate" title={sellDisplayName}>
+                <div
+                  className="text-xs text-red-600 mt-1 truncate"
+                  title={sellDisplayName}
+                >
                   {sellDisplayName}
                 </div>
               </div>
@@ -376,7 +385,10 @@ export default function FxEditModal({
                     fixedDecimalScale
                   />
                 </div>
-                <div className="text-xs text-green-600 mt-1 truncate" title={buyDisplayName}>
+                <div
+                  className="text-xs text-green-600 mt-1 truncate"
+                  title={buyDisplayName}
+                >
                   {buyDisplayName}
                 </div>
               </div>
@@ -421,7 +433,9 @@ export default function FxEditModal({
           {/* Sell Amount */}
           <div>
             <label className="block text-xs font-medium text-gray-600">
-              <span className="text-red-600">{t("trn.fx.sellAmount", "Sell Amount")}</span>
+              <span className="text-red-600">
+                {t("trn.fx.sellAmount", "Sell Amount")}
+              </span>
               <span className="text-gray-400 ml-1">({sellCurrency})</span>
             </label>
             <Controller
@@ -439,14 +453,18 @@ export default function FxEditModal({
               )}
             />
             {errors.sellAmount && (
-              <p className="text-red-500 text-xs">{errors.sellAmount.message}</p>
+              <p className="text-red-500 text-xs">
+                {errors.sellAmount.message}
+              </p>
             )}
           </div>
 
           {/* Buy Amount */}
           <div>
             <label className="block text-xs font-medium text-gray-600">
-              <span className="text-green-600">{t("trn.fx.buyAmount", "Buy Amount")}</span>
+              <span className="text-green-600">
+                {t("trn.fx.buyAmount", "Buy Amount")}
+              </span>
               <span className="text-gray-400 ml-1">({buyCurrency})</span>
             </label>
             <Controller

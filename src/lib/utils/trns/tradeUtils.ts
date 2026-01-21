@@ -235,7 +235,8 @@ export const getCashRow = (data: TradeFormData): string => {
     // Use the actual currency code from tradeCurrency, not the asset code
     // For currencies, tradeCurrency.currency equals tradeCurrency.value
     // For bank accounts, tradeCurrency.currency is the account's currency (e.g., "USD")
-    const sellCurrency = data.tradeCurrency?.currency || tradeImport.tradeCurrency
+    const sellCurrency =
+      data.tradeCurrency?.currency || tradeImport.tradeCurrency
     // buyAssetCode is the asset code for the Code field (e.g., "SCB-USD")
     const buyAssetCode = tradeImport.cashCurrency
     // buyCurrency is the actual currency for the TradeCurrency field (e.g., "USD")
@@ -245,8 +246,7 @@ export const getCashRow = (data: TradeFormData): string => {
     // The backend will look it up by code (or UUID for backward compatibility)
     // If sell side is a bank account (market is PRIVATE), use the asset code
     // Otherwise (selling from generic cash balance), leave CashAccount empty
-    const sellAssetCode =
-      data.market === "PRIVATE" ? (data.asset || "") : ""
+    const sellAssetCode = data.market === "PRIVATE" ? data.asset || "" : ""
 
     const comment = `Buy ${buyCurrency}/Sell ${sellCurrency}`
     return `${tradeImport.batchId},,FX_BUY,${tradeImport.market},${buyAssetCode},,${sellAssetCode},${sellCurrency},${tradeImport.tradeDate},${buyAmount},,${buyCurrency},1,${tradeImport.fees},,,-${sellAmount},${comment},${tradeImport.status}`
