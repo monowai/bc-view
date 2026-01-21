@@ -3,6 +3,7 @@ import { Controller, Control } from "react-hook-form"
 import Select from "react-select"
 import { Asset, Currency } from "types/beancounter"
 import { useTranslation } from "next-i18next"
+import { getDisplayCode } from "@lib/assets/assetUtils"
 
 // Transaction types that do not impact cash positions
 const NO_CASH_IMPACT_TYPES = ["ADD", "REDUCE", "SPLIT", "BALANCE"] as const
@@ -41,7 +42,7 @@ export const toSettlementAccountOptions = (
 ): SettlementAccountOption[] => {
   return accounts.map((account) => ({
     value: account.id,
-    label: `${account.name || account.code} (${account.priceSymbol || account.market?.currency?.code || "?"})`,
+    label: `${account.name || getDisplayCode(account)} (${account.priceSymbol || account.market?.currency?.code || "?"})`,
     currency: account.priceSymbol || account.market?.currency?.code || "",
     market: "PRIVATE",
   }))

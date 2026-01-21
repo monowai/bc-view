@@ -7,7 +7,7 @@ import {
   Position,
   Total,
 } from "types/beancounter"
-import { isCashRelated, isCash } from "@lib/assets/assetUtils"
+import { isCashRelated, isCash, isAccount } from "@lib/assets/assetUtils"
 import { GroupBy, ValueIn } from "@components/features/holdings/GroupByOptions"
 import { getReportCategory } from "../categoryMapping"
 
@@ -210,9 +210,15 @@ export function calculateHoldings(
   valueIn: ValueIn,
   groupBy: GroupBy,
 ): Holdings {
-  const filteredPositions = Object.keys(contract.positions).filter(
-    (key) => !(hideEmpty && contract.positions[key].quantityValues.total === 0),
-  )
+  const filteredPositions = Object.keys(contract.positions).filter((key) => {
+    const position = contract.positions[key]
+    // Always show ACCOUNT assets (bank accounts) regardless of balance
+    if (isAccount(position.asset)) {
+      return true
+    }
+    // Apply hideEmpty filtering to other positions
+    return !(hideEmpty && position.quantityValues.total === 0)
+  })
 
   // Handle empty portfolios - use portfolio currency as fallback
   const totalsCurrency =

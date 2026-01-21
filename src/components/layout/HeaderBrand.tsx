@@ -39,12 +39,6 @@ const navSections: NavSection[] = [
         description: "Property, bank accounts & custom assets",
       },
       {
-        href: "/cash",
-        label: "Cash",
-        icon: "fa-university",
-        description: "Bank account balances across portfolios",
-      },
-      {
         href: "/brokers",
         label: "Brokers",
         icon: "fa-building",
