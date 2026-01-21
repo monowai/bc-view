@@ -19,6 +19,14 @@ jest.mock("next/router", () => ({
   }),
 }))
 
+// Mock useUserPreferences
+jest.mock("@contexts/UserPreferencesContext", () => ({
+  useUserPreferences: () => ({
+    preferences: { reportingCurrencyCode: "NZD" },
+    isLoading: false,
+  }),
+}))
+
 const currencyData = {
   data: [
     { code: "USD", name: "US Dollar", symbol: "$" },

@@ -20,6 +20,7 @@ const customJestConfig = {
     "^@styles/(.*)$": "<rootDir>/styles/$1",
     "^@constants/(.*)$": "<rootDir>/src/constants/$1",
     "^@providers/(.*)$": "<rootDir>/src/providers/$1",
+    "^@contexts/(.*)$": "<rootDir>/src/contexts/$1",
     "^@types/(.*)$": "<rootDir>/types/$1",
     "^types/(.*)$": "<rootDir>/types/$1",
   },

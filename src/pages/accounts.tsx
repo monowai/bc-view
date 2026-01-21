@@ -71,10 +71,12 @@ type TabType = "overview" | "all" | string
 
 interface AccountActionsProps {
   onImportClick: () => void
+  activeTab: TabType
 }
 
 const AccountActions = ({
   onImportClick,
+  activeTab,
 }: AccountActionsProps): React.ReactElement => {
   const router = useRouter()
   const { t } = useTranslation("common")
@@ -128,7 +130,14 @@ const AccountActions = ({
       </button>
       <button
         className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition-colors"
-        onClick={() => router.push("/assets/account")}
+        onClick={() => {
+          // Pass category if on a specific category tab (not "overview" or "all")
+          const categoryParam =
+            activeTab !== "overview" && activeTab !== "all"
+              ? `?category=${activeTab}`
+              : ""
+          router.push(`/assets/account${categoryParam}`)
+        }}
       >
         {t("account.create")}
       </button>
@@ -575,7 +584,10 @@ function AccountsPage(): React.ReactElement {
     <div className="p-4">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-semibold">{t("accounts.title")}</h1>
-        <AccountActions onImportClick={handleImportClick} />
+        <AccountActions
+          onImportClick={handleImportClick}
+          activeTab={activeTab}
+        />
       </div>
 
       {/* Tab Bar */}
