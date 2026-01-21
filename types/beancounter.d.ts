@@ -610,10 +610,11 @@ export interface PrivateAssetConfig {
   transactionDayOfMonth: number
   creditAccountId?: string
   autoGenerateTransactions: boolean
-  // Pension settings
+  // Pension/Policy payout settings
   expectedReturnRate?: number
   payoutAge?: number
   monthlyPayoutAmount?: number
+  lumpSumPayoutAmount?: number
   isPension: boolean
   // Timestamps
   createdDate: string
@@ -636,10 +637,11 @@ export interface PrivateAssetConfigRequest {
   transactionDayOfMonth?: number
   creditAccountId?: string
   autoGenerateTransactions?: boolean
-  // Pension settings
+  // Pension/Policy payout settings
   expectedReturnRate?: number
   payoutAge?: number
   monthlyPayoutAmount?: number
+  lumpSumPayoutAmount?: number
   isPension?: boolean
 }
 

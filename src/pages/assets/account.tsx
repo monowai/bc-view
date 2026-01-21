@@ -1,4 +1,4 @@
-import React, { useMemo } from "react"
+import React, { useMemo, useEffect } from "react"
 import { Controller, SubmitHandler, useForm } from "react-hook-form"
 import {
   AssetCategory,
@@ -20,6 +20,7 @@ import ReactSelect from "react-select"
 import { yupResolver } from "@hookform/resolvers/yup"
 import { validateInput } from "@components/errors/validator"
 import { accountInputSchema } from "@lib/account/schema"
+import { useUserPreferences } from "@contexts/UserPreferencesContext"
 
 interface SectorInfo {
   code: string
@@ -52,12 +53,21 @@ interface AccountFormInput {
   currency: CurrencyOption
   category: CategoryOption
   sector?: SectorOption
+  // Payout settings for PENSION and POLICY assets
+  expectedReturnRate?: string // Stored as percentage string (e.g., "5.0")
+  payoutAge?: string
+  monthlyPayoutAmount?: string
+  lumpSumPayoutAmount?: string // One-time payout at maturity (for insurance policies)
 }
 
 export default withPageAuthRequired(
   function CreateAccount(): React.ReactElement {
     const router = useRouter()
     const { t, ready } = useTranslation("common")
+    const { preferences, isLoading: prefsLoading } = useUserPreferences()
+
+    // Get category from query param (e.g., /assets/account?category=POLICY)
+    const categoryFromQuery = router.query.category as string | undefined
 
     const {
       formState: { errors },
@@ -65,6 +75,7 @@ export default withPageAuthRequired(
       register,
       getValues,
       watch,
+      setValue,
     } = useForm<AccountFormInput>({
       resolver: yupResolver(accountInputSchema),
       mode: "onChange",
@@ -99,6 +110,31 @@ export default withPageAuthRequired(
         label: sector.name,
       }))
     }, [sectorsResponse.data?.data])
+
+    // Set default currency from user preferences
+    useEffect(() => {
+      if (preferences?.reportingCurrencyCode && ccyResponse.data?.data) {
+        const ccyOpts = currencyOptions(ccyResponse.data.data)
+        const defaultCurrency = ccyOpts.find(
+          (c: CurrencyOption) => c.value === preferences.reportingCurrencyCode,
+        )
+        if (defaultCurrency) {
+          setValue("currency", defaultCurrency)
+        }
+      }
+    }, [preferences?.reportingCurrencyCode, ccyResponse.data?.data, setValue])
+
+    // Set default category from query param
+    useEffect(() => {
+      if (categoryFromQuery && categoryOptions.length > 0) {
+        const matchingCategory = categoryOptions.find(
+          (c: CategoryOption) => c.value === categoryFromQuery,
+        )
+        if (matchingCategory) {
+          setValue("category", matchingCategory)
+        }
+      }
+    }, [categoryFromQuery, categoryOptions, setValue])
 
     const handleSubmit: SubmitHandler<AccountFormInput> = (formData) => {
       validateInput(accountInputSchema, formData)
@@ -144,6 +180,37 @@ export default withPageAuthRequired(
                     console.error("Failed to set sector classification:", err)
                   }
                 }
+
+                // Save payout config for PENSION or POLICY categories
+                if (
+                  formData.category.value === "PENSION" ||
+                  formData.category.value === "POLICY"
+                ) {
+                  try {
+                    await fetch(`/api/assets/config/${createdAsset.id}`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        isPension: formData.category.value === "PENSION",
+                        expectedReturnRate: formData.expectedReturnRate
+                          ? parseFloat(formData.expectedReturnRate) / 100
+                          : 0.05,
+                        payoutAge: formData.payoutAge
+                          ? parseInt(formData.payoutAge)
+                          : undefined,
+                        monthlyPayoutAmount: formData.monthlyPayoutAmount
+                          ? parseFloat(formData.monthlyPayoutAmount)
+                          : undefined,
+                        lumpSumPayoutAmount: formData.lumpSumPayoutAmount
+                          ? parseFloat(formData.lumpSumPayoutAmount)
+                          : undefined,
+                      }),
+                    })
+                  } catch (err) {
+                    console.error("Failed to save asset config:", err)
+                  }
+                }
+
                 router.push("/accounts").then()
               }
             })
@@ -168,6 +235,7 @@ export default withPageAuthRequired(
     }
     if (
       !ready ||
+      prefsLoading ||
       ccyResponse.isLoading ||
       categoriesResponse.isLoading ||
       sectorsResponse.isLoading
@@ -265,6 +333,123 @@ export default withPageAuthRequired(
                 )}
               />
             </>
+          )}
+
+          {/* Payout settings for PENSION and POLICY categories */}
+          {(watch("category")?.value === "PENSION" ||
+            watch("category")?.value === "POLICY") && (
+            <div
+              className={`mt-6 p-4 rounded-lg border ${
+                watch("category")?.value === "PENSION"
+                  ? "bg-purple-50 border-purple-200"
+                  : "bg-blue-50 border-blue-200"
+              }`}
+            >
+              <h3 className="font-medium text-gray-900 mb-4 flex items-center">
+                <i
+                  className={`fas ${
+                    watch("category")?.value === "PENSION"
+                      ? "fa-piggy-bank text-purple-500"
+                      : "fa-shield-alt text-blue-500"
+                  } mr-2`}
+                ></i>
+                {watch("category")?.value === "PENSION"
+                  ? t("pension.settings", "Pension Settings")
+                  : t("policy.settings", "Policy Settings")}
+              </h3>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-gray-700 text-sm font-bold mb-2">
+                    {t("payout.expectedReturn", "Expected Return (%)")}
+                  </label>
+                  <input
+                    {...register("expectedReturnRate")}
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="20"
+                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    placeholder="5.0"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {t(
+                      "payout.expectedReturn.hint",
+                      "Annual return rate for growth projections",
+                    )}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 text-sm font-bold mb-2">
+                    {watch("category")?.value === "PENSION"
+                      ? t("payout.payoutAge", "Payout Age")
+                      : t("payout.maturityAge", "Maturity Age")}
+                  </label>
+                  <input
+                    {...register("payoutAge")}
+                    type="number"
+                    min="18"
+                    max="100"
+                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    placeholder="65"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {watch("category")?.value === "PENSION"
+                      ? t(
+                          "payout.payoutAge.hint",
+                          "Age when withdrawals begin",
+                        )
+                      : t(
+                          "payout.maturityAge.hint",
+                          "Age when policy matures",
+                        )}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-gray-700 text-sm font-bold mb-2">
+                      {t("payout.monthlyPayout", "Monthly Payout")}
+                    </label>
+                    <input
+                      {...register("monthlyPayoutAmount")}
+                      type="number"
+                      step="100"
+                      min="0"
+                      className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                      placeholder={t("optional", "Optional")}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      {t(
+                        "payout.monthlyPayout.hint",
+                        "Expected monthly income",
+                      )}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 text-sm font-bold mb-2">
+                      {t("payout.lumpSum", "Lump Sum Payout")}
+                    </label>
+                    <input
+                      {...register("lumpSumPayoutAmount")}
+                      type="number"
+                      step="1000"
+                      min="0"
+                      className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                      placeholder={t("optional", "Optional")}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      {t(
+                        "payout.lumpSum.hint",
+                        "One-time payout at maturity",
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
 
           <div className="flex items-center justify-between mt-6">

@@ -109,6 +109,8 @@ function EditPlanWizard(): React.ReactElement {
     expensesCurrency: plan.expensesCurrency || "NZD",
     workingIncomeMonthly: plan.workingIncomeMonthly || 0,
     workingExpensesMonthly: plan.workingExpensesMonthly || 0,
+    taxesMonthly: plan.taxesMonthly || 0,
+    bonusMonthly: plan.bonusMonthly || 0,
     investmentAllocationPercent: toPercent(
       plan.investmentAllocationPercent,
       0.8,
