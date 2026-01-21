@@ -23,6 +23,7 @@ import useSwr, { mutate } from "swr"
 import { updateTrn, TrnUpdatePayload } from "@lib/trns/apiHelper"
 import { convert } from "@lib/trns/tradeUtils"
 import { copyToClipboard } from "@lib/trns/formUtils"
+import { getDisplayCode } from "@lib/assets/assetUtils"
 import { postData } from "@components/ui/DropZone"
 import { Controller, useForm } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
@@ -201,7 +202,7 @@ function EditTransactionForm({
 }): React.ReactElement {
   const { t } = useTranslation("common")
   const marketCode = trn.asset.market.code
-  const assetCode = trn.asset.code
+  const assetCode = getDisplayCode(trn.asset)
   const assetName = trn.asset.name
   const isCashTransaction = marketCode === "CASH"
   const isFxTransaction = trn.trnType === "FX" || trn.trnType.startsWith("FX_")
@@ -259,7 +260,7 @@ function EditTransactionForm({
         value: trn.cashAsset.id,
         label:
           trn.cashAsset.name ||
-          `${trn.cashAsset.code} ${trn.cashAsset.market?.code === "CASH" ? "Balance" : ""}`,
+          `${getDisplayCode(trn.cashAsset)} ${trn.cashAsset.market?.code === "CASH" ? "Balance" : ""}`,
         currency:
           trn.cashAsset.priceSymbol ||
           trn.cashAsset.code ||
@@ -1411,9 +1412,9 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                         </span>
                         <span
                           className="ml-2 text-sm font-medium text-gray-900"
-                          title={trn.asset.name || trn.asset.code}
+                          title={trn.asset.name || getDisplayCode(trn.asset)}
                         >
-                          {trn.asset.code}
+                          {getDisplayCode(trn.asset)}
                           {trn.asset.name && (
                             <span className="text-xs text-gray-500 ml-1">
                               (
@@ -1643,10 +1644,10 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                         </td>
                         <td
                           className="px-4 py-3 whitespace-nowrap"
-                          title={trn.asset.name || trn.asset.code}
+                          title={trn.asset.name || getDisplayCode(trn.asset)}
                         >
                           <div className="font-medium text-gray-900">
-                            {trn.asset.code}
+                            {getDisplayCode(trn.asset)}
                           </div>
                           {trn.asset.name && (
                             <div className="text-xs text-gray-500 truncate max-w-32">
@@ -1698,7 +1699,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                               ? trn.cashAsset.name ||
                                 `${trn.cashAsset.code} Balance`
                               : trn.cashAsset?.name ||
-                                trn.cashAsset?.code ||
+                                getDisplayCode(trn.cashAsset) ||
                                 `${(trn.cashCurrency as any)?.code || trn.tradeCurrency?.code} Balance`}
                         </td>
                         <td className="px-4 py-3 text-right whitespace-nowrap">
