@@ -169,6 +169,10 @@ const TradeInputForm: React.FC<{
     transaction?.portfolio.id || portfolio.id,
   )
 
+  // Broker selection dialog state (for QuickSell with multiple brokers)
+  const [showBrokerSelectionDialog, setShowBrokerSelectionDialog] =
+    useState(false)
+
   // Fetch portfolios for portfolio move (edit mode)
   const { data: portfoliosData } = useSwr(
     isEditMode ? "/api/portfolios" : null,
@@ -227,6 +231,16 @@ const TradeInputForm: React.FC<{
       market: trn.cashAsset.market?.code,
     }
   }
+
+  // Show broker selection dialog when QuickSell has multiple brokers
+  useEffect(() => {
+    if (modalOpen && initialValues?.held) {
+      const brokerCount = Object.keys(initialValues.held).length
+      if (brokerCount > 1) {
+        setShowBrokerSelectionDialog(true)
+      }
+    }
+  }, [modalOpen, initialValues?.held])
 
   // Reset form with initial values when modal opens
   useEffect(() => {
@@ -690,6 +704,68 @@ const TradeInputForm: React.FC<{
 
   return (
     <>
+      {/* Broker Selection Dialog for QuickSell with multiple brokers */}
+      {showBrokerSelectionDialog && initialValues?.held && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div
+            className="fixed inset-0 bg-black opacity-50"
+            onClick={() => setShowBrokerSelectionDialog(false)}
+          ></div>
+          <div
+            className="bg-white rounded-lg shadow-lg w-full max-w-md mx-4 p-6 z-[60]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-semibold mb-2">
+              {t("trn.broker.select", "Select Broker")}
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">
+              {t(
+                "trn.broker.multipleHeld",
+                "This position is held across multiple brokers. Select which broker to sell from:",
+              )}
+            </p>
+            <div className="space-y-2">
+              {Object.entries(initialValues.held).map(([brokerName, qty]) => {
+                const broker = brokers.find((b) => b.name === brokerName)
+                return (
+                  <button
+                    key={brokerName}
+                    type="button"
+                    onClick={() => {
+                      if (broker) {
+                        setValue("brokerId", broker.id)
+                      }
+                      // Limit quantity to this broker's holdings
+                      setValue(
+                        "quantity",
+                        Math.min(initialValues.quantity, qty),
+                      )
+                      setShowBrokerSelectionDialog(false)
+                    }}
+                    className="w-full p-3 text-left border rounded hover:bg-gray-50 flex justify-between items-center"
+                  >
+                    <span className="font-medium">{brokerName}</span>
+                    <span className="text-gray-500">
+                      {qty.toLocaleString()} {t("trn.shares", "shares")}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+            <button
+              type="button"
+              className="w-full mt-4 p-2 text-gray-500 hover:text-gray-700 text-sm"
+              onClick={() => setShowBrokerSelectionDialog(false)}
+            >
+              {t(
+                "trn.broker.skipSelection",
+                "Skip - sell without specifying broker",
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div
