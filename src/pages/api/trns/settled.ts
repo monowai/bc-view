@@ -5,23 +5,18 @@ import { getDataUrl } from "@utils/api/bcConfig"
 import { NextApiRequest, NextApiResponse } from "next"
 
 /**
- * GET /api/trns/portfolio/{portfolioId}/status/{status}?tradeDate=YYYY-MM-DD
- * Gets transactions for a portfolio with a specific status.
- * Valid statuses: PROPOSED, SETTLED
- * Optional tradeDate parameter filters by trade date.
+ * GET /api/trns/settled?tradeDate=YYYY-MM-DD
+ * Gets all SETTLED transactions for the current user across all portfolios
+ * filtered by trade date.
  */
-export default withApiAuthRequired(async function transactionsByStatus(
+export default withApiAuthRequired(async function settledTransactions(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
   try {
     const { accessToken } = await getAccessToken(req, res)
     const { method } = req
-    const { portfolioId, status, tradeDate } = req.query as {
-      portfolioId: string
-      status: string
-      tradeDate?: string
-    }
+    const { tradeDate } = req.query as { tradeDate?: string }
 
     if (method?.toUpperCase() !== "GET") {
       res.setHeader("Allow", ["GET"])
@@ -29,10 +24,12 @@ export default withApiAuthRequired(async function transactionsByStatus(
       return
     }
 
-    let url = getDataUrl(`/trns/portfolio/${portfolioId}/status/${status}`)
-    if (tradeDate) {
-      url += `?tradeDate=${tradeDate}`
+    if (!tradeDate) {
+      res.status(400).json({ error: "tradeDate parameter is required" })
+      return
     }
+
+    const url = getDataUrl(`/trns/settled?tradeDate=${tradeDate}`)
     const response = await fetch(url, requestInit(accessToken, "GET", req))
     await handleResponse(response, res)
   } catch (error: unknown) {
