@@ -48,6 +48,7 @@ import SetPriceDialog from "@components/features/holdings/SetPriceDialog"
 import CashTransferDialog from "@components/features/holdings/CashTransferDialog"
 import CostAdjustDialog from "@components/features/holdings/CostAdjustDialog"
 import TrnDropZone from "@components/ui/DropZone"
+import IncomeView from "@components/features/holdings/IncomeView"
 
 function HoldingsPage(): React.ReactElement {
   const router = useRouter()
@@ -473,6 +474,17 @@ function HoldingsPage(): React.ReactElement {
             viewByGroup={true}
             portfolioTotalValue={holdings.viewTotals.marketValue}
           />
+        </div>
+      ) : viewMode === "income" ? (
+        <div className="grid grid-cols-1 gap-3">
+          <HoldingsToolbar viewMode={viewMode} onViewModeChange={setViewMode} />
+          <HoldingsHeader
+            portfolio={holdingResults.portfolio}
+            holdings={holdings}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+          />
+          <IncomeView portfolio={holdingResults.portfolio} />
         </div>
       ) : null}
       {corporateActionsData && (

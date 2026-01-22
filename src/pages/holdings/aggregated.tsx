@@ -28,6 +28,7 @@ import { compareByReportCategory, compareBySector } from "@lib/categoryMapping"
 import { GroupBy } from "@components/features/holdings/GroupByOptions"
 import HoldingsToolbar from "@components/features/holdings/HoldingsToolbar"
 import CopyPopup from "@components/ui/CopyPopup"
+import IncomeView from "@components/features/holdings/IncomeView"
 
 function AggregatedHoldingsPage(): React.ReactElement {
   const router = useRouter()
@@ -265,6 +266,25 @@ function AggregatedHoldingsPage(): React.ReactElement {
               groupBy={holdingState.groupBy.value}
               viewByGroup={true}
               portfolioTotalValue={holdings.viewTotals.marketValue}
+            />
+          </div>
+        ) : viewMode === "income" ? (
+          <div className="grid grid-cols-1 gap-3">
+            <HoldingsToolbar
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+            />
+            <HoldingsHeader
+              portfolio={holdingResults.portfolio}
+              holdings={holdings}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+              isAggregated={true}
+            />
+            <IncomeView
+              portfolio={holdingResults.portfolio}
+              portfolioIds={portfolioCodes.length > 0 ? undefined : undefined}
+              isAggregated={true}
             />
           </div>
         ) : (
