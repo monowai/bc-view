@@ -50,6 +50,12 @@ const navSections: NavSection[] = [
         icon: "fa-search",
         description: "Find where an asset is held",
       },
+      {
+        href: "/trns/proposed",
+        label: "Transactions",
+        icon: "fa-exchange-alt",
+        description: "Review proposed transactions",
+      },
     ],
   },
   {

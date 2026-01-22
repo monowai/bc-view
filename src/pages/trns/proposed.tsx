@@ -21,6 +21,14 @@ interface ProposedTransaction extends Transaction {
 // Get today's date in YYYY-MM-DD format
 const getToday = (): string => new Date().toISOString().split("T")[0]
 
+// Get display code for an asset, stripping owner ID prefix for private assets
+const getAssetDisplayCode = (asset: { code: string; market: { code: string } }): string => {
+  if (asset.market.code === "PRIVATE" && asset.code.includes(".")) {
+    return asset.code.split(".").slice(1).join(".")
+  }
+  return asset.code
+}
+
 export default function ProposedTransactions(): React.JSX.Element {
   const { t } = useTranslation("common")
   const { user, isLoading: userLoading } = useUser()
@@ -29,6 +37,13 @@ export default function ProposedTransactions(): React.JSX.Element {
   const [transactions, setTransactions] = useState<ProposedTransaction[]>([])
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [includeSettled, setIncludeSettled] = useState(false)
+  const [settledDate, setSettledDate] = useState(getToday())
+  const [settledTransactions, setSettledTransactions] = useState<Transaction[]>(
+    [],
+  )
+  const [settledLoading, setSettledLoading] = useState(false)
+  const [settledError, setSettledError] = useState<string | null>(null)
 
   // Fetch proposed transactions across all portfolios
   const proposedKey = user ? "/api/trns/proposed" : null
@@ -43,34 +58,73 @@ export default function ProposedTransactions(): React.JSX.Element {
   )
   const brokers: Broker[] = brokersData?.data || []
 
+  // Fetch settled transactions when checkbox is checked
   useEffect(() => {
-    if (proposedData?.data) {
-      const sorted = [...proposedData.data].sort((a, b) => {
-        // Sort by broker name first
-        const brokerA = a.broker?.name || ""
-        const brokerB = b.broker?.name || ""
-        const brokerCompare = brokerA.localeCompare(brokerB)
-        if (brokerCompare !== 0) return brokerCompare
-        // Then by portfolio code
-        const portfolioCompare = a.portfolio.code.localeCompare(
-          b.portfolio.code,
-        )
-        if (portfolioCompare !== 0) return portfolioCompare
-        // Then by asset code
-        return a.asset.code.localeCompare(b.asset.code)
-      })
-      setTransactions(
-        sorted.map((trn) => ({
-          ...trn,
-          editedPrice: trn.price,
-          editedFees: trn.fees,
-          editedStatus: trn.status,
-          editedTradeDate: trn.tradeDate,
-          editedBrokerId: trn.broker?.id,
-        })),
-      )
+    if (!includeSettled) {
+      setSettledTransactions([])
+      return
     }
-  }, [proposedData])
+
+    const fetchSettled = async (): Promise<void> => {
+      setSettledLoading(true)
+      setSettledError(null)
+      try {
+        const response = await fetch(
+          `/api/trns/settled?tradeDate=${settledDate}`,
+        )
+        if (!response.ok) {
+          setSettledError(`Failed to fetch: ${response.statusText}`)
+          return
+        }
+        const data = await response.json()
+        setSettledTransactions(data.data || [])
+      } catch (err) {
+        console.error("Error fetching settled transactions:", err)
+        setSettledError("Failed to load settled transactions")
+      } finally {
+        setSettledLoading(false)
+      }
+    }
+
+    fetchSettled()
+  }, [includeSettled, settledDate])
+
+  useEffect(() => {
+    // Combine proposed transactions with settled transactions (if included)
+    const proposed = proposedData?.data || []
+    const settled = includeSettled ? settledTransactions : []
+
+    // Combine and deduplicate by ID
+    const allTransactions = [...proposed]
+    settled.forEach((trn) => {
+      if (!allTransactions.find((t) => t.id === trn.id)) {
+        allTransactions.push(trn)
+      }
+    })
+
+    const sorted = allTransactions.sort((a, b) => {
+      // Sort by broker name first
+      const brokerA = a.broker?.name || ""
+      const brokerB = b.broker?.name || ""
+      const brokerCompare = brokerA.localeCompare(brokerB)
+      if (brokerCompare !== 0) return brokerCompare
+      // Then by portfolio code
+      const portfolioCompare = a.portfolio.code.localeCompare(b.portfolio.code)
+      if (portfolioCompare !== 0) return portfolioCompare
+      // Then by asset code (using display code to sort by visible name)
+      return getAssetDisplayCode(a.asset).localeCompare(getAssetDisplayCode(b.asset))
+    })
+    setTransactions(
+      sorted.map((trn) => ({
+        ...trn,
+        editedPrice: trn.price,
+        editedFees: trn.fees,
+        editedStatus: trn.status,
+        editedTradeDate: trn.tradeDate,
+        editedBrokerId: trn.broker?.id,
+      })),
+    )
+  }, [proposedData, settledTransactions, includeSettled])
 
   const handlePriceChange = (id: string, value: number): void => {
     setTransactions((prev) =>
@@ -145,6 +199,25 @@ export default function ProposedTransactions(): React.JSX.Element {
     trn.editedTradeDate !== trn.tradeDate ||
     trn.editedBrokerId !== trn.broker?.id
 
+  const hasAnyUnsavedChanges = (): boolean =>
+    transactions.some((trn) => hasChanges(trn))
+
+  const handleEdit = (portfolioId: string, trnId: string): void => {
+    if (hasAnyUnsavedChanges()) {
+      if (
+        !confirm(
+          t(
+            "trn.proposed.unsavedChanges",
+            "You have unsaved changes. Opening the editor will lose these changes. Continue?",
+          ),
+        )
+      ) {
+        return
+      }
+    }
+    router.push(`/trns/trades/edit/${portfolioId}/${trnId}`)
+  }
+
   const saveTransaction = async (
     trn: ProposedTransaction,
   ): Promise<boolean> => {
@@ -217,14 +290,49 @@ export default function ProposedTransactions(): React.JSX.Element {
           Review Proposed Transactions
         </h1>
 
-        <p className="text-gray-600 mb-6">
+        <p className="text-gray-600 mb-4">
           These transactions are pending review. Change status to SETTLED to
           include them in your holdings calculations.
         </p>
 
+        {/* Filter options */}
+        <div className="flex items-center gap-4 mb-6 bg-gray-50 p-3 rounded-lg">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={includeSettled}
+              onChange={(e) => setIncludeSettled(e.target.checked)}
+              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-gray-700">Include SETTLED on</span>
+          </label>
+          <input
+            type="date"
+            value={settledDate}
+            onChange={(e) => setSettledDate(e.target.value)}
+            disabled={!includeSettled}
+            className={`px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+              !includeSettled ? "bg-gray-100 text-gray-400" : ""
+            }`}
+          />
+          {includeSettled && (
+            <span className="text-xs text-gray-500">
+              {settledLoading
+                ? "(loading...)"
+                : `(${settledTransactions.length} settled)`}
+            </span>
+          )}
+        </div>
+
         {fetchError && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-            Failed to load transactions
+            Failed to load proposed transactions
+          </div>
+        )}
+
+        {settledError && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+            Failed to load settled transactions
           </div>
         )}
 
@@ -307,7 +415,7 @@ export default function ProposedTransactions(): React.JSX.Element {
                           onChange={(e) =>
                             handleBrokerChange(trn.id, e.target.value)
                           }
-                          className="px-1 py-0.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 max-w-[100px]"
+                          className="px-1 py-0.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 max-w-25"
                         >
                           <option value="">--</option>
                           {brokers.map((broker) => (
@@ -337,7 +445,7 @@ export default function ProposedTransactions(): React.JSX.Element {
                       </td>
                       <td className="px-2 py-1.5 whitespace-nowrap">
                         <div className="font-medium text-gray-900">
-                          {trn.asset.code}
+                          {getAssetDisplayCode(trn.asset)}
                         </div>
                       </td>
                       <td className="px-2 py-1.5 whitespace-nowrap text-right font-mono">
@@ -405,9 +513,7 @@ export default function ProposedTransactions(): React.JSX.Element {
                       <td className="px-2 py-1.5 whitespace-nowrap text-center">
                         <button
                           onClick={() =>
-                            router.push(
-                              `/trns/trades/edit/${trn.portfolio.id}/${trn.id}`,
-                            )
+                            handleEdit(trn.portfolio.id, trn.id)
                           }
                           className="text-blue-500 hover:text-blue-700 p-1 mr-1"
                           title="Edit transaction"
