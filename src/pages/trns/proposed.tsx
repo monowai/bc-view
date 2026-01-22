@@ -282,10 +282,10 @@ export default function ProposedTransactions(): React.JSX.Element {
                       Price
                     </th>
                     <th className="px-2 py-2 text-right font-medium text-gray-500 uppercase">
-                      Amount
+                      Fees
                     </th>
                     <th className="px-2 py-2 text-right font-medium text-gray-500 uppercase">
-                      Fees
+                      Amount
                     </th>
                     <th className="px-2 py-2 text-left font-medium text-gray-500 uppercase">
                       Status
@@ -357,11 +357,6 @@ export default function ProposedTransactions(): React.JSX.Element {
                           className="w-20 px-1 py-0.5 text-right border border-gray-300 rounded text-xs font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
                         />
                       </td>
-                      <td className="px-2 py-1.5 whitespace-nowrap text-right font-mono text-gray-600">
-                        {(
-                          (trn.editedPrice || trn.price) * trn.quantity
-                        ).toFixed(2)}
-                      </td>
                       <td className="px-2 py-1.5 whitespace-nowrap text-right">
                         <input
                           type="number"
@@ -375,6 +370,12 @@ export default function ProposedTransactions(): React.JSX.Element {
                           }
                           className="w-16 px-1 py-0.5 text-right border border-gray-300 rounded text-xs font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
                         />
+                      </td>
+                      <td className="px-2 py-1.5 whitespace-nowrap text-right font-mono text-gray-600">
+                        {(
+                          (trn.editedPrice || trn.price) * trn.quantity -
+                          (trn.editedFees || 0)
+                        ).toFixed(2)}
                       </td>
                       <td className="px-2 py-1.5 whitespace-nowrap">
                         <select
@@ -435,22 +436,24 @@ export default function ProposedTransactions(): React.JSX.Element {
                   <div className="font-semibold">{transactions.length}</div>
                 </div>
                 <div>
+                  <div className="text-gray-500">Total Fees</div>
+                  <div className="font-semibold font-mono">
+                    {transactions
+                      .reduce((sum, t) => sum + (t.editedFees || 0), 0)
+                      .toFixed(2)}
+                  </div>
+                </div>
+                <div>
                   <div className="text-gray-500">Total Amount</div>
                   <div className="font-semibold font-mono">
                     {transactions
                       .reduce(
                         (sum, t) =>
-                          sum + (t.editedPrice || t.price) * t.quantity,
+                          sum +
+                          (t.editedPrice || t.price) * t.quantity -
+                          (t.editedFees || 0),
                         0,
                       )
-                      .toFixed(2)}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-gray-500">Total Fees</div>
-                  <div className="font-semibold font-mono">
-                    {transactions
-                      .reduce((sum, t) => sum + (t.editedFees || 0), 0)
                       .toFixed(2)}
                   </div>
                 </div>

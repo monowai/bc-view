@@ -201,6 +201,7 @@ describe("TradeUtils", () => {
       cashAmount: -550,
       comments: "Test comment",
       status: "SETTLED", // Default status
+      brokerId: "", // No broker specified
     })
   })
 

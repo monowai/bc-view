@@ -17,10 +17,10 @@ export default withApiAuthRequired(async function brokers(
     console.log(`${method} /brokers`)
     switch (method?.toUpperCase()) {
       case "GET": {
-        const response = await fetch(
-          `${baseUrl}`,
-          requestInit(accessToken, "GET", req),
-        )
+        // Forward query params (e.g., includeAccounts=true)
+        const queryString = req.url?.split("?")[1] || ""
+        const url = queryString ? `${baseUrl}?${queryString}` : baseUrl
+        const response = await fetch(url, requestInit(accessToken, "GET", req))
         await handleResponse<Broker[]>(response, res)
         break
       }

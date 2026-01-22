@@ -2,58 +2,110 @@ import React, { useState, useCallback } from "react"
 import useSwr from "swr"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useTranslation } from "next-i18next"
-import { Broker, BrokerInput } from "types/beancounter"
+import { BrokerInput, BrokerWithAccounts, Asset } from "types/beancounter"
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import { errorOut } from "@components/errors/ErrorOut"
 import { useRouter } from "next/router"
 import { rootLoader } from "@components/ui/PageLoader"
-import Link from "next/link"
 
-const brokersKey = "/api/brokers"
+const brokersKey = "/api/brokers?includeAccounts=true"
+const accountAssetsKey = "/api/assets?category=ACCOUNT"
+
+// Common currencies for settlement accounts
+const SETTLEMENT_CURRENCIES = ["SGD", "USD", "NZD", "AUD", "GBP", "EUR"]
 
 export default withPageAuthRequired(function Brokers(): React.ReactElement {
   const { t, ready } = useTranslation("common")
   const router = useRouter()
   const { data, mutate, error } = useSwr(brokersKey, simpleFetcher(brokersKey))
+  const { data: accountsData } = useSwr(
+    accountAssetsKey,
+    simpleFetcher(accountAssetsKey),
+  )
 
-  const [editingBroker, setEditingBroker] = useState<Broker | null>(null)
+  const [editingBroker, setEditingBroker] = useState<BrokerWithAccounts | null>(
+    null,
+  )
   const [isCreating, setIsCreating] = useState(false)
   const [formData, setFormData] = useState<BrokerInput>({
     name: "",
     accountNumber: "",
     notes: "",
+    settlementAccounts: {},
   })
   const [isSaving, setIsSaving] = useState(false)
-  const [transferringBroker, setTransferringBroker] = useState<Broker | null>(
-    null,
-  )
+  const [transferringBroker, setTransferringBroker] =
+    useState<BrokerWithAccounts | null>(null)
   const [targetBrokerId, setTargetBrokerId] = useState<string>("")
   const [isTransferring, setIsTransferring] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<"details" | "settlement">(
+    "details",
+  )
+
+  // Available bank accounts for settlement selection
+  // API returns Record<string, Asset>, convert to array
+  const accountAssets: Asset[] = accountsData?.data
+    ? Object.values(accountsData.data)
+    : []
 
   const handleCreate = useCallback(() => {
-    setFormData({ name: "", accountNumber: "", notes: "" })
+    setFormData({
+      name: "",
+      accountNumber: "",
+      notes: "",
+      settlementAccounts: {},
+    })
     setEditingBroker(null)
+    setActiveTab("details")
     setIsCreating(true)
   }, [])
 
-  const handleEdit = useCallback((broker: Broker) => {
+  const handleEdit = useCallback((broker: BrokerWithAccounts) => {
+    // Convert settlement accounts array to map
+    const settlementMap: Record<string, string> = {}
+    broker.settlementAccounts?.forEach((sa) => {
+      settlementMap[sa.currencyCode] = sa.accountId
+    })
     setFormData({
       name: broker.name,
       accountNumber: broker.accountNumber || "",
       notes: broker.notes || "",
+      settlementAccounts: settlementMap,
     })
     setEditingBroker(broker)
+    setActiveTab("details")
     setIsCreating(true)
   }, [])
 
   const handleCancel = useCallback(() => {
     setIsCreating(false)
     setEditingBroker(null)
-    setFormData({ name: "", accountNumber: "", notes: "" })
+    setActiveTab("details")
+    setFormData({
+      name: "",
+      accountNumber: "",
+      notes: "",
+      settlementAccounts: {},
+    })
   }, [])
+
+  const handleSettlementAccountChange = useCallback(
+    (currency: string, accountId: string) => {
+      setFormData((prev) => {
+        const newSettlementAccounts = { ...prev.settlementAccounts }
+        if (accountId) {
+          newSettlementAccounts[currency] = accountId
+        } else {
+          delete newSettlementAccounts[currency]
+        }
+        return { ...prev, settlementAccounts: newSettlementAccounts }
+      })
+    },
+    [],
+  )
 
   const handleSave = useCallback(async () => {
     if (!formData.name.trim()) return
@@ -85,7 +137,7 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
   }, [formData, editingBroker, mutate, handleCancel])
 
   const handleDelete = useCallback(
-    async (broker: Broker) => {
+    async (broker: BrokerWithAccounts) => {
       setDeleteError(null)
 
       if (
@@ -172,7 +224,7 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
     return rootLoader(t("loading"))
   }
 
-  const brokers: Broker[] = data.data || []
+  const brokers: BrokerWithAccounts[] = data.data || []
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -226,85 +278,197 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
             onClick={handleCancel}
           ></div>
           <div
-            className="bg-white rounded-lg shadow-lg w-full max-w-md mx-4 p-6 z-50"
+            className="bg-white rounded-lg shadow-lg w-full max-w-md mx-4 z-50 max-h-[90vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            <header className="flex justify-between items-center border-b pb-2 mb-4">
+            {/* Header */}
+            <header className="flex justify-between items-center border-b p-4">
               <h2 className="text-xl font-semibold">
                 {editingBroker
                   ? t("brokers.edit", "Edit Broker")
                   : t("brokers.create", "Add Broker")}
               </h2>
               <button
-                className="text-gray-500 hover:text-gray-700 text-2xl"
+                className="text-gray-500 hover:text-gray-700 text-2xl p-2"
                 onClick={handleCancel}
               >
                 &times;
               </button>
             </header>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("brokers.name", "Name")} *
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder={t(
-                    "brokers.name.hint",
-                    "e.g., Interactive Brokers",
-                  )}
-                  autoFocus
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("brokers.accountNumber", "Account Number")}
-                </label>
-                <input
-                  type="text"
-                  value={formData.accountNumber || ""}
-                  onChange={(e) =>
-                    setFormData({ ...formData, accountNumber: e.target.value })
-                  }
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder={t("brokers.accountNumber.hint", "Optional")}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("brokers.notes", "Notes")}
-                </label>
-                <textarea
-                  value={formData.notes || ""}
-                  onChange={(e) =>
-                    setFormData({ ...formData, notes: e.target.value })
-                  }
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  rows={3}
-                  placeholder={t("brokers.notes.hint", "Optional notes")}
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end space-x-2 mt-6">
+            {/* Tabs */}
+            <div className="flex border-b">
               <button
                 type="button"
-                className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors"
+                className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${
+                  activeTab === "details"
+                    ? "border-b-2 border-blue-500 text-blue-600"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+                onClick={() => setActiveTab("details")}
+              >
+                {t("brokers.tab.details", "Details")}
+              </button>
+              <button
+                type="button"
+                className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${
+                  activeTab === "settlement"
+                    ? "border-b-2 border-blue-500 text-blue-600"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+                onClick={() => setActiveTab("settlement")}
+              >
+                {t("brokers.tab.settlement", "Settlement")}
+              </button>
+            </div>
+
+            {/* Tab Content */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {activeTab === "details" && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {t("brokers.name", "Name")} *
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) =>
+                        setFormData({ ...formData, name: e.target.value })
+                      }
+                      className="w-full border border-gray-300 rounded-lg px-3 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder={t(
+                        "brokers.name.hint",
+                        "e.g., Interactive Brokers",
+                      )}
+                      autoFocus
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {t("brokers.accountNumber", "Account Number")}
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.accountNumber || ""}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          accountNumber: e.target.value,
+                        })
+                      }
+                      className="w-full border border-gray-300 rounded-lg px-3 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder={t("brokers.accountNumber.hint", "Optional")}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {t("brokers.notes", "Notes")}
+                    </label>
+                    <textarea
+                      value={formData.notes || ""}
+                      onChange={(e) =>
+                        setFormData({ ...formData, notes: e.target.value })
+                      }
+                      className="w-full border border-gray-300 rounded-lg px-3 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      rows={3}
+                      placeholder={t("brokers.notes.hint", "Optional notes")}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "settlement" && (
+                <div>
+                  <p className="text-sm text-gray-500 mb-4">
+                    {t(
+                      "brokers.settlementAccounts.hint",
+                      "Map currencies to default bank accounts for this broker",
+                    )}
+                  </p>
+                  {accountAssets.length === 0 ? (
+                    <p className="text-sm text-amber-600 bg-amber-50 p-3 rounded-lg">
+                      <i className="fas fa-info-circle mr-2"></i>
+                      {t(
+                        "brokers.settlementAccounts.noAccounts",
+                        "No bank accounts found. Create bank accounts in Assets first.",
+                      )}
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {SETTLEMENT_CURRENCIES.map((currency) => {
+                        const selectedValue =
+                          formData.settlementAccounts?.[currency] || ""
+                        // Filter accounts that match this currency
+                        const matchingAccounts = accountAssets.filter(
+                          (asset) =>
+                            asset.priceSymbol === currency ||
+                            asset.market?.currency?.code === currency,
+                        )
+                        // Ensure selected account is always in the list
+                        const selectedAccount =
+                          selectedValue &&
+                          !matchingAccounts.find((a) => a.id === selectedValue)
+                            ? accountAssets.find((a) => a.id === selectedValue)
+                            : null
+                        return (
+                          <div key={currency} className="space-y-1">
+                            <label className="block text-sm font-medium text-gray-700">
+                              {currency}
+                            </label>
+                            <select
+                              value={selectedValue}
+                              onChange={(e) =>
+                                handleSettlementAccountChange(
+                                  currency,
+                                  e.target.value,
+                                )
+                              }
+                              className="w-full border border-gray-300 rounded-lg px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                            >
+                              <option value="">
+                                {t(
+                                  "brokers.settlementAccounts.default",
+                                  "Default",
+                                )}
+                              </option>
+                              {selectedAccount && (
+                                <option
+                                  key={selectedAccount.id}
+                                  value={selectedAccount.id}
+                                >
+                                  {selectedAccount.name}
+                                </option>
+                              )}
+                              {matchingAccounts.map((asset) => (
+                                <option key={asset.id} value={asset.id}>
+                                  {asset.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Footer with buttons */}
+            <div className="flex justify-end space-x-3 p-4 border-t bg-gray-50">
+              <button
+                type="button"
+                className="px-6 py-3 rounded-lg transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 font-medium"
                 onClick={handleCancel}
               >
                 {t("cancel", "Cancel")}
               </button>
               <button
                 type="button"
-                className={`px-4 py-2 rounded-lg transition-colors text-white ${
+                className={`px-6 py-3 rounded-lg transition-colors text-white font-medium ${
                   isSaving || !formData.name.trim()
                     ? "bg-gray-400 cursor-not-allowed"
                     : "bg-blue-500 hover:bg-blue-600"
@@ -358,9 +522,10 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
                 className="bg-white rounded-xl shadow-sm border border-gray-200 p-4"
               >
                 <div className="flex justify-between items-start">
-                  <Link
-                    href={`/brokers/${broker.id}/holdings`}
-                    className="flex-1 group cursor-pointer"
+                  <button
+                    type="button"
+                    onClick={() => handleEdit(broker)}
+                    className="flex-1 text-left group cursor-pointer"
                   >
                     <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
                       {broker.name}
@@ -376,7 +541,7 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
                         {broker.notes}
                       </p>
                     )}
-                  </Link>
+                  </button>
                   <div className="flex items-center space-x-2 ml-4">
                     <button
                       onClick={() => handleEdit(broker)}

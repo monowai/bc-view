@@ -2,14 +2,20 @@ import React, { useEffect, useMemo, useState, useRef } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
 import * as yup from "yup"
-import { Portfolio, QuickSellData, Broker } from "types/beancounter"
+import {
+  Portfolio,
+  QuickSellData,
+  BrokerWithAccounts,
+  Transaction,
+} from "types/beancounter"
+import TradeStatusToggle from "@components/ui/TradeStatusToggle"
 import {
   calculateTradeAmount,
   calculateTradeWeight,
   calculateNewPositionWeight,
 } from "@lib/trns/tradeUtils"
 import { useTranslation } from "next-i18next"
-import useSwr from "swr"
+import useSwr, { mutate } from "swr"
 import {
   marketsKey,
   simpleFetcher,
@@ -18,10 +24,13 @@ import {
   accountsKey,
   ccyKey,
   cashKey,
+  holdingKey,
 } from "@utils/api/fetchHelper"
 import { rootLoader } from "@components/ui/PageLoader"
 import TradeTypeController from "@components/features/transactions/TradeTypeController"
-import SettlementAccountSelect from "@components/features/transactions/SettlementAccountSelect"
+import SettlementAccountSelect, {
+  SettlementAccountOption,
+} from "@components/features/transactions/SettlementAccountSelect"
 import AssetSearchInput, {
   AssetOption,
 } from "@components/features/transactions/AssetSearchInput"
@@ -36,6 +45,8 @@ import { convert } from "@lib/trns/tradeUtils"
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { NumericFormat } from "react-number-format"
+import { updateTrn, TrnUpdatePayload } from "@lib/trns/apiHelper"
+import { getDisplayCode } from "@lib/assets/assetUtils"
 
 const TradeTypeValues = [
   "BUY",
@@ -46,11 +57,9 @@ const TradeTypeValues = [
   "SPLIT",
 ] as const
 
-const StatusValues = ["SETTLED", "PROPOSED"] as const
-
 const defaultValues = {
   type: { value: "BUY", label: "BUY" },
-  status: { value: "SETTLED", label: "SETTLED" },
+  status: { value: "PROPOSED", label: "PROPOSED" },
   asset: "",
   market: "US",
   tradeDate: new Date().toISOString().split("T")[0],
@@ -113,12 +122,23 @@ const schema = yup.object().shape({
 const inputClass =
   "mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
 
+// Props for edit mode
+interface EditModeProps {
+  transaction: Transaction
+  onClose: () => void
+  onDelete: () => void
+}
+
 const TradeInputForm: React.FC<{
   portfolio: Portfolio
   modalOpen: boolean
   setModalOpen: (open: boolean) => void
   initialValues?: QuickSellData
-}> = ({ portfolio, modalOpen, setModalOpen, initialValues }) => {
+  // Edit mode props - when transaction is provided, form is in edit mode
+  editMode?: EditModeProps
+}> = ({ portfolio, modalOpen, setModalOpen, initialValues, editMode }) => {
+  const isEditMode = !!editMode
+  const transaction = editMode?.transaction
   const {
     control,
     handleSubmit,
@@ -139,15 +159,41 @@ const TradeInputForm: React.FC<{
   const [targetWeight, setTargetWeight] = useState<string>("")
   const [tradeValue, setTradeValue] = useState<string>("")
   const [isFetchingPrice, setIsFetchingPrice] = useState(false)
-  const [showMore, setShowMore] = useState(false)
+  const [activeTab, setActiveTab] = useState<"trade" | "invest">("trade")
   const dateInputRef = useRef<HTMLInputElement>(null)
 
-  // Fetch brokers for dropdown
-  const { data: brokersData } = useSwr(
-    "/api/brokers",
-    simpleFetcher("/api/brokers"),
+  // Edit mode state
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [selectedPortfolioId, setSelectedPortfolioId] = useState<string>(
+    transaction?.portfolio.id || portfolio.id,
   )
-  const brokers: Broker[] = brokersData?.data || []
+
+  // Fetch portfolios for portfolio move (edit mode)
+  const { data: portfoliosData } = useSwr(
+    isEditMode ? "/api/portfolios" : null,
+    simpleFetcher("/api/portfolios"),
+  )
+  const portfolios: Portfolio[] = portfoliosData?.data || []
+
+  // Check if portfolio changed (edit mode)
+  const portfolioChanged =
+    isEditMode && selectedPortfolioId !== transaction?.portfolio.id
+
+  // For edit mode: get asset info from transaction
+  const editAssetCode = transaction ? getDisplayCode(transaction.asset) : ""
+  const editAssetName = transaction?.asset.name || ""
+  const editMarketCode = transaction?.asset.market.code || ""
+
+  // Fetch brokers with settlement accounts for dropdown
+  const { data: brokersData } = useSwr(
+    "/api/brokers?includeAccounts=true",
+    simpleFetcher("/api/brokers?includeAccounts=true"),
+  )
+  const brokers: BrokerWithAccounts[] = useMemo(
+    () => brokersData?.data || [],
+    [brokersData?.data],
+  )
 
   const handleCopy = async (): Promise<void> => {
     const formData = getValues()
@@ -164,9 +210,54 @@ const TradeInputForm: React.FC<{
     setTimeout(() => setCopyStatus("idle"), 2000)
   }
 
-  // Reset form with initial values when modal opens with quick sell data
+  // Build initial settlement account from transaction (edit mode)
+  const buildInitialSettlementAccount = (
+    trn: Transaction,
+  ): SettlementAccountOption | null => {
+    if (!trn.cashAsset) return null
+    return {
+      value: trn.cashAsset.id,
+      label:
+        trn.cashAsset.name ||
+        `${getDisplayCode(trn.cashAsset)} ${trn.cashAsset.market?.code === "CASH" ? "Balance" : ""}`,
+      currency:
+        trn.cashAsset.priceSymbol ||
+        trn.cashAsset.code ||
+        trn.tradeCurrency.code,
+      market: trn.cashAsset.market?.code,
+    }
+  }
+
+  // Reset form with initial values when modal opens
   useEffect(() => {
-    if (modalOpen && initialValues) {
+    if (modalOpen && isEditMode && transaction) {
+      // Edit mode: populate from transaction
+      reset({
+        type: { value: transaction.trnType, label: transaction.trnType },
+        status: { value: transaction.status, label: transaction.status },
+        asset: editAssetCode,
+        market: editMarketCode,
+        tradeDate: transaction.tradeDate,
+        quantity: transaction.quantity,
+        price: transaction.price,
+        tradeCurrency: {
+          value: transaction.tradeCurrency.code,
+          label: transaction.tradeCurrency.code,
+        },
+        settlementAccount: buildInitialSettlementAccount(transaction),
+        tradeAmount: transaction.tradeAmount,
+        cashAmount: transaction.cashAmount,
+        fees: transaction.fees,
+        tax: transaction.tax,
+        comment: transaction.comments || "",
+        brokerId: transaction.broker?.id || "",
+      })
+      setSelectedPortfolioId(transaction.portfolio.id)
+      setTargetWeight("")
+      setTradeValue("")
+      setSubmitError(null)
+    } else if (modalOpen && initialValues) {
+      // Quick sell mode: populate from initialValues
       const tradeType = initialValues.type || "SELL"
       reset({
         ...defaultValues,
@@ -178,14 +269,21 @@ const TradeInputForm: React.FC<{
       })
       setTargetWeight("")
       setTradeValue("")
-      setShowMore(false)
-    } else if (modalOpen && !initialValues) {
+    } else if (modalOpen && !initialValues && !isEditMode) {
+      // Create mode: reset to defaults
       reset(defaultValues)
       setTargetWeight("")
       setTradeValue("")
-      setShowMore(false)
     }
-  }, [modalOpen, initialValues, reset])
+  }, [
+    modalOpen,
+    initialValues,
+    reset,
+    isEditMode,
+    transaction,
+    editAssetCode,
+    editMarketCode,
+  ])
 
   // Focus date input when modal opens
   useEffect(() => {
@@ -417,21 +515,22 @@ const TradeInputForm: React.FC<{
 
   const currentTradeCurrency = tradeCurrency?.value || "USD"
 
-  // All bank accounts - show all currencies for settlement flexibility
+  // All bank accounts - needed for broker settlement lookups by ID
   const allBankAccounts = useMemo(() => {
     const accounts = bankAccountsData?.data
       ? Object.values(bankAccountsData.data)
       : []
-    // Sort: matching currency first, then alphabetically
-    return (accounts as any[]).sort((a, b) => {
-      const aCurrency = getAssetCurrency(a)
-      const bCurrency = getAssetCurrency(b)
-      const aMatches = aCurrency === currentTradeCurrency ? 0 : 1
-      const bMatches = bCurrency === currentTradeCurrency ? 0 : 1
-      if (aMatches !== bMatches) return aMatches - bMatches
-      return (a.name || a.code).localeCompare(b.name || b.code)
-    })
-  }, [bankAccountsData, currentTradeCurrency])
+    return accounts as any[]
+  }, [bankAccountsData])
+
+  // Bank accounts filtered by trade currency - for settlement dropdown
+  const filteredBankAccounts = useMemo(() => {
+    return allBankAccounts
+      .filter((a: any) => getAssetCurrency(a) === currentTradeCurrency)
+      .sort((a: any, b: any) =>
+        (a.name || a.code).localeCompare(b.name || b.code),
+      )
+  }, [allBankAccounts, currentTradeCurrency])
 
   // All trade accounts - show all currencies, SettlementAccountSelect handles grouping
   const allTradeAccounts = useMemo(() => {
@@ -512,15 +611,64 @@ const TradeInputForm: React.FC<{
   }, [allCashBalances])
 
   // Auto-set default settlement account when trade currency changes
+  // Skip if a broker with a matching settlement account is selected
   useEffect(() => {
     const currentSettlement = watch("settlementAccount")
+    const currentBrokerId = watch("brokerId")
+
+    // Check if broker has a settlement account for this currency
+    if (currentBrokerId) {
+      const selectedBroker = brokers.find((b) => b.id === currentBrokerId)
+      const hasBrokerSettlement = selectedBroker?.settlementAccounts?.some(
+        (sa) => sa.currencyCode === currentTradeCurrency,
+      )
+      // Don't override if broker has a matching settlement account
+      if (hasBrokerSettlement) return
+    }
+
     if (
       !currentSettlement?.value ||
       currentSettlement.currency !== currentTradeCurrency
     ) {
       setValue("settlementAccount", defaultCashAsset)
     }
-  }, [currentTradeCurrency, defaultCashAsset, setValue, watch])
+  }, [currentTradeCurrency, defaultCashAsset, setValue, watch, brokers])
+
+  // Watch brokerId for auto-selecting settlement account
+  const selectedBrokerId = watch("brokerId")
+
+  // Auto-select settlement account based on broker's default for the currency
+  useEffect(() => {
+    if (!selectedBrokerId || !currentTradeCurrency) return
+
+    const selectedBroker = brokers.find((b) => b.id === selectedBrokerId)
+    if (!selectedBroker?.settlementAccounts) return
+
+    // Find settlement account for current trade currency
+    const brokerSettlement = selectedBroker.settlementAccounts.find(
+      (sa) => sa.currencyCode === currentTradeCurrency,
+    )
+
+    if (brokerSettlement) {
+      // Find the matching bank account to get full details
+      const bankAccount = allBankAccounts.find(
+        (a: any) => a.id === brokerSettlement.accountId,
+      )
+      if (bankAccount) {
+        setValue("settlementAccount", {
+          value: bankAccount.id,
+          label: bankAccount.name || bankAccount.code,
+          currency: getAssetCurrency(bankAccount),
+        })
+      }
+    }
+  }, [
+    selectedBrokerId,
+    currentTradeCurrency,
+    brokers,
+    allBankAccounts,
+    setValue,
+  ])
 
   if (marketsLoading || tradeAccountsLoading || ccyLoading)
     return rootLoader(t("loading"))
@@ -556,36 +704,84 @@ const TradeInputForm: React.FC<{
             <header className="flex-shrink-0 pb-3 border-b">
               <div className="flex items-center justify-between mb-2">
                 <button
-                  className="text-gray-400 hover:text-gray-600 p-1"
-                  onClick={() => setModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 p-2"
+                  onClick={() =>
+                    isEditMode ? editMode?.onClose() : setModalOpen(false)
+                  }
                   title={t("cancel")}
                 >
                   <i className="fas fa-times"></i>
                 </button>
-                <div className="text-center flex-1 px-2">
-                  <div className="font-semibold">
-                    {asset || t("trade.market.title")}
+                <div
+                  className="text-center flex-1 px-2"
+                  title={
+                    isEditMode ? editAssetName || editAssetCode : undefined
+                  }
+                >
+                  <div className="font-semibold truncate">
+                    {isEditMode
+                      ? editAssetCode
+                      : asset || t("trade.market.title")}
                   </div>
-                  <div className="text-xs text-gray-500">
-                    {portfolio.code} - {portfolio.name}
+                  {isEditMode && editAssetName && (
+                    <div className="text-xs text-gray-500 truncate">
+                      {editAssetName.length > 25
+                        ? `${editAssetName.substring(0, 25)}...`
+                        : editAssetName}
+                    </div>
+                  )}
+                  <div className="text-xs text-gray-400">
+                    {isEditMode
+                      ? editMarketCode
+                      : `${portfolio.code} - ${portfolio.name}`}
                   </div>
                 </div>
-                <button
-                  type="button"
-                  className={`p-1 ${
-                    copyStatus === "success"
-                      ? "text-green-600"
-                      : copyStatus === "error"
-                        ? "text-red-500"
-                        : "text-green-600 hover:text-green-700"
-                  }`}
-                  onClick={handleCopy}
-                  title={t("copy")}
-                >
-                  <i
-                    className={`fas ${copyStatus === "success" ? "fa-check" : copyStatus === "error" ? "fa-times" : "fa-copy"}`}
-                  ></i>
-                </button>
+                <div className="flex gap-1">
+                  <button
+                    type="button"
+                    className={`p-2 ${
+                      copyStatus === "success"
+                        ? "text-green-600"
+                        : copyStatus === "error"
+                          ? "text-red-500"
+                          : "text-green-600 hover:text-green-700"
+                    }`}
+                    onClick={handleCopy}
+                    title={t("copy")}
+                  >
+                    <i
+                      className={`fas ${copyStatus === "success" ? "fa-check" : copyStatus === "error" ? "fa-times" : "fa-copy"}`}
+                    ></i>
+                  </button>
+                  {isEditMode && (
+                    <button
+                      type="button"
+                      className="p-2 text-red-500 hover:text-red-600"
+                      onClick={editMode?.onDelete}
+                      title={t("delete")}
+                    >
+                      <i className="fas fa-trash-can"></i>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Trade Status Toggle */}
+              <div className="flex justify-center mb-2">
+                <Controller
+                  name="status"
+                  control={control}
+                  render={({ field }) => (
+                    <TradeStatusToggle
+                      isSettled={field.value.value === "SETTLED"}
+                      onChange={(isSettled) => {
+                        const newStatus = isSettled ? "SETTLED" : "PROPOSED"
+                        field.onChange({ value: newStatus, label: newStatus })
+                      }}
+                      size="sm"
+                    />
+                  )}
+                />
               </div>
 
               {/* Trade Value Summary */}
@@ -664,20 +860,87 @@ const TradeInputForm: React.FC<{
             {/* Scrollable form content */}
             <form
               id="trade-form"
-              onSubmit={handleSubmit((data) => {
+              onSubmit={handleSubmit(async (data) => {
                 // Derive cashCurrency from settlement account (settlement account is source of truth)
                 const settlementCurrency =
                   data.settlementAccount?.currency ||
                   data.tradeCurrency?.value ||
                   "USD"
-                const dataWithCashCurrency = {
-                  ...data,
-                  cashCurrency: {
-                    value: settlementCurrency,
-                    label: settlementCurrency,
-                  },
+
+                if (isEditMode && transaction) {
+                  // Edit mode: use PATCH API
+                  setIsSubmitting(true)
+                  setSubmitError(null)
+
+                  try {
+                    const payload: TrnUpdatePayload = {
+                      trnType: data.type.value,
+                      assetId: transaction.asset.id,
+                      tradeDate: data.tradeDate,
+                      quantity: data.quantity,
+                      price: data.price,
+                      tradeCurrency: data.tradeCurrency.value,
+                      tradeAmount:
+                        data.tradeAmount || data.quantity * data.price,
+                      cashCurrency: settlementCurrency,
+                      cashAssetId: data.settlementAccount?.value || undefined,
+                      cashAmount:
+                        data.cashAmount ||
+                        -(data.quantity * data.price + (data.fees || 0)),
+                      fees: data.fees,
+                      tax: data.tax,
+                      comments: data.comment || "",
+                      brokerId: data.brokerId || undefined,
+                      status: data.status?.value || transaction.status,
+                    }
+
+                    const response = await updateTrn(
+                      selectedPortfolioId,
+                      transaction.id,
+                      payload,
+                    )
+
+                    if (response.ok) {
+                      // Invalidate holdings cache
+                      setTimeout(() => {
+                        mutate(holdingKey(transaction.portfolio.code, "today"))
+                        mutate("/api/holdings/aggregated?asAt=today")
+                        if (portfolioChanged) {
+                          const newPortfolio = portfolios.find(
+                            (p) => p.id === selectedPortfolioId,
+                          )
+                          if (newPortfolio) {
+                            mutate(holdingKey(newPortfolio.code, "today"))
+                          }
+                        }
+                      }, 1500)
+                      editMode?.onClose()
+                    } else {
+                      const errorData = await response.json()
+                      setSubmitError(errorData.message || t("trn.error.update"))
+                    }
+                  } catch (error) {
+                    console.error("Failed to update transaction:", error)
+                    setSubmitError(t("trn.error.update"))
+                  } finally {
+                    setIsSubmitting(false)
+                  }
+                } else {
+                  // Create mode: use CSV import
+                  const dataWithCashCurrency = {
+                    ...data,
+                    cashCurrency: {
+                      value: settlementCurrency,
+                      label: settlementCurrency,
+                    },
+                  }
+                  onSubmit(
+                    portfolio,
+                    errors,
+                    dataWithCashCurrency,
+                    setModalOpen,
+                  )
                 }
-                onSubmit(portfolio, errors, dataWithCashCurrency, setModalOpen)
               })}
               className="flex-1 overflow-y-auto py-3 space-y-3"
             >
@@ -716,42 +979,99 @@ const TradeInputForm: React.FC<{
               </div>
 
               {/* Market and Asset */}
-              <div className="grid grid-cols-2 gap-2">
+              {isEditMode ? (
+                // Edit mode: show read-only asset info
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600">
+                      {t("trn.asset.code")}
+                    </label>
+                    <input
+                      type="text"
+                      value={editAssetCode}
+                      disabled
+                      className={`${inputClass} bg-gray-100 cursor-not-allowed text-xs`}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600">
+                      {t("trn.market.code")}
+                    </label>
+                    <input
+                      type="text"
+                      value={editMarketCode}
+                      disabled
+                      className={`${inputClass} bg-gray-100 cursor-not-allowed text-xs`}
+                    />
+                  </div>
+                </div>
+              ) : (
+                // Create mode: editable market and asset
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600">
+                      {t("trn.market.code")}
+                    </label>
+                    <Controller
+                      name="market"
+                      control={control}
+                      render={({ field }) => (
+                        <select {...field} className={inputClass}>
+                          {marketOptions.map(
+                            (option: { value: string; label: string }) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ),
+                          )}
+                        </select>
+                      )}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600">
+                      {isFetchingPrice
+                        ? `${t("trn.asset.code")} ...`
+                        : t("trn.asset.code")}
+                    </label>
+                    <AssetSearchInput
+                      name="asset"
+                      control={control}
+                      market={watch("market")}
+                      defaultValue={initialValues?.asset}
+                      onAssetSelect={handleAssetSelect}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Portfolio Move (edit mode only) */}
+              {isEditMode && portfolios.length > 0 && (
                 <div>
                   <label className="block text-xs font-medium text-gray-600">
-                    {t("trn.market.code")}
+                    {t("portfolio")}
                   </label>
-                  <Controller
-                    name="market"
-                    control={control}
-                    render={({ field }) => (
-                      <select {...field} className={inputClass}>
-                        {marketOptions.map(
-                          (option: { value: string; label: string }) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ),
-                        )}
-                      </select>
-                    )}
-                  />
+                  <select
+                    value={selectedPortfolioId}
+                    onChange={(e) => setSelectedPortfolioId(e.target.value)}
+                    className={`${inputClass} text-xs ${portfolioChanged ? "border-amber-500 bg-amber-50" : ""}`}
+                  >
+                    {portfolios.map((p: Portfolio) => (
+                      <option key={p.id} value={p.id}>
+                        {p.code} - {p.name}
+                      </option>
+                    ))}
+                  </select>
+                  {portfolioChanged && (
+                    <p className="text-xs text-amber-600 mt-0.5">
+                      {t(
+                        "trn.portfolio.changed",
+                        "Will move to this portfolio",
+                      )}
+                    </p>
+                  )}
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600">
-                    {isFetchingPrice
-                      ? `${t("trn.asset.code")} ...`
-                      : t("trn.asset.code")}
-                  </label>
-                  <AssetSearchInput
-                    name="asset"
-                    control={control}
-                    market={watch("market")}
-                    defaultValue={initialValues?.asset}
-                    onAssetSelect={handleAssetSelect}
-                  />
-                </div>
-              </div>
+              )}
 
               {/* Quantity, Price, Fees */}
               <div className="grid grid-cols-3 gap-2">
@@ -808,24 +1128,7 @@ const TradeInputForm: React.FC<{
                 </div>
               </div>
 
-              {/* Settlement Account */}
-              <div>
-                <label className="block text-xs font-medium text-gray-600">
-                  {t("trn.settlement.account")}
-                </label>
-                <SettlementAccountSelect
-                  name="settlementAccount"
-                  control={control}
-                  accounts={allTradeAccounts as any[]}
-                  bankAccounts={allBankAccounts as any[]}
-                  cashAssets={cashAssetsForDropdown as any[]}
-                  trnType={type?.value || "BUY"}
-                  tradeCurrency={currentTradeCurrency}
-                  defaultValue={defaultCashAsset}
-                />
-              </div>
-
-              {/* Broker */}
+              {/* Broker - select before settlement account */}
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="block text-xs font-medium text-gray-600">
@@ -864,110 +1167,64 @@ const TradeInputForm: React.FC<{
                 />
               </div>
 
-              {/* Expandable "More" section */}
+              {/* Settlement Account */}
               <div>
-                <button
-                  type="button"
-                  onClick={() => setShowMore(!showMore)}
-                  className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                >
-                  <i
-                    className={`fas fa-chevron-${showMore ? "up" : "down"} text-xs`}
-                  ></i>
-                  {showMore
-                    ? t("trn.showLess", "Less")
-                    : t("trn.showMore", "More options")}
-                </button>
+                <label className="block text-xs font-medium text-gray-600">
+                  {t("trn.settlement.account")}
+                </label>
+                <SettlementAccountSelect
+                  name="settlementAccount"
+                  control={control}
+                  accounts={allTradeAccounts as any[]}
+                  bankAccounts={filteredBankAccounts as any[]}
+                  cashAssets={cashAssetsForDropdown as any[]}
+                  trnType={type?.value || "BUY"}
+                  tradeCurrency={currentTradeCurrency}
+                  defaultValue={defaultCashAsset}
+                />
+              </div>
 
-                {showMore && (
-                  <div className="mt-2 space-y-2 pt-2 border-t border-gray-100">
-                    {/* Status */}
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600">
-                        {t("trn.status")}
-                      </label>
-                      <Controller
-                        name="status"
-                        control={control}
-                        render={({ field }) => (
-                          <select
-                            className={inputClass}
-                            value={field.value.value}
-                            onChange={(e) => {
-                              field.onChange({
-                                value: e.target.value,
-                                label: e.target.value,
-                              })
-                            }}
-                          >
-                            {StatusValues.map((status) => (
-                              <option key={status} value={status}>
-                                {status}
-                              </option>
-                            ))}
-                          </select>
-                        )}
-                      />
-                    </div>
+              {/* Tabs for Trade/Invest */}
+              <div className="border-t border-gray-200 pt-2">
+                <div className="flex border-b border-gray-200">
+                  <button
+                    type="button"
+                    className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                      activeTab === "trade"
+                        ? "border-b-2 border-blue-500 text-blue-600"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                    onClick={() => setActiveTab("trade")}
+                  >
+                    {t("trn.tab.trade", "Trade")}
+                  </button>
+                  <button
+                    type="button"
+                    className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                      isEditMode
+                        ? "text-gray-300 cursor-not-allowed"
+                        : activeTab === "invest"
+                          ? "border-b-2 border-blue-500 text-blue-600"
+                          : "text-gray-500 hover:text-gray-700"
+                    }`}
+                    onClick={() => !isEditMode && setActiveTab("invest")}
+                    disabled={isEditMode}
+                    title={
+                      isEditMode
+                        ? t(
+                            "trn.tab.invest.disabled",
+                            "Invest calculations not available when editing",
+                          )
+                        : undefined
+                    }
+                  >
+                    {t("trn.tab.invest", "Invest")}
+                  </button>
+                </div>
 
-                    {/* Invest Value - calculate quantity from total */}
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600">
-                        {t("trn.invest.value", "Invest Value")}
-                      </label>
-                      <div className="relative">
-                        <MathInput
-                          value={tradeValue ? parseFloat(tradeValue) : 0}
-                          onChange={(value) =>
-                            handleTradeValueChange(String(value))
-                          }
-                          placeholder={
-                            price > 0
-                              ? t(
-                                  "trn.invest.placeholder",
-                                  "Enter amount to invest",
-                                )
-                              : t("trn.invest.needPrice", "Set price first")
-                          }
-                          disabled={!price || price <= 0}
-                          className={`${inputClass} disabled:bg-gray-100`}
-                        />
-                        {price > 0 && tradeValue && (
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500">
-                            = {Math.floor(parseFloat(tradeValue) / price)}{" "}
-                            shares
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Target Weight - if position data available */}
-                    {currentPositionWeight !== null && (
-                      <div className="bg-purple-50 border border-purple-200 rounded-lg p-2">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-medium text-purple-800">
-                            {t("rebalance.currentWeight")}:{" "}
-                            {currentPositionWeight.toFixed(2)}%
-                          </span>
-                          <span className="text-xs text-purple-600">→</span>
-                          <span className="text-xs font-medium text-purple-800">
-                            {t("rebalance.targetWeight")}:
-                          </span>
-                          <MathInput
-                            value={targetWeight ? parseFloat(targetWeight) : 0}
-                            onChange={(value) => {
-                              if (value >= 0) {
-                                handleTargetWeightChange(String(value))
-                              }
-                            }}
-                            placeholder={currentPositionWeight.toFixed(1)}
-                            className="w-16 px-2 py-1 border border-purple-300 rounded text-xs"
-                          />
-                          <span className="text-purple-600 text-xs">%</span>
-                        </div>
-                      </div>
-                    )}
-
+                {/* Trade Tab Content */}
+                {activeTab === "trade" && (
+                  <div className="mt-3 space-y-2">
                     {/* Trade/Cash Amounts */}
                     <div className="grid grid-cols-2 gap-2">
                       <div>
@@ -988,10 +1245,10 @@ const TradeInputForm: React.FC<{
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-gray-600">
-                          {t("trn.amount.cash")}
+                          {t("trn.amount.tax")}
                         </label>
                         <Controller
-                          name="cashAmount"
+                          name="tax"
                           control={control}
                           render={({ field }) => (
                             <MathInput
@@ -1004,13 +1261,13 @@ const TradeInputForm: React.FC<{
                       </div>
                     </div>
 
-                    {/* Tax */}
+                    {/* Cash Amount */}
                     <div>
                       <label className="block text-xs font-medium text-gray-600">
-                        {t("trn.amount.tax")}
+                        {t("trn.amount.cash")}
                       </label>
                       <Controller
-                        name="tax"
+                        name="cashAmount"
                         control={control}
                         render={({ field }) => (
                           <MathInput
@@ -1042,6 +1299,86 @@ const TradeInputForm: React.FC<{
                     </div>
                   </div>
                 )}
+
+                {/* Invest Tab Content */}
+                {activeTab === "invest" && (
+                  <div className="mt-3 space-y-3">
+                    {/* Invest Value - calculate quantity from total */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600">
+                        {t("trn.invest.value", "Invest Value")}
+                      </label>
+                      <p className="text-xs text-gray-500 mb-1">
+                        {t(
+                          "trn.invest.description",
+                          "Enter amount to invest, quantity will be calculated",
+                        )}
+                      </p>
+                      <div className="relative">
+                        <MathInput
+                          value={tradeValue ? parseFloat(tradeValue) : 0}
+                          onChange={(value) =>
+                            handleTradeValueChange(String(value))
+                          }
+                          placeholder={
+                            price > 0
+                              ? t(
+                                  "trn.invest.placeholder",
+                                  "Enter amount to invest",
+                                )
+                              : t("trn.invest.needPrice", "Set price first")
+                          }
+                          disabled={!price || price <= 0}
+                          className={`${inputClass} disabled:bg-gray-100`}
+                        />
+                        {price > 0 && tradeValue && (
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500">
+                            = {Math.floor(parseFloat(tradeValue) / price)}{" "}
+                            shares
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Target Weight - if position data available */}
+                    {currentPositionWeight !== null && (
+                      <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                        <label className="block text-xs font-medium text-purple-800 mb-2">
+                          {t("trn.targetWeight", "Target Weight")}
+                        </label>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs text-purple-700">
+                            {t("rebalance.currentWeight")}:{" "}
+                            <strong>{currentPositionWeight.toFixed(2)}%</strong>
+                          </span>
+                          <span className="text-purple-400">→</span>
+                          <MathInput
+                            value={targetWeight ? parseFloat(targetWeight) : 0}
+                            onChange={(value) => {
+                              if (value >= 0) {
+                                handleTargetWeightChange(String(value))
+                              }
+                            }}
+                            placeholder={currentPositionWeight.toFixed(1)}
+                            className="w-20 px-2 py-2 border border-purple-300 rounded text-sm"
+                          />
+                          <span className="text-purple-600 text-sm">%</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {currentPositionWeight === null && (
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center">
+                        <p className="text-xs text-gray-500">
+                          {t(
+                            "trn.invest.noPosition",
+                            "Target weight is available when trading existing positions",
+                          )}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Error Display */}
@@ -1054,21 +1391,43 @@ const TradeInputForm: React.FC<{
               )}
             </form>
 
+            {/* Error Display */}
+            {submitError && (
+              <div className="text-red-500 text-xs bg-red-50 p-2 rounded mx-3 mb-2">
+                {submitError}
+              </div>
+            )}
+
             {/* Sticky footer */}
             <div className="flex-shrink-0 pt-3 border-t flex justify-end gap-2">
               <button
                 type="button"
                 className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
-                onClick={() => setModalOpen(false)}
+                onClick={() =>
+                  isEditMode ? editMode?.onClose() : setModalOpen(false)
+                }
               >
                 {t("cancel")}
               </button>
               <button
                 type="submit"
                 form="trade-form"
-                className="px-4 py-2 rounded text-white text-sm bg-blue-500 hover:bg-blue-600"
+                disabled={
+                  isEditMode &&
+                  (isSubmitting || (!isDirty && !portfolioChanged))
+                }
+                className={`px-4 py-2 rounded text-white text-sm ${
+                  isEditMode &&
+                  (isSubmitting || (!isDirty && !portfolioChanged))
+                    ? "bg-blue-300 cursor-not-allowed"
+                    : "bg-blue-500 hover:bg-blue-600"
+                }`}
               >
-                {t("submit", "Submit")}
+                {isEditMode
+                  ? isSubmitting
+                    ? t("saving")
+                    : t("save")
+                  : t("submit", "Submit")}
               </button>
             </div>
           </div>
