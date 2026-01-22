@@ -292,6 +292,7 @@ interface TradeFormData {
   fees: number
   tax: number
   comments: string | undefined
+  brokerId?: string // Optional broker ID for the trade
 }
 
 interface CallerRef {
@@ -714,6 +715,8 @@ export interface BrokerInput {
   name: string
   accountNumber?: string
   notes?: string
+  // Map of currency code to settlement account asset ID
+  settlementAccounts?: Record<string, string>
 }
 
 export interface BrokerResponse {
@@ -722,6 +725,34 @@ export interface BrokerResponse {
 
 export interface BrokersResponse {
   data: Broker[]
+}
+
+/**
+ * Settlement account mapping for a broker (currency -> account).
+ */
+export interface SettlementAccountMapping {
+  currencyCode: string
+  accountId: string
+  accountName?: string
+}
+
+/**
+ * Broker with settlement accounts for API responses.
+ */
+export interface BrokerWithAccounts {
+  id: string
+  name: string
+  accountNumber?: string
+  notes?: string
+  settlementAccounts: SettlementAccountMapping[]
+}
+
+export interface BrokerWithAccountsResponse {
+  data: BrokerWithAccounts
+}
+
+export interface BrokersWithAccountsResponse {
+  data: BrokerWithAccounts[]
 }
 
 /**

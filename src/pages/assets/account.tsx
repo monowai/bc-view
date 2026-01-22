@@ -394,14 +394,8 @@ export default withPageAuthRequired(
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     {watch("category")?.value === "PENSION"
-                      ? t(
-                          "payout.payoutAge.hint",
-                          "Age when withdrawals begin",
-                        )
-                      : t(
-                          "payout.maturityAge.hint",
-                          "Age when policy matures",
-                        )}
+                      ? t("payout.payoutAge.hint", "Age when withdrawals begin")
+                      : t("payout.maturityAge.hint", "Age when policy matures")}
                   </p>
                 </div>
 
@@ -418,10 +412,7 @@ export default withPageAuthRequired(
                     placeholder={t("optional", "Optional")}
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    {t(
-                      "payout.monthlyPayout.hint",
-                      "Expected monthly income",
-                    )}
+                    {t("payout.monthlyPayout.hint", "Expected monthly income")}
                   </p>
                 </div>
 
@@ -439,10 +430,7 @@ export default withPageAuthRequired(
                     {t("payout.lumpSum", "Includes Lump Sum")}
                   </label>
                   <p className="ml-2 text-xs text-gray-500">
-                    {t(
-                      "payout.lumpSum.hint",
-                      "One-time payout at maturity",
-                    )}
+                    {t("payout.lumpSum.hint", "One-time payout at maturity")}
                   </p>
                 </div>
               </div>
