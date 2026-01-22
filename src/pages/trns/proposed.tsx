@@ -22,7 +22,10 @@ interface ProposedTransaction extends Transaction {
 const getToday = (): string => new Date().toISOString().split("T")[0]
 
 // Get display code for an asset, stripping owner ID prefix for private assets
-const getAssetDisplayCode = (asset: { code: string; market: { code: string } }): string => {
+const getAssetDisplayCode = (asset: {
+  code: string
+  market: { code: string }
+}): string => {
   if (asset.market.code === "PRIVATE" && asset.code.includes(".")) {
     return asset.code.split(".").slice(1).join(".")
   }
@@ -112,7 +115,9 @@ export default function ProposedTransactions(): React.JSX.Element {
       const portfolioCompare = a.portfolio.code.localeCompare(b.portfolio.code)
       if (portfolioCompare !== 0) return portfolioCompare
       // Then by asset code (using display code to sort by visible name)
-      return getAssetDisplayCode(a.asset).localeCompare(getAssetDisplayCode(b.asset))
+      return getAssetDisplayCode(a.asset).localeCompare(
+        getAssetDisplayCode(b.asset),
+      )
     })
     setTransactions(
       sorted.map((trn) => ({
@@ -512,9 +517,7 @@ export default function ProposedTransactions(): React.JSX.Element {
                       </td>
                       <td className="px-2 py-1.5 whitespace-nowrap text-center">
                         <button
-                          onClick={() =>
-                            handleEdit(trn.portfolio.id, trn.id)
-                          }
+                          onClick={() => handleEdit(trn.portfolio.id, trn.id)}
                           className="text-blue-500 hover:text-blue-700 p-1 mr-1"
                           title="Edit transaction"
                         >

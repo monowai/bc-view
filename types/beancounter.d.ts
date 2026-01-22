@@ -25,6 +25,7 @@ export interface QuickSellData {
   price: number
   type?: "BUY" | "SELL"
   currentPositionQuantity?: number // For rebalance: the current position size
+  held?: Record<string, number> // Broker name -> quantity for broker selection
 }
 
 export interface RebalanceData {
@@ -161,6 +162,7 @@ export interface Position {
   dateValues: DateValues
   lastTradeDate: string
   roi: number
+  held?: Record<string, number> // Broker name -> quantity held
 }
 
 export interface DateValues {

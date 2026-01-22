@@ -100,6 +100,7 @@ interface ActionsMenuProps {
   costBasis: number
   tradeCurrency: { code: string; symbol: string; name: string }
   valueIn: string
+  held?: Record<string, number> // Broker name -> quantity for QuickSell
   onQuickSell?: (data: QuickSellData) => void
   onCorporateActions?: (data: CorporateActionsData) => void
   onSetPrice?: (data: SetPriceData) => void
@@ -117,6 +118,7 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
   price,
   costBasis,
   tradeCurrency,
+  held,
   onQuickSell,
   onCorporateActions,
   onSetPrice,
@@ -155,7 +157,7 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
         <i className="fas fa-ellipsis-vertical text-xs"></i>
       </button>
       {isOpen && (
-        <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200">
+        <div className="absolute left-0 mt-1 w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200">
           <div className="py-1">
             {onQuickSell && (
               <button
@@ -169,6 +171,7 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
                     market: asset.market.code,
                     quantity,
                     price,
+                    held,
                   })
                 }}
               >
@@ -316,7 +319,7 @@ export default function Rows({
   return (
     <tbody>
       {holdingGroup.positions.map(
-        ({ asset, moneyValues, quantityValues, dateValues }, index) => (
+        ({ asset, moneyValues, quantityValues, dateValues, held }, index) => (
           <tr
             key={`${groupBy}-${valueIn}-${index}`}
             className="holding-row text-sm bg-white hover:!bg-slate-200 transition-colors duration-200 cursor-pointer"
@@ -368,6 +371,7 @@ export default function Rows({
                           moneyValues["TRADE"]?.currency || portfolio.currency
                         }
                         valueIn={valueIn}
+                        held={held}
                         onQuickSell={onQuickSell}
                         onCorporateActions={onCorporateActions}
                         onSetPrice={onSetPrice}
@@ -502,6 +506,20 @@ export default function Rows({
               {isCashRelated(asset) ||
               hideValue(moneyValues[valueIn].priceData) ? (
                 " "
+              ) : held && Object.keys(held).length > 1 ? (
+                <span className="relative group cursor-help">
+                  <PrivateQuantity
+                    value={quantityValues.total}
+                    precision={quantityValues.precision}
+                  />
+                  <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full mb-1 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap z-50">
+                    {Object.entries(held).map(([broker, qty]) => (
+                      <div key={broker}>
+                        {broker}: {qty.toLocaleString()}
+                      </div>
+                    ))}
+                  </span>
+                </span>
               ) : (
                 <PrivateQuantity
                   value={quantityValues.total}
