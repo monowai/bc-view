@@ -252,6 +252,116 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
   )
 }
 
+// Cash actions dropdown menu component
+interface CashActionsMenuProps {
+  asset: Asset
+  portfolio: { id: string; code: string }
+  marketValue: number
+  onSetCashBalance?: (data: SetCashBalanceData) => void
+  onCashTransfer?: (data: CashTransferData) => void
+  t: (key: string) => string
+}
+
+const CashActionsMenu: React.FC<CashActionsMenuProps> = ({
+  asset,
+  portfolio,
+  marketValue,
+  onSetCashBalance,
+  onCashTransfer,
+  t,
+}) => {
+  const [isOpen, setIsOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent): void => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  const assetCode = getAssetCode(asset.code)
+
+  return (
+    <div className="relative" ref={menuRef}>
+      <button
+        type="button"
+        aria-label={`${t("actions.menu")} ${assetCode}`}
+        className="inline-flex items-center justify-center w-6 h-6 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors duration-200"
+        onClick={(e) => {
+          e.stopPropagation()
+          setIsOpen(!isOpen)
+        }}
+        title={t("actions.menu")}
+      >
+        <i className="fas fa-ellipsis-vertical text-xs"></i>
+      </button>
+      {isOpen && (
+        <div className="absolute left-0 bottom-full mb-1 w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200">
+          <div className="py-1">
+            {onSetCashBalance && (
+              <button
+                type="button"
+                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setIsOpen(false)
+                  const isAccountAsset = isAccount(asset)
+                  onSetCashBalance({
+                    currency: isAccountAsset
+                      ? asset.priceSymbol ||
+                        asset.market.currency?.code ||
+                        asset.code
+                      : asset.code,
+                    currentBalance: marketValue,
+                    market: isAccountAsset ? "PRIVATE" : "CASH",
+                    assetCode: isAccountAsset ? asset.code : undefined,
+                    assetName: isAccountAsset ? asset.name : undefined,
+                  })
+                }}
+              >
+                <i className="fas fa-balance-scale text-purple-500 w-4"></i>
+                {t("cash.setBalance")}
+              </button>
+            )}
+            {onCashTransfer && (
+              <button
+                type="button"
+                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setIsOpen(false)
+                  const isAccountAsset = isAccount(asset)
+                  onCashTransfer({
+                    portfolioId: portfolio.id,
+                    portfolioCode: portfolio.code,
+                    assetId: asset.id,
+                    assetCode: asset.code,
+                    assetName: asset.name || asset.code,
+                    currency: isAccountAsset
+                      ? asset.priceSymbol ||
+                        asset.market.currency?.code ||
+                        asset.code
+                      : asset.code,
+                    currentBalance: marketValue,
+                  })
+                }}
+              >
+                <i className="fas fa-exchange-alt text-blue-500 w-4"></i>
+                {t("cash.transfer.title")}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Rows({
   portfolio,
   holdingGroup,
@@ -381,70 +491,24 @@ export default function Rows({
                       />
                     </div>
                   )}
-                {supportsBalanceSetting(asset) && onSetCashBalance && (
-                  <div className="hidden sm:flex items-center">
-                    <button
-                      type="button"
-                      aria-label={`${t("cash.setBalance")} ${asset.name}`}
-                      className="inline-flex items-center justify-center w-6 h-6 text-purple-500 hover:text-purple-700 hover:bg-purple-100 rounded transition-colors duration-200"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        // For accounts, pass market and asset info
-                        // For cash, use currency as asset code
-                        const isAccountAsset = isAccount(asset)
-                        onSetCashBalance({
-                          currency: isAccountAsset
-                            ? asset.priceSymbol ||
-                              asset.market.currency?.code ||
-                              asset.code
-                            : asset.code,
-                          currentBalance: moneyValues["TRADE"].marketValue,
-                          market: isAccountAsset ? "PRIVATE" : "CASH",
-                          assetCode: isAccountAsset ? asset.code : undefined,
-                          assetName: isAccountAsset ? asset.name : undefined,
-                        })
-                      }}
-                      title={t("cash.setBalance")}
-                    >
-                      <i className="fas fa-balance-scale text-xs"></i>
-                    </button>
-                  </div>
-                )}
-                {supportsBalanceSetting(asset) && onCashTransfer && (
-                  <div className="hidden sm:flex items-center">
-                    <button
-                      type="button"
-                      aria-label={`${t("cash.transfer.title")} ${asset.name}`}
-                      className="inline-flex items-center justify-center w-6 h-6 text-blue-500 hover:text-blue-700 hover:bg-blue-100 rounded transition-colors duration-200"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        // For accounts, currency comes from priceSymbol or market currency
-                        // For cash, the code IS the currency
-                        const isAccountAsset = isAccount(asset)
-                        onCashTransfer({
-                          portfolioId: portfolio.id,
-                          portfolioCode: portfolio.code,
-                          assetId: asset.id,
-                          assetCode: asset.code,
-                          assetName: asset.name || asset.code,
-                          currency: isAccountAsset
-                            ? asset.priceSymbol ||
-                              asset.market.currency?.code ||
-                              asset.code
-                            : asset.code,
-                          currentBalance: moneyValues["TRADE"].marketValue,
-                        })
-                      }}
-                      title={t("cash.transfer.title")}
-                    >
-                      <i className="fas fa-exchange-alt text-xs"></i>
-                    </button>
-                  </div>
-                )}
+                {supportsBalanceSetting(asset) &&
+                  (onSetCashBalance || onCashTransfer) && (
+                    <div className="hidden sm:flex items-center">
+                      <CashActionsMenu
+                        asset={asset}
+                        portfolio={portfolio}
+                        marketValue={moneyValues["TRADE"].marketValue}
+                        onSetCashBalance={onSetCashBalance}
+                        onCashTransfer={onCashTransfer}
+                        t={t}
+                      />
+                    </div>
+                  )}
               </div>
             </td>
             <td className={getCellClasses(0)}>
-              {hideValue(moneyValues[valueIn].priceData) ? (
+              {hideValue(moneyValues[valueIn].priceData) ||
+              !moneyValues[valueIn].priceData?.close ? (
                 " "
               ) : (
                 <span className="relative group">
@@ -452,7 +516,7 @@ export default function Rows({
                     {moneyValues[valueIn].currency.symbol}
                   </span>
                   <FormatValue
-                    value={moneyValues[valueIn].priceData?.close || " "}
+                    value={moneyValues[valueIn].priceData.close}
                     isPublic
                   />
                   <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full mb-1 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap z-50">

@@ -75,6 +75,6 @@ export interface HoldingDefaults {
   readonly isCostApproximate: boolean
   readonly hasInitialized: boolean
   setHasInitialized(value: boolean): void
-  readonly viewMode: "summary" | "table" | "cards" | "heatmap"
-  setViewMode(value: "summary" | "table" | "cards" | "heatmap"): void
+  readonly viewMode: "summary" | "table" | "cards" | "heatmap" | "income"
+  setViewMode(value: "summary" | "table" | "cards" | "heatmap" | "income"): void
 }
