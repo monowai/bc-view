@@ -43,7 +43,8 @@ const holdingDefaults = hookstate(
     valueIn: persistedState?.valueIn ?? null,
     groupBy: persistedState?.groupBy ?? null,
     displayCurrency: persistedState?.displayCurrency ?? null,
-  } as HoldingDefaults & { hasInitialized: boolean; viewMode: ViewMode },
+    incomePeriod: (persistedState?.incomePeriod as number) ?? 12,
+  } as HoldingDefaults & { hasInitialized: boolean; viewMode: ViewMode; incomePeriod: number },
   devtools({ key: "holdings" }),
 )
 
@@ -94,6 +95,8 @@ export function useHoldingState(): HoldingDefaults {
             state.displayCurrency.set(
               newState.displayCurrency as DisplayCurrencyOption,
             )
+          if (newState.incomePeriod !== undefined)
+            state.incomePeriod.set(newState.incomePeriod as number)
         } catch {
           // Ignore parse errors
         }
@@ -117,6 +120,7 @@ export function useHoldingState(): HoldingDefaults {
       valueIn: state.valueIn.get(),
       groupBy: state.groupBy.get(),
       displayCurrency: state.displayCurrency.get(),
+      incomePeriod: state.incomePeriod.get(),
     })
   }
 
@@ -180,6 +184,13 @@ export function useHoldingState(): HoldingDefaults {
     },
     setViewMode(value: ViewMode): void {
       state.viewMode.set(value)
+      saveState()
+    },
+    get incomePeriod(): number {
+      return state.incomePeriod.get() || 12
+    },
+    setIncomePeriod(value: number): void {
+      state.incomePeriod.set(value)
       saveState()
     },
   }
