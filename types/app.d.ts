@@ -77,4 +77,6 @@ export interface HoldingDefaults {
   setHasInitialized(value: boolean): void
   readonly viewMode: "summary" | "table" | "cards" | "heatmap" | "income"
   setViewMode(value: "summary" | "table" | "cards" | "heatmap" | "income"): void
+  readonly incomePeriod: number
+  setIncomePeriod(value: number): void
 }
