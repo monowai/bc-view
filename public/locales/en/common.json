@@ -267,6 +267,7 @@
   "category.RE.desc": "Real estate properties and land. Set periodic valuations to track property appreciation over time.",
   "category.MUTUAL FUND.desc": "Unlisted mutual funds and unit trusts. Set prices manually as these don't have market data feeds.",
   "category.POLICY.desc": "Insurance policies with cash value such as whole life or endowment policies. Track surrender values over time.",
+  "category.PENSION.desc": "Pension/Retirement Schemes offered by governments or 3rd party providers",
   "category.icon.ACCOUNT": "fa-university",
   "category.icon.TRADE": "fa-exchange-alt",
   "category.icon.RE": "fa-home",

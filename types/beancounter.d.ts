@@ -614,7 +614,7 @@ export interface PrivateAssetConfig {
   expectedReturnRate?: number
   payoutAge?: number
   monthlyPayoutAmount?: number
-  lumpSumPayoutAmount?: number
+  lumpSum?: boolean
   isPension: boolean
   // Timestamps
   createdDate: string
@@ -641,7 +641,7 @@ export interface PrivateAssetConfigRequest {
   expectedReturnRate?: number
   payoutAge?: number
   monthlyPayoutAmount?: number
-  lumpSumPayoutAmount?: number
+  lumpSum?: boolean
   isPension?: boolean
 }
 
