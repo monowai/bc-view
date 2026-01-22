@@ -438,6 +438,12 @@ export default withPageAuthRequired(function Portfolios({
       0,
     )
 
+    // Calculate total gain on day with FX conversion
+    const totalGainOnDay = portfolios.reduce(
+      (sum, p) => sum + (p.gainOnDay || 0) * (fxRates[p.base.code] || 1),
+      0,
+    )
+
     const allSelected =
       portfolios.length > 0 && selectedPortfolios.size === portfolios.length
 
@@ -645,10 +651,23 @@ export default withPageAuthRequired(function Portfolios({
               <span className="font-semibold text-gray-700">
                 {t("portfolios.total")}
               </span>
-              <span className="text-xl font-bold text-gray-900">
-                {displayCurrency?.symbol}
-                <FormatValue value={totalMarketValue} />
-              </span>
+              <div className="text-right">
+                <span className="text-xl font-bold text-gray-900">
+                  {displayCurrency?.symbol}
+                  <FormatValue value={totalMarketValue} />
+                </span>
+                {totalGainOnDay !== 0 && (
+                  <div
+                    className={`text-sm font-semibold ${
+                      totalGainOnDay >= 0 ? "text-green-600" : "text-red-600"
+                    }`}
+                  >
+                    {totalGainOnDay >= 0 ? "+" : ""}
+                    {displayCurrency?.symbol}
+                    <FormatValue value={totalGainOnDay} />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -894,7 +913,23 @@ export default withPageAuthRequired(function Portfolios({
                     {displayCurrency?.symbol}
                     <FormatValue value={totalMarketValue} />
                   </td>
-                  <td colSpan={4}></td>
+                  <td className="px-4 py-3 text-right">
+                    {totalGainOnDay !== 0 ? (
+                      <span
+                        className={`font-bold text-lg ${
+                          totalGainOnDay >= 0
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        {totalGainOnDay >= 0 ? "+" : ""}
+                        <FormatValue value={totalGainOnDay} />
+                      </span>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
+                  </td>
+                  <td colSpan={3}></td>
                 </tr>
               </tfoot>
             </table>

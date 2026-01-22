@@ -57,7 +57,7 @@ interface AccountFormInput {
   expectedReturnRate?: string // Stored as percentage string (e.g., "5.0")
   payoutAge?: string
   monthlyPayoutAmount?: string
-  lumpSumPayoutAmount?: string // One-time payout at maturity (for insurance policies)
+  lumpSum?: boolean // Whether payout includes a lump sum at maturity
 }
 
 export default withPageAuthRequired(
@@ -201,9 +201,7 @@ export default withPageAuthRequired(
                         monthlyPayoutAmount: formData.monthlyPayoutAmount
                           ? parseFloat(formData.monthlyPayoutAmount)
                           : undefined,
-                        lumpSumPayoutAmount: formData.lumpSumPayoutAmount
-                          ? parseFloat(formData.lumpSumPayoutAmount)
-                          : undefined,
+                        lumpSum: formData.lumpSum ?? false,
                       }),
                     })
                   } catch (err) {
@@ -407,46 +405,45 @@ export default withPageAuthRequired(
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-gray-700 text-sm font-bold mb-2">
-                      {t("payout.monthlyPayout", "Monthly Payout")}
-                    </label>
-                    <input
-                      {...register("monthlyPayoutAmount")}
-                      type="number"
-                      step="100"
-                      min="0"
-                      className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                      placeholder={t("optional", "Optional")}
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      {t(
-                        "payout.monthlyPayout.hint",
-                        "Expected monthly income",
-                      )}
-                    </p>
-                  </div>
+                <div>
+                  <label className="block text-gray-700 text-sm font-bold mb-2">
+                    {t("payout.monthlyPayout", "Monthly Payout")}
+                  </label>
+                  <input
+                    {...register("monthlyPayoutAmount")}
+                    type="number"
+                    step="100"
+                    min="0"
+                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    placeholder={t("optional", "Optional")}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {t(
+                      "payout.monthlyPayout.hint",
+                      "Expected monthly income",
+                    )}
+                  </p>
+                </div>
 
-                  <div>
-                    <label className="block text-gray-700 text-sm font-bold mb-2">
-                      {t("payout.lumpSum", "Lump Sum Payout")}
-                    </label>
-                    <input
-                      {...register("lumpSumPayoutAmount")}
-                      type="number"
-                      step="1000"
-                      min="0"
-                      className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                      placeholder={t("optional", "Optional")}
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      {t(
-                        "payout.lumpSum.hint",
-                        "One-time payout at maturity",
-                      )}
-                    </p>
-                  </div>
+                <div className="flex items-center mt-4">
+                  <input
+                    {...register("lumpSum")}
+                    type="checkbox"
+                    id="lumpSum"
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <label
+                    htmlFor="lumpSum"
+                    className="ml-2 text-gray-700 text-sm font-bold"
+                  >
+                    {t("payout.lumpSum", "Includes Lump Sum")}
+                  </label>
+                  <p className="ml-2 text-xs text-gray-500">
+                    {t(
+                      "payout.lumpSum.hint",
+                      "One-time payout at maturity",
+                    )}
+                  </p>
                 </div>
               </div>
             </div>
