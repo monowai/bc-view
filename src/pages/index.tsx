@@ -85,7 +85,7 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
               <span className="text-gray-700">{displayName}</span>
             </h1>
             <p className="text-gray-500 text-lg">
-              Track, invest, and plan your financial future
+              Start anywhere. Everything connects.
             </p>
           </div>
         </div>
@@ -156,60 +156,24 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
                 <div className="mb-4">
                   <i className="fas fa-coins text-4xl text-white/90"></i>
                 </div>
-                <h2 className="text-2xl font-bold text-white mb-2">Wealth</h2>
+                <h2 className="text-2xl font-bold text-white mb-2">Manage Wealth</h2>
                 <p className="text-blue-100 text-sm mb-4">
-                  Track your complete net worth across all assets, currencies,
-                  and accounts in one place.
+                  What do I have? See net worth across brokers, assets and currencies
+                  in one place.
                 </p>
                 <ul className="text-blue-100 text-xs space-y-1">
                   <li>
                     <i className="fas fa-check mr-2"></i>Multi-currency
-                    valuations
                   </li>
                   <li>
-                    <i className="fas fa-check mr-2"></i>Automatic dividends
+                    <i className="fas fa-check mr-2"></i>Multi-broker
                   </li>
                   <li>
-                    <i className="fas fa-check mr-2"></i>Property & bank
-                    accounts
+                    <i className="fas fa-check mr-2"></i>Multi-asset
                   </li>
                 </ul>
                 <div className="mt-4 flex items-center text-white font-medium">
                   View Net Worth
-                  <i className="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
-                </div>
-              </div>
-            </Link>
-
-            {/* Invest - Green */}
-            <Link
-              href="/rebalance/models"
-              className="group relative overflow-hidden rounded-2xl bg-linear-to-br from-emerald-500 to-emerald-700 p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
-            >
-              <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white/10"></div>
-              <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-32 w-32 rounded-full bg-white/5"></div>
-              <div className="relative">
-                <div className="mb-4">
-                  <i className="fas fa-balance-scale text-4xl text-white/90"></i>
-                </div>
-                <h2 className="text-2xl font-bold text-white mb-2">Invest</h2>
-                <p className="text-emerald-100 text-sm mb-4">
-                  Define investment strategies with model portfolios and
-                  rebalance to maintain target allocations.
-                </p>
-                <ul className="text-emerald-100 text-xs space-y-1">
-                  <li>
-                    <i className="fas fa-check mr-2"></i>Model portfolios
-                  </li>
-                  <li>
-                    <i className="fas fa-check mr-2"></i>Target allocations
-                  </li>
-                  <li>
-                    <i className="fas fa-check mr-2"></i>Portfolio rebalancing
-                  </li>
-                </ul>
-                <div className="mt-4 flex items-center text-white font-medium">
-                  View Models
                   <i className="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
                 </div>
               </div>
@@ -227,11 +191,11 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
                   <i className="fas fa-umbrella-beach text-4xl text-white/90"></i>
                 </div>
                 <h2 className="text-2xl font-bold text-white mb-2">
-                  Independence
+                  Plan Independence
                 </h2>
                 <p className="text-orange-100 text-sm mb-4">
-                  Plan your financial independence with withdrawal strategies
-                  and see how long your money will last.
+                  What do I want? Plan your financial independence with withdrawal strategies
+                  and identify when work becomes optional.
                 </p>
                 <ul className="text-orange-100 text-xs space-y-1">
                   <li>
@@ -241,16 +205,54 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
                     <i className="fas fa-check mr-2"></i>Inflation modeling
                   </li>
                   <li>
-                    <i className="fas fa-check mr-2"></i>Longevity projections
+                    <i className="fas fa-check mr-2"></i>FIRE calculations
                   </li>
                 </ul>
                 <div className="mt-4 flex items-center text-white font-medium">
-                  Independence
+                  Independence Plans
+                  <i className="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+                </div>
+              </div>
+            </Link>
+
+            {/* Invest - Green */}
+            <Link
+              href="/rebalance/models"
+              className="group relative overflow-hidden rounded-2xl bg-linear-to-br from-emerald-500 to-emerald-700 p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+            >
+              <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white/10"></div>
+              <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-32 w-32 rounded-full bg-white/5"></div>
+              <div className="relative">
+                <div className="mb-4">
+                  <i className="fas fa-balance-scale text-4xl text-white/90"></i>
+                </div>
+                <h2 className="text-2xl font-bold text-white mb-2">Investment Strategy</h2>
+                <p className="text-emerald-100 text-sm mb-4">
+                  How will I get there? Turn goals and assets into coherent, rebalanceable investment strategies
+                </p>
+                <ul className="text-emerald-100 text-xs space-y-1">
+                  <li>
+                    <i className="fas fa-check mr-2"></i>Model portfolios
+                  </li>
+                  <li>
+                    <i className="fas fa-check mr-2"></i>Invest cash against models
+                  </li>
+                  <li>
+                    <i className="fas fa-check mr-2"></i>Rebalance portfolios to models
+                  </li>
+                </ul>
+                <div className="mt-4 flex items-center text-white font-medium">
+                  View Models
                   <i className="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
                 </div>
               </div>
             </Link>
           </div>
+
+          {/* Tagline */}
+          <p className="text-center text-gray-500 mt-8">
+            Confidence comes from connecting assets, goals, and strategy.
+          </p>
         </div>
       </div>
     )
