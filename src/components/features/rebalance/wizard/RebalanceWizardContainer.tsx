@@ -103,12 +103,12 @@ const RebalanceWizardContainer: React.FC<RebalanceWizardContainerProps> = ({
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        setError(errorData.message || "Failed to create plan")
+        setError(errorData.detail || errorData.message || "Failed to create plan")
         return
       }
 
       const result = await response.json()
-      router.push(`/rebalance/plans/${result.data.id}`)
+      await router.push(`/rebalance/plans/${result.data.id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create plan")
     } finally {
