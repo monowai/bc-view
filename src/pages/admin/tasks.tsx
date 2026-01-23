@@ -83,6 +83,14 @@ const SCHEDULED_TASKS: ScheduledTask[] = [
     hasFromDate: true,
     hasToDate: true,
   },
+  {
+    id: "revalue-portfolios",
+    name: "Revalue Portfolios",
+    description: "Revalue all portfolios that haven't been valued in the last 24 hours",
+    endpoint: "/api/admin/revalue-portfolios",
+    icon: "fa-sync-alt",
+    service: "svc-position",
+  },
 ]
 
 export default withPageAuthRequired(
@@ -254,7 +262,9 @@ export default withPageAuthRequired(
               </span>
               {service === "svc-data"
                 ? t("admin.tasks.dataService", "Market Data Service")
-                : t("admin.tasks.eventService", "Corporate Events Service")}
+                : service === "svc-event"
+                  ? t("admin.tasks.eventService", "Corporate Events Service")
+                  : t("admin.tasks.positionService", "Position Service")}
             </h2>
 
             <div className="space-y-4">

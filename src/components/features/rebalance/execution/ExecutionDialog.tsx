@@ -48,7 +48,7 @@ const ExecutionDialog: React.FC<ExecutionDialogProps> = ({
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        setError(errorData.message || "Failed to execute plan")
+        setError(errorData.detail || errorData.message || "Failed to execute plan")
         return
       }
 
