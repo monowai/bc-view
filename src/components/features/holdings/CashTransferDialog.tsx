@@ -98,12 +98,13 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
     return result
   }, [cashAssetsData, accountAssetsData, sourceData])
 
-  // Reset state when modal opens
+  // Reset state when modal opens - default amount to current balance (market value)
   useEffect(() => {
     if (modalOpen) {
       setStep("amounts")
-      setSentAmount("")
-      setReceivedAmount("")
+      const defaultAmount = String(sourceData.currentBalance)
+      setSentAmount(defaultAmount)
+      setReceivedAmount(defaultAmount)
       setTargetPortfolioId(sourceData.portfolioId)
       setTargetAssetId("")
       setIsSubmitting(false)
@@ -111,7 +112,7 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
       setSubmitSuccess(false)
       setDescription("")
     }
-  }, [modalOpen, sourceData.portfolioId])
+  }, [modalOpen, sourceData.portfolioId, sourceData.currentBalance])
 
   const parsedSentAmount = parseFloat(sentAmount) || 0
   const parsedReceivedAmount = parseFloat(receivedAmount) || 0
