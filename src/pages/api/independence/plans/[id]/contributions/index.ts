@@ -4,29 +4,27 @@ import handleResponse, { fetchError } from "@utils/api/responseWriter"
 import { getRetireUrl } from "@utils/api/bcConfig"
 import { NextApiRequest, NextApiResponse } from "next"
 
-export default withApiAuthRequired(async function expenses(
+export default withApiAuthRequired(async function contributions(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
   try {
     const { accessToken } = await getAccessToken(req, res)
     const { method, body, query } = req
-    const { id, phase } = query
-    // Build URL with optional phase query param
-    const baseUrl = getRetireUrl(`/plans/${id}/expenses`)
-    const expensesUrl = phase ? `${baseUrl}?phase=${phase}` : baseUrl
+    const { id } = query
+    const contributionsUrl = getRetireUrl(`/plans/${id}/contributions`)
 
     switch (method?.toUpperCase()) {
       case "GET": {
         const response = await fetch(
-          expensesUrl,
+          contributionsUrl,
           requestInit(accessToken, "GET", req),
         )
         await handleResponse(response, res)
         break
       }
       case "POST": {
-        const response = await fetch(expensesUrl, {
+        const response = await fetch(contributionsUrl, {
           ...requestInit(accessToken, "POST", req),
           body: JSON.stringify(body),
         })

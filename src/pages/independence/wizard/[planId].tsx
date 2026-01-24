@@ -11,17 +11,54 @@ import {
   WizardFormData,
   ManualAssets,
   LifeEvent,
+  PlanContributionsResponse,
+  ContributionFormEntry,
 } from "types/independence"
+
+interface WorkingExpensesResponse {
+  data: Array<{
+    categoryLabelId: string
+    categoryName: string
+    monthlyAmount: number
+  }>
+}
 
 function EditPlanWizard(): React.ReactElement {
   const router = useRouter()
   const { planId } = router.query
 
+  // Fetch plan with retirement expenses
   const { data, error, isLoading } = useSwr<PlanWithExpensesResponse>(
     planId ? `/api/independence/plans/${planId}/details` : null,
     planId ? simpleFetcher(`/api/independence/plans/${planId}/details`) : null,
     {
       // Always fetch fresh data when editing - avoid stale cache issues
+      revalidateOnMount: true,
+      dedupingInterval: 0,
+    },
+  )
+
+  // Fetch working expenses separately
+  const { data: workingExpensesData } = useSwr<WorkingExpensesResponse>(
+    planId ? `/api/independence/plans/${planId}/expenses?phase=WORKING` : null,
+    planId
+      ? simpleFetcher(
+          `/api/independence/plans/${planId}/expenses?phase=WORKING`,
+        )
+      : null,
+    {
+      revalidateOnMount: true,
+      dedupingInterval: 0,
+    },
+  )
+
+  // Fetch contributions separately
+  const { data: contributionsData } = useSwr<PlanContributionsResponse>(
+    planId ? `/api/independence/plans/${planId}/contributions` : null,
+    planId
+      ? simpleFetcher(`/api/independence/plans/${planId}/contributions`)
+      : null,
+    {
       revalidateOnMount: true,
       dedupingInterval: 0,
     },
@@ -56,6 +93,8 @@ function EditPlanWizard(): React.ReactElement {
   // Transform backend data to form format
   const plan = data.plan
   const expenses = data.expenses || []
+  const workingExpenses = workingExpensesData?.data || []
+  const contributions = contributionsData?.data || []
 
   // Parse manualAssets from JSON string if needed
   const parseManualAssets = (): ManualAssets => {
@@ -107,6 +146,12 @@ function EditPlanWizard(): React.ReactElement {
     targetRetirementAge,
     lifeExpectancy,
     expensesCurrency: plan.expensesCurrency || "NZD",
+    // Working expenses (categorized)
+    workingExpenses: workingExpenses.map((e) => ({
+      categoryLabelId: e.categoryLabelId,
+      categoryName: e.categoryName,
+      monthlyAmount: e.monthlyAmount,
+    })),
     workingIncomeMonthly: plan.workingIncomeMonthly || 0,
     workingExpensesMonthly: plan.workingExpensesMonthly || 0,
     taxesMonthly: plan.taxesMonthly || 0,
@@ -118,6 +163,7 @@ function EditPlanWizard(): React.ReactElement {
     pensionMonthly: plan.pensionMonthly || 0,
     socialSecurityMonthly: plan.socialSecurityMonthly || 0,
     otherIncomeMonthly: plan.otherIncomeMonthly || 0,
+    // Retirement expenses
     expenses: expenses.map((e) => ({
       categoryLabelId: e.categoryLabelId,
       categoryName: e.categoryName,
@@ -134,6 +180,15 @@ function EditPlanWizard(): React.ReactElement {
     selectedPortfolioIds: [],
     manualAssets: parseManualAssets(),
     lifeEvents: parseLifeEvents(),
+    // Contributions (pension/insurance)
+    contributions: contributions.map(
+      (c): ContributionFormEntry => ({
+        assetId: c.assetId,
+        assetName: c.assetName || c.assetId,
+        monthlyAmount: c.monthlyAmount,
+        contributionType: c.contributionType,
+      }),
+    ),
   }
 
   return (

@@ -6,6 +6,7 @@ interface CompleteStepProps {
   bankAccountCount: number
   propertyCount: number
   pensionCount: number
+  insuranceCount: number
   portfolioId: string | null
 }
 
@@ -14,6 +15,7 @@ const CompleteStep: React.FC<CompleteStepProps> = ({
   bankAccountCount,
   propertyCount,
   pensionCount,
+  insuranceCount,
 }) => {
   const { t } = useTranslation("onboarding")
 
@@ -70,6 +72,16 @@ const CompleteStep: React.FC<CompleteStepProps> = ({
               <span>
                 {t("complete.pensions", "{{count}} pension plan(s)", {
                   count: pensionCount,
+                })}
+              </span>
+            </li>
+          )}
+          {insuranceCount > 0 && (
+            <li className="flex items-center text-gray-700">
+              <i className="fas fa-shield-alt text-teal-500 w-6"></i>
+              <span>
+                {t("complete.insurances", "{{count}} insurance policy(ies)", {
+                  count: insuranceCount,
                 })}
               </span>
             </li>

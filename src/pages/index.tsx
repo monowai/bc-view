@@ -156,10 +156,12 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
                 <div className="mb-4">
                   <i className="fas fa-coins text-4xl text-white/90"></i>
                 </div>
-                <h2 className="text-2xl font-bold text-white mb-2">Manage Wealth</h2>
+                <h2 className="text-2xl font-bold text-white mb-2">
+                  Manage Wealth
+                </h2>
                 <p className="text-blue-100 text-sm mb-4">
-                  What do I have? See net worth across brokers, assets and currencies
-                  in one place.
+                  What do I have? See net worth across brokers, assets and
+                  currencies in one place.
                 </p>
                 <ul className="text-blue-100 text-xs space-y-1">
                   <li>
@@ -194,8 +196,8 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
                   Plan Independence
                 </h2>
                 <p className="text-orange-100 text-sm mb-4">
-                  What do I want? Plan your financial independence with withdrawal strategies
-                  and identify when work becomes optional.
+                  What do I want? Plan your financial independence with
+                  withdrawal strategies and identify when work becomes optional.
                 </p>
                 <ul className="text-orange-100 text-xs space-y-1">
                   <li>
@@ -226,19 +228,24 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
                 <div className="mb-4">
                   <i className="fas fa-balance-scale text-4xl text-white/90"></i>
                 </div>
-                <h2 className="text-2xl font-bold text-white mb-2">Investment Strategy</h2>
+                <h2 className="text-2xl font-bold text-white mb-2">
+                  Investment Strategy
+                </h2>
                 <p className="text-emerald-100 text-sm mb-4">
-                  How will I get there? Turn goals and assets into coherent, rebalanceable investment strategies
+                  How will I get there? Turn goals and assets into coherent,
+                  rebalanceable investment strategies
                 </p>
                 <ul className="text-emerald-100 text-xs space-y-1">
                   <li>
                     <i className="fas fa-check mr-2"></i>Model portfolios
                   </li>
                   <li>
-                    <i className="fas fa-check mr-2"></i>Invest cash against models
+                    <i className="fas fa-check mr-2"></i>Invest cash against
+                    models
                   </li>
                   <li>
-                    <i className="fas fa-check mr-2"></i>Rebalance portfolios to models
+                    <i className="fas fa-check mr-2"></i>Rebalance portfolios to
+                    models
                   </li>
                 </ul>
                 <div className="mt-4 flex items-center text-white font-medium">

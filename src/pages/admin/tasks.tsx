@@ -40,6 +40,37 @@ const getDefaultDates = (): TaskDates => {
 }
 
 const SCHEDULED_TASKS: ScheduledTask[] = [
+  // Position Service
+  {
+    id: "revalue-portfolios",
+    name: "Revalue Portfolios",
+    description:
+      "Revalue all portfolios that haven't been valued in the last 24 hours",
+    endpoint: "/api/admin/revalue-portfolios",
+    icon: "fa-sync-alt",
+    service: "svc-position",
+  },
+  // Corporate Events Service
+  {
+    id: "load-events",
+    name: "Load Corporate Events",
+    description: "Fetch new dividends and splits from external sources",
+    endpoint: "/api/admin/load-events",
+    icon: "fa-download",
+    service: "svc-event",
+    hasFromDate: true,
+  },
+  {
+    id: "process-events",
+    name: "Process Corporate Events",
+    description: "Generate transactions for pending corporate events",
+    endpoint: "/api/admin/process-events",
+    icon: "fa-cogs",
+    service: "svc-event",
+    hasFromDate: true,
+    hasToDate: true,
+  },
+  // Market Data Service
   {
     id: "refresh-prices",
     name: "Refresh Asset Prices",
@@ -63,33 +94,6 @@ const SCHEDULED_TASKS: ScheduledTask[] = [
     endpoint: "/api/admin/refresh-equity-classifications",
     icon: "fa-tags",
     service: "svc-data",
-  },
-  {
-    id: "load-events",
-    name: "Load Corporate Events",
-    description: "Fetch new dividends and splits from external sources",
-    endpoint: "/api/admin/load-events",
-    icon: "fa-download",
-    service: "svc-event",
-    hasFromDate: true,
-  },
-  {
-    id: "process-events",
-    name: "Process Corporate Events",
-    description: "Generate transactions for pending corporate events",
-    endpoint: "/api/admin/process-events",
-    icon: "fa-cogs",
-    service: "svc-event",
-    hasFromDate: true,
-    hasToDate: true,
-  },
-  {
-    id: "revalue-portfolios",
-    name: "Revalue Portfolios",
-    description: "Revalue all portfolios that haven't been valued in the last 24 hours",
-    endpoint: "/api/admin/revalue-portfolios",
-    icon: "fa-sync-alt",
-    service: "svc-position",
   },
 ]
 

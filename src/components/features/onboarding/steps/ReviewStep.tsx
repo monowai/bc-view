@@ -4,6 +4,7 @@ import {
   BankAccount,
   Property,
   Pension,
+  Insurance,
 } from "@components/features/onboarding/OnboardingWizard"
 
 interface ReviewStepProps {
@@ -11,9 +12,11 @@ interface ReviewStepProps {
   bankAccounts: BankAccount[]
   properties: Property[]
   pensions: Pension[]
+  insurances: Insurance[]
   onRemoveBankAccount: (index: number) => void
   onRemoveProperty: (index: number) => void
   onRemovePension: (index: number) => void
+  onRemoveInsurance: (index: number) => void
 }
 
 const ReviewStep: React.FC<ReviewStepProps> = ({
@@ -21,14 +24,19 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
   bankAccounts,
   properties,
   pensions,
+  insurances,
   onRemoveBankAccount,
   onRemoveProperty,
   onRemovePension,
+  onRemoveInsurance,
 }) => {
   const { t } = useTranslation("onboarding")
 
   const hasAssets =
-    bankAccounts.length > 0 || properties.length > 0 || pensions.length > 0
+    bankAccounts.length > 0 ||
+    properties.length > 0 ||
+    pensions.length > 0 ||
+    insurances.length > 0
 
   const formatCurrency = (
     amount: number | undefined,
@@ -209,6 +217,11 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
                       <tr key={index} className="hover:bg-gray-100">
                         <td className="px-4 py-3 text-sm text-gray-900">
                           {pension.name}
+                          {pension.lumpSum && (
+                            <span className="ml-2 text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">
+                              lump sum
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600">
                           {pension.currency}
@@ -223,6 +236,81 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
                           <button
                             type="button"
                             onClick={() => onRemovePension(index)}
+                            className="text-red-500 hover:text-red-700"
+                            title={t("review.remove", "Remove")}
+                          >
+                            <i className="fas fa-trash-alt"></i>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Life Insurance */}
+          {insurances.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+                <i className="fas fa-shield-alt text-teal-500 mr-2"></i>
+                {t("review.insurances", "Life Insurance")}
+              </h3>
+              <div className="bg-gray-50 rounded-lg overflow-hidden">
+                <table className="min-w-full">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                        {t("review.name", "Name")}
+                      </th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                        {t("review.currency", "Currency")}
+                      </th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
+                        {t("review.cashValue", "Cash Value")}
+                      </th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
+                        {t("review.payout", "Payout")}
+                      </th>
+                      <th className="px-4 py-2 w-10"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {insurances.map((insurance, index) => (
+                      <tr key={index} className="hover:bg-gray-100">
+                        <td className="px-4 py-3 text-sm text-gray-900">
+                          {insurance.name}
+                          {insurance.lumpSum && (
+                            <span className="ml-2 text-xs bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded">
+                              lump sum
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600">
+                          {insurance.currency}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-900 text-right">
+                          {formatCurrency(
+                            insurance.currentValue,
+                            insurance.currency,
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-900 text-right">
+                          {formatCurrency(
+                            insurance.payoutAmount,
+                            insurance.currency,
+                          )}
+                          {insurance.payoutAge && (
+                            <span className="text-gray-500 ml-1">
+                              @ {insurance.payoutAge}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <button
+                            type="button"
+                            onClick={() => onRemoveInsurance(index)}
                             className="text-red-500 hover:text-red-700"
                             title={t("review.remove", "Remove")}
                           >

@@ -1,17 +1,20 @@
 import React, { useState } from "react"
 import { useTranslation } from "next-i18next"
-import { BankAccount, Property, Pension } from "../OnboardingWizard"
+import { BankAccount, Property, Pension, Insurance } from "../OnboardingWizard"
+import MathInput from "@components/ui/MathInput"
 
-type AssetType = "bank" | "property" | "pension" | null
+type AssetType = "bank" | "property" | "pension" | "insurance" | null
 
 interface AssetsStepProps {
   baseCurrency: string
   bankAccounts: BankAccount[]
   properties: Property[]
   pensions: Pension[]
+  insurances: Insurance[]
   onBankAccountsChange: (accounts: BankAccount[]) => void
   onPropertiesChange: (properties: Property[]) => void
   onPensionsChange: (pensions: Pension[]) => void
+  onInsurancesChange: (insurances: Insurance[]) => void
 }
 
 const CURRENCIES = ["NZD", "USD", "AUD", "GBP", "EUR", "SGD", "CAD", "JPY"]
@@ -21,9 +24,11 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
   bankAccounts,
   properties,
   pensions,
+  insurances,
   onBankAccountsChange,
   onPropertiesChange,
   onPensionsChange,
+  onInsurancesChange,
 }) => {
   const { t } = useTranslation("onboarding")
   const [selectedType, setSelectedType] = useState<AssetType>(null)
@@ -47,6 +52,18 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
     expectedReturnRate: 0.05,
     payoutAge: undefined,
     monthlyPayoutAmount: undefined,
+    lumpSum: false,
+    monthlyContribution: undefined,
+  })
+  const [newInsurance, setNewInsurance] = useState<Insurance>({
+    name: "",
+    currency: baseCurrency,
+    currentValue: undefined,
+    expectedReturnRate: 0.03,
+    payoutAge: undefined,
+    payoutAmount: undefined,
+    lumpSum: true, // Default to lump sum for life insurance
+    monthlyContribution: undefined,
   })
 
   const resetForms = (): void => {
@@ -64,6 +81,18 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
       expectedReturnRate: 0.05,
       payoutAge: undefined,
       monthlyPayoutAmount: undefined,
+      lumpSum: false,
+      monthlyContribution: undefined,
+    })
+    setNewInsurance({
+      name: "",
+      currency: baseCurrency,
+      currentValue: undefined,
+      expectedReturnRate: 0.03,
+      payoutAge: undefined,
+      payoutAmount: undefined,
+      lumpSum: true,
+      monthlyContribution: undefined,
     })
   }
 
@@ -103,7 +132,23 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
     onPensionsChange(pensions.filter((_, i) => i !== index))
   }
 
-  const totalAssets = bankAccounts.length + properties.length + pensions.length
+  const addInsurance = (): void => {
+    if (newInsurance.name.trim()) {
+      onInsurancesChange([...insurances, { ...newInsurance }])
+      resetForms()
+      setSelectedType(null)
+    }
+  }
+
+  const removeInsurance = (index: number): void => {
+    onInsurancesChange(insurances.filter((_, i) => i !== index))
+  }
+
+  const totalAssets =
+    bankAccounts.length +
+    properties.length +
+    pensions.length +
+    insurances.length
 
   // Asset type cards configuration
   const assetTypes = [
@@ -118,16 +163,6 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
       ),
     },
     {
-      id: "property" as AssetType,
-      icon: "fa-home",
-      color: "green",
-      title: t("assets.type.property", "Property"),
-      description: t(
-        "assets.type.property.desc",
-        "Add real estate like your home or investment properties. Track value appreciation over time.",
-      ),
-    },
-    {
       id: "pension" as AssetType,
       icon: "fa-piggy-bank",
       color: "purple",
@@ -135,6 +170,26 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
       description: t(
         "assets.type.pension.desc",
         "Workplace pensions, 401k, or retirement funds. Set payout age and expected income for retirement planning.",
+      ),
+    },
+    {
+      id: "insurance" as AssetType,
+      icon: "fa-shield-alt",
+      color: "teal",
+      title: t("assets.type.insurance", "Life Insurance"),
+      description: t(
+        "assets.type.insurance.desc",
+        "Life insurance policies with cash value or payout amounts. Track for estate planning and financial independence.",
+      ),
+    },
+    {
+      id: "property" as AssetType,
+      icon: "fa-home",
+      color: "green",
+      title: t("assets.type.property", "Property"),
+      description: t(
+        "assets.type.property.desc",
+        "Add real estate like your home or investment properties. Track value appreciation over time.",
       ),
     },
   ]
@@ -162,6 +217,12 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
         text: "text-purple-500",
         hover: "hover:border-purple-300",
       },
+      teal: {
+        bg: isSelected ? "bg-teal-50" : "bg-white",
+        border: isSelected ? "border-teal-500" : "border-gray-200",
+        text: "text-teal-500",
+        hover: "hover:border-teal-300",
+      },
     }
     return `${colors[color].bg} ${colors[color].border} ${colors[color].hover}`
   }
@@ -171,6 +232,7 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
       blue: "text-blue-500",
       green: "text-green-500",
       purple: "text-purple-500",
+      teal: "text-teal-500",
     }
     return colors[color]
   }
@@ -262,12 +324,45 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                   {pension.payoutAge && (
                     <span className="text-purple-600 ml-2 text-sm">
                       @ age {pension.payoutAge}
+                      {pension.lumpSum && " (lump sum)"}
                     </span>
                   )}
                 </div>
                 <button
                   type="button"
                   onClick={() => removePension(index)}
+                  className="text-red-500 hover:text-red-700 px-2"
+                >
+                  <i className="fas fa-times"></i>
+                </button>
+              </div>
+            ))}
+            {insurances.map((insurance, index) => (
+              <div
+                key={`insurance-${index}`}
+                className="flex items-center justify-between bg-white rounded p-2 border border-gray-200"
+              >
+                <div className="flex items-center">
+                  <i className="fas fa-shield-alt text-teal-500 w-6"></i>
+                  <span className="font-medium">{insurance.name}</span>
+                  <span className="text-gray-500 ml-2">
+                    ({insurance.currency})
+                  </span>
+                  {insurance.currentValue && (
+                    <span className="text-gray-600 ml-2">
+                      {insurance.currentValue.toLocaleString()}
+                    </span>
+                  )}
+                  {insurance.payoutAge && (
+                    <span className="text-teal-600 ml-2 text-sm">
+                      @ age {insurance.payoutAge}
+                      {insurance.lumpSum && " (lump sum)"}
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeInsurance(index)}
                   className="text-red-500 hover:text-red-700 px-2"
                 >
                   <i className="fas fa-times"></i>
@@ -362,15 +457,12 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {t("assets.form.balance", "Current Balance")}
                 </label>
-                <input
-                  type="number"
-                  value={newAccount.balance || ""}
-                  onChange={(e) =>
+                <MathInput
+                  value={newAccount.balance}
+                  onChange={(value) =>
                     setNewAccount({
                       ...newAccount,
-                      balance: e.target.value
-                        ? Number(e.target.value)
-                        : undefined,
+                      balance: value || undefined,
                     })
                   }
                   placeholder={t("assets.form.optional", "Optional")}
@@ -456,13 +548,12 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                   {t("assets.form.property.purchasePrice", "Purchase Price")} (
                   {baseCurrency})
                 </label>
-                <input
-                  type="number"
-                  value={newProperty.price || ""}
-                  onChange={(e) =>
+                <MathInput
+                  value={newProperty.price}
+                  onChange={(value) =>
                     setNewProperty({
                       ...newProperty,
-                      price: Number(e.target.value) || 0,
+                      price: value || 0,
                     })
                   }
                   placeholder="0"
@@ -475,13 +566,12 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                 {t("assets.form.property.currentValue", "Current Value")} (
                 {baseCurrency})
               </label>
-              <input
-                type="number"
-                value={newProperty.value || ""}
-                onChange={(e) =>
+              <MathInput
+                value={newProperty.value}
+                onChange={(value) =>
                   setNewProperty({
                     ...newProperty,
-                    value: e.target.value ? Number(e.target.value) : undefined,
+                    value: value || undefined,
                   })
                 }
                 placeholder={t(
@@ -578,15 +668,12 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {t("assets.form.pension.balance", "Current Balance")}
                 </label>
-                <input
-                  type="number"
-                  value={newPension.balance || ""}
-                  onChange={(e) =>
+                <MathInput
+                  value={newPension.balance}
+                  onChange={(value) =>
                     setNewPension({
                       ...newPension,
-                      balance: e.target.value
-                        ? Number(e.target.value)
-                        : undefined,
+                      balance: value || undefined,
                     })
                   }
                   placeholder={t("assets.form.optional", "Optional")}
@@ -618,6 +705,67 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                 />
               </div>
             </div>
+
+            {/* Monthly Contribution */}
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                <i className="fas fa-calendar-alt text-purple-500 mr-2"></i>
+                {t("assets.form.pension.contribution", "Monthly Contribution")}
+              </label>
+              <div className="flex items-center">
+                <span className="text-gray-500 mr-2">
+                  {newPension.currency}
+                </span>
+                <MathInput
+                  value={newPension.monthlyContribution}
+                  onChange={(value) =>
+                    setNewPension({
+                      ...newPension,
+                      monthlyContribution: value || undefined,
+                    })
+                  }
+                  placeholder="0"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
+                />
+                <span className="text-gray-500 ml-2">/month</span>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                {t(
+                  "assets.form.pension.contributionHint",
+                  "Supports expressions: 12h/12 = 100, 1k*12 = 12000",
+                )}
+              </p>
+            </div>
+
+            {/* Lump Sum Toggle */}
+            <div className="flex items-center p-3 bg-purple-100 rounded-lg">
+              <input
+                type="checkbox"
+                id="pension-lump-sum"
+                checked={newPension.lumpSum || false}
+                onChange={(e) =>
+                  setNewPension({
+                    ...newPension,
+                    lumpSum: e.target.checked,
+                    // Clear monthly payout if switching to lump sum
+                    monthlyPayoutAmount: e.target.checked
+                      ? undefined
+                      : newPension.monthlyPayoutAmount,
+                  })
+                }
+                className="h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+              />
+              <label
+                htmlFor="pension-lump-sum"
+                className="ml-3 text-sm text-gray-700"
+              >
+                {t(
+                  "assets.form.pension.lumpSum",
+                  "Pays out in full (lump sum) rather than monthly",
+                )}
+              </label>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -647,31 +795,30 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                   )}
                 </p>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("assets.form.pension.monthlyPayout", "Monthly Payout")}
-                </label>
-                <input
-                  type="number"
-                  value={newPension.monthlyPayoutAmount || ""}
-                  onChange={(e) =>
-                    setNewPension({
-                      ...newPension,
-                      monthlyPayoutAmount: e.target.value
-                        ? Number(e.target.value)
-                        : undefined,
-                    })
-                  }
-                  placeholder={t("assets.form.optional", "Optional")}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  {t(
-                    "assets.form.pension.monthlyPayoutHint",
-                    "Expected monthly income at payout age",
-                  )}
-                </p>
-              </div>
+              {!newPension.lumpSum && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {t("assets.form.pension.monthlyPayout", "Monthly Payout")}
+                  </label>
+                  <MathInput
+                    value={newPension.monthlyPayoutAmount}
+                    onChange={(value) =>
+                      setNewPension({
+                        ...newPension,
+                        monthlyPayoutAmount: value || undefined,
+                      })
+                    }
+                    placeholder={t("assets.form.optional", "Optional")}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {t(
+                      "assets.form.pension.monthlyPayoutHint",
+                      "Expected monthly income at payout age",
+                    )}
+                  </p>
+                </div>
+              )}
             </div>
             <div className="flex justify-end gap-3 pt-2">
               <button
@@ -695,6 +842,292 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                 }`}
               >
                 {t("assets.form.savePension", "Save Pension")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Insurance Form */}
+      {selectedType === "insurance" && (
+        <div className="bg-teal-50 rounded-lg p-4 border border-teal-200">
+          <div className="flex items-center mb-4">
+            <i className="fas fa-shield-alt text-teal-500 text-xl mr-3"></i>
+            <h3 className="font-medium text-gray-900">
+              {t("assets.form.insurance.title", "Add Life Insurance")}
+            </h3>
+          </div>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t("assets.form.name", "Policy Name")}
+                </label>
+                <input
+                  type="text"
+                  value={newInsurance.name}
+                  onChange={(e) =>
+                    setNewInsurance({ ...newInsurance, name: e.target.value })
+                  }
+                  placeholder={t(
+                    "assets.form.insurance.namePlaceholder",
+                    "e.g., Term Life, Whole Life",
+                  )}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t("assets.form.currency", "Currency")}
+                </label>
+                <select
+                  value={newInsurance.currency}
+                  onChange={(e) =>
+                    setNewInsurance({
+                      ...newInsurance,
+                      currency: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                >
+                  {CURRENCIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t(
+                    "assets.form.insurance.currentValue",
+                    "Current Cash Value",
+                  )}
+                </label>
+                <MathInput
+                  value={newInsurance.currentValue}
+                  onChange={(value) =>
+                    setNewInsurance({
+                      ...newInsurance,
+                      currentValue: value || undefined,
+                    })
+                  }
+                  placeholder={t("assets.form.optional", "Optional")}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  {t(
+                    "assets.form.insurance.currentValueHint",
+                    "Cash surrender value if applicable",
+                  )}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t("assets.form.insurance.returnRate", "Growth Rate %")}
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={
+                    newInsurance.expectedReturnRate
+                      ? (newInsurance.expectedReturnRate * 100).toFixed(1)
+                      : ""
+                  }
+                  onChange={(e) =>
+                    setNewInsurance({
+                      ...newInsurance,
+                      expectedReturnRate: e.target.value
+                        ? Number(e.target.value) / 100
+                        : undefined,
+                    })
+                  }
+                  placeholder="3.0"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  {t(
+                    "assets.form.insurance.returnRateHint",
+                    "Used to project payout value at maturity",
+                  )}
+                </p>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t("assets.form.insurance.payoutAge", "Maturity Age")}
+              </label>
+              <input
+                type="number"
+                value={newInsurance.payoutAge || ""}
+                onChange={(e) =>
+                  setNewInsurance({
+                    ...newInsurance,
+                    payoutAge: e.target.value
+                      ? Number(e.target.value)
+                      : undefined,
+                  })
+                }
+                placeholder={t("assets.form.optional", "Optional")}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                {t(
+                  "assets.form.insurance.payoutAgeHint",
+                  "Age when policy matures and pays out",
+                )}
+              </p>
+            </div>
+
+            {/* Payout Type Selection */}
+            <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                {t(
+                  "assets.form.insurance.payoutType",
+                  "How does this policy pay out?",
+                )}
+              </label>
+              <div className="flex gap-4">
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    name="insurance-payout-type"
+                    checked={newInsurance.lumpSum === true}
+                    onChange={() =>
+                      setNewInsurance({
+                        ...newInsurance,
+                        lumpSum: true,
+                        payoutAmount: undefined,
+                      })
+                    }
+                    className="h-4 w-4 text-teal-600 border-gray-300 focus:ring-teal-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">
+                    {t(
+                      "assets.form.insurance.lumpSumOption",
+                      "Lump sum at maturity",
+                    )}
+                  </span>
+                </label>
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    name="insurance-payout-type"
+                    checked={newInsurance.lumpSum === false}
+                    onChange={() =>
+                      setNewInsurance({
+                        ...newInsurance,
+                        lumpSum: false,
+                      })
+                    }
+                    className="h-4 w-4 text-teal-600 border-gray-300 focus:ring-teal-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">
+                    {t(
+                      "assets.form.insurance.monthlyOption",
+                      "Monthly payments",
+                    )}
+                  </span>
+                </label>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                {newInsurance.lumpSum
+                  ? t(
+                      "assets.form.insurance.lumpSumHint",
+                      "Payout will be calculated based on current value and growth rate at maturity age.",
+                    )
+                  : t(
+                      "assets.form.insurance.monthlyHint",
+                      "Enter the expected monthly payment amount below.",
+                    )}
+              </p>
+            </div>
+
+            {/* Monthly Payout Amount - only shown when monthly is selected */}
+            {!newInsurance.lumpSum && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t(
+                    "assets.form.insurance.monthlyPayout",
+                    "Monthly Payout Amount",
+                  )}
+                </label>
+                <MathInput
+                  value={newInsurance.payoutAmount}
+                  onChange={(value) =>
+                    setNewInsurance({
+                      ...newInsurance,
+                      payoutAmount: value || undefined,
+                    })
+                  }
+                  placeholder={t("assets.form.optional", "Optional")}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  {t(
+                    "assets.form.insurance.monthlyPayoutHint",
+                    "Expected monthly income from this policy",
+                  )}
+                </p>
+              </div>
+            )}
+
+            {/* Monthly Premium/Contribution */}
+            <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                <i className="fas fa-calendar-alt text-teal-500 mr-2"></i>
+                {t("assets.form.insurance.contribution", "Monthly Premium")}
+              </label>
+              <div className="flex items-center">
+                <span className="text-gray-500 mr-2">
+                  {newInsurance.currency}
+                </span>
+                <MathInput
+                  value={newInsurance.monthlyContribution}
+                  onChange={(value) =>
+                    setNewInsurance({
+                      ...newInsurance,
+                      monthlyContribution: value || undefined,
+                    })
+                  }
+                  placeholder="0"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
+                />
+                <span className="text-gray-500 ml-2">/month</span>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                {t(
+                  "assets.form.insurance.contributionHint",
+                  "Supports expressions: 12h/12 = 100, 1k*12 = 12000",
+                )}
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  resetForms()
+                  setSelectedType(null)
+                }}
+                className="px-4 py-2 text-gray-700 hover:text-gray-900"
+              >
+                {t("cancel", "Cancel")}
+              </button>
+              <button
+                type="button"
+                onClick={addInsurance}
+                disabled={!newInsurance.name.trim()}
+                className={`px-4 py-2 rounded-lg text-white font-medium transition-colors ${
+                  newInsurance.name.trim()
+                    ? "bg-teal-500 hover:bg-teal-600"
+                    : "bg-gray-300 cursor-not-allowed"
+                }`}
+              >
+                {t("assets.form.saveInsurance", "Save Insurance")}
               </button>
             </div>
           </div>

@@ -23,7 +23,12 @@ import {
 import InfoTooltip from "@components/ui/Tooltip"
 import { simpleFetcher, portfoliosKey } from "@utils/api/fetchHelper"
 import { PlanResponse, QuickScenariosResponse } from "types/independence"
-import { Portfolio, HoldingContract, FxResponse } from "types/beancounter"
+import {
+  Portfolio,
+  HoldingContract,
+  FxResponse,
+  Position,
+} from "types/beancounter"
 import {
   transformToAllocationSlices,
   AllocationSlice,
@@ -133,6 +138,17 @@ interface PortfoliosResponse {
   data: Portfolio[]
 }
 
+// Pension/Policy FV projection for Assets tab
+interface PensionProjection {
+  assetId: string
+  assetName: string
+  currentValue: number
+  projectedValue: number
+  payoutAge: number
+  currency: string
+  category: string // Report category for toggle matching
+}
+
 function PlanView(): React.ReactElement {
   const { t } = useTranslation("common")
   const router = useRouter()
@@ -171,6 +187,11 @@ function PlanView(): React.ReactElement {
   const [timelineViewMode, setTimelineViewMode] = useState<
     "traditional" | "fire"
   >("traditional")
+
+  // Pension/Policy FV projections for Assets tab
+  const [pensionProjections, setPensionProjections] = useState<
+    PensionProjection[]
+  >([])
 
   const { data: planData, error: planError } = useSwr<PlanResponse>(
     id ? `/api/independence/plans/${id}` : null,
@@ -439,6 +460,23 @@ function PlanView(): React.ReactElement {
   // Determine if assets are loaded (for enabling asset-dependent tabs)
   const hasAssets = liquidAssets > 0 || nonSpendableAssets > 0
 
+  // Calculate FV adjustment for pension/policy assets based on category selection
+  // When a pension/policy category is excluded, we need to subtract its FV (not just current value)
+  // from the backend's liquidAssetsAtRetirement
+  const excludedPensionFV = useMemo(() => {
+    return pensionProjections
+      .filter((p) => !effectiveSpendableCategories.includes(p.category))
+      .reduce((sum, p) => sum + p.projectedValue, 0)
+  }, [pensionProjections, effectiveSpendableCategories])
+
+  // Calculate the FV differential for included pension/policy assets
+  // This is (FV - currentValue) which represents growth to be added
+  const includedPensionFvDifferential = useMemo(() => {
+    return pensionProjections
+      .filter((p) => effectiveSpendableCategories.includes(p.category))
+      .reduce((sum, p) => sum + (p.projectedValue - p.currentValue), 0)
+  }, [pensionProjections, effectiveSpendableCategories])
+
   // Default expected return rate for assets without a configured rate (3%)
   const DEFAULT_EXPECTED_RETURN = 0.03
 
@@ -525,6 +563,108 @@ function PlanView(): React.ReactElement {
   const retirementAge = plan?.planningHorizonYears
     ? lifeExpectancy - plan.planningHorizonYears
     : 65
+
+  // Identify pension/policy assets with lump sum settings for FV projection
+  const lumpSumAssets = useMemo(() => {
+    if (!assetConfigs || !holdingsData?.positions) return []
+    const positions = Object.values(holdingsData.positions) as Position[]
+    return assetConfigs
+      .filter((config) => config.isPension && config.lumpSum)
+      .map((config) => {
+        // Find matching position to get current market value and category
+        const position = positions.find((p) => p.asset.id === config.assetId)
+        const moneyValues = position?.moneyValues?.[ValueIn.PORTFOLIO]
+        const category =
+          position?.asset.effectiveReportCategory ||
+          position?.asset.assetCategory?.name ||
+          "Policy"
+        return {
+          config,
+          assetName: position?.asset.name || config.assetId,
+          currentValue: moneyValues?.marketValue || 0,
+          category,
+        }
+      })
+      .filter((item) => item.currentValue > 0) // Only include assets with value
+  }, [assetConfigs, holdingsData])
+
+  // Fetch FV projections for lump sum pension/policy assets
+  useEffect(() => {
+    const fetchPensionProjections = async (): Promise<void> => {
+      if (!lumpSumAssets.length || currentAge === undefined) {
+        setPensionProjections([])
+        return
+      }
+
+      const projections: PensionProjection[] = []
+
+      for (const asset of lumpSumAssets) {
+        const { config, assetName, currentValue, category } = asset
+
+        // Skip if missing required fields
+        if (!config.payoutAge || !config.expectedReturnRate) {
+          continue
+        }
+
+        // If payout age is already reached, projected = current
+        if (currentAge >= config.payoutAge) {
+          projections.push({
+            assetId: config.assetId,
+            assetName,
+            currentValue,
+            projectedValue: currentValue,
+            payoutAge: config.payoutAge,
+            currency: config.rentalCurrency || planCurrency,
+            category,
+          })
+          continue
+        }
+
+        try {
+          const response = await fetch("/api/projection/lump-sum", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              monthlyContribution: config.monthlyContribution || 0,
+              expectedReturnRate: config.expectedReturnRate,
+              currentAge: currentAge,
+              payoutAge: config.payoutAge,
+            }),
+          })
+
+          if (response.ok) {
+            const data = await response.json()
+            // FV = current value grown + contribution FV
+            const yearsToMaturity = config.payoutAge - currentAge
+            const grownCurrentValue =
+              currentValue *
+              Math.pow(1 + config.expectedReturnRate, yearsToMaturity)
+            const contributionFV = data.data?.projectedPayout || 0
+            const totalProjected = grownCurrentValue + contributionFV
+
+            projections.push({
+              assetId: config.assetId,
+              assetName,
+              currentValue,
+              projectedValue: totalProjected,
+              payoutAge: config.payoutAge,
+              currency: config.rentalCurrency || planCurrency,
+              category,
+            })
+          }
+        } catch (err) {
+          console.error(
+            `Failed to fetch projection for ${config.assetId}:`,
+            err,
+          )
+        }
+      }
+
+      setPensionProjections(projections)
+    }
+
+    fetchPensionProjections()
+  }, [lumpSumAssets, currentAge, planCurrency])
 
   // Calculate pre-retirement contributions (for passing to backend)
   // Uses scenarioOverrides.workingIncomeMonthly if user adjusted salary in What-If
@@ -1315,6 +1455,57 @@ function PlanView(): React.ReactElement {
                       ))}
                   </div>
 
+                  {/* Pension/Policy FV Projections */}
+                  {pensionProjections.length > 0 && (
+                    <div className="mt-4 border-t pt-4">
+                      <h3 className="text-sm font-medium text-gray-700 mb-3">
+                        <i className="fas fa-chart-line mr-2 text-purple-500"></i>
+                        Pension & Policy Projections
+                      </h3>
+                      <div className="space-y-2">
+                        {pensionProjections.map((projection) => (
+                          <div
+                            key={projection.assetId}
+                            className="p-3 rounded-lg border border-purple-200 bg-purple-50"
+                          >
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <div className="font-medium text-gray-800">
+                                  {projection.assetName}
+                                </div>
+                                <div className="text-xs text-purple-600 mt-1">
+                                  Payout at age {projection.payoutAge}
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-xs text-gray-500">
+                                  Current
+                                </div>
+                                <div
+                                  className={`text-sm ${hideValues ? "text-gray-400" : "text-gray-600"}`}
+                                >
+                                  {hideValues
+                                    ? HIDDEN_VALUE
+                                    : `${effectiveCurrency}${Math.round(projection.currentValue * effectiveFxRate).toLocaleString()}`}
+                                </div>
+                                <div className="text-xs text-purple-600 mt-2">
+                                  Projected
+                                </div>
+                                <div
+                                  className={`font-medium ${hideValues ? "text-gray-400" : "text-purple-700"}`}
+                                >
+                                  {hideValues
+                                    ? HIDDEN_VALUE
+                                    : `${effectiveCurrency}${Math.round(projection.projectedValue * effectiveFxRate).toLocaleString()}`}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Summary totals - use local values (reflects user's spendable category selections) */}
                   <div className="border-t pt-4 space-y-2">
                     <div className="flex justify-between text-sm">
@@ -1385,7 +1576,14 @@ function PlanView(): React.ReactElement {
                           ? HIDDEN_VALUE
                           : `${effectiveCurrency}${Math.round(
                               (displayProjection?.preRetirementAccumulation
-                                ?.liquidAssetsAtRetirement || liquidAssets) *
+                                ?.liquidAssetsAtRetirement
+                                ? // Backend projection available: subtract excluded pension FV
+                                  displayProjection.preRetirementAccumulation
+                                    .liquidAssetsAtRetirement -
+                                  excludedPensionFV
+                                : // No projection: add FV differential for included pensions
+                                  liquidAssets +
+                                  includedPensionFvDifferential) *
                                 effectiveFxRate,
                             ).toLocaleString()}`}
                       </span>
@@ -1527,31 +1725,54 @@ function PlanView(): React.ReactElement {
                       {/* Liquid Assets */}
                       <div className="p-4 bg-green-50 rounded-lg border border-green-200">
                         <div className="text-sm text-green-700 font-medium mb-1">
-                          Spendable at Independence
-                          {currentAge !== undefined && retirementAge && (
-                            <span className="font-normal text-green-600">
-                              {" "}
-                              (age {retirementAge},{" "}
-                              {retirementAge - currentAge > 0
-                                ? `${retirementAge - currentAge}yr`
-                                : "now"}
-                              )
-                            </span>
-                          )}
+                          Spendable Assets
                         </div>
-                        <div className="text-2xl font-bold text-green-800">
-                          {hideValues ? (
-                            HIDDEN_VALUE
-                          ) : (
-                            <>
-                              {effectiveCurrency}
-                              {Math.round(
-                                adjustedProjection.liquidAssets,
-                              ).toLocaleString()}
-                            </>
-                          )}
+                        {/* Current Value */}
+                        <div className="mb-2">
+                          <div className="text-xs text-green-600">Current</div>
+                          <div className="text-lg font-bold text-green-800">
+                            {hideValues ? (
+                              HIDDEN_VALUE
+                            ) : (
+                              <>
+                                {effectiveCurrency}
+                                {Math.round(
+                                  adjustedProjection.liquidAssets,
+                                ).toLocaleString()}
+                              </>
+                            )}
+                          </div>
                         </div>
-                        <div className="text-xs text-green-600 mt-1">
+                        {/* Projected at Independence */}
+                        {adjustedProjection.preRetirementAccumulation &&
+                          currentAge !== undefined &&
+                          retirementAge &&
+                          retirementAge > currentAge && (
+                            <div className="pt-2 border-t border-green-200">
+                              <div className="text-xs text-green-600">
+                                At Independence (age {retirementAge})
+                              </div>
+                              <div className="text-2xl font-bold text-green-800">
+                                {hideValues ? (
+                                  HIDDEN_VALUE
+                                ) : (
+                                  <>
+                                    {effectiveCurrency}
+                                    {Math.round(
+                                      adjustedProjection
+                                        .preRetirementAccumulation
+                                        .liquidAssetsAtRetirement -
+                                        excludedPensionFV,
+                                    ).toLocaleString()}
+                                  </>
+                                )}
+                              </div>
+                              <div className="text-xs text-green-500 mt-1">
+                                Includes contributions & policy payouts
+                              </div>
+                            </div>
+                          )}
+                        <div className="text-xs text-green-600 mt-2">
                           Used for FI Progress calculation
                         </div>
                       </div>
@@ -1696,6 +1917,41 @@ function PlanView(): React.ReactElement {
                             "dataMax",
                           ]}
                           allowDataOverflow={true}
+                          ticks={(() => {
+                            // Generate ticks that always include key ages
+                            const ages = fullJourneyData
+                              .map((d) => d.age)
+                              .filter((a): a is number => a !== undefined)
+                            if (ages.length === 0) return undefined
+                            const minAge = Math.min(...ages)
+                            const maxAge = Math.max(...ages)
+                            const range = maxAge - minAge
+                            const step = range <= 30 ? 5 : 10
+                            const ticks: number[] = []
+                            // Regular interval ticks
+                            for (
+                              let age = Math.ceil(minAge / step) * step;
+                              age <= maxAge;
+                              age += step
+                            ) {
+                              ticks.push(age)
+                            }
+                            // Always include retirement age
+                            if (
+                              retirementAge &&
+                              !ticks.includes(retirementAge)
+                            ) {
+                              ticks.push(retirementAge)
+                            }
+                            // Always include FI achievement age
+                            if (
+                              fiAchievementAge &&
+                              !ticks.includes(fiAchievementAge)
+                            ) {
+                              ticks.push(fiAchievementAge)
+                            }
+                            return ticks.sort((a, b) => a - b)
+                          })()}
                         />
                         <YAxis
                           tickFormatter={(value) =>

@@ -273,6 +273,8 @@ export interface YearlyAccumulation {
   contribution: number
   /** Investment growth for this year */
   investmentGrowth: number
+  /** Lump sum payout received this year (from maturing policies) */
+  lumpSumPayout?: number
   /** Balance at end of year */
   endingBalance: number
   /** Non-spendable asset value for this year */
@@ -291,6 +293,8 @@ export interface IncomeBreakdown {
   pension: number
   /** Pension income from pension assets (age-dependent payouts) */
   assetPensions?: number
+  /** Lump sum payout from policies that mature this year */
+  lumpSumPayout?: number
   /** Government benefits / Social Security (inflation-indexed) */
   socialSecurity: number
   /** Other income sources (not indexed) */
@@ -472,11 +476,46 @@ export interface ScenarioComparison {
   scenarios: ScenarioResult[]
 }
 
+// ============ Plan Contributions ============
+export type ContributionType = "PENSION" | "INSURANCE"
+
+export interface PlanContribution {
+  id: string
+  planId: string
+  assetId: string
+  assetName?: string
+  monthlyAmount: number
+  currency: string
+  contributionType: ContributionType
+  createdDate: string
+  updatedDate: string
+}
+
+export interface PlanContributionRequest {
+  assetId: string
+  assetName?: string
+  monthlyAmount: number
+  currency?: string
+  contributionType: string
+}
+
+export interface PlanContributionsResponse {
+  data: PlanContribution[]
+  totalMonthlyContributions: number
+}
+
 // ============ Wizard Form State ============
 export interface ExpenseFormEntry {
   categoryLabelId: string
   categoryName: string
   monthlyAmount: number
+}
+
+export interface ContributionFormEntry {
+  assetId: string
+  assetName: string
+  monthlyAmount: number
+  contributionType: ContributionType
 }
 
 export interface WizardFormData {
@@ -486,9 +525,12 @@ export interface WizardFormData {
   targetRetirementAge: number
   lifeExpectancy: number
 
-  // Step 2: Pre-Retirement (working years)
+  // Step 2: Working Expenses (categorized expenses during working years)
+  workingExpenses: ExpenseFormEntry[]
+
+  // Step 3: Pre-Retirement (working years)
   workingIncomeMonthly: number
-  workingExpensesMonthly: number
+  workingExpensesMonthly: number // Computed from workingExpenses sum
   taxesMonthly: number
   bonusMonthly: number
   investmentAllocationPercent: number // Stored as percentage (e.g., 80 for 80%)
@@ -521,6 +563,9 @@ export interface WizardFormData {
 
   // Life Events (one-off income/expense at specific ages)
   lifeEvents: LifeEvent[]
+
+  // Pension/Insurance Contributions
+  contributions: ContributionFormEntry[]
 }
 
 // ============ Import/Export ============
