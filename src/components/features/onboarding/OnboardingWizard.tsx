@@ -35,6 +35,19 @@ export interface Pension {
   expectedReturnRate?: number
   payoutAge?: number
   monthlyPayoutAmount?: number
+  lumpSum?: boolean // If true, pays out in full rather than monthly
+  monthlyContribution?: number // Regular contribution amount
+}
+
+export interface Insurance {
+  name: string
+  currency: string
+  currentValue?: number
+  expectedReturnRate?: number
+  payoutAge?: number
+  payoutAmount?: number
+  lumpSum?: boolean // Life insurance typically pays out in full
+  monthlyContribution?: number // Premium/contribution amount
 }
 
 export interface OnboardingState {
@@ -44,6 +57,7 @@ export interface OnboardingState {
   bankAccounts: BankAccount[]
   properties: Property[]
   pensions: Pension[]
+  insurances: Insurance[]
 }
 
 const OnboardingWizard: React.FC = () => {
@@ -93,6 +107,7 @@ const OnboardingWizard: React.FC = () => {
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([])
   const [properties, setProperties] = useState<Property[]>([])
   const [pensions, setPensions] = useState<Pension[]>([])
+  const [insurances, setInsurances] = useState<Insurance[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [createdPortfolioId, setCreatedPortfolioId] = useState<string | null>(
@@ -123,6 +138,10 @@ const OnboardingWizard: React.FC = () => {
 
   const handleRemovePension = (index: number): void => {
     setPensions((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const handleRemoveInsurance = (index: number): void => {
+    setInsurances((prev) => prev.filter((_, i) => i !== index))
   }
 
   // Validation
@@ -336,9 +355,8 @@ const OnboardingWizard: React.FC = () => {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 assetId: asset.id,
-                marketCode: "PRIVATE",
-                priceDate: new Date().toISOString().split("T")[0],
-                close: currentValue,
+                date: new Date().toISOString().split("T")[0],
+                closePrice: currentValue,
               }),
             })
           }
@@ -372,20 +390,22 @@ const OnboardingWizard: React.FC = () => {
 
         // Only proceed if asset was successfully created
         if (asset?.id) {
-          // Create PrivateAssetConfig for pension settings
-          if (pension.payoutAge || pension.monthlyPayoutAmount) {
-            await fetch(`/api/assets/config/${asset.id}`, {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                isPension: true,
-                expectedReturnRate: pension.expectedReturnRate,
-                payoutAge: pension.payoutAge,
-                monthlyPayoutAmount: pension.monthlyPayoutAmount,
-                rentalCurrency: pension.currency,
-              }),
-            })
-          }
+          // Always create PrivateAssetConfig for pension assets with isPension: true
+          await fetch(`/api/assets/config/${asset.id}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              isPension: true,
+              expectedReturnRate: pension.expectedReturnRate,
+              payoutAge: pension.payoutAge,
+              monthlyPayoutAmount: pension.lumpSum
+                ? undefined
+                : pension.monthlyPayoutAmount,
+              lumpSum: pension.lumpSum,
+              monthlyContribution: pension.monthlyContribution,
+              rentalCurrency: pension.currency,
+            }),
+          })
 
           // Create ADD transaction for initial balance if provided (doesn't impact cash)
           if (pension.balance && pension.balance > 0) {
@@ -399,6 +419,78 @@ const OnboardingWizard: React.FC = () => {
               new Date().toISOString().split("T")[0],
             )
           }
+        }
+      }
+    }
+
+    // Create life insurance policies
+    for (const insurance of insurances) {
+      const assetCode = insurance.name.replace(/\s+/g, "_").toUpperCase()
+      // Backend expects { data: { "CODE": AssetInput } }
+      const assetResponse = await fetch("/api/assets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          data: {
+            [assetCode]: {
+              market: "PRIVATE",
+              code: assetCode,
+              name: insurance.name,
+              category: "POLICY",
+              currency: insurance.currency,
+            },
+          },
+        }),
+      })
+
+      if (assetResponse.ok) {
+        const assetData = await assetResponse.json()
+        const asset = extractAsset(assetData)
+
+        // Only proceed if asset was successfully created
+        if (asset?.id) {
+          // Create PrivateAssetConfig for insurance settings
+          await fetch(`/api/assets/config/${asset.id}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              isPension: true, // Insurance policies are tracked like pensions
+              expectedReturnRate: insurance.expectedReturnRate,
+              payoutAge: insurance.payoutAge,
+              monthlyPayoutAmount: insurance.lumpSum
+                ? undefined
+                : insurance.payoutAmount,
+              lumpSum: insurance.lumpSum !== false, // Default to true for insurance
+              monthlyContribution: insurance.monthlyContribution,
+              rentalCurrency: insurance.currency,
+            }),
+          })
+
+          // Create ADD transaction - use current value if provided, otherwise default to 1
+          const quantity =
+            insurance.currentValue && insurance.currentValue > 0
+              ? insurance.currentValue
+              : 1
+          await createTransaction(
+            portfolioId,
+            asset.id,
+            "ADD",
+            quantity,
+            1,
+            insurance.currency,
+            new Date().toISOString().split("T")[0],
+          )
+
+          // Set constant price of 1 for insurance assets
+          await fetch("/api/prices/write", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              assetId: asset.id,
+              date: new Date().toISOString().split("T")[0],
+              closePrice: 1,
+            }),
+          })
         }
       }
     }
@@ -454,9 +546,23 @@ const OnboardingWizard: React.FC = () => {
         portfolioId &&
         (bankAccounts.length > 0 ||
           properties.length > 0 ||
-          pensions.length > 0)
+          pensions.length > 0 ||
+          insurances.length > 0)
       ) {
         await createAssets(portfolioId)
+      }
+
+      // Trigger portfolio valuation by fetching holdings
+      const today = new Date().toISOString().split("T")[0]
+      const holdingsResponse = await fetch(
+        `/api/holdings/${portfolioCode}?asAt=${today}`,
+        { credentials: "include" },
+      )
+      if (!holdingsResponse.ok) {
+        console.warn(
+          "Failed to trigger portfolio valuation:",
+          holdingsResponse.status,
+        )
       }
 
       // Move to complete step
@@ -510,9 +616,11 @@ const OnboardingWizard: React.FC = () => {
             bankAccounts={bankAccounts}
             properties={properties}
             pensions={pensions}
+            insurances={insurances}
             onBankAccountsChange={setBankAccounts}
             onPropertiesChange={setProperties}
             onPensionsChange={setPensions}
+            onInsurancesChange={setInsurances}
           />
         )
       case 5:
@@ -522,9 +630,11 @@ const OnboardingWizard: React.FC = () => {
             bankAccounts={bankAccounts}
             properties={properties}
             pensions={pensions}
+            insurances={insurances}
             onRemoveBankAccount={handleRemoveBankAccount}
             onRemoveProperty={handleRemoveProperty}
             onRemovePension={handleRemovePension}
+            onRemoveInsurance={handleRemoveInsurance}
           />
         )
       case 6:
@@ -534,6 +644,7 @@ const OnboardingWizard: React.FC = () => {
             bankAccountCount={bankAccounts.length}
             propertyCount={properties.length}
             pensionCount={pensions.length}
+            insuranceCount={insurances.length}
             portfolioId={createdPortfolioId}
           />
         )

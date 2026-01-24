@@ -135,6 +135,14 @@ function ExecuteRebalancePage(): React.ReactElement {
         }
         const data = await response.json()
         setExecution(data.data)
+        // Default to return-adjusted targets for new executions
+        const adjustedOverrides: Record<string, number> = {}
+        data.data.items.forEach((item: ExecutionItemDto) => {
+          if (!item.isCash && item.returnAdjustedTarget != null) {
+            adjustedOverrides[item.assetId] = item.returnAdjustedTarget
+          }
+        })
+        setLocalOverrides(adjustedOverrides)
         // Update URL to include executionId (for resuming later), preserve source
         const sourceParam = source
           ? `&source=${encodeURIComponent(source as string)}`
@@ -304,6 +312,19 @@ function ExecuteRebalancePage(): React.ReactElement {
     })
     setLocalOverrides(overrides)
     setLocalExclusions({})
+    setHasChanges(true)
+  }
+
+  // Set all targets to return-adjusted weights (accounts for price movements)
+  const handleSetAllToAdjusted = (): void => {
+    if (!execution) return
+    const overrides: Record<string, number> = {}
+    execution.items.forEach((item) => {
+      if (!item.isCash && item.returnAdjustedTarget != null) {
+        overrides[item.assetId] = item.returnAdjustedTarget
+      }
+    })
+    setLocalOverrides(overrides)
     setHasChanges(true)
   }
 
@@ -614,6 +635,41 @@ function ExecuteRebalancePage(): React.ReactElement {
                       "Edit target % to adjust allocations. Exclude positions to maintain their current weight.",
                     )}
                   </p>
+                  {/* Allocation Method Toggle */}
+                  <div className="flex items-center gap-3 mt-2">
+                    <span className="text-xs text-gray-500">
+                      {t("rebalance.execute.allocationMethod", "Allocation:")}
+                    </span>
+                    <div
+                      className="inline-flex rounded-md shadow-sm"
+                      role="group"
+                    >
+                      <button
+                        type="button"
+                        onClick={handleSetAllToTarget}
+                        className={`px-3 py-1 text-xs font-medium rounded-l-md border ${
+                          Object.keys(localOverrides).length === 0
+                            ? "bg-emerald-100 text-emerald-700 border-emerald-300"
+                            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                        }`}
+                        title="Use original model target weights - helps rebalance toward targets"
+                      >
+                        Target Weight
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSetAllToAdjusted}
+                        className={`px-3 py-1 text-xs font-medium rounded-r-md border-t border-b border-r ${
+                          Object.keys(localOverrides).length > 0
+                            ? "bg-amber-100 text-amber-700 border-amber-300"
+                            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                        }`}
+                        title="Use return-adjusted weights - maintains current portfolio proportions"
+                      >
+                        Return Adjusted
+                      </button>
+                    </div>
+                  </div>
                 </div>
                 <div className="flex gap-2">
                   <button
@@ -629,6 +685,13 @@ function ExecuteRebalancePage(): React.ReactElement {
                     title="Reset all to target weights from model"
                   >
                     All → Target
+                  </button>
+                  <button
+                    onClick={handleSetAllToAdjusted}
+                    className="px-3 py-1 text-xs text-amber-600 bg-white border border-amber-300 rounded hover:bg-amber-50"
+                    title="Set all to return-adjusted targets (accounts for price movements)"
+                  >
+                    All → Adjusted
                   </button>
                   <button
                     onClick={handleSetAllToZero}
@@ -657,6 +720,12 @@ function ExecuteRebalancePage(): React.ReactElement {
                     </th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                       {t("rebalance.execute.target", "Target")}
+                    </th>
+                    <th
+                      className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase"
+                      title="Return-adjusted target accounting for price movements since model creation"
+                    >
+                      {t("rebalance.execute.adjusted", "Adjusted")}
                     </th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                       %
@@ -712,11 +781,18 @@ function ExecuteRebalancePage(): React.ReactElement {
                         <td className="px-4 py-3">
                           <div
                             className={`font-medium ${isCash ? "text-blue-900" : "text-gray-900"}`}
+                            title={item.rationale || undefined}
                           >
                             {isCash && (
                               <i className="fas fa-coins mr-2 text-blue-500"></i>
                             )}
                             {item.assetCode || item.assetId}
+                            {item.rationale && !isCash && (
+                              <i
+                                className="fas fa-info-circle ml-1 text-gray-400 text-xs cursor-help"
+                                title={item.rationale}
+                              ></i>
+                            )}
                           </div>
                           {item.assetName && !isCash && (
                             <div className="text-xs text-gray-500">
@@ -773,6 +849,34 @@ function ExecuteRebalancePage(): React.ReactElement {
                           </div>
                         </td>
                         <td className="px-4 py-3 text-right">
+                          {item.returnAdjustedTarget != null ? (
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={() =>
+                                  handleTargetChange(
+                                    item.assetId,
+                                    item.returnAdjustedTarget!,
+                                  )
+                                }
+                                className="text-gray-400 hover:text-emerald-600 p-0.5"
+                                title="Copy return-adjusted target to %"
+                              >
+                                <i className="fas fa-arrow-right text-xs"></i>
+                              </button>
+                              <span
+                                className={
+                                  isCash ? "text-blue-600" : "text-amber-600"
+                                }
+                                title="Target adjusted for price movements since model creation"
+                              >
+                                {formatPercent(item.returnAdjustedTarget)}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-right">
                           <input
                             type="number"
                             min="0"
@@ -812,6 +916,44 @@ function ExecuteRebalancePage(): React.ReactElement {
                     )
                   })}
                 </tbody>
+                <tfoot className="bg-gray-100 border-t-2 border-gray-300">
+                  <tr>
+                    <td className="px-2 py-3"></td>
+                    <td className="px-4 py-3 font-semibold text-gray-900">
+                      {t("total", "Total")}
+                    </td>
+                    <td className="px-4 py-3"></td>
+                    <td className="px-4 py-3 text-right font-semibold text-gray-700">
+                      {formatPercent(
+                        displayItems.reduce(
+                          (sum, item) => sum + item.planTargetWeight,
+                          0,
+                        ),
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right font-semibold text-amber-700">
+                      {(() => {
+                        const total = displayItems.reduce(
+                          (sum, item) => sum + (item.returnAdjustedTarget ?? 0),
+                          0,
+                        )
+                        const hasAdjusted = displayItems.some(
+                          (item) => item.returnAdjustedTarget != null,
+                        )
+                        return hasAdjusted ? formatPercent(total) : "-"
+                      })()}
+                    </td>
+                    <td className="px-4 py-3 text-right font-semibold text-gray-900">
+                      {formatPercent(
+                        displayItems.reduce(
+                          (sum, item) => sum + item.effectiveTarget,
+                          0,
+                        ),
+                      )}
+                    </td>
+                    <td className="px-4 py-3"></td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
           </div>
@@ -890,8 +1032,17 @@ function ExecuteRebalancePage(): React.ReactElement {
                     return (
                       <tr key={item.assetId} className={rowClass}>
                         <td className="px-4 py-3">
-                          <div className="font-medium text-gray-900">
+                          <div
+                            className="font-medium text-gray-900"
+                            title={item.rationale || undefined}
+                          >
                             {item.assetCode || item.assetId}
+                            {item.rationale && (
+                              <i
+                                className="fas fa-info-circle ml-1 text-gray-400 text-xs cursor-help"
+                                title={item.rationale}
+                              ></i>
+                            )}
                           </div>
                           {item.assetName && (
                             <div className="text-xs text-gray-500">

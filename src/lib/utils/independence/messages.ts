@@ -64,10 +64,28 @@ export const wizardMessages = {
       description:
         "Enter your expected income sources during independence (retirement).",
     },
+    workingExpenses: {
+      name: "Working Expenses",
+      title: "Monthly Expenses While Working",
+      description:
+        "Define your current monthly expenses during your working years. These may differ from your expenses after independence.",
+      totalLabel: "Total Working Expenses",
+    },
     employment: {
       name: "Employment",
       title: "Employment Income",
       description: "Enter your current employment income and savings rate.",
+    },
+    contributions: {
+      name: "Income",
+      title: "Income & Contributions",
+      description:
+        "Enter your employment income and any regular contributions to pension schemes or insurance policies.",
+      totalLabel: "Total Monthly Contributions",
+      noPensionAssets:
+        "You don't have any pension or insurance assets configured. If you have pension contributions, first add the pension asset in your portfolio settings with 'Is Pension' enabled.",
+      skipInfo:
+        "You can skip pension contributions if you don't make regular pension or insurance contributions.",
     },
     expenses: {
       name: "Expenses",

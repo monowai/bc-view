@@ -284,7 +284,9 @@ const IncomeView: React.FC<IncomeViewProps> = ({
             <span className="text-sm text-gray-600">Period:</span>
             <select
               value={months}
-              onChange={(e) => holdingState.setIncomePeriod(parseInt(e.target.value, 10))}
+              onChange={(e) =>
+                holdingState.setIncomePeriod(parseInt(e.target.value, 10))
+              }
               className="text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value={6}>6 months</option>

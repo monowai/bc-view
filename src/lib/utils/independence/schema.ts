@@ -83,8 +83,29 @@ export const expenseSchema = yup.object({
     .min(0, "Must be positive"),
 })
 
+export const workingExpensesStepSchema = yup.object({
+  workingExpenses: yup.array().of(expenseSchema),
+})
+
 export const expensesStepSchema = yup.object({
   expenses: yup.array().of(expenseSchema),
+})
+
+export const contributionSchema = yup.object({
+  assetId: yup.string().required("Asset is required"),
+  assetName: yup.string().required(),
+  monthlyAmount: yup
+    .number()
+    .required("Amount is required")
+    .min(0, "Must be positive"),
+  contributionType: yup
+    .string()
+    .oneOf(["PENSION", "INSURANCE"])
+    .required("Type is required"),
+})
+
+export const contributionsStepSchema = yup.object({
+  contributions: yup.array().of(contributionSchema),
 })
 
 // Schema for manual asset entry (when no portfolios)
@@ -139,7 +160,9 @@ export const goalsSchema = yup.object({
 
 export const wizardSchema = yup.object({
   ...personalInfoSchema.fields,
+  ...workingExpensesStepSchema.fields,
   ...preRetirementSchema.fields,
+  ...contributionsStepSchema.fields,
   ...incomeSourcesSchema.fields,
   ...expensesStepSchema.fields,
   ...goalsSchema.fields,
@@ -158,9 +181,11 @@ export const defaultWizardValues = {
   yearOfBirth: currentYear - 55, // Default to age 55
   targetRetirementAge: 65,
   lifeExpectancy: 90,
+  // Working expenses (categorized)
+  workingExpenses: [],
   // Pre-retirement (working years)
   workingIncomeMonthly: 0,
-  workingExpensesMonthly: 0,
+  workingExpensesMonthly: 0, // Computed from workingExpenses sum
   taxesMonthly: 0,
   bonusMonthly: 0,
   investmentAllocationPercent: 80, // 80% of surplus invested
@@ -181,4 +206,5 @@ export const defaultWizardValues = {
   selectedPortfolioIds: [],
   manualAssets: defaultManualAssets,
   lifeEvents: [],
+  contributions: [],
 }

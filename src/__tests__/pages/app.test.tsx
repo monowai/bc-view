@@ -68,8 +68,8 @@ describe("<Home />", () => {
     })
 
     // Check for the three domain cards on the landing page
-    expect(screen.getByText("Wealth")).toBeInTheDocument()
-    expect(screen.getByText("Invest")).toBeInTheDocument()
-    expect(screen.getAllByText("Independence").length).toBeGreaterThan(0)
+    expect(screen.getByText("Manage Wealth")).toBeInTheDocument()
+    expect(screen.getByText("Plan Independence")).toBeInTheDocument()
+    expect(screen.getByText("Investment Strategy")).toBeInTheDocument()
   })
 })

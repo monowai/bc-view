@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useState, useMemo } from "react"
 import { YearlyProjection } from "types/independence"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 
@@ -13,6 +13,46 @@ export default function IncomeBreakdownTable({
 }: IncomeBreakdownTableProps): React.ReactElement {
   const [isExpanded, setIsExpanded] = useState(false)
   const { hideValues } = usePrivacyMode()
+
+  // Determine which columns have data across all projections
+  const columnVisibility = useMemo(() => {
+    const hasData = {
+      investment: false,
+      pension: false,
+      assetPensions: false,
+      lumpSum: false,
+      socialSecurity: false,
+      otherIncome: false,
+      rentalIncome: false,
+    }
+
+    for (const projection of projections) {
+      const breakdown = projection.incomeBreakdown
+      if (!breakdown) continue
+
+      if (breakdown.investmentReturns > 0) hasData.investment = true
+      if (breakdown.pension > 0) hasData.pension = true
+      if ((breakdown.assetPensions ?? 0) > 0) hasData.assetPensions = true
+      if ((breakdown.lumpSumPayout ?? 0) > 0) hasData.lumpSum = true
+      if (breakdown.socialSecurity > 0) hasData.socialSecurity = true
+      if (breakdown.otherIncome > 0) hasData.otherIncome = true
+      if (breakdown.rentalIncome > 0) hasData.rentalIncome = true
+    }
+
+    return hasData
+  }, [projections])
+
+  // Count visible income columns for colSpan calculation
+  const visibleIncomeColumns =
+    1 + // Age (always visible)
+    (columnVisibility.investment ? 1 : 0) +
+    (columnVisibility.pension ? 1 : 0) +
+    (columnVisibility.assetPensions ? 1 : 0) +
+    (columnVisibility.lumpSum ? 1 : 0) +
+    (columnVisibility.socialSecurity ? 1 : 0) +
+    (columnVisibility.otherIncome ? 1 : 0) +
+    (columnVisibility.rentalIncome ? 1 : 0) +
+    4 // Total Income, Expenses, Withdrawals, End Balance (always visible)
 
   const formatCurrency = (value: number): string => {
     if (hideValues) return HIDDEN_VALUE
@@ -65,24 +105,44 @@ export default function IncomeBreakdownTable({
         <table className="min-w-full text-sm">
           <thead>
             <tr className="border-b border-gray-200">
-              <th className="text-left py-2 px-2 font-medium text-gray-600">
+              <th className="text-left py-2 px-2 font-medium text-gray-600 border-r border-gray-200">
                 Age
               </th>
-              <th className="text-right py-2 px-2 font-medium text-gray-600">
-                <span className="text-green-600">Investment</span>
-              </th>
-              <th className="text-right py-2 px-2 font-medium text-gray-600">
-                <span className="text-blue-600">Pension</span>
-              </th>
-              <th className="text-right py-2 px-2 font-medium text-gray-600">
-                <span className="text-purple-600">Govt Benefits</span>
-              </th>
-              <th className="text-right py-2 px-2 font-medium text-gray-600">
-                <span className="text-orange-600">Other</span>
-              </th>
-              <th className="text-right py-2 px-2 font-medium text-gray-600">
-                <span className="text-teal-600">Rental</span>
-              </th>
+              {columnVisibility.investment && (
+                <th className="text-right py-2 px-2 font-medium text-gray-600">
+                  <span className="text-green-600">Investment</span>
+                </th>
+              )}
+              {columnVisibility.pension && (
+                <th className="text-right py-2 px-2 font-medium text-gray-600">
+                  <span className="text-blue-600">Pension</span>
+                </th>
+              )}
+              {columnVisibility.assetPensions && (
+                <th className="text-right py-2 px-2 font-medium text-gray-600">
+                  <span className="text-indigo-600">Private Pension</span>
+                </th>
+              )}
+              {columnVisibility.lumpSum && (
+                <th className="text-right py-2 px-2 font-medium text-gray-600">
+                  <span className="text-pink-600">Lump Sum</span>
+                </th>
+              )}
+              {columnVisibility.socialSecurity && (
+                <th className="text-right py-2 px-2 font-medium text-gray-600">
+                  <span className="text-purple-600">Govt Benefits</span>
+                </th>
+              )}
+              {columnVisibility.otherIncome && (
+                <th className="text-right py-2 px-2 font-medium text-gray-600">
+                  <span className="text-orange-600">Other</span>
+                </th>
+              )}
+              {columnVisibility.rentalIncome && (
+                <th className="text-right py-2 px-2 font-medium text-gray-600">
+                  <span className="text-teal-600">Rental</span>
+                </th>
+              )}
               <th className="text-right py-2 px-2 font-medium text-gray-700 border-l border-gray-200">
                 Total Income
               </th>
@@ -103,7 +163,7 @@ export default function IncomeBreakdownTable({
                 return (
                   <tr key={`gap-${index}`} className="border-b border-gray-100">
                     <td
-                      colSpan={10}
+                      colSpan={visibleIncomeColumns}
                       className="text-center py-2 text-gray-400 italic"
                     >
                       ...
@@ -115,15 +175,16 @@ export default function IncomeBreakdownTable({
               const breakdown = projection.incomeBreakdown
               const isNegativeBalance = projection.endingBalance <= 0
               const hasPropertyLiquidation = projection.propertyLiquidated
+              const hasLumpSum = (breakdown?.lumpSumPayout ?? 0) > 0
 
               return (
                 <tr
                   key={projection.year}
                   className={`border-b border-gray-100 hover:bg-gray-50 ${
                     isNegativeBalance ? "bg-red-50" : ""
-                  } ${hasPropertyLiquidation ? "bg-purple-50" : ""}`}
+                  } ${hasPropertyLiquidation ? "bg-purple-50" : ""} ${hasLumpSum ? "bg-pink-50" : ""}`}
                 >
-                  <td className="py-2 px-2 font-medium">
+                  <td className="py-2 px-2 font-medium border-r border-gray-200">
                     {projection.age}
                     {hasPropertyLiquidation && (
                       <i
@@ -131,24 +192,56 @@ export default function IncomeBreakdownTable({
                         title="Property liquidated"
                       ></i>
                     )}
+                    {hasLumpSum && (
+                      <i
+                        className="fas fa-gift text-pink-500 ml-1"
+                        title="Lump sum payout received"
+                      ></i>
+                    )}
                   </td>
-                  <td className="text-right py-2 px-2 text-green-600">
-                    {breakdown
-                      ? formatCurrency(breakdown.investmentReturns)
-                      : "-"}
-                  </td>
-                  <td className="text-right py-2 px-2 text-blue-600">
-                    {breakdown ? formatCurrency(breakdown.pension) : "-"}
-                  </td>
-                  <td className="text-right py-2 px-2 text-purple-600">
-                    {breakdown ? formatCurrency(breakdown.socialSecurity) : "-"}
-                  </td>
-                  <td className="text-right py-2 px-2 text-orange-600">
-                    {breakdown ? formatCurrency(breakdown.otherIncome) : "-"}
-                  </td>
-                  <td className="text-right py-2 px-2 text-teal-600">
-                    {breakdown ? formatCurrency(breakdown.rentalIncome) : "-"}
-                  </td>
+                  {columnVisibility.investment && (
+                    <td className="text-right py-2 px-2 text-green-600">
+                      {breakdown
+                        ? formatCurrency(breakdown.investmentReturns)
+                        : "-"}
+                    </td>
+                  )}
+                  {columnVisibility.pension && (
+                    <td className="text-right py-2 px-2 text-blue-600">
+                      {breakdown ? formatCurrency(breakdown.pension) : "-"}
+                    </td>
+                  )}
+                  {columnVisibility.assetPensions && (
+                    <td className="text-right py-2 px-2 text-indigo-600">
+                      {breakdown?.assetPensions
+                        ? formatCurrency(breakdown.assetPensions)
+                        : "-"}
+                    </td>
+                  )}
+                  {columnVisibility.lumpSum && (
+                    <td className="text-right py-2 px-2 text-pink-600 font-medium">
+                      {breakdown?.lumpSumPayout
+                        ? formatCurrency(breakdown.lumpSumPayout)
+                        : "-"}
+                    </td>
+                  )}
+                  {columnVisibility.socialSecurity && (
+                    <td className="text-right py-2 px-2 text-purple-600">
+                      {breakdown
+                        ? formatCurrency(breakdown.socialSecurity)
+                        : "-"}
+                    </td>
+                  )}
+                  {columnVisibility.otherIncome && (
+                    <td className="text-right py-2 px-2 text-orange-600">
+                      {breakdown ? formatCurrency(breakdown.otherIncome) : "-"}
+                    </td>
+                  )}
+                  {columnVisibility.rentalIncome && (
+                    <td className="text-right py-2 px-2 text-teal-600">
+                      {breakdown ? formatCurrency(breakdown.rentalIncome) : "-"}
+                    </td>
+                  )}
                   <td className="text-right py-2 px-2 font-medium border-l border-gray-200">
                     {breakdown ? formatCurrency(breakdown.totalIncome) : "-"}
                   </td>
@@ -174,17 +267,58 @@ export default function IncomeBreakdownTable({
         </table>
       </div>
 
-      <div className="mt-4 text-xs text-gray-500 space-y-1">
-        <p>
-          <span className="font-medium">Investment:</span> Returns on portfolio
-          balance |{" "}
-          <span className="font-medium text-purple-600">Govt Benefits:</span>{" "}
-          Inflation-indexed | <span className="font-medium">Other:</span> Not
-          indexed
-        </p>
-        <p>
-          <span className="font-medium">Withdrawals:</span> Amount drawn from
-          portfolio when expenses exceed income
+      <div className="mt-4 text-xs text-gray-500">
+        <p className="flex flex-wrap gap-x-3">
+          {columnVisibility.investment && (
+            <span>
+              <span className="font-medium text-green-600">Investment:</span>{" "}
+              Returns on portfolio
+            </span>
+          )}
+          {columnVisibility.pension && (
+            <span>
+              <span className="font-medium text-blue-600">Pension:</span>{" "}
+              Employer pension
+            </span>
+          )}
+          {columnVisibility.assetPensions && (
+            <span>
+              <span className="font-medium text-indigo-600">
+                Private Pension:
+              </span>{" "}
+              From pension/insurance assets
+            </span>
+          )}
+          {columnVisibility.lumpSum && (
+            <span>
+              <span className="font-medium text-pink-600">Lump Sum:</span>{" "}
+              One-time policy payouts
+            </span>
+          )}
+          {columnVisibility.socialSecurity && (
+            <span>
+              <span className="font-medium text-purple-600">
+                Govt Benefits:
+              </span>{" "}
+              Inflation-indexed
+            </span>
+          )}
+          {columnVisibility.otherIncome && (
+            <span>
+              <span className="font-medium text-orange-600">Other:</span> Not
+              indexed
+            </span>
+          )}
+          {columnVisibility.rentalIncome && (
+            <span>
+              <span className="font-medium text-teal-600">Rental:</span>{" "}
+              Property income
+            </span>
+          )}
+          <span>
+            <span className="font-medium text-red-600">Withdrawals:</span> Drawn
+            from portfolio
+          </span>
         </p>
       </div>
     </div>

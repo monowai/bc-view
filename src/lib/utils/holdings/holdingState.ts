@@ -44,7 +44,11 @@ const holdingDefaults = hookstate(
     groupBy: persistedState?.groupBy ?? null,
     displayCurrency: persistedState?.displayCurrency ?? null,
     incomePeriod: (persistedState?.incomePeriod as number) ?? 12,
-  } as HoldingDefaults & { hasInitialized: boolean; viewMode: ViewMode; incomePeriod: number },
+  } as HoldingDefaults & {
+    hasInitialized: boolean
+    viewMode: ViewMode
+    incomePeriod: number
+  },
   devtools({ key: "holdings" }),
 )
 

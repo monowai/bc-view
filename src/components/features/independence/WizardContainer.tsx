@@ -6,9 +6,10 @@ import { mutate } from "swr"
 import WizardProgress from "./WizardProgress"
 import WizardNavigation from "./WizardNavigation"
 import PersonalInfoStep from "./steps/PersonalInfoStep"
+import WorkingExpensesStep from "./steps/WorkingExpensesStep"
 import AssetsStep from "./steps/AssetsStep"
 import AssumptionsStep from "./steps/AssumptionsStep"
-import EmploymentStep from "./steps/EmploymentStep"
+import ContributionsStep from "./steps/ContributionsStep"
 import IncomeSourcesStep from "./steps/IncomeSourcesStep"
 import LifeEventsStep from "./steps/LifeEventsStep"
 import ExpensesStep from "./steps/ExpensesStep"
@@ -258,7 +259,28 @@ export default function WizardContainer({
         }
       }
 
-      // Add all expenses (both new and edit modes)
+      // Add working expenses with expensePhase: "WORKING"
+      if (formData.workingExpenses?.length > 0) {
+        for (const expense of formData.workingExpenses) {
+          if (expense.monthlyAmount > 0) {
+            await fetch(`/api/independence/plans/${savedPlanId}/expenses`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                categoryLabelId: expense.categoryLabelId,
+                categoryName: expense.categoryName,
+                monthlyAmount: expense.monthlyAmount,
+                currency: formData.expensesCurrency,
+                expensePhase: "WORKING",
+              }),
+            })
+          }
+        }
+      }
+
+      // Add retirement expenses with expensePhase: "RETIREMENT" (default)
       if (formData.expenses.length > 0) {
         for (const expense of formData.expenses) {
           await fetch(`/api/independence/plans/${savedPlanId}/expenses`, {
@@ -271,8 +293,52 @@ export default function WizardContainer({
               categoryName: expense.categoryName,
               monthlyAmount: expense.monthlyAmount,
               currency: formData.expensesCurrency,
+              expensePhase: "RETIREMENT",
             }),
           })
+        }
+      }
+
+      // Sync contributions - for edit mode, delete existing contributions first
+      if (isEditMode) {
+        const existingContributionsRes = await fetch(
+          `/api/independence/plans/${savedPlanId}/contributions`,
+        )
+        if (existingContributionsRes.ok) {
+          const existingData = await existingContributionsRes.json()
+          const existingContributions = existingData.data || []
+          for (const contribution of existingContributions) {
+            await fetch(
+              `/api/independence/plans/${savedPlanId}/contributions/${contribution.id}`,
+              {
+                method: "DELETE",
+              },
+            )
+          }
+        }
+      }
+
+      // Add contributions (only those with amounts > 0)
+      if (formData.contributions?.length > 0) {
+        for (const contribution of formData.contributions) {
+          if (contribution.monthlyAmount > 0) {
+            await fetch(
+              `/api/independence/plans/${savedPlanId}/contributions`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  assetId: contribution.assetId,
+                  assetName: contribution.assetName,
+                  monthlyAmount: contribution.monthlyAmount,
+                  currency: formData.expensesCurrency,
+                  contributionType: contribution.contributionType,
+                }),
+              },
+            )
+          }
         }
       }
 
@@ -297,10 +363,18 @@ export default function WizardContainer({
       case 1:
         return <PersonalInfoStep control={control} errors={errors} />
       case 2:
-        return <EmploymentStep control={control} errors={errors} />
+        return (
+          <WorkingExpensesStep
+            control={control}
+            errors={errors}
+            setValue={setValue}
+          />
+        )
       case 3:
-        return <AssetsStep control={control} setValue={setValue} />
+        return <ContributionsStep control={control} errors={errors} />
       case 4:
+        return <AssetsStep control={control} setValue={setValue} />
+      case 5:
         return (
           <AssumptionsStep
             control={control}
@@ -308,13 +382,13 @@ export default function WizardContainer({
             setValue={setValue}
           />
         )
-      case 5:
-        return <IncomeSourcesStep control={control} errors={errors} />
       case 6:
+        return <IncomeSourcesStep control={control} errors={errors} />
+      case 7:
         return (
           <ExpensesStep control={control} errors={errors} setValue={setValue} />
         )
-      case 7:
+      case 8:
         return <LifeEventsStep control={control} />
       default:
         return null

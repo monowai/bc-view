@@ -3,6 +3,8 @@
 // Enums
 export type RebalanceScenario = "INVEST_CASH" | "REBALANCE"
 export type ModelPlanStatus = "DRAFT" | "APPROVED"
+/** Allocation method for distributing cash investments */
+export type AllocationMethod = "TARGET_WEIGHT" | "RETURN_ADJUSTED"
 export type ExecutionStatus =
   | "EXECUTED"
   | "SKIPPED"
@@ -282,12 +284,16 @@ export interface RebalanceItemDto {
   currentPrice?: number
   currentQuantity: number
   targetWeight: number
+  /** Return-adjusted target accounting for price movements since model creation */
+  returnAdjustedTarget?: number
   targetPrice?: number
   priceCurrency: string
   deltaWeight: number
   deltaValue: number
   deltaQuantity: number
   action: RebalanceAction
+  /** Optional rationale explaining why this asset is in the model */
+  rationale?: string
 }
 
 export interface RebalanceCalculationDto {
@@ -366,6 +372,8 @@ export interface ExecutionItemDto {
   snapshotPrice?: number
   priceCurrency?: string
   planTargetWeight: number
+  /** Return-adjusted target accounting for price movements since model creation */
+  returnAdjustedTarget?: number
   effectiveTarget: number
   hasOverride: boolean
   deltaValue: number

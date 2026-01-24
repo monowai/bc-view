@@ -9,6 +9,7 @@ import { rootLoader } from "@components/ui/PageLoader"
 import { Broker, Transaction, TrnStatus } from "types/beancounter"
 import Head from "next/head"
 import { useUser } from "@auth0/nextjs-auth0/client"
+import { calculateTradeAmount } from "@utils/trns/tradeUtils"
 
 interface ProposedTransaction extends Transaction {
   editedPrice?: number
@@ -243,7 +244,13 @@ export default function ProposedTransactions(): React.JSX.Element {
             fees: trn.editedFees,
             status: trn.editedStatus,
             tradeDate: trn.editedTradeDate,
-            tradeAmount: (trn.editedPrice || trn.price) * trn.quantity,
+            tradeAmount: calculateTradeAmount(
+              trn.quantity,
+              trn.editedPrice || trn.price,
+              0,
+              trn.editedFees || 0,
+              trn.trnType,
+            ),
             brokerId: trn.editedBrokerId,
           }),
         },
@@ -485,9 +492,12 @@ export default function ProposedTransactions(): React.JSX.Element {
                         />
                       </td>
                       <td className="px-2 py-1.5 whitespace-nowrap text-right font-mono text-gray-600">
-                        {(
-                          (trn.editedPrice || trn.price) * trn.quantity -
-                          (trn.editedFees || 0)
+                        {calculateTradeAmount(
+                          trn.quantity,
+                          trn.editedPrice || trn.price,
+                          0,
+                          trn.editedFees || 0,
+                          trn.trnType,
                         ).toFixed(2)}
                       </td>
                       <td className="px-2 py-1.5 whitespace-nowrap">
@@ -559,8 +569,13 @@ export default function ProposedTransactions(): React.JSX.Element {
                       .reduce(
                         (sum, t) =>
                           sum +
-                          (t.editedPrice || t.price) * t.quantity -
-                          (t.editedFees || 0),
+                          calculateTradeAmount(
+                            t.quantity,
+                            t.editedPrice || t.price,
+                            0,
+                            t.editedFees || 0,
+                            t.trnType,
+                          ),
                         0,
                       )
                       .toFixed(2)}

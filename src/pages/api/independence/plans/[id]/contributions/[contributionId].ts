@@ -4,37 +4,29 @@ import handleResponse, { fetchError } from "@utils/api/responseWriter"
 import { getRetireUrl } from "@utils/api/bcConfig"
 import { NextApiRequest, NextApiResponse } from "next"
 
-export default withApiAuthRequired(async function expenses(
+export default withApiAuthRequired(async function contribution(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
   try {
     const { accessToken } = await getAccessToken(req, res)
-    const { method, body, query } = req
-    const { id, phase } = query
-    // Build URL with optional phase query param
-    const baseUrl = getRetireUrl(`/plans/${id}/expenses`)
-    const expensesUrl = phase ? `${baseUrl}?phase=${phase}` : baseUrl
+    const { method, query } = req
+    const { id, contributionId } = query
+    const contributionUrl = getRetireUrl(
+      `/plans/${id}/contributions/${contributionId}`,
+    )
 
     switch (method?.toUpperCase()) {
-      case "GET": {
+      case "DELETE": {
         const response = await fetch(
-          expensesUrl,
-          requestInit(accessToken, "GET", req),
+          contributionUrl,
+          requestInit(accessToken, "DELETE", req),
         )
         await handleResponse(response, res)
         break
       }
-      case "POST": {
-        const response = await fetch(expensesUrl, {
-          ...requestInit(accessToken, "POST", req),
-          body: JSON.stringify(body),
-        })
-        await handleResponse(response, res)
-        break
-      }
       default:
-        res.setHeader("Allow", ["GET", "POST"])
+        res.setHeader("Allow", ["DELETE"])
         res.status(405).end(`Method ${method} Not Allowed`)
     }
   } catch (error: any) {
