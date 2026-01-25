@@ -671,7 +671,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                         }`}
                         title="Use original model target weights - helps rebalance toward targets"
                       >
-                        Target Weight
+                        Model
                       </button>
                       <button
                         type="button"
@@ -683,7 +683,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                         }`}
                         title="Use return-adjusted weights - maintains current portfolio proportions"
                       >
-                        Return Adjusted
+                        Adjusted
                       </button>
                     </div>
                   </div>
