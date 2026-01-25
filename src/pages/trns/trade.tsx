@@ -182,6 +182,8 @@ const TradeInputForm: React.FC<{
   const [suggestedModelId, setSuggestedModelId] = useState<string | undefined>(
     undefined,
   )
+  const modelInitializedRef = useRef(false)
+  const initialModelIdRef = useRef<string | undefined>(transaction?.modelId)
 
   // Fetch portfolios for portfolio move (edit mode)
   const { data: portfoliosData } = useSwr(
@@ -198,13 +200,15 @@ const TradeInputForm: React.FC<{
   const models: ModelDto[] = modelsData?.data || []
 
   // Try to determine suggested model from callerRef (for rebalance transactions)
+  // Only runs once on initial load - won't overwrite user selections
   useEffect(() => {
-    if (!isEditMode || !transaction) return
+    if (!isEditMode || !transaction || modelInitializedRef.current) return
 
-    // If transaction already has modelId, use it
+    // Mark as initialized so we don't overwrite user selections
+    modelInitializedRef.current = true
+
+    // If transaction already has modelId, no need to suggest - it's already set
     if (transaction.modelId) {
-      setSelectedModelId(transaction.modelId)
-      setSuggestedModelId(transaction.modelId)
       return
     }
 
@@ -222,25 +226,25 @@ const TradeInputForm: React.FC<{
         .then((data) => {
           if (data?.data?.modelId) {
             setSuggestedModelId(data.data.modelId)
-            // Only auto-select if no current selection
-            if (!selectedModelId) {
-              setSelectedModelId(data.data.modelId)
-            }
+            // Auto-select since transaction has no modelId (we only reach here if transaction.modelId is falsy)
+            setSelectedModelId(data.data.modelId)
+            // Update initial ref so modelChanged tracks from this auto-selected value
+            initialModelIdRef.current = data.data.modelId
           }
         })
         .catch(() => {
           // Execution might have been deleted, ignore
         })
     }
-  }, [isEditMode, transaction, selectedModelId])
+  }, [isEditMode, transaction])
 
   // Check if portfolio changed (edit mode)
   const portfolioChanged =
     isEditMode && selectedPortfolioId !== transaction?.portfolio.id
 
-  // Check if model changed (edit mode)
+  // Check if model changed from initial value (edit mode)
   const modelChanged =
-    isEditMode && selectedModelId !== transaction?.modelId
+    isEditMode && selectedModelId !== initialModelIdRef.current
 
   // For edit mode: get asset info from transaction
   const editAssetCode = transaction ? getDisplayCode(transaction.asset) : ""
