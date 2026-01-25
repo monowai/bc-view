@@ -48,6 +48,9 @@ export default function ProposedTransactions(): React.JSX.Element {
   )
   const [settledLoading, setSettledLoading] = useState(false)
   const [settledError, setSettledError] = useState<string | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [typeFilter, setTypeFilter] = useState<string>("ALL")
+  const [isSettling, setIsSettling] = useState(false)
 
   // Fetch proposed transactions across all portfolios
   const proposedKey = user ? "/api/trns/proposed" : null
@@ -106,7 +109,13 @@ export default function ProposedTransactions(): React.JSX.Element {
       }
     })
 
-    const sorted = allTransactions.sort((a, b) => {
+    // Apply type filter
+    const filtered =
+      typeFilter === "ALL"
+        ? allTransactions
+        : allTransactions.filter((trn) => trn.trnType === typeFilter)
+
+    const sorted = filtered.sort((a, b) => {
       // Sort by broker name first
       const brokerA = a.broker?.name || ""
       const brokerB = b.broker?.name || ""
@@ -130,7 +139,12 @@ export default function ProposedTransactions(): React.JSX.Element {
         editedBrokerId: trn.broker?.id,
       })),
     )
-  }, [proposedData, settledTransactions, includeSettled])
+  }, [proposedData, settledTransactions, includeSettled, typeFilter])
+
+  // Clear selection when filter changes
+  useEffect(() => {
+    setSelectedIds(new Set())
+  }, [typeFilter])
 
   const handlePriceChange = (id: string, value: number): void => {
     setTransactions((prev) =>
@@ -195,6 +209,85 @@ export default function ProposedTransactions(): React.JSX.Element {
       setError(
         err instanceof Error ? err.message : "Failed to delete transaction",
       )
+    }
+  }
+
+  // Selection handlers
+  const proposedTransactions = transactions.filter(
+    (trn) => trn.status === "PROPOSED",
+  )
+  const selectedProposed = proposedTransactions.filter((trn) =>
+    selectedIds.has(trn.id),
+  )
+  const allProposedSelected =
+    proposedTransactions.length > 0 &&
+    proposedTransactions.every((trn) => selectedIds.has(trn.id))
+  const someProposedSelected =
+    selectedProposed.length > 0 && !allProposedSelected
+
+  const handleSelectAll = (): void => {
+    if (allProposedSelected) {
+      // Deselect all
+      setSelectedIds(new Set())
+    } else {
+      // Select all proposed transactions
+      setSelectedIds(new Set(proposedTransactions.map((trn) => trn.id)))
+    }
+  }
+
+  const handleSelectOne = (id: string, checked: boolean): void => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (checked) {
+        next.add(id)
+      } else {
+        next.delete(id)
+      }
+      return next
+    })
+  }
+
+  const handleSettleSelected = async (): Promise<void> => {
+    if (selectedProposed.length === 0) return
+
+    setIsSettling(true)
+    setError(null)
+
+    try {
+      // Group by portfolio
+      const byPortfolio = new Map<string, string[]>()
+      selectedProposed.forEach((trn) => {
+        const ids = byPortfolio.get(trn.portfolio.id) || []
+        ids.push(trn.id)
+        byPortfolio.set(trn.portfolio.id, ids)
+      })
+
+      // Settle each portfolio's transactions
+      for (const [portfolioId, trnIds] of byPortfolio) {
+        const response = await fetch(`/api/trns/portfolio/${portfolioId}/settle`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ trnIds }),
+        })
+
+        if (!response.ok) {
+          setError(`Failed to settle: ${response.statusText}`)
+          setIsSettling(false)
+          return
+        }
+      }
+
+      // Refresh and clear selection
+      mutate(proposedKey)
+      mutate("/api/trns/proposed/count")
+      setSelectedIds(new Set())
+    } catch (err) {
+      console.error("Error settling transactions:", err)
+      setError(
+        err instanceof Error ? err.message : "Failed to settle transactions",
+      )
+    } finally {
+      setIsSettling(false)
     }
   }
 
@@ -308,7 +401,24 @@ export default function ProposedTransactions(): React.JSX.Element {
         </p>
 
         {/* Filter options */}
-        <div className="flex items-center gap-4 mb-6 bg-gray-50 p-3 rounded-lg">
+        <div className="flex items-center gap-4 mb-6 bg-gray-50 p-3 rounded-lg flex-wrap">
+          <label className="flex items-center gap-2 text-sm">
+            <span className="text-gray-700">Type:</span>
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="ALL">ALL</option>
+              <option value="DIVI">DIVI</option>
+              <option value="SPLIT">SPLIT</option>
+              <option value="BUY">BUY</option>
+              <option value="SELL">SELL</option>
+              <option value="ADD">ADD</option>
+              <option value="REDUCE">REDUCE</option>
+            </select>
+          </label>
+          <div className="border-l border-gray-300 h-6" />
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
@@ -365,6 +475,15 @@ export default function ProposedTransactions(): React.JSX.Element {
             {/* Action Bar */}
             <div className="flex items-center gap-4 mb-4 bg-gray-50 p-4 rounded-lg">
               <button
+                onClick={handleSettleSelected}
+                disabled={selectedProposed.length === 0 || isSettling}
+                className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+              >
+                {isSettling
+                  ? "Settling..."
+                  : `Settle Selected (${selectedProposed.length})`}
+              </button>
+              <button
                 onClick={handleSave}
                 disabled={!anyChanges || isSaving}
                 className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
@@ -383,6 +502,18 @@ export default function ProposedTransactions(): React.JSX.Element {
               <table className="min-w-full divide-y divide-gray-200 text-xs">
                 <thead className="bg-gray-50">
                   <tr>
+                    <th className="px-2 py-2 text-center font-medium text-gray-500 uppercase w-10">
+                      <input
+                        type="checkbox"
+                        checked={allProposedSelected}
+                        ref={(el) => {
+                          if (el) el.indeterminate = someProposedSelected
+                        }}
+                        onChange={handleSelectAll}
+                        className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                        title="Select all PROPOSED transactions"
+                      />
+                    </th>
                     <th className="px-2 py-2 text-left font-medium text-gray-500 uppercase">
                       Broker
                     </th>
@@ -421,6 +552,22 @@ export default function ProposedTransactions(): React.JSX.Element {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {transactions.map((trn) => (
                     <tr key={trn.id} className="hover:bg-gray-50">
+                      <td className="px-2 py-1.5 whitespace-nowrap text-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(trn.id)}
+                          onChange={(e) =>
+                            handleSelectOne(trn.id, e.target.checked)
+                          }
+                          disabled={trn.status !== "PROPOSED"}
+                          className="rounded border-gray-300 text-green-600 focus:ring-green-500 disabled:opacity-50"
+                          title={
+                            trn.status === "PROPOSED"
+                              ? "Select for bulk settle"
+                              : "Already settled"
+                          }
+                        />
+                      </td>
                       <td className="px-2 py-1.5 whitespace-nowrap">
                         <select
                           value={trn.editedBrokerId || ""}
