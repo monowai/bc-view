@@ -238,6 +238,10 @@ const TradeInputForm: React.FC<{
   const portfolioChanged =
     isEditMode && selectedPortfolioId !== transaction?.portfolio.id
 
+  // Check if model changed (edit mode)
+  const modelChanged =
+    isEditMode && selectedModelId !== transaction?.modelId
+
   // For edit mode: get asset info from transaction
   const editAssetCode = transaction ? getDisplayCode(transaction.asset) : ""
   const editAssetName = transaction?.asset.name || ""
@@ -1609,11 +1613,13 @@ const TradeInputForm: React.FC<{
                 form="trade-form"
                 disabled={
                   isEditMode &&
-                  (isSubmitting || (!isDirty && !portfolioChanged))
+                  (isSubmitting ||
+                    (!isDirty && !portfolioChanged && !modelChanged))
                 }
                 className={`px-4 py-2 rounded text-white text-sm ${
                   isEditMode &&
-                  (isSubmitting || (!isDirty && !portfolioChanged))
+                  (isSubmitting ||
+                    (!isDirty && !portfolioChanged && !modelChanged))
                     ? "bg-blue-300 cursor-not-allowed"
                     : "bg-blue-500 hover:bg-blue-600"
                 }`}
