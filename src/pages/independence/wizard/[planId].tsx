@@ -39,32 +39,40 @@ function EditPlanWizard(): React.ReactElement {
   )
 
   // Fetch working expenses separately
-  const { data: workingExpensesData } = useSwr<WorkingExpensesResponse>(
-    planId ? `/api/independence/plans/${planId}/expenses?phase=WORKING` : null,
-    planId
-      ? simpleFetcher(
-          `/api/independence/plans/${planId}/expenses?phase=WORKING`,
-        )
-      : null,
-    {
-      revalidateOnMount: true,
-      dedupingInterval: 0,
-    },
-  )
+  const { data: workingExpensesData, isLoading: workingExpensesLoading } =
+    useSwr<WorkingExpensesResponse>(
+      planId
+        ? `/api/independence/plans/${planId}/expenses?phase=WORKING`
+        : null,
+      planId
+        ? simpleFetcher(
+            `/api/independence/plans/${planId}/expenses?phase=WORKING`,
+          )
+        : null,
+      {
+        revalidateOnMount: true,
+        dedupingInterval: 0,
+      },
+    )
 
   // Fetch contributions separately
-  const { data: contributionsData } = useSwr<PlanContributionsResponse>(
-    planId ? `/api/independence/plans/${planId}/contributions` : null,
-    planId
-      ? simpleFetcher(`/api/independence/plans/${planId}/contributions`)
-      : null,
-    {
-      revalidateOnMount: true,
-      dedupingInterval: 0,
-    },
-  )
+  const { data: contributionsData, isLoading: contributionsLoading } =
+    useSwr<PlanContributionsResponse>(
+      planId ? `/api/independence/plans/${planId}/contributions` : null,
+      planId
+        ? simpleFetcher(`/api/independence/plans/${planId}/contributions`)
+        : null,
+      {
+        revalidateOnMount: true,
+        dedupingInterval: 0,
+      },
+    )
 
-  if (!planId || isLoading) {
+  // Wait for all data to load before rendering the wizard
+  const allDataLoading =
+    isLoading || workingExpensesLoading || contributionsLoading
+
+  if (!planId || allDataLoading) {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="container mx-auto px-4">

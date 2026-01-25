@@ -8,7 +8,7 @@ interface SelectPlanDialogProps {
   modalOpen: boolean
   portfolioId: string
   onClose: () => void
-  onSelectPlan: (model: ModelDto, plan: PlanDto) => void
+  onSelectPlan: (model: ModelDto, plan: PlanDto, filterByModel: boolean) => void
   onCreateNew: () => void
 }
 
@@ -21,6 +21,7 @@ const SelectPlanDialog: React.FC<SelectPlanDialogProps> = ({
   const { t } = useTranslation("common")
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null)
   const [loadingPlan, setLoadingPlan] = useState(false)
+  const [filterByModel, setFilterByModel] = useState(false)
 
   // Fetch models
   const { data: modelsData, isLoading: loadingModels } = useSWR(
@@ -48,7 +49,7 @@ const SelectPlanDialog: React.FC<SelectPlanDialogProps> = ({
       )
       if (response.ok) {
         const planData = await response.json()
-        onSelectPlan(model, planData.data)
+        onSelectPlan(model, planData.data, filterByModel)
       }
     } catch (err) {
       console.error("Failed to fetch plan:", err)
@@ -76,6 +77,34 @@ const SelectPlanDialog: React.FC<SelectPlanDialogProps> = ({
             "Choose an approved model plan to rebalance against, or create a new model from your current holdings.",
           )}
         </p>
+
+        {/* Model Positions Filter Toggle */}
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={filterByModel}
+              onChange={(e) => setFilterByModel(e.target.checked)}
+              className="mt-1 h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+            />
+            <div className="flex-1">
+              <div className="font-medium text-gray-900 text-sm">
+                {t("rebalance.filterByModel.label", "Model positions only")}
+              </div>
+              <div className="text-xs text-gray-500 mt-0.5">
+                {filterByModel
+                  ? t(
+                      "rebalance.filterByModel.enabledDesc",
+                      "Only positions from transactions tagged with this model will be considered. Use this when rebalancing an existing model allocation.",
+                    )
+                  : t(
+                      "rebalance.filterByModel.disabledDesc",
+                      "All portfolio positions will be considered. Use this when applying a model to a portfolio for the first time.",
+                    )}
+              </div>
+            </div>
+          </label>
+        </div>
 
         {loadingModels ? (
           <div className="py-8 text-center text-gray-500">

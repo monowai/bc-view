@@ -11,12 +11,9 @@ import {
 import { WizardFormData } from "types/independence"
 
 // Mock usePrivateAssetConfigs to avoid SWR async updates
+const mockUsePrivateAssetConfigs = jest.fn()
 jest.mock("@utils/assets/usePrivateAssetConfigs", () => ({
-  usePrivateAssetConfigs: () => ({
-    configs: [],
-    isLoading: false,
-    error: undefined,
-  }),
+  usePrivateAssetConfigs: () => mockUsePrivateAssetConfigs(),
 }))
 
 const TestWrapper: React.FC<{ children: React.ReactNode }> = () => {
@@ -39,6 +36,19 @@ const TestWrapper: React.FC<{ children: React.ReactNode }> = () => {
 }
 
 describe("IncomeSourcesStep", () => {
+  beforeEach(() => {
+    // Default: no pension assets configured
+    mockUsePrivateAssetConfigs.mockReturnValue({
+      configs: [],
+      isLoading: false,
+      error: undefined,
+    })
+  })
+
+  afterEach(() => {
+    jest.clearAllMocks()
+  })
+
   it("renders all income fields", () => {
     render(
       <TestWrapper>
@@ -106,5 +116,99 @@ describe("IncomeSourcesStep", () => {
     expect(
       screen.getByText(/part-time work, annuities, or other sources/i),
     ).toBeInTheDocument()
+  })
+
+  describe("pension input visibility", () => {
+    it("shows manual pension input when no pension assets are configured", () => {
+      mockUsePrivateAssetConfigs.mockReturnValue({
+        configs: [],
+        isLoading: false,
+        error: undefined,
+      })
+
+      render(
+        <TestWrapper>
+          <div />
+        </TestWrapper>,
+      )
+
+      expect(screen.getByLabelText(/pension/i)).toBeInTheDocument()
+      expect(
+        screen.getByText(/expected pension from employer/i),
+      ).toBeInTheDocument()
+    })
+
+    it("hides pension input and shows info box when pension assets are configured", () => {
+      mockUsePrivateAssetConfigs.mockReturnValue({
+        configs: [
+          {
+            id: "pension-1",
+            isPension: true,
+            isPrimaryResidence: false,
+            monthlyRentalIncome: 0,
+            managementFeePercent: 0,
+            monthlyManagementFee: 0,
+          },
+        ],
+        isLoading: false,
+        error: undefined,
+      })
+
+      render(
+        <TestWrapper>
+          <div />
+        </TestWrapper>,
+      )
+
+      // Pension input should not be rendered
+      expect(screen.queryByLabelText(/pension/i)).not.toBeInTheDocument()
+
+      // Info box should be shown with header
+      expect(
+        screen.getByRole("heading", { name: /pension income/i }),
+      ).toBeInTheDocument()
+      expect(
+        screen.getByText(
+          /pension income is calculated from your 1 configured pension asset\./i,
+        ),
+      ).toBeInTheDocument()
+    })
+
+    it("shows correct pluralization for multiple pension assets", () => {
+      mockUsePrivateAssetConfigs.mockReturnValue({
+        configs: [
+          {
+            id: "pension-1",
+            isPension: true,
+            isPrimaryResidence: false,
+            monthlyRentalIncome: 0,
+            managementFeePercent: 0,
+            monthlyManagementFee: 0,
+          },
+          {
+            id: "pension-2",
+            isPension: true,
+            isPrimaryResidence: false,
+            monthlyRentalIncome: 0,
+            managementFeePercent: 0,
+            monthlyManagementFee: 0,
+          },
+        ],
+        isLoading: false,
+        error: undefined,
+      })
+
+      render(
+        <TestWrapper>
+          <div />
+        </TestWrapper>,
+      )
+
+      expect(
+        screen.getByText(
+          /pension income is calculated from your 2 configured pension assets\./i,
+        ),
+      ).toBeInTheDocument()
+    })
   })
 })
