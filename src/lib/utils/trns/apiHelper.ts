@@ -22,6 +22,8 @@ export interface TrnUpdatePayload {
   comments?: string
   status?: string
   brokerId?: string
+  /** Model ID for tracking which rebalance model this transaction belongs to */
+  modelId?: string
 }
 
 export function updateTrn(

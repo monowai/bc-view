@@ -339,6 +339,8 @@ export interface ExecutionDto {
   mode: ExecutionMode
   /** Investment amount for INVEST_CASH mode */
   investmentAmount?: number
+  /** When true, only considers positions from transactions tagged with this model's ID */
+  filterByModel?: boolean
   items: ExecutionItemDto[]
   cashSummary: CashSummaryDto
   createdAt: string
@@ -406,6 +408,8 @@ export interface CreateExecutionRequest {
   mode?: ExecutionMode
   /** Amount of cash to invest (only used in INVEST_CASH mode) */
   investmentAmount?: number
+  /** When true, only consider positions from transactions tagged with this model's ID */
+  filterByModel?: boolean
 }
 
 export interface CommitExecutionRequest {

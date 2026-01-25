@@ -53,6 +53,12 @@ export default function IncomeSourcesStep({
 
   const hasRentalIncome = Object.keys(rentalIncomeByCurrency).length > 0
 
+  // Filter pension assets (isPension = true)
+  const pensionAssets = React.useMemo(() => {
+    if (!configs) return []
+    return configs.filter((c) => c.isPension)
+  }, [configs])
+
   const totalMonthlyIncome =
     pensionMonthly + socialSecurityMonthly + otherIncomeMonthly
 
@@ -98,13 +104,34 @@ export default function IncomeSourcesStep({
       )}
 
       <div className="space-y-4">
-        <CurrencyInputWithPeriod
-          name="pensionMonthly"
-          label="Pension"
-          helperText="Expected pension from employer or private schemes."
-          control={control}
-          errors={errors}
-        />
+        {/* Only show manual pension input when no pension assets are configured */}
+        {pensionAssets.length === 0 ? (
+          <CurrencyInputWithPeriod
+            name="pensionMonthly"
+            label="Pension"
+            helperText="Expected pension from employer or private schemes."
+            control={control}
+            errors={errors}
+          />
+        ) : (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-center mb-2">
+              <i className="fas fa-piggy-bank text-blue-600 mr-2"></i>
+              <h3 className="text-sm font-semibold text-blue-800">
+                Pension Income
+              </h3>
+            </div>
+            <p className="text-sm text-blue-700">
+              Pension income is calculated from your {pensionAssets.length}{" "}
+              configured pension asset
+              {pensionAssets.length > 1 ? "s" : ""}.
+            </p>
+            <p className="text-xs text-blue-600 mt-2">
+              <i className="fas fa-info-circle mr-1"></i>
+              Configure in Accounts with &apos;Is Pension&apos; enabled.
+            </p>
+          </div>
+        )}
 
         <CurrencyInputWithPeriod
           name="socialSecurityMonthly"

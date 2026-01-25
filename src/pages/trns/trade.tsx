@@ -8,6 +8,7 @@ import {
   BrokerWithAccounts,
   Transaction,
 } from "types/beancounter"
+import { ModelDto } from "types/rebalance"
 import TradeStatusToggle from "@components/ui/TradeStatusToggle"
 import {
   calculateTradeAmount,
@@ -25,6 +26,7 @@ import {
   ccyKey,
   cashKey,
   holdingKey,
+  modelsKey,
 } from "@utils/api/fetchHelper"
 import { rootLoader } from "@components/ui/PageLoader"
 import TradeTypeController from "@components/features/transactions/TradeTypeController"
@@ -173,12 +175,64 @@ const TradeInputForm: React.FC<{
   const [showBrokerSelectionDialog, setShowBrokerSelectionDialog] =
     useState(false)
 
+  // Model selection state (edit mode only)
+  const [selectedModelId, setSelectedModelId] = useState<string | undefined>(
+    transaction?.modelId,
+  )
+  const [suggestedModelId, setSuggestedModelId] = useState<string | undefined>(
+    undefined,
+  )
+
   // Fetch portfolios for portfolio move (edit mode)
   const { data: portfoliosData } = useSwr(
     isEditMode ? "/api/portfolios" : null,
     simpleFetcher("/api/portfolios"),
   )
   const portfolios: Portfolio[] = portfoliosData?.data || []
+
+  // Fetch models for model selection (edit mode only)
+  const { data: modelsData } = useSwr(
+    isEditMode ? modelsKey : null,
+    simpleFetcher(modelsKey),
+  )
+  const models: ModelDto[] = modelsData?.data || []
+
+  // Try to determine suggested model from callerRef (for rebalance transactions)
+  useEffect(() => {
+    if (!isEditMode || !transaction) return
+
+    // If transaction already has modelId, use it
+    if (transaction.modelId) {
+      setSelectedModelId(transaction.modelId)
+      setSuggestedModelId(transaction.modelId)
+      return
+    }
+
+    // If callerRef has REBALANCE provider, try to get model from execution
+    if (
+      transaction.callerRef?.provider === "REBALANCE" &&
+      transaction.callerRef.batch
+    ) {
+      const executionId = transaction.callerRef.batch
+      fetch(`/api/rebalance/executions/${executionId}`)
+        .then((res) => {
+          if (res.ok) return res.json()
+          return null
+        })
+        .then((data) => {
+          if (data?.data?.modelId) {
+            setSuggestedModelId(data.data.modelId)
+            // Only auto-select if no current selection
+            if (!selectedModelId) {
+              setSelectedModelId(data.data.modelId)
+            }
+          }
+        })
+        .catch(() => {
+          // Execution might have been deleted, ignore
+        })
+    }
+  }, [isEditMode, transaction, selectedModelId])
 
   // Check if portfolio changed (edit mode)
   const portfolioChanged =
@@ -968,6 +1022,7 @@ const TradeInputForm: React.FC<{
                       comments: data.comment || "",
                       brokerId: data.brokerId || undefined,
                       status: data.status?.value || transaction.status,
+                      modelId: selectedModelId,
                     }
 
                     const response = await updateTrn(
@@ -1259,6 +1314,70 @@ const TradeInputForm: React.FC<{
                   defaultValue={defaultCashAsset}
                 />
               </div>
+
+              {/* Model Selection (edit mode only) */}
+              {isEditMode && models.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-medium text-gray-600">
+                      {t("trn.model", "Strategy/Model")}
+                    </label>
+                    {suggestedModelId &&
+                      suggestedModelId !== selectedModelId && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedModelId(suggestedModelId)}
+                          className="text-xs text-blue-500 hover:text-blue-700"
+                        >
+                          {t("trn.model.useSuggested", "Use suggested")}
+                        </button>
+                      )}
+                  </div>
+                  <select
+                    className={`${inputClass} ${suggestedModelId && selectedModelId === suggestedModelId ? "border-purple-300 bg-purple-50" : ""}`}
+                    value={selectedModelId || ""}
+                    onChange={(e) =>
+                      setSelectedModelId(e.target.value || undefined)
+                    }
+                  >
+                    <option value="">
+                      {t("trn.model.none", "-- No model --")}
+                    </option>
+                    {/* Show suggested model first if available */}
+                    {suggestedModelId && (
+                      <optgroup label={t("trn.model.suggested", "Suggested")}>
+                        {models
+                          .filter((m) => m.id === suggestedModelId)
+                          .map((model) => (
+                            <option
+                              key={`suggested-${model.id}`}
+                              value={model.id}
+                            >
+                              {model.name} (suggested)
+                            </option>
+                          ))}
+                      </optgroup>
+                    )}
+                    <optgroup label={t("trn.model.all", "All Models")}>
+                      {models
+                        .filter((m) => m.id !== suggestedModelId)
+                        .map((model) => (
+                          <option key={model.id} value={model.id}>
+                            {model.name}
+                          </option>
+                        ))}
+                    </optgroup>
+                  </select>
+                  {suggestedModelId && (
+                    <p className="text-xs text-purple-600 mt-0.5">
+                      {t(
+                        "trn.model.deduced",
+                        "Model suggested based on transaction origin",
+                      )}
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Tabs for Trade/Invest */}
               <div className="border-t border-gray-200 pt-2">

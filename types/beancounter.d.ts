@@ -325,6 +325,8 @@ export interface Transaction {
   tax: number
   comments: string
   broker?: Broker
+  /** Model ID for tracking which rebalance model this transaction belongs to */
+  modelId?: string
 }
 
 interface Registration {

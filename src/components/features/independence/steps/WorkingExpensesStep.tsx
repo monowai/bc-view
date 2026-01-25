@@ -53,22 +53,30 @@ export default function WorkingExpensesStep({
   )
 
   // Initialize expenses with all system categories when data loads
-  // Only do this for NEW plans that have no expenses yet
+  // Merge system categories with any stored expenses to ensure all categories display
   useEffect(() => {
-    if (
-      systemCategories.length > 0 &&
-      !hasInitialized.current &&
-      workingExpenses.length === 0
-    ) {
-      const initialExpenses = systemCategories.map((cat) => ({
+    if (systemCategories.length > 0 && !hasInitialized.current) {
+      // Build a map of existing expenses by categoryLabelId
+      const existingExpenseMap = new Map(
+        workingExpenses.map((e) => [e.categoryLabelId, e]),
+      )
+
+      // Create merged list: all system categories with stored values
+      const mergedExpenses = systemCategories.map((cat) => ({
         categoryLabelId: cat.id,
         categoryName: cat.name,
-        monthlyAmount: 0,
+        monthlyAmount: existingExpenseMap.get(cat.id)?.monthlyAmount || 0,
       }))
-      setValue("workingExpenses", initialExpenses)
+
+      // Add any custom categories that were stored
+      const customExpenses = workingExpenses.filter((e) =>
+        e.categoryLabelId.startsWith("custom-"),
+      )
+
+      setValue("workingExpenses", [...mergedExpenses, ...customExpenses])
       hasInitialized.current = true
     }
-  }, [systemCategories, setValue, workingExpenses.length])
+  }, [systemCategories, setValue, workingExpenses])
 
   // Update workingExpensesMonthly whenever workingExpenses changes
   // BUT only if user has made changes OR the computed total is greater than 0

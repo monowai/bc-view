@@ -19,7 +19,13 @@ import { Asset, AssetResponse, Broker } from "types/beancounter"
 function ExecuteRebalancePage(): React.ReactElement {
   const { t } = useTranslation("common")
   const router = useRouter()
-  const { planId, portfolios, executionId, source } = router.query
+  const {
+    planId,
+    portfolios,
+    executionId,
+    source,
+    filterByModel: filterByModelParam,
+  } = router.query
 
   const portfolioIds = useMemo(
     () => (portfolios ? (portfolios as string).split(",") : []),
@@ -117,12 +123,14 @@ function ExecuteRebalancePage(): React.ReactElement {
       setLoading(true)
       setError(null)
       try {
+        const filterByModel = filterByModelParam === "true"
         const response = await fetch("/api/rebalance/executions", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             planId,
             portfolioIds,
+            filterByModel,
           }),
         })
         if (!response.ok) {
@@ -161,7 +169,7 @@ function ExecuteRebalancePage(): React.ReactElement {
         setLoading(false)
       }
     }
-  }, [executionId, planId, portfolioIds, router, source])
+  }, [executionId, planId, portfolioIds, router, source, filterByModelParam])
 
   // Initialize on mount
   useEffect(() => {
@@ -578,6 +586,15 @@ function ExecuteRebalancePage(): React.ReactElement {
             <p className="text-sm text-gray-600 mt-1">
               {t("rebalance.execute.usingPlan", "Using plan")}:{" "}
               {execution.modelName} v{execution.planVersion}
+              {execution.filterByModel && (
+                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                  <i className="fas fa-filter mr-1"></i>
+                  {t(
+                    "rebalance.execute.modelPositionsOnly",
+                    "Model positions only",
+                  )}
+                </span>
+              )}
             </p>
           </div>
           <div className="flex items-center gap-2">

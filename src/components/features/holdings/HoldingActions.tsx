@@ -389,11 +389,15 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
         modalOpen={selectPlanModalOpen}
         portfolioId={holdingResults.portfolio.id}
         onClose={() => setSelectPlanModalOpen(false)}
-        onSelectPlan={(model: ModelDto, plan: PlanDto) => {
+        onSelectPlan={(
+          model: ModelDto,
+          plan: PlanDto,
+          filterByModel: boolean,
+        ) => {
           setSelectPlanModalOpen(false)
           const source = encodeURIComponent(router.asPath)
           router.push(
-            `/rebalance/execute?planId=${plan.id}&modelId=${model.id}&portfolios=${holdingResults.portfolio.id}&source=${source}`,
+            `/rebalance/execute?planId=${plan.id}&modelId=${model.id}&portfolios=${holdingResults.portfolio.id}&source=${source}&filterByModel=${filterByModel}`,
           )
         }}
         onCreateNew={() => {
