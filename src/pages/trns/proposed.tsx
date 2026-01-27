@@ -1,15 +1,15 @@
-import React, { useEffect, useState } from "react"
-import { GetServerSideProps } from "next"
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
-import { useTranslation } from "next-i18next"
-import { useRouter } from "next/router"
-import useSwr, { mutate } from "swr"
-import { fetcher, simpleFetcher } from "@utils/api/fetchHelper"
-import { rootLoader } from "@components/ui/PageLoader"
-import { Broker, Transaction, TrnStatus } from "types/beancounter"
+import React, {useEffect, useMemo, useState} from "react"
+import {GetServerSideProps} from "next"
+import {serverSideTranslations} from "next-i18next/serverSideTranslations"
+import {useTranslation} from "next-i18next"
+import {useRouter} from "next/router"
+import useSwr, {mutate} from "swr"
+import {fetcher, simpleFetcher} from "@utils/api/fetchHelper"
+import {rootLoader} from "@components/ui/PageLoader"
+import {Broker, Transaction, TrnStatus} from "types/beancounter"
 import Head from "next/head"
-import { useUser } from "@auth0/nextjs-auth0/client"
-import { calculateTradeAmount } from "@utils/trns/tradeUtils"
+import {useUser} from "@auth0/nextjs-auth0/client"
+import {calculateTradeAmount} from "@utils/trns/tradeUtils"
 
 interface ProposedTransaction extends Transaction {
   editedPrice?: number
@@ -17,6 +17,30 @@ interface ProposedTransaction extends Transaction {
   editedStatus?: TrnStatus
   editedTradeDate?: string
   editedBrokerId?: string
+}
+
+// Aggregated transaction for efficient execution view
+interface AggregatedTransaction {
+  aggregateKey: string // broker:asset key
+  brokerId: string | undefined
+  brokerName: string
+  assetId: string
+  assetCode: string
+  assetName: string
+  assetMarket: { code: string }
+  trnType: string
+  tradeCurrency: { code: string }
+  totalQuantity: number
+  avgPrice: number
+  totalFees: number
+  totalAmount: number
+  transactionIds: string[]
+  transactions: ProposedTransaction[]
+  // Editable fields that apply to all underlying transactions
+  editedPrice?: number
+  editedFees?: number
+  editedStatus?: TrnStatus
+  editedTradeDate?: string
 }
 
 // Get today's date in YYYY-MM-DD format
@@ -51,6 +75,10 @@ export default function ProposedTransactions(): React.JSX.Element {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [typeFilter, setTypeFilter] = useState<string>("ALL")
   const [isSettling, setIsSettling] = useState(false)
+  const [aggregateView, setAggregateView] = useState(false)
+  const [aggregatedTransactions, setAggregatedTransactions] = useState<
+    AggregatedTransaction[]
+  >([])
 
   // Fetch proposed transactions across all portfolios
   const proposedKey = user ? "/api/trns/proposed" : null
@@ -63,7 +91,10 @@ export default function ProposedTransactions(): React.JSX.Element {
     user ? "/api/brokers" : null,
     simpleFetcher("/api/brokers"),
   )
-  const brokers: Broker[] = brokersData?.data || []
+  const brokers: Broker[] = useMemo(
+    () => brokersData?.data || [],
+    [brokersData?.data],
+  )
 
   // Fetch settled transactions when checkbox is checked
   useEffect(() => {
@@ -144,7 +175,84 @@ export default function ProposedTransactions(): React.JSX.Element {
   // Clear selection when filter changes
   useEffect(() => {
     setSelectedIds(new Set())
-  }, [typeFilter])
+  }, [typeFilter, aggregateView])
+
+  // Compute aggregated transactions when aggregate view is enabled
+  useEffect(() => {
+    if (!aggregateView) {
+      setAggregatedTransactions([])
+      return
+    }
+
+    // Group transactions by broker + asset + trnType
+    const groups = new Map<string, ProposedTransaction[]>()
+    transactions.forEach((trn) => {
+      const brokerId = trn.editedBrokerId || trn.broker?.id || ""
+      const key = `${brokerId}:${trn.asset.id}:${trn.trnType}`
+      const existing = groups.get(key) || []
+      existing.push(trn)
+      groups.set(key, existing)
+    })
+
+    // Create aggregated transactions
+    const aggregated: AggregatedTransaction[] = []
+    groups.forEach((trns, key) => {
+      const first = trns[0]
+      const totalQuantity = trns.reduce((sum, t) => sum + t.quantity, 0)
+      const totalFees = trns.reduce((sum, t) => sum + (t.editedFees ?? t.fees ?? 0), 0)
+      const totalAmount = trns.reduce(
+        (sum, t) =>
+          sum +
+          calculateTradeAmount(
+            t.quantity,
+            t.editedPrice ?? t.price,
+            0,
+            t.editedFees ?? t.fees ?? 0,
+            t.trnType,
+          ),
+        0,
+      )
+      // Weighted average price
+      const avgPrice =
+        totalQuantity > 0
+          ? trns.reduce((sum, t) => sum + (t.editedPrice ?? t.price) * t.quantity, 0) /
+            totalQuantity
+          : 0
+
+      const broker = brokers.find((b) => b.id === (first.editedBrokerId || first.broker?.id))
+
+      aggregated.push({
+        aggregateKey: key,
+        brokerId: first.editedBrokerId || first.broker?.id,
+        brokerName: broker?.name || first.broker?.name || "",
+        assetId: first.asset.id,
+        assetCode: getAssetDisplayCode(first.asset),
+        assetName: first.asset.name,
+        assetMarket: first.asset.market,
+        trnType: first.trnType,
+        tradeCurrency: first.tradeCurrency,
+        totalQuantity,
+        avgPrice,
+        totalFees,
+        totalAmount,
+        transactionIds: trns.map((t) => t.id),
+        transactions: trns,
+        editedPrice: avgPrice,
+        editedFees: totalFees,
+        editedStatus: first.editedStatus,
+        editedTradeDate: first.editedTradeDate,
+      })
+    })
+
+    // Sort by broker name, then asset code
+    aggregated.sort((a, b) => {
+      const brokerCompare = a.brokerName.localeCompare(b.brokerName)
+      if (brokerCompare !== 0) return brokerCompare
+      return a.assetCode.localeCompare(b.assetCode)
+    })
+
+    setAggregatedTransactions(aggregated)
+  }, [aggregateView, transactions, brokers])
 
   const handlePriceChange = (id: string, value: number): void => {
     setTransactions((prev) =>
@@ -186,6 +294,112 @@ export default function ProposedTransactions(): React.JSX.Element {
         trn.id === id ? { ...trn, editedBrokerId: value || undefined } : trn,
       ),
     )
+  }
+
+  // Handlers for aggregated transaction edits
+  const handleAggregatedPriceChange = (
+    aggregateKey: string,
+    value: number,
+  ): void => {
+    // Update all underlying transactions with the new price
+    const agg = aggregatedTransactions.find((a) => a.aggregateKey === aggregateKey)
+    if (!agg) return
+
+    setTransactions((prev) =>
+      prev.map((trn) =>
+        agg.transactionIds.includes(trn.id) ? { ...trn, editedPrice: value } : trn,
+      ),
+    )
+    setAggregatedTransactions((prev) =>
+      prev.map((a) =>
+        a.aggregateKey === aggregateKey ? { ...a, editedPrice: value } : a,
+      ),
+    )
+  }
+
+  const handleAggregatedStatusChange = (
+    aggregateKey: string,
+    value: TrnStatus,
+  ): void => {
+    const agg = aggregatedTransactions.find((a) => a.aggregateKey === aggregateKey)
+    if (!agg) return
+
+    const updates: Partial<ProposedTransaction> = { editedStatus: value }
+    if (value === "SETTLED") {
+      updates.editedTradeDate = getToday()
+    }
+
+    setTransactions((prev) =>
+      prev.map((trn) =>
+        agg.transactionIds.includes(trn.id) ? { ...trn, ...updates } : trn,
+      ),
+    )
+    setAggregatedTransactions((prev) =>
+      prev.map((a) =>
+        a.aggregateKey === aggregateKey
+          ? { ...a, editedStatus: value, editedTradeDate: value === "SETTLED" ? getToday() : a.editedTradeDate }
+          : a,
+      ),
+    )
+  }
+
+  const handleAggregatedTradeDateChange = (
+    aggregateKey: string,
+    value: string,
+  ): void => {
+    const agg = aggregatedTransactions.find((a) => a.aggregateKey === aggregateKey)
+    if (!agg) return
+
+    setTransactions((prev) =>
+      prev.map((trn) =>
+        agg.transactionIds.includes(trn.id) ? { ...trn, editedTradeDate: value } : trn,
+      ),
+    )
+    setAggregatedTransactions((prev) =>
+      prev.map((a) =>
+        a.aggregateKey === aggregateKey ? { ...a, editedTradeDate: value } : a,
+      ),
+    )
+  }
+
+  // Selection handlers for aggregated view
+  const handleSelectAggregated = (aggregateKey: string, checked: boolean): void => {
+    const agg = aggregatedTransactions.find((a) => a.aggregateKey === aggregateKey)
+    if (!agg) return
+
+    // Only select PROPOSED transactions
+    const proposedIds = agg.transactions
+      .filter((t) => t.status === "PROPOSED")
+      .map((t) => t.id)
+
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (checked) {
+        proposedIds.forEach((id) => next.add(id))
+      } else {
+        proposedIds.forEach((id) => next.delete(id))
+      }
+      return next
+    })
+  }
+
+  const isAggregatedSelected = (agg: AggregatedTransaction): boolean => {
+    const proposedIds = agg.transactions
+      .filter((t) => t.status === "PROPOSED")
+      .map((t) => t.id)
+    return proposedIds.length > 0 && proposedIds.every((id) => selectedIds.has(id))
+  }
+
+  const isAggregatedPartiallySelected = (agg: AggregatedTransaction): boolean => {
+    const proposedIds = agg.transactions
+      .filter((t) => t.status === "PROPOSED")
+      .map((t) => t.id)
+    const selectedCount = proposedIds.filter((id) => selectedIds.has(id)).length
+    return selectedCount > 0 && selectedCount < proposedIds.length
+  }
+
+  const hasAggregatedProposed = (agg: AggregatedTransaction): boolean => {
+    return agg.transactions.some((t) => t.status === "PROPOSED")
   }
 
   const handleDelete = async (id: string): Promise<void> => {
@@ -444,6 +658,16 @@ export default function ProposedTransactions(): React.JSX.Element {
                 : `(${settledTransactions.length} settled)`}
             </span>
           )}
+          <div className="border-l border-gray-300 h-6" />
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={aggregateView}
+              onChange={(e) => setAggregateView(e.target.checked)}
+              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-gray-700">Aggregate by Broker + Asset</span>
+          </label>
         </div>
 
         {fetchError && (
@@ -497,209 +721,431 @@ export default function ProposedTransactions(): React.JSX.Element {
               )}
             </div>
 
-            {/* Transactions Table */}
-            <div className="overflow-x-auto bg-white rounded-lg shadow">
-              <table className="min-w-full divide-y divide-gray-200 text-xs">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-2 py-2 text-center font-medium text-gray-500 uppercase w-10">
-                      <input
-                        type="checkbox"
-                        checked={allProposedSelected}
-                        ref={(el) => {
-                          if (el) el.indeterminate = someProposedSelected
-                        }}
-                        onChange={handleSelectAll}
-                        className="rounded border-gray-300 text-green-600 focus:ring-green-500"
-                        title="Select all PROPOSED transactions"
-                      />
-                    </th>
-                    <th className="px-2 py-2 text-left font-medium text-gray-500 uppercase">
-                      Broker
-                    </th>
-                    <th className="px-2 py-2 text-left font-medium text-gray-500 uppercase">
-                      Portfolio
-                    </th>
-                    <th className="px-2 py-2 text-left font-medium text-gray-500 uppercase">
-                      Type
-                    </th>
-                    <th className="px-2 py-2 text-left font-medium text-gray-500 uppercase">
-                      Asset
-                    </th>
-                    <th className="px-2 py-2 text-right font-medium text-gray-500 uppercase">
-                      Qty
-                    </th>
-                    <th className="px-2 py-2 text-right font-medium text-gray-500 uppercase">
-                      Price
-                    </th>
-                    <th className="px-2 py-2 text-right font-medium text-gray-500 uppercase">
-                      Fees
-                    </th>
-                    <th className="px-2 py-2 text-right font-medium text-gray-500 uppercase">
-                      Amount
-                    </th>
-                    <th className="px-2 py-2 text-left font-medium text-gray-500 uppercase">
-                      Status
-                    </th>
-                    <th className="px-2 py-2 text-left font-medium text-gray-500 uppercase">
-                      Date
-                    </th>
-                    <th className="px-2 py-2 text-center font-medium text-gray-500 uppercase">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {transactions.map((trn) => (
-                    <tr key={trn.id} className="hover:bg-gray-50">
-                      <td className="px-2 py-1.5 whitespace-nowrap text-center">
+            {/* Transactions Table - Detailed View */}
+            {!aggregateView && (
+              <div className="overflow-x-auto bg-white rounded-lg shadow">
+                <table className="min-w-full divide-y divide-gray-200 text-xs">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-2 py-2 text-center font-medium text-gray-500 uppercase w-10">
                         <input
                           type="checkbox"
-                          checked={selectedIds.has(trn.id)}
-                          onChange={(e) =>
-                            handleSelectOne(trn.id, e.target.checked)
-                          }
-                          disabled={trn.status !== "PROPOSED"}
-                          className="rounded border-gray-300 text-green-600 focus:ring-green-500 disabled:opacity-50"
-                          title={
-                            trn.status === "PROPOSED"
-                              ? "Select for bulk settle"
-                              : "Already settled"
-                          }
+                          checked={allProposedSelected}
+                          ref={(el) => {
+                            if (el) el.indeterminate = someProposedSelected
+                          }}
+                          onChange={handleSelectAll}
+                          className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                          title="Select all PROPOSED transactions"
                         />
-                      </td>
-                      <td className="px-2 py-1.5 whitespace-nowrap">
-                        <select
-                          value={trn.editedBrokerId || ""}
-                          onChange={(e) =>
-                            handleBrokerChange(trn.id, e.target.value)
-                          }
-                          className="px-1 py-0.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 max-w-25"
-                        >
-                          <option value="">--</option>
-                          {brokers.map((broker) => (
-                            <option key={broker.id} value={broker.id}>
-                              {broker.name}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="px-2 py-1.5 whitespace-nowrap">
-                        <span className="text-gray-600">
-                          {trn.portfolio.code}
-                        </span>
-                      </td>
-                      <td className="px-2 py-1.5 whitespace-nowrap">
-                        <span
-                          className={`px-1.5 py-0.5 font-medium rounded ${
-                            trn.trnType === "DIVI"
-                              ? "bg-blue-100 text-blue-800"
-                              : trn.trnType === "BUY"
-                                ? "bg-green-100 text-green-800"
-                                : "bg-red-100 text-red-800"
-                          }`}
-                        >
-                          {trn.trnType}
-                        </span>
-                      </td>
-                      <td className="px-2 py-1.5 whitespace-nowrap">
-                        <div className="font-medium text-gray-900">
-                          {getAssetDisplayCode(trn.asset)}
-                        </div>
-                      </td>
-                      <td className="px-2 py-1.5 whitespace-nowrap text-right font-mono">
-                        {trn.quantity.toFixed(0)}
-                      </td>
-                      <td className="px-2 py-1.5 whitespace-nowrap text-right">
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={trn.editedPrice || 0}
-                          onChange={(e) =>
-                            handlePriceChange(
-                              trn.id,
-                              parseFloat(e.target.value) || 0,
-                            )
-                          }
-                          className="w-20 px-1 py-0.5 text-right border border-gray-300 rounded text-xs font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        />
-                      </td>
-                      <td className="px-2 py-1.5 whitespace-nowrap text-right">
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={trn.editedFees || 0}
-                          onChange={(e) =>
-                            handleFeesChange(
-                              trn.id,
-                              parseFloat(e.target.value) || 0,
-                            )
-                          }
-                          className="w-16 px-1 py-0.5 text-right border border-gray-300 rounded text-xs font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        />
-                      </td>
-                      <td className="px-2 py-1.5 whitespace-nowrap text-right font-mono text-gray-600">
-                        {calculateTradeAmount(
-                          trn.quantity,
-                          trn.editedPrice || trn.price,
-                          0,
-                          trn.editedFees || 0,
-                          trn.trnType,
-                        ).toFixed(2)}
-                      </td>
-                      <td className="px-2 py-1.5 whitespace-nowrap">
-                        <select
-                          value={trn.editedStatus}
-                          onChange={(e) =>
-                            handleStatusChange(
-                              trn.id,
-                              e.target.value as TrnStatus,
-                            )
-                          }
-                          className="px-1 py-0.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        >
-                          <option value="PROPOSED">PROPOSED</option>
-                          <option value="SETTLED">SETTLED</option>
-                        </select>
-                      </td>
-                      <td className="px-2 py-1.5 whitespace-nowrap">
-                        <input
-                          type="date"
-                          value={trn.editedTradeDate || trn.tradeDate}
-                          onChange={(e) =>
-                            handleTradeDateChange(trn.id, e.target.value)
-                          }
-                          className="px-1 py-0.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        />
-                      </td>
-                      <td className="px-2 py-1.5 whitespace-nowrap text-center">
-                        <button
-                          onClick={() => handleEdit(trn.portfolio.id, trn.id)}
-                          className="text-blue-500 hover:text-blue-700 p-1 mr-1"
-                          title="Edit transaction"
-                        >
-                          <i className="fas fa-edit"></i>
-                        </button>
-                        <button
-                          onClick={() => handleDelete(trn.id)}
-                          className="text-red-500 hover:text-red-700 p-1"
-                          title="Delete transaction"
-                        >
-                          <i className="fas fa-trash-alt"></i>
-                        </button>
-                      </td>
+                      </th>
+                      <th className="px-2 py-2 text-left font-medium text-gray-500 uppercase">
+                        Broker
+                      </th>
+                      <th className="px-2 py-2 text-left font-medium text-gray-500 uppercase">
+                        Portfolio
+                      </th>
+                      <th className="px-2 py-2 text-left font-medium text-gray-500 uppercase">
+                        Type
+                      </th>
+                      <th className="px-2 py-2 text-left font-medium text-gray-500 uppercase">
+                        Asset
+                      </th>
+                      <th className="px-2 py-2 text-right font-medium text-gray-500 uppercase">
+                        Qty
+                      </th>
+                      <th className="px-2 py-2 text-right font-medium text-gray-500 uppercase">
+                        Price
+                      </th>
+                      <th className="px-2 py-2 text-right font-medium text-gray-500 uppercase">
+                        Fees
+                      </th>
+                      <th className="px-2 py-2 text-right font-medium text-gray-500 uppercase">
+                        Amount
+                      </th>
+                      <th className="px-2 py-2 text-left font-medium text-gray-500 uppercase">
+                        Status
+                      </th>
+                      <th className="px-2 py-2 text-left font-medium text-gray-500 uppercase">
+                        Date
+                      </th>
+                      <th className="px-2 py-2 text-center font-medium text-gray-500 uppercase">
+                        Actions
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {transactions.map((trn) => (
+                      <tr key={trn.id} className="hover:bg-gray-50">
+                        <td className="px-2 py-1.5 whitespace-nowrap text-center">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(trn.id)}
+                            onChange={(e) =>
+                              handleSelectOne(trn.id, e.target.checked)
+                            }
+                            disabled={trn.status !== "PROPOSED"}
+                            className="rounded border-gray-300 text-green-600 focus:ring-green-500 disabled:opacity-50"
+                            title={
+                              trn.status === "PROPOSED"
+                                ? "Select for bulk settle"
+                                : "Already settled"
+                            }
+                          />
+                        </td>
+                        <td className="px-2 py-1.5 whitespace-nowrap">
+                          <select
+                            value={trn.editedBrokerId || ""}
+                            onChange={(e) =>
+                              handleBrokerChange(trn.id, e.target.value)
+                            }
+                            className="px-1 py-0.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 max-w-25"
+                          >
+                            <option value="">--</option>
+                            {brokers.map((broker) => (
+                              <option key={broker.id} value={broker.id}>
+                                {broker.name}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="px-2 py-1.5 whitespace-nowrap">
+                          <span className="text-gray-600">
+                            {trn.portfolio.code}
+                          </span>
+                        </td>
+                        <td className="px-2 py-1.5 whitespace-nowrap">
+                          <span
+                            className={`px-1.5 py-0.5 font-medium rounded ${
+                              trn.trnType === "DIVI"
+                                ? "bg-blue-100 text-blue-800"
+                                : trn.trnType === "BUY"
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-red-100 text-red-800"
+                            }`}
+                          >
+                            {trn.trnType}
+                          </span>
+                        </td>
+                        <td className="px-2 py-1.5 whitespace-nowrap">
+                          <div className="font-medium text-gray-900">
+                            {getAssetDisplayCode(trn.asset)}
+                          </div>
+                        </td>
+                        <td className="px-2 py-1.5 whitespace-nowrap text-right font-mono">
+                          {trn.quantity.toFixed(0)}
+                        </td>
+                        <td className="px-2 py-1.5 whitespace-nowrap text-right">
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={trn.editedPrice || 0}
+                            onChange={(e) =>
+                              handlePriceChange(
+                                trn.id,
+                                parseFloat(e.target.value) || 0,
+                              )
+                            }
+                            className="w-20 px-1 py-0.5 text-right border border-gray-300 rounded text-xs font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          />
+                        </td>
+                        <td className="px-2 py-1.5 whitespace-nowrap text-right">
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={trn.editedFees || 0}
+                            onChange={(e) =>
+                              handleFeesChange(
+                                trn.id,
+                                parseFloat(e.target.value) || 0,
+                              )
+                            }
+                            className="w-16 px-1 py-0.5 text-right border border-gray-300 rounded text-xs font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          />
+                        </td>
+                        <td className="px-2 py-1.5 whitespace-nowrap text-right font-mono text-gray-600">
+                          {calculateTradeAmount(
+                            trn.quantity,
+                            trn.editedPrice || trn.price,
+                            0,
+                            trn.editedFees || 0,
+                            trn.trnType,
+                          ).toFixed(2)}
+                        </td>
+                        <td className="px-2 py-1.5 whitespace-nowrap">
+                          <select
+                            value={trn.editedStatus}
+                            onChange={(e) =>
+                              handleStatusChange(
+                                trn.id,
+                                e.target.value as TrnStatus,
+                              )
+                            }
+                            className="px-1 py-0.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          >
+                            <option value="PROPOSED">PROPOSED</option>
+                            <option value="SETTLED">SETTLED</option>
+                          </select>
+                        </td>
+                        <td className="px-2 py-1.5 whitespace-nowrap">
+                          <input
+                            type="date"
+                            value={trn.editedTradeDate || trn.tradeDate}
+                            onChange={(e) =>
+                              handleTradeDateChange(trn.id, e.target.value)
+                            }
+                            className="px-1 py-0.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          />
+                        </td>
+                        <td className="px-2 py-1.5 whitespace-nowrap text-center">
+                          <button
+                            onClick={() => handleEdit(trn.portfolio.id, trn.id)}
+                            className="text-blue-500 hover:text-blue-700 p-1 mr-1"
+                            title="Edit transaction"
+                          >
+                            <i className="fas fa-edit"></i>
+                          </button>
+                          <button
+                            onClick={() => handleDelete(trn.id)}
+                            className="text-red-500 hover:text-red-700 p-1"
+                            title="Delete transaction"
+                          >
+                            <i className="fas fa-trash-alt"></i>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Transactions Table - Aggregated View */}
+            {aggregateView && (
+              <div className="overflow-x-auto bg-white rounded-lg shadow">
+                <table className="min-w-full divide-y divide-gray-200 text-xs">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-2 py-2 text-center font-medium text-gray-500 uppercase w-10">
+                        <input
+                          type="checkbox"
+                          checked={
+                            aggregatedTransactions.length > 0 &&
+                            aggregatedTransactions
+                              .filter(hasAggregatedProposed)
+                              .every(isAggregatedSelected)
+                          }
+                          ref={(el) => {
+                            if (el) {
+                              const withProposed = aggregatedTransactions.filter(hasAggregatedProposed)
+                              const allSelected = withProposed.every(isAggregatedSelected)
+                              el.indeterminate = withProposed.some(isAggregatedSelected) && !allSelected
+                            }
+                          }}
+                          onChange={(e) => {
+                            aggregatedTransactions.forEach((agg) => {
+                              if (hasAggregatedProposed(agg)) {
+                                handleSelectAggregated(agg.aggregateKey, e.target.checked)
+                              }
+                            })
+                          }}
+                          className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                          title="Select all PROPOSED transactions"
+                        />
+                      </th>
+                      <th className="px-2 py-2 text-left font-medium text-gray-500 uppercase">
+                        Broker
+                      </th>
+                      <th className="px-2 py-2 text-left font-medium text-gray-500 uppercase">
+                        Type
+                      </th>
+                      <th className="px-2 py-2 text-left font-medium text-gray-500 uppercase">
+                        Asset
+                      </th>
+                      <th className="px-2 py-2 text-right font-medium text-gray-500 uppercase">
+                        Total Qty
+                      </th>
+                      <th className="px-2 py-2 text-right font-medium text-gray-500 uppercase">
+                        Price
+                      </th>
+                      <th className="px-2 py-2 text-right font-medium text-gray-500 uppercase">
+                        Total Fees
+                      </th>
+                      <th className="px-2 py-2 text-right font-medium text-gray-500 uppercase">
+                        Total Amount
+                      </th>
+                      <th className="px-2 py-2 text-right font-medium text-gray-500 uppercase">
+                        Weight
+                      </th>
+                      <th className="px-2 py-2 text-left font-medium text-gray-500 uppercase">
+                        Status
+                      </th>
+                      <th className="px-2 py-2 text-left font-medium text-gray-500 uppercase">
+                        Date
+                      </th>
+                      <th className="px-2 py-2 text-center font-medium text-gray-500 uppercase">
+                        Trns
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {(() => {
+                      const grandTotal = aggregatedTransactions.reduce(
+                        (sum, a) => sum + Math.abs(a.totalAmount),
+                        0,
+                      )
+                      return aggregatedTransactions.map((agg) => {
+                        const weight =
+                          grandTotal > 0
+                            ? (Math.abs(agg.totalAmount) / grandTotal) * 100
+                            : 0
+                        return (
+                      <tr
+                        key={agg.aggregateKey}
+                        className={`hover:bg-gray-50 ${
+                          agg.trnType === "BUY"
+                            ? "bg-green-50"
+                            : agg.trnType === "SELL"
+                              ? "bg-red-50"
+                              : ""
+                        }`}
+                      >
+                        <td className="px-2 py-1.5 whitespace-nowrap text-center">
+                          <input
+                            type="checkbox"
+                            checked={isAggregatedSelected(agg)}
+                            ref={(el) => {
+                              if (el) el.indeterminate = isAggregatedPartiallySelected(agg)
+                            }}
+                            onChange={(e) =>
+                              handleSelectAggregated(agg.aggregateKey, e.target.checked)
+                            }
+                            disabled={!hasAggregatedProposed(agg)}
+                            className="rounded border-gray-300 text-green-600 focus:ring-green-500 disabled:opacity-50"
+                            title={
+                              hasAggregatedProposed(agg)
+                                ? `Select ${agg.transactions.filter((t) => t.status === "PROPOSED").length} transactions for bulk settle`
+                                : "All transactions already settled"
+                            }
+                          />
+                        </td>
+                        <td className="px-2 py-1.5 whitespace-nowrap">
+                          <span className="text-gray-700 font-medium">
+                            {agg.brokerName || "--"}
+                          </span>
+                        </td>
+                        <td className="px-2 py-1.5 whitespace-nowrap">
+                          <span
+                            className={`px-1.5 py-0.5 font-medium rounded ${
+                              agg.trnType === "DIVI"
+                                ? "bg-blue-100 text-blue-800"
+                                : agg.trnType === "BUY"
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-red-100 text-red-800"
+                            }`}
+                          >
+                            {agg.trnType}
+                          </span>
+                        </td>
+                        <td className="px-2 py-1.5 whitespace-nowrap">
+                          <div className="font-medium text-gray-900">
+                            {agg.assetCode}
+                          </div>
+                          <div className="text-xs text-gray-500 truncate max-w-32">
+                            {agg.assetName}
+                          </div>
+                        </td>
+                        <td className="px-2 py-1.5 whitespace-nowrap text-right font-mono font-semibold">
+                          {agg.totalQuantity.toFixed(0)}
+                        </td>
+                        <td className="px-2 py-1.5 whitespace-nowrap text-right">
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={agg.editedPrice || 0}
+                            onChange={(e) =>
+                              handleAggregatedPriceChange(
+                                agg.aggregateKey,
+                                parseFloat(e.target.value) || 0,
+                              )
+                            }
+                            className="w-20 px-1 py-0.5 text-right border border-gray-300 rounded text-xs font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            title="Editing price updates all underlying transactions"
+                          />
+                        </td>
+                        <td className="px-2 py-1.5 whitespace-nowrap text-right font-mono text-gray-600">
+                          {agg.totalFees.toFixed(2)}
+                        </td>
+                        <td className="px-2 py-1.5 whitespace-nowrap text-right font-mono font-semibold">
+                          {agg.totalAmount.toFixed(2)}
+                        </td>
+                        <td className="px-2 py-1.5 whitespace-nowrap text-right font-mono text-gray-600">
+                          {weight.toFixed(1)}%
+                        </td>
+                        <td className="px-2 py-1.5 whitespace-nowrap">
+                          <select
+                            value={agg.editedStatus || "PROPOSED"}
+                            onChange={(e) =>
+                              handleAggregatedStatusChange(
+                                agg.aggregateKey,
+                                e.target.value as TrnStatus,
+                              )
+                            }
+                            className="px-1 py-0.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            title="Changing status updates all underlying transactions"
+                          >
+                            <option value="PROPOSED">PROPOSED</option>
+                            <option value="SETTLED">SETTLED</option>
+                          </select>
+                        </td>
+                        <td className="px-2 py-1.5 whitespace-nowrap">
+                          <input
+                            type="date"
+                            value={agg.editedTradeDate || getToday()}
+                            onChange={(e) =>
+                              handleAggregatedTradeDateChange(
+                                agg.aggregateKey,
+                                e.target.value,
+                              )
+                            }
+                            className="px-1 py-0.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            title="Changing date updates all underlying transactions"
+                          />
+                        </td>
+                        <td className="px-2 py-1.5 whitespace-nowrap text-center">
+                          <span
+                            className="inline-flex items-center justify-center w-6 h-6 text-xs font-medium bg-gray-200 text-gray-700 rounded-full"
+                            title={`${agg.transactionIds.length} underlying transactions`}
+                          >
+                            {agg.transactionIds.length}
+                          </span>
+                        </td>
+                      </tr>
+                        )
+                      })
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+            )}
 
             {/* Summary */}
             <div className="mt-4 bg-gray-50 p-4 rounded-lg">
-              <div className="grid grid-cols-3 gap-4 text-sm">
+              <div className="grid grid-cols-4 gap-4 text-sm">
                 <div>
-                  <div className="text-gray-500">Total Transactions</div>
-                  <div className="font-semibold">{transactions.length}</div>
+                  <div className="text-gray-500">
+                    {aggregateView ? "Aggregated Groups" : "Total Transactions"}
+                  </div>
+                  <div className="font-semibold">
+                    {aggregateView
+                      ? aggregatedTransactions.length
+                      : transactions.length}
+                  </div>
+                  {aggregateView && (
+                    <div className="text-xs text-gray-400">
+                      ({transactions.length} underlying)
+                    </div>
+                  )}
                 </div>
                 <div>
                   <div className="text-gray-500">Total Fees</div>
@@ -728,6 +1174,14 @@ export default function ProposedTransactions(): React.JSX.Element {
                       .toFixed(2)}
                   </div>
                 </div>
+                {aggregateView && (
+                  <div>
+                    <div className="text-gray-500">Unique Assets</div>
+                    <div className="font-semibold">
+                      {new Set(aggregatedTransactions.map((a) => a.assetId)).size}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </>
