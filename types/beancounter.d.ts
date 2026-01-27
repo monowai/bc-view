@@ -190,7 +190,8 @@ export interface Portfolio {
   irr: number
   gainOnDay?: number
   assetClassification?: Record<string, number>
-  valuedAt?: string // ISO date string (YYYY-MM-DD)
+  valuedAt?: string // ISO date string (YYYY-MM-DD) - market data date
+  lastUpdated?: string // ISO timestamp - when system updated the values
 }
 
 export interface PortfolioResponse {

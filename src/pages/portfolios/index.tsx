@@ -375,6 +375,18 @@ export default withPageAuthRequired(function Portfolios({
     })
   }
 
+  // Format the lastUpdated timestamp for tooltip (in user's local timezone)
+  const formatLastUpdated = (lastUpdated: string | undefined): string => {
+    if (!lastUpdated) return ""
+    const date = new Date(lastUpdated)
+    return date.toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    })
+  }
+
   function listPortfolios(portfolios: Portfolio[]): React.ReactElement {
     if (!portfolios || portfolios.length == 0) {
       return (
@@ -603,7 +615,7 @@ export default withPageAuthRequired(function Portfolios({
                     {isStale(portfolio.valuedAt) && (
                       <span
                         className="text-amber-500"
-                        title={`Valued: ${formatValuedAt(portfolio.valuedAt)}`}
+                        title={`Valued: ${formatValuedAt(portfolio.valuedAt)}${portfolio.lastUpdated ? ` (Updated: ${formatLastUpdated(portfolio.lastUpdated)})` : ""}`}
                       >
                         <i className="fas fa-clock text-xs"></i>
                       </span>
@@ -850,7 +862,7 @@ export default withPageAuthRequired(function Portfolios({
                         }
                         title={
                           portfolio.valuedAt
-                            ? `Valued: ${portfolio.valuedAt}`
+                            ? `Valued: ${portfolio.valuedAt}${portfolio.lastUpdated ? ` (Updated: ${formatLastUpdated(portfolio.lastUpdated)})` : ""}`
                             : "Not yet valued"
                         }
                       >
