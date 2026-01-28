@@ -57,6 +57,7 @@ const TradeTypeValues = [
   "REDUCE",
   "DIVI",
   "SPLIT",
+  "EXPENSE",
 ] as const
 
 const defaultValues = {

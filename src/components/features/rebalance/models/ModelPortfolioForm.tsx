@@ -1,7 +1,10 @@
 import React, { useState } from "react"
 import { useTranslation } from "next-i18next"
 import { useRouter } from "next/router"
+import useSWR from "swr"
 import { ModelDto, CreateModelRequest } from "types/rebalance"
+import { Currency } from "types/beancounter"
+import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper"
 
 interface ModelPortfolioFormProps {
   model?: ModelDto
@@ -16,10 +19,16 @@ const ModelPortfolioForm: React.FC<ModelPortfolioFormProps> = ({
   const router = useRouter()
   const isEditing = !!model?.id
 
+  // Fetch currencies from backend
+  const { data: ccyResponse, isLoading: loadingCurrencies } = useSWR<{
+    data: Currency[]
+  }>(ccyKey, simpleFetcher(ccyKey))
+  const currencies = ccyResponse?.data || []
+
   const [name, setName] = useState(model?.name || "")
   const [objective, setObjective] = useState(model?.objective || "")
   const [description, setDescription] = useState(model?.description || "")
-  const [baseCurrency, setBaseCurrency] = useState(model?.baseCurrency || "USD")
+  const [baseCurrency, setBaseCurrency] = useState(model?.baseCurrency || "NZD")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -150,13 +159,18 @@ const ModelPortfolioForm: React.FC<ModelPortfolioFormProps> = ({
           id="baseCurrency"
           value={baseCurrency}
           onChange={(e) => setBaseCurrency(e.target.value)}
+          disabled={loadingCurrencies}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
         >
-          <option value="USD">USD</option>
-          <option value="EUR">EUR</option>
-          <option value="GBP">GBP</option>
-          <option value="NZD">NZD</option>
-          <option value="AUD">AUD</option>
+          {loadingCurrencies ? (
+            <option value="">{t("loading", "Loading...")}</option>
+          ) : (
+            currencies.map((currency) => (
+              <option key={currency.code} value={currency.code}>
+                {currency.code}
+              </option>
+            ))
+          )}
         </select>
       </div>
 

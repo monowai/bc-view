@@ -15,6 +15,7 @@ export type TrnType =
   | "REDUCE"
   | "BALANCE"
   | "COST_ADJUST"
+  | "EXPENSE"
 
 export type TrnStatus = "PROPOSED" | "SETTLED"
 
