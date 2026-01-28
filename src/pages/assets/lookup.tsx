@@ -9,6 +9,7 @@ import useSWR from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import { rootLoader } from "@components/ui/PageLoader"
 import { AssetSearchResult, Portfolio, Position } from "types/beancounter"
+import { ModelsContainingAssetResponse } from "types/rebalance"
 
 interface AssetOption {
   value: string
@@ -43,6 +44,17 @@ function AssetLookupPage(): React.ReactElement {
   )
 
   const positions = positionsData?.data || []
+
+  // Fetch models with active plans containing this asset
+  const { data: modelsData, isLoading: loadingModels } =
+    useSWR<ModelsContainingAssetResponse>(
+      selectedAsset?.assetId
+        ? `/api/rebalance/assets/${selectedAsset.assetId}/models`
+        : null,
+      simpleFetcher(`/api/rebalance/assets/${selectedAsset?.assetId}/models`),
+    )
+
+  const models = modelsData?.data || []
 
   // Load asset search options
   const loadOptions = useCallback(
@@ -112,6 +124,11 @@ function AssetLookupPage(): React.ReactElement {
       minimumFractionDigits: 0,
       maximumFractionDigits: 4,
     }).format(value)
+  }
+
+  // Format weight as percentage
+  const formatWeight = (value: number): string => {
+    return `${(value * 100).toFixed(2)}%`
   }
 
   if (!ready) return rootLoader(t("loading"))
@@ -322,6 +339,95 @@ function AssetLookupPage(): React.ReactElement {
               {t(
                 "assets.lookup.doubleClickHint",
                 "Double-click a row to view and edit transactions",
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Models Table */}
+      {selectedAsset && (
+        <div className="bg-white shadow-sm border border-gray-200 rounded-lg overflow-hidden mt-6">
+          <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
+            <h3 className="text-sm font-medium text-gray-700">
+              <i className="fas fa-sitemap mr-2 text-gray-400"></i>
+              {t("assets.lookup.models", "Models With Active Plans")}
+            </h3>
+          </div>
+
+          {loadingModels ? (
+            <div className="p-8 text-center text-gray-500">
+              <i className="fas fa-spinner fa-spin mr-2"></i>
+              {t("loading", "Loading...")}
+            </div>
+          ) : models.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">
+              <i className="fas fa-sitemap text-3xl mb-2 text-gray-300"></i>
+              <p>
+                {t(
+                  "assets.lookup.notInModels",
+                  "This asset is not in any active model plans",
+                )}
+              </p>
+            </div>
+          ) : (
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t("model", "Model")}
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t("version", "Version")}
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t("targetWeight", "Target Weight")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {models.map((model) => (
+                  <tr
+                    key={`${model.modelId}-${model.planId}`}
+                    className="hover:bg-gray-50 cursor-pointer transition-colors"
+                    onDoubleClick={() =>
+                      router.push(
+                        `/rebalance/models/${model.modelId}/plans/${model.planId}`,
+                      )
+                    }
+                    title={t(
+                      "actions.doubleClickToView",
+                      "Double-click to view plan",
+                    )}
+                  >
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-gray-900">
+                        {model.modelName}
+                      </div>
+                      {model.assetCode && (
+                        <div className="text-xs text-gray-500">
+                          {model.assetCode}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right text-gray-700">
+                      v{model.planVersion}
+                    </td>
+                    <td className="px-4 py-3 text-right text-gray-900 font-medium">
+                      {formatWeight(model.targetWeight)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+
+          {models.length > 0 && (
+            <div className="px-4 py-2 bg-gray-50 border-t border-gray-200 text-xs text-gray-500">
+              <i className="fas fa-info-circle mr-1"></i>
+              {t(
+                "assets.lookup.doubleClickPlanHint",
+                "Double-click a row to view the model plan",
               )}
             </div>
           )}

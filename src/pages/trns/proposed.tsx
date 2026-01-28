@@ -1125,7 +1125,10 @@ export default function ProposedTransactions(): React.JSX.Element {
                                 value={agg.editedPrice ?? ""}
                                 onChange={(e) => {
                                   const val = e.target.value
-                                  if (val === "" || /^[0-9]*\.?[0-9]*$/.test(val)) {
+                                  if (
+                                    val === "" ||
+                                    /^[0-9]*\.?[0-9]*$/.test(val)
+                                  ) {
                                     handleAggregatedPriceChange(
                                       agg.aggregateKey,
                                       parseFloat(val) || 0,
@@ -1135,7 +1138,10 @@ export default function ProposedTransactions(): React.JSX.Element {
                                 onBlur={(e) => {
                                   const val = parseFloat(e.target.value)
                                   if (!isNaN(val)) {
-                                    handleAggregatedPriceChange(agg.aggregateKey, val)
+                                    handleAggregatedPriceChange(
+                                      agg.aggregateKey,
+                                      val,
+                                    )
                                   }
                                 }}
                                 className="w-20 px-1 py-0.5 text-right border border-gray-300 rounded text-xs font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"

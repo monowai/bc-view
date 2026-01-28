@@ -452,3 +452,18 @@ export interface ExecutionApiResponse {
 export interface ExecutionsApiResponse {
   data: ExecutionSummaryDto[]
 }
+
+// Models containing asset lookup types
+export interface ModelWithPlanDto {
+  modelId: string
+  modelName: string
+  planId: string
+  planVersion: number
+  targetWeight: number
+  assetCode?: string
+  assetName?: string
+}
+
+export interface ModelsContainingAssetResponse {
+  data: ModelWithPlanDto[]
+}
