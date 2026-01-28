@@ -167,7 +167,7 @@ export default function ProposedTransactions(): React.JSX.Element {
         editedFees: trn.fees,
         editedStatus: trn.status,
         editedTradeDate: trn.tradeDate,
-        editedBrokerId: trn.broker?.id,
+        editedBrokerId: trn.broker?.id || trn.brokerId,
       })),
     )
   }, [proposedData, settledTransactions, includeSettled, typeFilter])
@@ -871,29 +871,41 @@ export default function ProposedTransactions(): React.JSX.Element {
                         </td>
                         <td className="px-2 py-1.5 whitespace-nowrap text-right">
                           <input
-                            type="number"
-                            step="0.01"
-                            value={trn.editedPrice || 0}
-                            onChange={(e) =>
-                              handlePriceChange(
-                                trn.id,
-                                parseFloat(e.target.value) || 0,
-                              )
-                            }
+                            type="text"
+                            inputMode="decimal"
+                            value={trn.editedPrice ?? ""}
+                            onChange={(e) => {
+                              const val = e.target.value
+                              if (val === "" || /^[0-9]*\.?[0-9]*$/.test(val)) {
+                                handlePriceChange(trn.id, parseFloat(val) || 0)
+                              }
+                            }}
+                            onBlur={(e) => {
+                              const val = parseFloat(e.target.value)
+                              if (!isNaN(val)) {
+                                handlePriceChange(trn.id, val)
+                              }
+                            }}
                             className="w-20 px-1 py-0.5 text-right border border-gray-300 rounded text-xs font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
                           />
                         </td>
                         <td className="px-2 py-1.5 whitespace-nowrap text-right">
                           <input
-                            type="number"
-                            step="0.01"
-                            value={trn.editedFees || 0}
-                            onChange={(e) =>
-                              handleFeesChange(
-                                trn.id,
-                                parseFloat(e.target.value) || 0,
-                              )
-                            }
+                            type="text"
+                            inputMode="decimal"
+                            value={trn.editedFees ?? ""}
+                            onChange={(e) => {
+                              const val = e.target.value
+                              if (val === "" || /^[0-9]*\.?[0-9]*$/.test(val)) {
+                                handleFeesChange(trn.id, parseFloat(val) || 0)
+                              }
+                            }}
+                            onBlur={(e) => {
+                              const val = parseFloat(e.target.value)
+                              if (!isNaN(val)) {
+                                handleFeesChange(trn.id, val)
+                              }
+                            }}
                             className="w-16 px-1 py-0.5 text-right border border-gray-300 rounded text-xs font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
                           />
                         </td>
@@ -1108,15 +1120,24 @@ export default function ProposedTransactions(): React.JSX.Element {
                             </td>
                             <td className="px-2 py-1.5 whitespace-nowrap text-right">
                               <input
-                                type="number"
-                                step="0.01"
-                                value={agg.editedPrice || 0}
-                                onChange={(e) =>
-                                  handleAggregatedPriceChange(
-                                    agg.aggregateKey,
-                                    parseFloat(e.target.value) || 0,
-                                  )
-                                }
+                                type="text"
+                                inputMode="decimal"
+                                value={agg.editedPrice ?? ""}
+                                onChange={(e) => {
+                                  const val = e.target.value
+                                  if (val === "" || /^[0-9]*\.?[0-9]*$/.test(val)) {
+                                    handleAggregatedPriceChange(
+                                      agg.aggregateKey,
+                                      parseFloat(val) || 0,
+                                    )
+                                  }
+                                }}
+                                onBlur={(e) => {
+                                  const val = parseFloat(e.target.value)
+                                  if (!isNaN(val)) {
+                                    handleAggregatedPriceChange(agg.aggregateKey, val)
+                                  }
+                                }}
                                 className="w-20 px-1 py-0.5 text-right border border-gray-300 rounded text-xs font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
                                 title="Editing price updates all underlying transactions"
                               />
