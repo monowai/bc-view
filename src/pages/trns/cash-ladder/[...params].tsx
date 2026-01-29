@@ -32,6 +32,9 @@ function formatTransaction(trn: Transaction): string {
   if (type === "SELL") return `Sell ${qty} ${asset}`
   if (type === "ADD") return `Add ${qty} ${asset}`
   if (type === "REDUCE") return `Reduce ${qty} ${asset}`
+  if (type === "EXPENSE") return `Expense ${asset}`
+  if (type === "DEDUCTION") return `Deduction ${asset}`
+  if (type === "INCOME") return `Income ${asset}`
   return `${type} ${asset}`
 }
 
@@ -355,11 +358,14 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
                           className={`inline-block px-2 py-1 text-xs font-medium rounded ${
                             trn.trnType === "BUY" ||
                             trn.trnType === "WITHDRAWAL" ||
-                            trn.trnType === "REDUCE"
+                            trn.trnType === "REDUCE" ||
+                            trn.trnType === "EXPENSE" ||
+                            trn.trnType === "DEDUCTION"
                               ? "bg-red-100 text-red-800"
                               : trn.trnType === "SELL" ||
                                   trn.trnType === "DEPOSIT" ||
-                                  trn.trnType === "DIVI"
+                                  trn.trnType === "DIVI" ||
+                                  trn.trnType === "INCOME"
                                 ? "bg-green-100 text-green-800"
                                 : "bg-blue-100 text-blue-800"
                           }`}
