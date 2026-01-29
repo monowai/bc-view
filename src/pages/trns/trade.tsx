@@ -763,11 +763,12 @@ const TradeInputForm: React.FC<{
       })) || []
 
   const hasCashImpact = !["ADD", "REDUCE", "SPLIT"].includes(type?.value)
+  const isExpenseType = type?.value === "EXPENSE"
   const tradeAmount = watch("tradeAmount") || 0
 
   return (
     <>
-      {/* Broker Selection Dialog for QuickSell with multiple brokers */}
+      {/*Broker Selection Dialog for QuickSell with multiple brokers*/}
       {showBrokerSelectionDialog && initialValues?.held && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center">
           <div
@@ -928,7 +929,7 @@ const TradeInputForm: React.FC<{
                 <div className="text-center">
                   <div
                     className={`text-xs font-medium uppercase ${
-                      type?.value === "SELL"
+                      type?.value === "SELL" || isExpenseType
                         ? "text-red-600"
                         : type?.value === "ADD" || type?.value === "REDUCE"
                           ? "text-blue-600"
@@ -937,26 +938,47 @@ const TradeInputForm: React.FC<{
                   >
                     {type?.value || "BUY"}
                   </div>
-                  <div className="font-bold">
-                    <NumericFormat
-                      value={quantity || 0}
-                      displayType="text"
-                      thousandSeparator
-                      decimalScale={2}
-                    />
-                    {!hasCashImpact && (
-                      <span className="text-gray-500 text-sm ml-1">
-                        {t("trn.units", "units")}
-                      </span>
-                    )}
-                  </div>
-                  {hasCashImpact && (
-                    <div className="text-xs text-gray-500">
-                      @ {price?.toFixed(2)} {tradeCurrency?.value}
-                    </div>
+                  {isExpenseType ? (
+                    // Expense: show amount directly
+                    <>
+                      <div className="font-bold">
+                        <NumericFormat
+                          value={tradeAmount || 0}
+                          displayType="text"
+                          thousandSeparator
+                          decimalScale={2}
+                          fixedDecimalScale
+                        />
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {tradeCurrency?.value}
+                      </div>
+                    </>
+                  ) : (
+                    // Regular trade: show quantity and price
+                    <>
+                      <div className="font-bold">
+                        <NumericFormat
+                          value={quantity || 0}
+                          displayType="text"
+                          thousandSeparator
+                          decimalScale={2}
+                        />
+                        {!hasCashImpact && (
+                          <span className="text-gray-500 text-sm ml-1">
+                            {t("trn.units", "units")}
+                          </span>
+                        )}
+                      </div>
+                      {hasCashImpact && (
+                        <div className="text-xs text-gray-500">
+                          @ {price?.toFixed(2)} {tradeCurrency?.value}
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
-                {hasCashImpact && tradeAmount > 0 && (
+                {hasCashImpact && tradeAmount > 0 && !isExpenseType && (
                   <>
                     <div className="text-gray-300 px-3">
                       <i className="fas fa-arrow-right text-xs"></i>
@@ -982,8 +1004,8 @@ const TradeInputForm: React.FC<{
                 )}
               </div>
 
-              {/* Weight info */}
-              {weightInfo && (
+              {/* Weight info - not shown for EXPENSE */}
+              {weightInfo && !isExpenseType && (
                 <div className="mt-2 text-center text-xs text-blue-600">
                   {weightInfo.label}: {weightInfo.value.toFixed(2)}%
                   {weightInfo.tradeWeight !== undefined && (
@@ -1213,104 +1235,140 @@ const TradeInputForm: React.FC<{
                 </div>
               )}
 
-              {/* Quantity, Price, Fees */}
-              <div className="grid grid-cols-3 gap-2">
+              {/* Expense Amount - shown for EXPENSE type */}
+              {isExpenseType && (
                 <div>
                   <label className="block text-xs font-medium text-gray-600">
-                    {actualPositionQuantity > 0
-                      ? `${t("quantity")} (${actualPositionQuantity.toLocaleString()})`
-                      : t("quantity")}
+                    {t("trn.expense.amount", "Expense Amount")}
                   </label>
                   <Controller
-                    name="quantity"
+                    name="tradeAmount"
                     control={control}
                     render={({ field }) => (
                       <MathInput
                         value={field.value}
                         onChange={field.onChange}
-                        className={inputClass}
+                        className={`${inputClass} text-lg font-medium`}
+                        placeholder={t(
+                          "trn.expense.placeholder",
+                          "Enter expense amount",
+                        )}
                       />
                     )}
                   />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600">
-                    {t("trn.price")}
-                  </label>
-                  <Controller
-                    name="price"
-                    control={control}
-                    render={({ field }) => (
-                      <MathInput
-                        value={field.value}
-                        onChange={field.onChange}
-                        step="0.01"
-                        className={inputClass}
-                      />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {t(
+                      "trn.expense.hint",
+                      "This amount will be debited from the settlement account",
                     )}
-                  />
+                  </p>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600">
-                    {t("trn.amount.charges")}
-                  </label>
-                  <Controller
-                    name="fees"
-                    control={control}
-                    render={({ field }) => (
-                      <MathInput
-                        value={field.value}
-                        onChange={field.onChange}
-                        className={inputClass}
-                      />
-                    )}
-                  />
-                </div>
-              </div>
+              )}
 
-              {/* Broker - select before settlement account */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-medium text-gray-600">
-                    {t("trn.broker", "Broker")}
-                  </label>
-                  <a
-                    href="/brokers"
-                    target="_blank"
-                    className="text-xs text-blue-500 hover:text-blue-700"
-                  >
-                    {t("brokers.manage", "Manage")}
-                  </a>
+              {/* Quantity, Price, Fees - hidden for EXPENSE type */}
+              {!isExpenseType && (
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600">
+                      {actualPositionQuantity > 0
+                        ? `${t("quantity")} (${actualPositionQuantity.toLocaleString()})`
+                        : t("quantity")}
+                    </label>
+                    <Controller
+                      name="quantity"
+                      control={control}
+                      render={({ field }) => (
+                        <MathInput
+                          value={field.value}
+                          onChange={field.onChange}
+                          className={inputClass}
+                        />
+                      )}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600">
+                      {t("trn.price")}
+                    </label>
+                    <Controller
+                      name="price"
+                      control={control}
+                      render={({ field }) => (
+                        <MathInput
+                          value={field.value}
+                          onChange={field.onChange}
+                          step="0.01"
+                          className={inputClass}
+                        />
+                      )}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600">
+                      {t("trn.amount.charges")}
+                    </label>
+                    <Controller
+                      name="fees"
+                      control={control}
+                      render={({ field }) => (
+                        <MathInput
+                          value={field.value}
+                          onChange={field.onChange}
+                          className={inputClass}
+                        />
+                      )}
+                    />
+                  </div>
                 </div>
-                <Controller
-                  name="brokerId"
-                  control={control}
-                  render={({ field }) => (
-                    <select
-                      className={inputClass}
-                      value={field.value || ""}
-                      onChange={(e) => field.onChange(e.target.value)}
+              )}
+
+              {/* Broker - select before settlement account (hidden for EXPENSE) */}
+              {!isExpenseType && (
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-medium text-gray-600">
+                      {t("trn.broker", "Broker")}
+                    </label>
+                    <a
+                      href="/brokers"
+                      target="_blank"
+                      className="text-xs text-blue-500 hover:text-blue-700"
                     >
-                      <option value="">
-                        {t("trn.broker.none", "-- No broker --")}
-                      </option>
-                      {brokers.map((broker) => (
-                        <option key={broker.id} value={broker.id}>
-                          {broker.name}
-                          {broker.accountNumber
-                            ? ` (${broker.accountNumber})`
-                            : ""}
+                      {t("brokers.manage", "Manage")}
+                    </a>
+                  </div>
+                  <Controller
+                    name="brokerId"
+                    control={control}
+                    render={({ field }) => (
+                      <select
+                        className={inputClass}
+                        value={field.value || ""}
+                        onChange={(e) => field.onChange(e.target.value)}
+                      >
+                        <option value="">
+                          {t("trn.broker.none", "-- No broker --")}
                         </option>
-                      ))}
-                    </select>
-                  )}
-                />
-              </div>
+                        {brokers.map((broker) => (
+                          <option key={broker.id} value={broker.id}>
+                            {broker.name}
+                            {broker.accountNumber
+                              ? ` (${broker.accountNumber})`
+                              : ""}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  />
+                </div>
+              )}
 
               {/* Settlement Account */}
               <div>
                 <label className="block text-xs font-medium text-gray-600">
-                  {t("trn.settlement.account")}
+                  {isExpenseType
+                    ? t("trn.expense.debitAccount", "Debit From Account")
+                    : t("trn.settlement.account")}
                 </label>
                 <SettlementAccountSelect
                   name="settlementAccount"
@@ -1388,46 +1446,76 @@ const TradeInputForm: React.FC<{
                 </div>
               )}
 
-              {/* Tabs for Trade/Invest */}
+              {/* Tabs for Trade/Invest - simplified for EXPENSE */}
               <div className="border-t border-gray-200 pt-2">
-                <div className="flex border-b border-gray-200">
-                  <button
-                    type="button"
-                    className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                      activeTab === "trade"
-                        ? "border-b-2 border-blue-500 text-blue-600"
-                        : "text-gray-500 hover:text-gray-700"
-                    }`}
-                    onClick={() => setActiveTab("trade")}
-                  >
-                    {t("trn.tab.trade", "Trade")}
-                  </button>
-                  <button
-                    type="button"
-                    className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                      isEditMode
-                        ? "text-gray-300 cursor-not-allowed"
-                        : activeTab === "invest"
+                {!isExpenseType && (
+                  <div className="flex border-b border-gray-200">
+                    <button
+                      type="button"
+                      className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                        activeTab === "trade"
                           ? "border-b-2 border-blue-500 text-blue-600"
                           : "text-gray-500 hover:text-gray-700"
-                    }`}
-                    onClick={() => !isEditMode && setActiveTab("invest")}
-                    disabled={isEditMode}
-                    title={
-                      isEditMode
-                        ? t(
-                            "trn.tab.invest.disabled",
-                            "Invest calculations not available when editing",
-                          )
-                        : undefined
-                    }
-                  >
-                    {t("trn.tab.invest", "Invest")}
-                  </button>
-                </div>
+                      }`}
+                      onClick={() => setActiveTab("trade")}
+                    >
+                      {t("trn.tab.trade", "Trade")}
+                    </button>
+                    <button
+                      type="button"
+                      className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                        isEditMode
+                          ? "text-gray-300 cursor-not-allowed"
+                          : activeTab === "invest"
+                            ? "border-b-2 border-blue-500 text-blue-600"
+                            : "text-gray-500 hover:text-gray-700"
+                      }`}
+                      onClick={() => !isEditMode && setActiveTab("invest")}
+                      disabled={isEditMode}
+                      title={
+                        isEditMode
+                          ? t(
+                              "trn.tab.invest.disabled",
+                              "Invest calculations not available when editing",
+                            )
+                          : undefined
+                      }
+                    >
+                      {t("trn.tab.invest", "Invest")}
+                    </button>
+                  </div>
+                )}
 
-                {/* Trade Tab Content */}
-                {activeTab === "trade" && (
+                {/* EXPENSE: Simplified content - just comments */}
+                {isExpenseType && (
+                  <div className="mt-3 space-y-2">
+                    {/* Comments */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600">
+                        {t("trn.expense.description", "Expense Description")}
+                      </label>
+                      <Controller
+                        name="comment"
+                        control={control}
+                        render={({ field }) => (
+                          <input
+                            {...field}
+                            type="text"
+                            className={inputClass}
+                            value={field.value || ""}
+                            placeholder={t(
+                              "trn.expense.descPlaceholder",
+                              "e.g., Property rates, Insurance, Maintenance",
+                            )}
+                          />
+                        )}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Trade Tab Content - for non-EXPENSE types */}
+                {!isExpenseType && activeTab === "trade" && (
                   <div className="mt-3 space-y-2">
                     {/* Trade/Cash Amounts */}
                     <div className="grid grid-cols-2 gap-2">
@@ -1504,8 +1592,8 @@ const TradeInputForm: React.FC<{
                   </div>
                 )}
 
-                {/* Invest Tab Content */}
-                {activeTab === "invest" && (
+                {/* Invest Tab Content - for non-EXPENSE types */}
+                {!isExpenseType && activeTab === "invest" && (
                   <div className="mt-3 space-y-3">
                     {/* Invest Value - calculate quantity from total */}
                     <div>
