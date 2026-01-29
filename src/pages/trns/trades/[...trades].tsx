@@ -330,11 +330,15 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                           className={`inline-block px-2 py-1 text-xs font-medium rounded ${
                             trn.trnType === "BUY"
                               ? "bg-green-100 text-green-800"
-                              : trn.trnType === "SELL"
+                              : trn.trnType === "SELL" ||
+                                  trn.trnType === "EXPENSE" ||
+                                  trn.trnType === "DEDUCTION"
                                 ? "bg-red-100 text-red-800"
                                 : trn.trnType === "COST_ADJUST"
                                   ? "bg-orange-100 text-orange-800"
-                                  : "bg-blue-100 text-blue-800"
+                                  : trn.trnType === "INCOME"
+                                    ? "bg-green-100 text-green-800"
+                                    : "bg-blue-100 text-blue-800"
                           }`}
                         >
                           {trn.trnType}
