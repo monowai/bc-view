@@ -458,7 +458,7 @@ export interface RetirementProjection {
   displayFxRate?: number
   /** Plan input values used in calculations (in display currency) */
   planInputs?: PlanInputs
-  /** Sustainable monthly expense that depletes assets to the target balance */
+  /** Sustainable monthly expense from liquid assets only (no property sale) */
   sustainableMonthlyExpense?: number
   /** Adjustment from current expenses: positive = room to increase, negative = need to cut */
   expenseAdjustment?: number
@@ -466,6 +466,14 @@ export interface RetirementProjection {
   expenseAdjustmentPercent?: number
   /** Target ending balance used for sustainable expense calculation */
   sustainableTargetBalance?: number
+  /** Sustainable monthly expense if illiquid assets are sold when liquid assets are low */
+  sustainableWithLiquidation?: number
+  /** Adjustment from current expenses for the with-liquidation figure */
+  adjustmentWithLiquidation?: number
+  /** Percentage adjustment for the with-liquidation figure */
+  adjustmentPercentWithLiquidation?: number
+  /** Age at which illiquid asset disposal begins in the with-liquidation scenario */
+  liquidationAge?: number
   /** Data quality warnings - empty means all data fetched successfully */
   warnings?: ProjectionWarning[]
 }
