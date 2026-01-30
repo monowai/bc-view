@@ -1412,6 +1412,77 @@ function PlanView(): React.ReactElement {
                               )}
                             </div>
                           )}
+                        {/* With-liquidation figure */}
+                        {adjustedProjection.sustainableWithLiquidation !=
+                          null &&
+                          adjustedProjection.sustainableWithLiquidation !==
+                            adjustedProjection.sustainableMonthlyExpense && (
+                            <>
+                              <hr />
+                              <div>
+                                <span className="text-xs text-gray-500 uppercase tracking-wide">
+                                  Including Asset Disposal
+                                </span>
+                                <div
+                                  className={`text-xl font-bold ${hideValues ? "text-gray-400" : "text-blue-600"}`}
+                                >
+                                  {hideValues
+                                    ? HIDDEN_VALUE
+                                    : `${detailsCurrency}${Math.round(adjustedProjection.sustainableWithLiquidation).toLocaleString()}`}
+                                  <span className="text-sm font-normal text-gray-500">
+                                    /mo
+                                  </span>
+                                </div>
+                                {adjustedProjection.liquidationAge != null && (
+                                  <div className="text-sm text-gray-500">
+                                    Property disposal from age{" "}
+                                    {adjustedProjection.liquidationAge}
+                                  </div>
+                                )}
+                                {adjustedProjection.adjustmentWithLiquidation !=
+                                  null &&
+                                  adjustedProjection.adjustmentPercentWithLiquidation !=
+                                    null && (
+                                    <div
+                                      className={`text-sm font-medium ${
+                                        adjustedProjection.adjustmentWithLiquidation >=
+                                        0
+                                          ? "text-blue-600"
+                                          : "text-red-600"
+                                      }`}
+                                    >
+                                      {!hideValues &&
+                                        (adjustedProjection.adjustmentWithLiquidation >=
+                                        0 ? (
+                                          <>
+                                            +{detailsCurrency}
+                                            {Math.round(
+                                              adjustedProjection.adjustmentWithLiquidation,
+                                            ).toLocaleString()}
+                                            /mo (+
+                                            {adjustedProjection.adjustmentPercentWithLiquidation.toFixed(
+                                              1,
+                                            )}
+                                            %)
+                                          </>
+                                        ) : (
+                                          <>
+                                            {detailsCurrency}
+                                            {Math.round(
+                                              adjustedProjection.adjustmentWithLiquidation,
+                                            ).toLocaleString()}
+                                            /mo (
+                                            {adjustedProjection.adjustmentPercentWithLiquidation.toFixed(
+                                              1,
+                                            )}
+                                            %)
+                                          </>
+                                        ))}
+                                    </div>
+                                  )}
+                              </div>
+                            </>
+                          )}
                       </div>
                     </div>
                   )}
