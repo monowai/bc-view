@@ -12,6 +12,10 @@ interface AnalysisToolbarProps {
   onWhatIfClick: () => void
   /** Callback when a scenario is toggled */
   onScenarioToggle: (scenarioId: string) => void
+  /** Callback to save the current scenario */
+  onSave?: () => void
+  /** Callback to reset all scenario changes */
+  onReset?: () => void
 }
 
 /**
@@ -24,6 +28,8 @@ export default function AnalysisToolbar({
   hasUnsavedChanges,
   onWhatIfClick,
   onScenarioToggle,
+  onSave,
+  onReset,
 }: AnalysisToolbarProps): React.ReactElement {
   return (
     <div className="flex flex-wrap items-center gap-3 mb-4">
@@ -59,12 +65,32 @@ export default function AnalysisToolbar({
         </div>
       )}
 
-      {/* Show indicator if there are unsaved changes */}
+      {/* Save/Reset and unsaved indicator */}
       {hasUnsavedChanges && (
-        <span className="text-xs text-orange-600">
-          <i className="fas fa-circle text-[6px] mr-1"></i>
-          Unsaved changes
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-orange-600">
+            <i className="fas fa-circle text-[6px] mr-1"></i>
+            Unsaved
+          </span>
+          {onSave && (
+            <button
+              onClick={onSave}
+              className="py-1 px-3 border border-orange-500 text-orange-500 rounded-lg text-xs font-medium hover:bg-orange-50 transition-colors"
+            >
+              <i className="fas fa-save mr-1"></i>
+              Save
+            </button>
+          )}
+          {onReset && (
+            <button
+              onClick={onReset}
+              className="py-1 px-2 text-gray-500 hover:text-gray-700 text-xs"
+            >
+              <i className="fas fa-undo mr-1"></i>
+              Reset
+            </button>
+          )}
+        </div>
       )}
     </div>
   )
