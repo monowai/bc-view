@@ -21,6 +21,7 @@ import {
   Legend,
 } from "recharts"
 import InfoTooltip from "@components/ui/Tooltip"
+import CollapsibleSection from "@components/ui/CollapsibleSection"
 import { simpleFetcher, portfoliosKey } from "@utils/api/fetchHelper"
 import { PlanResponse, QuickScenariosResponse } from "types/independence"
 import {
@@ -168,6 +169,11 @@ function PlanView(): React.ReactElement {
 
   // Selected quick scenarios (can select multiple)
   const [selectedScenarioIds, setSelectedScenarioIds] = useState<string[]>([])
+
+  // Track which collapsible sections are open (session memory)
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({})
+  const toggleSection = (key: string): void =>
+    setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }))
 
   // Save dialog state
   const [showSaveDialog, setShowSaveDialog] = useState(false)
@@ -869,17 +875,11 @@ function PlanView(): React.ReactElement {
     setWhatIfAdjustments(DEFAULT_WHAT_IF_ADJUSTMENTS)
   }
 
-  // Check if there are any scenario changes (from sliders)
-  const scenarioHasChanges = hasScenarioChanges(whatIfAdjustments)
-
   // Apply edited values to local scenario state (not saved to backend yet)
   const handleApplyDetails = (overrides: ScenarioOverrides): void => {
     setScenarioOverrides(overrides)
     setShowEditDetailsModal(false)
   }
-
-  // Check if there are unsaved scenario changes
-  const hasScenarioOverrides = Object.keys(scenarioOverrides).length > 0
 
   // Save scenario to backend (update existing or create new plan)
   const handleSaveScenario = async (
@@ -1105,6 +1105,12 @@ function PlanView(): React.ReactElement {
             }
             onWhatIfClick={() => setShowWhatIfModal(true)}
             onScenarioToggle={toggleScenario}
+            onSave={() => setShowSaveDialog(true)}
+            onReset={() => {
+              resetWhatIf()
+              resetScenarioOverrides()
+              setSelectedScenarioIds([])
+            }}
           />
 
           {/* Tab Content */}
@@ -1842,55 +1848,60 @@ function PlanView(): React.ReactElement {
 
           {/* Timeline Tab */}
           {activeTab === "timeline" && (
-            <div className="bg-white rounded-xl shadow-md p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  {t("retire.timeline.title")}
-                </h2>
-                {fiAchievementAge && (
-                  <div className="flex bg-gray-100 rounded-lg p-1 shrink-0">
-                    <button
-                      onClick={() => setTimelineViewMode("traditional")}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                        timelineViewMode === "traditional"
-                          ? "bg-white text-blue-600 shadow-sm"
-                          : "text-gray-600 hover:text-gray-900"
-                      }`}
-                    >
-                      Traditional
-                    </button>
-                    <button
-                      onClick={() => setTimelineViewMode("fire")}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                        timelineViewMode === "fire"
-                          ? "bg-white text-green-600 shadow-sm"
-                          : "text-gray-600 hover:text-gray-900"
-                      }`}
-                    >
-                      FIRE
-                    </button>
-                  </div>
-                )}
-              </div>
-
+            <>
               {!displayProjection ||
               displayProjection.yearlyProjections.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                  {isCalculating ? (
-                    <>
-                      <i className="fas fa-spinner fa-spin text-4xl mb-3 text-orange-400"></i>
-                      <p>{t("retire.assets.calculating")}</p>
-                    </>
-                  ) : (
-                    <>
-                      <i className="fas fa-chart-line text-4xl mb-3 text-gray-300"></i>
-                      <p>{t("retire.timeline.noData")}</p>
-                    </>
-                  )}
+                <div className="bg-white rounded-xl shadow-md p-6">
+                  <div className="text-center py-12 text-gray-500">
+                    {isCalculating ? (
+                      <>
+                        <i className="fas fa-spinner fa-spin text-4xl mb-3 text-orange-400"></i>
+                        <p>{t("retire.assets.calculating")}</p>
+                      </>
+                    ) : (
+                      <>
+                        <i className="fas fa-chart-line text-4xl mb-3 text-gray-300"></i>
+                        <p>{t("retire.timeline.noData")}</p>
+                      </>
+                    )}
+                  </div>
                 </div>
               ) : (
-                <>
-                  <div className="h-72 mb-8">
+                <div className="space-y-4">
+                  <CollapsibleSection
+                    title="Wealth Journey"
+                    icon="fa-chart-line"
+                    iconColor="text-blue-500"
+                    isOpen={openSections["wealthJourney"]}
+                    onToggle={() => toggleSection("wealthJourney")}
+                    headerRight={
+                      fiAchievementAge ? (
+                        <div className="flex bg-gray-100 rounded-lg p-1 shrink-0">
+                          <button
+                            onClick={() => setTimelineViewMode("traditional")}
+                            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                              timelineViewMode === "traditional"
+                                ? "bg-white text-blue-600 shadow-sm"
+                                : "text-gray-600 hover:text-gray-900"
+                            }`}
+                          >
+                            Traditional
+                          </button>
+                          <button
+                            onClick={() => setTimelineViewMode("fire")}
+                            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                              timelineViewMode === "fire"
+                                ? "bg-white text-green-600 shadow-sm"
+                                : "text-gray-600 hover:text-gray-900"
+                            }`}
+                          >
+                            FIRE
+                          </button>
+                        </div>
+                      ) : undefined
+                    }
+                  >
+                  <div className="h-72">
                     <ResponsiveContainer width="100%" height="100%">
                       <ComposedChart
                         data={
@@ -2090,11 +2101,16 @@ function PlanView(): React.ReactElement {
                       </ComposedChart>
                     </ResponsiveContainer>
                   </div>
+                  </CollapsibleSection>
 
+                  <CollapsibleSection
+                    title="Cash Flows"
+                    icon="fa-exchange-alt"
+                    iconColor="text-green-500"
+                    isOpen={openSections["cashFlows"]}
+                    onToggle={() => toggleSection("cashFlows")}
+                  >
                   <div className="h-64">
-                    <h3 className="text-sm font-medium text-gray-700 mb-2">
-                      {t("retire.timeline.cashFlows")}
-                    </h3>
                     <ResponsiveContainer width="100%" height="100%">
                       <ComposedChart
                         data={displayProjection.yearlyProjections.map((y) => ({
@@ -2166,229 +2182,45 @@ function PlanView(): React.ReactElement {
                       </ComposedChart>
                     </ResponsiveContainer>
                   </div>
+                  </CollapsibleSection>
 
-                  {/* Income Breakdown Table */}
-                  <div className="mt-8">
+                  <CollapsibleSection
+                    title="Scenario Impact"
+                    icon="fa-calculator"
+                    iconColor="text-orange-500"
+                    isOpen={openSections["scenarioImpact"]}
+                    onToggle={() => toggleSection("scenarioImpact")}
+                  >
+                    <ScenarioImpact
+                      projection={displayProjection}
+                      lifeExpectancy={lifeExpectancy}
+                      currency={effectiveCurrency}
+                      fxRate={effectiveFxRate}
+                      whatIfAdjustments={combinedAdjustments}
+                      onLiquidationThresholdChange={(value) =>
+                        setWhatIfAdjustments((prev) => ({
+                          ...prev,
+                          liquidationThreshold: value,
+                        }))
+                      }
+                    />
+                  </CollapsibleSection>
+
+                  <CollapsibleSection
+                    title="Income Breakdown"
+                    icon="fa-table"
+                    iconColor="text-indigo-500"
+                    isOpen={openSections["incomeBreakdown"]}
+                    onToggle={() => toggleSection("incomeBreakdown")}
+                  >
                     <IncomeBreakdownTable
                       projections={displayProjection.yearlyProjections}
+                      embedded
                     />
-                  </div>
-                </>
+                  </CollapsibleSection>
+                </div>
               )}
-            </div>
-          )}
-
-          {/* Scenarios Tab - What-If Analysis */}
-          {activeTab === "scenarios" && (
-            <div className="space-y-6">
-              {/* Projected Balance Chart - Primary visual feedback */}
-              {displayProjection &&
-                displayProjection.yearlyProjections.length > 0 && (
-                  <div className="bg-white rounded-xl shadow-md p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                      Projected Balance
-                    </h3>
-                    {/* Combined scenario impact summary */}
-                    {selectedScenarioIds.length > 0 && (
-                      <div className="mb-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
-                        <div className="flex items-center gap-2 text-sm">
-                          <span className="font-medium text-orange-700">
-                            Combined Impact:
-                          </span>
-                          <div className="flex flex-wrap gap-3 text-orange-600">
-                            {combinedAdjustments.retirementAgeOffset !== 0 && (
-                              <span>
-                                Retire{" "}
-                                {combinedAdjustments.retirementAgeOffset > 0
-                                  ? "+"
-                                  : ""}
-                                {combinedAdjustments.retirementAgeOffset} yr
-                              </span>
-                            )}
-                            {combinedAdjustments.expensesPercent !== 100 && (
-                              <span>
-                                Expenses {combinedAdjustments.expensesPercent}%
-                              </span>
-                            )}
-                            {combinedAdjustments.contributionPercent !==
-                              100 && (
-                              <span>
-                                Savings{" "}
-                                {combinedAdjustments.contributionPercent}%
-                              </span>
-                            )}
-                            {combinedAdjustments.returnRateOffset !== 0 && (
-                              <span>
-                                Returns{" "}
-                                {combinedAdjustments.returnRateOffset > 0
-                                  ? "+"
-                                  : ""}
-                                {combinedAdjustments.returnRateOffset}%
-                              </span>
-                            )}
-                            {combinedAdjustments.inflationOffset !== 0 && (
-                              <span>
-                                Inflation{" "}
-                                {combinedAdjustments.inflationOffset > 0
-                                  ? "+"
-                                  : ""}
-                                {combinedAdjustments.inflationOffset}%
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    <div className="h-64">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <ComposedChart
-                          data={displayProjection.yearlyProjections}
-                          margin={{ top: 10, right: 30, left: 20, bottom: 20 }}
-                        >
-                          <CartesianGrid
-                            strokeDasharray="3 3"
-                            stroke="#e5e7eb"
-                          />
-                          <XAxis
-                            dataKey="age"
-                            label={{
-                              value: "Age",
-                              position: "insideBottom",
-                              offset: -10,
-                            }}
-                            tick={{ fontSize: 12 }}
-                          />
-                          <YAxis
-                            tickFormatter={(value) =>
-                              hideValues
-                                ? "****"
-                                : `$${(value / 1000).toFixed(0)}k`
-                            }
-                            tick={{ fontSize: 12 }}
-                          />
-                          <ChartTooltip
-                            formatter={(value, name) => {
-                              const formatted = hideValues
-                                ? "****"
-                                : `$${Number(value || 0).toLocaleString()}`
-                              if (name === "totalWealth")
-                                return [formatted, "Total Wealth"]
-                              if (name === "endingBalance")
-                                return [formatted, "Liquid Assets"]
-                              return [formatted, name]
-                            }}
-                            labelFormatter={(label) => `Age ${label}`}
-                          />
-                          <Legend
-                            verticalAlign="top"
-                            height={36}
-                            formatter={(value) =>
-                              value === "totalWealth"
-                                ? "Total Wealth"
-                                : value === "endingBalance"
-                                  ? "Liquid Assets"
-                                  : value
-                            }
-                          />
-                          <ReferenceLine
-                            y={0}
-                            stroke="#ef4444"
-                            strokeWidth={2}
-                          />
-                          {displayProjection.yearlyProjections.find(
-                            (y) => y.propertyLiquidated,
-                          ) && (
-                            <ReferenceLine
-                              x={
-                                displayProjection.yearlyProjections.find(
-                                  (y) => y.propertyLiquidated,
-                                )?.age
-                              }
-                              stroke="#f97316"
-                              strokeWidth={2}
-                              strokeDasharray="5 5"
-                              label={{
-                                value: "Property Sold",
-                                position: "top",
-                                fontSize: 10,
-                                fill: "#f97316",
-                              }}
-                            />
-                          )}
-                          {displayProjection.nonSpendableAtRetirement > 0 && (
-                            <Line
-                              type="monotone"
-                              dataKey="totalWealth"
-                              stroke="#22c55e"
-                              strokeWidth={2}
-                              dot={{ r: 2, fill: "#22c55e" }}
-                              name="totalWealth"
-                            />
-                          )}
-                          <Line
-                            type="monotone"
-                            dataKey="endingBalance"
-                            stroke="#ea580c"
-                            strokeWidth={3}
-                            dot={{ r: 2 }}
-                            name="endingBalance"
-                          />
-                        </ComposedChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-                )}
-
-              {/* Impact summary and action buttons */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Impact summary - wider */}
-                <div className="lg:col-span-2">
-                  <ScenarioImpact
-                    projection={displayProjection}
-                    lifeExpectancy={lifeExpectancy}
-                    currency={effectiveCurrency}
-                    fxRate={effectiveFxRate}
-                    whatIfAdjustments={combinedAdjustments}
-                    onLiquidationThresholdChange={(value) =>
-                      setWhatIfAdjustments((prev) => ({
-                        ...prev,
-                        liquidationThreshold: value,
-                      }))
-                    }
-                  />
-                </div>
-
-                {/* Action buttons - narrower */}
-                <div className="lg:col-span-1">
-                  <div className="bg-white rounded-xl shadow-md p-4 space-y-3">
-                    {(scenarioHasChanges ||
-                      hasScenarioOverrides ||
-                      selectedScenarioIds.length > 0) && (
-                      <>
-                        <button
-                          onClick={() => setShowSaveDialog(true)}
-                          className="w-full py-2 border border-orange-500 text-orange-500 rounded-lg text-sm font-medium hover:bg-orange-50 transition-colors"
-                        >
-                          <i className="fas fa-save mr-2"></i>
-                          Save Scenario
-                        </button>
-                        <button
-                          onClick={() => {
-                            resetWhatIf()
-                            resetScenarioOverrides()
-                            setSelectedScenarioIds([])
-                          }}
-                          className="w-full py-1 text-gray-500 hover:text-gray-700 text-xs"
-                        >
-                          <i className="fas fa-undo mr-1"></i>
-                          Reset All
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
+            </>
           )}
 
           {/* Simulation Tab - Monte Carlo Analysis */}

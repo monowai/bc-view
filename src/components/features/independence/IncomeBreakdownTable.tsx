@@ -6,10 +6,12 @@ const HIDDEN_VALUE = "****"
 
 interface IncomeBreakdownTableProps {
   projections: YearlyProjection[]
+  embedded?: boolean
 }
 
 export default function IncomeBreakdownTable({
   projections,
+  embedded = false,
 }: IncomeBreakdownTableProps): React.ReactElement {
   const [isExpanded, setIsExpanded] = useState(false)
   const { hideValues } = usePrivacyMode()
@@ -76,31 +78,27 @@ export default function IncomeBreakdownTable({
           p !== null || (i > 0 && arr[i - 1] !== null && i < arr.length - 1),
       )
 
-  return (
-    <div className="bg-white rounded-xl shadow-md p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">
-          <i className="fas fa-table text-blue-500 mr-2"></i>
-          Income Breakdown
-        </h3>
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="text-sm text-blue-600 hover:text-blue-700"
-        >
-          {isExpanded ? (
-            <>
-              <i className="fas fa-compress-alt mr-1"></i>
-              Collapse
-            </>
-          ) : (
-            <>
-              <i className="fas fa-expand-alt mr-1"></i>
-              Expand All ({projections.length} years)
-            </>
-          )}
-        </button>
-      </div>
+  const expandButton = (
+    <button
+      onClick={() => setIsExpanded(!isExpanded)}
+      className="text-sm text-blue-600 hover:text-blue-700"
+    >
+      {isExpanded ? (
+        <>
+          <i className="fas fa-compress-alt mr-1"></i>
+          Collapse
+        </>
+      ) : (
+        <>
+          <i className="fas fa-expand-alt mr-1"></i>
+          Expand All ({projections.length} years)
+        </>
+      )}
+    </button>
+  )
 
+  const tableContent = (
+    <>
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead>
@@ -321,6 +319,28 @@ export default function IncomeBreakdownTable({
           </span>
         </p>
       </div>
+    </>
+  )
+
+  if (embedded) {
+    return (
+      <div>
+        <div className="flex justify-end mb-4">{expandButton}</div>
+        {tableContent}
+      </div>
+    )
+  }
+
+  return (
+    <div className="bg-white rounded-xl shadow-md p-6">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold text-gray-900">
+          <i className="fas fa-table text-blue-500 mr-2"></i>
+          Income Breakdown
+        </h3>
+        {expandButton}
+      </div>
+      {tableContent}
     </div>
   )
 }
