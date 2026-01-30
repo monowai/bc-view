@@ -5,7 +5,7 @@ import {
   RetirementProjection,
   ProjectionResponse,
 } from "types/independence"
-import { WhatIfAdjustments, ScenarioOverrides } from "./types"
+import { WhatIfAdjustments, ScenarioOverrides, hasScenarioChanges } from "./types"
 import { AssetBreakdown } from "./useAssetBreakdown"
 
 /**
@@ -108,6 +108,8 @@ interface UseUnifiedProjectionResult {
   projection: RetirementProjection | null
   /** Alias for projection (backwards compatibility with useRetirementProjection) */
   adjustedProjection: RetirementProjection | null
+  /** Baseline projection (when no what-if adjustments active) for chart comparison */
+  baselineProjection: RetirementProjection | null
   /** Whether the projection is loading or calculating */
   isLoading: boolean
   /** Alias for isLoading (backwards compatibility) */
@@ -184,6 +186,9 @@ export function useUnifiedProjection({
   const [projection, setProjection] = useState<RetirementProjection | null>(
     null,
   )
+  const [baselineProjection, setBaselineProjection] =
+    useState<RetirementProjection | null>(null)
+  const baselineDisplayCurrencyRef = useRef<string | undefined>(undefined)
   const [isCalculating, setIsCalculating] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const hasAutoCalculated = useRef(false)
@@ -309,6 +314,18 @@ export function useUnifiedProjection({
 
       const result: ProjectionResponse = await response.json()
       setProjection(result.data)
+
+      // Capture baseline when what-if adjustments are at defaults
+      const isAtDefaults =
+        !hasScenarioChanges(whatIfAdjustments) &&
+        Object.keys(scenarioOverrides).length === 0
+      if (isAtDefaults) {
+        setBaselineProjection(result.data)
+        baselineDisplayCurrencyRef.current = displayCurrency
+      } else if (displayCurrency !== baselineDisplayCurrencyRef.current) {
+        // Invalidate baseline if display currency changed
+        setBaselineProjection(null)
+      }
     } catch (err) {
       console.error("Failed to calculate projection:", err)
       setError(err instanceof Error ? err : new Error(String(err)))
@@ -356,6 +373,8 @@ export function useUnifiedProjection({
 
   const resetProjection = useCallback((): void => {
     setProjection(null)
+    setBaselineProjection(null)
+    baselineDisplayCurrencyRef.current = undefined
     setError(null)
     hasAutoCalculated.current = false
     prevChecksumRef.current = 0
@@ -369,6 +388,7 @@ export function useUnifiedProjection({
   return {
     projection,
     adjustedProjection: projection, // Backwards compatibility
+    baselineProjection,
     isLoading: isCalculating,
     isCalculating,
     error,

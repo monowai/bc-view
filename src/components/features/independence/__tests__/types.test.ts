@@ -36,7 +36,7 @@ describe("types constants", () => {
         "assets",
         "fire",
         "timeline",
-        "scenarios",
+        "simulation",
       ])
     })
 
@@ -45,7 +45,7 @@ describe("types constants", () => {
       expect(TABS.find((t) => t.id === "assets")?.label).toBe("Assets")
       expect(TABS.find((t) => t.id === "fire")?.label).toBe("FIRE")
       expect(TABS.find((t) => t.id === "timeline")?.label).toBe("Timeline")
-      expect(TABS.find((t) => t.id === "scenarios")?.label).toBe("Scenarios")
+      expect(TABS.find((t) => t.id === "simulation")?.label).toBe("Simulation")
     })
 
     it("has correct icons", () => {
@@ -55,7 +55,7 @@ describe("types constants", () => {
       expect(TABS.find((t) => t.id === "assets")?.icon).toBe("fa-wallet")
       expect(TABS.find((t) => t.id === "fire")?.icon).toBe("fa-fire")
       expect(TABS.find((t) => t.id === "timeline")?.icon).toBe("fa-chart-line")
-      expect(TABS.find((t) => t.id === "scenarios")?.icon).toBe("fa-sliders-h")
+      expect(TABS.find((t) => t.id === "simulation")?.icon).toBe("fa-dice")
     })
   })
 })
