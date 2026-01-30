@@ -203,15 +203,17 @@ export function useUnifiedProjection({
     [scenarioOverrides, whatIfAdjustments, retirementAge],
   )
 
-  // Combined checksum including assets
+  // Combined checksum including assets and display currency
   const projectionChecksum = useMemo(() => {
     const assetChecksum = Math.round(assets.liquidAssets)
+    const currencyChecksum = displayCurrency ? hashString(displayCurrency) : 0
     return (
       ((planChecksum << 16) | (planChecksum >>> 16)) ^
       whatIfChecksum ^
-      assetChecksum
+      assetChecksum ^
+      currencyChecksum
     )
-  }, [planChecksum, whatIfChecksum, assets.liquidAssets])
+  }, [planChecksum, whatIfChecksum, assets.liquidAssets, displayCurrency])
 
   // Track previous checksum to detect changes
   const prevChecksumRef = useRef<number>(0)
