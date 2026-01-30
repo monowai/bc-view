@@ -305,6 +305,13 @@ export default withPageAuthRequired(function Portfolios({
           aValue = a.gainOnDay || 0
           bValue = b.gainOnDay || 0
           break
+        case "gainOnDayPercent": {
+          const aPrev = (a.marketValue || 0) - (a.gainOnDay || 0)
+          aValue = aPrev !== 0 ? (a.gainOnDay || 0) / aPrev : 0
+          const bPrev = (b.marketValue || 0) - (b.gainOnDay || 0)
+          bValue = bPrev !== 0 ? (b.gainOnDay || 0) / bPrev : 0
+          break
+        }
         case "valuedAt":
           aValue = a.valuedAt || ""
           bValue = b.valuedAt || ""
@@ -589,6 +596,18 @@ export default withPageAuthRequired(function Portfolios({
                               (fxRates[portfolio.base.code] || 1)
                             }
                           />
+                          {portfolio.marketValue ? (
+                            <span className="ml-1 text-xs">
+                              (
+                              {(
+                                (portfolio.gainOnDay /
+                                  (portfolio.marketValue -
+                                    portfolio.gainOnDay)) *
+                                100
+                              ).toFixed(2)}
+                              %)
+                            </span>
+                          ) : null}
                         </div>
                       )}
                     <div
@@ -747,6 +766,15 @@ export default withPageAuthRequired(function Portfolios({
                   </th>
                   <th
                     className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort("gainOnDayPercent")}
+                  >
+                    <div className="flex items-center justify-end">
+                      {t("portfolio.gainOnDayPercent", "Day %")}
+                      {getSortIcon("gainOnDayPercent")}
+                    </div>
+                  </th>
+                  <th
+                    className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
                     onClick={() => handleSort("irr")}
                   >
                     <div className="flex items-center justify-end">
@@ -833,6 +861,28 @@ export default withPageAuthRequired(function Portfolios({
                               (fxRates[portfolio.base.code] || 1)
                             }
                           />
+                        </span>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {portfolio.gainOnDay !== undefined &&
+                      portfolio.gainOnDay !== 0 &&
+                      portfolio.marketValue ? (
+                        <span
+                          className={`font-semibold ${
+                            portfolio.gainOnDay >= 0
+                              ? "text-green-600"
+                              : "text-red-600"
+                          }`}
+                        >
+                          {(
+                            (portfolio.gainOnDay /
+                              (portfolio.marketValue - portfolio.gainOnDay)) *
+                            100
+                          ).toFixed(2)}
+                          %
                         </span>
                       ) : (
                         <span className="text-gray-400">-</span>
@@ -937,6 +987,26 @@ export default withPageAuthRequired(function Portfolios({
                       >
                         {totalGainOnDay >= 0 ? "+" : ""}
                         <FormatValue value={totalGainOnDay} />
+                      </span>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {totalGainOnDay !== 0 && totalMarketValue ? (
+                      <span
+                        className={`font-bold text-lg ${
+                          totalGainOnDay >= 0
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        {(
+                          (totalGainOnDay /
+                            (totalMarketValue - totalGainOnDay)) *
+                          100
+                        ).toFixed(2)}
+                        %
                       </span>
                     ) : (
                       <span className="text-gray-400">-</span>

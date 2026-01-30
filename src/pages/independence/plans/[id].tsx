@@ -743,25 +743,29 @@ function PlanView(): React.ReactElement {
 
   // Use unified projection hook
   // Pass pre-calculated assets to avoid backend refetch from svc-position
-  const { adjustedProjection, baselineProjection, isCalculating, resetProjection } =
-    useUnifiedProjection({
-      plan,
-      assets: {
-        liquidAssets,
-        nonSpendableAssets,
-        totalAssets,
-        hasAssets,
-      },
-      selectedPortfolioIds,
-      currentAge,
-      retirementAge,
-      lifeExpectancy,
-      monthlyInvestment,
-      whatIfAdjustments: combinedAdjustments,
-      scenarioOverrides,
-      rentalIncome,
-      displayCurrency: displayCurrency ?? undefined,
-    })
+  const {
+    adjustedProjection,
+    baselineProjection,
+    isCalculating,
+    resetProjection,
+  } = useUnifiedProjection({
+    plan,
+    assets: {
+      liquidAssets,
+      nonSpendableAssets,
+      totalAssets,
+      hasAssets,
+    },
+    selectedPortfolioIds,
+    currentAge,
+    retirementAge,
+    lifeExpectancy,
+    monthlyInvestment,
+    whatIfAdjustments: combinedAdjustments,
+    scenarioOverrides,
+    rentalIncome,
+    displayCurrency: displayCurrency ?? undefined,
+  })
 
   // Plan inputs from backend (already FX converted when displayCurrency differs)
   const planInputs = adjustedProjection?.planInputs
@@ -1181,15 +1185,15 @@ function PlanView(): React.ReactElement {
               const displayPension =
                 planInputs?.pensionMonthly ?? effectivePension
               const displaySocialSecurity =
-                planInputs?.socialSecurityMonthly ??
-                effectiveSocialSecurity
+                planInputs?.socialSecurityMonthly ?? effectiveSocialSecurity
               const displayOtherIncome =
                 planInputs?.otherIncomeMonthly ?? effectiveOtherIncome
               const displayRentalIncome =
                 planInputs?.rentalIncomeMonthly ??
-                (rentalIncome?.totalMonthlyInPlanCurrency ?? 0)
+                rentalIncome?.totalMonthlyInPlanCurrency ??
+                0
               const displayTarget =
-                planInputs?.targetBalance ?? (effectiveTarget ?? 0)
+                planInputs?.targetBalance ?? effectiveTarget ?? 0
               const displayNetMonthlyNeed = Math.max(
                 0,
                 displayExpenses -
@@ -1362,7 +1366,8 @@ function PlanView(): React.ReactElement {
                               : `${detailsCurrency}${Math.round(adjustedProjection.sustainableMonthlyExpense).toLocaleString()}`}
                           </div>
                         </div>
-                        {adjustedProjection.sustainableTargetBalance != null && (
+                        {adjustedProjection.sustainableTargetBalance !=
+                          null && (
                           <div className="text-sm text-gray-500">
                             Targeting{" "}
                             {hideValues
@@ -1394,19 +1399,22 @@ function PlanView(): React.ReactElement {
                                     adjustedProjection.expenseAdjustment,
                                   ).toLocaleString()}
                                   /mo (+
-                                  {adjustedProjection.expenseAdjustmentPercent.toFixed(1)}
+                                  {adjustedProjection.expenseAdjustmentPercent.toFixed(
+                                    1,
+                                  )}
                                   %)
                                 </>
                               ) : (
                                 <>
                                   <i className="fas fa-arrow-down mr-1"></i>
-                                  Need to reduce{" "}
-                                  {detailsCurrency}
+                                  Need to reduce {detailsCurrency}
                                   {Math.round(
                                     adjustedProjection.expenseAdjustment,
                                   ).toLocaleString()}
                                   /mo (
-                                  {adjustedProjection.expenseAdjustmentPercent.toFixed(1)}
+                                  {adjustedProjection.expenseAdjustmentPercent.toFixed(
+                                    1,
+                                  )}
                                   %)
                                 </>
                               )}
@@ -1757,11 +1765,11 @@ function PlanView(): React.ReactElement {
                                 ? // Backend projection available (already in display currency)
                                   displayProjection.preRetirementAccumulation
                                     .liquidAssetsAtRetirement -
-                                  excludedPensionFV * effectiveFxRate
+                                    excludedPensionFV * effectiveFxRate
                                 : // No projection: use local values with FX conversion
                                   (liquidAssets +
                                     includedPensionFvDifferential) *
-                                  effectiveFxRate,
+                                    effectiveFxRate,
                             ).toLocaleString()}`}
                       </span>
                     </div>
@@ -2071,222 +2079,229 @@ function PlanView(): React.ReactElement {
                       ) : undefined
                     }
                   >
-                  <div className="h-72">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <ComposedChart
-                        data={
-                          chartDataWithBaseline.length > 0
-                            ? chartDataWithBaseline
-                            : displayProjection.yearlyProjections
-                        }
-                        margin={{ top: 10, right: 30, left: 20, bottom: 20 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                        <XAxis
-                          dataKey="age"
-                          label={{
-                            value: "Age",
-                            position: "insideBottom",
-                            offset: -10,
-                          }}
-                          tick={{ fontSize: 12 }}
-                          domain={[
-                            (dataMin: number) =>
-                              Math.min(
-                                dataMin,
-                                retirementAge ? retirementAge - 3 : dataMin,
-                              ),
-                            "dataMax",
-                          ]}
-                          allowDataOverflow={true}
-                          ticks={(() => {
-                            // Generate ticks that always include key ages
-                            const ages = fullJourneyData
-                              .map((d) => d.age)
-                              .filter((a): a is number => a !== undefined)
-                            if (ages.length === 0) return undefined
-                            const minAge = Math.min(...ages)
-                            const maxAge = Math.max(...ages)
-                            const range = maxAge - minAge
-                            const step = range <= 30 ? 5 : 10
-                            const ticks: number[] = []
-                            // Regular interval ticks
-                            for (
-                              let age = Math.ceil(minAge / step) * step;
-                              age <= maxAge;
-                              age += step
-                            ) {
-                              ticks.push(age)
-                            }
-                            // Always include retirement age
-                            if (
-                              retirementAge &&
-                              !ticks.includes(retirementAge)
-                            ) {
-                              ticks.push(retirementAge)
-                            }
-                            // Always include FI achievement age
-                            if (
-                              fiAchievementAge &&
-                              !ticks.includes(fiAchievementAge)
-                            ) {
-                              ticks.push(fiAchievementAge)
-                            }
-                            return ticks.sort((a, b) => a - b)
-                          })()}
-                        />
-                        <YAxis
-                          tickFormatter={(value) =>
-                            hideValues
-                              ? "****"
-                              : `$${(value / 1000).toFixed(0)}k`
+                    <div className="h-72">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <ComposedChart
+                          data={
+                            chartDataWithBaseline.length > 0
+                              ? chartDataWithBaseline
+                              : displayProjection.yearlyProjections
                           }
-                          tick={{ fontSize: 12 }}
-                        />
-                        <ChartTooltip
-                          formatter={(value, name) => {
-                            const formatted = hideValues
-                              ? HIDDEN_VALUE
-                              : `$${Number(value || 0).toLocaleString()}`
-                            if (name === "totalWealth")
-                              return [formatted, "Total Wealth"]
-                            if (name === "accumulationBalance")
-                              return [formatted, "Working Years"]
-                            if (name === "retirementBalance")
-                              return [formatted, "Independence Years"]
-                            if (name === "fireBalance")
-                              return [formatted, "FIRE Path"]
-                            if (name === "baselineBalance")
-                              return [formatted, "Baseline"]
-                            return [formatted, name]
-                          }}
-                          labelFormatter={(label) => `Age ${label}`}
-                        />
-                        <Legend
-                          verticalAlign="top"
-                          height={36}
-                          formatter={(value) =>
-                            value === "totalWealth"
-                              ? "Total Wealth"
-                              : value === "accumulationBalance"
-                                ? "Working Years"
-                                : value === "retirementBalance"
-                                  ? "Independence Years"
-                                  : value === "fireBalance"
-                                    ? "FIRE Path"
-                                    : value === "baselineBalance"
-                                      ? "Baseline"
-                                      : value
-                          }
-                        />
-                        <ReferenceLine y={0} stroke="#ef4444" strokeWidth={2} />
-                        {/* Independence years shaded area - show in traditional view */}
-                        {timelineViewMode === "traditional" &&
-                          retirementAge && (
-                            <ReferenceArea
-                              x1={retirementAge}
-                              x2={lifeExpectancy}
-                              fill="#f97316"
-                              fillOpacity={0.15}
-                              stroke="#f97316"
-                              strokeOpacity={0.3}
-                            />
-                          )}
-                        {/* Retirement age transition line - show in traditional view */}
-                        {timelineViewMode === "traditional" &&
-                          retirementAge && (
+                          margin={{ top: 10, right: 30, left: 20, bottom: 20 }}
+                        >
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            stroke="#e5e7eb"
+                          />
+                          <XAxis
+                            dataKey="age"
+                            label={{
+                              value: "Age",
+                              position: "insideBottom",
+                              offset: -10,
+                            }}
+                            tick={{ fontSize: 12 }}
+                            domain={[
+                              (dataMin: number) =>
+                                Math.min(
+                                  dataMin,
+                                  retirementAge ? retirementAge - 3 : dataMin,
+                                ),
+                              "dataMax",
+                            ]}
+                            allowDataOverflow={true}
+                            ticks={(() => {
+                              // Generate ticks that always include key ages
+                              const ages = fullJourneyData
+                                .map((d) => d.age)
+                                .filter((a): a is number => a !== undefined)
+                              if (ages.length === 0) return undefined
+                              const minAge = Math.min(...ages)
+                              const maxAge = Math.max(...ages)
+                              const range = maxAge - minAge
+                              const step = range <= 30 ? 5 : 10
+                              const ticks: number[] = []
+                              // Regular interval ticks
+                              for (
+                                let age = Math.ceil(minAge / step) * step;
+                                age <= maxAge;
+                                age += step
+                              ) {
+                                ticks.push(age)
+                              }
+                              // Always include retirement age
+                              if (
+                                retirementAge &&
+                                !ticks.includes(retirementAge)
+                              ) {
+                                ticks.push(retirementAge)
+                              }
+                              // Always include FI achievement age
+                              if (
+                                fiAchievementAge &&
+                                !ticks.includes(fiAchievementAge)
+                              ) {
+                                ticks.push(fiAchievementAge)
+                              }
+                              return ticks.sort((a, b) => a - b)
+                            })()}
+                          />
+                          <YAxis
+                            tickFormatter={(value) =>
+                              hideValues
+                                ? "****"
+                                : `$${(value / 1000).toFixed(0)}k`
+                            }
+                            tick={{ fontSize: 12 }}
+                          />
+                          <ChartTooltip
+                            formatter={(value, name) => {
+                              const formatted = hideValues
+                                ? HIDDEN_VALUE
+                                : `$${Number(value || 0).toLocaleString()}`
+                              if (name === "totalWealth")
+                                return [formatted, "Total Wealth"]
+                              if (name === "accumulationBalance")
+                                return [formatted, "Working Years"]
+                              if (name === "retirementBalance")
+                                return [formatted, "Independence Years"]
+                              if (name === "fireBalance")
+                                return [formatted, "FIRE Path"]
+                              if (name === "baselineBalance")
+                                return [formatted, "Baseline"]
+                              return [formatted, name]
+                            }}
+                            labelFormatter={(label) => `Age ${label}`}
+                          />
+                          <Legend
+                            verticalAlign="top"
+                            height={36}
+                            formatter={(value) =>
+                              value === "totalWealth"
+                                ? "Total Wealth"
+                                : value === "accumulationBalance"
+                                  ? "Working Years"
+                                  : value === "retirementBalance"
+                                    ? "Independence Years"
+                                    : value === "fireBalance"
+                                      ? "FIRE Path"
+                                      : value === "baselineBalance"
+                                        ? "Baseline"
+                                        : value
+                            }
+                          />
+                          <ReferenceLine
+                            y={0}
+                            stroke="#ef4444"
+                            strokeWidth={2}
+                          />
+                          {/* Independence years shaded area - show in traditional view */}
+                          {timelineViewMode === "traditional" &&
+                            retirementAge && (
+                              <ReferenceArea
+                                x1={retirementAge}
+                                x2={lifeExpectancy}
+                                fill="#f97316"
+                                fillOpacity={0.15}
+                                stroke="#f97316"
+                                strokeOpacity={0.3}
+                              />
+                            )}
+                          {/* Retirement age transition line - show in traditional view */}
+                          {timelineViewMode === "traditional" &&
+                            retirementAge && (
+                              <ReferenceLine
+                                x={retirementAge}
+                                stroke="#f97316"
+                                strokeDasharray="5 5"
+                                strokeWidth={2}
+                                label={{
+                                  value: `Independence (${retirementAge})`,
+                                  position: "top",
+                                  fill: "#f97316",
+                                  fontSize: 11,
+                                }}
+                              />
+                            )}
+                          {/* FI achievement age line - show in FIRE view */}
+                          {timelineViewMode === "fire" && fiAchievementAge && (
                             <ReferenceLine
-                              x={retirementAge}
-                              stroke="#f97316"
-                              strokeDasharray="5 5"
+                              x={fiAchievementAge}
+                              stroke="#22c55e"
+                              strokeDasharray="3 3"
                               strokeWidth={2}
                               label={{
-                                value: `Independence (${retirementAge})`,
+                                value: "FI",
                                 position: "top",
-                                fill: "#f97316",
+                                fill: "#22c55e",
                                 fontSize: 11,
                               }}
                             />
                           )}
-                        {/* FI achievement age line - show in FIRE view */}
-                        {timelineViewMode === "fire" && fiAchievementAge && (
-                          <ReferenceLine
-                            x={fiAchievementAge}
-                            stroke="#22c55e"
-                            strokeDasharray="3 3"
-                            strokeWidth={2}
-                            label={{
-                              value: "FI",
-                              position: "top",
-                              fill: "#22c55e",
-                              fontSize: 11,
-                            }}
-                          />
-                        )}
-                        {/* Total Wealth line - show in traditional view when non-spendable assets exist */}
-                        {timelineViewMode === "traditional" &&
-                          displayProjection.nonSpendableAtRetirement > 0 && (
+                          {/* Total Wealth line - show in traditional view when non-spendable assets exist */}
+                          {timelineViewMode === "traditional" &&
+                            displayProjection.nonSpendableAtRetirement > 0 && (
+                              <Line
+                                type="monotone"
+                                dataKey="totalWealth"
+                                stroke="#22c55e"
+                                strokeWidth={2}
+                                dot={{ r: 2, fill: "#22c55e" }}
+                                name="totalWealth"
+                              />
+                            )}
+                          {/* Traditional path - Working years (blue) */}
+                          {timelineViewMode === "traditional" && (
                             <Line
                               type="monotone"
-                              dataKey="totalWealth"
-                              stroke="#22c55e"
-                              strokeWidth={2}
-                              dot={{ r: 2, fill: "#22c55e" }}
-                              name="totalWealth"
-                            />
-                          )}
-                        {/* Traditional path - Working years (blue) */}
-                        {timelineViewMode === "traditional" && (
-                          <Line
-                            type="monotone"
-                            dataKey="accumulationBalance"
-                            stroke="#3b82f6"
-                            strokeWidth={3}
-                            dot={{ r: 3, fill: "#3b82f6" }}
-                            name="accumulationBalance"
-                            connectNulls={false}
-                          />
-                        )}
-                        {/* Traditional path - Independence years (purple) */}
-                        {timelineViewMode === "traditional" && (
-                          <Line
-                            type="monotone"
-                            dataKey="retirementBalance"
-                            stroke="#f97316"
-                            strokeWidth={3}
-                            dot={{ r: 3, fill: "#f97316" }}
-                            name="retirementBalance"
-                            connectNulls={false}
-                          />
-                        )}
-                        {/* FIRE path - what happens if you retire at FI age */}
-                        {timelineViewMode === "fire" &&
-                          fiAchievementAge &&
-                          adjustedProjection?.firePathProjections && (
-                            <Line
-                              type="monotone"
-                              dataKey="fireBalance"
-                              stroke="#22c55e"
+                              dataKey="accumulationBalance"
+                              stroke="#3b82f6"
                               strokeWidth={3}
-                              dot={{ r: 3, fill: "#22c55e" }}
-                              name="fireBalance"
+                              dot={{ r: 3, fill: "#3b82f6" }}
+                              name="accumulationBalance"
+                              connectNulls={false}
                             />
                           )}
-                        {/* Baseline comparison line - dashed gray, only when what-if is active */}
-                        {baselineProjection && hasActiveWhatIf && (
-                          <Line
-                            type="monotone"
-                            dataKey="baselineBalance"
-                            stroke="#9ca3af"
-                            strokeWidth={1.5}
-                            strokeDasharray="6 4"
-                            dot={false}
-                            name="baselineBalance"
-                          />
-                        )}
-                      </ComposedChart>
-                    </ResponsiveContainer>
-                  </div>
+                          {/* Traditional path - Independence years (purple) */}
+                          {timelineViewMode === "traditional" && (
+                            <Line
+                              type="monotone"
+                              dataKey="retirementBalance"
+                              stroke="#f97316"
+                              strokeWidth={3}
+                              dot={{ r: 3, fill: "#f97316" }}
+                              name="retirementBalance"
+                              connectNulls={false}
+                            />
+                          )}
+                          {/* FIRE path - what happens if you retire at FI age */}
+                          {timelineViewMode === "fire" &&
+                            fiAchievementAge &&
+                            adjustedProjection?.firePathProjections && (
+                              <Line
+                                type="monotone"
+                                dataKey="fireBalance"
+                                stroke="#22c55e"
+                                strokeWidth={3}
+                                dot={{ r: 3, fill: "#22c55e" }}
+                                name="fireBalance"
+                              />
+                            )}
+                          {/* Baseline comparison line - dashed gray, only when what-if is active */}
+                          {baselineProjection && hasActiveWhatIf && (
+                            <Line
+                              type="monotone"
+                              dataKey="baselineBalance"
+                              stroke="#9ca3af"
+                              strokeWidth={1.5}
+                              strokeDasharray="6 4"
+                              dot={false}
+                              name="baselineBalance"
+                            />
+                          )}
+                        </ComposedChart>
+                      </ResponsiveContainer>
+                    </div>
                   </CollapsibleSection>
 
                   <CollapsibleSection
@@ -2296,78 +2311,83 @@ function PlanView(): React.ReactElement {
                     isOpen={openSections["cashFlows"]}
                     onToggle={() => toggleSection("cashFlows")}
                   >
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <ComposedChart
-                        data={displayProjection.yearlyProjections.map((y) => ({
-                          ...y,
-                          negWithdrawals: -y.withdrawals,
-                        }))}
-                        margin={{ top: 10, right: 30, left: 20, bottom: 20 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                        <XAxis
-                          dataKey="age"
-                          label={{
-                            value: "Age",
-                            position: "insideBottom",
-                            offset: -10,
-                          }}
-                          tick={{ fontSize: 12 }}
-                        />
-                        <YAxis
-                          tickFormatter={(value) =>
-                            hideValues
-                              ? "****"
-                              : `$${(value / 1000).toFixed(0)}k`
-                          }
-                          tick={{ fontSize: 12 }}
-                        />
-                        <ChartTooltip
-                          formatter={(value, name) => {
-                            if (hideValues) {
-                              if (name === "negWithdrawals") {
-                                return [HIDDEN_VALUE, "Withdrawals"]
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <ComposedChart
+                          data={displayProjection.yearlyProjections.map(
+                            (y) => ({
+                              ...y,
+                              negWithdrawals: -y.withdrawals,
+                            }),
+                          )}
+                          margin={{ top: 10, right: 30, left: 20, bottom: 20 }}
+                        >
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            stroke="#e5e7eb"
+                          />
+                          <XAxis
+                            dataKey="age"
+                            label={{
+                              value: "Age",
+                              position: "insideBottom",
+                              offset: -10,
+                            }}
+                            tick={{ fontSize: 12 }}
+                          />
+                          <YAxis
+                            tickFormatter={(value) =>
+                              hideValues
+                                ? "****"
+                                : `$${(value / 1000).toFixed(0)}k`
+                            }
+                            tick={{ fontSize: 12 }}
+                          />
+                          <ChartTooltip
+                            formatter={(value, name) => {
+                              if (hideValues) {
+                                if (name === "negWithdrawals") {
+                                  return [HIDDEN_VALUE, "Withdrawals"]
+                                }
+                                return [HIDDEN_VALUE, "Investment Returns"]
                               }
-                              return [HIDDEN_VALUE, "Investment Returns"]
-                            }
-                            const absVal = Math.abs(Number(value || 0))
-                            if (name === "negWithdrawals") {
+                              const absVal = Math.abs(Number(value || 0))
+                              if (name === "negWithdrawals") {
+                                return [
+                                  `-$${absVal.toLocaleString()}`,
+                                  "Withdrawals",
+                                ]
+                              }
                               return [
-                                `-$${absVal.toLocaleString()}`,
-                                "Withdrawals",
+                                `+$${absVal.toLocaleString()}`,
+                                "Investment Returns",
                               ]
+                            }}
+                            labelFormatter={(label) => `Age ${label}`}
+                          />
+                          <Legend
+                            verticalAlign="top"
+                            height={36}
+                            formatter={(value) =>
+                              value === "negWithdrawals"
+                                ? "Withdrawals"
+                                : "Investment Returns"
                             }
-                            return [
-                              `+$${absVal.toLocaleString()}`,
-                              "Investment Returns",
-                            ]
-                          }}
-                          labelFormatter={(label) => `Age ${label}`}
-                        />
-                        <Legend
-                          verticalAlign="top"
-                          height={36}
-                          formatter={(value) =>
-                            value === "negWithdrawals"
-                              ? "Withdrawals"
-                              : "Investment Returns"
-                          }
-                        />
-                        <ReferenceLine y={0} stroke="#9ca3af" />
-                        <Bar
-                          dataKey="investment"
-                          fill="#22c55e"
-                          name="Investment Returns"
-                        />
-                        <Bar
-                          dataKey="negWithdrawals"
-                          fill="#ef4444"
-                          name="negWithdrawals"
-                        />
-                      </ComposedChart>
-                    </ResponsiveContainer>
-                  </div>
+                          />
+                          <ReferenceLine y={0} stroke="#9ca3af" />
+                          <Bar
+                            dataKey="investment"
+                            fill="#22c55e"
+                            name="Investment Returns"
+                          />
+                          <Bar
+                            dataKey="negWithdrawals"
+                            fill="#ef4444"
+                            name="negWithdrawals"
+                          />
+                        </ComposedChart>
+                      </ResponsiveContainer>
+                    </div>
                   </CollapsibleSection>
 
                   <CollapsibleSection
