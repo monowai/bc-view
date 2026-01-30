@@ -458,6 +458,14 @@ export interface RetirementProjection {
   displayFxRate?: number
   /** Plan input values used in calculations (in display currency) */
   planInputs?: PlanInputs
+  /** Sustainable monthly expense that depletes assets to the target balance */
+  sustainableMonthlyExpense?: number
+  /** Adjustment from current expenses: positive = room to increase, negative = need to cut */
+  expenseAdjustment?: number
+  /** Adjustment as percentage of current expenses */
+  expenseAdjustmentPercent?: number
+  /** Target ending balance used for sustainable expense calculation */
+  sustainableTargetBalance?: number
   /** Data quality warnings - empty means all data fetched successfully */
   warnings?: ProjectionWarning[]
 }

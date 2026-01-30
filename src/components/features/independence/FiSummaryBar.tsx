@@ -49,6 +49,8 @@ interface FiSummaryBarProps {
   yearsToRetirement?: number
   /** Pre-calculated FI Progress from backend (overrides local calculation) */
   backendFiProgress?: number
+  /** Expense adjustment percentage (positive = room to increase, negative = need to cut) */
+  expenseAdjustmentPercent?: number
   /** Data quality warnings from backend */
   warnings?: ProjectionWarning[]
 }
@@ -65,6 +67,7 @@ export default function FiSummaryBar({
   isCoastFire,
   yearsToRetirement,
   backendFiProgress,
+  expenseAdjustmentPercent,
   warnings = [],
 }: FiSummaryBarProps): React.ReactElement {
   const { hideValues } = usePrivacyMode()
@@ -248,6 +251,28 @@ export default function FiSummaryBar({
                     {yearsToRetirement}yr to go
                   </span>
                 )}
+              </div>
+            </>
+          )}
+
+          {/* Spending Room */}
+          {expenseAdjustmentPercent != null && !hideValues && (
+            <>
+              <div className="h-8 w-px bg-gray-200" />
+              <div className="flex flex-col">
+                <span className="text-xs text-gray-500 uppercase tracking-wide">
+                  Spending Room
+                </span>
+                <span
+                  className={`text-lg font-semibold ${
+                    expenseAdjustmentPercent >= 0
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }`}
+                >
+                  {expenseAdjustmentPercent >= 0 ? "+" : ""}
+                  {expenseAdjustmentPercent.toFixed(0)}%
+                </span>
               </div>
             </>
           )}

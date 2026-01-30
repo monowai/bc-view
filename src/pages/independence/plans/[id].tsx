@@ -1097,6 +1097,9 @@ function PlanView(): React.ReactElement {
                 adjustedProjection.preRetirementAccumulation?.yearsToRetirement
               }
               backendFiProgress={adjustedProjection.fiMetrics!.fiProgress}
+              expenseAdjustmentPercent={
+                adjustedProjection.expenseAdjustmentPercent
+              }
               warnings={adjustedProjection.warnings}
             />
           ) : (
@@ -1167,26 +1170,26 @@ function PlanView(): React.ReactElement {
               const effectiveHousingReturn =
                 scenarioOverrides.housingReturnRate ?? plan.housingReturnRate
 
-              // Display values - use planInputs from backend when available (already FX converted)
-              // Fall back to local values with FX conversion
+              // Display values - always use backend planInputs (already FX-converted).
+              // Never do frontend FX conversion here — avoids rate-direction mismatches.
+              // During the brief projection recalculation window after a currency change,
+              // values stay in the projection's current currency until the backend responds.
+              const detailsCurrency =
+                adjustedProjection?.currency || planCurrency
               const displayExpenses =
-                planInputs?.monthlyExpenses ??
-                effectiveExpenses * effectiveFxRate
+                planInputs?.monthlyExpenses ?? effectiveExpenses
               const displayPension =
-                planInputs?.pensionMonthly ?? effectivePension * effectiveFxRate
+                planInputs?.pensionMonthly ?? effectivePension
               const displaySocialSecurity =
                 planInputs?.socialSecurityMonthly ??
-                effectiveSocialSecurity * effectiveFxRate
+                effectiveSocialSecurity
               const displayOtherIncome =
-                planInputs?.otherIncomeMonthly ??
-                effectiveOtherIncome * effectiveFxRate
+                planInputs?.otherIncomeMonthly ?? effectiveOtherIncome
               const displayRentalIncome =
                 planInputs?.rentalIncomeMonthly ??
-                (rentalIncome?.totalMonthlyInPlanCurrency ?? 0) *
-                  effectiveFxRate
+                (rentalIncome?.totalMonthlyInPlanCurrency ?? 0)
               const displayTarget =
-                planInputs?.targetBalance ??
-                (effectiveTarget ?? 0) * effectiveFxRate
+                planInputs?.targetBalance ?? (effectiveTarget ?? 0)
               const displayNetMonthlyNeed = Math.max(
                 0,
                 displayExpenses -
@@ -1224,7 +1227,7 @@ function PlanView(): React.ReactElement {
                         >
                           {hideValues
                             ? HIDDEN_VALUE
-                            : `${effectiveCurrency}${Math.round(displayExpenses).toLocaleString()}`}
+                            : `${detailsCurrency}${Math.round(displayExpenses).toLocaleString()}`}
                         </span>
                       </div>
                       <div className="flex justify-between">
@@ -1236,7 +1239,7 @@ function PlanView(): React.ReactElement {
                         >
                           {hideValues
                             ? HIDDEN_VALUE
-                            : `${effectiveCurrency}${Math.round(displayPension).toLocaleString()}`}
+                            : `${detailsCurrency}${Math.round(displayPension).toLocaleString()}`}
                         </span>
                       </div>
                       <div className="flex justify-between">
@@ -1248,7 +1251,7 @@ function PlanView(): React.ReactElement {
                         >
                           {hideValues
                             ? HIDDEN_VALUE
-                            : `${effectiveCurrency}${Math.round(displaySocialSecurity).toLocaleString()}`}
+                            : `${detailsCurrency}${Math.round(displaySocialSecurity).toLocaleString()}`}
                         </span>
                       </div>
                       <div className="flex justify-between">
@@ -1260,7 +1263,7 @@ function PlanView(): React.ReactElement {
                         >
                           {hideValues
                             ? HIDDEN_VALUE
-                            : `${effectiveCurrency}${Math.round(displayOtherIncome).toLocaleString()}`}
+                            : `${detailsCurrency}${Math.round(displayOtherIncome).toLocaleString()}`}
                         </span>
                       </div>
                       {displayRentalIncome > 0 && (
@@ -1276,7 +1279,7 @@ function PlanView(): React.ReactElement {
                           >
                             {hideValues
                               ? HIDDEN_VALUE
-                              : `${effectiveCurrency}${Math.round(displayRentalIncome).toLocaleString()}`}
+                              : `${detailsCurrency}${Math.round(displayRentalIncome).toLocaleString()}`}
                           </span>
                         </div>
                       )}
@@ -1291,7 +1294,7 @@ function PlanView(): React.ReactElement {
                         >
                           {hideValues
                             ? HIDDEN_VALUE
-                            : `${effectiveCurrency}${Math.round(displayNetMonthlyNeed).toLocaleString()}`}
+                            : `${detailsCurrency}${Math.round(displayNetMonthlyNeed).toLocaleString()}`}
                         </span>
                       </div>
                       <hr />
@@ -1333,12 +1336,85 @@ function PlanView(): React.ReactElement {
                           >
                             {hideValues
                               ? HIDDEN_VALUE
-                              : `${effectiveCurrency}${Math.round(displayTarget).toLocaleString()}`}
+                              : `${detailsCurrency}${Math.round(displayTarget).toLocaleString()}`}
                           </span>
                         </div>
                       )}
                     </div>
                   </div>
+
+                  {/* Sustainable Spending */}
+                  {adjustedProjection?.sustainableMonthlyExpense != null && (
+                    <div className="bg-white rounded-xl shadow-md p-6">
+                      <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                        Sustainable Spending
+                      </h2>
+                      <div className="space-y-3">
+                        <div>
+                          <span className="text-xs text-gray-500 uppercase tracking-wide">
+                            Monthly Expense Budget
+                          </span>
+                          <div
+                            className={`text-2xl font-bold ${hideValues ? "text-gray-400" : "text-green-600"}`}
+                          >
+                            {hideValues
+                              ? HIDDEN_VALUE
+                              : `${detailsCurrency}${Math.round(adjustedProjection.sustainableMonthlyExpense).toLocaleString()}`}
+                          </div>
+                        </div>
+                        {adjustedProjection.sustainableTargetBalance != null && (
+                          <div className="text-sm text-gray-500">
+                            Targeting{" "}
+                            {hideValues
+                              ? HIDDEN_VALUE
+                              : `${detailsCurrency}${Math.round(adjustedProjection.sustainableTargetBalance).toLocaleString()}`}{" "}
+                            ending balance
+                          </div>
+                        )}
+                        <hr />
+                        {adjustedProjection.expenseAdjustment != null &&
+                          adjustedProjection.expenseAdjustmentPercent !=
+                            null && (
+                            <div
+                              className={`text-sm font-medium ${
+                                adjustedProjection.expenseAdjustment >= 0
+                                  ? "text-green-600"
+                                  : "text-red-600"
+                              }`}
+                            >
+                              {hideValues ? (
+                                <span className="text-gray-400">
+                                  {HIDDEN_VALUE}
+                                </span>
+                              ) : adjustedProjection.expenseAdjustment >= 0 ? (
+                                <>
+                                  <i className="fas fa-arrow-up mr-1"></i>
+                                  Room to increase +{detailsCurrency}
+                                  {Math.round(
+                                    adjustedProjection.expenseAdjustment,
+                                  ).toLocaleString()}
+                                  /mo (+
+                                  {adjustedProjection.expenseAdjustmentPercent.toFixed(1)}
+                                  %)
+                                </>
+                              ) : (
+                                <>
+                                  <i className="fas fa-arrow-down mr-1"></i>
+                                  Need to reduce{" "}
+                                  {detailsCurrency}
+                                  {Math.round(
+                                    adjustedProjection.expenseAdjustment,
+                                  ).toLocaleString()}
+                                  /mo (
+                                  {adjustedProjection.expenseAdjustmentPercent.toFixed(1)}
+                                  %)
+                                </>
+                              )}
+                            </div>
+                          )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )
             })()}
