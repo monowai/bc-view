@@ -1,8 +1,10 @@
 import React, { useState, useCallback, useRef } from "react"
 import { useTranslation } from "next-i18next"
 import AsyncSelect from "react-select/async"
-import { AssetSearchResult } from "types/beancounter"
+import useSWR from "swr"
+import { AssetSearchResult, Market } from "types/beancounter"
 import { AssetWeightWithDetails } from "types/rebalance"
+import { marketsKey, simpleFetcher } from "@utils/api/fetchHelper"
 
 interface AssetOption {
   value: string
@@ -27,10 +29,38 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
 }) => {
   const { t } = useTranslation("common")
   const [selectedAsset, setSelectedAsset] = useState<AssetOption | null>(null)
+  const [selectedMarket, setSelectedMarket] = useState<string>("LOCAL")
   const [weight, setWeight] = useState<number>(10)
   const [isAdding, setIsAdding] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Fetch available markets
+  const { data: marketsData } = useSWR<{ data: Market[] }>(
+    marketsKey,
+    simpleFetcher(marketsKey),
+  )
+
+  // Parse "MARKET:KEYWORD" syntax from search input
+  const parseSearchInput = useCallback(
+    (
+      inputValue: string,
+    ): { market: string; keyword: string; validMarket: boolean } => {
+      const colonIndex = inputValue.indexOf(":")
+      if (colonIndex > 0) {
+        const prefix = inputValue.substring(0, colonIndex).toUpperCase()
+        const keyword = inputValue.substring(colonIndex + 1).trim()
+        const knownCodes = (marketsData?.data || []).map((m) => m.code)
+        return {
+          market: prefix,
+          keyword,
+          validMarket: knownCodes.includes(prefix),
+        }
+      }
+      return { market: selectedMarket, keyword: inputValue, validMarket: true }
+    },
+    [marketsData, selectedMarket],
+  )
 
   const loadOptions = useCallback(
     (inputValue: string, callback: (options: AssetOption[]) => void): void => {
@@ -38,15 +68,18 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
         clearTimeout(debounceRef.current)
       }
 
-      if (inputValue.length < 2) {
+      const { market, keyword, validMarket } = parseSearchInput(inputValue)
+
+      if (!validMarket || keyword.length < 2) {
         callback([])
         return
       }
 
       debounceRef.current = setTimeout(async () => {
         try {
-          const params = new URLSearchParams({ keyword: inputValue })
-          const response = await fetch(`/api/assets/search?${params}`)
+          const response = await fetch(
+            `/api/assets/search?keyword=${encodeURIComponent(keyword)}&market=${market}`,
+          )
           if (!response.ok) {
             callback([])
             return
@@ -55,14 +88,15 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
           const data = await response.json()
           const options: AssetOption[] = (data.data || [])
             .filter((result: AssetSearchResult) => {
-              // Use assetId if available, otherwise use symbol for uniqueness
               const identifier = result.assetId || result.symbol
               return !existingAssetIds.includes(identifier)
             })
             .map((result: AssetSearchResult) => ({
               value: result.assetId || result.symbol,
-              label: `${result.symbol} - ${result.name}`,
-              // Use symbol as assetId fallback for search results without persisted assetId
+              label:
+                market === "LOCAL"
+                  ? `${result.symbol} - ${result.name} (${result.market})`
+                  : `${result.symbol} - ${result.name}`,
               assetId: result.assetId || result.symbol,
               assetCode: result.symbol,
               assetName: result.name,
@@ -73,7 +107,7 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
         }
       }, 300)
     },
-    [existingAssetIds],
+    [existingAssetIds, parseSearchInput],
   )
 
   const handleAdd = async (): Promise<void> => {
@@ -190,41 +224,73 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
             <label className="block text-sm font-medium text-gray-700 mb-1">
               {t("rebalance.models.searchAsset", "Search Asset")}
             </label>
-            <AsyncSelect
-              key={existingAssetIds.join(",")}
-              loadOptions={loadOptions}
-              placeholder={t(
-                "rebalance.models.searchPlaceholder",
-                "Type to search (min 2 chars)...",
-              )}
-              noOptionsMessage={({ inputValue }) =>
-                inputValue.length < 2
-                  ? t("rebalance.models.minChars", "Type at least 2 characters")
-                  : t("rebalance.models.noResults", "No assets found")
-              }
-              loadingMessage={() =>
-                t("rebalance.models.searching", "Searching...")
-              }
-              onChange={(selected) =>
-                setSelectedAsset(selected as AssetOption | null)
-              }
-              value={selectedAsset}
-              isClearable
-              menuPortalTarget={
-                typeof document !== "undefined" ? document.body : null
-              }
-              menuPosition="fixed"
-              styles={{
-                control: (base) => ({
-                  ...base,
-                  minHeight: "38px",
-                }),
-                menuPortal: (base) => ({
-                  ...base,
-                  zIndex: 9999,
-                }),
-              }}
-            />
+            <div className="flex gap-2">
+              <select
+                value={selectedMarket}
+                onChange={(e) => {
+                  setSelectedMarket(e.target.value)
+                  setSelectedAsset(null)
+                }}
+                className="border border-gray-300 rounded-md px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="LOCAL">
+                  {t("assets.lookup.allMarkets", "All Markets")}
+                </option>
+                {(marketsData?.data || []).map((market) => (
+                  <option key={market.code} value={market.code}>
+                    {market.code}
+                  </option>
+                ))}
+              </select>
+              <div className="flex-1">
+                <AsyncSelect
+                  key={`${selectedMarket}-${existingAssetIds.join(",")}`}
+                  loadOptions={loadOptions}
+                  placeholder={t(
+                    "assets.lookup.searchPlaceholder",
+                    "Type symbol, name, or MARKET:SYMBOL...",
+                  )}
+                  noOptionsMessage={({ inputValue }) => {
+                    const parsed = parseSearchInput(inputValue)
+                    if (!parsed.validMarket) {
+                      return t(
+                        "assets.lookup.unknownMarket",
+                        `Market "{{market}}" is not supported`,
+                        { market: parsed.market },
+                      )
+                    }
+                    return parsed.keyword.length < 2
+                      ? t(
+                          "trn.asset.search.minChars",
+                          "Type at least 2 characters",
+                        )
+                      : t("trn.asset.search.noResults", "No assets found")
+                  }}
+                  loadingMessage={() =>
+                    t("trn.asset.search.loading", "Searching...")
+                  }
+                  onChange={(selected) =>
+                    setSelectedAsset(selected as AssetOption | null)
+                  }
+                  value={selectedAsset}
+                  isClearable
+                  menuPortalTarget={
+                    typeof document !== "undefined" ? document.body : null
+                  }
+                  menuPosition="fixed"
+                  styles={{
+                    control: (base) => ({
+                      ...base,
+                      minHeight: "38px",
+                    }),
+                    menuPortal: (base) => ({
+                      ...base,
+                      zIndex: 9999,
+                    }),
+                  }}
+                />
+              </div>
+            </div>
           </div>
 
           {selectedAsset && (
