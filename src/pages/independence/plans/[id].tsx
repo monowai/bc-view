@@ -1582,16 +1582,16 @@ function PlanView(): React.ReactElement {
                         {hideValues
                           ? HIDDEN_VALUE
                           : `${effectiveCurrency}${Math.round(
-                              (displayProjection?.preRetirementAccumulation
+                              displayProjection?.preRetirementAccumulation
                                 ?.liquidAssetsAtRetirement
-                                ? // Backend projection available: subtract excluded pension FV
+                                ? // Backend projection available (already in display currency)
                                   displayProjection.preRetirementAccumulation
                                     .liquidAssetsAtRetirement -
-                                  excludedPensionFV
-                                : // No projection: add FV differential for included pensions
-                                  liquidAssets +
-                                  includedPensionFvDifferential) *
-                                effectiveFxRate,
+                                  excludedPensionFV * effectiveFxRate
+                                : // No projection: use local values with FX conversion
+                                  (liquidAssets +
+                                    includedPensionFvDifferential) *
+                                  effectiveFxRate,
                             ).toLocaleString()}`}
                       </span>
                     </div>
@@ -2195,7 +2195,6 @@ function PlanView(): React.ReactElement {
                       projection={displayProjection}
                       lifeExpectancy={lifeExpectancy}
                       currency={effectiveCurrency}
-                      fxRate={effectiveFxRate}
                       whatIfAdjustments={combinedAdjustments}
                       onLiquidationThresholdChange={(value) =>
                         setWhatIfAdjustments((prev) => ({
