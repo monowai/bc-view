@@ -743,7 +743,7 @@ function PlanView(): React.ReactElement {
 
   // Use unified projection hook
   // Pass pre-calculated assets to avoid backend refetch from svc-position
-  const { adjustedProjection, isCalculating, resetProjection } =
+  const { adjustedProjection, baselineProjection, isCalculating, resetProjection } =
     useUnifiedProjection({
       plan,
       assets: {
@@ -832,6 +832,29 @@ function PlanView(): React.ReactElement {
         point.age != null ? (fireBalanceMap.get(point.age) ?? null) : null,
     }))
   }, [fullJourneyData, adjustedProjection?.firePathProjections])
+
+  // Determine if what-if changes are active (sliders or scenario overrides)
+  const hasActiveWhatIf =
+    hasScenarioChanges(combinedAdjustments) ||
+    Object.keys(scenarioOverrides).length > 0
+
+  // Merge baseline projection data into chart points for comparison line
+  const chartDataWithBaseline = useMemo(() => {
+    if (!baselineProjection || !hasActiveWhatIf) return chartDataWithFirePath
+
+    const map = new Map<number, number>()
+    for (const y of baselineProjection.accumulationProjections || []) {
+      if (y.age != null) map.set(y.age, y.endingBalance)
+    }
+    for (const y of baselineProjection.yearlyProjections) {
+      if (y.age != null) map.set(y.age, y.endingBalance)
+    }
+
+    return chartDataWithFirePath.map((point) => ({
+      ...point,
+      baselineBalance: point.age != null ? (map.get(point.age) ?? null) : null,
+    }))
+  }, [chartDataWithFirePath, baselineProjection, hasActiveWhatIf])
 
   // Toggle category spendable status
   const toggleCategory = (category: string): void => {
@@ -1905,8 +1928,8 @@ function PlanView(): React.ReactElement {
                     <ResponsiveContainer width="100%" height="100%">
                       <ComposedChart
                         data={
-                          chartDataWithFirePath.length > 0
-                            ? chartDataWithFirePath
+                          chartDataWithBaseline.length > 0
+                            ? chartDataWithBaseline
                             : displayProjection.yearlyProjections
                         }
                         margin={{ top: 10, right: 30, left: 20, bottom: 20 }}
@@ -1986,6 +2009,8 @@ function PlanView(): React.ReactElement {
                               return [formatted, "Independence Years"]
                             if (name === "fireBalance")
                               return [formatted, "FIRE Path"]
+                            if (name === "baselineBalance")
+                              return [formatted, "Baseline"]
                             return [formatted, name]
                           }}
                           labelFormatter={(label) => `Age ${label}`}
@@ -2002,7 +2027,9 @@ function PlanView(): React.ReactElement {
                                   ? "Independence Years"
                                   : value === "fireBalance"
                                     ? "FIRE Path"
-                                    : value
+                                    : value === "baselineBalance"
+                                      ? "Baseline"
+                                      : value
                           }
                         />
                         <ReferenceLine y={0} stroke="#ef4444" strokeWidth={2} />
@@ -2098,6 +2125,18 @@ function PlanView(): React.ReactElement {
                               name="fireBalance"
                             />
                           )}
+                        {/* Baseline comparison line - dashed gray, only when what-if is active */}
+                        {baselineProjection && hasActiveWhatIf && (
+                          <Line
+                            type="monotone"
+                            dataKey="baselineBalance"
+                            stroke="#9ca3af"
+                            strokeWidth={1.5}
+                            strokeDasharray="6 4"
+                            dot={false}
+                            name="baselineBalance"
+                          />
+                        )}
                       </ComposedChart>
                     </ResponsiveContainer>
                   </div>
