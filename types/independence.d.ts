@@ -646,3 +646,67 @@ export interface PropertyIncomeResponse {
 export interface PropertyIncomesResponse {
   data: PlanPropertyIncome[]
 }
+
+// ============ Monte Carlo Simulation ============
+
+export interface MonteCarloResponse {
+  data: MonteCarloResult
+}
+
+export interface MonteCarloResult {
+  planId: string
+  iterations: number
+  /** Success rate as percentage 0-100 */
+  successRate: number
+  terminalBalancePercentiles: PercentileValues
+  yearlyBands: YearlyPercentileBand[]
+  depletionAgeDistribution: DepletionAgeDistribution
+  deterministicRunwayYears: number
+  deterministicDepletionAge?: number
+  currency: string
+  parameters: MonteCarloParameters
+}
+
+export interface PercentileValues {
+  p5: number
+  p10: number
+  p25: number
+  p50: number
+  p75: number
+  p90: number
+  p95: number
+}
+
+export interface YearlyPercentileBand {
+  year: number
+  age?: number
+  p5: number
+  p10: number
+  p25: number
+  p50: number
+  p75: number
+  p90: number
+  p95: number
+}
+
+export interface DepletionAgeDistribution {
+  depletedCount: number
+  survivedCount: number
+  earliestDepletionAge?: number
+  mostCommonDepletionAge?: number
+  percentiles?: PercentileValues
+  histogram: Record<number, number>
+}
+
+export interface MonteCarloParameters {
+  blendedReturnRate: number
+  blendedVolatility: number
+  inflationRate: number
+  inflationVolatility: number
+  housingReturnRate: number
+  housingVolatility: number
+  equityVolatility: number
+  cashVolatility: number
+  equityCashCorrelation: number
+  investmentTaxRate: number
+}

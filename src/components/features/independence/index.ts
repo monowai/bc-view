@@ -36,3 +36,7 @@ export { default as WhatIfModal } from "./WhatIfModal"
 export { default as SaveScenarioDialog } from "./SaveScenarioDialog"
 export { default as EditPlanDetailsModal } from "./EditPlanDetailsModal"
 export { default as IncomeBreakdownTable } from "./IncomeBreakdownTable"
+export { default as MonteCarloTab } from "./MonteCarloTab"
+
+// Monte Carlo Hook
+export { useMonteCarloSimulation } from "./useMonteCarloSimulation"

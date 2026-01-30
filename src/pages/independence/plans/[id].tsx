@@ -49,6 +49,7 @@ import {
   SaveScenarioDialog,
   EditPlanDetailsModal,
   IncomeBreakdownTable,
+  MonteCarloTab,
   FiMetrics,
   FiSummaryBar,
   PlanViewHeader,
@@ -2388,6 +2389,30 @@ function PlanView(): React.ReactElement {
                 </div>
               </div>
             </div>
+          )}
+
+          {/* Simulation Tab - Monte Carlo Analysis */}
+          {activeTab === "simulation" && (
+            <MonteCarloTab
+              plan={plan}
+              assets={{
+                liquidAssets,
+                nonSpendableAssets,
+                totalAssets,
+                hasAssets,
+              }}
+              currentAge={currentAge}
+              retirementAge={retirementAge}
+              lifeExpectancy={lifeExpectancy}
+              monthlyInvestment={monthlyInvestment}
+              whatIfAdjustments={combinedAdjustments}
+              scenarioOverrides={scenarioOverrides}
+              rentalIncome={rentalIncome}
+              displayCurrency={displayCurrency ?? undefined}
+              hideValues={hideValues}
+              currency={effectiveCurrency}
+              displayProjection={displayProjection}
+            />
           )}
         </div>
       </div>
