@@ -66,19 +66,18 @@ export default function MonteCarloTab({
 }: MonteCarloTabProps): React.ReactElement {
   const [iterations, setIterations] = useState(1000)
 
-  const { result, isRunning, error, runSimulation } =
-    useMonteCarloSimulation({
-      plan,
-      assets,
-      currentAge,
-      retirementAge,
-      lifeExpectancy,
-      monthlyInvestment,
-      whatIfAdjustments,
-      scenarioOverrides,
-      rentalIncome,
-      displayCurrency,
-    })
+  const { result, isRunning, error, runSimulation } = useMonteCarloSimulation({
+    plan,
+    assets,
+    currentAge,
+    retirementAge,
+    lifeExpectancy,
+    monthlyInvestment,
+    whatIfAdjustments,
+    scenarioOverrides,
+    rentalIncome,
+    displayCurrency,
+  })
 
   // Build fan chart data from yearly bands + deterministic overlay
   const fanChartData = result
@@ -233,10 +232,7 @@ export default function MonteCarloTab({
                     data={fanChartData}
                     margin={{ top: 10, right: 30, left: 20, bottom: 20 }}
                   >
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="#e5e7eb"
-                    />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis
                       dataKey="age"
                       label={{
@@ -256,9 +252,7 @@ export default function MonteCarloTab({
                     />
                     <ChartTooltip
                       formatter={(value, name) => {
-                        const formatted = formatFullCurrency(
-                          Number(value ?? 0),
-                        )
+                        const formatted = formatFullCurrency(Number(value ?? 0))
                         const labels: Record<string, string> = {
                           p95: "95th percentile",
                           p90: "90th percentile",
@@ -403,8 +397,7 @@ export default function MonteCarloTab({
                     <span className="font-medium text-gray-900">
                       {hideValues
                         ? HIDDEN_VALUE
-                        : result.depletionAgeDistribution
-                            .earliestDepletionAge}
+                        : result.depletionAgeDistribution.earliestDepletionAge}
                     </span>
                   </div>
                 )}
@@ -451,8 +444,7 @@ export default function MonteCarloTab({
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Inflation vol</span>
                   <span className="font-medium text-gray-900">
-                    {(result.parameters.inflationVolatility * 100).toFixed(2)}
-                    %
+                    {(result.parameters.inflationVolatility * 100).toFixed(2)}%
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -478,10 +470,7 @@ export default function MonteCarloTab({
                       data={histogramData}
                       margin={{ top: 10, right: 30, left: 20, bottom: 20 }}
                     >
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        stroke="#e5e7eb"
-                      />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                       <XAxis
                         dataKey="age"
                         label={{

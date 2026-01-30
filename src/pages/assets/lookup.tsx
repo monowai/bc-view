@@ -8,7 +8,12 @@ import AsyncSelect from "react-select/async"
 import useSWR from "swr"
 import { marketsKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { rootLoader } from "@components/ui/PageLoader"
-import { AssetSearchResult, Market, Portfolio, Position } from "types/beancounter"
+import {
+  AssetSearchResult,
+  Market,
+  Portfolio,
+  Position,
+} from "types/beancounter"
 import { ModelsContainingAssetResponse } from "types/rebalance"
 
 interface AssetOption {
@@ -223,10 +228,7 @@ function AssetLookupPage(): React.ReactElement {
                   )
                 }
                 return parsed.keyword.length < 2
-                  ? t(
-                      "trn.asset.search.minChars",
-                      "Type at least 2 characters",
-                    )
+                  ? t("trn.asset.search.minChars", "Type at least 2 characters")
                   : t("trn.asset.search.noResults", "No assets found")
               }}
               loadingMessage={() =>

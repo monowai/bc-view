@@ -3,7 +3,7 @@ import handleResponse, { fetchError } from "@utils/api/responseWriter"
 import { getRetireUrl } from "@utils/api/bcConfig"
 import { NextApiRequest, NextApiResponse } from "next"
 
-export default withApiAuthRequired(async function fiSummary(
+export default withApiAuthRequired(async function financials(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
@@ -15,7 +15,7 @@ export default withApiAuthRequired(async function fiSummary(
     switch (method?.toUpperCase()) {
       case "GET": {
         const response = await fetch(
-          getRetireUrl(`/projection/plans/${planId}/fi-summary`),
+          getRetireUrl(`/projection/plans/${planId}/financials`),
           {
             method: "GET",
             headers: {
