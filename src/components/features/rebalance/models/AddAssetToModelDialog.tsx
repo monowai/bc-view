@@ -1,18 +1,10 @@
-import React, { useState, useCallback, useRef } from "react"
+import React, { useCallback, useState } from "react"
 import { useTranslation } from "next-i18next"
-import AsyncSelect from "react-select/async"
 import useSWR from "swr"
-import { AssetSearchResult, Market } from "types/beancounter"
+import { AssetOption, Market } from "types/beancounter"
 import { AssetWeightWithDetails } from "types/rebalance"
 import { marketsKey, simpleFetcher } from "@utils/api/fetchHelper"
-
-interface AssetOption {
-  value: string
-  label: string
-  assetId: string
-  assetCode: string
-  assetName: string
-}
+import AssetSearch from "@components/features/assets/AssetSearch"
 
 interface AddAssetToModelDialogProps {
   modalOpen: boolean
@@ -33,7 +25,6 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
   const [weight, setWeight] = useState<number>(10)
   const [isAdding, setIsAdding] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
   // Fetch available markets
   const { data: marketsData } = useSWR<{ data: Market[] }>(
@@ -41,73 +32,16 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
     simpleFetcher(marketsKey),
   )
 
-  // Parse "MARKET:KEYWORD" syntax from search input
-  const parseSearchInput = useCallback(
-    (
-      inputValue: string,
-    ): { market: string; keyword: string; validMarket: boolean } => {
-      const colonIndex = inputValue.indexOf(":")
-      if (colonIndex > 0) {
-        const prefix = inputValue.substring(0, colonIndex).toUpperCase()
-        const keyword = inputValue.substring(colonIndex + 1).trim()
-        const knownCodes = (marketsData?.data || []).map((m) => m.code)
-        return {
-          market: prefix,
-          keyword,
-          validMarket: knownCodes.includes(prefix),
-        }
-      }
-      return { market: selectedMarket, keyword: inputValue, validMarket: true }
-    },
-    [marketsData, selectedMarket],
-  )
+  const knownMarkets = (marketsData?.data || []).map((m) => m.code)
 
-  const loadOptions = useCallback(
-    (inputValue: string, callback: (options: AssetOption[]) => void): void => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current)
-      }
-
-      const { market, keyword, validMarket } = parseSearchInput(inputValue)
-
-      if (!validMarket || keyword.length < 2) {
-        callback([])
-        return
-      }
-
-      debounceRef.current = setTimeout(async () => {
-        try {
-          const response = await fetch(
-            `/api/assets/search?keyword=${encodeURIComponent(keyword)}&market=${market}`,
-          )
-          if (!response.ok) {
-            callback([])
-            return
-          }
-
-          const data = await response.json()
-          const options: AssetOption[] = (data.data || [])
-            .filter((result: AssetSearchResult) => {
-              const identifier = result.assetId || result.symbol
-              return !existingAssetIds.includes(identifier)
-            })
-            .map((result: AssetSearchResult) => ({
-              value: result.assetId || result.symbol,
-              label:
-                market === "LOCAL"
-                  ? `${result.symbol} - ${result.name} (${result.market})`
-                  : `${result.symbol} - ${result.name}`,
-              assetId: result.assetId || result.symbol,
-              assetCode: result.symbol,
-              assetName: result.name,
-            }))
-          callback(options)
-        } catch {
-          callback([])
-        }
-      }, 300)
-    },
-    [existingAssetIds, parseSearchInput],
+  // Filter out assets already in the model
+  const filterExisting = useCallback(
+    (results: AssetOption[]): AssetOption[] =>
+      results.filter((r) => {
+        const identifier = r.assetId || r.value
+        return !existingAssetIds.includes(identifier)
+      }),
+    [existingAssetIds],
   )
 
   const handleAdd = async (): Promise<void> => {
@@ -118,7 +52,7 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
     try {
       // Resolve the asset to get a real UUID from svc-data
       // This also creates the asset if it doesn't exist and fetches its price
-      const resolvedAsset = await resolveAsset(selectedAsset.assetCode)
+      const resolvedAsset = await resolveAsset(selectedAsset.symbol)
 
       if (!resolvedAsset?.id) {
         setError(
@@ -243,51 +177,17 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
                 ))}
               </select>
               <div className="flex-1">
-                <AsyncSelect
+                <AssetSearch
                   key={`${selectedMarket}-${existingAssetIds.join(",")}`}
-                  loadOptions={loadOptions}
+                  market={selectedMarket}
+                  knownMarkets={knownMarkets}
+                  value={selectedAsset}
+                  onSelect={setSelectedAsset}
+                  filterResults={filterExisting}
                   placeholder={t(
                     "assets.lookup.searchPlaceholder",
                     "Type symbol, name, or MARKET:SYMBOL...",
                   )}
-                  noOptionsMessage={({ inputValue }) => {
-                    const parsed = parseSearchInput(inputValue)
-                    if (!parsed.validMarket) {
-                      return t(
-                        "assets.lookup.unknownMarket",
-                        `Market "{{market}}" is not supported`,
-                        { market: parsed.market },
-                      )
-                    }
-                    return parsed.keyword.length < 2
-                      ? t(
-                          "trn.asset.search.minChars",
-                          "Type at least 2 characters",
-                        )
-                      : t("trn.asset.search.noResults", "No assets found")
-                  }}
-                  loadingMessage={() =>
-                    t("trn.asset.search.loading", "Searching...")
-                  }
-                  onChange={(selected) =>
-                    setSelectedAsset(selected as AssetOption | null)
-                  }
-                  value={selectedAsset}
-                  isClearable
-                  menuPortalTarget={
-                    typeof document !== "undefined" ? document.body : null
-                  }
-                  menuPosition="fixed"
-                  styles={{
-                    control: (base) => ({
-                      ...base,
-                      minHeight: "38px",
-                    }),
-                    menuPortal: (base) => ({
-                      ...base,
-                      zIndex: 9999,
-                    }),
-                  }}
                 />
               </div>
             </div>

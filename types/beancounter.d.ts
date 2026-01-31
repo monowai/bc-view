@@ -459,6 +459,19 @@ export interface AssetResponse {
   data: Record<string, Asset>
 }
 
+// Shared option type for asset search dropdowns (react-select)
+export interface AssetOption {
+  value: string
+  label: string
+  symbol: string
+  name?: string
+  market?: string
+  assetId?: string
+  currency?: string
+  type?: string
+  region?: string
+}
+
 // Asset search result from backend search
 export interface AssetSearchResult {
   symbol: string

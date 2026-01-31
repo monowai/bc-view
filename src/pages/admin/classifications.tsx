@@ -1,12 +1,13 @@
-import React, { useState, useCallback, useRef, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useTranslation } from "next-i18next"
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { rootLoader } from "@components/ui/PageLoader"
-import { AssetSearchResult } from "types/beancounter"
+import { AssetOption } from "types/beancounter"
 import { useIsAdmin } from "@hooks/useIsAdmin"
 import Link from "next/link"
+import AssetSearch from "@components/features/assets/AssetSearch"
 
 interface SectorInfo {
   code: string
@@ -27,7 +28,13 @@ interface ExposureItem {
   weight: number
 }
 
-interface SearchResult extends AssetSearchResult {
+interface SelectedAsset {
+  symbol: string
+  name: string
+  market?: string
+  region?: string
+  type?: string
+  assetId?: string
   currentSector?: string
 }
 
@@ -35,10 +42,7 @@ export default withPageAuthRequired(
   function Classifications(): React.ReactElement {
     const { t, ready } = useTranslation("common")
     const { isAdmin, isLoading: isAdminLoading } = useIsAdmin()
-    const [searchKeyword, setSearchKeyword] = useState("")
-    const [searchResults, setSearchResults] = useState<SearchResult[]>([])
-    const [isSearching, setIsSearching] = useState(false)
-    const [selectedAsset, setSelectedAsset] = useState<SearchResult | null>(
+    const [selectedAsset, setSelectedAsset] = useState<SelectedAsset | null>(
       null,
     )
     const [currentAssetSector, setCurrentAssetSector] = useState<string | null>(
@@ -51,7 +55,6 @@ export default withPageAuthRequired(
       type: "success" | "error"
       text: string
     } | null>(null)
-    const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
     const [dbSectors, setDbSectors] = useState<SectorInfo[]>([])
     const [isLoadingSectors, setIsLoadingSectors] = useState(true)
     const [sectorToDelete, setSectorToDelete] = useState<SectorInfo | null>(
@@ -93,135 +96,41 @@ export default withPageAuthRequired(
       return grouped
     }, [dbSectors])
 
-    // Cleanup timeout on unmount
-    useEffect(() => {
-      return () => {
-        if (searchTimeoutRef.current) {
-          clearTimeout(searchTimeoutRef.current)
-        }
-      }
-    }, [])
-
-    // Debounced search function
-    const performSearch = useCallback((keyword: string): void => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current)
-      }
-
-      if (keyword.length < 2) {
-        setSearchResults([])
+    const handleSelectAsset = async (
+      option: AssetOption | null,
+    ): Promise<void> => {
+      if (!option) {
+        setSelectedAsset(null)
         return
       }
 
-      searchTimeoutRef.current = setTimeout(async () => {
-        setIsSearching(true)
-        try {
-          const response = await fetch(
-            `/api/assets/search?keyword=${encodeURIComponent(keyword)}`,
-          )
-          if (response.ok) {
-            const data = await response.json()
-            const results: SearchResult[] = data.data || []
-
-            // Fetch classifications for assets that exist in BC
-            const assetsWithIds = results.filter((r) => r.assetId)
-            if (assetsWithIds.length > 0) {
-              const classificationPromises = assetsWithIds.map(
-                async (asset) => {
-                  try {
-                    // Fetch both classifications and exposures
-                    const [classResponse, exposuresResponse] =
-                      await Promise.all([
-                        fetch(`/api/classifications/${asset.assetId}`),
-                        fetch(
-                          `/api/classifications/${asset.assetId}/exposures`,
-                        ),
-                      ])
-
-                    let sector: string | undefined
-
-                    // Check direct classification first
-                    if (classResponse.ok) {
-                      const classData = await classResponse.json()
-                      if (classData.data?.sector) {
-                        sector = classData.data.sector
-                      }
-                    }
-
-                    // If no direct classification, check exposures (ETFs)
-                    if (!sector && exposuresResponse.ok) {
-                      const exposuresData: { data: ExposureItem[] } =
-                        await exposuresResponse.json()
-                      if (exposuresData.data && exposuresData.data.length > 0) {
-                        const primaryExposure = exposuresData.data.reduce(
-                          (max, exp) => (exp.weight > max.weight ? exp : max),
-                        )
-                        sector = primaryExposure.item.name
-                      }
-                    }
-
-                    return { assetId: asset.assetId, sector }
-                  } catch {
-                    // Ignore classification fetch errors
-                    return { assetId: asset.assetId, sector: undefined }
-                  }
-                },
-              )
-
-              const classifications = await Promise.all(classificationPromises)
-              const classMap = new Map(
-                classifications.map((c) => [c.assetId, c.sector]),
-              )
-
-              // Merge classifications into results
-              const enrichedResults = results.map((r) => ({
-                ...r,
-                currentSector: r.assetId ? classMap.get(r.assetId) : undefined,
-              }))
-              setSearchResults(enrichedResults)
-            } else {
-              setSearchResults(results)
-            }
-          }
-        } catch (error) {
-          console.error("Search failed:", error)
-        } finally {
-          setIsSearching(false)
-        }
-      }, 300)
-    }, [])
-
-    const handleSearchChange = (
-      e: React.ChangeEvent<HTMLInputElement>,
-    ): void => {
-      const value = e.target.value
-      setSearchKeyword(value)
-      performSearch(value)
-    }
-
-    const handleSelectAsset = async (result: SearchResult): Promise<void> => {
-      setSearchKeyword("")
-      setSearchResults([])
       setSelectedSector("")
       setCustomSector("")
       setMessage(null)
       setCurrentAssetSector(null)
 
-      let assetId = result.assetId
-      let updatedResult = result
+      let assetId = option.assetId
+      const assetData: SelectedAsset = {
+        symbol: option.symbol,
+        name: option.name || "",
+        market: option.market,
+        region: option.region,
+        type: option.type,
+        assetId: option.assetId,
+      }
 
       // If no assetId, resolve (find/create) the asset in bc-data first
       if (!assetId) {
         try {
-          const market = result.market || result.region || "US"
+          const market = option.market || option.region || "US"
           const resolveResponse = await fetch(
-            `/api/assets/resolve?market=${encodeURIComponent(market)}&code=${encodeURIComponent(result.symbol)}`,
+            `/api/assets/resolve?market=${encodeURIComponent(market)}&code=${encodeURIComponent(option.symbol)}`,
           )
           if (resolveResponse.ok) {
             const resolveData = await resolveResponse.json()
             if (resolveData.data?.id) {
               assetId = resolveData.data.id
-              updatedResult = { ...result, assetId }
+              assetData.assetId = assetId
             }
           }
         } catch (error) {
@@ -229,7 +138,7 @@ export default withPageAuthRequired(
         }
       }
 
-      setSelectedAsset(updatedResult)
+      setSelectedAsset(assetData)
 
       // Fetch current classification and exposures
       if (assetId) {
@@ -483,70 +392,13 @@ export default withPageAuthRequired(
             {t("classifications.search", "Search Assets")}
           </h2>
 
-          <div className="relative">
-            <input
-              type="text"
-              value={searchKeyword}
-              onChange={handleSearchChange}
-              placeholder={t(
-                "classifications.search.placeholder",
-                "Search by symbol or name (e.g., VOO, AAPL)...",
-              )}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-
-            {isSearching && (
-              <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                <i className="fas fa-spinner fa-spin text-gray-400"></i>
-              </div>
+          <AssetSearch
+            onSelect={handleSelectAsset}
+            placeholder={t(
+              "classifications.search.placeholder",
+              "Search by symbol or name (e.g., VOO, AAPL)...",
             )}
-
-            {/* Search Results Dropdown */}
-            {searchResults.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto">
-                {searchResults.map((result, index) => (
-                  <div
-                    key={`${result.symbol}-${result.market}-${index}`}
-                    className="px-4 py-2 hover:bg-gray-50 cursor-pointer"
-                    onClick={() => handleSelectAsset(result)}
-                  >
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <span className="font-medium text-gray-900">
-                          {result.symbol}
-                        </span>
-                        <span className="text-gray-500 ml-2">
-                          {result.name}
-                        </span>
-                      </div>
-                      <div className="text-sm text-gray-400">
-                        {result.market || result.region}
-                        {result.type && (
-                          <span className="ml-2">({result.type})</span>
-                        )}
-                      </div>
-                    </div>
-                    {result.currentSector && (
-                      <div className="mt-1">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                          {result.currentSector}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {searchKeyword.length > 0 && searchKeyword.length < 2 && (
-            <p className="text-sm text-gray-500 mt-2">
-              {t(
-                "classifications.search.minChars",
-                "Type at least 2 characters to search",
-              )}
-            </p>
-          )}
+          />
         </div>
 
         {/* Selected Asset Section */}

@@ -33,9 +33,8 @@ import TradeTypeController from "@components/features/transactions/TradeTypeCont
 import SettlementAccountSelect, {
   SettlementAccountOption,
 } from "@components/features/transactions/SettlementAccountSelect"
-import AssetSearchInput, {
-  AssetOption,
-} from "@components/features/transactions/AssetSearchInput"
+import AssetSearch from "@components/features/assets/AssetSearch"
+import { AssetOption } from "types/beancounter"
 import {
   onSubmit,
   useEscapeHandler,
@@ -59,6 +58,8 @@ const TradeTypeValues = [
   "SPLIT",
   "EXPENSE",
 ] as const
+
+const excludedMarkets = ["CASH", "AMEX", "NYSE", "NASDAQ"]
 
 const defaultValues = {
   type: { value: "BUY", label: "BUY" },
@@ -305,6 +306,21 @@ const TradeInputForm: React.FC<{
     }
   }, [modalOpen, initialValues?.held])
 
+  const { data: marketsData, isLoading: marketsLoading } = useSwr(
+    marketsKey,
+    simpleFetcher(marketsKey),
+  )
+
+  // Derive default market from portfolio currency (e.g., NZD → NZX, AUD → ASX)
+  const portfolioDefaultMarket = useMemo(() => {
+    const currencyCode = portfolio.currency.code
+    const match = marketsData?.data?.find(
+      (m: { code: string; currency: { code: string } }) =>
+        !excludedMarkets.includes(m.code) && m.currency.code === currencyCode,
+    )
+    return match?.code || "US"
+  }, [marketsData, portfolio.currency.code])
+
   // Reset form with initial values when modal opens
   useEffect(() => {
     if (modalOpen && isEditMode && transaction) {
@@ -347,8 +363,15 @@ const TradeInputForm: React.FC<{
       setTargetWeight("")
       setTradeValue("")
     } else if (modalOpen && !initialValues && !isEditMode) {
-      // Create mode: reset to defaults
-      reset(defaultValues)
+      // Create mode: reset to defaults, using portfolio-appropriate market
+      reset({
+        ...defaultValues,
+        market: portfolioDefaultMarket,
+        tradeCurrency: {
+          value: portfolio.currency.code,
+          label: portfolio.currency.code,
+        },
+      })
       setTargetWeight("")
       setTradeValue("")
     }
@@ -360,6 +383,8 @@ const TradeInputForm: React.FC<{
     transaction,
     editAssetCode,
     editMarketCode,
+    portfolioDefaultMarket,
+    portfolio.currency.code,
   ])
 
   // Focus date input when modal opens
@@ -371,10 +396,6 @@ const TradeInputForm: React.FC<{
     }
   }, [modalOpen])
 
-  const { data: marketsData, isLoading: marketsLoading } = useSwr(
-    marketsKey,
-    simpleFetcher(marketsKey),
-  )
   const { data: tradeAccountsData, isLoading: tradeAccountsLoading } = useSwr(
     tradeAccountsKey,
     simpleFetcher(tradeAccountsKey),
@@ -751,7 +772,6 @@ const TradeInputForm: React.FC<{
     return rootLoader(t("loading"))
 
   // Get market options
-  const excludedMarkets = ["CASH", "AMEX", "NYSE", "NASDAQ"]
   const marketOptions =
     marketsData?.data
       ?.filter(
@@ -761,6 +781,7 @@ const TradeInputForm: React.FC<{
         value: market.code,
         label: market.name || market.code,
       })) || []
+
 
   const hasCashImpact = !["ADD", "REDUCE", "SPLIT"].includes(type?.value)
   const isExpenseType = type?.value === "EXPENSE"
@@ -1196,12 +1217,12 @@ const TradeInputForm: React.FC<{
                         ? `${t("trn.asset.code")} ...`
                         : t("trn.asset.code")}
                     </label>
-                    <AssetSearchInput
+                    <AssetSearch
                       name="asset"
                       control={control}
                       market={watch("market")}
                       defaultValue={initialValues?.asset}
-                      onAssetSelect={handleAssetSelect}
+                      onSelect={handleAssetSelect}
                     />
                   </div>
                 </div>

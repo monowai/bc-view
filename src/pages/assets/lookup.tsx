@@ -1,29 +1,15 @@
-import React, { useState, useCallback, useRef } from "react"
+import React, { useState } from "react"
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useRouter } from "next/router"
 import { useTranslation } from "next-i18next"
-import AsyncSelect from "react-select/async"
 import useSWR from "swr"
 import { marketsKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { rootLoader } from "@components/ui/PageLoader"
-import {
-  AssetSearchResult,
-  Market,
-  Portfolio,
-  Position,
-} from "types/beancounter"
+import { AssetOption, Market, Portfolio, Position } from "types/beancounter"
 import { ModelsContainingAssetResponse } from "types/rebalance"
-
-interface AssetOption {
-  value: string
-  label: string
-  market?: string
-  assetId?: string
-  currency?: string
-  assetName?: string
-}
+import AssetSearch from "@components/features/assets/AssetSearch"
 
 interface AssetPosition {
   portfolio: Portfolio
@@ -34,7 +20,6 @@ interface AssetPosition {
 function AssetLookupPage(): React.ReactElement {
   const { t, ready } = useTranslation("common")
   const router = useRouter()
-  const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
   const [selectedAsset, setSelectedAsset] = useState<AssetOption | null>(null)
   const [selectedMarket, setSelectedMarket] = useState<string>("LOCAL")
@@ -68,75 +53,8 @@ function AssetLookupPage(): React.ReactElement {
 
   const models = modelsData?.data || []
 
-  // Parse "MARKET:KEYWORD" syntax from search input
-  const parseSearchInput = useCallback(
-    (
-      inputValue: string,
-    ): { market: string; keyword: string; validMarket: boolean } => {
-      const colonIndex = inputValue.indexOf(":")
-      if (colonIndex > 0) {
-        const prefix = inputValue.substring(0, colonIndex).toUpperCase()
-        const keyword = inputValue.substring(colonIndex + 1).trim()
-        const knownCodes = (marketsData?.data || []).map((m) => m.code)
-        return {
-          market: prefix,
-          keyword,
-          validMarket: knownCodes.includes(prefix),
-        }
-      }
-      return { market: selectedMarket, keyword: inputValue, validMarket: true }
-    },
-    [marketsData, selectedMarket],
-  )
+  const knownMarkets = (marketsData?.data || []).map((m) => m.code)
 
-  // Load asset search options
-  const loadOptions = useCallback(
-    (inputValue: string, callback: (options: AssetOption[]) => void): void => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current)
-      }
-
-      const { market, keyword, validMarket } = parseSearchInput(inputValue)
-
-      if (!validMarket || keyword.length < 2) {
-        callback([])
-        return
-      }
-
-      debounceRef.current = setTimeout(async () => {
-        try {
-          const response = await fetch(
-            `/api/assets/search?keyword=${encodeURIComponent(keyword)}&market=${market}`,
-          )
-          if (!response.ok) {
-            callback([])
-            return
-          }
-
-          const data = await response.json()
-          const options: AssetOption[] = (data.data || []).map(
-            (result: AssetSearchResult) => ({
-              value: result.assetId || result.symbol,
-              label:
-                market === "LOCAL"
-                  ? `${result.symbol} - ${result.name} (${result.market})`
-                  : `${result.symbol} - ${result.name}`,
-              market: result.market,
-              assetId: result.assetId,
-              currency: result.currency,
-              assetName: result.name,
-            }),
-          )
-          callback(options)
-        } catch {
-          callback([])
-        }
-      }, 300)
-    },
-    [parseSearchInput],
-  )
-
-  // Handle asset selection
   const handleAssetSelect = (option: AssetOption | null): void => {
     setSelectedAsset(option)
   }
@@ -210,43 +128,16 @@ function AssetLookupPage(): React.ReactElement {
             ))}
           </select>
           <div className="flex-1">
-            <AsyncSelect
+            <AssetSearch
               key={selectedMarket}
-              cacheOptions
-              loadOptions={loadOptions}
+              market={selectedMarket}
+              knownMarkets={knownMarkets}
+              value={selectedAsset}
+              onSelect={handleAssetSelect}
               placeholder={t(
                 "assets.lookup.searchPlaceholder",
                 "Type symbol, name, or MARKET:SYMBOL...",
               )}
-              noOptionsMessage={({ inputValue }) => {
-                const parsed = parseSearchInput(inputValue)
-                if (!parsed.validMarket) {
-                  return t(
-                    "assets.lookup.unknownMarket",
-                    `Market "{{market}}" is not supported`,
-                    { market: parsed.market },
-                  )
-                }
-                return parsed.keyword.length < 2
-                  ? t("trn.asset.search.minChars", "Type at least 2 characters")
-                  : t("trn.asset.search.noResults", "No assets found")
-              }}
-              loadingMessage={() =>
-                t("trn.asset.search.loading", "Searching...")
-              }
-              onChange={handleAssetSelect}
-              value={selectedAsset}
-              isClearable
-              styles={{
-                control: (base) => ({
-                  ...base,
-                  minHeight: "42px",
-                }),
-                menuPortal: (base) => ({
-                  ...base,
-                  zIndex: 9999,
-                }),
-              }}
             />
           </div>
         </div>
