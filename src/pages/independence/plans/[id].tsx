@@ -40,6 +40,7 @@ import {
   WhatIfAdjustments,
   ScenarioOverrides,
   TabId,
+  TABS,
   DEFAULT_NON_SPENDABLE_CATEGORIES,
   DEFAULT_WHAT_IF_ADJUSTMENTS,
   hasScenarioChanges,
@@ -675,10 +676,15 @@ function PlanView(): React.ReactElement {
 
   // Calculate pre-retirement contributions (for passing to backend)
   // Uses scenarioOverrides.workingIncomeMonthly if user adjusted salary in What-If
+  // Net income = salary + bonus - taxes (matches ContributionsStep calculation)
   const effectiveWorkingIncome =
     scenarioOverrides.workingIncomeMonthly ?? plan?.workingIncomeMonthly ?? 0
+  const effectiveNetIncome =
+    effectiveWorkingIncome +
+    (plan?.bonusMonthly ?? 0) -
+    (plan?.taxesMonthly ?? 0)
   const monthlySurplus =
-    effectiveWorkingIncome - (plan?.workingExpensesMonthly || 0)
+    effectiveNetIncome - (plan?.workingExpensesMonthly || 0)
   const monthlyInvestment =
     monthlySurplus > 0
       ? monthlySurplus * (plan?.investmentAllocationPercent || 0.8)
@@ -1124,9 +1130,19 @@ function PlanView(): React.ReactElement {
             hasAssets={hasAssets}
           />
 
+          {/* Tab Byline */}
+          {(() => {
+            const activeTabConfig = TABS.find((t) => t.id === activeTab)
+            return activeTabConfig?.byline ? (
+              <p className="text-sm text-gray-500 mb-4">
+                {activeTabConfig.byline}
+              </p>
+            ) : null
+          })()}
+
           {/* Global What-If toolbar - available on all tabs */}
           <AnalysisToolbar
-            quickScenarios={activeTab === "fire" ? [] : quickScenarios}
+            quickScenarios={quickScenarios}
             selectedScenarioIds={selectedScenarioIds}
             hasUnsavedChanges={
               hasScenarioChanges(whatIfAdjustments) ||
@@ -1320,14 +1336,6 @@ function PlanView(): React.ReactElement {
                           {(effectiveHousingReturn * 100).toFixed(0)}%
                         </span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">
-                          Blended Return Rate
-                        </span>
-                        <span className="font-medium text-blue-600">
-                          {(blendedReturnRate * 100).toFixed(1)}%
-                        </span>
-                      </div>
                       {effectiveTarget && effectiveTarget > 0 && (
                         <div className="flex justify-between">
                           <InfoTooltip text={t("retire.targetBalance.tooltip")}>
@@ -1494,13 +1502,122 @@ function PlanView(): React.ReactElement {
                       </div>
                     </div>
                   )}
+                  {/* Income Reducing Your FI Target */}
+                  {adjustedProjection?.fiMetrics &&
+                    adjustedProjection.fiMetrics.totalMonthlyIncome > 0 && (
+                      <div className="col-span-1 lg:col-span-2 bg-white rounded-xl shadow-md p-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                          <i className="fas fa-coins text-green-500 mr-2"></i>
+                          Income Reducing Your FI Target
+                        </h3>
+                        <p className="text-sm text-gray-600 mb-4">
+                          Your FI Number is based on <strong>net</strong>{" "}
+                          expenses - what you need from investments after
+                          accounting for other income sources.
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="p-4 bg-gray-50 rounded-lg">
+                            <div className="text-sm text-gray-500 mb-1">
+                              Monthly Income Sources
+                            </div>
+                            <div className="text-xl font-bold text-green-600">
+                              {hideValues ? (
+                                HIDDEN_VALUE
+                              ) : (
+                                <>
+                                  {effectiveCurrency}
+                                  {Math.round(
+                                    adjustedProjection.fiMetrics
+                                      .totalMonthlyIncome,
+                                  ).toLocaleString()}
+                                  /mo
+                                </>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              Pension + Benefits + Rental + Other
+                            </div>
+                          </div>
+                          <div className="p-4 bg-orange-50 rounded-lg">
+                            <div className="text-sm text-gray-500 mb-1">
+                              Net Monthly Need from Investments
+                            </div>
+                            <div className="text-xl font-bold text-orange-600">
+                              {hideValues ? (
+                                HIDDEN_VALUE
+                              ) : (
+                                <>
+                                  {effectiveCurrency}
+                                  {Math.round(
+                                    adjustedProjection.fiMetrics
+                                      .netMonthlyExpenses,
+                                  ).toLocaleString()}
+                                  /mo
+                                </>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              This determines your FI Number
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                 </div>
               )
             })()}
 
           {/* Assets Tab */}
           {activeTab === "assets" && (
-            <div className="bg-white rounded-xl shadow-md p-6">
+            <div className="space-y-6">
+              {/* FI Metrics - moved from FIRE tab */}
+              {fireDataReady && adjustedProjection?.fiMetrics && (
+                <FiMetrics
+                  monthlyExpenses={
+                    adjustedProjection.fiMetrics.netMonthlyExpenses
+                  }
+                  liquidAssets={adjustedProjection.liquidAssets}
+                  currency={effectiveCurrency}
+                  workingIncomeMonthly={
+                    adjustedProjection.planInputs?.workingIncomeMonthly ?? 0
+                  }
+                  monthlyInvestment={
+                    adjustedProjection.planInputs?.monthlyContribution ?? 0
+                  }
+                  expectedReturnRate={blendedReturnRate}
+                  currentAge={currentAge}
+                  retirementAge={retirementAge}
+                  backendFiNumber={adjustedProjection.fiMetrics.fiNumber}
+                  backendFiProgress={adjustedProjection.fiMetrics.fiProgress}
+                  backendNetMonthlyExpenses={
+                    adjustedProjection.fiMetrics.netMonthlyExpenses
+                  }
+                  backendCoastFiNumber={
+                    adjustedProjection.fiMetrics.coastFiNumber
+                  }
+                  backendCoastFiProgress={
+                    adjustedProjection.fiMetrics.coastFiProgress
+                  }
+                  backendIsCoastFire={adjustedProjection.fiMetrics.isCoastFire}
+                  backendRealYearsToFi={
+                    adjustedProjection.fiMetrics.realYearsToFi
+                  }
+                  backendRealReturnBelowSwr={
+                    adjustedProjection.fiMetrics.realReturnBelowSwr
+                  }
+                  inflationRate={effectivePlanValues?.inflationRate ?? 0.025}
+                  equityReturnRate={
+                    effectivePlanValues?.equityReturnRate ?? 0.08
+                  }
+                  cashReturnRate={effectivePlanValues?.cashReturnRate ?? 0.03}
+                  equityAllocation={
+                    effectivePlanValues?.equityAllocation ?? 0.8
+                  }
+                  cashAllocation={effectivePlanValues?.cashAllocation ?? 0.2}
+                />
+              )}
+
+              <div className="bg-white rounded-xl shadow-md p-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold text-gray-900">
                   {t("retire.assets.title")}
@@ -1718,16 +1835,22 @@ function PlanView(): React.ReactElement {
                       </span>
                     </div>
                     {totalAssets > liquidAssets && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">
-                          {t("retire.assets.nonSpendable")}
-                        </span>
-                        <span className="font-medium text-gray-400">
-                          {hideValues
-                            ? HIDDEN_VALUE
-                            : `${effectiveCurrency}${Math.round((totalAssets - liquidAssets) * effectiveFxRate).toLocaleString()}`}
-                        </span>
-                      </div>
+                      <>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-500">
+                            {t("retire.assets.nonSpendable")}
+                          </span>
+                          <span className="font-medium text-gray-400">
+                            {hideValues
+                              ? HIDDEN_VALUE
+                              : `${effectiveCurrency}${Math.round((totalAssets - liquidAssets) * effectiveFxRate).toLocaleString()}`}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-400">
+                          FI uses spendable assets; illiquid assets add
+                          long-term security.
+                        </p>
+                      </>
                     )}
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">Blended Return Rate</span>
@@ -1783,246 +1906,9 @@ function PlanView(): React.ReactElement {
                   )}
                 </div>
               )}
+              </div>
             </div>
           )}
-
-          {/* FIRE Tab - Only render when FIRE data is ready */}
-          {activeTab === "fire" &&
-            (() => {
-              // Don't render FIRE tab content until data is ready
-              if (!fireDataReady || !adjustedProjection?.fiMetrics) {
-                return (
-                  <div className="bg-white rounded-xl shadow-md p-6">
-                    <div className="flex items-center justify-center gap-2 text-gray-500">
-                      <i className="fas fa-spinner fa-spin"></i>
-                      <span>Loading FIRE metrics...</span>
-                    </div>
-                  </div>
-                )
-              }
-
-              // All values from backend (already FX converted when displayCurrency differs)
-              const backendFiMetrics = adjustedProjection.fiMetrics
-              const planInputs = adjustedProjection.planInputs
-
-              return (
-                <div className="space-y-6">
-                  {/* Main FIRE Metrics - uses backend values (already FX converted) */}
-                  <FiMetrics
-                    monthlyExpenses={backendFiMetrics.netMonthlyExpenses}
-                    liquidAssets={adjustedProjection.liquidAssets}
-                    currency={effectiveCurrency}
-                    workingIncomeMonthly={planInputs?.workingIncomeMonthly ?? 0}
-                    monthlyInvestment={planInputs?.monthlyContribution ?? 0}
-                    expectedReturnRate={blendedReturnRate}
-                    currentAge={currentAge}
-                    retirementAge={retirementAge}
-                    backendFiNumber={backendFiMetrics.fiNumber}
-                    backendFiProgress={backendFiMetrics.fiProgress}
-                    backendNetMonthlyExpenses={
-                      backendFiMetrics.netMonthlyExpenses
-                    }
-                    backendCoastFiNumber={backendFiMetrics.coastFiNumber}
-                    backendCoastFiProgress={backendFiMetrics.coastFiProgress}
-                    backendIsCoastFire={backendFiMetrics.isCoastFire}
-                    backendRealYearsToFi={backendFiMetrics.realYearsToFi}
-                    backendRealReturnBelowSwr={
-                      backendFiMetrics.realReturnBelowSwr
-                    }
-                    inflationRate={effectivePlanValues?.inflationRate ?? 0.025}
-                    equityReturnRate={
-                      effectivePlanValues?.equityReturnRate ?? 0.08
-                    }
-                    cashReturnRate={effectivePlanValues?.cashReturnRate ?? 0.03}
-                    equityAllocation={
-                      effectivePlanValues?.equityAllocation ?? 0.8
-                    }
-                    cashAllocation={effectivePlanValues?.cashAllocation ?? 0.2}
-                  />
-
-                  {/* Income from Assets explanation */}
-                  {backendFiMetrics.totalMonthlyIncome > 0 && (
-                    <div className="bg-white rounded-xl shadow-md p-6">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                        <i className="fas fa-coins text-green-500 mr-2"></i>
-                        Income Reducing Your FI Target
-                      </h3>
-                      <p className="text-sm text-gray-600 mb-4">
-                        Your FI Number is based on <strong>net</strong> expenses
-                        - what you need from investments after accounting for
-                        other income sources.
-                      </p>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="p-4 bg-gray-50 rounded-lg">
-                          <div className="text-sm text-gray-500 mb-1">
-                            Monthly Income Sources
-                          </div>
-                          <div className="text-xl font-bold text-green-600">
-                            {hideValues ? (
-                              HIDDEN_VALUE
-                            ) : (
-                              <>
-                                {effectiveCurrency}
-                                {Math.round(
-                                  backendFiMetrics.totalMonthlyIncome,
-                                ).toLocaleString()}
-                                /mo
-                              </>
-                            )}
-                          </div>
-                          <div className="text-xs text-gray-500 mt-1">
-                            Pension + Benefits + Rental + Other
-                          </div>
-                        </div>
-                        <div className="p-4 bg-orange-50 rounded-lg">
-                          <div className="text-sm text-gray-500 mb-1">
-                            Net Monthly Need from Investments
-                          </div>
-                          <div className="text-xl font-bold text-orange-600">
-                            {hideValues ? (
-                              HIDDEN_VALUE
-                            ) : (
-                              <>
-                                {effectiveCurrency}
-                                {Math.round(
-                                  backendFiMetrics.netMonthlyExpenses,
-                                ).toLocaleString()}
-                                /mo
-                              </>
-                            )}
-                          </div>
-                          <div className="text-xs text-gray-500 mt-1">
-                            This determines your FI Number
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Asset Breakdown - uses backend values for consistency */}
-                  <div className="bg-white rounded-xl shadow-md p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                      <i className="fas fa-chart-pie text-blue-500 mr-2"></i>
-                      Asset Breakdown for FI
-                    </h3>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {/* Liquid Assets */}
-                      <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                        <div className="text-sm text-green-700 font-medium mb-1">
-                          Spendable Assets
-                        </div>
-                        {/* Current Value */}
-                        <div className="mb-2">
-                          <div className="text-xs text-green-600">Current</div>
-                          <div className="text-lg font-bold text-green-800">
-                            {hideValues ? (
-                              HIDDEN_VALUE
-                            ) : (
-                              <>
-                                {effectiveCurrency}
-                                {Math.round(
-                                  adjustedProjection.liquidAssets,
-                                ).toLocaleString()}
-                              </>
-                            )}
-                          </div>
-                        </div>
-                        {/* Projected at Independence */}
-                        {adjustedProjection.preRetirementAccumulation &&
-                          currentAge !== undefined &&
-                          retirementAge &&
-                          retirementAge > currentAge && (
-                            <div className="pt-2 border-t border-green-200">
-                              <div className="text-xs text-green-600">
-                                At Independence (age {retirementAge})
-                              </div>
-                              <div className="text-2xl font-bold text-green-800">
-                                {hideValues ? (
-                                  HIDDEN_VALUE
-                                ) : (
-                                  <>
-                                    {effectiveCurrency}
-                                    {Math.round(
-                                      adjustedProjection
-                                        .preRetirementAccumulation
-                                        .liquidAssetsAtRetirement -
-                                        excludedPensionFV,
-                                    ).toLocaleString()}
-                                  </>
-                                )}
-                              </div>
-                              <div className="text-xs text-green-500 mt-1">
-                                Includes contributions & policy payouts
-                              </div>
-                            </div>
-                          )}
-                        <div className="text-xs text-green-600 mt-2">
-                          Used for FI Progress calculation
-                        </div>
-                      </div>
-
-                      {/* Illiquid Assets */}
-                      <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
-                        <div className="text-sm text-amber-700 font-medium mb-1">
-                          Illiquid (Property, etc.)
-                        </div>
-                        <div className="text-2xl font-bold text-amber-800">
-                          {hideValues ? (
-                            HIDDEN_VALUE
-                          ) : (
-                            <>
-                              {effectiveCurrency}
-                              {Math.round(
-                                adjustedProjection.totalAssets -
-                                  adjustedProjection.liquidAssets,
-                              ).toLocaleString()}
-                            </>
-                          )}
-                        </div>
-                        <div className="text-xs text-amber-600 mt-1">
-                          Not included in FI - hard to liquidate
-                        </div>
-                      </div>
-
-                      {/* Total Net Worth */}
-                      <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                        <div className="text-sm text-blue-700 font-medium mb-1">
-                          Total Net Worth
-                        </div>
-                        <div className="text-2xl font-bold text-blue-800">
-                          {hideValues ? (
-                            HIDDEN_VALUE
-                          ) : (
-                            <>
-                              {effectiveCurrency}
-                              {Math.round(
-                                adjustedProjection.totalAssets,
-                              ).toLocaleString()}
-                            </>
-                          )}
-                        </div>
-                        <div className="text-xs text-blue-600 mt-1">
-                          All assets combined
-                        </div>
-                      </div>
-                    </div>
-
-                    {adjustedProjection.totalAssets >
-                      adjustedProjection.liquidAssets && (
-                      <div className="mt-4 p-3 bg-gray-50 rounded-lg text-sm text-gray-600">
-                        <i className="fas fa-info-circle text-gray-400 mr-2"></i>
-                        <strong>Why separate liquid vs illiquid?</strong> FI
-                        calculations use liquid assets because you can&apos;t
-                        easily spend property. However, illiquid assets
-                        contribute to long-term security and could be sold if
-                        needed.
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )
-            })()}
 
           {/* Timeline Tab */}
           {activeTab === "timeline" && (
@@ -2472,7 +2358,7 @@ function PlanView(): React.ReactElement {
         plan={plan}
       />
 
-      {/* What-If Analysis Modal - context-aware: "fire" shows income/expenses, "projection" shows all scenarios */}
+      {/* What-If Analysis Modal */}
       <WhatIfModal
         isOpen={showWhatIfModal}
         onClose={() => setShowWhatIfModal(false)}

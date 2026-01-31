@@ -40,21 +40,45 @@ export interface ScenarioOverrides {
 }
 
 // Tab identifiers for plan view
-export type TabId = "details" | "assets" | "fire" | "timeline" | "simulation"
+export type TabId = "details" | "assets" | "timeline" | "simulation"
 
 // Tab configuration
 export interface TabConfig {
   id: TabId
   label: string
   icon: string
+  byline: string
 }
 
 export const TABS: TabConfig[] = [
-  { id: "details", label: "Details", icon: "fa-clipboard-list" },
-  { id: "assets", label: "Assets", icon: "fa-wallet" },
-  { id: "fire", label: "FIRE", icon: "fa-fire" },
-  { id: "timeline", label: "Timeline", icon: "fa-chart-line" },
-  { id: "simulation", label: "Simulation", icon: "fa-dice" },
+  {
+    id: "details",
+    label: "My Plan",
+    icon: "fa-clipboard-list",
+    byline:
+      "Your income, expenses, and assumptions — the inputs that drive everything.",
+  },
+  {
+    id: "assets",
+    label: "My Assets",
+    icon: "fa-wallet",
+    byline:
+      "What you have today, what it could become, and what it means for independence.",
+  },
+  {
+    id: "timeline",
+    label: "My Path",
+    icon: "fa-chart-line",
+    byline:
+      "How your wealth grows, sustains, and evolves across your lifetime.",
+  },
+  {
+    id: "simulation",
+    label: "Stress Test",
+    icon: "fa-dice",
+    byline:
+      "How does your plan hold up when markets don't follow the script?",
+  },
 ]
 
 // Alias for backwards compatibility (prefer DEFAULT_NON_SPENDABLE_CATEGORIES)

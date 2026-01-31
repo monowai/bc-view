@@ -80,13 +80,18 @@ export default function WhatIfModal({
   const totalRentalIncome = rentalIncome?.totalMonthlyInPlanCurrency ?? 0
 
   // Working income (salary) affects monthly investment
+  // Net income = salary + bonus - taxes (matches ContributionsStep calculation)
   const effectiveWorkingIncome =
     scenarioOverrides.workingIncomeMonthly ?? plan.workingIncomeMonthly ?? 0
+  const effectiveNetIncome =
+    effectiveWorkingIncome +
+    (plan.bonusMonthly ?? 0) -
+    (plan.taxesMonthly ?? 0)
   const workingExpenses = plan.workingExpensesMonthly ?? 0
   const investmentAllocation = plan.investmentAllocationPercent ?? 0.8
 
   // Calculate effective monthly investment based on salary override
-  const effectiveSurplus = effectiveWorkingIncome - workingExpenses
+  const effectiveSurplus = effectiveNetIncome - workingExpenses
   const effectiveMonthlyInvestment =
     effectiveSurplus > 0 ? effectiveSurplus * investmentAllocation : 0
 

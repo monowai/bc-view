@@ -11,7 +11,7 @@ interface PlanTabNavigationProps {
 }
 
 /** Tabs that require assets to show meaningful data */
-const TABS_REQUIRING_ASSETS: TabId[] = ["fire", "timeline", "simulation"]
+const TABS_REQUIRING_ASSETS: TabId[] = ["timeline", "simulation"]
 
 /**
  * Tab navigation for plan view.
