@@ -454,7 +454,7 @@ export default function Rows({
                         ? asset.code.substring(asset.code.indexOf(".") + 1)
                         : asset.code}
                   </div>
-                  {!isCash(asset) && (
+                  {!isCash(asset) && asset.name && (
                     <div
                       className="text-[10px] xl:text-xs text-gray-600"
                       title={asset.name}
