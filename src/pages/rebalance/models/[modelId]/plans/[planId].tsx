@@ -229,13 +229,16 @@ function PlanDetailPage(): React.ReactElement {
     return standardUuid.test(id) || base64Uuid.test(id)
   }
 
-  const handleFetchPrices = async (): Promise<void> => {
+  const handleFetchPrices = async (
+    weightsOverride?: AssetWeightWithDetails[],
+  ): Promise<void> => {
+    const currentWeights = weightsOverride ?? weights
     setFetchingPrices(true)
     try {
       // First, ensure all assets exist in svc-data (create if needed)
-      const assetsToCreate = weights.filter((w) => !isUuid(w.assetId))
+      const assetsToCreate = currentWeights.filter((w) => !isUuid(w.assetId))
 
-      let updatedWeights = [...weights]
+      let updatedWeights = [...currentWeights]
 
       if (assetsToCreate.length > 0) {
         // Build asset creation request
@@ -264,7 +267,7 @@ function PlanDetailPage(): React.ReactElement {
         if (createResponse.ok) {
           const createData = await createResponse.json()
           // Update weights with real asset IDs
-          updatedWeights = weights.map((w) => {
+          updatedWeights = currentWeights.map((w) => {
             if (!isUuid(w.assetId) && createData.data?.[w.assetId]) {
               return {
                 ...w,
@@ -398,8 +401,10 @@ function PlanDetailPage(): React.ReactElement {
   }
 
   // Import allocations from CSV file
-  // Format: Asset (MARKET:CODE), Weight %, Price, Currency, Description
-  // If prices are missing, automatically fetches them after import
+  // Supports both 5-column (Asset, Weight %, Price, Currency, Description) and
+  // 4-column (Asset, Weight %, Price, Description) formats.
+  // Currency can also be inferred from the price header, e.g. "Price (SGD)".
+  // If prices are missing, automatically fetches them after import.
   const handleImportCSV = (
     event: React.ChangeEvent<HTMLInputElement>,
   ): void => {
@@ -416,17 +421,41 @@ function PlanDetailPage(): React.ReactElement {
       const hasHeader = headerLine.includes("asset")
       const dataLines = hasHeader ? lines.slice(1) : lines
 
+      // Detect column layout from header
+      const headerParts = hasHeader
+        ? parseCSVLine(lines[0])
+        : ([] as string[])
+      // Check if header has a separate currency column (5-column format)
+      const hasCurrencyColumn =
+        headerParts.length >= 5 &&
+        headerParts[3]?.toLowerCase().includes("currency")
+      // Extract currency from price header, e.g. "Price (SGD)" -> "SGD"
+      const priceHeader = headerParts[2] || ""
+      const headerCurrencyMatch = priceHeader.match(/\(([A-Z]{3})\)/i)
+      const headerCurrency = headerCurrencyMatch?.[1]?.toUpperCase()
+
       const newWeights: AssetWeightWithDetails[] = []
 
       for (const line of dataLines) {
         const parts = parseCSVLine(line)
         if (parts.length >= 2) {
-          // Format: Asset (MARKET:CODE), Weight %, Price, Currency, Description
           const rawAssetCode = parts[0]
           const weightPercent = parseFloat(parts[1])
           const price = parts[2] ? parseFloat(parts[2]) : undefined
-          const currency = parts[3] || undefined
-          const rationale = parts[4] || undefined
+
+          let currency: string | undefined
+          let rationale: string | undefined
+
+          if (hasCurrencyColumn) {
+            // 5-column format: Asset, Weight %, Price, Currency, Description
+            currency = parts[3] || undefined
+            rationale = parts[4] || undefined
+          } else {
+            // 4-column format: Asset, Weight %, Price, Description
+            // Use currency from price header if available
+            currency = headerCurrency
+            rationale = parts[3] || undefined
+          }
 
           if (rawAssetCode && !isNaN(weightPercent)) {
             // Default to US market if no market code provided
@@ -457,12 +486,10 @@ function PlanDetailPage(): React.ReactElement {
         setWeights(newWeights)
         setHasChanges(true)
 
-        // Auto-fetch prices for assets without prices
+        // Auto-fetch prices for assets without prices, passing weights
+        // directly to avoid stale closure from React state
         if (missingPrices) {
-          // Use setTimeout to ensure state is updated before fetching
-          setTimeout(() => {
-            handleFetchPrices()
-          }, 100)
+          handleFetchPrices(newWeights)
         }
       }
     }
