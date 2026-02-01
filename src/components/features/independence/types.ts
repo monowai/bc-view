@@ -76,8 +76,7 @@ export const TABS: TabConfig[] = [
     id: "simulation",
     label: "Stress Test",
     icon: "fa-dice",
-    byline:
-      "How does your plan hold up when markets don't follow the script?",
+    byline: "How does your plan hold up when markets don't follow the script?",
   },
 ]
 

@@ -782,7 +782,6 @@ const TradeInputForm: React.FC<{
         label: market.name || market.code,
       })) || []
 
-
   const hasCashImpact = !["ADD", "REDUCE", "SPLIT"].includes(type?.value)
   const isExpenseType = type?.value === "EXPENSE"
   const tradeAmount = watch("tradeAmount") || 0
@@ -1062,7 +1061,7 @@ const TradeInputForm: React.FC<{
                       tradeDate: data.tradeDate,
                       quantity: isExpenseUpdate ? 1 : data.quantity,
                       price: isExpenseUpdate
-                        ? (data.tradeAmount || 0)
+                        ? data.tradeAmount || 0
                         : data.price,
                       tradeCurrency: data.tradeCurrency.value,
                       tradeAmount:
@@ -1152,9 +1151,7 @@ const TradeInputForm: React.FC<{
                       }, 1500)
                       setModalOpen(false)
                     } else {
-                      const errorData = await response
-                        .json()
-                        .catch(() => ({}))
+                      const errorData = await response.json().catch(() => ({}))
                       console.error(
                         "EXPENSE creation failed:",
                         response.status,

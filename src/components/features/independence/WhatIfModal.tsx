@@ -84,9 +84,7 @@ export default function WhatIfModal({
   const effectiveWorkingIncome =
     scenarioOverrides.workingIncomeMonthly ?? plan.workingIncomeMonthly ?? 0
   const effectiveNetIncome =
-    effectiveWorkingIncome +
-    (plan.bonusMonthly ?? 0) -
-    (plan.taxesMonthly ?? 0)
+    effectiveWorkingIncome + (plan.bonusMonthly ?? 0) - (plan.taxesMonthly ?? 0)
   const workingExpenses = plan.workingExpensesMonthly ?? 0
   const investmentAllocation = plan.investmentAllocationPercent ?? 0.8
 

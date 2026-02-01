@@ -39,9 +39,7 @@ describe("AssetSearch", () => {
 
   it("renders with placeholder text", () => {
     render(<AssetSearch onSelect={mockOnSelect} />)
-    expect(
-      screen.getByText("trn.asset.search.placeholder"),
-    ).toBeInTheDocument()
+    expect(screen.getByText("trn.asset.search.placeholder")).toBeInTheDocument()
   })
 
   describe("specific market search", () => {
@@ -300,10 +298,7 @@ describe("AssetSearch", () => {
       })
 
       render(
-        <AssetSearch
-          onSelect={mockOnSelect}
-          noResultsHref="/assets/account"
-        />,
+        <AssetSearch onSelect={mockOnSelect} noResultsHref="/assets/account" />,
       )
 
       const input = screen.getByRole("combobox")
@@ -353,7 +348,9 @@ describe("AssetSearch", () => {
       await flushAsync()
 
       await waitFor(() => {
-        expect(screen.getByText("MSFT - Microsoft Corp (US)")).toBeInTheDocument()
+        expect(
+          screen.getByText("MSFT - Microsoft Corp (US)"),
+        ).toBeInTheDocument()
       })
 
       await user.click(screen.getByText("MSFT - Microsoft Corp (US)"))
@@ -394,7 +391,9 @@ describe("AssetSearch", () => {
       await flushAsync()
 
       await waitFor(() => {
-        expect(screen.getByText("MSFT - Microsoft Corp (US)")).toBeInTheDocument()
+        expect(
+          screen.getByText("MSFT - Microsoft Corp (US)"),
+        ).toBeInTheDocument()
       })
 
       // Select it first

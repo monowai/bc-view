@@ -217,7 +217,7 @@ export const convertToTradeImport = (data: TradeFormData): TradeImport => {
     tradeDate: data.tradeDate,
     quantity: qty,
     tradeCurrency,
-    price: isExpense ? (data.tradeAmount || 0) : data.price,
+    price: isExpense ? data.tradeAmount || 0 : data.price,
     fees: data.fees,
     cashAmount,
     comments,
