@@ -17,9 +17,12 @@ function cashLadderKey(portfolioId: string, cashAssetId: string): string {
 }
 
 // Format transaction description for cash ladder
+// Priority: 1) transaction comments, 2) type-specific description with asset name
 function formatTransaction(trn: Transaction): string {
+  if (trn.comments) return trn.comments
+
   const type = trn.trnType
-  const asset = trn.asset?.code || ""
+  const assetName = trn.asset?.name || trn.asset?.code || ""
   const qty = trn.quantity
 
   if (type === "DEPOSIT") return "Deposit"
@@ -27,15 +30,15 @@ function formatTransaction(trn: Transaction): string {
   if (type === "FX" || type.startsWith("FX_")) {
     return `FX ${trn.tradeCurrency?.code || ""} to ${(trn.cashCurrency as any)?.code || ""}`
   }
-  if (type === "DIVI") return `Dividend ${asset}`
-  if (type === "BUY") return `Buy ${qty} ${asset}`
-  if (type === "SELL") return `Sell ${qty} ${asset}`
-  if (type === "ADD") return `Add ${qty} ${asset}`
-  if (type === "REDUCE") return `Reduce ${qty} ${asset}`
-  if (type === "EXPENSE") return `Expense ${asset}`
-  if (type === "DEDUCTION") return `Deduction ${asset}`
-  if (type === "INCOME") return `Income ${asset}`
-  return `${type} ${asset}`
+  if (type === "DIVI") return `Dividend ${assetName}`
+  if (type === "BUY") return `Buy ${qty} ${assetName}`
+  if (type === "SELL") return `Sell ${qty} ${assetName}`
+  if (type === "ADD") return `Add ${qty} ${assetName}`
+  if (type === "REDUCE") return `Reduce ${qty} ${assetName}`
+  if (type === "EXPENSE") return `Expense ${assetName}`
+  if (type === "DEDUCTION") return `Deduction ${assetName}`
+  if (type === "INCOME") return `Income ${assetName}`
+  return `${type} ${assetName}`
 }
 
 // Type for transaction with running balance and signed cash amount

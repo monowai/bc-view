@@ -47,7 +47,7 @@ import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { NumericFormat } from "react-number-format"
 import { updateTrn, TrnUpdatePayload } from "@lib/trns/apiHelper"
-import { getDisplayCode } from "@lib/assets/assetUtils"
+import { getDisplayCode, stripOwnerPrefix } from "@lib/assets/assetUtils"
 
 const TradeTypeValues = [
   "BUY",
@@ -882,7 +882,7 @@ const TradeInputForm: React.FC<{
                   <div className="font-semibold truncate">
                     {isEditMode
                       ? editAssetCode
-                      : asset || t("trade.market.title")}
+                      : stripOwnerPrefix(asset) || t("trade.market.title")}
                   </div>
                   {isEditMode && editAssetName && (
                     <div className="text-xs text-gray-500 truncate">
@@ -1055,20 +1055,24 @@ const TradeInputForm: React.FC<{
                   setSubmitError(null)
 
                   try {
+                    const isExpenseUpdate = data.type.value === "EXPENSE"
                     const payload: TrnUpdatePayload = {
                       trnType: data.type.value,
                       assetId: transaction.asset.id,
                       tradeDate: data.tradeDate,
-                      quantity: data.quantity,
-                      price: data.price,
+                      quantity: isExpenseUpdate ? 1 : data.quantity,
+                      price: isExpenseUpdate
+                        ? (data.tradeAmount || 0)
+                        : data.price,
                       tradeCurrency: data.tradeCurrency.value,
                       tradeAmount:
                         data.tradeAmount || data.quantity * data.price,
                       cashCurrency: settlementCurrency,
                       cashAssetId: data.settlementAccount?.value || undefined,
-                      cashAmount:
-                        data.cashAmount ||
-                        -(data.quantity * data.price + (data.fees || 0)),
+                      cashAmount: isExpenseUpdate
+                        ? -(data.tradeAmount || 0)
+                        : data.cashAmount ||
+                          -(data.quantity * data.price + (data.fees || 0)),
                       fees: data.fees,
                       tax: data.tax,
                       comments: data.comment || "",
@@ -1108,8 +1112,72 @@ const TradeInputForm: React.FC<{
                   } finally {
                     setIsSubmitting(false)
                   }
+                } else if (data.type.value === "EXPENSE") {
+                  // EXPENSE: use direct REST API (synchronous, bypasses message broker)
+                  setIsSubmitting(true)
+                  setSubmitError(null)
+                  try {
+                    const expenseAmount = data.tradeAmount || 0
+                    const payload = {
+                      portfolioId: portfolio.id,
+                      data: [
+                        {
+                          assetId: data.asset,
+                          trnType: "EXPENSE",
+                          quantity: 1,
+                          price: expenseAmount,
+                          tradeCurrency: data.tradeCurrency.value,
+                          tradeAmount: expenseAmount,
+                          cashCurrency: settlementCurrency,
+                          cashAssetId:
+                            data.settlementAccount?.value || undefined,
+                          cashAmount: -expenseAmount,
+                          tradeDate: data.tradeDate,
+                          fees: data.fees || 0,
+                          tax: data.tax || 0,
+                          comments: data.comment || "",
+                          status: data.status?.value || "SETTLED",
+                        },
+                      ],
+                    }
+                    const response = await fetch("/api/trns", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify(payload),
+                    })
+                    if (response.ok) {
+                      setTimeout(() => {
+                        mutate(holdingKey(portfolio.code, "today"))
+                        mutate("/api/holdings/aggregated?asAt=today")
+                      }, 1500)
+                      setModalOpen(false)
+                    } else {
+                      const errorData = await response
+                        .json()
+                        .catch(() => ({}))
+                      console.error(
+                        "EXPENSE creation failed:",
+                        response.status,
+                        errorData,
+                      )
+                      setSubmitError(
+                        errorData.message ||
+                          errorData.error ||
+                          `Failed: ${response.statusText}`,
+                      )
+                    }
+                  } catch (error) {
+                    console.error("EXPENSE submission error:", error)
+                    setSubmitError(
+                      error instanceof Error
+                        ? error.message
+                        : "Failed to create expense",
+                    )
+                  } finally {
+                    setIsSubmitting(false)
+                  }
                 } else {
-                  // Create mode: use CSV import
+                  // Create mode: use CSV import via message broker
                   const dataWithCashCurrency = {
                     ...data,
                     cashCurrency: {

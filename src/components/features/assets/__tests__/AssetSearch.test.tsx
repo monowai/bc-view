@@ -45,7 +45,7 @@ describe("AssetSearch", () => {
   })
 
   describe("specific market search", () => {
-    it("searches the given market directly without LOCAL-first", async () => {
+    it("searches LOCAL first for name matching, filtered to specific market", async () => {
       const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
 
       mockFetch.mockResolvedValueOnce({
@@ -71,16 +71,24 @@ describe("AssetSearch", () => {
       await user.type(input, "VCT")
       await flushAsync()
 
+      // Specific markets now search LOCAL first for code+name matching
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
-          expect.stringContaining("market=NZX"),
+          expect.stringContaining("market=LOCAL"),
         )
       })
 
-      // Label should NOT include market for specific-market searches
+      // Label always includes market and type
       await waitFor(() => {
-        expect(screen.getByText("VCT - Vector Ltd")).toBeInTheDocument()
+        expect(
+          screen.getByText("VCT - Vector Ltd (NZX, Equity)"),
+        ).toBeInTheDocument()
       })
+
+      // Expand Search is always offered for specific market searches
+      expect(
+        screen.getByText("trn.asset.search.expandSearch"),
+      ).toBeInTheDocument()
     })
   })
 
@@ -153,7 +161,7 @@ describe("AssetSearch", () => {
       })
     })
 
-    it("auto-expands to FIGI when LOCAL returns no results", async () => {
+    it("shows Expand Search when LOCAL returns no results", async () => {
       const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
 
       // LOCAL returns empty
@@ -162,17 +170,70 @@ describe("AssetSearch", () => {
         json: () => Promise.resolve({ data: [] }),
       })
 
-      // FIGI returns results
+      render(<AssetSearch onSelect={mockOnSelect} />)
+
+      const input = screen.getByRole("combobox")
+      await user.type(input, "NEWCO")
+      await flushAsync()
+
+      // Should show expand option even with no results
+      await waitFor(() => {
+        expect(
+          screen.getByText("trn.asset.search.expandSearch"),
+        ).toBeInTheDocument()
+      })
+
+      // Only one fetch (LOCAL), no auto-expand
+      expect(mockFetch).toHaveBeenCalledTimes(1)
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining("market=LOCAL"),
+      )
+    })
+
+    it("shows Expand Search when specific market returns no results", async () => {
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+
+      // NZX returns empty
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ data: [] }),
+      })
+
+      render(
+        <AssetSearch
+          onSelect={mockOnSelect}
+          knownMarkets={["NZX", "US"]}
+        />,
+      )
+
+      const input = screen.getByRole("combobox")
+      await user.type(input, "NZX:UNKNOWN")
+      await flushAsync()
+
+      // Should show expand option when specific market has no results
+      await waitFor(() => {
+        expect(
+          screen.getByText("trn.asset.search.expandSearch"),
+        ).toBeInTheDocument()
+      })
+    })
+  })
+
+  describe("expand search", () => {
+    it("fetches FIGI and shows merged results when Expand Search is clicked", async () => {
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+
+      // LOCAL returns one result
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: () =>
           Promise.resolve({
             data: [
               {
-                symbol: "NEWCO",
-                name: "New Company",
+                symbol: "VOO",
+                name: "Vanguard S&P 500 ETF",
                 market: "US",
-                currency: "USD",
+                assetId: "id-voo",
               },
             ],
           }),
@@ -181,25 +242,122 @@ describe("AssetSearch", () => {
       render(<AssetSearch onSelect={mockOnSelect} />)
 
       const input = screen.getByRole("combobox")
-      await user.type(input, "NEWCO")
+      await user.type(input, "VOO")
       await flushAsync()
 
-      // Allow the auto-expand fetch
-      await act(async () => {
-        await Promise.resolve()
-        await Promise.resolve()
+      await waitFor(() => {
+        expect(
+          screen.getByText("trn.asset.search.expandSearch"),
+        ).toBeInTheDocument()
       })
 
+      // Mock FIGI response
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            data: [
+              {
+                symbol: "VOO",
+                name: "Vanguard S&P 500 ETF",
+                market: "US",
+                assetId: "id-voo",
+              },
+              {
+                symbol: "VOOG",
+                name: "Vanguard S&P 500 Growth ETF",
+                market: "US",
+                assetId: "id-voog",
+              },
+            ],
+          }),
+      })
+
+      // Click expand
+      await user.click(screen.getByText("trn.asset.search.expandSearch"))
+
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledTimes(2)
-        expect(mockFetch).toHaveBeenNthCalledWith(
-          1,
-          expect.stringContaining("market=LOCAL"),
-        )
-        expect(mockFetch).toHaveBeenNthCalledWith(
-          2,
+        expect(mockFetch).toHaveBeenCalledWith(
           expect.stringContaining("market=FIGI"),
         )
+      })
+
+      // Should show merged results (VOO deduped, VOOG new)
+      await waitFor(() => {
+        expect(
+          screen.getByText("VOOG - Vanguard S&P 500 Growth ETF (US)"),
+        ).toBeInTheDocument()
+      })
+    })
+
+    it("shows no-results sentinel when expand returns nothing", async () => {
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+
+      // LOCAL returns empty
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ data: [] }),
+      })
+
+      render(<AssetSearch onSelect={mockOnSelect} />)
+
+      const input = screen.getByRole("combobox")
+      await user.type(input, "ZZZZZ")
+      await flushAsync()
+
+      await waitFor(() => {
+        expect(
+          screen.getByText("trn.asset.search.expandSearch"),
+        ).toBeInTheDocument()
+      })
+
+      // FIGI also returns empty
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ data: [] }),
+      })
+
+      await user.click(screen.getByText("trn.asset.search.expandSearch"))
+
+      await waitFor(() => {
+        expect(
+          screen.getByText("trn.asset.search.noResults"),
+        ).toBeInTheDocument()
+      })
+    })
+
+    it("shows create-asset link when noResultsHref is provided", async () => {
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+
+      // LOCAL returns empty
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ data: [] }),
+      })
+
+      render(
+        <AssetSearch
+          onSelect={mockOnSelect}
+          noResultsHref="/assets/account"
+        />,
+      )
+
+      const input = screen.getByRole("combobox")
+      await user.type(input, "ZZZZZ")
+      await flushAsync()
+
+      // FIGI also returns empty
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ data: [] }),
+      })
+
+      await user.click(screen.getByText("trn.asset.search.expandSearch"))
+
+      await waitFor(() => {
+        expect(
+          screen.getByText("trn.asset.search.createAsset"),
+        ).toBeInTheDocument()
       })
     })
   })
@@ -231,10 +389,10 @@ describe("AssetSearch", () => {
       await flushAsync()
 
       await waitFor(() => {
-        expect(screen.getByText("MSFT - Microsoft Corp")).toBeInTheDocument()
+        expect(screen.getByText("MSFT - Microsoft Corp (US)")).toBeInTheDocument()
       })
 
-      await user.click(screen.getByText("MSFT - Microsoft Corp"))
+      await user.click(screen.getByText("MSFT - Microsoft Corp (US)"))
 
       expect(mockOnSelect).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -272,11 +430,11 @@ describe("AssetSearch", () => {
       await flushAsync()
 
       await waitFor(() => {
-        expect(screen.getByText("MSFT - Microsoft Corp")).toBeInTheDocument()
+        expect(screen.getByText("MSFT - Microsoft Corp (US)")).toBeInTheDocument()
       })
 
       // Select it first
-      await user.click(screen.getByText("MSFT - Microsoft Corp"))
+      await user.click(screen.getByText("MSFT - Microsoft Corp (US)"))
       mockOnSelect.mockClear()
 
       // Click the clear button (react-select renders an svg with role)
@@ -332,9 +490,9 @@ describe("AssetSearch", () => {
       await flushAsync()
 
       await waitFor(() => {
-        expect(screen.getByText("BBB - Asset B")).toBeInTheDocument()
+        expect(screen.getByText("BBB - Asset B (US)")).toBeInTheDocument()
       })
-      expect(screen.queryByText("AAA - Asset A")).not.toBeInTheDocument()
+      expect(screen.queryByText("AAA - Asset A (US)")).not.toBeInTheDocument()
     })
   })
 

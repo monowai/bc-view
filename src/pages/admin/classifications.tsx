@@ -4,9 +4,11 @@ import { useTranslation } from "next-i18next"
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { rootLoader } from "@components/ui/PageLoader"
-import { AssetOption } from "types/beancounter"
+import { AssetOption, Market } from "types/beancounter"
 import { useIsAdmin } from "@hooks/useIsAdmin"
 import Link from "next/link"
+import useSWR from "swr"
+import { marketsKey, simpleFetcher } from "@utils/api/fetchHelper"
 import AssetSearch from "@components/features/assets/AssetSearch"
 
 interface SectorInfo {
@@ -42,6 +44,14 @@ export default withPageAuthRequired(
   function Classifications(): React.ReactElement {
     const { t, ready } = useTranslation("common")
     const { isAdmin, isLoading: isAdminLoading } = useIsAdmin()
+
+    // Fetch available markets for MARKET:KEYWORD search syntax
+    const { data: marketsData } = useSWR<{ data: Market[] }>(
+      marketsKey,
+      simpleFetcher(marketsKey),
+    )
+    const knownMarkets = (marketsData?.data || []).map((m) => m.code)
+    const [selectedMarket, setSelectedMarket] = useState<string>("LOCAL")
     const [selectedAsset, setSelectedAsset] = useState<SelectedAsset | null>(
       null,
     )
@@ -392,13 +402,35 @@ export default withPageAuthRequired(
             {t("classifications.search", "Search Assets")}
           </h2>
 
-          <AssetSearch
-            onSelect={handleSelectAsset}
-            placeholder={t(
-              "classifications.search.placeholder",
-              "Search by symbol or name (e.g., VOO, AAPL)...",
-            )}
-          />
+          <div className="flex gap-3">
+            <select
+              value={selectedMarket}
+              onChange={(e) => setSelectedMarket(e.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="LOCAL">
+                {t("assets.lookup.allMarkets", "All Markets")}
+              </option>
+              {(marketsData?.data || []).map((market) => (
+                <option key={market.code} value={market.code}>
+                  {market.code} — {market.name}
+                </option>
+              ))}
+            </select>
+            <div className="flex-1">
+              <AssetSearch
+                key={selectedMarket}
+                market={selectedMarket}
+                knownMarkets={knownMarkets}
+                onSelect={handleSelectAsset}
+                noResultsHref="/assets/account"
+                placeholder={t(
+                  "classifications.search.placeholder",
+                  "Search by symbol or name...",
+                )}
+              />
+            </div>
+          </div>
         </div>
 
         {/* Selected Asset Section */}
