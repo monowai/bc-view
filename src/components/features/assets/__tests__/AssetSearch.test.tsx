@@ -45,7 +45,7 @@ describe("AssetSearch", () => {
   })
 
   describe("specific market search", () => {
-    it("searches LOCAL first for name matching, filtered to specific market", async () => {
+    it("passes market to backend which handles local+external merge", async () => {
       const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
 
       mockFetch.mockResolvedValueOnce({
@@ -71,29 +71,29 @@ describe("AssetSearch", () => {
       await user.type(input, "VCT")
       await flushAsync()
 
-      // Specific markets now search LOCAL first for code+name matching
+      // Single fetch — backend merges local DB + external provider
       await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledTimes(1)
         expect(mockFetch).toHaveBeenCalledWith(
-          expect.stringContaining("market=LOCAL"),
+          expect.stringContaining("market=NZX"),
         )
       })
 
-      // Label always includes market and type
       await waitFor(() => {
         expect(
           screen.getByText("VCT - Vector Ltd (NZX, Equity)"),
         ).toBeInTheDocument()
       })
 
-      // Expand Search is always offered for specific market searches
+      // Expand Search is always offered
       expect(
         screen.getByText("trn.asset.search.expandSearch"),
       ).toBeInTheDocument()
     })
   })
 
-  describe("LOCAL-first search", () => {
-    it("searches LOCAL first when no market is specified", async () => {
+  describe("no market search", () => {
+    it("omits market parameter when no market is specified", async () => {
       const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
 
       mockFetch.mockResolvedValueOnce({
@@ -119,18 +119,19 @@ describe("AssetSearch", () => {
       await flushAsync()
 
       await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledTimes(1)
+        // No market parameter sent — backend searches local DB
         expect(mockFetch).toHaveBeenCalledWith(
-          expect.stringContaining("market=LOCAL"),
+          expect.not.stringContaining("market="),
         )
       })
 
-      // LOCAL results should include market in label
       await waitFor(() => {
         expect(screen.getByText("AAPL - Apple Inc (US)")).toBeInTheDocument()
       })
     })
 
-    it("shows Expand Search option when LOCAL returns results", async () => {
+    it("shows Expand Search option with results", async () => {
       const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
 
       mockFetch.mockResolvedValueOnce({
@@ -161,10 +162,9 @@ describe("AssetSearch", () => {
       })
     })
 
-    it("shows Expand Search when LOCAL returns no results", async () => {
+    it("shows Expand Search when no results", async () => {
       const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
 
-      // LOCAL returns empty
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({ data: [] }),
@@ -176,46 +176,13 @@ describe("AssetSearch", () => {
       await user.type(input, "NEWCO")
       await flushAsync()
 
-      // Should show expand option even with no results
       await waitFor(() => {
         expect(
           screen.getByText("trn.asset.search.expandSearch"),
         ).toBeInTheDocument()
       })
 
-      // Only one fetch (LOCAL), no auto-expand
       expect(mockFetch).toHaveBeenCalledTimes(1)
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining("market=LOCAL"),
-      )
-    })
-
-    it("shows Expand Search when specific market returns no results", async () => {
-      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
-
-      // NZX returns empty
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ data: [] }),
-      })
-
-      render(
-        <AssetSearch
-          onSelect={mockOnSelect}
-          knownMarkets={["NZX", "US"]}
-        />,
-      )
-
-      const input = screen.getByRole("combobox")
-      await user.type(input, "NZX:UNKNOWN")
-      await flushAsync()
-
-      // Should show expand option when specific market has no results
-      await waitFor(() => {
-        expect(
-          screen.getByText("trn.asset.search.expandSearch"),
-        ).toBeInTheDocument()
-      })
     })
   })
 
@@ -223,7 +190,6 @@ describe("AssetSearch", () => {
     it("fetches FIGI and shows merged results when Expand Search is clicked", async () => {
       const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
 
-      // LOCAL returns one result
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: () =>
@@ -293,7 +259,6 @@ describe("AssetSearch", () => {
     it("shows no-results sentinel when expand returns nothing", async () => {
       const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
 
-      // LOCAL returns empty
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({ data: [] }),
@@ -329,7 +294,6 @@ describe("AssetSearch", () => {
     it("shows create-asset link when noResultsHref is provided", async () => {
       const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
 
-      // LOCAL returns empty
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({ data: [] }),

@@ -81,17 +81,17 @@ export default function AssetSearch({
   const expandingRef = useRef(false)
 
   const isSpecificMarket =
-    market !== undefined && market !== "LOCAL" && market !== ""
+    market !== undefined && market !== ""
 
   const doFetch = useCallback(
     async (
       keyword: string,
       searchMarket: string,
     ): Promise<AssetSearchResult[]> => {
-      const params = new URLSearchParams({
-        keyword,
-        market: searchMarket,
-      })
+      const params = new URLSearchParams({ keyword })
+      if (searchMarket) {
+        params.set("market", searchMarket)
+      }
       const response = await fetch(`/api/assets/search?${params}`)
       if (!response.ok) return []
       const data = await response.json()
@@ -106,11 +106,11 @@ export default function AssetSearch({
         clearTimeout(debounceRef.current)
       }
 
-      // Parse MARKET:KEYWORD syntax
+      // Parse MARKET:KEYWORD syntax. Backend handles LOCAL+external merge.
       const parsed = parseSearchInput(
         inputValue,
         knownMarkets,
-        isSpecificMarket ? market : "LOCAL",
+        isSpecificMarket ? market : "",
       )
 
       if (!parsed.validMarket || parsed.keyword.length < 2) {
@@ -122,22 +122,9 @@ export default function AssetSearch({
 
       debounceRef.current = setTimeout(async () => {
         try {
-          const isLocalSearch =
-            !isSpecificMarket && parsed.market === "LOCAL"
-
-          // For specific markets, search LOCAL first for code+name matching,
-          // then filter to the target market. This enables finding assets by
-          // name (e.g. "Vector" finds VCT on NZX) which external APIs may not.
-          const effectiveMarket = isSpecificMarket ? "LOCAL" : parsed.market
-          const results = await doFetch(parsed.keyword, effectiveMarket)
+          // Pass market directly — backend searches local DB + external provider
+          const results = await doFetch(parsed.keyword, parsed.market)
           let options = results.map((r) => toOption(r))
-
-          if (isSpecificMarket && market) {
-            options = options.filter(
-              (o) =>
-                o.market?.toUpperCase() === market.toUpperCase(),
-            )
-          }
 
           if (filterResults) {
             options = filterResults(options)
@@ -149,19 +136,9 @@ export default function AssetSearch({
             symbol: "",
           }
 
-          if (isLocalSearch || isSpecificMarket) {
-            localResultsRef.current = options
-            // Always offer expand for LOCAL and specific-market searches
-            callback([...options, expandOption])
-          } else {
-            // MARKET:KEYWORD syntax — offer expand when no results
-            localResultsRef.current = options
-            if (options.length === 0) {
-              callback([expandOption])
-            } else {
-              callback(options)
-            }
-          }
+          localResultsRef.current = options
+          // Always offer expand to force FIGI global search
+          callback([...options, expandOption])
         } catch {
           callback([])
         }
