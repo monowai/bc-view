@@ -76,6 +76,7 @@
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
     "babel-jest": "^30.0.0",
+    "browserslist": "^4.28.1",
     "dotenv": "^17.2.3",
     "eslint": "^9.23.0",
     "eslint-config-next": "^16.0.7",
@@ -107,9 +108,14 @@
     "output": "reports/junit/junit.xml",
     "usePathForSuiteName": "true"
   },
+  "browserslist": [
+    "defaults",
+    "not dead"
+  ],
   "resolutions": {
     "@types/node": "^24.0.0",
     "@types/papaparse": "^5.3.15",
-    "js-yaml": "^4.1.1"
+    "js-yaml": "^4.1.1",
+    "baseline-browser-mapping": "^2.9.19"
   }
 }

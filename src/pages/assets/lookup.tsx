@@ -134,6 +134,7 @@ function AssetLookupPage(): React.ReactElement {
               knownMarkets={knownMarkets}
               value={selectedAsset}
               onSelect={handleAssetSelect}
+              noResultsHref="/assets/account"
               placeholder={t(
                 "assets.lookup.searchPlaceholder",
                 "Type symbol, name, or MARKET:SYMBOL...",

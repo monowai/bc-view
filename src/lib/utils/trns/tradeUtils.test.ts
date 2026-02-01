@@ -503,4 +503,114 @@ describe("TradeUtils", () => {
       expect(result).toBe(15) // 150 * 10 / 10000 = 15%
     })
   })
+
+  describe("EXPENSE transactions", () => {
+    test("calculateCashAmount returns negative tradeAmount for EXPENSE", () => {
+      const data: TradeFormData = {
+        type: { value: "EXPENSE", label: "Expense" },
+        asset: "APT",
+        market: "PRIVATE",
+        tradeDate: "2024-01-15",
+        quantity: 0,
+        price: 0,
+        tradeCurrency: { value: "NZD", label: "NZD" },
+        tradeAmount: 500,
+        cashAmount: 0,
+        fees: 0,
+        tax: 0,
+        comments: "Insurance",
+      }
+      expect(calculateCashAmount(data)).toBe(-500)
+    })
+
+    test("convertToTradeImport sets quantity=1 and price=tradeAmount for EXPENSE", () => {
+      const data: TradeFormData = {
+        type: { value: "EXPENSE", label: "Expense" },
+        asset: "APT",
+        market: "PRIVATE",
+        tradeDate: "2024-01-15",
+        quantity: 0,
+        price: 0,
+        tradeCurrency: { value: "NZD", label: "NZD" },
+        tradeAmount: 500,
+        cashAmount: 0,
+        fees: 0,
+        tax: 0,
+        comments: "Insurance",
+        settlementAccount: {
+          value: "kiwi-bank-id",
+          label: "KIWI Bank",
+          currency: "NZD",
+        },
+      }
+      const result = convertToTradeImport(data)
+      expect(result.quantity).toBe(1)
+      expect(result.price).toBe(500)
+      expect(result.cashAmount).toBe(-500)
+      expect(result.cashAccount).toBe("kiwi-bank-id")
+      expect(result.cashCurrency).toBe("NZD")
+    })
+
+    test("EXPENSE CSV row contains correct values", () => {
+      const data: TradeFormData = {
+        type: { value: "EXPENSE", label: "Expense" },
+        asset: "APT",
+        market: "PRIVATE",
+        tradeDate: "2024-01-15",
+        quantity: 0,
+        price: 0,
+        tradeCurrency: { value: "NZD", label: "NZD" },
+        tradeAmount: 500,
+        cashAmount: 0,
+        fees: 0,
+        tax: 0,
+        comments: "Insurance",
+        settlementAccount: {
+          value: "kiwi-bank-id",
+          label: "KIWI Bank",
+          currency: "NZD",
+        },
+      }
+      const row = getTradeRow(data)
+      expect(row).toContain("EXPENSE,PRIVATE,APT,,kiwi-bank-id,NZD,2024-01-15,1,,NZD,500,0,,,-500,Insurance")
+    })
+  })
+
+  describe("owner prefix stripping", () => {
+    test("strips owner prefix from private asset code", () => {
+      const data: TradeFormData = {
+        type: { value: "BUY", label: "Buy" },
+        asset: "userId123.APT",
+        market: "PRIVATE",
+        tradeDate: "2024-01-15",
+        quantity: 1,
+        price: 100,
+        tradeCurrency: { value: "NZD", label: "NZD" },
+        cashAmount: 100,
+        fees: 0,
+        tax: 0,
+        comments: undefined,
+      }
+      const result = convertToTradeImport(data)
+      expect(result.asset).toBe("APT")
+    })
+
+    test("leaves normal asset codes unchanged", () => {
+      const data: TradeFormData = {
+        type: { value: "BUY", label: "Buy" },
+        asset: "AAPL",
+        market: "NASDAQ",
+        tradeDate: "2024-01-15",
+        quantity: 10,
+        price: 150,
+        tradeCurrency: { value: "USD", label: "USD" },
+        cashAmount: 1500,
+        fees: 0,
+        tax: 0,
+        comments: undefined,
+      }
+      const result = convertToTradeImport(data)
+      expect(result.asset).toBe("AAPL")
+    })
+  })
 })

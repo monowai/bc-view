@@ -1,4 +1,5 @@
 import { TradeFormData } from "types/beancounter"
+import { stripOwnerPrefix } from "@lib/assets/assetUtils"
 
 // Cash transaction types
 export type CashTrnType = "DEPOSIT" | "WITHDRAWAL" | "FX"
@@ -137,6 +138,10 @@ export const calculateCashAmount = (data: TradeFormData): number => {
   if (data.type.value === "SPLIT") {
     return 0
   }
+  // EXPENSE: the user-entered tradeAmount is the cash debit
+  if (data.type.value === "EXPENSE") {
+    return -(data.tradeAmount || 0)
+  }
   // For FX trades, use cashAmount (the buy amount calculated from FX rate)
   // For other CASH market transactions, use quantity
   const cashAmount =
@@ -179,15 +184,22 @@ export const convertToTradeImport = (data: TradeFormData): TradeImport => {
   const cashAccount = data.settlementAccount?.value || ""
 
   const cashAmount = calculateCashAmount(data)
-  const asset: string =
+  const isExpense = data.type.value === "EXPENSE"
+  const rawAsset: string =
     data.market === "CASH"
       ? data.tradeCurrency && data.tradeCurrency.value
         ? data.tradeCurrency.value
         : ""
       : data.asset
+  // Strip owner prefix from private asset codes (e.g., "userId.APT" → "APT")
+  const asset = stripOwnerPrefix(rawAsset)
 
-  const qty: number =
-    data.market === "CASH" ? (data.cashAmount ?? 0) : (data.quantity ?? 0)
+  // EXPENSE: quantity is 1, price is the expense amount (form hides qty/price fields)
+  const qty: number = isExpense
+    ? 1
+    : data.market === "CASH"
+      ? (data.cashAmount ?? 0)
+      : (data.quantity ?? 0)
 
   // Default to SETTLED if status not provided
   const status = data.status?.value ?? "SETTLED"
@@ -205,7 +217,7 @@ export const convertToTradeImport = (data: TradeFormData): TradeImport => {
     tradeDate: data.tradeDate,
     quantity: qty,
     tradeCurrency,
-    price: data.price,
+    price: isExpense ? (data.tradeAmount || 0) : data.price,
     fees: data.fees,
     cashAmount,
     comments,
