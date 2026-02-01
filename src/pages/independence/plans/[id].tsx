@@ -1618,294 +1618,299 @@ function PlanView(): React.ReactElement {
               )}
 
               <div className="bg-white rounded-xl shadow-md p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  {t("retire.assets.title")}
-                </h2>
-                {!usingManualAssets && (
-                  <button
-                    onClick={() => refreshHoldings()}
-                    disabled={isRefreshingHoldings}
-                    className="text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50"
-                    title="Refresh holdings from portfolio"
-                  >
-                    <i
-                      className={`fas fa-sync-alt mr-1 ${isRefreshingHoldings ? "fa-spin" : ""}`}
-                    ></i>
-                    {isRefreshingHoldings ? "Refreshing..." : "Refresh"}
-                  </button>
-                )}
-              </div>
-
-              {!holdingsData && !usingManualAssets ? (
-                <div className="text-center py-8 text-gray-500">
-                  <i className="fas fa-spinner fa-spin text-2xl mb-2"></i>
-                  <p>{t("retire.assets.loadingHoldings")}</p>
-                </div>
-              ) : categorySlices.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <i className="fas fa-folder-open text-4xl mb-3 text-gray-300"></i>
-                  <p>{t("retire.assets.noHoldings")}</p>
-                  <p className="text-sm mt-2">
-                    {t("retire.assets.noHoldings.hint")}
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {usingManualAssets ? (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-2">
-                      <p className="text-sm text-blue-800">
-                        <i className="fas fa-info-circle mr-2"></i>
-                        Using manually entered asset values from plan settings.
-                      </p>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-500">
-                      {t("retire.assets.selectCategories")}
-                    </p>
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    {t("retire.assets.title")}
+                  </h2>
+                  {!usingManualAssets && (
+                    <button
+                      onClick={() => refreshHoldings()}
+                      disabled={isRefreshingHoldings}
+                      className="text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                      title="Refresh holdings from portfolio"
+                    >
+                      <i
+                        className={`fas fa-sync-alt mr-1 ${isRefreshingHoldings ? "fa-spin" : ""}`}
+                      ></i>
+                      {isRefreshingHoldings ? "Refreshing..." : "Refresh"}
+                    </button>
                   )}
-                  <div className="space-y-2">
-                    {/* Show liquid/spendable asset categories */}
-                    {categorySlices
-                      .filter(
-                        (slice) =>
-                          !DEFAULT_NON_SPENDABLE_CATEGORIES.includes(slice.key),
-                      )
-                      .map((slice) => {
-                        const isSpendable = spendableCategories.includes(
-                          slice.key,
+                </div>
+
+                {!holdingsData && !usingManualAssets ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <i className="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                    <p>{t("retire.assets.loadingHoldings")}</p>
+                  </div>
+                ) : categorySlices.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <i className="fas fa-folder-open text-4xl mb-3 text-gray-300"></i>
+                    <p>{t("retire.assets.noHoldings")}</p>
+                    <p className="text-sm mt-2">
+                      {t("retire.assets.noHoldings.hint")}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {usingManualAssets ? (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-2">
+                        <p className="text-sm text-blue-800">
+                          <i className="fas fa-info-circle mr-2"></i>
+                          Using manually entered asset values from plan
+                          settings.
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500">
+                        {t("retire.assets.selectCategories")}
+                      </p>
+                    )}
+                    <div className="space-y-2">
+                      {/* Show liquid/spendable asset categories */}
+                      {categorySlices
+                        .filter(
+                          (slice) =>
+                            !DEFAULT_NON_SPENDABLE_CATEGORIES.includes(
+                              slice.key,
+                            ),
                         )
-                        return (
+                        .map((slice) => {
+                          const isSpendable = spendableCategories.includes(
+                            slice.key,
+                          )
+                          return (
+                            <div
+                              key={slice.key}
+                              className={`p-3 rounded-lg border transition-colors ${
+                                isSpendable
+                                  ? "border-orange-200 bg-orange-50"
+                                  : "border-gray-200 bg-gray-50"
+                              }`}
+                            >
+                              <label className="flex items-center justify-between cursor-pointer">
+                                <div className="flex items-center gap-3">
+                                  <input
+                                    type="checkbox"
+                                    checked={isSpendable}
+                                    onChange={() => toggleCategory(slice.key)}
+                                    className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500"
+                                  />
+                                  <div
+                                    className="w-3 h-3 rounded-full"
+                                    style={{ backgroundColor: slice.color }}
+                                  />
+                                  <span
+                                    className={
+                                      isSpendable
+                                        ? "text-gray-900"
+                                        : "text-gray-500"
+                                    }
+                                  >
+                                    {slice.label}
+                                  </span>
+                                </div>
+                                <span
+                                  className={`font-medium ${
+                                    hideValues
+                                      ? "text-gray-400"
+                                      : isSpendable
+                                        ? "text-gray-900"
+                                        : "text-gray-400"
+                                  }`}
+                                >
+                                  {hideValues
+                                    ? HIDDEN_VALUE
+                                    : `${effectiveCurrency}${Math.round(slice.value * effectiveFxRate).toLocaleString()}`}
+                                </span>
+                              </label>
+                            </div>
+                          )
+                        })}
+
+                      {/* Show non-spendable (Property) separately */}
+                      {categorySlices
+                        .filter((slice) =>
+                          DEFAULT_NON_SPENDABLE_CATEGORIES.includes(slice.key),
+                        )
+                        .map((slice) => (
                           <div
                             key={slice.key}
-                            className={`p-3 rounded-lg border transition-colors ${
-                              isSpendable
-                                ? "border-orange-200 bg-orange-50"
-                                : "border-gray-200 bg-gray-50"
-                            }`}
+                            className="p-3 rounded-lg border border-amber-200 bg-amber-50"
                           >
-                            <label className="flex items-center justify-between cursor-pointer">
+                            <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
-                                <input
-                                  type="checkbox"
-                                  checked={isSpendable}
-                                  onChange={() => toggleCategory(slice.key)}
-                                  className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500"
-                                />
                                 <div
                                   className="w-3 h-3 rounded-full"
                                   style={{ backgroundColor: slice.color }}
                                 />
-                                <span
-                                  className={
-                                    isSpendable
-                                      ? "text-gray-900"
-                                      : "text-gray-500"
-                                  }
-                                >
+                                <span className="text-gray-700">
                                   {slice.label}
                                 </span>
+                                <span className="text-xs text-amber-600 bg-amber-100 px-2 py-0.5 rounded">
+                                  Non-spendable
+                                </span>
                               </div>
-                              <span
-                                className={`font-medium ${
-                                  hideValues
-                                    ? "text-gray-400"
-                                    : isSpendable
-                                      ? "text-gray-900"
-                                      : "text-gray-400"
-                                }`}
-                              >
+                              <span className="font-medium text-gray-500">
                                 {hideValues
                                   ? HIDDEN_VALUE
                                   : `${effectiveCurrency}${Math.round(slice.value * effectiveFxRate).toLocaleString()}`}
                               </span>
-                            </label>
-                          </div>
-                        )
-                      })}
-
-                    {/* Show non-spendable (Property) separately */}
-                    {categorySlices
-                      .filter((slice) =>
-                        DEFAULT_NON_SPENDABLE_CATEGORIES.includes(slice.key),
-                      )
-                      .map((slice) => (
-                        <div
-                          key={slice.key}
-                          className="p-3 rounded-lg border border-amber-200 bg-amber-50"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div
-                                className="w-3 h-3 rounded-full"
-                                style={{ backgroundColor: slice.color }}
-                              />
-                              <span className="text-gray-700">
-                                {slice.label}
-                              </span>
-                              <span className="text-xs text-amber-600 bg-amber-100 px-2 py-0.5 rounded">
-                                Non-spendable
-                              </span>
-                            </div>
-                            <span className="font-medium text-gray-500">
-                              {hideValues
-                                ? HIDDEN_VALUE
-                                : `${effectiveCurrency}${Math.round(slice.value * effectiveFxRate).toLocaleString()}`}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-
-                  {/* Pension/Policy FV Projections */}
-                  {pensionProjections.length > 0 && (
-                    <div className="mt-4 border-t pt-4">
-                      <h3 className="text-sm font-medium text-gray-700 mb-3">
-                        <i className="fas fa-chart-line mr-2 text-purple-500"></i>
-                        Pension & Policy Projections
-                      </h3>
-                      <div className="space-y-2">
-                        {pensionProjections.map((projection) => (
-                          <div
-                            key={projection.assetId}
-                            className="p-3 rounded-lg border border-purple-200 bg-purple-50"
-                          >
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <div className="font-medium text-gray-800">
-                                  {projection.assetName}
-                                </div>
-                                <div className="text-xs text-purple-600 mt-1">
-                                  Payout at age {projection.payoutAge}
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <div className="text-xs text-gray-500">
-                                  Current
-                                </div>
-                                <div
-                                  className={`text-sm ${hideValues ? "text-gray-400" : "text-gray-600"}`}
-                                >
-                                  {hideValues
-                                    ? HIDDEN_VALUE
-                                    : `${effectiveCurrency}${Math.round(projection.currentValue * effectiveFxRate).toLocaleString()}`}
-                                </div>
-                                <div className="text-xs text-purple-600 mt-2">
-                                  Projected
-                                </div>
-                                <div
-                                  className={`font-medium ${hideValues ? "text-gray-400" : "text-purple-700"}`}
-                                >
-                                  {hideValues
-                                    ? HIDDEN_VALUE
-                                    : `${effectiveCurrency}${Math.round(projection.projectedValue * effectiveFxRate).toLocaleString()}`}
-                                </div>
-                              </div>
                             </div>
                           </div>
                         ))}
+                    </div>
+
+                    {/* Pension/Policy FV Projections */}
+                    {pensionProjections.length > 0 && (
+                      <div className="mt-4 border-t pt-4">
+                        <h3 className="text-sm font-medium text-gray-700 mb-3">
+                          <i className="fas fa-chart-line mr-2 text-purple-500"></i>
+                          Pension & Policy Projections
+                        </h3>
+                        <div className="space-y-2">
+                          {pensionProjections.map((projection) => (
+                            <div
+                              key={projection.assetId}
+                              className="p-3 rounded-lg border border-purple-200 bg-purple-50"
+                            >
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <div className="font-medium text-gray-800">
+                                    {projection.assetName}
+                                  </div>
+                                  <div className="text-xs text-purple-600 mt-1">
+                                    Payout at age {projection.payoutAge}
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <div className="text-xs text-gray-500">
+                                    Current
+                                  </div>
+                                  <div
+                                    className={`text-sm ${hideValues ? "text-gray-400" : "text-gray-600"}`}
+                                  >
+                                    {hideValues
+                                      ? HIDDEN_VALUE
+                                      : `${effectiveCurrency}${Math.round(projection.currentValue * effectiveFxRate).toLocaleString()}`}
+                                  </div>
+                                  <div className="text-xs text-purple-600 mt-2">
+                                    Projected
+                                  </div>
+                                  <div
+                                    className={`font-medium ${hideValues ? "text-gray-400" : "text-purple-700"}`}
+                                  >
+                                    {hideValues
+                                      ? HIDDEN_VALUE
+                                      : `${effectiveCurrency}${Math.round(projection.projectedValue * effectiveFxRate).toLocaleString()}`}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Summary totals - use local values (reflects user's spendable category selections) */}
+                    <div className="border-t pt-4 space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">
+                          {t("retire.assets.totalAssets")}
+                        </span>
+                        <span
+                          className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
+                        >
+                          {hideValues
+                            ? HIDDEN_VALUE
+                            : `${effectiveCurrency}${Math.round(totalAssets * effectiveFxRate).toLocaleString()}`}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">
+                          {t("retire.assets.spendable")}
+                        </span>
+                        <span
+                          className={`font-medium ${hideValues ? "text-gray-400" : "text-orange-600"}`}
+                        >
+                          {hideValues
+                            ? HIDDEN_VALUE
+                            : `${effectiveCurrency}${Math.round(liquidAssets * effectiveFxRate).toLocaleString()}`}
+                        </span>
+                      </div>
+                      {totalAssets > liquidAssets && (
+                        <>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-500">
+                              {t("retire.assets.nonSpendable")}
+                            </span>
+                            <span className="font-medium text-gray-400">
+                              {hideValues
+                                ? HIDDEN_VALUE
+                                : `${effectiveCurrency}${Math.round((totalAssets - liquidAssets) * effectiveFxRate).toLocaleString()}`}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-400">
+                            FI uses spendable assets; illiquid assets add
+                            long-term security.
+                          </p>
+                        </>
+                      )}
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">
+                          Blended Return Rate
+                        </span>
+                        <span className="font-medium text-blue-600">
+                          {(blendedReturnRate * 100).toFixed(1)}%
+                        </span>
                       </div>
                     </div>
-                  )}
 
-                  {/* Summary totals - use local values (reflects user's spendable category selections) */}
-                  <div className="border-t pt-4 space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">
-                        {t("retire.assets.totalAssets")}
-                      </span>
-                      <span
-                        className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
-                      >
-                        {hideValues
-                          ? HIDDEN_VALUE
-                          : `${effectiveCurrency}${Math.round(totalAssets * effectiveFxRate).toLocaleString()}`}
-                      </span>
+                    <div className="border-t pt-4">
+                      <div className="flex justify-between font-medium text-lg">
+                        <span>
+                          {t("retire.assets.spendableAtRetirement")}
+                          {currentAge !== undefined && retirementAge && (
+                            <span className="font-normal text-sm text-gray-500">
+                              {" "}
+                              (age {retirementAge},{" "}
+                              {retirementAge - currentAge > 0
+                                ? `${retirementAge - currentAge}yr`
+                                : "now"}
+                              )
+                            </span>
+                          )}
+                        </span>
+                        <span
+                          className={
+                            hideValues ? "text-gray-400" : "text-orange-600"
+                          }
+                        >
+                          {hideValues
+                            ? HIDDEN_VALUE
+                            : `${effectiveCurrency}${Math.round(
+                                displayProjection?.preRetirementAccumulation
+                                  ?.liquidAssetsAtRetirement
+                                  ? // Backend projection available (already in display currency)
+                                    displayProjection.preRetirementAccumulation
+                                      .liquidAssetsAtRetirement -
+                                      excludedPensionFV * effectiveFxRate
+                                  : // No projection: use local values with FX conversion
+                                    (liquidAssets +
+                                      includedPensionFvDifferential) *
+                                      effectiveFxRate,
+                              ).toLocaleString()}`}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">
-                        {t("retire.assets.spendable")}
-                      </span>
-                      <span
-                        className={`font-medium ${hideValues ? "text-gray-400" : "text-orange-600"}`}
-                      >
-                        {hideValues
-                          ? HIDDEN_VALUE
-                          : `${effectiveCurrency}${Math.round(liquidAssets * effectiveFxRate).toLocaleString()}`}
-                      </span>
-                    </div>
-                    {totalAssets > liquidAssets && (
-                      <>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">
-                            {t("retire.assets.nonSpendable")}
-                          </span>
-                          <span className="font-medium text-gray-400">
-                            {hideValues
-                              ? HIDDEN_VALUE
-                              : `${effectiveCurrency}${Math.round((totalAssets - liquidAssets) * effectiveFxRate).toLocaleString()}`}
-                          </span>
-                        </div>
-                        <p className="text-xs text-gray-400">
-                          FI uses spendable assets; illiquid assets add
-                          long-term security.
-                        </p>
-                      </>
+
+                    {isCalculating && (
+                      <div className="mt-4 text-center text-gray-500">
+                        <i className="fas fa-spinner fa-spin mr-2"></i>
+                        {t("retire.assets.calculating")}
+                      </div>
                     )}
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Blended Return Rate</span>
-                      <span className="font-medium text-blue-600">
-                        {(blendedReturnRate * 100).toFixed(1)}%
-                      </span>
-                    </div>
                   </div>
-
-                  <div className="border-t pt-4">
-                    <div className="flex justify-between font-medium text-lg">
-                      <span>
-                        {t("retire.assets.spendableAtRetirement")}
-                        {currentAge !== undefined && retirementAge && (
-                          <span className="font-normal text-sm text-gray-500">
-                            {" "}
-                            (age {retirementAge},{" "}
-                            {retirementAge - currentAge > 0
-                              ? `${retirementAge - currentAge}yr`
-                              : "now"}
-                            )
-                          </span>
-                        )}
-                      </span>
-                      <span
-                        className={
-                          hideValues ? "text-gray-400" : "text-orange-600"
-                        }
-                      >
-                        {hideValues
-                          ? HIDDEN_VALUE
-                          : `${effectiveCurrency}${Math.round(
-                              displayProjection?.preRetirementAccumulation
-                                ?.liquidAssetsAtRetirement
-                                ? // Backend projection available (already in display currency)
-                                  displayProjection.preRetirementAccumulation
-                                    .liquidAssetsAtRetirement -
-                                    excludedPensionFV * effectiveFxRate
-                                : // No projection: use local values with FX conversion
-                                  (liquidAssets +
-                                    includedPensionFvDifferential) *
-                                    effectiveFxRate,
-                            ).toLocaleString()}`}
-                      </span>
-                    </div>
-                  </div>
-
-                  {isCalculating && (
-                    <div className="mt-4 text-center text-gray-500">
-                      <i className="fas fa-spinner fa-spin mr-2"></i>
-                      {t("retire.assets.calculating")}
-                    </div>
-                  )}
-                </div>
-              )}
+                )}
               </div>
             </div>
           )}

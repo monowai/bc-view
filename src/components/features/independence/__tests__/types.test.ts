@@ -43,9 +43,7 @@ describe("types constants", () => {
       expect(TABS.find((t) => t.id === "details")?.label).toBe("My Plan")
       expect(TABS.find((t) => t.id === "assets")?.label).toBe("My Assets")
       expect(TABS.find((t) => t.id === "timeline")?.label).toBe("My Path")
-      expect(TABS.find((t) => t.id === "simulation")?.label).toBe(
-        "Stress Test",
-      )
+      expect(TABS.find((t) => t.id === "simulation")?.label).toBe("Stress Test")
     })
 
     it("has correct icons", () => {

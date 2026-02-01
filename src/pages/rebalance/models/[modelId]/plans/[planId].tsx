@@ -422,9 +422,7 @@ function PlanDetailPage(): React.ReactElement {
       const dataLines = hasHeader ? lines.slice(1) : lines
 
       // Detect column layout from header
-      const headerParts = hasHeader
-        ? parseCSVLine(lines[0])
-        : ([] as string[])
+      const headerParts = hasHeader ? parseCSVLine(lines[0]) : ([] as string[])
       // Check if header has a separate currency column (5-column format)
       const hasCurrencyColumn =
         headerParts.length >= 5 &&

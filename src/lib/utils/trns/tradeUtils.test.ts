@@ -572,7 +572,9 @@ describe("TradeUtils", () => {
         },
       }
       const row = getTradeRow(data)
-      expect(row).toContain("EXPENSE,PRIVATE,APT,,kiwi-bank-id,NZD,2024-01-15,1,,NZD,500,0,,,-500,Insurance")
+      expect(row).toContain(
+        "EXPENSE,PRIVATE,APT,,kiwi-bank-id,NZD,2024-01-15,1,,NZD,500,0,,,-500,Insurance",
+      )
     })
   })
 

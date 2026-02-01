@@ -80,8 +80,7 @@ export default function AssetSearch({
   )
   const expandingRef = useRef(false)
 
-  const isSpecificMarket =
-    market !== undefined && market !== ""
+  const isSpecificMarket = market !== undefined && market !== ""
 
   const doFetch = useCallback(
     async (
@@ -252,10 +251,7 @@ export default function AssetSearch({
             {noResultsHref && (
               <div className="text-blue-600 mt-1">
                 <i className="fas fa-plus-circle mr-1"></i>
-                {t(
-                  "trn.asset.search.createAsset",
-                  "Create a private asset",
-                )}
+                {t("trn.asset.search.createAsset", "Create a private asset")}
               </div>
             )}
           </div>
@@ -297,8 +293,7 @@ export default function AssetSearch({
     menuIsOpen: menuOpen,
     onMenuOpen: handleMenuOpen,
     onMenuClose: handleMenuClose,
-    menuPortalTarget:
-      typeof document !== "undefined" ? document.body : null,
+    menuPortalTarget: typeof document !== "undefined" ? document.body : null,
     menuPosition: "fixed" as const,
     styles: {
       control: (base: Record<string, unknown>) => ({
@@ -335,9 +330,17 @@ export default function AssetSearch({
             }}
             value={
               field.value
-                ? { value: field.value, label: stripOwnerPrefix(field.value), symbol: field.value }
+                ? {
+                    value: field.value,
+                    label: stripOwnerPrefix(field.value),
+                    symbol: field.value,
+                  }
                 : defaultValue
-                  ? { value: defaultValue, label: stripOwnerPrefix(defaultValue), symbol: defaultValue }
+                  ? {
+                      value: defaultValue,
+                      label: stripOwnerPrefix(defaultValue),
+                      symbol: defaultValue,
+                    }
                   : null
             }
           />
