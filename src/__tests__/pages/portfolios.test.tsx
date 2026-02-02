@@ -20,9 +20,20 @@ global.fetch = mockFetch
 
 describe("Portfolios Page", () => {
   beforeEach(() => {
-    // Mock fetch for currencies API
-    mockFetch.mockResolvedValue({
-      json: () => Promise.resolve({ data: [] }),
+    // Mock fetch to respond based on URL
+    mockFetch.mockImplementation((url: string) => {
+      if (url === "/api/currencies") {
+        return Promise.resolve({
+          json: () =>
+            Promise.resolve({
+              data: [{ code: "USD", name: "Dollar", symbol: "$" }],
+            }),
+        })
+      }
+      // Default for any other fetch (e.g. /api/fx)
+      return Promise.resolve({
+        json: () => Promise.resolve({ data: {} }),
+      })
     })
 
     const mockUseSWR = jest.fn().mockReturnValue({
@@ -40,12 +51,10 @@ describe("Portfolios Page", () => {
   it("renders the portfolios table when data is available", async () => {
     render(<Portfolios />)
 
-    // Wait for async currency fetch to complete
+    // Wait for portfolio table to render (requires currencies + FX rates to load)
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith("/api/currencies")
+      expect(screen.getByText("portfolio.code")).toBeInTheDocument()
     })
-
-    expect(screen.getByText("portfolio.code")).toBeInTheDocument()
     // Page has both mobile and desktop layouts, so P123 appears twice
     expect(screen.getAllByText("P123").length).toBeGreaterThan(0)
     expect(screen.getAllByText("Portfolio 1").length).toBeGreaterThan(0)

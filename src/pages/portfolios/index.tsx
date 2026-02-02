@@ -122,6 +122,7 @@ export default withPageAuthRequired(function Portfolios({
   const [currencies, setCurrencies] = useState<Currency[]>([])
   const [displayCurrency, setDisplayCurrency] = useState<Currency | null>(null)
   const [fxRates, setFxRates] = useState<Record<string, number>>({})
+  const [fxRatesReady, setFxRatesReady] = useState(false)
 
   // Fetch available currencies
   useEffect(() => {
@@ -161,6 +162,8 @@ export default withPageAuthRequired(function Portfolios({
     const portfolioList = data?.data
     if (!displayCurrency || !portfolioList || portfolioList.length === 0) return
 
+    setFxRatesReady(false)
+
     const uniqueCurrencies: string[] = [
       ...new Set<string>(portfolioList.map((p: Portfolio) => p.base.code)),
     ]
@@ -175,6 +178,7 @@ export default withPageAuthRequired(function Portfolios({
         rates[code] = 1
       })
       setFxRates(rates)
+      setFxRatesReady(true)
       return
     }
 
@@ -195,6 +199,7 @@ export default withPageAuthRequired(function Portfolios({
           },
         )
         setFxRates(rates)
+        setFxRatesReady(true)
       })
       .catch(console.error)
   }, [displayCurrency, data?.data])
@@ -1022,7 +1027,7 @@ export default withPageAuthRequired(function Portfolios({
     )
   }
 
-  if (!data || !ready) {
+  if (!data || !ready || (data.data.length > 0 && !fxRatesReady)) {
     return rootLoader(t("loading"))
   }
   // Use the user variable somewhere in your component
