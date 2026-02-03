@@ -26,6 +26,8 @@ export interface ModelDto {
   objective?: string
   description?: string
   baseCurrency: string
+  shared: boolean
+  isOwner: boolean
   currentPlanId?: string
   currentPlanVersion?: number
   planCount: number
@@ -45,6 +47,7 @@ export interface UpdateModelRequest {
   objective?: string
   description?: string
   baseCurrency?: string
+  shared?: boolean
 }
 
 // Plan Types (new structure)

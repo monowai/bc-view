@@ -377,7 +377,7 @@ const OnboardingWizard: React.FC = () => {
               market: "PRIVATE",
               code: assetCode,
               name: pension.name,
-              category: "PENSION",
+              category: "POLICY",
               currency: pension.currency,
             },
           },

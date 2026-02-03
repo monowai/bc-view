@@ -11,6 +11,8 @@ import { currencyOptions } from "@lib/currency"
 import { useRouter } from "next/router"
 import SetAccountBalancesDialog from "@components/features/accounts/SetAccountBalancesDialog"
 import MathInput from "@components/ui/MathInput"
+import CompositeAssetEditor from "@components/features/assets/CompositeAssetEditor"
+import { PolicyType, SubAccountRequest } from "types/beancounter"
 
 interface SectorInfo {
   code: string
@@ -29,7 +31,6 @@ const USER_ASSET_CATEGORIES = [
   "RE",
   "MUTUAL FUND",
   "POLICY",
-  "PENSION",
 ]
 
 // Category icons mapping
@@ -37,8 +38,7 @@ const CATEGORY_ICONS: Record<string, string> = {
   ACCOUNT: "fa-university",
   RE: "fa-home",
   "MUTUAL FUND": "fa-chart-pie",
-  POLICY: "fa-shield-alt",
-  PENSION: "fa-piggy-bank",
+  POLICY: "fa-piggy-bank",
 }
 
 interface CategoryOption {
@@ -742,6 +742,10 @@ interface AssetConfigState {
   monthlyContribution: string
   lumpSum: boolean
   expectedReturnRate: string
+  // Composite policy support
+  policyType: PolicyType | undefined
+  lockedUntilDate: string
+  subAccounts: SubAccountRequest[]
   // For projection calculation (client-side only)
   currentAge: string
 }
@@ -769,6 +773,9 @@ const defaultConfigState: AssetConfigState = {
   monthlyContribution: "0",
   lumpSum: false,
   expectedReturnRate: "",
+  policyType: undefined,
+  lockedUntilDate: "",
+  subAccounts: [],
   currentAge: "",
 }
 
@@ -831,9 +838,9 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
     retirementAge: number
   } | null>(null)
 
-  // Show income/planning tab for RE, PENSION, and POLICY categories
+  // Show income/planning tab for RE and POLICY categories
   const showIncomeTab =
-    category === "RE" || category === "PENSION" || category === "POLICY"
+    category === "RE" || category === "POLICY"
 
   // Fetch country tax rates on mount
   useEffect(() => {
@@ -859,12 +866,12 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
     fetchCountryTaxRates()
   }, [])
 
-  // Fetch user's independence plan for age data (used for PENSION/POLICY projections)
+  // Fetch user's independence plan for age data (used for POLICY projections)
   useEffect(() => {
     async function fetchPlanData(): Promise<void> {
-      // Only fetch for PENSION/POLICY assets
+      // Only fetch for POLICY assets
       const categoryId = asset.assetCategory?.id
-      if (categoryId !== "PENSION" && categoryId !== "POLICY") return
+      if (categoryId !== "POLICY") return
 
       try {
         const response = await fetch("/api/independence/plans")
@@ -923,16 +930,11 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
     fetchCurrentSector()
   }, [asset.id])
 
-  // Fetch existing private asset config for RE, PENSION, and POLICY assets
+  // Fetch existing private asset config for RE and POLICY assets
   useEffect(() => {
     async function fetchAssetConfig(): Promise<void> {
       const categoryId = asset.assetCategory?.id
-      if (
-        categoryId !== "RE" &&
-        categoryId !== "PENSION" &&
-        categoryId !== "POLICY"
-      )
-        return
+      if (categoryId !== "RE" && categoryId !== "POLICY") return
 
       setConfigLoading(true)
       try {
@@ -978,7 +980,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
               autoGenerateTransactions:
                 data.data.autoGenerateTransactions || false,
               // Pension/Policy specific fields
-              isPension: data.data.isPension || categoryId === "PENSION",
+              isPension: data.data.isPension || false,
               payoutAge: data.data.payoutAge ? String(data.data.payoutAge) : "",
               monthlyPayoutAmount: String(
                 Math.round((data.data.monthlyPayoutAmount || 0) * 100) / 100,
@@ -991,14 +993,34 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
               expectedReturnRate: data.data.expectedReturnRate
                 ? String(Math.round(data.data.expectedReturnRate * 1000) / 10)
                 : "",
+              // Composite policy support
+              policyType: data.data.policyType || undefined,
+              lockedUntilDate: data.data.lockedUntilDate || "",
+              subAccounts: (data.data.subAccounts || []).map(
+                (sa: {
+                  code: string
+                  displayName?: string
+                  balance: number
+                  expectedReturnRate?: number
+                  feeRate?: number
+                  liquid: boolean
+                }) => ({
+                  code: sa.code,
+                  displayName: sa.displayName,
+                  balance: sa.balance || 0,
+                  expectedReturnRate: sa.expectedReturnRate,
+                  feeRate: sa.feeRate,
+                  liquid: sa.liquid !== false,
+                }),
+              ),
               // Client-side only for projection calculation
               currentAge: "",
             })
-          } else if (categoryId === "PENSION" || categoryId === "POLICY") {
-            // Set default isPension for PENSION category even if no config exists
+          } else if (categoryId === "POLICY") {
+            // Set default isPension for POLICY category even if no config exists
             setConfig((prev) => ({
               ...prev,
-              isPension: categoryId === "PENSION",
+              isPension: false,
             }))
           }
         }
@@ -1090,12 +1112,8 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
         returnRate,
       )
 
-      // Save private asset config for RE, PENSION, and POLICY categories
-      if (
-        category === "RE" ||
-        category === "PENSION" ||
-        category === "POLICY"
-      ) {
+      // Save private asset config for RE and POLICY categories
+      if (category === "RE" || category === "POLICY") {
         const configPayload: Record<string, unknown> = {
           liquidationPriority: parseInt(config.liquidationPriority) || 100,
         }
@@ -1122,10 +1140,10 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
           })
         }
 
-        // Pension/Policy-specific fields
-        if (category === "PENSION" || category === "POLICY") {
+        // Policy-specific fields
+        if (category === "POLICY") {
           Object.assign(configPayload, {
-            isPension: config.isPension || category === "PENSION",
+            isPension: config.isPension,
             payoutAge: config.payoutAge ? parseInt(config.payoutAge) : null,
             monthlyPayoutAmount: parseFloat(config.monthlyPayoutAmount) || 0,
             monthlyContribution: parseFloat(config.monthlyContribution) || 0,
@@ -1134,6 +1152,15 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
               ? parseFloat(config.expectedReturnRate) / 100
               : null,
           })
+
+          // Composite policy support
+          if (config.policyType) {
+            Object.assign(configPayload, {
+              policyType: config.policyType,
+              lockedUntilDate: config.lockedUntilDate || null,
+              subAccounts: config.subAccounts,
+            })
+          }
         }
 
         await fetch(`/api/assets/config/${asset.id}`, {
@@ -1311,7 +1338,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
           </div>
         )}
 
-        {/* Income & Planning Tab (RE, PENSION, POLICY) */}
+        {/* Income & Planning Tab (RE, POLICY) */}
         {activeTab === "income" && showIncomeTab && (
           <div className="space-y-4">
             {configLoading ? (
@@ -1321,20 +1348,15 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
               </div>
             ) : (
               <>
-                {/* PENSION/POLICY specific fields */}
-                {(category === "PENSION" || category === "POLICY") && (
+                {/* POLICY specific fields */}
+                {category === "POLICY" && (
                   <>
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700 mb-4">
                       <i className="fas fa-info-circle mr-2"></i>
-                      {category === "PENSION"
-                        ? t(
-                            "asset.config.pension.hint",
-                            "Configure your pension plan for retirement projections.",
-                          )
-                        : t(
-                            "asset.config.policy.hint",
-                            "Configure your insurance policy for retirement projections.",
-                          )}
+                      {t(
+                        "asset.config.policy.hint",
+                        "Configure your retirement fund for projections.",
+                      )}
                     </div>
 
                     {/* Payout Type */}
@@ -1606,6 +1628,26 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                       </div>
                     )}
                   </>
+                )}
+
+                {/* Composite Policy Editor */}
+                {category === "POLICY" && (
+                  <div className="border-t border-gray-200 pt-4">
+                    <CompositeAssetEditor
+                      policyType={config.policyType}
+                      lockedUntilDate={config.lockedUntilDate}
+                      subAccounts={config.subAccounts}
+                      onPolicyTypeChange={(val) =>
+                        setConfig({ ...config, policyType: val })
+                      }
+                      onLockedUntilDateChange={(val) =>
+                        setConfig({ ...config, lockedUntilDate: val })
+                      }
+                      onSubAccountsChange={(accounts) =>
+                        setConfig({ ...config, subAccounts: accounts })
+                      }
+                    />
+                  </div>
                 )}
 
                 {/* RE-specific fields */}

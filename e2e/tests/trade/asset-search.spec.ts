@@ -6,7 +6,9 @@ test.describe("Asset Search in Trade Entry", () => {
    * Open the trade modal via the UI dropdown (Trade > Asset Trade).
    * Waits for the form to be visible before returning.
    */
-  async function openTradeModal(page: import("@playwright/test").Page): Promise<void> {
+  async function openTradeModal(
+    page: import("@playwright/test").Page,
+  ): Promise<void> {
     // Click the "Trade" dropdown button
     await page.locator("button:has-text('Trade')").first().click()
     // Click "Asset Trade" from the dropdown

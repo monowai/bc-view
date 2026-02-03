@@ -67,8 +67,11 @@ export default function ContributionsStep({
     return map
   }, [assetsData])
 
-  // Filter to only pension/insurance assets
-  const pensionAssets = configs.filter((c) => c.isPension)
+  // Filter to only pension/insurance assets, excluding composites
+  // (composite assets manage their own sub-account balances)
+  const pensionAssets = configs.filter(
+    (c) => c.isPension && !(c.subAccounts && c.subAccounts.length > 0),
+  )
 
   const watchedContributions = useWatch({ control, name: "contributions" })
   const contributions = useMemo(
