@@ -20,6 +20,10 @@ interface UsePrivateAssetConfigsResult {
   getTotalRentalByCurrency: () => Record<string, number>
   getNetRentalByCurrency: () => Record<string, number>
   getConfigsByLiquidationOrder: () => PrivateAssetConfig[]
+  isComposite: (config: PrivateAssetConfig) => boolean
+  getCompositeConfigs: () => PrivateAssetConfig[]
+  getCompositeTotal: (config: PrivateAssetConfig) => number
+  getCompositeLiquidTotal: (config: PrivateAssetConfig) => number
 }
 
 const API_URL = "/api/assets/config"
@@ -156,6 +160,39 @@ export function usePrivateAssetConfigs(): UsePrivateAssetConfigsResult {
     )
   }
 
+  /**
+   * Check if a config represents a composite policy asset (has sub-accounts).
+   */
+  const isComposite = (config: PrivateAssetConfig): boolean => {
+    return (config.subAccounts?.length ?? 0) > 0
+  }
+
+  /**
+   * Get all composite policy configs.
+   */
+  const getCompositeConfigs = (): PrivateAssetConfig[] => {
+    if (!data?.data) return []
+    return data.data.filter(isComposite)
+  }
+
+  /**
+   * Get total balance across all sub-accounts of a composite config.
+   */
+  const getCompositeTotal = (config: PrivateAssetConfig): number => {
+    if (!config.subAccounts) return 0
+    return config.subAccounts.reduce((sum, sa) => sum + (sa.balance || 0), 0)
+  }
+
+  /**
+   * Get liquid balance (sub-accounts where liquid=true) of a composite config.
+   */
+  const getCompositeLiquidTotal = (config: PrivateAssetConfig): number => {
+    if (!config.subAccounts) return 0
+    return config.subAccounts
+      .filter((sa) => sa.liquid !== false)
+      .reduce((sum, sa) => sum + (sa.balance || 0), 0)
+  }
+
   return {
     configs: data?.data || [],
     isLoading,
@@ -166,5 +203,9 @@ export function usePrivateAssetConfigs(): UsePrivateAssetConfigsResult {
     getTotalRentalByCurrency,
     getNetRentalByCurrency,
     getConfigsByLiquidationOrder,
+    isComposite,
+    getCompositeConfigs,
+    getCompositeTotal,
+    getCompositeLiquidTotal,
   }
 }

@@ -131,9 +131,23 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
                 </td>
               )}
               <td className="px-4 py-3">
-                <span className="font-medium text-emerald-600">
-                  {model.name}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-emerald-600">
+                    {model.name}
+                  </span>
+                  {model.shared && !model.isOwner && (
+                    <span
+                      className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700"
+                      title={t(
+                        "rebalance.models.sharedReadOnly",
+                        "Shared model (read-only)",
+                      )}
+                    >
+                      <i className="fas fa-share-alt mr-1 text-[10px]"></i>
+                      {t("rebalance.models.shared", "Shared")}
+                    </span>
+                  )}
+                </div>
                 {model.description && (
                   <p className="text-xs text-gray-500 mt-1 truncate max-w-xs">
                     {model.description}
@@ -166,28 +180,36 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
               </td>
               {!selectable && (
                 <td className="px-4 py-3">
-                  <div className="flex items-center justify-center space-x-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        router.push(`/rebalance/models/${model.id}`)
-                      }}
-                      className="text-emerald-500 hover:text-emerald-700 transition-colors"
-                      title={t("edit", "Edit")}
-                    >
-                      <i className="far fa-edit"></i>
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleDelete(model.id)
-                      }}
-                      className="text-red-500 hover:text-red-700 transition-colors"
-                      title={t("delete", "Delete")}
-                    >
-                      <i className="far fa-trash-alt"></i>
-                    </button>
-                  </div>
+                  {model.isOwner !== false ? (
+                    <div className="flex items-center justify-center space-x-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          router.push(`/rebalance/models/${model.id}`)
+                        }}
+                        className="text-emerald-500 hover:text-emerald-700 transition-colors"
+                        title={t("edit", "Edit")}
+                      >
+                        <i className="far fa-edit"></i>
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDelete(model.id)
+                        }}
+                        className="text-red-500 hover:text-red-700 transition-colors"
+                        title={t("delete", "Delete")}
+                      >
+                        <i className="far fa-trash-alt"></i>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center">
+                      <span className="text-gray-400 text-sm">
+                        <i className="fas fa-eye"></i>
+                      </span>
+                    </div>
+                  )}
                 </td>
               )}
             </tr>

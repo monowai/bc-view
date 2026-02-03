@@ -1,10 +1,12 @@
-import React, { useMemo, useEffect } from "react"
+import React, { useMemo, useEffect, useState } from "react"
 import { Controller, SubmitHandler, useForm } from "react-hook-form"
 import {
   AssetCategory,
   AssetRequest,
   AssetResponse,
   CurrencyOption,
+  PolicyType,
+  SubAccountRequest,
 } from "types/beancounter"
 import { ccyKey, categoriesKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { useRouter } from "next/router"
@@ -21,6 +23,7 @@ import { yupResolver } from "@hookform/resolvers/yup"
 import { validateInput } from "@components/errors/validator"
 import { accountInputSchema } from "@lib/account/schema"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
+import CompositeAssetEditor from "@components/features/assets/CompositeAssetEditor"
 
 interface SectorInfo {
   code: string
@@ -39,7 +42,6 @@ const USER_ASSET_CATEGORIES = [
   "RE",
   "MUTUAL FUND",
   "POLICY",
-  "PENSION",
 ]
 
 interface CategoryOption {
@@ -53,11 +55,6 @@ interface AccountFormInput {
   currency: CurrencyOption
   category: CategoryOption
   sector?: SectorOption
-  // Payout settings for PENSION and POLICY assets
-  expectedReturnRate?: string // Stored as percentage string (e.g., "5.0")
-  payoutAge?: string
-  monthlyPayoutAmount?: string
-  lumpSum?: boolean // Whether payout includes a lump sum at maturity
 }
 
 export default withPageAuthRequired(
@@ -68,6 +65,13 @@ export default withPageAuthRequired(
 
     // Get category from query param (e.g., /assets/account?category=POLICY)
     const categoryFromQuery = router.query.category as string | undefined
+
+    // Composite policy state (managed outside react-hook-form)
+    const [policyType, setPolicyType] = useState<PolicyType | undefined>(
+      undefined,
+    )
+    const [lockedUntilDate, setLockedUntilDate] = useState("")
+    const [subAccounts, setSubAccounts] = useState<SubAccountRequest[]>([])
 
     const {
       formState: { errors },
@@ -181,28 +185,23 @@ export default withPageAuthRequired(
                   }
                 }
 
-                // Save payout config for PENSION or POLICY categories
-                if (
-                  formData.category.value === "PENSION" ||
-                  formData.category.value === "POLICY"
-                ) {
+                // Save payout config for POLICY category
+                if (formData.category.value === "POLICY") {
                   try {
+                    const configPayload: Record<string, unknown> = {
+                      isPension: false,
+                    }
+
+                    if (policyType) {
+                      configPayload.policyType = policyType
+                      configPayload.lockedUntilDate = lockedUntilDate || null
+                      configPayload.subAccounts = subAccounts
+                    }
+
                     await fetch(`/api/assets/config/${createdAsset.id}`, {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({
-                        isPension: formData.category.value === "PENSION",
-                        expectedReturnRate: formData.expectedReturnRate
-                          ? parseFloat(formData.expectedReturnRate) / 100
-                          : 0.05,
-                        payoutAge: formData.payoutAge
-                          ? parseInt(formData.payoutAge)
-                          : undefined,
-                        monthlyPayoutAmount: formData.monthlyPayoutAmount
-                          ? parseFloat(formData.monthlyPayoutAmount)
-                          : undefined,
-                        lumpSum: formData.lumpSum ?? false,
-                      }),
+                      body: JSON.stringify(configPayload),
                     })
                   } catch (err) {
                     console.error("Failed to save asset config:", err)
@@ -333,107 +332,28 @@ export default withPageAuthRequired(
             </>
           )}
 
-          {/* Payout settings for PENSION and POLICY categories */}
-          {(watch("category")?.value === "PENSION" ||
-            watch("category")?.value === "POLICY") && (
-            <div
-              className={`mt-6 p-4 rounded-lg border ${
-                watch("category")?.value === "PENSION"
-                  ? "bg-purple-50 border-purple-200"
-                  : "bg-blue-50 border-blue-200"
-              }`}
-            >
+          {/* Composite policy settings for POLICY category */}
+          {watch("category")?.value === "POLICY" && (
+            <div className="mt-6 p-4 rounded-lg border bg-blue-50 border-blue-200">
               <h3 className="font-medium text-gray-900 mb-4 flex items-center">
-                <i
-                  className={`fas ${
-                    watch("category")?.value === "PENSION"
-                      ? "fa-piggy-bank text-purple-500"
-                      : "fa-shield-alt text-blue-500"
-                  } mr-2`}
-                ></i>
-                {watch("category")?.value === "PENSION"
-                  ? t("pension.settings", "Pension Settings")
-                  : t("policy.settings", "Policy Settings")}
+                <i className="fas fa-piggy-bank text-blue-500 mr-2"></i>
+                {t("policy.settings", "Retirement Fund Settings")}
               </h3>
 
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-gray-700 text-sm font-bold mb-2">
-                    {t("payout.expectedReturn", "Expected Return (%)")}
-                  </label>
-                  <input
-                    {...register("expectedReturnRate")}
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="20"
-                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                    placeholder="5.0"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    {t(
-                      "payout.expectedReturn.hint",
-                      "Annual return rate for growth projections",
-                    )}
-                  </p>
-                </div>
+              <CompositeAssetEditor
+                policyType={policyType}
+                lockedUntilDate={lockedUntilDate}
+                subAccounts={subAccounts}
+                onPolicyTypeChange={setPolicyType}
+                onLockedUntilDateChange={setLockedUntilDate}
+                onSubAccountsChange={setSubAccounts}
+              />
 
-                <div>
-                  <label className="block text-gray-700 text-sm font-bold mb-2">
-                    {watch("category")?.value === "PENSION"
-                      ? t("payout.payoutAge", "Payout Age")
-                      : t("payout.maturityAge", "Maturity Age")}
-                  </label>
-                  <input
-                    {...register("payoutAge")}
-                    type="number"
-                    min="18"
-                    max="100"
-                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                    placeholder="65"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    {watch("category")?.value === "PENSION"
-                      ? t("payout.payoutAge.hint", "Age when withdrawals begin")
-                      : t("payout.maturityAge.hint", "Age when policy matures")}
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 text-sm font-bold mb-2">
-                    {t("payout.monthlyPayout", "Monthly Payout")}
-                  </label>
-                  <input
-                    {...register("monthlyPayoutAmount")}
-                    type="number"
-                    step="100"
-                    min="0"
-                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                    placeholder={t("optional", "Optional")}
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    {t("payout.monthlyPayout.hint", "Expected monthly income")}
-                  </p>
-                </div>
-
-                <div className="flex items-center mt-4">
-                  <input
-                    {...register("lumpSum")}
-                    type="checkbox"
-                    id="lumpSum"
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <label
-                    htmlFor="lumpSum"
-                    className="ml-2 text-gray-700 text-sm font-bold"
-                  >
-                    {t("payout.lumpSum", "Includes Lump Sum")}
-                  </label>
-                  <p className="ml-2 text-xs text-gray-500">
-                    {t("payout.lumpSum.hint", "One-time payout at maturity")}
-                  </p>
-                </div>
-              </div>
+              <p className="text-xs text-gray-500 mt-4">
+                <i className="fas fa-info-circle mr-1"></i>
+                Payout settings (age, monthly amount, return rates) can be
+                configured after creation via the edit dialog.
+              </p>
             </div>
           )}
 

@@ -53,10 +53,20 @@ export default function IncomeSourcesStep({
 
   const hasRentalIncome = Object.keys(rentalIncomeByCurrency).length > 0
 
-  // Filter pension assets (isPension = true)
+  // Filter pension assets (isPension = true), excluding composites
   const pensionAssets = React.useMemo(() => {
     if (!configs) return []
-    return configs.filter((c) => c.isPension)
+    return configs.filter(
+      (c) => c.isPension && !(c.subAccounts && c.subAccounts.length > 0),
+    )
+  }, [configs])
+
+  // Composite policy assets (CPF, ILP, etc.) with payout configured
+  const compositeAssets = React.useMemo(() => {
+    if (!configs) return []
+    return configs.filter(
+      (c) => c.subAccounts && c.subAccounts.length > 0 && c.payoutAge,
+    )
   }, [configs])
 
   const totalMonthlyIncome =
@@ -129,6 +139,52 @@ export default function IncomeSourcesStep({
             <p className="text-xs text-blue-600 mt-2">
               <i className="fas fa-info-circle mr-1"></i>
               Configure in Accounts with &apos;Is Pension&apos; enabled.
+            </p>
+          </div>
+        )}
+
+        {/* Composite policy assets with payout info */}
+        {compositeAssets.length > 0 && (
+          <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+            <div className="flex items-center mb-2">
+              <i className="fas fa-layer-group text-indigo-600 mr-2"></i>
+              <h3 className="text-sm font-semibold text-indigo-800">
+                Policy Assets
+              </h3>
+            </div>
+            <div className="space-y-2">
+              {compositeAssets.map((c) => {
+                const total = c.subAccounts
+                  ? c.subAccounts.reduce(
+                      (sum, sa) => sum + (sa.balance || 0),
+                      0,
+                    )
+                  : 0
+                return (
+                  <div
+                    key={c.assetId}
+                    className="flex justify-between text-sm text-indigo-700"
+                  >
+                    <span>
+                      {c.policyType || "Composite"} — payout at age{" "}
+                      {c.payoutAge}
+                      {c.lockedUntilDate &&
+                        ` (locked until ${c.lockedUntilDate})`}
+                    </span>
+                    <span className="font-medium">
+                      {c.monthlyPayoutAmount
+                        ? `$${Math.round(c.monthlyPayoutAmount).toLocaleString()}/mo`
+                        : c.lumpSum
+                          ? `$${total.toLocaleString()} lump sum`
+                          : "Configured"}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+            <p className="text-xs text-indigo-600 mt-2">
+              <i className="fas fa-info-circle mr-1"></i>
+              Policy payouts are included in retirement projections.
             </p>
           </div>
         )}

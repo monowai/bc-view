@@ -432,7 +432,7 @@ export const ASSET_CATEGORIES = {
   RE: "RE",
   ACCOUNT: "ACCOUNT",
   TRADE: "TRADE",
-  PENSION: "PENSION",
+  POLICY: "POLICY",
 } as const
 
 export type AssetCategoryId =
@@ -605,6 +605,37 @@ export interface AssetHoldingsResponse {
 // ============ Private Asset Config ============
 
 /**
+ * Type of composite policy asset.
+ */
+export type PolicyType = "CPF" | "ILP" | "GENERIC"
+
+/**
+ * Sub-account within a composite policy asset (e.g. CPF OA/SA/MA/RA, ILP funds).
+ */
+export interface SubAccount {
+  id: string
+  assetId: string
+  code: string
+  displayName?: string
+  balance: number
+  expectedReturnRate?: number
+  feeRate?: number
+  liquid: boolean
+}
+
+/**
+ * Request to create or update a sub-account.
+ */
+export interface SubAccountRequest {
+  code: string
+  displayName?: string
+  balance: number
+  expectedReturnRate?: number
+  feeRate?: number
+  liquid?: boolean
+}
+
+/**
  * Configuration for private assets (Real Estate, etc.).
  * Stores income assumptions, expenses, and planning parameters.
  */
@@ -639,6 +670,10 @@ export interface PrivateAssetConfig {
   lumpSum?: boolean
   monthlyContribution?: number
   isPension: boolean
+  // Composite policy support
+  policyType?: PolicyType
+  lockedUntilDate?: string
+  subAccounts?: SubAccount[]
   // Timestamps
   createdDate: string
   updatedDate: string
@@ -667,6 +702,10 @@ export interface PrivateAssetConfigRequest {
   lumpSum?: boolean
   monthlyContribution?: number
   isPension?: boolean
+  // Composite policy support
+  policyType?: PolicyType
+  lockedUntilDate?: string
+  subAccounts?: SubAccountRequest[]
 }
 
 export interface PrivateAssetConfigResponse {
