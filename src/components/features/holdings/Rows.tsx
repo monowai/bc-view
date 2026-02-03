@@ -44,6 +44,7 @@ interface RowsProps extends HoldingValues {
   onSetPrice?: (data: SetPriceData) => void
   onSectorWeightings?: (data: SectorWeightingsData) => void
   onCashTransfer?: (data: CashTransferData) => void
+  onCashTransaction?: (assetCode: string) => void
   onCostAdjust?: (data: CostAdjustData) => void
 }
 
@@ -259,6 +260,7 @@ interface CashActionsMenuProps {
   marketValue: number
   onSetCashBalance?: (data: SetCashBalanceData) => void
   onCashTransfer?: (data: CashTransferData) => void
+  onCashTransaction?: (assetCode: string) => void
   t: (key: string) => string
 }
 
@@ -268,6 +270,7 @@ const CashActionsMenu: React.FC<CashActionsMenuProps> = ({
   marketValue,
   onSetCashBalance,
   onCashTransfer,
+  onCashTransaction,
   t,
 }) => {
   const [isOpen, setIsOpen] = useState(false)
@@ -355,6 +358,20 @@ const CashActionsMenu: React.FC<CashActionsMenuProps> = ({
                 {t("cash.transfer.title")}
               </button>
             )}
+            {onCashTransaction && (
+              <button
+                type="button"
+                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setIsOpen(false)
+                  onCashTransaction(assetCode)
+                }}
+              >
+                <i className="fas fa-dollar-sign text-green-500 w-4"></i>
+                {t("trade.cash.title")}
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -375,6 +392,7 @@ export default function Rows({
   onSetPrice,
   onSectorWeightings,
   onCashTransfer,
+  onCashTransaction,
   onCostAdjust,
 }: RowsProps): React.ReactElement {
   const { t } = useTranslation("common")
@@ -468,7 +486,7 @@ export default function Rows({
                     onCorporateActions ||
                     onCostAdjust ||
                     (onSetPrice && asset.market?.code === "PRIVATE")) && (
-                    <div className="hidden sm:flex items-center">
+                    <div className="flex items-center">
                       <ActionsMenu
                         asset={asset}
                         portfolioId={portfolio.id}
@@ -492,14 +510,15 @@ export default function Rows({
                     </div>
                   )}
                 {supportsBalanceSetting(asset) &&
-                  (onSetCashBalance || onCashTransfer) && (
-                    <div className="hidden sm:flex items-center">
+                  (onSetCashBalance || onCashTransfer || onCashTransaction) && (
+                    <div className="flex items-center">
                       <CashActionsMenu
                         asset={asset}
                         portfolio={portfolio}
                         marketValue={moneyValues["TRADE"].marketValue}
                         onSetCashBalance={onSetCashBalance}
                         onCashTransfer={onCashTransfer}
+                        onCashTransaction={onCashTransaction}
                         t={t}
                       />
                     </div>

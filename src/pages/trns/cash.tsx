@@ -105,7 +105,8 @@ const CashInputForm: React.FC<{
   portfolio: Portfolio
   modalOpen: boolean
   setModalOpen: (open: boolean) => void
-}> = ({ portfolio, modalOpen, setModalOpen }) => {
+  initialAsset?: string
+}> = ({ portfolio, modalOpen, setModalOpen, initialAsset }) => {
   const {
     control,
     handleSubmit,
@@ -128,9 +129,12 @@ const CashInputForm: React.FC<{
   // Reset form when modal opens
   useEffect(() => {
     if (modalOpen) {
-      reset(defaultValues)
+      reset({
+        ...defaultValues,
+        asset: initialAsset || defaultValues.asset,
+      })
     }
-  }, [modalOpen, reset])
+  }, [modalOpen, reset, initialAsset])
 
   // Focus type select when modal opens
   useEffect(() => {
