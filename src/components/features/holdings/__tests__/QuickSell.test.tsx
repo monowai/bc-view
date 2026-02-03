@@ -210,11 +210,11 @@ describe("Quick Sell Feature via Actions Menu", () => {
       )
 
       const actionsButton = screen.getByRole("button", { name: /actions/i })
-      // The outer container div should be hidden on mobile portrait but visible on desktop/tablet
-      // Structure: container (hidden sm:flex) > ActionsMenu wrapper (relative) > button
+      // The outer container div should be visible on all screen sizes
+      // Structure: container (flex) > ActionsMenu wrapper (relative) > button
       const outerContainer = actionsButton.parentElement?.parentElement
-      expect(outerContainer).toHaveClass("hidden")
-      expect(outerContainer).toHaveClass("sm:flex")
+      expect(outerContainer).toHaveClass("flex")
+      expect(outerContainer).toHaveClass("items-center")
     })
   })
 

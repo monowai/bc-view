@@ -47,6 +47,7 @@ import SetCashBalanceDialog from "@components/features/holdings/SetCashBalanceDi
 import SetPriceDialog from "@components/features/holdings/SetPriceDialog"
 import CashTransferDialog from "@components/features/holdings/CashTransferDialog"
 import CostAdjustDialog from "@components/features/holdings/CostAdjustDialog"
+import CashInputForm from "@pages/trns/cash"
 import TrnDropZone from "@components/ui/DropZone"
 import IncomeView from "@components/features/holdings/IncomeView"
 
@@ -98,6 +99,9 @@ function HoldingsPage(): React.ReactElement {
   >(undefined)
   const [costAdjustData, setCostAdjustData] = useState<
     CostAdjustData | undefined
+  >(undefined)
+  const [cashTransactionAsset, setCashTransactionAsset] = useState<
+    string | undefined
   >(undefined)
 
   // Fetch portfolios for cash transfer dialog
@@ -190,6 +194,22 @@ function HoldingsPage(): React.ReactElement {
     // Refresh holdings data after transfer
     router.replace(router.asPath)
   }, [router])
+
+  // Handle cash transaction from cash row menu
+  const handleCashTransaction = useCallback((assetCode: string) => {
+    setCashTransactionAsset(assetCode)
+  }, [])
+
+  // Close cash transaction modal
+  const handleCashTransactionClose = useCallback(
+    (open: boolean) => {
+      if (!open) {
+        setCashTransactionAsset(undefined)
+        router.replace(router.asPath)
+      }
+    },
+    [router],
+  )
 
   // Handle cost adjust from position row
   const handleCostAdjust = useCallback((data: CostAdjustData) => {
@@ -425,6 +445,7 @@ function HoldingsPage(): React.ReactElement {
                           onSetPrice={handleSetPrice}
                           onSectorWeightings={handleSectorWeightings}
                           onCashTransfer={handleCashTransfer}
+                          onCashTransaction={handleCashTransaction}
                           onCostAdjust={handleCostAdjust}
                         />
                         <SubTotal
@@ -552,6 +573,14 @@ function HoldingsPage(): React.ReactElement {
           currency={costAdjustData.currency}
           onClose={handleCostAdjustClose}
           onSave={handleCostAdjustSave}
+        />
+      )}
+      {cashTransactionAsset !== undefined && (
+        <CashInputForm
+          portfolio={holdingResults.portfolio}
+          modalOpen={true}
+          setModalOpen={handleCashTransactionClose}
+          initialAsset={cashTransactionAsset}
         />
       )}
     </div>
