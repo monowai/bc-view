@@ -36,6 +36,25 @@ export function stripOwnerPrefix(code: string): string {
   return dotIndex >= 0 ? code.substring(dotIndex + 1) : code
 }
 
+/**
+ * Resolve an asset ID that may be a synthetic "cash:CURRENCY" reference
+ * to a real asset UUID via the backend. Real UUIDs pass through unchanged.
+ */
+export async function resolveAssetId(assetId: string): Promise<string> {
+  if (!assetId.startsWith("cash:")) {
+    return assetId
+  }
+  const currencyCode = assetId.substring(5)
+  const response = await fetch(
+    `/api/assets/resolve?market=CASH&code=${currencyCode}`,
+  )
+  if (!response.ok) {
+    throw new Error(`Failed to resolve cash asset: ${currencyCode}`)
+  }
+  const data = await response.json()
+  return data.data.id
+}
+
 export function displayName(asset: Asset): string {
   if (isCash(asset)) {
     return asset.name
