@@ -345,10 +345,10 @@ const CashInputForm: React.FC<{
             onClick={() => setModalOpen(false)}
           ></div>
           <div
-            className="bg-white rounded-lg shadow-lg w-full max-w-2xl mx-auto p-6 z-50"
+            className="bg-white rounded-lg shadow-lg w-full max-w-lg mx-4 p-4 sm:p-6 z-50 flex flex-col max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
-            <header className="flex justify-between items-center border-b pb-2 mb-4">
+            <header className="flex-shrink-0 flex justify-between items-center border-b pb-2 mb-4">
               <h2 className="text-xl font-semibold">
                 {type.value === "FX"
                   ? t("trade.fx.title", "FX Trade")
@@ -363,7 +363,7 @@ const CashInputForm: React.FC<{
             </header>
             {/* FX Trade Summary */}
             {type.value === "FX" && (
-              <div className="mb-4 p-3 bg-linear-to-r from-red-50 to-green-50 border border-gray-200 rounded-lg">
+              <div className="flex-shrink-0 mb-4 p-3 bg-linear-to-r from-red-50 to-green-50 border border-gray-200 rounded-lg">
                 <div className="flex items-center justify-center gap-4 text-sm">
                   <div className="text-center">
                     <div className="text-xs text-red-600 font-medium uppercase">
@@ -431,7 +431,7 @@ const CashInputForm: React.FC<{
               onSubmit={handleSubmit((data) =>
                 onSubmit(portfolio, errors, data, setModalOpen),
               )}
-              className="space-y-4"
+              className="flex-1 overflow-y-auto space-y-4"
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
@@ -799,7 +799,7 @@ const CashInputForm: React.FC<{
                   .map((error) => error?.message)
                   .join(" ")}
               </div>
-              <div className="flex justify-end space-x-2">
+              <div className="flex-shrink-0 flex justify-end space-x-2 pt-3 border-t">
                 <button
                   type="button"
                   className={`${
@@ -808,7 +808,7 @@ const CashInputForm: React.FC<{
                       : copyStatus === "error"
                         ? "bg-red-500"
                         : "bg-green-500 hover:bg-green-600"
-                  } text-white px-4 py-2 rounded transition-colors duration-200`}
+                  } text-white px-4 py-2 rounded text-sm transition-colors duration-200`}
                   onClick={handleCopy}
                 >
                   <i
@@ -822,13 +822,13 @@ const CashInputForm: React.FC<{
                 </button>
                 <button
                   type="submit"
-                  className="bg-blue-500 text-white px-4 py-2 rounded"
+                  className="bg-blue-500 text-white px-4 py-2 rounded text-sm"
                 >
                   Submit
                 </button>
                 <button
                   type="button"
-                  className="bg-gray-300 text-gray-700 px-4 py-2 rounded"
+                  className="bg-gray-300 text-gray-700 px-4 py-2 rounded text-sm"
                   onClick={() => setModalOpen(false)}
                 >
                   Cancel
