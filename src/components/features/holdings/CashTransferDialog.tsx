@@ -4,7 +4,7 @@ import { Portfolio, CashTransferData, Asset } from "types/beancounter"
 import MathInput from "@components/ui/MathInput"
 import useSWR from "swr"
 import { simpleFetcher, ccyKey } from "@utils/api/fetchHelper"
-import { stripOwnerPrefix } from "@lib/assets/assetUtils"
+import { stripOwnerPrefix, resolveAssetId } from "@lib/assets/assetUtils"
 
 interface CashTransferDialogProps {
   modalOpen: boolean
@@ -146,8 +146,16 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
     setSubmitError(null)
 
     const tradeDate = new Date().toISOString().split("T")[0]
-    const resolvedTargetAssetId =
-      targetAssetId === sourceData.assetId ? sourceData.assetId : targetAssetId
+
+    let resolvedTargetAssetId: string
+    try {
+      resolvedTargetAssetId = await resolveAssetId(targetAssetId)
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error ? err.message : "Failed to resolve target asset",
+      )
+      return
+    }
 
     // Resolve display codes for comments
     const sourceDisplayCode = stripOwnerPrefix(sourceData.assetCode)
