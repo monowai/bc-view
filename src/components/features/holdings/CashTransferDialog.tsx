@@ -3,7 +3,7 @@ import { useTranslation } from "next-i18next"
 import { Portfolio, CashTransferData, Asset } from "types/beancounter"
 import MathInput from "@components/ui/MathInput"
 import useSWR from "swr"
-import { simpleFetcher, optionalFetcher } from "@utils/api/fetchHelper"
+import { simpleFetcher, ccyKey } from "@utils/api/fetchHelper"
 
 interface CashTransferDialogProps {
   modalOpen: boolean
@@ -38,13 +38,16 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
   const [submitSuccess, setSubmitSuccess] = useState(false)
   const [description, setDescription] = useState<string>("")
 
-  // Cash endpoint not implemented on backend - disable for now
-  const { data: cashAssetsData } = useSWR(null, optionalFetcher("/api/cash"))
-
   // Fetch available account assets (ACCOUNT category - bank accounts)
   const { data: accountAssetsData } = useSWR(
     modalOpen ? "/api/assets?category=ACCOUNT" : null,
     simpleFetcher("/api/assets?category=ACCOUNT"),
+  )
+
+  // Fetch currencies for CASH market assets
+  const { data: ccyData } = useSWR(
+    modalOpen ? ccyKey : null,
+    simpleFetcher(ccyKey),
   )
 
   // Helper to get currency from an asset
@@ -55,28 +58,34 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
     return asset.priceSymbol || asset.market?.currency?.code || asset.code
   }
 
-  // Filter assets to same currency as source (excluding source asset)
-  const eligibleTargetAssets = useMemo((): CashAsset[] => {
-    const result: CashAsset[] = []
+  // Build target asset options: currency balances + bank accounts (excluding source asset)
+  const eligibleTargetAssets = useMemo((): {
+    currencies: CashAsset[]
+    accounts: CashAsset[]
+  } => {
+    const currencies: CashAsset[] = []
+    const accounts: CashAsset[] = []
 
-    if (cashAssetsData?.data) {
-      const cashAssets = Object.values(cashAssetsData.data) as Asset[]
-      cashAssets
+    // Add matching currency balance (CASH market)
+    if (ccyData?.data) {
+      ccyData.data
         .filter(
-          (asset) =>
-            asset.code === sourceData.currency &&
-            asset.id !== sourceData.assetId,
+          (ccy: { code: string }) => ccy.code === sourceData.currency,
         )
-        .forEach((asset) => {
-          result.push({
-            id: asset.id,
-            code: asset.code,
-            name: asset.name || `${asset.code} Balance`,
-            currency: asset.code,
-          })
+        .forEach((ccy: { code: string; name?: string }) => {
+          // Only add if it's not the source asset itself
+          if (sourceData.assetId) {
+            currencies.push({
+              id: "",
+              code: ccy.code,
+              name: `${ccy.code} Balance`,
+              currency: ccy.code,
+            })
+          }
         })
     }
 
+    // Add bank/trade accounts matching the currency
     if (accountAssetsData?.data) {
       const accountAssets = Object.values(accountAssetsData.data) as Asset[]
       accountAssets
@@ -86,7 +95,7 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
             asset.id !== sourceData.assetId,
         )
         .forEach((asset) => {
-          result.push({
+          accounts.push({
             id: asset.id,
             code: asset.code,
             name: asset.name || asset.code,
@@ -95,8 +104,8 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
         })
     }
 
-    return result
-  }, [cashAssetsData, accountAssetsData, sourceData])
+    return { currencies, accounts }
+  }, [ccyData, accountAssetsData, sourceData])
 
   // Reset state when modal opens - default amount to current balance (market value)
   useEffect(() => {
@@ -180,10 +189,14 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
   const isTargetValid = targetPortfolioId && targetAssetId
 
   const selectedPortfolio = portfolios.find((p) => p.id === targetPortfolioId)
+  const allTargetAssets = [
+    ...eligibleTargetAssets.currencies,
+    ...eligibleTargetAssets.accounts,
+  ]
   const selectedAsset =
     targetAssetId === sourceData.assetId
       ? { name: sourceData.assetName }
-      : eligibleTargetAssets.find((a) => a.id === targetAssetId)
+      : allTargetAssets.find((a) => a.id === targetAssetId)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -192,7 +205,7 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
         onClick={onClose}
       ></div>
       <div
-        className="bg-white rounded-lg shadow-lg w-full max-w-md mx-auto p-6 z-50"
+        className="bg-white rounded-lg shadow-lg w-full max-w-md mx-4 p-4 sm:p-6 z-50 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header with step indicator */}
@@ -358,16 +371,27 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
                 className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-purple-500 focus:border-purple-500"
               >
                 <option value="">{t("cash.transfer.selectAsset")}</option>
-                {targetPortfolioId !== sourceData.portfolioId && (
-                  <option value={sourceData.assetId}>
-                    {sourceData.assetName} ({t("cash.transfer.sameAsset")})
-                  </option>
+                <option value={sourceData.assetId}>
+                  {sourceData.assetName} ({t("cash.transfer.sameAsset")})
+                </option>
+                {eligibleTargetAssets.currencies.length > 0 && (
+                  <optgroup label={t("cash.transfer.currencyBalances", "Currency Balances")}>
+                    {eligibleTargetAssets.currencies.map((asset) => (
+                      <option key={`ccy-${asset.code}`} value={asset.id}>
+                        {asset.name}
+                      </option>
+                    ))}
+                  </optgroup>
                 )}
-                {eligibleTargetAssets.map((asset) => (
-                  <option key={asset.id} value={asset.id}>
-                    {asset.name}
-                  </option>
-                ))}
+                {eligibleTargetAssets.accounts.length > 0 && (
+                  <optgroup label={t("cash.transfer.bankAccounts", "Bank Accounts")}>
+                    {eligibleTargetAssets.accounts.map((asset) => (
+                      <option key={asset.id} value={asset.id}>
+                        {asset.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
             </div>
 
