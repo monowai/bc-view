@@ -119,7 +119,7 @@ export function fetchError(
   if (stack) {
     console.error(stack)
   }
-  res.status(statusCode).json({ error: message, code, path: req.url })
+  res.status(statusCode).json({ error: message, message, code, path: req.url })
 }
 
 export function hasError(response: Response): boolean {

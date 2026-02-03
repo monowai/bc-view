@@ -66,22 +66,21 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
     const currencies: CashAsset[] = []
     const accounts: CashAsset[] = []
 
-    // Add matching currency balance (CASH market)
-    if (ccyData?.data) {
+    // Add matching currency balance (CASH market) only when source is an account asset.
+    // When source is already a CASH asset, "Same Asset" covers same-currency transfers.
+    const sourceIsCash = sourceData.assetCode === sourceData.currency
+    if (ccyData?.data && sourceData.assetId && !sourceIsCash) {
       ccyData.data
         .filter(
           (ccy: { code: string }) => ccy.code === sourceData.currency,
         )
         .forEach((ccy: { code: string; name?: string }) => {
-          // Only add if it's not the source asset itself
-          if (sourceData.assetId) {
-            currencies.push({
-              id: "",
-              code: ccy.code,
-              name: `${ccy.code} Balance`,
-              currency: ccy.code,
-            })
-          }
+          currencies.push({
+            id: `cash:${ccy.code}`,
+            code: ccy.code,
+            name: `${ccy.code} Balance`,
+            currency: ccy.code,
+          })
         })
     }
 
@@ -157,7 +156,7 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        setSubmitError(errorData.message || "Failed to transfer cash")
+        setSubmitError(errorData.message || errorData.error || "Failed to transfer cash")
         return
       }
 
