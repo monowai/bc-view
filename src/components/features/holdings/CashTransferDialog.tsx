@@ -4,6 +4,7 @@ import { Portfolio, CashTransferData, Asset } from "types/beancounter"
 import MathInput from "@components/ui/MathInput"
 import useSWR from "swr"
 import { simpleFetcher, ccyKey } from "@utils/api/fetchHelper"
+import { stripOwnerPrefix } from "@lib/assets/assetUtils"
 
 interface CashTransferDialogProps {
   modalOpen: boolean
@@ -126,6 +127,11 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
   const parsedReceivedAmount = parseFloat(receivedAmount) || 0
   const fee = parsedSentAmount - parsedReceivedAmount
 
+  const allTargetAssets = [
+    ...eligibleTargetAssets.currencies,
+    ...eligibleTargetAssets.accounts,
+  ]
+
   const handleSentChange = (value: number): void => {
     setSentAmount(String(value))
     if (receivedAmount === "" || receivedAmount === sentAmount) {
@@ -139,25 +145,111 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
     setIsSubmitting(true)
     setSubmitError(null)
 
-    try {
-      const response = await fetch("/api/cash/transfer", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fromPortfolioId: sourceData.portfolioId,
-          fromAssetId: sourceData.assetId,
-          toPortfolioId: targetPortfolioId,
-          toAssetId: targetAssetId,
-          sentAmount: parsedSentAmount,
-          receivedAmount: parsedReceivedAmount,
-          description: description || undefined,
-        }),
-      })
+    const tradeDate = new Date().toISOString().split("T")[0]
+    const resolvedTargetAssetId =
+      targetAssetId === sourceData.assetId ? sourceData.assetId : targetAssetId
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        setSubmitError(errorData.message || errorData.error || "Failed to transfer cash")
-        return
+    // Resolve display codes for comments
+    const sourceDisplayCode = stripOwnerPrefix(sourceData.assetCode)
+    const targetAsset = allTargetAssets.find((a) => a.id === targetAssetId)
+    const targetDisplayCode =
+      targetAssetId === sourceData.assetId
+        ? sourceDisplayCode
+        : targetAsset
+          ? stripOwnerPrefix(targetAsset.code)
+          : ""
+    const targetPortfolio = portfolios.find((p) => p.id === targetPortfolioId)
+
+    const withdrawalComment =
+      description ||
+      `Transfer to ${targetDisplayCode}${targetPortfolio ? ` (${targetPortfolio.code})` : ""}`
+    const depositComment =
+      description ||
+      `Transfer from ${sourceDisplayCode} (${sourceData.portfolioCode})`
+
+    const withdrawal = {
+      trnType: "WITHDRAWAL",
+      assetId: sourceData.assetId,
+      cashAssetId: sourceData.assetId,
+      tradeDate,
+      tradeAmount: parsedSentAmount,
+      tradeCurrency: sourceData.currency,
+      cashCurrency: sourceData.currency,
+      price: 1,
+      quantity: 0,
+      status: "SETTLED",
+      comments: withdrawalComment,
+    }
+
+    const deposit = {
+      trnType: "DEPOSIT",
+      assetId: resolvedTargetAssetId,
+      cashAssetId: resolvedTargetAssetId,
+      tradeDate,
+      tradeAmount: parsedReceivedAmount,
+      tradeCurrency: sourceData.currency,
+      cashCurrency: sourceData.currency,
+      price: 1,
+      quantity: 0,
+      status: "SETTLED",
+      comments: depositComment,
+    }
+
+    try {
+      const isSamePortfolio = sourceData.portfolioId === targetPortfolioId
+
+      if (isSamePortfolio) {
+        // Same portfolio: send both in one request
+        const response = await fetch("/api/trns", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            portfolioId: sourceData.portfolioId,
+            data: [withdrawal, deposit],
+          }),
+        })
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}))
+          setSubmitError(
+            errorData.message || errorData.detail || "Failed to transfer cash",
+          )
+          return
+        }
+      } else {
+        // Different portfolios: two sequential requests
+        const withdrawalResponse = await fetch("/api/trns", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            portfolioId: sourceData.portfolioId,
+            data: [withdrawal],
+          }),
+        })
+        if (!withdrawalResponse.ok) {
+          const errorData = await withdrawalResponse.json().catch(() => ({}))
+          setSubmitError(
+            errorData.message || errorData.detail || "Failed to create withdrawal",
+          )
+          return
+        }
+
+        const depositResponse = await fetch("/api/trns", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            portfolioId: targetPortfolioId,
+            data: [deposit],
+          }),
+        })
+        if (!depositResponse.ok) {
+          const errorData = await depositResponse.json().catch(() => ({}))
+          setSubmitError(
+            errorData.message ||
+              errorData.detail ||
+              "Withdrawal succeeded but deposit failed",
+          )
+          return
+        }
       }
 
       setSubmitSuccess(true)
@@ -188,10 +280,6 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
   const isTargetValid = targetPortfolioId && targetAssetId
 
   const selectedPortfolio = portfolios.find((p) => p.id === targetPortfolioId)
-  const allTargetAssets = [
-    ...eligibleTargetAssets.currencies,
-    ...eligibleTargetAssets.accounts,
-  ]
   const selectedAsset =
     targetAssetId === sourceData.assetId
       ? { name: sourceData.assetName }
