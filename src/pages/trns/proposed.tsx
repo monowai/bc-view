@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react"
+import React, { useEffect, useMemo, useRef, useState } from "react"
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { useTranslation } from "next-i18next"
@@ -55,6 +55,71 @@ const getAssetDisplayCode = (asset: {
     return asset.code.split(".").slice(1).join(".")
   }
   return asset.code
+}
+
+/**
+ * Numeric input that preserves intermediate text (e.g. "5.") while the user is
+ * typing, then commits the parsed number on blur.
+ */
+function DecimalInput({
+  value,
+  onChange,
+  className,
+  ...rest
+}: {
+  value: number | undefined
+  onChange: (value: number) => void
+  className?: string
+} & Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  "value" | "onChange"
+>): React.ReactElement {
+  const [display, setDisplay] = useState(
+    value != null && value !== 0 ? String(value) : "",
+  )
+  const focusedRef = useRef(false)
+
+  // Sync from parent when not focused
+  useEffect(() => {
+    if (!focusedRef.current) {
+      setDisplay(value != null && value !== 0 ? String(value) : "")
+    }
+  }, [value])
+
+  return (
+    <input
+      type="text"
+      inputMode="decimal"
+      value={display}
+      onChange={(e) => {
+        const val = e.target.value
+        if (val === "" || /^[0-9]*\.?[0-9]*$/.test(val)) {
+          setDisplay(val)
+          const num = parseFloat(val)
+          if (!isNaN(num)) {
+            onChange(num)
+          } else if (val === "") {
+            onChange(0)
+          }
+        }
+      }}
+      onFocus={() => {
+        focusedRef.current = true
+      }}
+      onBlur={(e) => {
+        focusedRef.current = false
+        const num = parseFloat(e.target.value)
+        if (!isNaN(num)) {
+          onChange(num)
+          setDisplay(String(num))
+        } else {
+          setDisplay(value != null && value !== 0 ? String(value) : "")
+        }
+      }}
+      className={className}
+      {...rest}
+    />
+  )
 }
 
 export default function ProposedTransactions(): React.JSX.Element {
@@ -870,42 +935,16 @@ export default function ProposedTransactions(): React.JSX.Element {
                           {trn.quantity.toFixed(0)}
                         </td>
                         <td className="px-2 py-1.5 whitespace-nowrap text-right">
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            value={trn.editedPrice ?? ""}
-                            onChange={(e) => {
-                              const val = e.target.value
-                              if (val === "" || /^[0-9]*\.?[0-9]*$/.test(val)) {
-                                handlePriceChange(trn.id, parseFloat(val) || 0)
-                              }
-                            }}
-                            onBlur={(e) => {
-                              const val = parseFloat(e.target.value)
-                              if (!isNaN(val)) {
-                                handlePriceChange(trn.id, val)
-                              }
-                            }}
+                          <DecimalInput
+                            value={trn.editedPrice}
+                            onChange={(v) => handlePriceChange(trn.id, v)}
                             className="w-20 px-1 py-0.5 text-right border border-gray-300 rounded text-xs font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
                           />
                         </td>
                         <td className="px-2 py-1.5 whitespace-nowrap text-right">
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            value={trn.editedFees ?? ""}
-                            onChange={(e) => {
-                              const val = e.target.value
-                              if (val === "" || /^[0-9]*\.?[0-9]*$/.test(val)) {
-                                handleFeesChange(trn.id, parseFloat(val) || 0)
-                              }
-                            }}
-                            onBlur={(e) => {
-                              const val = parseFloat(e.target.value)
-                              if (!isNaN(val)) {
-                                handleFeesChange(trn.id, val)
-                              }
-                            }}
+                          <DecimalInput
+                            value={trn.editedFees}
+                            onChange={(v) => handleFeesChange(trn.id, v)}
                             className="w-16 px-1 py-0.5 text-right border border-gray-300 rounded text-xs font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
                           />
                         </td>
@@ -1119,31 +1158,14 @@ export default function ProposedTransactions(): React.JSX.Element {
                               {agg.totalQuantity.toFixed(0)}
                             </td>
                             <td className="px-2 py-1.5 whitespace-nowrap text-right">
-                              <input
-                                type="text"
-                                inputMode="decimal"
-                                value={agg.editedPrice ?? ""}
-                                onChange={(e) => {
-                                  const val = e.target.value
-                                  if (
-                                    val === "" ||
-                                    /^[0-9]*\.?[0-9]*$/.test(val)
-                                  ) {
-                                    handleAggregatedPriceChange(
-                                      agg.aggregateKey,
-                                      parseFloat(val) || 0,
-                                    )
-                                  }
-                                }}
-                                onBlur={(e) => {
-                                  const val = parseFloat(e.target.value)
-                                  if (!isNaN(val)) {
-                                    handleAggregatedPriceChange(
-                                      agg.aggregateKey,
-                                      val,
-                                    )
-                                  }
-                                }}
+                              <DecimalInput
+                                value={agg.editedPrice}
+                                onChange={(v) =>
+                                  handleAggregatedPriceChange(
+                                    agg.aggregateKey,
+                                    v,
+                                  )
+                                }
                                 className="w-20 px-1 py-0.5 text-right border border-gray-300 rounded text-xs font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
                                 title="Editing price updates all underlying transactions"
                               />
