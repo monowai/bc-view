@@ -22,7 +22,7 @@ function AssetLookupPage(): React.ReactElement {
   const router = useRouter()
 
   const [selectedAsset, setSelectedAsset] = useState<AssetOption | null>(null)
-  const [selectedMarket, setSelectedMarket] = useState<string>("LOCAL")
+  const [selectedMarket, setSelectedMarket] = useState<string>("US")
 
   // Fetch available markets
   const { data: marketsData } = useSWR<{ data: Market[] }>(
@@ -118,7 +118,7 @@ function AssetLookupPage(): React.ReactElement {
             }}
             className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
-            <option value="LOCAL">
+            <option value="US">
               {t("assets.lookup.allMarkets", "All Markets")}
             </option>
             {(marketsData?.data || []).map((market) => (
