@@ -12,8 +12,9 @@ import { ModelDto } from "types/rebalance"
 import TradeStatusToggle from "@components/ui/TradeStatusToggle"
 import {
   calculateTradeAmount,
-  calculateTradeWeight,
-  calculateNewPositionWeight,
+  hasCashImpact,
+  isExpenseType,
+  deriveDefaultMarket,
 } from "@lib/trns/tradeUtils"
 import { useTranslation } from "next-i18next"
 import useSwr, { mutate } from "swr"
@@ -30,9 +31,7 @@ import {
 } from "@utils/api/fetchHelper"
 import { rootLoader } from "@components/ui/PageLoader"
 import TradeTypeController from "@components/features/transactions/TradeTypeController"
-import SettlementAccountSelect, {
-  SettlementAccountOption,
-} from "@components/features/transactions/SettlementAccountSelect"
+import SettlementAccountSelect from "@components/features/transactions/SettlementAccountSelect"
 import AssetSearch from "@components/features/assets/AssetSearch"
 import { AssetOption } from "types/beancounter"
 import {
@@ -43,10 +42,30 @@ import {
 import MathInput from "@components/ui/MathInput"
 import DateInput from "@components/ui/DateInput"
 import { convert } from "@lib/trns/tradeUtils"
+import {
+  computeWeightInfo,
+  computeCurrentPositionWeight,
+  calculateQuantityFromTargetWeight,
+  calculateQuantityFromTradeValue,
+  buildEditModeValues,
+  buildQuickSellValues,
+  buildCreateModeValues,
+  filterBankAccountsByCurrency,
+  buildAllCashBalances,
+  buildDefaultCashAsset,
+  resolveBrokerSettlementAccount,
+  brokerHasSettlementForCurrency,
+} from "@lib/trns/tradeFormHelpers"
+import {
+  deriveSettlementCurrency,
+  buildEditPayload,
+  buildExpensePayload,
+  buildCreateModeData,
+} from "@lib/trns/tradeSubmission"
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { NumericFormat } from "react-number-format"
-import { updateTrn, TrnUpdatePayload } from "@lib/trns/apiHelper"
+import { updateTrn } from "@lib/trns/apiHelper"
 import { getDisplayCode, stripOwnerPrefix } from "@lib/assets/assetUtils"
 
 const TradeTypeValues = [
@@ -122,7 +141,8 @@ const schema = yup.object().shape({
 
 // Common CSS classes
 const inputClass =
-  "mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
+  "mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
+const labelClass = "block text-xs font-medium text-gray-500 uppercase tracking-wide"
 
 // Props for edit mode
 interface EditModeProps {
@@ -276,24 +296,6 @@ const TradeInputForm: React.FC<{
     setTimeout(() => setCopyStatus("idle"), 2000)
   }
 
-  // Build initial settlement account from transaction (edit mode)
-  const buildInitialSettlementAccount = (
-    trn: Transaction,
-  ): SettlementAccountOption | null => {
-    if (!trn.cashAsset) return null
-    return {
-      value: trn.cashAsset.id,
-      label:
-        trn.cashAsset.name ||
-        `${getDisplayCode(trn.cashAsset)} ${trn.cashAsset.market?.code === "CASH" ? "Balance" : ""}`,
-      currency:
-        trn.cashAsset.priceSymbol ||
-        trn.cashAsset.code ||
-        trn.tradeCurrency.code,
-      market: trn.cashAsset.market?.code,
-    }
-  }
-
   // Show broker selection dialog when QuickSell has multiple brokers
   useEffect(() => {
     if (modalOpen && initialValues?.held) {
@@ -310,66 +312,34 @@ const TradeInputForm: React.FC<{
   )
 
   // Derive default market from portfolio currency (e.g., NZD → NZX, AUD → ASX)
-  const portfolioDefaultMarket = useMemo(() => {
-    const currencyCode = portfolio.currency.code
-    const match = marketsData?.data?.find(
-      (m: { code: string; currency: { code: string } }) =>
-        m.currency.code === currencyCode,
-    )
-    return match?.code || "US"
-  }, [marketsData, portfolio.currency.code])
+  const portfolioDefaultMarket = useMemo(
+    () => deriveDefaultMarket(portfolio.currency.code, marketsData?.data || []),
+    [marketsData, portfolio.currency.code],
+  )
 
   // Reset form with initial values when modal opens
   useEffect(() => {
     if (modalOpen && isEditMode && transaction) {
       // Edit mode: populate from transaction
-      reset({
-        type: { value: transaction.trnType, label: transaction.trnType },
-        status: { value: transaction.status, label: transaction.status },
-        asset: editAssetCode,
-        market: editMarketCode,
-        tradeDate: transaction.tradeDate,
-        quantity: transaction.quantity,
-        price: transaction.price,
-        tradeCurrency: {
-          value: transaction.tradeCurrency.code,
-          label: transaction.tradeCurrency.code,
-        },
-        settlementAccount: buildInitialSettlementAccount(transaction),
-        tradeAmount: transaction.tradeAmount,
-        cashAmount: transaction.cashAmount,
-        fees: transaction.fees,
-        tax: transaction.tax,
-        comment: transaction.comments || "",
-        brokerId: transaction.broker?.id || "",
-      })
+      reset(buildEditModeValues(transaction))
       setSelectedPortfolioId(transaction.portfolio.id)
       setTargetWeight("")
       setTradeValue("")
       setSubmitError(null)
     } else if (modalOpen && initialValues) {
       // Quick sell mode: populate from initialValues
-      const tradeType = initialValues.type || "SELL"
-      reset({
-        ...defaultValues,
-        type: { value: tradeType, label: tradeType },
-        asset: initialValues.asset,
-        market: initialValues.market,
-        quantity: initialValues.quantity,
-        price: initialValues.price,
-      })
+      reset(buildQuickSellValues(initialValues, defaultValues))
       setTargetWeight("")
       setTradeValue("")
     } else if (modalOpen && !initialValues && !isEditMode) {
       // Create mode: reset to defaults, using portfolio-appropriate market
-      reset({
-        ...defaultValues,
-        market: portfolioDefaultMarket,
-        tradeCurrency: {
-          value: portfolio.currency.code,
-          label: portfolio.currency.code,
-        },
-      })
+      reset(
+        buildCreateModeValues(
+          defaultValues,
+          portfolioDefaultMarket,
+          portfolio.currency.code,
+        ),
+      )
       setTargetWeight("")
       setTradeValue("")
     }
@@ -417,59 +387,35 @@ const TradeInputForm: React.FC<{
   const asset = watch("asset")
 
   // Calculate current weight from position data
-  const currentPositionWeight = useMemo(() => {
-    const positionQty =
-      initialValues?.currentPositionQuantity ?? initialValues?.quantity
-    if (!positionQty || !price || !portfolio.marketValue) {
-      return null
-    }
-    const positionValue = positionQty * price
-    return (positionValue / portfolio.marketValue) * 100
-  }, [
-    initialValues?.currentPositionQuantity,
-    initialValues?.quantity,
-    price,
-    portfolio.marketValue,
-  ])
-
-  const actualPositionQuantity =
+  const positionQty =
     initialValues?.currentPositionQuantity ?? initialValues?.quantity ?? 0
+  const currentPositionWeight = useMemo(
+    () => computeCurrentPositionWeight(positionQty, price, portfolio.marketValue),
+    [positionQty, price, portfolio.marketValue],
+  )
+
+  const actualPositionQuantity = positionQty
 
   // Handle target weight change
   const handleTargetWeightChange = (newTargetWeight: string): void => {
     setTargetWeight(newTargetWeight)
-
-    const targetWeightNum = parseFloat(newTargetWeight)
-    if (
-      isNaN(targetWeightNum) ||
-      !price ||
-      !portfolio.marketValue ||
-      currentPositionWeight === null
-    ) {
-      return
-    }
-
-    const targetValue = (targetWeightNum / 100) * portfolio.marketValue
-    const currentValue = (currentPositionWeight / 100) * portfolio.marketValue
-    const valueDiff = targetValue - currentValue
-    const requiredShares = Math.round(Math.abs(valueDiff) / price)
-
-    setValue("quantity", requiredShares)
-    const newType = valueDiff >= 0 ? "BUY" : "SELL"
-    setValue("type", { value: newType, label: newType })
+    if (currentPositionWeight === null) return
+    const result = calculateQuantityFromTargetWeight(
+      parseFloat(newTargetWeight),
+      currentPositionWeight,
+      price,
+      portfolio.marketValue,
+    )
+    if (!result) return
+    setValue("quantity", result.quantity)
+    setValue("type", { value: result.tradeType, label: result.tradeType })
   }
 
   // Handle trade value change
   const handleTradeValueChange = (newTradeValue: string): void => {
     setTradeValue(newTradeValue)
-
-    const valueNum = parseFloat(newTradeValue)
-    if (isNaN(valueNum) || !price || price <= 0) {
-      return
-    }
-
-    const calculatedQuantity = Math.floor(valueNum / price)
-    setValue("quantity", calculatedQuantity)
+    const qty = calculateQuantityFromTradeValue(parseFloat(newTradeValue), price)
+    if (qty !== null) setValue("quantity", qty)
   }
 
   // Fetch price for selected asset
@@ -533,81 +479,21 @@ const TradeInputForm: React.FC<{
   }, [quantity, price, tax, fees, type, setValue])
 
   // Calculate trade weight
-  const weightInfo = useMemo(() => {
-    if (!quantity || !price || !portfolio.marketValue) {
-      return null
-    }
-
-    const tradeAmount = calculateTradeAmount(
-      quantity,
-      price,
-      tax,
-      fees,
-      type.value,
-    )
-
-    if (type.value === "SELL" && actualPositionQuantity > 0) {
-      const newWeight = calculateNewPositionWeight(
-        actualPositionQuantity,
+  const weightInfo = useMemo(
+    () =>
+      computeWeightInfo({
         quantity,
         price,
-        portfolio.marketValue,
-      )
-      const tradeWeight = calculateTradeWeight(
-        tradeAmount,
-        portfolio.marketValue,
-      )
-      return {
-        label: "New Weight",
-        value: newWeight,
-        tradeWeight: tradeWeight,
-      }
-    } else if (type.value === "BUY" && actualPositionQuantity > 0) {
-      const currentPositionValue = actualPositionQuantity * price
-      const newPositionValue = currentPositionValue + tradeAmount
-      const newWeight = (newPositionValue / portfolio.marketValue) * 100
-      const tradeWeight = calculateTradeWeight(
-        tradeAmount,
-        portfolio.marketValue,
-      )
-      return {
-        label: "New Weight",
-        value: newWeight,
-        tradeWeight: tradeWeight,
-      }
-    } else if (type.value === "BUY") {
-      const weight = calculateTradeWeight(tradeAmount, portfolio.marketValue)
-      return {
-        label: "Trade Weight",
-        value: weight,
-      }
-    } else if (type.value === "SELL") {
-      const weight = calculateTradeWeight(tradeAmount, portfolio.marketValue)
-      return {
-        label: "Selling",
-        value: weight,
-      }
-    }
-    return null
-  }, [
-    quantity,
-    price,
-    tax,
-    fees,
-    portfolio.marketValue,
-    type.value,
-    actualPositionQuantity,
-  ])
+        tax,
+        fees,
+        tradeType: type.value,
+        portfolioMarketValue: portfolio.marketValue,
+        actualPositionQuantity,
+      }),
+    [quantity, price, tax, fees, portfolio.marketValue, type.value, actualPositionQuantity],
+  )
 
   useEscapeHandler(isDirty, setModalOpen)
-
-  // Helper to get currency from an asset
-  const getAssetCurrency = (assetData: any): string => {
-    if (assetData.market?.code === "CASH") {
-      return assetData.code
-    }
-    return assetData.priceSymbol || assetData.market?.currency?.code || ""
-  }
 
   const currentTradeCurrency = tradeCurrency?.value || "USD"
 
@@ -620,13 +506,10 @@ const TradeInputForm: React.FC<{
   }, [bankAccountsData])
 
   // Bank accounts filtered by trade currency - for settlement dropdown
-  const filteredBankAccounts = useMemo(() => {
-    return allBankAccounts
-      .filter((a: any) => getAssetCurrency(a) === currentTradeCurrency)
-      .sort((a: any, b: any) =>
-        (a.name || a.code).localeCompare(b.name || b.code),
-      )
-  }, [allBankAccounts, currentTradeCurrency])
+  const filteredBankAccounts = useMemo(
+    () => filterBankAccountsByCurrency(allBankAccounts, currentTradeCurrency),
+    [allBankAccounts, currentTradeCurrency],
+  )
 
   // All trade accounts - show all currencies, SettlementAccountSelect handles grouping
   const allTradeAccounts = useMemo(() => {
@@ -638,44 +521,13 @@ const TradeInputForm: React.FC<{
 
   // Generate cash balance options from all available currencies
   const allCashBalances = useMemo(() => {
-    // Start with any existing cash assets from the backend
     const existingAssets = cashAssetsData?.data
-      ? Object.values(cashAssetsData.data)
+      ? (Object.values(cashAssetsData.data) as any[])
       : []
-
-    // Get all currency codes from the currencies endpoint
-    const allCurrencies: string[] = ccyData?.data
+    const currencies: string[] = ccyData?.data
       ? ccyData.data.map((c: any) => c.code)
       : []
-
-    // Build a map of existing cash assets by currency code
-    const existingByCurrency = new Map<string, any>()
-    ;(existingAssets as any[]).forEach((asset: any) => {
-      existingByCurrency.set(asset.code, asset)
-    })
-
-    // Create cash balance entries for all currencies
-    const balances = allCurrencies.map((code: string) => {
-      const existing = existingByCurrency.get(code)
-      if (existing) {
-        return existing
-      }
-      // Create synthetic cash balance for this currency
-      return {
-        id: "", // Empty - backend will create/find generic balance
-        code,
-        name: code,
-        market: { code: "CASH" },
-      }
-    })
-
-    // Sort: matching currency first, then alphabetically
-    return balances.sort((a: any, b: any) => {
-      const aMatches = a.code === currentTradeCurrency ? 0 : 1
-      const bMatches = b.code === currentTradeCurrency ? 0 : 1
-      if (aMatches !== bMatches) return aMatches - bMatches
-      return a.code.localeCompare(b.code)
-    })
+    return buildAllCashBalances(existingAssets, currencies, currentTradeCurrency)
   }, [cashAssetsData, ccyData, currentTradeCurrency])
 
   // Filtered versions for default selection (matching currency only)
@@ -683,23 +535,10 @@ const TradeInputForm: React.FC<{
     return allCashBalances.filter((a: any) => a.code === currentTradeCurrency)
   }, [allCashBalances, currentTradeCurrency])
 
-  const defaultCashAsset = useMemo(() => {
-    const cashAsset = filteredCashAssets[0] as any
-    if (cashAsset) {
-      return {
-        value: cashAsset.id,
-        label: `${cashAsset.name || cashAsset.code} Balance`,
-        currency: cashAsset.code,
-        market: "CASH",
-      }
-    }
-    return {
-      value: "",
-      label: `${currentTradeCurrency} Balance`,
-      currency: currentTradeCurrency,
-      market: "CASH",
-    }
-  }, [filteredCashAssets, currentTradeCurrency])
+  const defaultCashAsset = useMemo(
+    () => buildDefaultCashAsset(filteredCashAssets, currentTradeCurrency),
+    [filteredCashAssets, currentTradeCurrency],
+  )
 
   // Cash assets for dropdown - all currency balances are already included
   const cashAssetsForDropdown = useMemo(() => {
@@ -712,14 +551,15 @@ const TradeInputForm: React.FC<{
     const currentSettlement = watch("settlementAccount")
     const currentBrokerId = watch("brokerId")
 
-    // Check if broker has a settlement account for this currency
-    if (currentBrokerId) {
-      const selectedBroker = brokers.find((b) => b.id === currentBrokerId)
-      const hasBrokerSettlement = selectedBroker?.settlementAccounts?.some(
-        (sa) => sa.currencyCode === currentTradeCurrency,
-      )
-      // Don't override if broker has a matching settlement account
-      if (hasBrokerSettlement) return
+    if (
+      currentBrokerId &&
+      brokerHasSettlementForCurrency({
+        brokerId: currentBrokerId,
+        tradeCurrency: currentTradeCurrency,
+        brokers,
+      })
+    ) {
+      return // Don't override broker's settlement account
     }
 
     if (
@@ -737,34 +577,16 @@ const TradeInputForm: React.FC<{
   useEffect(() => {
     if (!selectedBrokerId || !currentTradeCurrency) return
 
-    const selectedBroker = brokers.find((b) => b.id === selectedBrokerId)
-    if (!selectedBroker?.settlementAccounts) return
-
-    // Find settlement account for current trade currency
-    const brokerSettlement = selectedBroker.settlementAccounts.find(
-      (sa) => sa.currencyCode === currentTradeCurrency,
-    )
-
-    if (brokerSettlement) {
-      // Find the matching bank account to get full details
-      const bankAccount = allBankAccounts.find(
-        (a: any) => a.id === brokerSettlement.accountId,
-      )
-      if (bankAccount) {
-        setValue("settlementAccount", {
-          value: bankAccount.id,
-          label: bankAccount.name || bankAccount.code,
-          currency: getAssetCurrency(bankAccount),
-        })
-      }
+    const resolved = resolveBrokerSettlementAccount({
+      brokerId: selectedBrokerId,
+      tradeCurrency: currentTradeCurrency,
+      brokers,
+      allBankAccounts,
+    })
+    if (resolved) {
+      setValue("settlementAccount", resolved)
     }
-  }, [
-    selectedBrokerId,
-    currentTradeCurrency,
-    brokers,
-    allBankAccounts,
-    setValue,
-  ])
+  }, [selectedBrokerId, currentTradeCurrency, brokers, allBankAccounts, setValue])
 
   if (marketsLoading || tradeAccountsLoading || ccyLoading)
     return rootLoader(t("loading"))
@@ -776,8 +598,8 @@ const TradeInputForm: React.FC<{
       label: market.name || market.code,
     })) || []
 
-  const hasCashImpact = !["ADD", "REDUCE", "SPLIT"].includes(type?.value)
-  const isExpenseType = type?.value === "EXPENSE"
+  const cashImpact = hasCashImpact(type?.value)
+  const isExpense = isExpenseType(type?.value)
   const tradeAmount = watch("tradeAmount") || 0
 
   return (
@@ -845,20 +667,20 @@ const TradeInputForm: React.FC<{
       )}
 
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <div
-            className="fixed inset-0 bg-black opacity-50"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm"
             onClick={() => setModalOpen(false)}
           ></div>
           <div
-            className="bg-white rounded-lg shadow-lg w-full max-w-md mx-4 p-4 z-50 text-sm flex flex-col max-h-[90vh]"
+            className="bg-white sm:rounded-xl shadow-2xl w-full sm:max-w-lg sm:mx-4 p-4 sm:p-5 z-50 text-sm flex flex-col max-h-[95vh] sm:max-h-[90vh] rounded-t-xl"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header with trade summary */}
-            <header className="flex-shrink-0 pb-3 border-b">
-              <div className="flex items-center justify-between mb-2">
+            {/* Header */}
+            <header className="flex-shrink-0 pb-3 border-b border-gray-100">
+              <div className="flex items-center justify-between mb-3">
                 <button
-                  className="text-gray-400 hover:text-gray-600 p-2"
+                  className="text-gray-400 hover:text-gray-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
                   onClick={() =>
                     isEditMode ? editMode?.onClose() : setModalOpen(false)
                   }
@@ -867,61 +689,61 @@ const TradeInputForm: React.FC<{
                   <i className="fas fa-times"></i>
                 </button>
                 <div
-                  className="text-center flex-1 px-2"
+                  className="text-center flex-1 px-3"
                   title={
                     isEditMode ? editAssetName || editAssetCode : undefined
                   }
                 >
-                  <div className="font-semibold truncate">
+                  <div className="font-semibold text-gray-900 truncate">
                     {isEditMode
                       ? editAssetCode
                       : stripOwnerPrefix(asset) || t("trade.market.title")}
                   </div>
                   {isEditMode && editAssetName && (
-                    <div className="text-xs text-gray-500 truncate">
-                      {editAssetName.length > 25
-                        ? `${editAssetName.substring(0, 25)}...`
+                    <div className="text-xs text-gray-500 truncate mt-0.5">
+                      {editAssetName.length > 30
+                        ? `${editAssetName.substring(0, 30)}...`
                         : editAssetName}
                     </div>
                   )}
-                  <div className="text-xs text-gray-400">
+                  <div className="text-xs text-gray-400 mt-0.5">
                     {isEditMode
                       ? editMarketCode
                       : `${portfolio.code} - ${portfolio.name}`}
                   </div>
                 </div>
-                <div className="flex gap-1">
+                <div className="flex gap-0.5">
                   <button
                     type="button"
-                    className={`p-2 ${
+                    className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors ${
                       copyStatus === "success"
-                        ? "text-green-600"
+                        ? "text-green-600 bg-green-50"
                         : copyStatus === "error"
-                          ? "text-red-500"
-                          : "text-green-600 hover:text-green-700"
+                          ? "text-red-500 bg-red-50"
+                          : "text-gray-400 hover:text-green-600 hover:bg-green-50"
                     }`}
                     onClick={handleCopy}
                     title={t("copy")}
                   >
                     <i
-                      className={`fas ${copyStatus === "success" ? "fa-check" : copyStatus === "error" ? "fa-times" : "fa-copy"}`}
+                      className={`fas ${copyStatus === "success" ? "fa-check" : copyStatus === "error" ? "fa-times" : "fa-copy"} text-xs`}
                     ></i>
                   </button>
                   {isEditMode && (
                     <button
                       type="button"
-                      className="p-2 text-red-500 hover:text-red-600"
+                      className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
                       onClick={editMode?.onDelete}
                       title={t("delete")}
                     >
-                      <i className="fas fa-trash-can"></i>
+                      <i className="fas fa-trash-can text-xs"></i>
                     </button>
                   )}
                 </div>
               </div>
 
               {/* Trade Status Toggle */}
-              <div className="flex justify-center mb-2">
+              <div className="flex justify-center mb-3">
                 <Controller
                   name="status"
                   control={control}
@@ -939,23 +761,28 @@ const TradeInputForm: React.FC<{
               </div>
 
               {/* Trade Value Summary */}
-              <div className="bg-gray-50 rounded-lg p-2 flex items-center justify-center">
+              <div className={`rounded-lg p-3 flex items-center justify-center gap-4 ${
+                type?.value === "SELL" || isExpense
+                  ? "bg-red-50 border border-red-100"
+                  : type?.value === "ADD" || type?.value === "REDUCE"
+                    ? "bg-blue-50 border border-blue-100"
+                    : "bg-emerald-50 border border-emerald-100"
+              }`}>
                 <div className="text-center">
                   <div
-                    className={`text-xs font-medium uppercase ${
-                      type?.value === "SELL" || isExpenseType
-                        ? "text-red-600"
+                    className={`text-[10px] font-semibold uppercase tracking-wider ${
+                      type?.value === "SELL" || isExpense
+                        ? "text-red-500"
                         : type?.value === "ADD" || type?.value === "REDUCE"
-                          ? "text-blue-600"
-                          : "text-green-600"
+                          ? "text-blue-500"
+                          : "text-emerald-600"
                     }`}
                   >
                     {type?.value || "BUY"}
                   </div>
-                  {isExpenseType ? (
-                    // Expense: show amount directly
+                  {isExpense ? (
                     <>
-                      <div className="font-bold">
+                      <div className="font-bold text-lg text-gray-900">
                         <NumericFormat
                           value={tradeAmount || 0}
                           displayType="text"
@@ -969,22 +796,21 @@ const TradeInputForm: React.FC<{
                       </div>
                     </>
                   ) : (
-                    // Regular trade: show quantity and price
                     <>
-                      <div className="font-bold">
+                      <div className="font-bold text-lg text-gray-900">
                         <NumericFormat
                           value={quantity || 0}
                           displayType="text"
                           thousandSeparator
                           decimalScale={2}
                         />
-                        {!hasCashImpact && (
-                          <span className="text-gray-500 text-sm ml-1">
+                        {!cashImpact && (
+                          <span className="text-gray-400 text-sm ml-1">
                             {t("trn.units", "units")}
                           </span>
                         )}
                       </div>
-                      {hasCashImpact && (
+                      {cashImpact && (
                         <div className="text-xs text-gray-500">
                           @ {price?.toFixed(2)} {tradeCurrency?.value}
                         </div>
@@ -992,16 +818,16 @@ const TradeInputForm: React.FC<{
                     </>
                   )}
                 </div>
-                {hasCashImpact && tradeAmount > 0 && !isExpenseType && (
+                {cashImpact && tradeAmount > 0 && !isExpense && (
                   <>
-                    <div className="text-gray-300 px-3">
+                    <div className="text-gray-300">
                       <i className="fas fa-arrow-right text-xs"></i>
                     </div>
                     <div className="text-center">
-                      <div className="text-xs font-medium text-gray-500 uppercase">
+                      <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
                         {t("trn.amount.trade")}
                       </div>
-                      <div className="font-bold">
+                      <div className="font-bold text-lg text-gray-900">
                         <NumericFormat
                           value={tradeAmount}
                           displayType="text"
@@ -1018,12 +844,12 @@ const TradeInputForm: React.FC<{
                 )}
               </div>
 
-              {/* Weight info - not shown for EXPENSE */}
-              {weightInfo && !isExpenseType && (
-                <div className="mt-2 text-center text-xs text-blue-600">
+              {/* Weight info */}
+              {weightInfo && !isExpense && (
+                <div className="mt-2 text-center text-xs font-medium text-blue-600">
                   {weightInfo.label}: {weightInfo.value.toFixed(2)}%
                   {weightInfo.tradeWeight !== undefined && (
-                    <span className="text-gray-500 ml-2">
+                    <span className="text-gray-400 ml-2">
                       ({type.value === "SELL" ? "-" : "+"}
                       {weightInfo.tradeWeight.toFixed(2)}%)
                     </span>
@@ -1036,52 +862,24 @@ const TradeInputForm: React.FC<{
             <form
               id="trade-form"
               onSubmit={handleSubmit(async (data) => {
-                // Derive cashCurrency from settlement account (settlement account is source of truth)
-                const settlementCurrency =
-                  data.settlementAccount?.currency ||
-                  data.tradeCurrency?.value ||
-                  "USD"
+                const settlementCurrency = deriveSettlementCurrency(data as any)
 
                 if (isEditMode && transaction) {
                   // Edit mode: use PATCH API
                   setIsSubmitting(true)
                   setSubmitError(null)
-
                   try {
-                    const isExpenseUpdate = data.type.value === "EXPENSE"
-                    const payload: TrnUpdatePayload = {
-                      trnType: data.type.value,
-                      assetId: transaction.asset.id,
-                      tradeDate: data.tradeDate,
-                      quantity: isExpenseUpdate ? 1 : data.quantity,
-                      price: isExpenseUpdate
-                        ? data.tradeAmount || 0
-                        : data.price,
-                      tradeCurrency: data.tradeCurrency.value,
-                      tradeAmount:
-                        data.tradeAmount || data.quantity * data.price,
-                      cashCurrency: settlementCurrency,
-                      cashAssetId: data.settlementAccount?.value || undefined,
-                      cashAmount: isExpenseUpdate
-                        ? -(data.tradeAmount || 0)
-                        : data.cashAmount ||
-                          -(data.quantity * data.price + (data.fees || 0)),
-                      fees: data.fees,
-                      tax: data.tax,
-                      comments: data.comment || "",
-                      brokerId: data.brokerId || undefined,
-                      status: data.status?.value || transaction.status,
-                      modelId: selectedModelId,
-                    }
-
+                    const payload = buildEditPayload(
+                      data as any,
+                      transaction.asset.id,
+                      selectedModelId,
+                    )
                     const response = await updateTrn(
                       selectedPortfolioId,
                       transaction.id,
                       payload,
                     )
-
                     if (response.ok) {
-                      // Invalidate holdings cache
                       setTimeout(() => {
                         mutate(holdingKey(transaction.portfolio.code, "today"))
                         mutate("/api/holdings/aggregated?asAt=today")
@@ -1110,29 +908,10 @@ const TradeInputForm: React.FC<{
                   setIsSubmitting(true)
                   setSubmitError(null)
                   try {
-                    const expenseAmount = data.tradeAmount || 0
-                    const payload = {
-                      portfolioId: portfolio.id,
-                      data: [
-                        {
-                          assetId: data.asset,
-                          trnType: "EXPENSE",
-                          quantity: 1,
-                          price: expenseAmount,
-                          tradeCurrency: data.tradeCurrency.value,
-                          tradeAmount: expenseAmount,
-                          cashCurrency: settlementCurrency,
-                          cashAssetId:
-                            data.settlementAccount?.value || undefined,
-                          cashAmount: -expenseAmount,
-                          tradeDate: data.tradeDate,
-                          fees: data.fees || 0,
-                          tax: data.tax || 0,
-                          comments: data.comment || "",
-                          status: data.status?.value || "SETTLED",
-                        },
-                      ],
-                    }
+                    const payload = buildExpensePayload(
+                      data as any,
+                      portfolio.id,
+                    )
                     const response = await fetch("/api/trns", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
@@ -1169,27 +948,20 @@ const TradeInputForm: React.FC<{
                   }
                 } else {
                   // Create mode: use CSV import via message broker
-                  const dataWithCashCurrency = {
-                    ...data,
-                    cashCurrency: {
-                      value: settlementCurrency,
-                      label: settlementCurrency,
-                    },
-                  }
                   onSubmit(
                     portfolio,
                     errors,
-                    dataWithCashCurrency,
+                    buildCreateModeData(data as any, settlementCurrency),
                     setModalOpen,
                   )
                 }
               })}
-              className="flex-1 overflow-y-auto py-3 space-y-3"
+              className="flex-1 overflow-y-auto py-4 space-y-4"
             >
               {/* Type and Date */}
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-600">
+                  <label className={labelClass}>
                     {t("trn.type")}
                   </label>
                   <TradeTypeController
@@ -1202,7 +974,7 @@ const TradeInputForm: React.FC<{
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600">
+                  <label className={labelClass}>
                     {t("trn.tradeDate")}
                   </label>
                   <Controller
@@ -1223,9 +995,9 @@ const TradeInputForm: React.FC<{
               {/* Market and Asset */}
               {isEditMode ? (
                 // Edit mode: show read-only asset info
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-600">
+                    <label className={labelClass}>
                       {t("trn.asset.code")}
                     </label>
                     <input
@@ -1236,7 +1008,7 @@ const TradeInputForm: React.FC<{
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600">
+                    <label className={labelClass}>
                       {t("trn.market.code")}
                     </label>
                     <input
@@ -1249,9 +1021,9 @@ const TradeInputForm: React.FC<{
                 </div>
               ) : (
                 // Create mode: editable market and asset
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-600">
+                    <label className={labelClass}>
                       {t("trn.market.code")}
                     </label>
                     <Controller
@@ -1271,7 +1043,7 @@ const TradeInputForm: React.FC<{
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600">
+                    <label className={labelClass}>
                       {isFetchingPrice
                         ? `${t("trn.asset.code")} ...`
                         : t("trn.asset.code")}
@@ -1290,7 +1062,7 @@ const TradeInputForm: React.FC<{
               {/* Portfolio Move (edit mode only) */}
               {isEditMode && portfolios.length > 0 && (
                 <div>
-                  <label className="block text-xs font-medium text-gray-600">
+                  <label className={labelClass}>
                     {t("portfolio")}
                   </label>
                   <select
@@ -1316,9 +1088,9 @@ const TradeInputForm: React.FC<{
               )}
 
               {/* Expense Amount - shown for EXPENSE type */}
-              {isExpenseType && (
+              {isExpense && (
                 <div>
-                  <label className="block text-xs font-medium text-gray-600">
+                  <label className={labelClass}>
                     {t("trn.expense.amount", "Expense Amount")}
                   </label>
                   <Controller
@@ -1346,10 +1118,10 @@ const TradeInputForm: React.FC<{
               )}
 
               {/* Quantity, Price, Fees - hidden for EXPENSE type */}
-              {!isExpenseType && (
-                <div className="grid grid-cols-3 gap-2">
+              {!isExpense && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-600">
+                    <label className={labelClass}>
                       {actualPositionQuantity > 0
                         ? `${t("quantity")} (${actualPositionQuantity.toLocaleString()})`
                         : t("quantity")}
@@ -1367,7 +1139,7 @@ const TradeInputForm: React.FC<{
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600">
+                    <label className={labelClass}>
                       {t("trn.price")}
                     </label>
                     <Controller
@@ -1383,8 +1155,8 @@ const TradeInputForm: React.FC<{
                       )}
                     />
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600">
+                  <div className="col-span-2 sm:col-span-1">
+                    <label className={labelClass}>
                       {t("trn.amount.charges")}
                     </label>
                     <Controller
@@ -1403,10 +1175,10 @@ const TradeInputForm: React.FC<{
               )}
 
               {/* Broker - select before settlement account (hidden for EXPENSE) */}
-              {!isExpenseType && (
+              {!isExpense && (
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-medium text-gray-600">
+                    <label className={labelClass}>
                       {t("trn.broker", "Broker")}
                     </label>
                     <a
@@ -1445,8 +1217,8 @@ const TradeInputForm: React.FC<{
 
               {/* Settlement Account */}
               <div>
-                <label className="block text-xs font-medium text-gray-600">
-                  {isExpenseType
+                <label className={labelClass}>
+                  {isExpense
                     ? t("trn.expense.debitAccount", "Debit From Account")
                     : t("trn.settlement.account")}
                 </label>
@@ -1466,7 +1238,7 @@ const TradeInputForm: React.FC<{
               {isEditMode && models.length > 0 && (
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-medium text-gray-600">
+                    <label className={labelClass}>
                       {t("trn.model", "Strategy/Model")}
                     </label>
                     {suggestedModelId &&
@@ -1527,8 +1299,8 @@ const TradeInputForm: React.FC<{
               )}
 
               {/* Tabs for Trade/Invest - simplified for EXPENSE */}
-              <div className="border-t border-gray-200 pt-2">
-                {!isExpenseType && (
+              <div className="border-t border-gray-100 pt-3">
+                {!isExpense && (
                   <div className="flex border-b border-gray-200">
                     <button
                       type="button"
@@ -1567,11 +1339,11 @@ const TradeInputForm: React.FC<{
                 )}
 
                 {/* EXPENSE: Simplified content - just comments */}
-                {isExpenseType && (
+                {isExpense && (
                   <div className="mt-3 space-y-2">
                     {/* Comments */}
                     <div>
-                      <label className="block text-xs font-medium text-gray-600">
+                      <label className={labelClass}>
                         {t("trn.expense.description", "Expense Description")}
                       </label>
                       <Controller
@@ -1595,12 +1367,12 @@ const TradeInputForm: React.FC<{
                 )}
 
                 {/* Trade Tab Content - for non-EXPENSE types */}
-                {!isExpenseType && activeTab === "trade" && (
+                {!isExpense && activeTab === "trade" && (
                   <div className="mt-3 space-y-2">
                     {/* Trade/Cash Amounts */}
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-medium text-gray-600">
+                        <label className={labelClass}>
                           {t("trn.amount.trade")}
                         </label>
                         <Controller
@@ -1616,7 +1388,7 @@ const TradeInputForm: React.FC<{
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-600">
+                        <label className={labelClass}>
                           {t("trn.amount.tax")}
                         </label>
                         <Controller
@@ -1635,7 +1407,7 @@ const TradeInputForm: React.FC<{
 
                     {/* Cash Amount */}
                     <div>
-                      <label className="block text-xs font-medium text-gray-600">
+                      <label className={labelClass}>
                         {t("trn.amount.cash")}
                       </label>
                       <Controller
@@ -1653,7 +1425,7 @@ const TradeInputForm: React.FC<{
 
                     {/* Comments */}
                     <div>
-                      <label className="block text-xs font-medium text-gray-600">
+                      <label className={labelClass}>
                         {t("trn.comments", "Comments")}
                       </label>
                       <Controller
@@ -1673,11 +1445,11 @@ const TradeInputForm: React.FC<{
                 )}
 
                 {/* Invest Tab Content - for non-EXPENSE types */}
-                {!isExpenseType && activeTab === "invest" && (
+                {!isExpense && activeTab === "invest" && (
                   <div className="mt-3 space-y-3">
                     {/* Invest Value - calculate quantity from total */}
                     <div>
-                      <label className="block text-xs font-medium text-gray-600">
+                      <label className={labelClass}>
                         {t("trn.invest.value", "Invest Value")}
                       </label>
                       <p className="text-xs text-gray-500 mb-1">
@@ -1770,11 +1542,11 @@ const TradeInputForm: React.FC<{
               </div>
             )}
 
-            {/* Sticky footer */}
-            <div className="flex-shrink-0 pt-3 border-t flex justify-end gap-2">
+            {/* Footer */}
+            <div className="flex-shrink-0 pt-3 border-t border-gray-100 flex justify-end gap-3">
               <button
                 type="button"
-                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+                className="px-5 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
                 onClick={() =>
                   isEditMode ? editMode?.onClose() : setModalOpen(false)
                 }
@@ -1789,12 +1561,12 @@ const TradeInputForm: React.FC<{
                   (isSubmitting ||
                     (!isDirty && !portfolioChanged && !modelChanged))
                 }
-                className={`px-4 py-2 rounded text-white text-sm ${
+                className={`px-5 py-2.5 rounded-lg text-white text-sm font-medium transition-colors ${
                   isEditMode &&
                   (isSubmitting ||
                     (!isDirty && !portfolioChanged && !modelChanged))
                     ? "bg-blue-300 cursor-not-allowed"
-                    : "bg-blue-500 hover:bg-blue-600"
+                    : "bg-blue-600 hover:bg-blue-700 active:bg-blue-800"
                 }`}
               >
                 {isEditMode
