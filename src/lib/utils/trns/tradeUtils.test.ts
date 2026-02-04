@@ -8,6 +8,10 @@ import {
   generateBatchId,
   getCashRow,
   getTradeRow,
+  hasCashImpact,
+  isExpenseType,
+  getAssetCurrency,
+  deriveDefaultMarket,
 } from "./tradeUtils"
 import { TradeFormData } from "types/beancounter"
 
@@ -575,6 +579,113 @@ describe("TradeUtils", () => {
       expect(row).toContain(
         "EXPENSE,PRIVATE,APT,,kiwi-bank-id,NZD,2024-01-15,1,,NZD,500,0,,,-500,Insurance",
       )
+    })
+  })
+
+  describe("hasCashImpact", () => {
+    test("returns false for ADD", () => {
+      expect(hasCashImpact("ADD")).toBe(false)
+    })
+
+    test("returns false for REDUCE", () => {
+      expect(hasCashImpact("REDUCE")).toBe(false)
+    })
+
+    test("returns false for SPLIT", () => {
+      expect(hasCashImpact("SPLIT")).toBe(false)
+    })
+
+    test("returns true for BUY", () => {
+      expect(hasCashImpact("BUY")).toBe(true)
+    })
+
+    test("returns true for SELL", () => {
+      expect(hasCashImpact("SELL")).toBe(true)
+    })
+
+    test("returns true for DIVI", () => {
+      expect(hasCashImpact("DIVI")).toBe(true)
+    })
+
+    test("returns true for EXPENSE", () => {
+      expect(hasCashImpact("EXPENSE")).toBe(true)
+    })
+  })
+
+  describe("isExpenseType", () => {
+    test("returns true for EXPENSE", () => {
+      expect(isExpenseType("EXPENSE")).toBe(true)
+    })
+
+    test("returns false for BUY", () => {
+      expect(isExpenseType("BUY")).toBe(false)
+    })
+
+    test("returns false for SELL", () => {
+      expect(isExpenseType("SELL")).toBe(false)
+    })
+  })
+
+  describe("getAssetCurrency", () => {
+    test("returns code for CASH market assets", () => {
+      expect(
+        getAssetCurrency({
+          code: "USD",
+          market: { code: "CASH" },
+        }),
+      ).toBe("USD")
+    })
+
+    test("returns priceSymbol when available for non-CASH assets", () => {
+      expect(
+        getAssetCurrency({
+          code: "AAPL",
+          priceSymbol: "USD",
+          market: { code: "NASDAQ", currency: { code: "USD" } },
+        }),
+      ).toBe("USD")
+    })
+
+    test("falls back to market currency when priceSymbol is absent", () => {
+      expect(
+        getAssetCurrency({
+          code: "AAPL",
+          market: { code: "NASDAQ", currency: { code: "USD" } },
+        }),
+      ).toBe("USD")
+    })
+
+    test("returns empty string when no currency info available", () => {
+      expect(
+        getAssetCurrency({
+          code: "UNKNOWN",
+          market: { code: "OTHER" },
+        }),
+      ).toBe("")
+    })
+  })
+
+  describe("deriveDefaultMarket", () => {
+    const markets = [
+      { code: "US", currency: { code: "USD" } },
+      { code: "NZX", currency: { code: "NZD" } },
+      { code: "ASX", currency: { code: "AUD" } },
+    ]
+
+    test("finds market matching currency code", () => {
+      expect(deriveDefaultMarket("NZD", markets)).toBe("NZX")
+    })
+
+    test("finds US market for USD", () => {
+      expect(deriveDefaultMarket("USD", markets)).toBe("US")
+    })
+
+    test("returns 'US' as fallback when no market matches", () => {
+      expect(deriveDefaultMarket("GBP", markets)).toBe("US")
+    })
+
+    test("returns 'US' for empty markets array", () => {
+      expect(deriveDefaultMarket("NZD", [])).toBe("US")
     })
   })
 
