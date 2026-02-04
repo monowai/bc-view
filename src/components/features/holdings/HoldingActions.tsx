@@ -118,6 +118,25 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
   const { isAdmin } = useIsAdmin()
   const [tradeModalOpen, setTradeModalOpen] = useState(false)
   const [cashModalOpen, setCashModalOpen] = useState(false)
+
+  // Open trade/cash modal via ?action= query parameter (used by mobile header)
+  useEffect(() => {
+    if (router.query.action === "trade") {
+      setTradeModalOpen(true)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { action, ...rest } = router.query
+      router.replace({ pathname: router.pathname, query: rest }, undefined, {
+        shallow: true,
+      })
+    } else if (router.query.action === "cash") {
+      setCashModalOpen(true)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { action, ...rest } = router.query
+      router.replace({ pathname: router.pathname, query: rest }, undefined, {
+        shallow: true,
+      })
+    }
+  }, [router.query.action]) // eslint-disable-line react-hooks/exhaustive-deps
   const [copyModalOpen, setCopyModalOpen] = useState(false)
   const [summaryCopyModalOpen, setSummaryCopyModalOpen] = useState(false)
   const [selectPlanModalOpen, setSelectPlanModalOpen] = useState(false)
@@ -294,8 +313,9 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
   }, [isAdmin])
 
   return (
+    <>
     <div
-      className={`flex flex-col sm:flex-row py-2 space-y-2 sm:space-y-0 sm:space-x-2 mb-4 ${emptyHoldings ? "justify-start" : "justify-end"}`}
+      className={`mobile-portrait:hidden flex flex-col sm:flex-row py-2 space-y-2 sm:space-y-0 sm:space-x-2 mb-4 ${emptyHoldings ? "justify-start" : "justify-end"}`}
     >
       {!emptyHoldings && (
         <button
@@ -324,6 +344,7 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
         colorClass="bg-indigo-500 hover:bg-indigo-600"
         items={rebalanceItems}
       />
+    </div>
       <TradeInputForm
         portfolio={holdingResults.portfolio}
         modalOpen={tradeModalOpen}
@@ -428,7 +449,7 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
           router.replace(router.asPath)
         }}
       />
-    </div>
+    </>
   )
 }
 

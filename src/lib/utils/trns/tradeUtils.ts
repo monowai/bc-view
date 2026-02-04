@@ -272,6 +272,48 @@ export const getCashRow = (data: TradeFormData): string => {
   return `${tradeImport.batchId},,${tradeImport.type},${tradeImport.market},${tradeImport.asset},,${tradeImport.cashAccount},${tradeImport.cashCurrency},${tradeImport.tradeDate},${tradeImport.cashAmount},,${tradeImport.tradeCurrency},${tradeImport.price},${tradeImport.fees},,,${tradeImport.cashAmount},${tradeImport.comments},${tradeImport.status},${tradeImport.brokerId}`
 }
 
+// Trade types that do not affect cash balances
+const NO_CASH_IMPACT_TYPES = ["ADD", "REDUCE", "SPLIT"]
+
+/**
+ * Returns true if the trade type affects cash (BUY, SELL, DIVI, EXPENSE, etc).
+ * ADD, REDUCE, and SPLIT do not impact cash.
+ */
+export const hasCashImpact = (tradeType: string): boolean =>
+  !NO_CASH_IMPACT_TYPES.includes(tradeType)
+
+/** Returns true if the trade type is EXPENSE */
+export const isExpenseType = (tradeType: string): boolean =>
+  tradeType === "EXPENSE"
+
+/**
+ * Extract the currency code from an asset object.
+ * CASH market assets use their code as the currency.
+ * Other assets use priceSymbol or fall back to market.currency.code.
+ */
+export const getAssetCurrency = (assetData: {
+  code: string
+  priceSymbol?: string
+  market: { code: string; currency?: { code: string } }
+}): string => {
+  if (assetData.market?.code === "CASH") {
+    return assetData.code
+  }
+  return assetData.priceSymbol || assetData.market?.currency?.code || ""
+}
+
+/**
+ * Derive the default market code from a portfolio's currency.
+ * Finds the first market whose currency matches, or falls back to "US".
+ */
+export const deriveDefaultMarket = (
+  currencyCode: string,
+  markets: { code: string; currency: { code: string } }[],
+): string => {
+  const match = markets.find((m) => m.currency.code === currencyCode)
+  return match?.code || "US"
+}
+
 export const convert = (tradeFormData: TradeFormData): string => {
   // FX transactions always use getCashRow which handles FX -> FX_BUY conversion
   if (tradeFormData.type.value === "FX") {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react"
+import React, { useState, useCallback } from "react"
 import {
   QuickSellData,
   WeightClickData,
@@ -73,8 +73,6 @@ function HoldingsPage(): React.ReactElement {
   } = useHoldingsView(data?.data)
 
   // Page-specific state
-  const [tradeModalOpen, setTradeModalOpen] = useState(false)
-  const [cashModalOpen, setCashModalOpen] = useState(false)
   const [columns, setColumns] = useState<string[]>([])
   const [quickSellData, setQuickSellData] = useState<QuickSellData | undefined>(
     undefined,
@@ -288,14 +286,6 @@ function HoldingsPage(): React.ReactElement {
     [router],
   )
 
-  useEffect(() => {
-    if (router.query.action === "trade") {
-      setTradeModalOpen(true)
-    } else if (router.query.action === "cash") {
-      setCashModalOpen(true)
-    }
-  }, [router.query.action, cashModalOpen, tradeModalOpen])
-
   if (error && ready) {
     console.error(error) // Log the error for debugging
     return errorOut(
@@ -370,19 +360,16 @@ function HoldingsPage(): React.ReactElement {
     <div className="w-full py-4">
       <HoldingMenu portfolio={holdingResults.portfolio} />
 
-      {/* Actions bar - visible on tablet/desktop */}
-      <div className="mobile-portrait:hidden mb-4">
-        <HoldingActions
-          holdingResults={holdingResults}
-          columns={columns}
-          valueIn={holdingState.valueIn.value}
-          quickSellData={quickSellData}
-          onQuickSellHandled={handleQuickSellHandled}
-          viewMode={viewMode}
-          allocationData={allocationData}
-          holdings={holdings}
-        />
-      </div>
+      <HoldingActions
+        holdingResults={holdingResults}
+        columns={columns}
+        valueIn={holdingState.valueIn.value}
+        quickSellData={quickSellData}
+        onQuickSellHandled={handleQuickSellHandled}
+        viewMode={viewMode}
+        allocationData={allocationData}
+        holdings={holdings}
+      />
 
       {viewMode === "summary" ? (
         <div className="grid grid-cols-1 gap-3">

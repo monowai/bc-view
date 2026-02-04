@@ -2,8 +2,7 @@ import React, { useEffect, useState, useMemo, useRef, useCallback } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
 import * as yup from "yup"
-import { Asset, CurrencyOption, FxResponse, Portfolio } from "types/beancounter"
-import { stripOwnerPrefix } from "@lib/assets/assetUtils"
+import { FxResponse, Portfolio } from "types/beancounter"
 import { SelectInstance } from "react-select"
 import { calculateTradeAmount } from "@lib/trns/tradeUtils"
 import { useTranslation } from "next-i18next"
@@ -18,11 +17,19 @@ import {
 } from "@lib/trns/formUtils"
 import { convert } from "@lib/trns/tradeUtils"
 import TradeTypeController from "@components/features/transactions/TradeTypeController"
-import { currencyOptions } from "@lib/currency"
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import DateInput from "@components/ui/DateInput"
 import MathInput from "@components/ui/MathInput"
+import {
+  buildCombinedAssetOptions,
+  resolveFxCurrencyPair,
+  resolveAssetSelection,
+  calculateFxBuyAmount,
+  filterFxBuyOptions,
+  buildCashCopyData,
+  resolveFxDisplayInfo,
+} from "@lib/trns/cashFormHelpers"
 
 // Fetcher for FX rates
 const fxFetcher = async (
@@ -48,13 +55,6 @@ const TradeTypeValues = [
 ] as const
 
 const StatusValues = ["SETTLED", "PROPOSED"] as const
-
-// Extended option that includes market info for accounts
-interface AssetOption extends CurrencyOption {
-  market?: string // CASH for currencies, PRIVATE for accounts
-  currency?: string // For accounts, the currency of the account
-  assetId?: string // Asset ID (UUID) for bank accounts - used in CashAccount field
-}
 
 const defaultValues = {
   type: { value: "DEPOSIT", label: "DEPOSIT" },
@@ -148,15 +148,7 @@ const CashInputForm: React.FC<{
   const [selectedMarket, setSelectedMarket] = useState("CASH")
 
   const handleCopy = async (): Promise<void> => {
-    const formData = getValues()
-    // Map form fields to TradeFormData format
-    // Note: asset field contains the sell asset code for FX trades
-    const data = {
-      ...formData,
-      market: selectedMarket,
-      price: 1, // Cash transactions always have price of 1
-      comments: formData.comment ?? undefined,
-    }
+    const data = buildCashCopyData(getValues(), selectedMarket)
     const row = convert(data)
     const success = await copyToClipboard(row)
     setCopyStatus(success ? "success" : "error")
@@ -195,55 +187,15 @@ const CashInputForm: React.FC<{
   useEscapeHandler(isDirty, setModalOpen)
 
   // Combine currency options with account options (must be before FX rate logic)
-  const combinedOptions = useMemo(() => {
-    const options: AssetOption[] = []
-
-    // Add currencies (market: CASH)
-    if (ccyData?.data) {
-      currencyOptions(ccyData.data).forEach((opt: CurrencyOption) => {
-        options.push({ ...opt, market: "CASH", currency: opt.value })
-      })
-    }
-
-    // Add user's bank accounts (market: PRIVATE, category: ACCOUNT)
-    // For ACCOUNT assets, the currency is stored in priceSymbol
-    // Use stripOwnerPrefix to remove owner ID prefix from codes (e.g., "userId.SCB-USD" -> "SCB-USD")
-    if (accountsData?.data) {
-      Object.values(accountsData.data as Record<string, Asset>).forEach(
-        (account) => {
-          const accountCurrency =
-            account.priceSymbol || account.market?.currency?.code || "?"
-          options.push({
-            value: stripOwnerPrefix(account.code),
-            label: `${account.name} (${accountCurrency})`,
-            market: "PRIVATE",
-            currency: accountCurrency,
-            assetId: account.id, // UUID for CashAccount field
-          })
-        },
-      )
-    }
-
-    // Add user's trade accounts (market: PRIVATE, category: TRADE)
-    // Use stripOwnerPrefix to remove owner ID prefix from codes
-    if (tradeAccountsData?.data) {
-      Object.values(tradeAccountsData.data as Record<string, Asset>).forEach(
-        (account) => {
-          const accountCurrency =
-            account.priceSymbol || account.market?.currency?.code || "?"
-          options.push({
-            value: stripOwnerPrefix(account.code),
-            label: `${account.name} (${accountCurrency})`,
-            market: "TRADE",
-            currency: accountCurrency,
-            assetId: account.id, // UUID for CashAccount field
-          })
-        },
-      )
-    }
-
-    return options
-  }, [ccyData?.data, accountsData?.data, tradeAccountsData?.data])
+  const combinedOptions = useMemo(
+    () =>
+      buildCombinedAssetOptions(
+        ccyData?.data,
+        accountsData?.data,
+        tradeAccountsData?.data,
+      ),
+    [ccyData?.data, accountsData?.data, tradeAccountsData?.data],
+  )
 
   // FX rate state
   const [fxRate, setFxRate] = useState<number | null>(null)
@@ -257,27 +209,21 @@ const CashInputForm: React.FC<{
       return
     }
 
-    // Get the sell currency (from asset or its currency property)
-    const sellCurrency = combinedOptions.find(
-      (opt) => opt.value === asset,
-    )?.currency
-
-    // Get the buy currency - could be a currency code or an account with a currency property
-    const buyOption = combinedOptions.find(
-      (opt) => opt.value === cashCurrency.value,
+    const pair = resolveFxCurrencyPair(
+      asset,
+      cashCurrency.value,
+      combinedOptions,
     )
-    const buyCurrency = buyOption?.currency || cashCurrency.value
-
-    if (!sellCurrency || sellCurrency === buyCurrency) {
+    if (!pair) {
       setFxRate(null)
       return
     }
 
     setFxRateLoading(true)
-    fxFetcher(sellCurrency, buyCurrency)
+    fxFetcher(pair.sellCurrency, pair.buyCurrency)
       .then((response) => {
         if (response?.data?.rates) {
-          const key = `${sellCurrency}:${buyCurrency}`
+          const key = `${pair.sellCurrency}:${pair.buyCurrency}`
           const rate = response.data.rates[key]?.rate
           setFxRate(rate ?? null)
         } else {
@@ -291,8 +237,7 @@ const CashInputForm: React.FC<{
   // Auto-calculate buy amount when sell amount or rate changes
   useEffect(() => {
     if (type.value === "FX" && fxRate && qty > 0 && !manualBuyAmount) {
-      const buyAmount = qty * fxRate
-      setValue("cashAmount", parseFloat(buyAmount.toFixed(2)))
+      setValue("cashAmount", calculateFxBuyAmount(qty, fxRate))
     }
   }, [type.value, fxRate, qty, manualBuyAmount, setValue])
 
@@ -313,17 +258,21 @@ const CashInputForm: React.FC<{
   // Update market and currency when asset changes
   useEffect(() => {
     if (asset) {
-      const selected = combinedOptions.find((opt) => opt.value === asset)
-      if (selected) {
-        setSelectedMarket(selected.market || "CASH")
-        const currency = selected.currency || asset
-        setValue("tradeCurrency", { value: currency, label: currency })
+      const resolved = resolveAssetSelection(asset, combinedOptions)
+      if (resolved) {
+        setSelectedMarket(resolved.market)
+        setValue("tradeCurrency", {
+          value: resolved.currency,
+          label: resolved.currency,
+        })
         // For FX transactions, don't sync cashCurrency to sell currency
-        // User needs to select a different buy currency
         if (type.value !== "FX") {
-          setValue("cashCurrency", { value: currency, label: currency })
+          setValue("cashCurrency", {
+            value: resolved.currency,
+            label: resolved.currency,
+          })
         }
-        setValue("market", selected.market || "CASH")
+        setValue("market", resolved.market)
       }
     }
   }, [asset, combinedOptions, setValue, type.value])
@@ -337,508 +286,507 @@ const CashInputForm: React.FC<{
     }
   }, [tax, fees, type, qty, setValue])
 
+  // Common CSS classes (matching trade form)
+  const inputClass =
+    "mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
+  const labelClass =
+    "block text-xs font-medium text-gray-500 uppercase tracking-wide"
+
   // Only wait for currencies - accounts are optional enhancement
   if (ccyLoading) return rootLoader(t("loading"))
 
   return (
     <>
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <div
-            className="fixed inset-0 bg-black opacity-50"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm"
             onClick={() => setModalOpen(false)}
           ></div>
           <div
-            className="bg-white rounded-lg shadow-lg w-full max-w-lg mx-4 p-4 sm:p-6 z-50 flex flex-col max-h-[90vh]"
+            className="bg-white sm:rounded-xl shadow-2xl w-full sm:max-w-lg sm:mx-4 p-4 sm:p-5 z-50 text-sm flex flex-col max-h-[95vh] sm:max-h-[90vh] rounded-t-xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <header className="flex-shrink-0 flex justify-between items-center border-b pb-2 mb-4">
-              <h2 className="text-xl font-semibold">
-                {type.value === "FX"
-                  ? t("trade.fx.title", "FX Trade")
-                  : t("trade.cash.title")}
-              </h2>
-              <button
-                className="text-gray-500 hover:text-gray-700"
-                onClick={() => setModalOpen(false)}
-              >
-                &times;
-              </button>
-            </header>
-            {/* FX Trade Summary */}
-            {type.value === "FX" && (
-              <div className="flex-shrink-0 mb-4 p-3 bg-linear-to-r from-red-50 to-green-50 border border-gray-200 rounded-lg">
-                <div className="flex items-center justify-center gap-4 text-sm">
-                  <div className="text-center">
-                    <div className="text-xs text-red-600 font-medium uppercase">
-                      Sell
-                    </div>
-                    <div className="font-bold text-red-700">
-                      {qty > 0 && <>{qty.toLocaleString()} </>}
-                      {(() => {
-                        const sellOpt = combinedOptions.find(
-                          (opt) => opt.value === asset,
-                        )
-                        // Show account name for accounts, currency code for currencies
-                        return sellOpt?.market !== "CASH"
-                          ? sellOpt?.label || asset
-                          : asset
-                      })()}
-                    </div>
+            {/* Header */}
+            <header className="flex-shrink-0 pb-3 border-b border-gray-100">
+              <div className="flex items-center justify-between mb-3">
+                <button
+                  className="text-gray-400 hover:text-gray-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+                  onClick={() => setModalOpen(false)}
+                  title={t("cancel")}
+                >
+                  <i className="fas fa-times"></i>
+                </button>
+                <div className="text-center flex-1 px-3">
+                  <div className="font-semibold text-gray-900">
+                    {type.value === "FX"
+                      ? t("trade.fx.title", "FX Trade")
+                      : t("trade.cash.title")}
                   </div>
-                  <div className="text-center text-gray-500">
-                    <i className="fas fa-arrow-right"></i>
-                    {fxRateLoading ? (
-                      <div className="text-xs mt-1">
-                        <i className="fas fa-spinner fa-spin"></i>
-                      </div>
-                    ) : fxRate ? (
-                      <div className="text-xs mt-1 font-mono">
-                        @{fxRate.toFixed(4)}
-                      </div>
-                    ) : null}
+                  <div className="text-xs text-gray-400 mt-0.5">
+                    {portfolio.code} - {portfolio.name}
                   </div>
+                </div>
+                <button
+                  type="button"
+                  className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors ${
+                    copyStatus === "success"
+                      ? "text-green-600 bg-green-50"
+                      : copyStatus === "error"
+                        ? "text-red-500 bg-red-50"
+                        : "text-gray-400 hover:text-green-600 hover:bg-green-50"
+                  }`}
+                  onClick={handleCopy}
+                  title={t("copy")}
+                >
+                  <i
+                    className={`fas ${copyStatus === "success" ? "fa-check" : copyStatus === "error" ? "fa-times" : "fa-copy"} text-xs`}
+                  ></i>
+                </button>
+              </div>
+
+              {/* Cash Transaction Summary */}
+              {type.value !== "FX" && qty > 0 && (
+                <div
+                  className={`rounded-lg p-3 flex items-center justify-center gap-4 ${
+                    type.value === "WITHDRAWAL" || type.value === "DEDUCTION"
+                      ? "bg-red-50 border border-red-100"
+                      : "bg-emerald-50 border border-emerald-100"
+                  }`}
+                >
                   <div className="text-center">
-                    <div className="text-xs text-green-600 font-medium uppercase">
-                      Buy
+                    <div
+                      className={`text-[10px] font-semibold uppercase tracking-wider ${
+                        type.value === "WITHDRAWAL" ||
+                        type.value === "DEDUCTION"
+                          ? "text-red-500"
+                          : "text-emerald-600"
+                      }`}
+                    >
+                      {type.value}
                     </div>
-                    <div className="font-bold text-green-700">
-                      {(watch("cashAmount") ?? 0) > 0 && (
-                        <>{(watch("cashAmount") ?? 0).toLocaleString()} </>
-                      )}
-                      {(() => {
-                        const buyCcy = watch("cashCurrency")
-                        const buyOpt = combinedOptions.find(
-                          (opt) => opt.value === buyCcy?.value,
-                        )
-                        // Show account name for accounts, currency code for currencies
-                        return buyOpt?.market !== "CASH"
-                          ? buyOpt?.label || buyCcy?.value
-                          : (buyCcy?.value ?? "")
-                      })()}
+                    <div className="font-bold text-lg text-gray-900">
+                      {qty.toLocaleString()}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {resolveFxDisplayInfo(asset, combinedOptions).label}
                     </div>
                   </div>
                 </div>
-                {fxRate && !manualBuyAmount && (
-                  <div className="text-center text-xs text-gray-500 mt-2">
-                    Rate auto-applied from FX service
+              )}
+
+              {/* FX Trade Summary */}
+              {type.value === "FX" && (
+                <div className="rounded-lg p-3 bg-linear-to-r from-red-50 to-green-50 border border-gray-200">
+                  <div className="flex items-center justify-center gap-4">
+                    <div className="text-center">
+                      <div className="text-[10px] font-semibold text-red-500 uppercase tracking-wider">
+                        Sell
+                      </div>
+                      <div className="font-bold text-lg text-gray-900">
+                        {qty > 0 ? qty.toLocaleString() : "—"}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {resolveFxDisplayInfo(asset, combinedOptions).label}
+                      </div>
+                    </div>
+                    <div className="text-center text-gray-300">
+                      <i className="fas fa-arrow-right text-xs"></i>
+                      {fxRateLoading ? (
+                        <div className="text-xs mt-1 text-gray-400">
+                          <i className="fas fa-spinner fa-spin"></i>
+                        </div>
+                      ) : fxRate ? (
+                        <div className="text-xs mt-1 font-mono text-gray-500">
+                          @{fxRate.toFixed(4)}
+                        </div>
+                      ) : null}
+                    </div>
+                    <div className="text-center">
+                      <div className="text-[10px] font-semibold text-emerald-600 uppercase tracking-wider">
+                        Buy
+                      </div>
+                      <div className="font-bold text-lg text-gray-900">
+                        {(watch("cashAmount") ?? 0) > 0
+                          ? (watch("cashAmount") ?? 0).toLocaleString()
+                          : "—"}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {resolveFxDisplayInfo(
+                          cashCurrency?.value ?? "",
+                          combinedOptions,
+                        ).label}
+                      </div>
+                    </div>
                   </div>
-                )}
-                {manualBuyAmount && (
-                  <div className="text-center text-xs text-amber-600 mt-2">
-                    Manual amount entered
-                  </div>
-                )}
-              </div>
-            )}
+                  {fxRate && !manualBuyAmount && (
+                    <div className="text-center text-xs text-gray-400 mt-2">
+                      Rate auto-applied from FX service
+                    </div>
+                  )}
+                  {manualBuyAmount && (
+                    <div className="text-center text-xs text-amber-600 mt-2">
+                      Manual amount entered
+                    </div>
+                  )}
+                </div>
+              )}
+            </header>
+
             <form
               onSubmit={handleSubmit((data) =>
                 onSubmit(portfolio, errors, data, setModalOpen),
               )}
-              className="flex-1 overflow-y-auto space-y-4"
+              className="flex-1 overflow-y-auto py-4 space-y-4"
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[
-                  {
-                    name: "type",
-                    label: t("trn.type"),
-                    component: (
-                      <TradeTypeController
-                        ref={typeSelectRef}
-                        name="type"
-                        control={control}
-                        options={TradeTypeValues.map((value) => ({
-                          value,
-                          label: value,
-                        }))}
+              {/* Type, Status, Date */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={labelClass}>{t("trn.type")}</label>
+                  <TradeTypeController
+                    ref={typeSelectRef}
+                    name="type"
+                    control={control}
+                    options={TradeTypeValues.map((value) => ({
+                      value,
+                      label: value,
+                    }))}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>{t("trn.status")}</label>
+                  <Controller
+                    name="status"
+                    control={control}
+                    render={({ field }) => (
+                      <select
+                        className={inputClass}
+                        value={field.value.value}
+                        onChange={(e) => {
+                          field.onChange({
+                            value: e.target.value,
+                            label: e.target.value,
+                          })
+                        }}
+                      >
+                        {StatusValues.map((status) => (
+                          <option key={status} value={status}>
+                            {status}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* Date - for non-FX */}
+              {type.value !== "FX" && (
+                <div>
+                  <label className={labelClass}>{t("trn.tradeDate")}</label>
+                  <Controller
+                    name="tradeDate"
+                    control={control}
+                    render={({ field }) => (
+                      <DateInput
+                        value={field.value}
+                        onChange={field.onChange}
+                        className={inputClass}
                       />
-                    ),
-                  },
-                  {
-                    name: "status",
-                    label: t("trn.status"),
-                    component: (
-                      <Controller
-                        name="status"
-                        control={control}
-                        render={({ field }) => (
-                          <select
-                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
-                            value={field.value.value}
-                            onChange={(e) => {
-                              field.onChange({
-                                value: e.target.value,
-                                label: e.target.value,
-                              })
-                            }}
-                          >
-                            {StatusValues.map((status) => (
-                              <option key={status} value={status}>
-                                {status}
+                    )}
+                  />
+                </div>
+              )}
+
+              {/* Account/Currency and Amount */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={labelClass}>
+                    {type.value === "FX"
+                      ? t("trn.fx.sellCurrency", "Sell Currency")
+                      : t("trade.cash.account")}
+                  </label>
+                  <Controller
+                    name="asset"
+                    control={control}
+                    defaultValue={portfolio.currency.code}
+                    render={({ field }) => (
+                      <select
+                        {...field}
+                        className={`${inputClass} ${
+                          type.value === "FX"
+                            ? "border-red-200 bg-red-50 focus:border-red-400 focus:ring-red-400"
+                            : ""
+                        }`}
+                        value={field.value}
+                      >
+                        <optgroup label="Currencies">
+                          {combinedOptions
+                            .filter((opt) => opt.market === "CASH")
+                            .map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
                               </option>
                             ))}
-                          </select>
+                        </optgroup>
+                        {combinedOptions.some(
+                          (opt) => opt.market === "PRIVATE",
+                        ) && (
+                          <optgroup label="Bank Accounts">
+                            {combinedOptions
+                              .filter((opt) => opt.market === "PRIVATE")
+                              .map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                          </optgroup>
                         )}
-                      />
-                    ),
-                  },
-                  // Trade Date - show here for non-FX, moved later for FX
-                  ...(type.value !== "FX"
-                    ? [
-                        {
-                          name: "tradeDate",
-                          label: t("trn.tradeDate"),
-                          component: (
-                            <Controller
-                              name="tradeDate"
-                              control={control}
-                              render={({ field }) => (
-                                <DateInput
-                                  value={field.value}
-                                  onChange={field.onChange}
-                                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
-                                />
-                              )}
-                            />
-                          ),
-                        },
-                      ]
-                    : []),
-                  {
-                    name: "asset",
-                    label:
-                      type.value === "FX"
-                        ? t("trn.fx.sellCurrency", "Sell Currency")
-                        : t("trade.cash.account"),
-                    component: (
-                      <Controller
-                        name="asset"
-                        control={control}
-                        defaultValue={portfolio.currency.code}
-                        render={({ field }) => (
-                          <select
-                            {...field}
-                            className={`mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height ${
-                              type.value === "FX"
-                                ? "border-red-200 bg-red-50"
-                                : ""
-                            }`}
-                            value={field.value}
-                          >
-                            <optgroup label="Currencies">
-                              {combinedOptions
-                                .filter((opt) => opt.market === "CASH")
-                                .map((option) => (
-                                  <option
-                                    key={option.value}
-                                    value={option.value}
-                                  >
-                                    {option.label}
-                                  </option>
-                                ))}
-                            </optgroup>
-                            {combinedOptions.some(
-                              (opt) => opt.market === "PRIVATE",
-                            ) && (
-                              <optgroup label="Bank Accounts">
-                                {combinedOptions
-                                  .filter((opt) => opt.market === "PRIVATE")
-                                  .map((option) => (
-                                    <option
-                                      key={option.value}
-                                      value={option.value}
-                                    >
-                                      {option.label}
-                                    </option>
-                                  ))}
-                              </optgroup>
-                            )}
-                            {combinedOptions.some(
-                              (opt) => opt.market === "TRADE",
-                            ) && (
-                              <optgroup label="Trade Accounts">
-                                {combinedOptions
-                                  .filter((opt) => opt.market === "TRADE")
-                                  .map((option) => (
-                                    <option
-                                      key={option.value}
-                                      value={option.value}
-                                    >
-                                      {option.label}
-                                    </option>
-                                  ))}
-                              </optgroup>
-                            )}
-                          </select>
+                        {combinedOptions.some(
+                          (opt) => opt.market === "TRADE",
+                        ) && (
+                          <optgroup label="Trade Accounts">
+                            {combinedOptions
+                              .filter((opt) => opt.market === "TRADE")
+                              .map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                          </optgroup>
                         )}
-                      />
-                    ),
-                  },
-                  // Sell Amount - immediately after Sell Currency
-                  {
-                    name: "quantity",
-                    label:
-                      type.value === "FX"
-                        ? t("trn.fx.sellAmount", "Sell Amount")
-                        : t("trn.amount.trade"),
-                    component: (
-                      <Controller
-                        name="quantity"
-                        control={control}
-                        render={({ field }) => (
-                          <MathInput
-                            value={field.value}
-                            onChange={field.onChange}
-                            className={`mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height ${
-                              type.value === "FX"
-                                ? "border-red-200 bg-red-50"
-                                : ""
-                            }`}
-                          />
-                        )}
-                      />
-                    ),
-                  },
-                  // Buy Currency - only shown for FX transactions
-                  ...(type.value === "FX"
-                    ? [
-                        {
-                          name: "cashCurrency",
-                          label: t("trn.fx.buyCurrency", "Buy Currency"),
-                          component: (
-                            <Controller
-                              name="cashCurrency"
-                              control={control}
-                              render={({ field }) => {
-                                // Get the sell currency to filter out same-currency options
-                                const sellOption = combinedOptions.find(
-                                  (opt) => opt.value === asset,
-                                )
-                                const sellCurrency = sellOption?.currency
-
-                                // Filter options to exclude same currency
-                                const buyOptions = combinedOptions.filter(
-                                  (opt) => opt.currency !== sellCurrency,
-                                )
-
-                                return (
-                                  <select
-                                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height bg-green-50"
-                                    value={field.value.value}
-                                    onChange={(e) => {
-                                      const selected = combinedOptions.find(
-                                        (opt) => opt.value === e.target.value,
-                                      )
-                                      if (selected) {
-                                        // Store the currency code for FX rate calculation
-                                        field.onChange({
-                                          value: selected.value,
-                                          label: selected.label,
-                                          currency: selected.currency,
-                                          market: selected.market,
-                                        })
-                                      }
-                                    }}
-                                  >
-                                    <optgroup label="Currencies">
-                                      {buyOptions
-                                        .filter((opt) => opt.market === "CASH")
-                                        .map((option) => (
-                                          <option
-                                            key={option.value}
-                                            value={option.value}
-                                          >
-                                            {option.label}
-                                          </option>
-                                        ))}
-                                    </optgroup>
-                                    {buyOptions.some(
-                                      (opt) => opt.market === "PRIVATE",
-                                    ) && (
-                                      <optgroup label="Bank Accounts">
-                                        {buyOptions
-                                          .filter(
-                                            (opt) => opt.market === "PRIVATE",
-                                          )
-                                          .map((option) => (
-                                            <option
-                                              key={option.value}
-                                              value={option.value}
-                                            >
-                                              {option.label}
-                                            </option>
-                                          ))}
-                                      </optgroup>
-                                    )}
-                                    {buyOptions.some(
-                                      (opt) => opt.market === "TRADE",
-                                    ) && (
-                                      <optgroup label="Trade Accounts">
-                                        {buyOptions
-                                          .filter(
-                                            (opt) => opt.market === "TRADE",
-                                          )
-                                          .map((option) => (
-                                            <option
-                                              key={option.value}
-                                              value={option.value}
-                                            >
-                                              {option.label}
-                                            </option>
-                                          ))}
-                                      </optgroup>
-                                    )}
-                                  </select>
-                                )
-                              }}
-                            />
-                          ),
-                        },
-                        // Buy Amount - immediately after Buy Currency
-                        {
-                          name: "cashAmount",
-                          label: t("trn.fx.buyAmount", "Buy Amount"),
-                          component: (
-                            <Controller
-                              name="cashAmount"
-                              control={control}
-                              render={({ field }) => (
-                                <MathInput
-                                  value={field.value}
-                                  onChange={handleBuyAmountChange}
-                                  className="mt-1 block w-full rounded-md shadow-sm input-height border-green-200 bg-green-50"
-                                />
-                              )}
-                            />
-                          ),
-                        },
-                        // Trade Date - for FX, placed after the currency pairs
-                        {
-                          name: "tradeDate",
-                          label: t("trn.tradeDate"),
-                          component: (
-                            <Controller
-                              name="tradeDate"
-                              control={control}
-                              render={({ field }) => (
-                                <DateInput
-                                  value={field.value}
-                                  onChange={field.onChange}
-                                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
-                                />
-                              )}
-                            />
-                          ),
-                        },
-                      ]
-                    : []),
-                  {
-                    name: "fees",
-                    label: t("trn.amount.charges"),
-                    component: (
-                      <Controller
-                        name="fees"
-                        control={control}
-                        render={({ field }) => (
-                          <MathInput
-                            value={field.value}
-                            onChange={field.onChange}
-                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
-                          />
-                        )}
-                      />
-                    ),
-                  },
-                  {
-                    name: "tax",
-                    label: t("trn.amount.tax"),
-                    component: (
-                      <Controller
-                        name="tax"
-                        control={control}
-                        render={({ field }) => (
-                          <MathInput
-                            value={field.value}
-                            onChange={field.onChange}
-                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
-                          />
-                        )}
-                      />
-                    ),
-                  },
-                  {
-                    name: "comment",
-                    label: t("trn.comments"),
-                    component: (
-                      <Controller
-                        name="comment"
-                        control={control}
-                        render={({ field }) => (
-                          <input
-                            {...field}
-                            type="text"
-                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
-                            value={field.value || ""}
-                          />
-                        )}
-                      />
-                    ),
-                  },
-                ].map(({ name, label, component }) => (
-                  <div key={name}>
-                    <label className="block text-sm font-medium text-gray-700">
-                      {label}
-                    </label>
-                    {errors[name as keyof typeof errors] && (
-                      <p className="text-red-500 text-xs">
-                        {errors[name as keyof typeof errors]?.message}
-                      </p>
+                      </select>
                     )}
-                    {component}
+                  />
+                  {errors.asset && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.asset.message}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className={labelClass}>
+                    {type.value === "FX"
+                      ? t("trn.fx.sellAmount", "Sell Amount")
+                      : t("trn.amount.trade")}
+                  </label>
+                  <Controller
+                    name="quantity"
+                    control={control}
+                    render={({ field }) => (
+                      <MathInput
+                        value={field.value}
+                        onChange={field.onChange}
+                        className={`${inputClass} ${
+                          type.value === "FX"
+                            ? "border-red-200 bg-red-50 focus:border-red-400 focus:ring-red-400"
+                            : ""
+                        }`}
+                      />
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* FX-specific: Buy Currency, Buy Amount, Date */}
+              {type.value === "FX" && (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className={labelClass}>
+                        {t("trn.fx.buyCurrency", "Buy Currency")}
+                      </label>
+                      <Controller
+                        name="cashCurrency"
+                        control={control}
+                        render={({ field }) => {
+                          const sellCurrency = resolveAssetSelection(
+                            asset,
+                            combinedOptions,
+                          )?.currency
+                          const buyOptions = filterFxBuyOptions(
+                            combinedOptions,
+                            sellCurrency,
+                          )
+
+                          return (
+                            <select
+                              className={`${inputClass} border-emerald-200 bg-emerald-50 focus:border-emerald-400 focus:ring-emerald-400`}
+                              value={field.value.value}
+                              onChange={(e) => {
+                                const selected = combinedOptions.find(
+                                  (opt) => opt.value === e.target.value,
+                                )
+                                if (selected) {
+                                  field.onChange({
+                                    value: selected.value,
+                                    label: selected.label,
+                                    currency: selected.currency,
+                                    market: selected.market,
+                                  })
+                                }
+                              }}
+                            >
+                              <optgroup label="Currencies">
+                                {buyOptions
+                                  .filter((opt) => opt.market === "CASH")
+                                  .map((option) => (
+                                    <option
+                                      key={option.value}
+                                      value={option.value}
+                                    >
+                                      {option.label}
+                                    </option>
+                                  ))}
+                              </optgroup>
+                              {buyOptions.some(
+                                (opt) => opt.market === "PRIVATE",
+                              ) && (
+                                <optgroup label="Bank Accounts">
+                                  {buyOptions
+                                    .filter((opt) => opt.market === "PRIVATE")
+                                    .map((option) => (
+                                      <option
+                                        key={option.value}
+                                        value={option.value}
+                                      >
+                                        {option.label}
+                                      </option>
+                                    ))}
+                                </optgroup>
+                              )}
+                              {buyOptions.some(
+                                (opt) => opt.market === "TRADE",
+                              ) && (
+                                <optgroup label="Trade Accounts">
+                                  {buyOptions
+                                    .filter((opt) => opt.market === "TRADE")
+                                    .map((option) => (
+                                      <option
+                                        key={option.value}
+                                        value={option.value}
+                                      >
+                                        {option.label}
+                                      </option>
+                                    ))}
+                                </optgroup>
+                              )}
+                            </select>
+                          )
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>
+                        {t("trn.fx.buyAmount", "Buy Amount")}
+                      </label>
+                      <Controller
+                        name="cashAmount"
+                        control={control}
+                        render={({ field }) => (
+                          <MathInput
+                            value={field.value}
+                            onChange={handleBuyAmountChange}
+                            className={`${inputClass} border-emerald-200 bg-emerald-50 focus:border-emerald-400 focus:ring-emerald-400`}
+                          />
+                        )}
+                      />
+                    </div>
                   </div>
-                ))}
+                  <div>
+                    <label className={labelClass}>{t("trn.tradeDate")}</label>
+                    <Controller
+                      name="tradeDate"
+                      control={control}
+                      render={({ field }) => (
+                        <DateInput
+                          value={field.value}
+                          onChange={field.onChange}
+                          className={inputClass}
+                        />
+                      )}
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Fees, Tax, Comments */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={labelClass}>{t("trn.amount.charges")}</label>
+                  <Controller
+                    name="fees"
+                    control={control}
+                    render={({ field }) => (
+                      <MathInput
+                        value={field.value}
+                        onChange={field.onChange}
+                        className={inputClass}
+                      />
+                    )}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>{t("trn.amount.tax")}</label>
+                  <Controller
+                    name="tax"
+                    control={control}
+                    render={({ field }) => (
+                      <MathInput
+                        value={field.value}
+                        onChange={field.onChange}
+                        className={inputClass}
+                      />
+                    )}
+                  />
+                </div>
               </div>
-              <div className="text-red-500 text-xs">
-                {Object.values(errors)
-                  .map((error) => error?.message)
-                  .join(" ")}
+
+              <div>
+                <label className={labelClass}>{t("trn.comments")}</label>
+                <Controller
+                  name="comment"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      type="text"
+                      className={inputClass}
+                      value={field.value || ""}
+                    />
+                  )}
+                />
               </div>
-              <div className="flex-shrink-0 flex justify-end space-x-2 pt-3 border-t">
-                <button
-                  type="button"
-                  className={`${
-                    copyStatus === "success"
-                      ? "bg-green-600"
-                      : copyStatus === "error"
-                        ? "bg-red-500"
-                        : "bg-green-500 hover:bg-green-600"
-                  } text-white px-4 py-2 rounded text-sm transition-colors duration-200`}
-                  onClick={handleCopy}
-                >
-                  <i
-                    className={`fas ${copyStatus === "success" ? "fa-check fa-bounce" : copyStatus === "error" ? "fa-times fa-shake" : "fa-copy"} mr-2`}
-                  ></i>
-                  {copyStatus === "success"
-                    ? "Copied!"
-                    : copyStatus === "error"
-                      ? "Failed"
-                      : "Copy"}
-                </button>
-                <button
-                  type="submit"
-                  className="bg-blue-500 text-white px-4 py-2 rounded text-sm"
-                >
-                  Submit
-                </button>
-                <button
-                  type="button"
-                  className="bg-gray-300 text-gray-700 px-4 py-2 rounded text-sm"
-                  onClick={() => setModalOpen(false)}
-                >
-                  Cancel
-                </button>
-              </div>
+
+              {Object.keys(errors).length > 0 && (
+                <div className="text-red-500 text-xs bg-red-50 p-2 rounded">
+                  {Object.values(errors)
+                    .map((error) => error?.message)
+                    .join(" ")}
+                </div>
+              )}
             </form>
+
+            {/* Footer */}
+            <div className="flex-shrink-0 pt-3 border-t border-gray-100 flex justify-end gap-3">
+              <button
+                type="button"
+                className="px-5 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                onClick={() => setModalOpen(false)}
+              >
+                {t("cancel")}
+              </button>
+              <button
+                type="submit"
+                form="cash-form"
+                className="px-5 py-2.5 rounded-lg text-white text-sm font-medium bg-blue-600 hover:bg-blue-700 active:bg-blue-800 transition-colors"
+                onClick={handleSubmit((data) =>
+                  onSubmit(portfolio, errors, data, setModalOpen),
+                )}
+              >
+                {t("submit", "Submit")}
+              </button>
+            </div>
           </div>
         </div>
       )}
