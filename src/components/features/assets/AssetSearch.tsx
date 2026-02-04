@@ -210,7 +210,7 @@ export default function AssetSearch({
   const handleInputChange = useCallback(
     (newValue: string, meta: { action: string }): void => {
       if (meta.action === "input-change") {
-        setInputText(newValue)
+        setInputText(newValue.toUpperCase())
         // Clear expanded results when user starts typing again
         if (expandedOptions) {
           setExpandedOptions(null)
