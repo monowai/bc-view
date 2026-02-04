@@ -65,6 +65,7 @@ export default function MonteCarloTab({
   displayProjection,
 }: MonteCarloTabProps): React.ReactElement {
   const [iterations, setIterations] = useState(1000)
+  const [fanTooltipEnabled, setFanTooltipEnabled] = useState(true)
 
   const { result, isRunning, error, runSimulation } = useMonteCarloSimulation({
     plan,
@@ -100,12 +101,26 @@ export default function MonteCarloTab({
       })
     : []
 
-  // Build depletion histogram data
-  const histogramData = result
-    ? Object.entries(result.depletionAgeDistribution.histogram)
-        .map(([age, count]) => ({ age: Number(age), count }))
-        .sort((a, b) => a.age - b.age)
-    : []
+  // Build depletion histogram data with cumulative percentages
+  const histogramData = (() => {
+    if (!result) return []
+    const sorted = Object.entries(result.depletionAgeDistribution.histogram)
+      .map(([age, count]) => ({ age: Number(age), count }))
+      .sort((a, b) => a.age - b.age)
+    const depletedCount = result.depletionAgeDistribution.depletedCount
+    const totalIterations = result.iterations
+    let cumulative = 0
+    return sorted.map((entry) => {
+      cumulative += entry.count
+      return {
+        ...entry,
+        pctOfTotal: (entry.count / totalIterations) * 100,
+        pctOfDepleted: depletedCount > 0 ? (entry.count / depletedCount) * 100 : 0,
+        cumulativeCount: cumulative,
+        cumulativePctOfDepleted: depletedCount > 0 ? (cumulative / depletedCount) * 100 : 0,
+      }
+    })
+  })()
 
   const formatFullCurrency = (value: number): string => {
     if (hideValues) return HIDDEN_VALUE
@@ -223,9 +238,24 @@ export default function MonteCarloTab({
           {/* Fan Chart */}
           {fanChartData.length > 0 && (
             <div className="bg-white rounded-xl shadow-md p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Projected Balance Range
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Projected Balance Range
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setFanTooltipEnabled((v) => !v)}
+                  className={`text-xs px-2 py-1 rounded transition-colors ${
+                    fanTooltipEnabled
+                      ? "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      : "bg-orange-100 text-orange-700 hover:bg-orange-200"
+                  }`}
+                  title={fanTooltipEnabled ? "Hide tooltip" : "Show tooltip"}
+                >
+                  <i className={`fas ${fanTooltipEnabled ? "fa-eye-slash" : "fa-eye"} mr-1`}></i>
+                  Tooltip
+                </button>
+              </div>
               <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart
@@ -250,24 +280,80 @@ export default function MonteCarloTab({
                       }
                       tick={{ fontSize: 12 }}
                     />
-                    <ChartTooltip
-                      formatter={(value, name) => {
-                        const formatted = formatFullCurrency(Number(value ?? 0))
-                        const labels: Record<string, string> = {
-                          p95: "95th percentile",
-                          p90: "90th percentile",
-                          p75: "75th percentile",
-                          p50: "Median",
-                          p25: "25th percentile",
-                          p10: "10th percentile",
-                          p5: "5th percentile",
-                          deterministic: "Deterministic",
-                        }
-                        const key = String(name ?? "")
-                        return [formatted, labels[key] ?? key]
-                      }}
-                      labelFormatter={(label) => `Age ${label}`}
-                    />
+                    {fanTooltipEnabled && (
+                      <ChartTooltip
+                        content={({ active, payload, label }) => {
+                          if (!active || !payload?.length) return null
+                          // Hide tooltip when p50, p75, and p95 are all 0
+                          const p50 = payload.find((p) => p.dataKey === "p50")?.value
+                          const p75 = payload.find((p) => p.dataKey === "p75")?.value
+                          const p95 = payload.find((p) => p.dataKey === "p95")?.value
+                          if (
+                            Number(p50 ?? 0) === 0 &&
+                            Number(p75 ?? 0) === 0 &&
+                            Number(p95 ?? 0) === 0
+                          ) {
+                            return null
+                          }
+                          const labels: Record<string, string> = {
+                            p95: "95th percentile",
+                            p90: "90th percentile",
+                            p75: "75th percentile",
+                            p50: "Median",
+                            p25: "25th percentile",
+                            p10: "10th percentile",
+                            p5: "5th percentile",
+                            deterministic: "Deterministic",
+                          }
+                          return (
+                            <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-xs max-w-xs">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="font-semibold text-gray-700">
+                                  Age {label}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => setFanTooltipEnabled(false)}
+                                  className="text-gray-400 hover:text-gray-600 ml-3 -mr-1"
+                                  title="Close tooltip"
+                                >
+                                  <i className="fas fa-times"></i>
+                                </button>
+                              </div>
+                              <div className="space-y-1">
+                                {payload
+                                  .filter((p) => p.value != null)
+                                  .map((p) => {
+                                    const key = String(p.dataKey ?? "")
+                                    const isDeterministic = key === "deterministic"
+                                    return (
+                                      <div
+                                        key={key}
+                                        className="flex justify-between gap-3"
+                                      >
+                                        <span
+                                          className={
+                                            isDeterministic
+                                              ? "text-blue-600"
+                                              : "text-gray-600"
+                                          }
+                                        >
+                                          {labels[key] ?? key}
+                                        </span>
+                                        <span
+                                          className={`font-medium ${isDeterministic ? "text-blue-700" : "text-gray-900"}`}
+                                        >
+                                          {formatFullCurrency(Number(p.value ?? 0))}
+                                        </span>
+                                      </div>
+                                    )
+                                  })}
+                              </div>
+                            </div>
+                          )
+                        }}
+                      />
+                    )}
                     <Legend
                       formatter={(value: string) => {
                         const labels: Record<string, string> = {
@@ -490,13 +576,138 @@ export default function MonteCarloTab({
                         }}
                       />
                       <ChartTooltip
-                        formatter={(value) => [
-                          hideValues
-                            ? HIDDEN_VALUE
-                            : `${Number(value ?? 0)} iterations`,
-                          "Count",
-                        ]}
-                        labelFormatter={(label) => `Age ${label}`}
+                        content={({ active, payload, label }) => {
+                          if (!active || !payload?.length) return null
+                          const entry = histogramData.find(
+                            (d) => d.age === Number(label),
+                          )
+                          if (!entry) return null
+                          if (hideValues) {
+                            return (
+                              <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-xs">
+                                <div className="font-semibold text-gray-700 mb-1">
+                                  Age {label}
+                                </div>
+                                <div>{HIDDEN_VALUE}</div>
+                              </div>
+                            )
+                          }
+                          // Find depleted path summaries for this age
+                          const paths =
+                            result?.depletionAgeDistribution.depletedPaths?.filter(
+                              (p) => p.depletionAge === Number(label),
+                            ) || []
+                          return (
+                            <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-xs max-w-xs">
+                              <div className="font-semibold text-gray-700 mb-2">
+                                Depleted at age {label}
+                              </div>
+                              <div className="space-y-1">
+                                <div className="flex justify-between gap-4">
+                                  <span className="text-gray-600">Iterations</span>
+                                  <span className="font-medium text-red-700">
+                                    {entry.count.toLocaleString()}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between gap-4">
+                                  <span className="text-gray-600">
+                                    % of all iterations
+                                  </span>
+                                  <span className="font-medium text-gray-900">
+                                    {entry.pctOfTotal.toFixed(1)}%
+                                  </span>
+                                </div>
+                                <div className="flex justify-between gap-4">
+                                  <span className="text-gray-600">
+                                    % of depleted
+                                  </span>
+                                  <span className="font-medium text-gray-900">
+                                    {entry.pctOfDepleted.toFixed(1)}%
+                                  </span>
+                                </div>
+                                <div className="border-t border-gray-100 pt-1 mt-1 flex justify-between gap-4">
+                                  <span className="text-gray-600">
+                                    Cumulative by age {label}
+                                  </span>
+                                  <span className="font-medium text-gray-900">
+                                    {entry.cumulativeCount.toLocaleString()} (
+                                    {entry.cumulativePctOfDepleted.toFixed(0)}%)
+                                  </span>
+                                </div>
+                              </div>
+                              {/* Realized return details for depleted paths at this age */}
+                              {paths.length > 0 && (
+                                <div className="mt-2 pt-2 border-t border-gray-100">
+                                  <div className="font-semibold text-gray-600 mb-1">
+                                    Realized returns (
+                                    {paths.length === 1
+                                      ? "1 path"
+                                      : `avg of ${paths.length} paths`}
+                                    )
+                                  </div>
+                                  {(() => {
+                                    const avgReturn =
+                                      paths.reduce((s, p) => s + p.averageReturn, 0) /
+                                      paths.length
+                                    const worstReturn = Math.min(
+                                      ...paths.map((p) => p.worstReturn),
+                                    )
+                                    const avgInflation =
+                                      paths.reduce(
+                                        (s, p) => s + p.averageInflation,
+                                        0,
+                                      ) / paths.length
+                                    const worstInflation = Math.max(
+                                      ...paths.map((p) => p.worstInflation),
+                                    )
+                                    return (
+                                      <div className="space-y-1">
+                                        <div className="flex justify-between gap-4">
+                                          <span className="text-gray-600">
+                                            Avg return p.a.
+                                          </span>
+                                          <span className="font-medium text-gray-900">
+                                            {(avgReturn * 100).toFixed(2)}%
+                                          </span>
+                                        </div>
+                                        <div className="flex justify-between gap-4">
+                                          <span className="text-gray-600">
+                                            Worst year return
+                                          </span>
+                                          <span className="font-medium text-red-700">
+                                            {(worstReturn * 100).toFixed(2)}%
+                                          </span>
+                                        </div>
+                                        <div className="flex justify-between gap-4">
+                                          <span className="text-gray-600">
+                                            Avg inflation p.a.
+                                          </span>
+                                          <span className="font-medium text-gray-900">
+                                            {(avgInflation * 100).toFixed(2)}%
+                                          </span>
+                                        </div>
+                                        <div className="flex justify-between gap-4">
+                                          <span className="text-gray-600">
+                                            Worst year inflation
+                                          </span>
+                                          <span className="font-medium text-red-700">
+                                            {(worstInflation * 100).toFixed(2)}%
+                                          </span>
+                                        </div>
+                                      </div>
+                                    )
+                                  })()}
+                                </div>
+                              )}
+                              {paths.length === 0 && (
+                                <div className="mt-2 pt-2 border-t border-gray-100 text-gray-500">
+                                  Worst-case return sequences depleted funds by
+                                  this age
+                                </div>
+                              )}
+                            </div>
+                          )
+                        }}
                       />
                       <Bar
                         dataKey="count"

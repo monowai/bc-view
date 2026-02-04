@@ -712,6 +712,21 @@ export interface DepletionAgeDistribution {
   mostCommonDepletionAge?: number
   percentiles?: PercentileValues
   histogram: Record<number, number>
+  /** Per-iteration realized return summaries for depleted paths (capped at 50) */
+  depletedPaths?: DepletedPathSummary[]
+}
+
+/** Summary of realized stochastic returns for a single depleted iteration */
+export interface DepletedPathSummary {
+  depletionAge: number
+  /** Mean realized investment return p.a. up to depletion */
+  averageReturn: number
+  /** Worst single-year realized investment return */
+  worstReturn: number
+  /** Mean realized inflation p.a. up to depletion */
+  averageInflation: number
+  /** Highest single-year realized inflation */
+  worstInflation: number
 }
 
 export interface MonteCarloParameters {
