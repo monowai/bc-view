@@ -9,7 +9,6 @@ import {
   Transaction,
 } from "types/beancounter"
 import { ModelDto } from "types/rebalance"
-import TradeStatusToggle from "@components/ui/TradeStatusToggle"
 import {
   calculateTradeAmount,
   hasCashImpact,
@@ -26,19 +25,17 @@ import {
   accountsKey,
   ccyKey,
   cashKey,
-  holdingKey,
   modelsKey,
 } from "@utils/api/fetchHelper"
 import { rootLoader } from "@components/ui/PageLoader"
 import TradeTypeController from "@components/features/transactions/TradeTypeController"
 import SettlementAccountSelect from "@components/features/transactions/SettlementAccountSelect"
+import BrokerSelectionDialog from "@components/features/transactions/BrokerSelectionDialog"
+import TradeFormHeader from "@components/features/transactions/TradeFormHeader"
+import TradeFormTabs from "@components/features/transactions/TradeFormTabs"
 import AssetSearch from "@components/features/assets/AssetSearch"
 import { AssetOption } from "types/beancounter"
-import {
-  onSubmit,
-  useEscapeHandler,
-  copyToClipboard,
-} from "@lib/trns/formUtils"
+import { useEscapeHandler, copyToClipboard } from "@lib/trns/formUtils"
 import MathInput from "@components/ui/MathInput"
 import DateInput from "@components/ui/DateInput"
 import { convert } from "@lib/trns/tradeUtils"
@@ -57,16 +54,13 @@ import {
   brokerHasSettlementForCurrency,
 } from "@lib/trns/tradeFormHelpers"
 import {
-  deriveSettlementCurrency,
-  buildEditPayload,
-  buildExpensePayload,
-  buildCreateModeData,
-} from "@lib/trns/tradeSubmission"
+  submitEditMode,
+  submitExpense,
+  submitCreateMode,
+} from "@lib/trns/tradeSubmit"
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
-import { NumericFormat } from "react-number-format"
-import { updateTrn } from "@lib/trns/apiHelper"
-import { getDisplayCode, stripOwnerPrefix } from "@lib/assets/assetUtils"
+import { getDisplayCode } from "@lib/assets/assetUtils"
 
 const TradeTypeValues = [
   "BUY",
@@ -604,66 +598,19 @@ const TradeInputForm: React.FC<{
 
   return (
     <>
-      {/*Broker Selection Dialog for QuickSell with multiple brokers*/}
       {showBrokerSelectionDialog && initialValues?.held && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center">
-          <div
-            className="fixed inset-0 bg-black opacity-50"
-            onClick={() => setShowBrokerSelectionDialog(false)}
-          ></div>
-          <div
-            className="bg-white rounded-lg shadow-lg w-full max-w-md mx-4 p-6 z-[60]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-lg font-semibold mb-2">
-              {t("trn.broker.select", "Select Broker")}
-            </h3>
-            <p className="text-sm text-gray-600 mb-4">
-              {t(
-                "trn.broker.multipleHeld",
-                "This position is held across multiple brokers. Select which broker to sell from:",
-              )}
-            </p>
-            <div className="space-y-2">
-              {Object.entries(initialValues.held).map(([brokerName, qty]) => {
-                const broker = brokers.find((b) => b.name === brokerName)
-                return (
-                  <button
-                    key={brokerName}
-                    type="button"
-                    onClick={() => {
-                      if (broker) {
-                        setValue("brokerId", broker.id)
-                      }
-                      // Limit quantity to this broker's holdings
-                      setValue(
-                        "quantity",
-                        Math.min(initialValues.quantity, qty),
-                      )
-                      setShowBrokerSelectionDialog(false)
-                    }}
-                    className="w-full p-3 text-left border rounded hover:bg-gray-50 flex justify-between items-center"
-                  >
-                    <span className="font-medium">{brokerName}</span>
-                    <span className="text-gray-500">
-                      {qty.toLocaleString()} {t("trn.shares", "shares")}
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
-            <button
-              type="button"
-              className="w-full mt-4 p-2 text-gray-500 hover:text-gray-700 text-sm"
-              onClick={() => setShowBrokerSelectionDialog(false)}
-            >
-              {t(
-                "trn.broker.skipSelection",
-                "Skip - sell without specifying broker",
-              )}
-            </button>
-          </div>
-        </div>
+        <BrokerSelectionDialog
+          held={initialValues.held}
+          brokers={brokers}
+          quantity={initialValues.quantity}
+          onSelect={(brokerId, maxQty) => {
+            if (brokerId) setValue("brokerId", brokerId)
+            setValue("quantity", maxQty)
+            setShowBrokerSelectionDialog(false)
+          }}
+          onSkip={() => setShowBrokerSelectionDialog(false)}
+          t={t}
+        />
       )}
 
       {modalOpen && (
@@ -676,284 +623,65 @@ const TradeInputForm: React.FC<{
             className="bg-white sm:rounded-xl shadow-2xl w-full sm:max-w-lg sm:mx-4 p-4 sm:p-5 z-50 text-sm flex flex-col max-h-[95vh] sm:max-h-[90vh] rounded-t-xl"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
-            <header className="flex-shrink-0 pb-3 border-b border-gray-100">
-              <div className="flex items-center justify-between mb-3">
-                <button
-                  className="text-gray-400 hover:text-gray-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
-                  onClick={() =>
-                    isEditMode ? editMode?.onClose() : setModalOpen(false)
-                  }
-                  title={t("cancel")}
-                >
-                  <i className="fas fa-times"></i>
-                </button>
-                <div
-                  className="text-center flex-1 px-3"
-                  title={
-                    isEditMode ? editAssetName || editAssetCode : undefined
-                  }
-                >
-                  <div className="font-semibold text-gray-900 truncate">
-                    {isEditMode
-                      ? editAssetCode
-                      : stripOwnerPrefix(asset) || t("trade.market.title")}
-                  </div>
-                  {isEditMode && editAssetName && (
-                    <div className="text-xs text-gray-500 truncate mt-0.5">
-                      {editAssetName.length > 30
-                        ? `${editAssetName.substring(0, 30)}...`
-                        : editAssetName}
-                    </div>
-                  )}
-                  <div className="text-xs text-gray-400 mt-0.5">
-                    {isEditMode
-                      ? editMarketCode
-                      : `${portfolio.code} - ${portfolio.name}`}
-                  </div>
-                </div>
-                <div className="flex gap-0.5">
-                  <button
-                    type="button"
-                    className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors ${
-                      copyStatus === "success"
-                        ? "text-green-600 bg-green-50"
-                        : copyStatus === "error"
-                          ? "text-red-500 bg-red-50"
-                          : "text-gray-400 hover:text-green-600 hover:bg-green-50"
-                    }`}
-                    onClick={handleCopy}
-                    title={t("copy")}
-                  >
-                    <i
-                      className={`fas ${copyStatus === "success" ? "fa-check" : copyStatus === "error" ? "fa-times" : "fa-copy"} text-xs`}
-                    ></i>
-                  </button>
-                  {isEditMode && (
-                    <button
-                      type="button"
-                      className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-                      onClick={editMode?.onDelete}
-                      title={t("delete")}
-                    >
-                      <i className="fas fa-trash-can text-xs"></i>
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Trade Status Toggle */}
-              <div className="flex justify-center mb-3">
-                <Controller
-                  name="status"
-                  control={control}
-                  render={({ field }) => (
-                    <TradeStatusToggle
-                      isSettled={field.value.value === "SETTLED"}
-                      onChange={(isSettled) => {
-                        const newStatus = isSettled ? "SETTLED" : "PROPOSED"
-                        field.onChange({ value: newStatus, label: newStatus })
-                      }}
-                      size="sm"
-                    />
-                  )}
-                />
-              </div>
-
-              {/* Trade Value Summary */}
-              <div className={`rounded-lg p-3 flex items-center justify-center gap-4 ${
-                type?.value === "SELL" || isExpense
-                  ? "bg-red-50 border border-red-100"
-                  : type?.value === "ADD" || type?.value === "REDUCE"
-                    ? "bg-blue-50 border border-blue-100"
-                    : "bg-emerald-50 border border-emerald-100"
-              }`}>
-                <div className="text-center">
-                  <div
-                    className={`text-[10px] font-semibold uppercase tracking-wider ${
-                      type?.value === "SELL" || isExpense
-                        ? "text-red-500"
-                        : type?.value === "ADD" || type?.value === "REDUCE"
-                          ? "text-blue-500"
-                          : "text-emerald-600"
-                    }`}
-                  >
-                    {type?.value || "BUY"}
-                  </div>
-                  {isExpense ? (
-                    <>
-                      <div className="font-bold text-lg text-gray-900">
-                        <NumericFormat
-                          value={tradeAmount || 0}
-                          displayType="text"
-                          thousandSeparator
-                          decimalScale={2}
-                          fixedDecimalScale
-                        />
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {tradeCurrency?.value}
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="font-bold text-lg text-gray-900">
-                        <NumericFormat
-                          value={quantity || 0}
-                          displayType="text"
-                          thousandSeparator
-                          decimalScale={2}
-                        />
-                        {!cashImpact && (
-                          <span className="text-gray-400 text-sm ml-1">
-                            {t("trn.units", "units")}
-                          </span>
-                        )}
-                      </div>
-                      {cashImpact && (
-                        <div className="text-xs text-gray-500">
-                          @ {price?.toFixed(2)} {tradeCurrency?.value}
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-                {cashImpact && tradeAmount > 0 && !isExpense && (
-                  <>
-                    <div className="text-gray-300">
-                      <i className="fas fa-arrow-right text-xs"></i>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-                        {t("trn.amount.trade")}
-                      </div>
-                      <div className="font-bold text-lg text-gray-900">
-                        <NumericFormat
-                          value={tradeAmount}
-                          displayType="text"
-                          thousandSeparator
-                          decimalScale={2}
-                          fixedDecimalScale
-                        />
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {tradeCurrency?.value}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* Weight info */}
-              {weightInfo && !isExpense && (
-                <div className="mt-2 text-center text-xs font-medium text-blue-600">
-                  {weightInfo.label}: {weightInfo.value.toFixed(2)}%
-                  {weightInfo.tradeWeight !== undefined && (
-                    <span className="text-gray-400 ml-2">
-                      ({type.value === "SELL" ? "-" : "+"}
-                      {weightInfo.tradeWeight.toFixed(2)}%)
-                    </span>
-                  )}
-                </div>
-              )}
-            </header>
+            <TradeFormHeader
+              isEditMode={isEditMode}
+              editAssetCode={editAssetCode}
+              editAssetName={editAssetName}
+              editMarketCode={editMarketCode}
+              asset={asset}
+              portfolio={portfolio}
+              type={type}
+              isExpense={isExpense}
+              cashImpact={cashImpact}
+              quantity={quantity}
+              price={price}
+              tradeAmount={tradeAmount}
+              tradeCurrency={tradeCurrency}
+              weightInfo={weightInfo}
+              onClose={() =>
+                isEditMode ? editMode?.onClose() : setModalOpen(false)
+              }
+              onDelete={editMode?.onDelete}
+              handleCopy={handleCopy}
+              copyStatus={copyStatus}
+              control={control}
+              t={t}
+            />
 
             {/* Scrollable form content */}
             <form
               id="trade-form"
               onSubmit={handleSubmit(async (data) => {
-                const settlementCurrency = deriveSettlementCurrency(data as any)
-
-                if (isEditMode && transaction) {
-                  // Edit mode: use PATCH API
-                  setIsSubmitting(true)
-                  setSubmitError(null)
-                  try {
-                    const payload = buildEditPayload(
-                      data as any,
-                      transaction.asset.id,
-                      selectedModelId,
-                    )
-                    const response = await updateTrn(
-                      selectedPortfolioId,
-                      transaction.id,
-                      payload,
-                    )
-                    if (response.ok) {
-                      setTimeout(() => {
-                        mutate(holdingKey(transaction.portfolio.code, "today"))
-                        mutate("/api/holdings/aggregated?asAt=today")
-                        if (portfolioChanged) {
-                          const newPortfolio = portfolios.find(
-                            (p) => p.id === selectedPortfolioId,
-                          )
-                          if (newPortfolio) {
-                            mutate(holdingKey(newPortfolio.code, "today"))
-                          }
-                        }
-                      }, 1500)
-                      editMode?.onClose()
-                    } else {
-                      const errorData = await response.json()
-                      setSubmitError(errorData.message || t("trn.error.update"))
-                    }
-                  } catch (error) {
-                    console.error("Failed to update transaction:", error)
-                    setSubmitError(t("trn.error.update"))
-                  } finally {
-                    setIsSubmitting(false)
-                  }
+                if (isEditMode && transaction && editMode) {
+                  await submitEditMode({
+                    data: data as any,
+                    transaction,
+                    selectedModelId,
+                    selectedPortfolioId,
+                    portfolioChanged,
+                    portfolios,
+                    editMode,
+                    mutate,
+                    setSubmitError,
+                    setIsSubmitting,
+                    t,
+                  })
                 } else if (data.type.value === "EXPENSE") {
-                  // EXPENSE: use direct REST API (synchronous, bypasses message broker)
-                  setIsSubmitting(true)
-                  setSubmitError(null)
-                  try {
-                    const payload = buildExpensePayload(
-                      data as any,
-                      portfolio.id,
-                    )
-                    const response = await fetch("/api/trns", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify(payload),
-                    })
-                    if (response.ok) {
-                      setTimeout(() => {
-                        mutate(holdingKey(portfolio.code, "today"))
-                        mutate("/api/holdings/aggregated?asAt=today")
-                      }, 1500)
-                      setModalOpen(false)
-                    } else {
-                      const errorData = await response.json().catch(() => ({}))
-                      console.error(
-                        "EXPENSE creation failed:",
-                        response.status,
-                        errorData,
-                      )
-                      setSubmitError(
-                        errorData.message ||
-                          errorData.error ||
-                          `Failed: ${response.statusText}`,
-                      )
-                    }
-                  } catch (error) {
-                    console.error("EXPENSE submission error:", error)
-                    setSubmitError(
-                      error instanceof Error
-                        ? error.message
-                        : "Failed to create expense",
-                    )
-                  } finally {
-                    setIsSubmitting(false)
-                  }
+                  await submitExpense({
+                    data: data as any,
+                    portfolio,
+                    mutate,
+                    setModalOpen,
+                    setSubmitError,
+                    setIsSubmitting,
+                  })
                 } else {
-                  // Create mode: use CSV import via message broker
-                  onSubmit(
+                  submitCreateMode({
+                    data: data as any,
                     portfolio,
                     errors,
-                    buildCreateModeData(data as any, settlementCurrency),
                     setModalOpen,
-                  )
+                  })
                 }
               })}
               className="flex-1 overflow-y-auto py-4 space-y-4"
@@ -1298,232 +1026,22 @@ const TradeInputForm: React.FC<{
                 </div>
               )}
 
-              {/* Tabs for Trade/Invest - simplified for EXPENSE */}
-              <div className="border-t border-gray-100 pt-3">
-                {!isExpense && (
-                  <div className="flex border-b border-gray-200">
-                    <button
-                      type="button"
-                      className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                        activeTab === "trade"
-                          ? "border-b-2 border-blue-500 text-blue-600"
-                          : "text-gray-500 hover:text-gray-700"
-                      }`}
-                      onClick={() => setActiveTab("trade")}
-                    >
-                      {t("trn.tab.trade", "Trade")}
-                    </button>
-                    <button
-                      type="button"
-                      className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                        isEditMode
-                          ? "text-gray-300 cursor-not-allowed"
-                          : activeTab === "invest"
-                            ? "border-b-2 border-blue-500 text-blue-600"
-                            : "text-gray-500 hover:text-gray-700"
-                      }`}
-                      onClick={() => !isEditMode && setActiveTab("invest")}
-                      disabled={isEditMode}
-                      title={
-                        isEditMode
-                          ? t(
-                              "trn.tab.invest.disabled",
-                              "Invest calculations not available when editing",
-                            )
-                          : undefined
-                      }
-                    >
-                      {t("trn.tab.invest", "Invest")}
-                    </button>
-                  </div>
-                )}
-
-                {/* EXPENSE: Simplified content - just comments */}
-                {isExpense && (
-                  <div className="mt-3 space-y-2">
-                    {/* Comments */}
-                    <div>
-                      <label className={labelClass}>
-                        {t("trn.expense.description", "Expense Description")}
-                      </label>
-                      <Controller
-                        name="comment"
-                        control={control}
-                        render={({ field }) => (
-                          <input
-                            {...field}
-                            type="text"
-                            className={inputClass}
-                            value={field.value || ""}
-                            placeholder={t(
-                              "trn.expense.descPlaceholder",
-                              "e.g., Property rates, Insurance, Maintenance",
-                            )}
-                          />
-                        )}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Trade Tab Content - for non-EXPENSE types */}
-                {!isExpense && activeTab === "trade" && (
-                  <div className="mt-3 space-y-2">
-                    {/* Trade/Cash Amounts */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className={labelClass}>
-                          {t("trn.amount.trade")}
-                        </label>
-                        <Controller
-                          name="tradeAmount"
-                          control={control}
-                          render={({ field }) => (
-                            <MathInput
-                              value={field.value}
-                              onChange={field.onChange}
-                              className={inputClass}
-                            />
-                          )}
-                        />
-                      </div>
-                      <div>
-                        <label className={labelClass}>
-                          {t("trn.amount.tax")}
-                        </label>
-                        <Controller
-                          name="tax"
-                          control={control}
-                          render={({ field }) => (
-                            <MathInput
-                              value={field.value}
-                              onChange={field.onChange}
-                              className={inputClass}
-                            />
-                          )}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Cash Amount */}
-                    <div>
-                      <label className={labelClass}>
-                        {t("trn.amount.cash")}
-                      </label>
-                      <Controller
-                        name="cashAmount"
-                        control={control}
-                        render={({ field }) => (
-                          <MathInput
-                            value={field.value}
-                            onChange={field.onChange}
-                            className={inputClass}
-                          />
-                        )}
-                      />
-                    </div>
-
-                    {/* Comments */}
-                    <div>
-                      <label className={labelClass}>
-                        {t("trn.comments", "Comments")}
-                      </label>
-                      <Controller
-                        name="comment"
-                        control={control}
-                        render={({ field }) => (
-                          <input
-                            {...field}
-                            type="text"
-                            className={inputClass}
-                            value={field.value || ""}
-                          />
-                        )}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Invest Tab Content - for non-EXPENSE types */}
-                {!isExpense && activeTab === "invest" && (
-                  <div className="mt-3 space-y-3">
-                    {/* Invest Value - calculate quantity from total */}
-                    <div>
-                      <label className={labelClass}>
-                        {t("trn.invest.value", "Invest Value")}
-                      </label>
-                      <p className="text-xs text-gray-500 mb-1">
-                        {t(
-                          "trn.invest.description",
-                          "Enter amount to invest, quantity will be calculated",
-                        )}
-                      </p>
-                      <div className="relative">
-                        <MathInput
-                          value={tradeValue ? parseFloat(tradeValue) : 0}
-                          onChange={(value) =>
-                            handleTradeValueChange(String(value))
-                          }
-                          placeholder={
-                            price > 0
-                              ? t(
-                                  "trn.invest.placeholder",
-                                  "Enter amount to invest",
-                                )
-                              : t("trn.invest.needPrice", "Set price first")
-                          }
-                          disabled={!price || price <= 0}
-                          className={`${inputClass} disabled:bg-gray-100`}
-                        />
-                        {price > 0 && tradeValue && (
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500">
-                            = {Math.floor(parseFloat(tradeValue) / price)}{" "}
-                            shares
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Target Weight - if position data available */}
-                    {currentPositionWeight !== null && (
-                      <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
-                        <label className="block text-xs font-medium text-purple-800 mb-2">
-                          {t("trn.targetWeight", "Target Weight")}
-                        </label>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs text-purple-700">
-                            {t("rebalance.currentWeight")}:{" "}
-                            <strong>{currentPositionWeight.toFixed(2)}%</strong>
-                          </span>
-                          <span className="text-purple-400">→</span>
-                          <MathInput
-                            value={targetWeight ? parseFloat(targetWeight) : 0}
-                            onChange={(value) => {
-                              if (value >= 0) {
-                                handleTargetWeightChange(String(value))
-                              }
-                            }}
-                            placeholder={currentPositionWeight.toFixed(1)}
-                            className="w-20 px-2 py-2 border border-purple-300 rounded text-sm"
-                          />
-                          <span className="text-purple-600 text-sm">%</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {currentPositionWeight === null && (
-                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center">
-                        <p className="text-xs text-gray-500">
-                          {t(
-                            "trn.invest.noPosition",
-                            "Target weight is available when trading existing positions",
-                          )}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+              <TradeFormTabs
+                isExpense={isExpense}
+                isEditMode={isEditMode}
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+                control={control}
+                inputClass={inputClass}
+                labelClass={labelClass}
+                price={price}
+                tradeValue={tradeValue}
+                handleTradeValueChange={handleTradeValueChange}
+                currentPositionWeight={currentPositionWeight}
+                targetWeight={targetWeight}
+                handleTargetWeightChange={handleTargetWeightChange}
+                t={t}
+              />
 
               {/* Error Display */}
               {Object.keys(errors).length > 0 && (
@@ -1543,7 +1061,7 @@ const TradeInputForm: React.FC<{
             )}
 
             {/* Footer */}
-            <div className="flex-shrink-0 pt-3 border-t border-gray-100 flex justify-end gap-3">
+            <div className="shrink-0 pt-3 border-t border-gray-100 flex justify-end gap-3">
               <button
                 type="button"
                 className="px-5 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
