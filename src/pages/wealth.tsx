@@ -231,6 +231,8 @@ function WealthDashboard(): React.ReactElement {
       .catch(console.error)
   }, [displayCurrency, portfolios])
 
+  const fxReady = Object.keys(fxRates).length > 0
+
   // Handle sorting
   const handleSort = (key: string): void => {
     setSortConfig((prev) => {
@@ -402,7 +404,7 @@ function WealthDashboard(): React.ReactElement {
     return errorOut(t("portfolios.error.retrieve"), portfolioError)
   }
 
-  if (portfolioLoading || !ready) {
+  if (portfolioLoading || !ready || !fxReady) {
     return rootLoader(t("loading"))
   }
 
