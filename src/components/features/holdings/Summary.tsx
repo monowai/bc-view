@@ -8,6 +8,7 @@ import Link from "next/link"
 import { getTodayDate } from "@lib/dateUtils"
 import { ViewMode } from "./ViewToggle"
 import DateInput from "@components/ui/DateInput"
+import { useRouter } from "next/router"
 
 export const headers = [
   {
@@ -62,6 +63,7 @@ export function SummaryHeaderMobile({
   const { t } = useTranslation("common")
   const { control, handleSubmit } = useForm()
   const holdingState = useHoldingState()
+  const router = useRouter()
 
   // Display name: show "Aggregated" for aggregated views, otherwise portfolio name
   const displayName = isAggregated
@@ -102,8 +104,24 @@ export function SummaryHeaderMobile({
             )}
           </h3>
 
-          {/* Date picker - right */}
-          <form onSubmit={handleSubmit(onSubmit)} className="flex-shrink-0">
+          {/* Trade button + Date picker - right */}
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            {!isAggregated && (
+              <button
+                type="button"
+                onClick={() =>
+                  router.push({
+                    pathname: router.pathname,
+                    query: { ...router.query, action: "trade" },
+                  })
+                }
+                className="inline-flex items-center justify-center w-7 h-7 text-green-600 hover:text-green-800 hover:bg-green-50 rounded transition-colors duration-200"
+                title={t("trade.title")}
+              >
+                <i className="fas fa-exchange-alt text-xs"></i>
+              </button>
+            )}
+          <form onSubmit={handleSubmit(onSubmit)}>
             <Controller
               name="date"
               control={control}
@@ -116,6 +134,7 @@ export function SummaryHeaderMobile({
               )}
             />
           </form>
+          </div>
         </div>
       </div>
 
