@@ -71,6 +71,7 @@ e2e/.auth/*
 playwright-report/
 test-results/
 .env.e2e
+.playwright-mcp
 
 # Claude Code & AI tools
 .claude/
