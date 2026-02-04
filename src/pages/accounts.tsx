@@ -1004,7 +1004,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                   balance: sa.balance || 0,
                   expectedReturnRate: sa.expectedReturnRate,
                   feeRate: sa.feeRate,
-                  liquid: sa.liquid !== false,
+                  liquid: sa.liquid,
                 }),
               ),
               // Client-side only for projection calculation
