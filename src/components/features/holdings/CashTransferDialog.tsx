@@ -72,9 +72,7 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
     const sourceIsCash = sourceData.assetCode === sourceData.currency
     if (ccyData?.data && sourceData.assetId && !sourceIsCash) {
       ccyData.data
-        .filter(
-          (ccy: { code: string }) => ccy.code === sourceData.currency,
-        )
+        .filter((ccy: { code: string }) => ccy.code === sourceData.currency)
         .forEach((ccy: { code: string; name?: string }) => {
           currencies.push({
             id: `cash:${ccy.code}`,
@@ -236,7 +234,9 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
         if (!withdrawalResponse.ok) {
           const errorData = await withdrawalResponse.json().catch(() => ({}))
           setSubmitError(
-            errorData.message || errorData.detail || "Failed to create withdrawal",
+            errorData.message ||
+              errorData.detail ||
+              "Failed to create withdrawal",
           )
           return
         }
@@ -470,7 +470,12 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
                   {sourceData.assetName} ({t("cash.transfer.sameAsset")})
                 </option>
                 {eligibleTargetAssets.currencies.length > 0 && (
-                  <optgroup label={t("cash.transfer.currencyBalances", "Currency Balances")}>
+                  <optgroup
+                    label={t(
+                      "cash.transfer.currencyBalances",
+                      "Currency Balances",
+                    )}
+                  >
                     {eligibleTargetAssets.currencies.map((asset) => (
                       <option key={`ccy-${asset.code}`} value={asset.id}>
                         {asset.name}
@@ -479,7 +484,9 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
                   </optgroup>
                 )}
                 {eligibleTargetAssets.accounts.length > 0 && (
-                  <optgroup label={t("cash.transfer.bankAccounts", "Bank Accounts")}>
+                  <optgroup
+                    label={t("cash.transfer.bankAccounts", "Bank Accounts")}
+                  >
                     {eligibleTargetAssets.accounts.map((asset) => (
                       <option key={asset.id} value={asset.id}>
                         {asset.name}

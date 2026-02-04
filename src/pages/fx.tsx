@@ -257,8 +257,8 @@ const RateChartModal: React.FC<RateChartModalProps> = ({
                         borderRadius: "8px",
                         color: "#fff",
                       }}
-                      labelFormatter={(date: string) =>
-                        new Date(date).toLocaleDateString()
+                      labelFormatter={(label) =>
+                        new Date(String(label)).toLocaleDateString()
                       }
                       formatter={(value) =>
                         value !== undefined
