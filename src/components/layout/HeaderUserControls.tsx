@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useState, useRef, useEffect } from "react"
 import { useUser, UserProfile } from "@auth0/nextjs-auth0/client"
 import Link from "next/link"
 import Image from "next/image"
@@ -32,8 +32,23 @@ export default function HeaderUserControls(): React.ReactElement {
   const { isAdmin } = useIsAdmin()
   const { hideValues, toggleHideValues } = usePrivacyMode()
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
-  // Get display name: prefer user's preferred name, fall back to nickname
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    if (!dropdownOpen) return () => {}
+    function handleClickOutside(event: MouseEvent): void {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setDropdownOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [dropdownOpen])
+
   const displayName = preferences?.preferredName || user?.nickname
 
   if (isLoading)
@@ -57,7 +72,7 @@ export default function HeaderUserControls(): React.ReactElement {
     )
 
   return (
-    <div className="relative">
+    <div className="relative" ref={dropdownRef}>
       <div className="flex items-center">
         <button
           onClick={toggleHideValues}
@@ -67,46 +82,51 @@ export default function HeaderUserControls(): React.ReactElement {
         >
           <i className={`fas ${hideValues ? "fa-eye-slash" : "fa-eye"}`} />
         </button>
-        <Link href="/settings" className="hover:opacity-80 transition-opacity">
-          <Avatar user={user} size={30} />
-        </Link>
-        <div
+        <button
           onClick={() => setDropdownOpen(!dropdownOpen)}
-          className="ml-2 cursor-pointer hover:text-blue-600"
+          className="flex items-center gap-2 hover:bg-gray-700 rounded-md px-2 py-1 transition-colors"
         >
-          {displayName}
-        </div>
+          <Avatar user={user} size={28} />
+          <span className="hidden sm:inline text-sm">{displayName}</span>
+          <i
+            className={`fas fa-chevron-down text-xs text-gray-400 transition-transform ${dropdownOpen ? "rotate-180" : ""}`}
+          ></i>
+        </button>
       </div>
       {dropdownOpen && ready && (
-        <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow-lg z-50 text-gray-800">
+        <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50 text-gray-800 overflow-hidden py-1">
           <Link
             href="/settings"
-            className="block px-4 py-2 hover:bg-gray-100"
+            className="flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
             onClick={() => setDropdownOpen(false)}
           >
+            <i className="fas fa-cog w-4 text-center text-xs text-gray-400"></i>
             {t("settings.title")}
           </Link>
           <Link
             href="/brokers"
-            className="block px-4 py-2 hover:bg-gray-100"
+            className="flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
             onClick={() => setDropdownOpen(false)}
           >
+            <i className="fas fa-building w-4 text-center text-xs text-gray-400"></i>
             {t("brokers.title", "Brokers")}
           </Link>
           {isAdmin && (
             <Link
               href="/admin"
-              className="block px-4 py-2 hover:bg-gray-100"
+              className="flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
               onClick={() => setDropdownOpen(false)}
             >
+              <i className="fas fa-tools w-4 text-center text-xs text-gray-400"></i>
               {t("admin.title")}
             </Link>
           )}
-          <hr className="border-gray-200" />
+          <hr className="my-1 border-gray-100" />
           <Link
             href="/api/auth/logout"
-            className="block px-4 py-2 hover:bg-gray-100"
+            className="flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
           >
+            <i className="fas fa-sign-out-alt w-4 text-center text-xs"></i>
             {t("user.logout")}
           </Link>
         </div>

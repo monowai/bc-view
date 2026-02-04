@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react"
+import React, { useState, useRef, useEffect, useCallback } from "react"
 import { useRouter } from "next/router"
 import Link from "next/link"
 import { useIsAdmin } from "@hooks/useIsAdmin"
@@ -16,104 +16,57 @@ interface NavSection {
   items: NavItem[]
 }
 
+// Main nav: core domain actions only.
+// Settings, Brokers, Admin live in the user menu (HeaderUserControls).
 const navSections: NavSection[] = [
   {
     title: "Wealth",
     items: [
-      {
-        href: "/wealth",
-        label: "Net Worth",
-        icon: "fa-coins",
-        description: "Total wealth dashboard",
-      },
-      {
-        href: "/portfolios",
-        label: "Portfolios",
-        icon: "fa-chart-pie",
-        description: "Manage investment portfolios",
-      },
-      {
-        href: "/accounts",
-        label: "Assets",
-        icon: "fa-gem",
-        description: "Property, bank accounts & custom assets",
-      },
-      {
-        href: "/brokers",
-        label: "Brokers",
-        icon: "fa-building",
-        description: "Manage brokers & reconcile holdings",
-      },
-      {
-        href: "/assets/lookup",
-        label: "Asset Lookup",
-        icon: "fa-search",
-        description: "Find where an asset is held",
-      },
+      { href: "/wealth", label: "Net Worth", icon: "fa-coins" },
+      { href: "/portfolios", label: "Portfolios", icon: "fa-chart-pie" },
+      { href: "/accounts", label: "Assets", icon: "fa-gem" },
+      { href: "/allocation", label: "Allocation", icon: "fa-chart-bar" },
+    ],
+  },
+  {
+    title: "Invest",
+    items: [
+      { href: "/rebalance/models", label: "Models", icon: "fa-balance-scale" },
       {
         href: "/trns/proposed",
         label: "Transactions",
         icon: "fa-exchange-alt",
-        description: "Review proposed transactions",
       },
+      { href: "/assets/lookup", label: "Asset Lookup", icon: "fa-search" },
     ],
   },
   {
-    title: "Planning",
+    title: "Plan",
     items: [
       {
         href: "/independence",
         label: "Independence",
         icon: "fa-umbrella-beach",
-        description: "Financial independence projections",
-      },
-      {
-        href: "/rebalance/models",
-        label: "Models",
-        icon: "fa-balance-scale",
-        description: "Target allocations & rebalancing",
-      },
-      {
-        href: "/allocation",
-        label: "Allocation",
-        icon: "fa-chart-bar",
-        description: "Asset allocation analysis",
       },
     ],
   },
   {
     title: "Tools",
     items: [
-      {
-        href: "/fx",
-        label: "FX Rates",
-        icon: "fa-exchange-alt",
-        description: "Currency exchange matrix",
-      },
-      {
-        href: "/tax-rates",
-        label: "Tax Rates",
-        icon: "fa-percent",
-        description: "Income tax rates by country",
-      },
-      {
-        href: "/settings",
-        label: "Settings",
-        icon: "fa-cog",
-        description: "Preferences & configuration",
-      },
-      {
-        href: "/admin",
-        label: "Admin",
-        icon: "fa-tools",
-        description: "System administration",
-        adminOnly: true,
-      },
+      { href: "/fx", label: "FX Rates", icon: "fa-exchange-alt" },
+      { href: "/tax-rates", label: "Tax Rates", icon: "fa-percent" },
     ],
   },
 ]
 
-// Desktop dropdown component
+function isActiveRoute(
+  pathname: string,
+  href: string,
+): boolean {
+  return pathname === href || pathname.startsWith(href + "/")
+}
+
+// Desktop dropdown — opens on hover with a close delay, click also toggles
 function DesktopDropdown({
   section,
   isAdmin,
@@ -125,10 +78,27 @@ function DesktopDropdown({
 }): React.ReactElement {
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const closeTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+  const cancelClose = useCallback((): void => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current)
+      closeTimerRef.current = null
+    }
+  }, [])
+
+  const scheduleClose = useCallback((): void => {
+    cancelClose()
+    closeTimerRef.current = setTimeout(() => setIsOpen(false), 200)
+  }, [cancelClose])
 
   useEffect(() => {
-    if (!isOpen) return () => {}
+    return () => cancelClose()
+  }, [cancelClose])
 
+  // Close on click outside
+  useEffect(() => {
+    if (!isOpen) return () => {}
     function handleClickOutside(event: MouseEvent): void {
       if (
         dropdownRef.current &&
@@ -144,14 +114,26 @@ function DesktopDropdown({
   const filteredItems = section.items.filter(
     (item) => !item.adminOnly || isAdmin,
   )
-  const isActive = filteredItems.some(
-    (item) =>
-      router.pathname === item.href ||
-      router.pathname.startsWith(item.href + "/"),
+  const isActive = filteredItems.some((item) =>
+    isActiveRoute(router.pathname, item.href),
   )
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div
+      className="relative"
+      ref={dropdownRef}
+      onPointerEnter={(e) => {
+        if (e.pointerType === "mouse") {
+          cancelClose()
+          setIsOpen(true)
+        }
+      }}
+      onPointerLeave={(e) => {
+        if (e.pointerType === "mouse") {
+          scheduleClose()
+        }
+      }}
+    >
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
@@ -167,44 +149,29 @@ function DesktopDropdown({
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden">
-          {filteredItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setIsOpen(false)}
-              className={`flex items-center px-4 py-2.5 hover:bg-gray-50 transition-colors ${
-                router.pathname === item.href ||
-                router.pathname.startsWith(item.href + "/")
-                  ? "bg-blue-50 border-l-2 border-blue-600"
-                  : ""
-              }`}
-            >
-              <i
-                className={`fas ${item.icon} w-5 text-sm ${
-                  router.pathname === item.href ||
-                  router.pathname.startsWith(item.href + "/")
-                    ? "text-blue-600"
-                    : "text-gray-400"
+        <div className="absolute left-0 mt-1 w-52 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden py-1 text-gray-800">
+          {filteredItems.map((item) => {
+            const active = isActiveRoute(router.pathname, item.href)
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setIsOpen(false)}
+                className={`flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
+                  active
+                    ? "bg-blue-50 text-blue-600 border-l-2 border-blue-600"
+                    : "text-gray-700 hover:bg-gray-50"
                 }`}
-              ></i>
-              <div className="ml-3">
-                <p
-                  className={`text-sm font-medium ${
-                    router.pathname === item.href ||
-                    router.pathname.startsWith(item.href + "/")
-                      ? "text-blue-600"
-                      : "text-gray-900"
+              >
+                <i
+                  className={`fas ${item.icon} w-4 text-center text-xs ${
+                    active ? "text-blue-600" : "text-gray-400"
                   }`}
-                >
-                  {item.label}
-                </p>
-                {item.description && (
-                  <p className="text-xs text-gray-500">{item.description}</p>
-                )}
-              </div>
-            </Link>
-          ))}
+                ></i>
+                {item.label}
+              </Link>
+            )
+          })}
         </div>
       )}
     </div>
@@ -220,7 +187,6 @@ function HeaderBrand(): React.ReactElement {
   // Close mobile menu when clicking outside
   useEffect(() => {
     if (!mobileMenuOpen) return () => {}
-
     function handleClickOutside(event: MouseEvent): void {
       if (
         mobileMenuRef.current &&
@@ -229,7 +195,6 @@ function HeaderBrand(): React.ReactElement {
         setMobileMenuOpen(false)
       }
     }
-
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [mobileMenuOpen])
@@ -239,7 +204,6 @@ function HeaderBrand(): React.ReactElement {
     setMobileMenuOpen(false)
   }, [router.pathname])
 
-  // Handle keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent): void => {
     if (e.key === "Escape") {
       setMobileMenuOpen(false)
@@ -248,7 +212,7 @@ function HeaderBrand(): React.ReactElement {
 
   return (
     <div className="flex items-center" ref={mobileMenuRef}>
-      {/* Mobile Menu Button - Left of brand */}
+      {/* Mobile Menu Button */}
       <div className="relative lg:hidden mr-3">
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -265,72 +229,53 @@ function HeaderBrand(): React.ReactElement {
           )}
         </button>
 
-        {/* Mobile Dropdown Menu */}
+        {/* Mobile Dropdown */}
         {mobileMenuOpen && (
-          <div className="absolute left-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden">
-            <div className="bg-linear-to-r from-blue-600 to-blue-700 px-4 py-3">
-              <p className="text-white text-sm font-medium">Navigation</p>
-            </div>
-
-            <div className="py-2 max-h-[70vh] overflow-y-auto">
-              {navSections.map((section, sectionIdx) => (
-                <div key={section.title}>
-                  {sectionIdx > 0 && <hr className="my-2 border-gray-100" />}
-                  <div className="px-4 py-1">
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                      {section.title}
-                    </p>
-                  </div>
-                  {section.items
-                    .filter((item) => !item.adminOnly || isAdmin)
-                    .map((item) => (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        className={`flex items-center px-4 py-2.5 hover:bg-gray-50 transition-colors ${
-                          router.pathname === item.href ||
-                          router.pathname.startsWith(item.href + "/")
-                            ? "bg-blue-50 border-l-3 border-blue-600"
-                            : ""
-                        }`}
-                      >
-                        <div
-                          className={`w-8 h-8 rounded-lg flex items-center justify-center mr-3 ${
-                            router.pathname === item.href ||
-                            router.pathname.startsWith(item.href + "/")
-                              ? "bg-blue-100 text-blue-600"
-                              : "bg-gray-100 text-gray-500"
+          <div className="absolute left-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden text-gray-800">
+            <div className="py-2 max-h-[75vh] overflow-y-auto">
+              {navSections.map((section, sectionIdx) => {
+                const filteredItems = section.items.filter(
+                  (item) => !item.adminOnly || isAdmin,
+                )
+                if (filteredItems.length === 0) return null
+                return (
+                  <div key={section.title}>
+                    {sectionIdx > 0 && (
+                      <hr className="my-1.5 border-gray-100" />
+                    )}
+                    <div className="px-3 py-1">
+                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                        {section.title}
+                      </p>
+                    </div>
+                    {filteredItems.map((item) => {
+                      const active = isActiveRoute(router.pathname, item.href)
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          className={`flex items-center gap-2.5 px-3 py-2 transition-colors ${
+                            active
+                              ? "bg-blue-50 border-l-2 border-blue-600 text-blue-600"
+                              : "text-gray-700 hover:bg-gray-50"
                           }`}
                         >
-                          <i className={`fas ${item.icon} text-sm`}></i>
-                        </div>
-                        <div className="flex-1">
-                          <p
-                            className={`text-sm font-medium ${
-                              router.pathname === item.href ||
-                              router.pathname.startsWith(item.href + "/")
-                                ? "text-blue-600"
-                                : "text-gray-900"
+                          <i
+                            className={`fas ${item.icon} w-4 text-center text-xs ${
+                              active ? "text-blue-600" : "text-gray-400"
                             }`}
-                          >
-                            {item.label}
-                          </p>
-                          {item.description && (
-                            <p className="text-xs text-gray-500">
-                              {item.description}
-                            </p>
-                          )}
-                        </div>
-                      </Link>
-                    ))}
-                </div>
-              ))}
+                          ></i>
+                          <span className="text-sm">{item.label}</span>
+                        </Link>
+                      )
+                    })}
+                  </div>
+                )
+              })}
             </div>
-
-            <div className="bg-gray-50 px-4 py-2 border-t border-gray-100">
-              <p className="text-xs text-gray-400">
-                Press <kbd className="px-1 bg-gray-200 rounded">Esc</kbd> to
-                close
+            <div className="bg-gray-50 px-3 py-1.5 border-t border-gray-100">
+              <p className="text-[10px] text-gray-400">
+                Press <kbd className="px-1 bg-gray-200 rounded text-[10px]">Esc</kbd> to close
               </p>
             </div>
           </div>
@@ -347,7 +292,7 @@ function HeaderBrand(): React.ReactElement {
         Holds<i>worth</i>
       </a>
 
-      {/* Desktop Navigation - Persistent dropdowns */}
+      {/* Desktop Navigation */}
       <nav className="hidden lg:flex items-center ml-8 space-x-1">
         {navSections.map((section) => (
           <DesktopDropdown
