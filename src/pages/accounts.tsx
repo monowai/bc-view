@@ -26,12 +26,7 @@ interface SectorOption {
 }
 
 // Categories that can be used for user-owned custom assets
-const USER_ASSET_CATEGORIES = [
-  "ACCOUNT",
-  "RE",
-  "MUTUAL FUND",
-  "POLICY",
-]
+const USER_ASSET_CATEGORIES = ["ACCOUNT", "RE", "MUTUAL FUND", "POLICY"]
 
 // Category icons mapping
 const CATEGORY_ICONS: Record<string, string> = {
@@ -839,8 +834,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
   } | null>(null)
 
   // Show income/planning tab for RE and POLICY categories
-  const showIncomeTab =
-    category === "RE" || category === "POLICY"
+  const showIncomeTab = category === "RE" || category === "POLICY"
 
   // Fetch country tax rates on mount
   useEffect(() => {
