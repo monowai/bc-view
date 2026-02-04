@@ -7,6 +7,7 @@ import { useTranslation } from "next-i18next"
 import useSWR from "swr"
 import { marketsKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { rootLoader } from "@components/ui/PageLoader"
+import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { AssetOption, Market, Portfolio, Position } from "types/beancounter"
 import { ModelsContainingAssetResponse } from "types/rebalance"
 import AssetSearch from "@components/features/assets/AssetSearch"
@@ -20,9 +21,12 @@ interface AssetPosition {
 function AssetLookupPage(): React.ReactElement {
   const { t, ready } = useTranslation("common")
   const router = useRouter()
+  const { preferences } = useUserPreferences()
 
   const [selectedAsset, setSelectedAsset] = useState<AssetOption | null>(null)
-  const [selectedMarket, setSelectedMarket] = useState<string>("US")
+  const [selectedMarket, setSelectedMarket] = useState<string>(
+    preferences?.defaultMarket || "US",
+  )
 
   // Fetch available markets
   const { data: marketsData } = useSWR<{ data: Market[] }>(

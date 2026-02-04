@@ -374,6 +374,7 @@ export interface UserPreferences {
   reportingCurrencyCode: string // Default currency for displaying values
   showWeightedIrr: boolean
   hideValues?: boolean // Privacy mode - hide monetary values and quantities
+  defaultMarket?: string // Default market for asset search (e.g., "US", "NZX")
 }
 
 export interface UserPreferencesRequest {
@@ -385,6 +386,7 @@ export interface UserPreferencesRequest {
   reportingCurrencyCode?: string
   showWeightedIrr?: boolean
   hideValues?: boolean
+  defaultMarket?: string
 }
 
 export interface RegistrationResponse {

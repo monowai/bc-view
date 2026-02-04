@@ -35,6 +35,7 @@ const defaultPreferences: UserPreferences = {
   baseCurrencyCode: "USD",
   reportingCurrencyCode: "USD",
   showWeightedIrr: true,
+  defaultMarket: "US",
 }
 
 const UserPreferencesContext = createContext<UserPreferencesContextValue>({

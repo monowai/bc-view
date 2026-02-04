@@ -82,11 +82,6 @@ describe("AssetSearch", () => {
           screen.getByText("VCT - Vector Ltd (NZX, Equity)"),
         ).toBeInTheDocument()
       })
-
-      // Expand Search is always offered
-      expect(
-        screen.getByText("trn.asset.search.expandSearch"),
-      ).toBeInTheDocument()
     })
   })
 
@@ -129,132 +124,7 @@ describe("AssetSearch", () => {
       })
     })
 
-    it("shows Expand Search option with results", async () => {
-      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            data: [
-              {
-                symbol: "VOO",
-                name: "Vanguard S&P 500 ETF",
-                market: "US",
-                assetId: "id-voo",
-              },
-            ],
-          }),
-      })
-
-      render(<AssetSearch onSelect={mockOnSelect} />)
-
-      const input = screen.getByRole("combobox")
-      await user.type(input, "VOO")
-      await flushAsync()
-
-      await waitFor(() => {
-        expect(
-          screen.getByText("trn.asset.search.expandSearch"),
-        ).toBeInTheDocument()
-      })
-    })
-
-    it("shows Expand Search when no results", async () => {
-      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ data: [] }),
-      })
-
-      render(<AssetSearch onSelect={mockOnSelect} />)
-
-      const input = screen.getByRole("combobox")
-      await user.type(input, "NEWCO")
-      await flushAsync()
-
-      await waitFor(() => {
-        expect(
-          screen.getByText("trn.asset.search.expandSearch"),
-        ).toBeInTheDocument()
-      })
-
-      expect(mockFetch).toHaveBeenCalledTimes(1)
-    })
-  })
-
-  describe("expand search", () => {
-    it("fetches FIGI and shows merged results when Expand Search is clicked", async () => {
-      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            data: [
-              {
-                symbol: "VOO",
-                name: "Vanguard S&P 500 ETF",
-                market: "US",
-                assetId: "id-voo",
-              },
-            ],
-          }),
-      })
-
-      render(<AssetSearch onSelect={mockOnSelect} />)
-
-      const input = screen.getByRole("combobox")
-      await user.type(input, "VOO")
-      await flushAsync()
-
-      await waitFor(() => {
-        expect(
-          screen.getByText("trn.asset.search.expandSearch"),
-        ).toBeInTheDocument()
-      })
-
-      // Mock FIGI response
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            data: [
-              {
-                symbol: "VOO",
-                name: "Vanguard S&P 500 ETF",
-                market: "US",
-                assetId: "id-voo",
-              },
-              {
-                symbol: "VOOG",
-                name: "Vanguard S&P 500 Growth ETF",
-                market: "US",
-                assetId: "id-voog",
-              },
-            ],
-          }),
-      })
-
-      // Click expand
-      await user.click(screen.getByText("trn.asset.search.expandSearch"))
-
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith(
-          expect.stringContaining("market=FIGI"),
-        )
-      })
-
-      // Should show merged results (VOO deduped, VOOG new)
-      await waitFor(() => {
-        expect(
-          screen.getByText("VOOG - Vanguard S&P 500 Growth ETF (US)"),
-        ).toBeInTheDocument()
-      })
-    })
-
-    it("shows no-results sentinel when expand returns nothing", async () => {
+    it("shows no-results message when search returns empty", async () => {
       const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
 
       mockFetch.mockResolvedValueOnce({
@@ -270,26 +140,12 @@ describe("AssetSearch", () => {
 
       await waitFor(() => {
         expect(
-          screen.getByText("trn.asset.search.expandSearch"),
-        ).toBeInTheDocument()
-      })
-
-      // FIGI also returns empty
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ data: [] }),
-      })
-
-      await user.click(screen.getByText("trn.asset.search.expandSearch"))
-
-      await waitFor(() => {
-        expect(
           screen.getByText("trn.asset.search.noResults"),
         ).toBeInTheDocument()
       })
     })
 
-    it("shows create-asset link when noResultsHref is provided", async () => {
+    it("shows create-asset message when noResultsHref is provided and no results", async () => {
       const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
 
       mockFetch.mockResolvedValueOnce({
@@ -305,17 +161,9 @@ describe("AssetSearch", () => {
       await user.type(input, "ZZZZZ")
       await flushAsync()
 
-      // FIGI also returns empty
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ data: [] }),
-      })
-
-      await user.click(screen.getByText("trn.asset.search.expandSearch"))
-
       await waitFor(() => {
         expect(
-          screen.getByText("trn.asset.search.createAsset"),
+          screen.getByText("trn.asset.search.noResultsCreate"),
         ).toBeInTheDocument()
       })
     })

@@ -309,9 +309,10 @@ export const getAssetCurrency = (assetData: {
 export const deriveDefaultMarket = (
   currencyCode: string,
   markets: { code: string; currency: { code: string } }[],
+  fallback: string = "US",
 ): string => {
   const match = markets.find((m) => m.currency.code === currencyCode)
-  return match?.code || "US"
+  return match?.code || fallback
 }
 
 export const convert = (tradeFormData: TradeFormData): string => {
