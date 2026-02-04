@@ -687,6 +687,14 @@ describe("TradeUtils", () => {
     test("returns 'US' for empty markets array", () => {
       expect(deriveDefaultMarket("NZD", [])).toBe("US")
     })
+
+    test("uses custom fallback when no market matches", () => {
+      expect(deriveDefaultMarket("GBP", markets, "NZX")).toBe("NZX")
+    })
+
+    test("ignores fallback when a market matches", () => {
+      expect(deriveDefaultMarket("NZD", markets, "ASX")).toBe("NZX")
+    })
   })
 
   describe("owner prefix stripping", () => {

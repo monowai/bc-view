@@ -306,8 +306,13 @@ const TradeInputForm: React.FC<{
   )
 
   // Derive default market from portfolio currency (e.g., NZD → NZX, AUD → ASX)
+  // Falls back to user's preferred market when currency doesn't match any market
   const portfolioDefaultMarket = useMemo(
-    () => deriveDefaultMarket(portfolio.currency.code, marketsData?.data || []),
+    () =>
+      deriveDefaultMarket(
+        portfolio.currency.code,
+        marketsData?.data || [],
+      ),
     [marketsData, portfolio.currency.code],
   )
 

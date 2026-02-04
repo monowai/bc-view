@@ -12,6 +12,7 @@ import {
   Currency,
   GroupByApiValue,
   HoldingsView,
+  Market,
   RegistrationResponse,
   TaxRate,
   UserPreferencesRequest,
@@ -78,6 +79,7 @@ function SettingsPage(): React.ReactElement {
   const [success, setSuccess] = useState<string | null>(null)
 
   const [currencies, setCurrencies] = useState<Currency[]>([])
+  const [markets, setMarkets] = useState<Market[]>([])
   const [taxRates, setTaxRates] = useState<TaxRate[]>([])
   const [newTaxCountry, setNewTaxCountry] = useState("")
   const [newTaxRate, setNewTaxRate] = useState("")
@@ -95,16 +97,18 @@ function SettingsPage(): React.ReactElement {
   const [reportingCurrencyCode, setReportingCurrencyCode] =
     useState<string>("USD")
   const [showWeightedIrr, setShowWeightedIrr] = useState<boolean>(false)
+  const [defaultMarket, setDefaultMarket] = useState<string>("US")
 
   // Fetch current preferences, currencies, and tax rates
   useEffect(() => {
     const fetchData = async (): Promise<void> => {
       try {
-        const [meResponse, currenciesResponse, taxRatesResponse] =
+        const [meResponse, currenciesResponse, taxRatesResponse, marketsResponse] =
           await Promise.all([
             fetch("/api/me"),
             fetch("/api/currencies"),
             fetch("/api/tax-rates"),
+            fetch("/api/markets"),
           ])
 
         if (meResponse.ok) {
@@ -125,6 +129,7 @@ function SettingsPage(): React.ReactElement {
                 meData.preferences.baseCurrencyCode,
             )
             setShowWeightedIrr(meData.preferences.showWeightedIrr ?? false)
+            setDefaultMarket(meData.preferences.defaultMarket || "US")
           }
         }
 
@@ -132,6 +137,13 @@ function SettingsPage(): React.ReactElement {
           const currenciesData = await currenciesResponse.json()
           if (currenciesData.data) {
             setCurrencies(currenciesData.data)
+          }
+        }
+
+        if (marketsResponse.ok) {
+          const marketsData = await marketsResponse.json()
+          if (marketsData.data) {
+            setMarkets(marketsData.data)
           }
         }
 
@@ -166,6 +178,7 @@ function SettingsPage(): React.ReactElement {
         baseCurrencyCode,
         reportingCurrencyCode,
         showWeightedIrr,
+        defaultMarket,
       }
 
       const response = await fetch("/api/me", {
@@ -473,6 +486,34 @@ function SettingsPage(): React.ReactElement {
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* Default Market */}
+            <div>
+              <label
+                htmlFor="defaultMarket"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                {t("settings.defaultMarket", "Default Market")}
+              </label>
+              <select
+                id="defaultMarket"
+                value={defaultMarket}
+                onChange={(e) => setDefaultMarket(e.target.value)}
+                className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-500 focus:border-blue-500"
+              >
+                {markets.map((m) => (
+                  <option key={m.code} value={m.code}>
+                    {m.code} — {m.name}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-sm text-gray-500">
+                {t(
+                  "settings.defaultMarket.description",
+                  "Used as the default market when searching for assets and entering trades",
+                )}
+              </p>
             </div>
 
             {/* System Base Currency */}

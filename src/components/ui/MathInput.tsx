@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { parseShorthandAmount } from "@utils/formatting/amountParser"
 
 /**
@@ -197,11 +197,14 @@ export default function MathInput({
 }: MathInputProps): React.ReactElement {
   const [displayValue, setDisplayValue] = useState<string>(String(value || ""))
   const [isExpression, setIsExpression] = useState(false)
+  const isFocusedRef = useRef(false)
 
-  // Sync display value when external value changes
+  // Sync display value when external value changes (only when not focused)
   useEffect(() => {
-    // Only update if not currently editing an expression
-    if (!isExpression) {
+    // Skip sync while user is actively typing — their displayValue is authoritative.
+    // Without this, typing "1." triggers onChange(1) which overwrites "1." → "1",
+    // making it impossible to enter decimals.
+    if (!isExpression && !isFocusedRef.current) {
       // Show empty string for zero values (better UX - cleaner form appearance)
       setDisplayValue(value === 0 || value === undefined ? "" : String(value))
     }
@@ -236,7 +239,12 @@ export default function MathInput({
     }
   }
 
+  const handleFocus = (): void => {
+    isFocusedRef.current = true
+  }
+
   const handleBlur = (): void => {
+    isFocusedRef.current = false
     evaluateAndUpdate()
   }
 
@@ -253,6 +261,7 @@ export default function MathInput({
       inputMode="decimal"
       value={displayValue}
       onChange={handleChange}
+      onFocus={handleFocus}
       onBlur={handleBlur}
       onKeyDown={handleKeyDown}
       className={`${className} ${isExpression ? "bg-yellow-50" : ""}`}

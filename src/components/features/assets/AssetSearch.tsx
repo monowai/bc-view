@@ -1,14 +1,10 @@
 import React, { useCallback, useRef, useState } from "react"
 import { Controller, Control } from "react-hook-form"
-import Select from "react-select"
 import AsyncSelect from "react-select/async"
 import { useTranslation } from "next-i18next"
 import { AssetOption, AssetSearchResult } from "types/beancounter"
 import { stripOwnerPrefix } from "@lib/assets/assetUtils"
 import { parseSearchInput } from "./parseSearchInput"
-
-const EXPAND_SENTINEL = "__expand_search__"
-const NO_RESULTS_SENTINEL = "__no_results__"
 
 interface AssetSearchProps {
   onSelect: (option: AssetOption | null) => void
@@ -44,13 +40,12 @@ function toOption(result: AssetSearchResult): AssetOption {
 }
 
 /**
- * Unified asset search component wrapping react-select/async.
+ * Asset search component wrapping react-select/async.
  *
  * Search behaviour:
- * - Specific market (market prop is set and not "LOCAL"): search that market directly.
- * - LOCAL / unset: search LOCAL first, show "Expand Search?" sentinel.
- * - "Expand Search?" fetches FIGI, merges results, shows via base Select.
- * - If no results after expand, shows "No results" with optional create-asset link.
+ * - User types keyword (or MARKET:KEYWORD) → backend returns results → display.
+ * - Backend handles local DB + external provider merge.
+ * - Cross-market search: use FIGI:keyword syntax.
  */
 export default function AssetSearch({
   onSelect,
@@ -67,18 +62,10 @@ export default function AssetSearch({
 }: AssetSearchProps): React.ReactElement {
   const { t } = useTranslation("common")
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
-  const [menuOpen, setMenuOpen] = useState(false)
   const [inputText, setInputText] = useState("")
   const isControlled = value !== undefined
   const [internalValue, setInternalValue] = useState<AssetOption | null>(null)
   const displayValue = isControlled ? value : internalValue
-  const lastKeywordRef = useRef("")
-  const localResultsRef = useRef<AssetOption[]>([])
-  // When set, renders a base Select with these options instead of AsyncSelect
-  const [expandedOptions, setExpandedOptions] = useState<AssetOption[] | null>(
-    null,
-  )
-  const expandingRef = useRef(false)
 
   const isSpecificMarket = market !== undefined && market !== ""
 
@@ -105,7 +92,6 @@ export default function AssetSearch({
         clearTimeout(debounceRef.current)
       }
 
-      // Parse MARKET:KEYWORD syntax. Backend handles LOCAL+external merge.
       const parsed = parseSearchInput(
         inputValue,
         knownMarkets,
@@ -117,153 +103,42 @@ export default function AssetSearch({
         return
       }
 
-      lastKeywordRef.current = parsed.keyword
-
       debounceRef.current = setTimeout(async () => {
         try {
-          // Pass market directly — backend searches local DB + external provider
           const results = await doFetch(parsed.keyword, parsed.market)
           let options = results.map((r) => toOption(r))
-
           if (filterResults) {
             options = filterResults(options)
           }
-
-          const expandOption: AssetOption = {
-            value: EXPAND_SENTINEL,
-            label: t("trn.asset.search.expandSearch", "Expand Search?"),
-            symbol: "",
-          }
-
-          localResultsRef.current = options
-          // Always offer expand to force FIGI global search
-          callback([...options, expandOption])
+          callback(options)
         } catch {
           callback([])
         }
       }, 300)
     },
-    [market, knownMarkets, isSpecificMarket, doFetch, filterResults, t],
+    [market, knownMarkets, isSpecificMarket, doFetch, filterResults],
   )
-
-  const handleExpandSearch = useCallback(async (): Promise<void> => {
-    const keyword = lastKeywordRef.current
-    if (!keyword || keyword.length < 2) return
-
-    expandingRef.current = true
-    try {
-      const figiResults = await doFetch(keyword, "FIGI")
-      let figiOptions = figiResults.map((r) => toOption(r))
-      if (filterResults) {
-        figiOptions = filterResults(figiOptions)
-      }
-
-      // Merge: local + FIGI (dedup by symbol:market)
-      const existingKeys = new Set(
-        localResultsRef.current.map((o) => `${o.symbol}:${o.market}`),
-      )
-      const newOptions = figiOptions.filter(
-        (o) => !existingKeys.has(`${o.symbol}:${o.market}`),
-      )
-      const merged = [...localResultsRef.current, ...newOptions]
-
-      if (merged.length === 0) {
-        setExpandedOptions([
-          {
-            value: NO_RESULTS_SENTINEL,
-            label: t("trn.asset.search.noResults", "No assets found"),
-            symbol: "",
-          },
-        ])
-      } else {
-        setExpandedOptions(merged)
-      }
-      setMenuOpen(true)
-    } catch {
-      // On error, keep existing results
-    } finally {
-      expandingRef.current = false
-    }
-  }, [doFetch, filterResults, t])
 
   const handleChange = useCallback(
     (selected: AssetOption | null): void => {
-      if (selected?.value === EXPAND_SENTINEL) {
-        handleExpandSearch()
-        return
-      }
-      if (selected?.value === NO_RESULTS_SENTINEL) {
-        if (noResultsHref) {
-          window.location.href = noResultsHref
-        }
-        return
-      }
-      setMenuOpen(false)
       setInputText("")
-      setExpandedOptions(null)
       if (!isControlled) setInternalValue(selected)
       onSelect(selected)
     },
-    [onSelect, handleExpandSearch, noResultsHref, isControlled],
+    [onSelect, isControlled],
   )
 
   const handleInputChange = useCallback(
     (newValue: string, meta: { action: string }): void => {
       if (meta.action === "input-change") {
         setInputText(newValue.toUpperCase())
-        // Clear expanded results when user starts typing again
-        if (expandedOptions) {
-          setExpandedOptions(null)
-        }
       }
     },
-    [expandedOptions],
-  )
-
-  const handleMenuOpen = useCallback((): void => {
-    setMenuOpen(true)
-  }, [])
-
-  const handleMenuClose = useCallback((): void => {
-    if (!expandingRef.current) {
-      setMenuOpen(false)
-    }
-  }, [])
-
-  const formatOptionLabel = useCallback(
-    (option: AssetOption): React.ReactNode => {
-      if (option.value === EXPAND_SENTINEL) {
-        return (
-          <div className="text-center text-blue-600 font-medium text-sm">
-            <span>
-              <i className="fas fa-search-plus mr-1"></i>
-              {t("trn.asset.search.expandSearch", "Expand Search?")}
-            </span>
-          </div>
-        )
-      }
-      if (option.value === NO_RESULTS_SENTINEL) {
-        return (
-          <div className="text-center text-sm">
-            <div className="text-gray-500">
-              {t("trn.asset.search.noResults", "No assets found")}
-            </div>
-            {noResultsHref && (
-              <div className="text-blue-600 mt-1">
-                <i className="fas fa-plus-circle mr-1"></i>
-                {t("trn.asset.search.createAsset", "Create a private asset")}
-              </div>
-            )}
-          </div>
-        )
-      }
-      return option.label
-    },
-    [noResultsHref, t],
+    [],
   )
 
   const noOptionsMessage = useCallback(
-    ({ inputValue }: { inputValue: string }): string => {
+    ({ inputValue }: { inputValue: string }): React.ReactNode => {
       if (knownMarkets) {
         const parsed = parseSearchInput(inputValue, knownMarkets)
         if (!parsed.validMarket) {
@@ -274,11 +149,18 @@ export default function AssetSearch({
           )
         }
       }
-      return inputValue.length < 2
-        ? t("trn.asset.search.minChars", "Type at least 2 characters")
-        : t("trn.asset.search.noResults", "No assets found")
+      if (inputValue.length < 2) {
+        return t("trn.asset.search.minChars", "Type at least 2 characters")
+      }
+      if (noResultsHref) {
+        return t(
+          "trn.asset.search.noResultsCreate",
+          "No results found. Create a private asset?",
+        )
+      }
+      return t("trn.asset.search.noResults", "No assets found")
     },
-    [knownMarkets, t],
+    [knownMarkets, noResultsHref, t],
   )
 
   const sharedProps = {
@@ -287,12 +169,8 @@ export default function AssetSearch({
     loadingMessage: () => t("trn.asset.search.loading", "Searching..."),
     onChange: handleChange,
     isClearable,
-    formatOptionLabel,
     inputValue: inputText,
     onInputChange: handleInputChange,
-    menuIsOpen: menuOpen,
-    onMenuOpen: handleMenuOpen,
-    onMenuClose: handleMenuClose,
     menuPortalTarget: typeof document !== "undefined" ? document.body : null,
     menuPosition: "fixed" as const,
     styles: {
@@ -321,12 +199,7 @@ export default function AssetSearch({
             {...field}
             onChange={(selected: AssetOption | null) => {
               handleChange(selected)
-              if (
-                selected?.value !== EXPAND_SENTINEL &&
-                selected?.value !== NO_RESULTS_SENTINEL
-              ) {
-                field.onChange(selected?.value || "")
-              }
+              field.onChange(selected?.value || "")
             }}
             value={
               field.value
@@ -345,20 +218,6 @@ export default function AssetSearch({
             }
           />
         )}
-      />
-    )
-  }
-
-  // After expand: render base Select with static options (no portal needed)
-  if (expandedOptions) {
-    return (
-      <Select<AssetOption>
-        {...sharedProps}
-        options={expandedOptions}
-        value={displayValue}
-        filterOption={null}
-        menuPortalTarget={null}
-        menuPosition={"absolute" as const}
       />
     )
   }
