@@ -552,14 +552,18 @@ describe("tradeFormHelpers", () => {
       expect(result).toBeNull()
     })
 
-    test("returns null when no settlement for currency", () => {
+    test("falls back to first settlement account when no currency match", () => {
       const result = resolveBrokerSettlementAccount({
         brokerId: "b1",
         tradeCurrency: "GBP",
         brokers: brokers as any,
         allBankAccounts,
       })
-      expect(result).toBeNull()
+      expect(result).toEqual({
+        value: "a1",
+        label: "SCB USD",
+        currency: "USD",
+      })
     })
 
     test("returns null when bank account not found", () => {
@@ -568,6 +572,17 @@ describe("tradeFormHelpers", () => {
         tradeCurrency: "USD",
         brokers: brokers as any,
         allBankAccounts: [], // No bank accounts
+      })
+      expect(result).toBeNull()
+    })
+
+    test("returns null when broker has empty settlementAccounts", () => {
+      const emptyBrokers = [{ id: "b2", name: "Empty", settlementAccounts: [] }]
+      const result = resolveBrokerSettlementAccount({
+        brokerId: "b2",
+        tradeCurrency: "USD",
+        brokers: emptyBrokers as any,
+        allBankAccounts,
       })
       expect(result).toBeNull()
     })

@@ -321,6 +321,7 @@ export const buildDefaultCashAsset = (
 /**
  * Resolve the settlement account for a broker and trade currency.
  * Looks up the broker's settlement mapping, then finds the matching bank account.
+ * Falls back to the broker's first settlement account if no currency-specific match.
  */
 export const resolveBrokerSettlementAccount = (params: {
   brokerId: string
@@ -331,12 +332,13 @@ export const resolveBrokerSettlementAccount = (params: {
   const { brokerId, tradeCurrency, brokers, allBankAccounts } = params
 
   const broker = brokers.find((b) => b.id === brokerId)
-  if (!broker?.settlementAccounts) return null
+  if (!broker?.settlementAccounts?.length) return null
 
-  const settlement = broker.settlementAccounts.find(
-    (sa) => sa.currencyCode === tradeCurrency,
-  )
-  if (!settlement) return null
+  // Prefer exact currency match, fall back to first available
+  const settlement =
+    broker.settlementAccounts.find(
+      (sa) => sa.currencyCode === tradeCurrency,
+    ) || broker.settlementAccounts[0]
 
   const bankAccount = allBankAccounts.find((a) => a.id === settlement.accountId)
   if (!bankAccount) return null
