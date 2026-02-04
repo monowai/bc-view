@@ -85,7 +85,7 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
               <span className="text-gray-700">{displayName}</span>
             </h1>
             <p className="text-gray-500 text-lg">
-              Start anywhere. Everything connects.
+              Connecting goals, strategy, and assets — making progress visible
             </p>
           </div>
         </div>
@@ -258,7 +258,7 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
 
           {/* Tagline */}
           <p className="text-center text-gray-500 mt-8">
-            Confidence comes from connecting assets, goals, and strategy.
+            Start anywhere. Everything connect over time.
           </p>
         </div>
       </div>
