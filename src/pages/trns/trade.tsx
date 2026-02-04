@@ -59,8 +59,6 @@ const TradeTypeValues = [
   "EXPENSE",
 ] as const
 
-const excludedMarkets = ["CASH", "AMEX", "NYSE", "NASDAQ"]
-
 const defaultValues = {
   type: { value: "BUY", label: "BUY" },
   status: { value: "PROPOSED", label: "PROPOSED" },
@@ -316,7 +314,7 @@ const TradeInputForm: React.FC<{
     const currencyCode = portfolio.currency.code
     const match = marketsData?.data?.find(
       (m: { code: string; currency: { code: string } }) =>
-        !excludedMarkets.includes(m.code) && m.currency.code === currencyCode,
+        m.currency.code === currencyCode,
     )
     return match?.code || "US"
   }, [marketsData, portfolio.currency.code])
@@ -773,14 +771,10 @@ const TradeInputForm: React.FC<{
 
   // Get market options
   const marketOptions =
-    marketsData?.data
-      ?.filter(
-        (market: { code: string }) => !excludedMarkets.includes(market.code),
-      )
-      .map((market: { code: string; name: string }) => ({
-        value: market.code,
-        label: market.name || market.code,
-      })) || []
+    marketsData?.data?.map((market: { code: string; name: string }) => ({
+      value: market.code,
+      label: market.name || market.code,
+    })) || []
 
   const hasCashImpact = !["ADD", "REDUCE", "SPLIT"].includes(type?.value)
   const isExpenseType = type?.value === "EXPENSE"
