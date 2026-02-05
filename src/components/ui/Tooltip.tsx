@@ -28,3 +28,30 @@ export default function Tooltip({
     </span>
   )
 }
+
+/**
+ * Inline tooltip that shows instantly on hover without an icon.
+ * Use this to wrap content that should show a tooltip on hover.
+ */
+export function QuickTooltip({
+  text,
+  children,
+}: TooltipProps): React.ReactElement {
+  const [isVisible, setIsVisible] = useState(false)
+
+  return (
+    <span
+      className="relative inline-block cursor-help"
+      onMouseEnter={() => setIsVisible(true)}
+      onMouseLeave={() => setIsVisible(false)}
+    >
+      {children}
+      {isVisible && (
+        <span className="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 text-xs text-white bg-gray-800 rounded shadow-lg whitespace-nowrap">
+          {text}
+          <span className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></span>
+        </span>
+      )}
+    </span>
+  )
+}

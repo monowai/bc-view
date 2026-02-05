@@ -11,6 +11,7 @@ import { errorOut } from "@components/errors/ErrorOut"
 import { useRouter } from "next/router"
 import { rootLoader } from "@components/ui/PageLoader"
 import { FormatValue } from "@components/ui/MoneyUtils"
+import { QuickTooltip } from "@components/ui/Tooltip"
 import PortfolioCorporateActionsPopup from "@components/features/portfolios/PortfolioCorporateActionsPopup"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 
@@ -576,7 +577,7 @@ export default withPageAuthRequired(function Portfolios({
                   </div>
                   <div className="text-right">
                     <div className="text-lg font-bold text-gray-900">
-                      {displayCurrency?.symbol}
+                      {displayCurrency?.symbol === "?" ? displayCurrency?.code : displayCurrency?.symbol}
                       <FormatValue
                         value={
                           (portfolio.marketValue ? portfolio.marketValue : 0) *
@@ -585,35 +586,26 @@ export default withPageAuthRequired(function Portfolios({
                       />
                     </div>
                     {portfolio.gainOnDay !== undefined &&
-                      portfolio.gainOnDay !== 0 && (
-                        <div
-                          className={`text-sm font-medium ${
-                            portfolio.gainOnDay >= 0
-                              ? "text-green-600"
-                              : "text-red-600"
-                          }`}
+                      portfolio.gainOnDay !== 0 &&
+                      portfolio.marketValue && (
+                        <QuickTooltip
+                          text={`${portfolio.gainOnDay >= 0 ? "+" : ""}${displayCurrency?.code || ""} ${(portfolio.gainOnDay * (fxRates[portfolio.base.code] || 1)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                         >
-                          {portfolio.gainOnDay >= 0 ? "+" : ""}
-                          {displayCurrency?.symbol}
-                          <FormatValue
-                            value={
-                              portfolio.gainOnDay *
-                              (fxRates[portfolio.base.code] || 1)
-                            }
-                          />
-                          {portfolio.marketValue ? (
-                            <span className="ml-1 text-xs">
-                              (
-                              {(
-                                (portfolio.gainOnDay /
-                                  (portfolio.marketValue -
-                                    portfolio.gainOnDay)) *
-                                100
-                              ).toFixed(2)}
-                              %)
-                            </span>
-                          ) : null}
-                        </div>
+                          <span
+                            className={`text-sm font-medium ${
+                              portfolio.gainOnDay >= 0
+                                ? "text-green-600"
+                                : "text-red-600"
+                            }`}
+                          >
+                            {(
+                              (portfolio.gainOnDay /
+                                (portfolio.marketValue - portfolio.gainOnDay)) *
+                              100
+                            ).toFixed(2)}
+                            %
+                          </span>
+                        </QuickTooltip>
                       )}
                     <div
                       className={`text-sm font-medium ${
@@ -686,23 +678,29 @@ export default withPageAuthRequired(function Portfolios({
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
             <div className="flex justify-between items-center">
               <span className="font-semibold text-gray-700">
-                {t("portfolios.total")}
+                {t("portfolios.total")}: {displayCurrency?.code}
               </span>
               <div className="text-right">
                 <span className="text-xl font-bold text-gray-900">
-                  {displayCurrency?.symbol}
+                  {displayCurrency?.symbol === "?" ? displayCurrency?.code : displayCurrency?.symbol}
                   <FormatValue value={totalMarketValue} />
                 </span>
-                {totalGainOnDay !== 0 && (
-                  <div
-                    className={`text-sm font-semibold ${
-                      totalGainOnDay >= 0 ? "text-green-600" : "text-red-600"
-                    }`}
+                {totalGainOnDay !== 0 && totalMarketValue && (
+                  <QuickTooltip
+                    text={`${totalGainOnDay >= 0 ? "+" : ""}${displayCurrency?.code || ""} ${totalGainOnDay.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                   >
-                    {totalGainOnDay >= 0 ? "+" : ""}
-                    {displayCurrency?.symbol}
-                    <FormatValue value={totalGainOnDay} />
-                  </div>
+                    <span
+                      className={`text-sm font-semibold ${
+                        totalGainOnDay >= 0 ? "text-green-600" : "text-red-600"
+                      }`}
+                    >
+                      {(
+                        (totalGainOnDay / (totalMarketValue - totalGainOnDay)) *
+                        100
+                      ).toFixed(2)}
+                      %
+                    </span>
+                  </QuickTooltip>
                 )}
               </div>
             </div>
@@ -743,30 +741,12 @@ export default withPageAuthRequired(function Portfolios({
                     </div>
                   </th>
                   <th
-                    className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
-                    onClick={() => handleSort("base")}
-                  >
-                    <div className="flex items-center">
-                      {t("portfolio.currency.base")}
-                      {getSortIcon("base")}
-                    </div>
-                  </th>
-                  <th
                     className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
                     onClick={() => handleSort("marketValue")}
                   >
                     <div className="flex items-center justify-end">
                       {t("portfolio.marketvalue")}
                       {getSortIcon("marketValue")}
-                    </div>
-                  </th>
-                  <th
-                    className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
-                    onClick={() => handleSort("gainOnDay")}
-                  >
-                    <div className="flex items-center justify-end">
-                      {t("portfolio.gainOnDay", "Day")}
-                      {getSortIcon("gainOnDay")}
                     </div>
                   </th>
                   <th
@@ -838,9 +818,6 @@ export default withPageAuthRequired(function Portfolios({
                     <td className="px-4 py-3 text-gray-900 font-medium">
                       {portfolio.name}
                     </td>
-                    <td className="px-4 py-3 text-gray-600">
-                      {portfolio.base.symbol} {portfolio.base.code}
-                    </td>
                     <td className="px-4 py-3 text-right font-semibold text-gray-900">
                       <FormatValue
                         value={
@@ -851,44 +828,26 @@ export default withPageAuthRequired(function Portfolios({
                     </td>
                     <td className="px-4 py-3 text-right">
                       {portfolio.gainOnDay !== undefined &&
-                      portfolio.gainOnDay !== 0 ? (
-                        <span
-                          className={`font-semibold ${
-                            portfolio.gainOnDay >= 0
-                              ? "text-green-600"
-                              : "text-red-600"
-                          }`}
-                        >
-                          {portfolio.gainOnDay >= 0 ? "+" : ""}
-                          <FormatValue
-                            value={
-                              portfolio.gainOnDay *
-                              (fxRates[portfolio.base.code] || 1)
-                            }
-                          />
-                        </span>
-                      ) : (
-                        <span className="text-gray-400">-</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {portfolio.gainOnDay !== undefined &&
                       portfolio.gainOnDay !== 0 &&
                       portfolio.marketValue ? (
-                        <span
-                          className={`font-semibold ${
-                            portfolio.gainOnDay >= 0
-                              ? "text-green-600"
-                              : "text-red-600"
-                          }`}
+                        <QuickTooltip
+                          text={`${portfolio.gainOnDay >= 0 ? "+" : ""}${displayCurrency?.code || ""} ${(portfolio.gainOnDay * (fxRates[portfolio.base.code] || 1)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                         >
-                          {(
-                            (portfolio.gainOnDay /
-                              (portfolio.marketValue - portfolio.gainOnDay)) *
-                            100
-                          ).toFixed(2)}
-                          %
-                        </span>
+                          <span
+                            className={`font-semibold ${
+                              portfolio.gainOnDay >= 0
+                                ? "text-green-600"
+                                : "text-red-600"
+                            }`}
+                          >
+                            {(
+                              (portfolio.gainOnDay /
+                                (portfolio.marketValue - portfolio.gainOnDay)) *
+                              100
+                            ).toFixed(2)}
+                            %
+                          </span>
+                        </QuickTooltip>
                       ) : (
                         <span className="text-gray-400">-</span>
                       )}
@@ -972,47 +931,35 @@ export default withPageAuthRequired(function Portfolios({
               <tfoot className="bg-gray-50 border-t-2 border-gray-200">
                 <tr>
                   <td
-                    colSpan={4}
+                    colSpan={3}
                     className="px-4 py-3 text-right font-bold text-gray-700"
                   >
-                    {t("portfolios.total")}
+                    {t("portfolios.total")}: {displayCurrency?.code}
                   </td>
                   <td className="px-4 py-3 text-right font-bold text-gray-900 text-lg">
-                    {displayCurrency?.symbol}
+                    {displayCurrency?.symbol === "?" ? displayCurrency?.code : displayCurrency?.symbol}
                     <FormatValue value={totalMarketValue} />
                   </td>
                   <td className="px-4 py-3 text-right">
-                    {totalGainOnDay !== 0 ? (
-                      <span
-                        className={`font-bold text-lg ${
-                          totalGainOnDay >= 0
-                            ? "text-green-600"
-                            : "text-red-600"
-                        }`}
-                      >
-                        {totalGainOnDay >= 0 ? "+" : ""}
-                        <FormatValue value={totalGainOnDay} />
-                      </span>
-                    ) : (
-                      <span className="text-gray-400">-</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right">
                     {totalGainOnDay !== 0 && totalMarketValue ? (
-                      <span
-                        className={`font-bold text-lg ${
-                          totalGainOnDay >= 0
-                            ? "text-green-600"
-                            : "text-red-600"
-                        }`}
+                      <QuickTooltip
+                        text={`${totalGainOnDay >= 0 ? "+" : ""}${displayCurrency?.code || ""} ${totalGainOnDay.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                       >
-                        {(
-                          (totalGainOnDay /
-                            (totalMarketValue - totalGainOnDay)) *
-                          100
-                        ).toFixed(2)}
-                        %
-                      </span>
+                        <span
+                          className={`font-bold text-lg ${
+                            totalGainOnDay >= 0
+                              ? "text-green-600"
+                              : "text-red-600"
+                          }`}
+                        >
+                          {(
+                            (totalGainOnDay /
+                              (totalMarketValue - totalGainOnDay)) *
+                            100
+                          ).toFixed(2)}
+                          %
+                        </span>
+                      </QuickTooltip>
                     ) : (
                       <span className="text-gray-400">-</span>
                     )}
