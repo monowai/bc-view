@@ -430,9 +430,27 @@ describe("tradeFormHelpers", () => {
 
   describe("filterBankAccountsByCurrency", () => {
     const accounts = [
-      { id: "a1", code: "SCB-USD", name: "SCB USD", market: { code: "PRIVATE" }, priceSymbol: "USD" },
-      { id: "a2", code: "SCB-SGD", name: "SCB SGD", market: { code: "PRIVATE" }, priceSymbol: "SGD" },
-      { id: "a3", code: "WISE-USD", name: "WISE USD", market: { code: "PRIVATE" }, priceSymbol: "USD" },
+      {
+        id: "a1",
+        code: "SCB-USD",
+        name: "SCB USD",
+        market: { code: "PRIVATE" },
+        priceSymbol: "USD",
+      },
+      {
+        id: "a2",
+        code: "SCB-SGD",
+        name: "SCB SGD",
+        market: { code: "PRIVATE" },
+        priceSymbol: "SGD",
+      },
+      {
+        id: "a3",
+        code: "WISE-USD",
+        name: "WISE USD",
+        market: { code: "PRIVATE" },
+        priceSymbol: "USD",
+      },
     ]
 
     test("filters accounts matching currency", () => {
@@ -454,14 +472,18 @@ describe("tradeFormHelpers", () => {
 
   describe("buildAllCashBalances", () => {
     test("merges existing and synthetic cash balances", () => {
-      const existing = [{ id: "c1", code: "USD", name: "USD", market: { code: "CASH" } }]
+      const existing = [
+        { id: "c1", code: "USD", name: "USD", market: { code: "CASH" } },
+      ]
       const currencies = ["USD", "NZD", "SGD"]
       const result = buildAllCashBalances(existing, currencies, "USD")
       expect(result).toHaveLength(3)
     })
 
     test("uses existing assets when available", () => {
-      const existing = [{ id: "c1", code: "USD", name: "US Dollar", market: { code: "CASH" } }]
+      const existing = [
+        { id: "c1", code: "USD", name: "US Dollar", market: { code: "CASH" } },
+      ]
       const currencies = ["USD", "NZD"]
       const result = buildAllCashBalances(existing, currencies, "USD")
       const usd = result.find((a: any) => a.code === "USD")!
@@ -491,7 +513,9 @@ describe("tradeFormHelpers", () => {
 
   describe("buildDefaultCashAsset", () => {
     test("returns first matching cash asset as settlement option", () => {
-      const filtered = [{ id: "c1", code: "NZD", name: "NZD", market: { code: "CASH" } }]
+      const filtered = [
+        { id: "c1", code: "NZD", name: "NZD", market: { code: "CASH" } },
+      ]
       const result = buildDefaultCashAsset(filtered, "NZD")
       expect(result).toEqual({
         value: "c1",
@@ -524,8 +548,20 @@ describe("tradeFormHelpers", () => {
       },
     ]
     const allBankAccounts = [
-      { id: "a1", code: "SCB-USD", name: "SCB USD", market: { code: "PRIVATE" }, priceSymbol: "USD" },
-      { id: "a2", code: "KIWI-NZD", name: "Kiwi NZD", market: { code: "PRIVATE" }, priceSymbol: "NZD" },
+      {
+        id: "a1",
+        code: "SCB-USD",
+        name: "SCB USD",
+        market: { code: "PRIVATE" },
+        priceSymbol: "USD",
+      },
+      {
+        id: "a2",
+        code: "KIWI-NZD",
+        name: "Kiwi NZD",
+        market: { code: "PRIVATE" },
+        priceSymbol: "NZD",
+      },
     ]
 
     test("resolves settlement account for broker and currency", () => {

@@ -136,7 +136,8 @@ const schema = yup.object().shape({
 // Common CSS classes
 const inputClass =
   "mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
-const labelClass = "block text-xs font-medium text-gray-500 uppercase tracking-wide"
+const labelClass =
+  "block text-xs font-medium text-gray-500 uppercase tracking-wide"
 
 // Props for edit mode
 interface EditModeProps {
@@ -198,6 +199,11 @@ const TradeInputForm: React.FC<{
   )
   const modelInitializedRef = useRef(false)
   const initialModelIdRef = useRef<string | undefined>(transaction?.modelId)
+
+  // Track whether the user has manually overridden computed amounts.
+  // When set, the auto-recalculation useEffect is skipped.
+  const tradeAmountOverriddenRef = useRef(false)
+  const cashAmountOverriddenRef = useRef(false)
 
   // Fetch portfolios for portfolio move (edit mode)
   const { data: portfoliosData } = useSwr(
@@ -308,11 +314,7 @@ const TradeInputForm: React.FC<{
   // Derive default market from portfolio currency (e.g., NZD → NZX, AUD → ASX)
   // Falls back to user's preferred market when currency doesn't match any market
   const portfolioDefaultMarket = useMemo(
-    () =>
-      deriveDefaultMarket(
-        portfolio.currency.code,
-        marketsData?.data || [],
-      ),
+    () => deriveDefaultMarket(portfolio.currency.code, marketsData?.data || []),
     [marketsData, portfolio.currency.code],
   )
 
@@ -389,7 +391,8 @@ const TradeInputForm: React.FC<{
   const positionQty =
     initialValues?.currentPositionQuantity ?? initialValues?.quantity ?? 0
   const currentPositionWeight = useMemo(
-    () => computeCurrentPositionWeight(positionQty, price, portfolio.marketValue),
+    () =>
+      computeCurrentPositionWeight(positionQty, price, portfolio.marketValue),
     [positionQty, price, portfolio.marketValue],
   )
 
@@ -413,7 +416,10 @@ const TradeInputForm: React.FC<{
   // Handle trade value change
   const handleTradeValueChange = (newTradeValue: string): void => {
     setTradeValue(newTradeValue)
-    const qty = calculateQuantityFromTradeValue(parseFloat(newTradeValue), price)
+    const qty = calculateQuantityFromTradeValue(
+      parseFloat(newTradeValue),
+      price,
+    )
     if (qty !== null) setValue("quantity", qty)
   }
 
@@ -465,6 +471,7 @@ const TradeInputForm: React.FC<{
   }
 
   useEffect(() => {
+    if (tradeAmountOverriddenRef.current) return
     if (quantity && price) {
       const tradeAmount = calculateTradeAmount(
         quantity,
@@ -489,7 +496,15 @@ const TradeInputForm: React.FC<{
         portfolioMarketValue: portfolio.marketValue,
         actualPositionQuantity,
       }),
-    [quantity, price, tax, fees, portfolio.marketValue, type.value, actualPositionQuantity],
+    [
+      quantity,
+      price,
+      tax,
+      fees,
+      portfolio.marketValue,
+      type.value,
+      actualPositionQuantity,
+    ],
   )
 
   useEscapeHandler(isDirty, setModalOpen)
@@ -526,7 +541,11 @@ const TradeInputForm: React.FC<{
     const currencies: string[] = ccyData?.data
       ? ccyData.data.map((c: any) => c.code)
       : []
-    return buildAllCashBalances(existingAssets, currencies, currentTradeCurrency)
+    return buildAllCashBalances(
+      existingAssets,
+      currencies,
+      currentTradeCurrency,
+    )
   }, [cashAssetsData, ccyData, currentTradeCurrency])
 
   // Filtered versions for default selection (matching currency only)
@@ -585,7 +604,13 @@ const TradeInputForm: React.FC<{
     if (resolved) {
       setValue("settlementAccount", resolved)
     }
-  }, [selectedBrokerId, currentTradeCurrency, brokers, allBankAccounts, setValue])
+  }, [
+    selectedBrokerId,
+    currentTradeCurrency,
+    brokers,
+    allBankAccounts,
+    setValue,
+  ])
 
   if (marketsLoading || tradeAccountsLoading || ccyLoading)
     return rootLoader(t("loading"))
@@ -694,9 +719,7 @@ const TradeInputForm: React.FC<{
               {/* Type and Date */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className={labelClass}>
-                    {t("trn.type")}
-                  </label>
+                  <label className={labelClass}>{t("trn.type")}</label>
                   <TradeTypeController
                     name="type"
                     control={control}
@@ -707,9 +730,7 @@ const TradeInputForm: React.FC<{
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>
-                    {t("trn.tradeDate")}
-                  </label>
+                  <label className={labelClass}>{t("trn.tradeDate")}</label>
                   <Controller
                     name="tradeDate"
                     control={control}
@@ -730,9 +751,7 @@ const TradeInputForm: React.FC<{
                 // Edit mode: show read-only asset info
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className={labelClass}>
-                      {t("trn.asset.code")}
-                    </label>
+                    <label className={labelClass}>{t("trn.asset.code")}</label>
                     <input
                       type="text"
                       value={editAssetCode}
@@ -741,9 +760,7 @@ const TradeInputForm: React.FC<{
                     />
                   </div>
                   <div>
-                    <label className={labelClass}>
-                      {t("trn.market.code")}
-                    </label>
+                    <label className={labelClass}>{t("trn.market.code")}</label>
                     <input
                       type="text"
                       value={editMarketCode}
@@ -756,9 +773,7 @@ const TradeInputForm: React.FC<{
                 // Create mode: editable market and asset
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className={labelClass}>
-                      {t("trn.market.code")}
-                    </label>
+                    <label className={labelClass}>{t("trn.market.code")}</label>
                     <Controller
                       name="market"
                       control={control}
@@ -795,9 +810,7 @@ const TradeInputForm: React.FC<{
               {/* Portfolio Move (edit mode only) */}
               {isEditMode && portfolios.length > 0 && (
                 <div>
-                  <label className={labelClass}>
-                    {t("portfolio")}
-                  </label>
+                  <label className={labelClass}>{t("portfolio")}</label>
                   <select
                     value={selectedPortfolioId}
                     onChange={(e) => setSelectedPortfolioId(e.target.value)}
@@ -872,9 +885,7 @@ const TradeInputForm: React.FC<{
                     />
                   </div>
                   <div>
-                    <label className={labelClass}>
-                      {t("trn.price")}
-                    </label>
+                    <label className={labelClass}>{t("trn.price")}</label>
                     <Controller
                       name="price"
                       control={control}
@@ -1045,6 +1056,25 @@ const TradeInputForm: React.FC<{
                 currentPositionWeight={currentPositionWeight}
                 targetWeight={targetWeight}
                 handleTargetWeightChange={handleTargetWeightChange}
+                onTradeAmountOverride={() => {
+                  tradeAmountOverriddenRef.current = true
+                }}
+                onCashAmountOverride={(value) => {
+                  cashAmountOverriddenRef.current = true
+                  // When cashAmount is cleared, recalculate tradeAmount from qty × price
+                  if (!value || value === 0) {
+                    const { quantity, price, tax, fees, type } = getValues()
+                    const newTradeAmount = calculateTradeAmount(
+                      quantity,
+                      price,
+                      tax,
+                      fees,
+                      type.value,
+                    )
+                    setValue("tradeAmount", parseFloat(newTradeAmount.toFixed(2)))
+                    tradeAmountOverriddenRef.current = false
+                  }
+                }}
                 t={t}
               />
 

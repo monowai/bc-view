@@ -16,6 +16,8 @@ interface TradeFormTabsProps {
   currentPositionWeight: number | null
   targetWeight: string
   handleTargetWeightChange: (value: string) => void
+  onTradeAmountOverride?: () => void
+  onCashAmountOverride?: (value: number) => void
   t: any
 }
 
@@ -33,6 +35,8 @@ const TradeFormTabs: React.FC<TradeFormTabsProps> = ({
   currentPositionWeight,
   targetWeight,
   handleTargetWeightChange,
+  onTradeAmountOverride,
+  onCashAmountOverride,
   t,
 }) => (
   <div className="border-t border-gray-100 pt-3">
@@ -113,7 +117,10 @@ const TradeFormTabs: React.FC<TradeFormTabsProps> = ({
               render={({ field }) => (
                 <MathInput
                   value={field.value}
-                  onChange={field.onChange}
+                  onChange={(v) => {
+                    field.onChange(v)
+                    onTradeAmountOverride?.()
+                  }}
                   className={inputClass}
                 />
               )}
@@ -143,7 +150,10 @@ const TradeFormTabs: React.FC<TradeFormTabsProps> = ({
             render={({ field }) => (
               <MathInput
                 value={field.value}
-                onChange={field.onChange}
+                onChange={(v) => {
+                  field.onChange(v)
+                  onCashAmountOverride?.(v)
+                }}
                 className={inputClass}
               />
             )}

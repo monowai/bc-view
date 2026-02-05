@@ -30,13 +30,7 @@ import { errorOut } from "@components/errors/ErrorOut"
 import { FormatValue } from "@components/ui/MoneyUtils"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
-import {
-  PieChart,
-  Pie,
-  ResponsiveContainer,
-  Tooltip,
-  Legend,
-} from "recharts"
+import { PieChart, Pie, ResponsiveContainer, Tooltip, Legend } from "recharts"
 
 // Color palette for charts
 const COLORS = [
@@ -457,7 +451,9 @@ function WealthDashboard(): React.ReactElement {
                   title="Portfolios"
                 >
                   <i className="fas fa-chart-pie text-sm"></i>
-                  <span className="text-xs font-medium hidden sm:inline">Portfolios</span>
+                  <span className="text-xs font-medium hidden sm:inline">
+                    Portfolios
+                  </span>
                 </Link>
                 <Link
                   href="/brokers"
@@ -465,7 +461,9 @@ function WealthDashboard(): React.ReactElement {
                   title="Brokers"
                 >
                   <i className="fas fa-building text-sm"></i>
-                  <span className="text-xs font-medium hidden sm:inline">Brokers</span>
+                  <span className="text-xs font-medium hidden sm:inline">
+                    Brokers
+                  </span>
                 </Link>
                 <Link
                   href="/independence"
@@ -473,7 +471,9 @@ function WealthDashboard(): React.ReactElement {
                   title="Independence"
                 >
                   <i className="fas fa-umbrella-beach text-sm"></i>
-                  <span className="text-xs font-medium hidden sm:inline">Independence</span>
+                  <span className="text-xs font-medium hidden sm:inline">
+                    Independence
+                  </span>
                 </Link>
                 {currencies.length > 0 && displayCurrency && (
                   <>
@@ -569,7 +569,6 @@ function WealthDashboard(): React.ReactElement {
                 </div>
               </div>
             )}
-
           </div>
 
           {/* Independence Metrics - shown if user has an independence plan */}

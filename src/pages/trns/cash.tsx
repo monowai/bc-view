@@ -412,10 +412,12 @@ const CashInputForm: React.FC<{
                           : "—"}
                       </div>
                       <div className="text-xs text-gray-500">
-                        {resolveFxDisplayInfo(
-                          cashCurrency?.value ?? "",
-                          combinedOptions,
-                        ).label}
+                        {
+                          resolveFxDisplayInfo(
+                            cashCurrency?.value ?? "",
+                            combinedOptions,
+                          ).label
+                        }
                       </div>
                     </div>
                   </div>
@@ -713,7 +715,9 @@ const CashInputForm: React.FC<{
               {/* Fees, Tax, Comments */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className={labelClass}>{t("trn.amount.charges")}</label>
+                  <label className={labelClass}>
+                    {t("trn.amount.charges")}
+                  </label>
                   <Controller
                     name="fees"
                     control={control}

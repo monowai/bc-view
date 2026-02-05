@@ -10,6 +10,7 @@ import { Broker, Transaction, TrnStatus } from "types/beancounter"
 import Head from "next/head"
 import { useUser } from "@auth0/nextjs-auth0/client"
 import { calculateTradeAmount } from "@utils/trns/tradeUtils"
+import DateInput from "@components/ui/DateInput"
 
 interface ProposedTransaction extends Transaction {
   editedPrice?: number
@@ -45,6 +46,29 @@ interface AggregatedTransaction {
 
 // Get today's date in YYYY-MM-DD format
 const getToday = (): string => new Date().toISOString().split("T")[0]
+
+// Session storage keys for filter preferences
+const SESSION_KEY_INCLUDE_SETTLED = "proposed-include-settled"
+const SESSION_KEY_SETTLED_DATE = "proposed-settled-date"
+const SESSION_KEY_AGGREGATE_VIEW = "proposed-aggregate-view"
+
+// Helper to safely get from sessionStorage (handles SSR)
+const getSessionValue = <T,>(key: string, defaultValue: T): T => {
+  if (typeof window === "undefined") return defaultValue
+  const stored = sessionStorage.getItem(key)
+  if (stored === null) return defaultValue
+  try {
+    return JSON.parse(stored) as T
+  } catch {
+    return defaultValue
+  }
+}
+
+// Helper to safely set sessionStorage
+const setSessionValue = <T,>(key: string, value: T): void => {
+  if (typeof window === "undefined") return
+  sessionStorage.setItem(key, JSON.stringify(value))
+}
 
 // Get display code for an asset, stripping owner ID prefix for private assets
 const getAssetDisplayCode = (asset: {
@@ -141,6 +165,34 @@ export default function ProposedTransactions(): React.JSX.Element {
   const [typeFilter, setTypeFilter] = useState<string>("ALL")
   const [isSettling, setIsSettling] = useState(false)
   const [aggregateView, setAggregateView] = useState(false)
+  const [sessionInitialized, setSessionInitialized] = useState(false)
+
+  // Initialize filter states from session storage on mount
+  useEffect(() => {
+    setIncludeSettled(getSessionValue(SESSION_KEY_INCLUDE_SETTLED, false))
+    setSettledDate(getSessionValue(SESSION_KEY_SETTLED_DATE, getToday()))
+    setAggregateView(getSessionValue(SESSION_KEY_AGGREGATE_VIEW, false))
+    setSessionInitialized(true)
+  }, [])
+
+  // Persist filter changes to session storage (only after initialization)
+  useEffect(() => {
+    if (sessionInitialized) {
+      setSessionValue(SESSION_KEY_INCLUDE_SETTLED, includeSettled)
+    }
+  }, [includeSettled, sessionInitialized])
+
+  useEffect(() => {
+    if (sessionInitialized) {
+      setSessionValue(SESSION_KEY_SETTLED_DATE, settledDate)
+    }
+  }, [settledDate, sessionInitialized])
+
+  useEffect(() => {
+    if (sessionInitialized) {
+      setSessionValue(SESSION_KEY_AGGREGATE_VIEW, aggregateView)
+    }
+  }, [aggregateView, sessionInitialized])
   const [aggregatedTransactions, setAggregatedTransactions] = useState<
     AggregatedTransaction[]
   >([])
@@ -741,10 +793,9 @@ export default function ProposedTransactions(): React.JSX.Element {
             />
             <span className="text-gray-700">Include SETTLED on</span>
           </label>
-          <input
-            type="date"
+          <DateInput
             value={settledDate}
-            onChange={(e) => setSettledDate(e.target.value)}
+            onChange={setSettledDate}
             disabled={!includeSettled}
             className={`px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${
               !includeSettled ? "bg-gray-100 text-gray-400" : ""

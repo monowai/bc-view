@@ -59,10 +59,7 @@ const navSections: NavSection[] = [
   },
 ]
 
-function isActiveRoute(
-  pathname: string,
-  href: string,
-): boolean {
+function isActiveRoute(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(href + "/")
 }
 
@@ -275,7 +272,9 @@ function HeaderBrand(): React.ReactElement {
             </div>
             <div className="bg-gray-50 px-3 py-1.5 border-t border-gray-100">
               <p className="text-[10px] text-gray-400">
-                Press <kbd className="px-1 bg-gray-200 rounded text-[10px]">Esc</kbd> to close
+                Press{" "}
+                <kbd className="px-1 bg-gray-200 rounded text-[10px]">Esc</kbd>{" "}
+                to close
               </p>
             </div>
           </div>
