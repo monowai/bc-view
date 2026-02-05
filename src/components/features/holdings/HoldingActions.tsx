@@ -314,37 +314,37 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
 
   return (
     <>
-    <div
-      className={`mobile-portrait:hidden flex flex-col sm:flex-row py-2 space-y-2 sm:space-y-0 sm:space-x-2 mb-4 ${emptyHoldings ? "justify-start" : "justify-end"}`}
-    >
-      {!emptyHoldings && (
-        <button
-          className={`mobile-portrait:hidden w-full sm:w-auto px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center ${
-            copied
-              ? "bg-green-500 hover:bg-green-600 text-white"
-              : "bg-blue-500 hover:bg-blue-600 text-white"
-          }`}
-          onClick={handleCopyClick}
-        >
-          <i className={`fas ${copied ? "fa-check" : "fa-copy"} mr-2`}></i>
-          {getCopyButtonText()}
-        </button>
-      )}
-      {/* Trade Dropdown */}
-      <DropdownMenu
-        label="Trade"
-        icon="fa-exchange-alt"
-        colorClass="bg-green-500 hover:bg-green-600"
-        items={tradeItems}
-      />
-      {/* Rebalance Dropdown */}
-      <DropdownMenu
-        label="Rebalance"
-        icon="fa-balance-scale"
-        colorClass="bg-indigo-500 hover:bg-indigo-600"
-        items={rebalanceItems}
-      />
-    </div>
+      <div
+        className={`mobile-portrait:hidden flex flex-col sm:flex-row py-2 space-y-2 sm:space-y-0 sm:space-x-2 mb-4 ${emptyHoldings ? "justify-start" : "justify-end"}`}
+      >
+        {!emptyHoldings && (
+          <button
+            className={`mobile-portrait:hidden w-full sm:w-auto px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center ${
+              copied
+                ? "bg-green-500 hover:bg-green-600 text-white"
+                : "bg-blue-500 hover:bg-blue-600 text-white"
+            }`}
+            onClick={handleCopyClick}
+          >
+            <i className={`fas ${copied ? "fa-check" : "fa-copy"} mr-2`}></i>
+            {getCopyButtonText()}
+          </button>
+        )}
+        {/* Trade Dropdown */}
+        <DropdownMenu
+          label="Trade"
+          icon="fa-exchange-alt"
+          colorClass="bg-green-500 hover:bg-green-600"
+          items={tradeItems}
+        />
+        {/* Rebalance Dropdown */}
+        <DropdownMenu
+          label="Rebalance"
+          icon="fa-balance-scale"
+          colorClass="bg-indigo-500 hover:bg-indigo-600"
+          items={rebalanceItems}
+        />
+      </div>
       <TradeInputForm
         portfolio={holdingResults.portfolio}
         modalOpen={tradeModalOpen}

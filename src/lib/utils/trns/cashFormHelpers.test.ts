@@ -37,10 +37,7 @@ const makeAsset = (
 
 describe("cashFormHelpers", () => {
   describe("buildCombinedAssetOptions", () => {
-    const currencies: Currency[] = [
-      makeCurrency("USD"),
-      makeCurrency("NZD"),
-    ]
+    const currencies: Currency[] = [makeCurrency("USD"), makeCurrency("NZD")]
 
     const accounts: Record<string, Asset> = {
       a1: makeAsset("uuid-1", "owner.SCB-USD", "SCB USD", "USD"),

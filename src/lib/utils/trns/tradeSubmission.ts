@@ -8,9 +8,7 @@ import { TradeFormValues } from "./tradeFormHelpers"
 export const deriveSettlementCurrency = (
   formData: Pick<TradeFormValues, "settlementAccount" | "tradeCurrency">,
 ): string =>
-  formData.settlementAccount?.currency ||
-  formData.tradeCurrency?.value ||
-  "USD"
+  formData.settlementAccount?.currency || formData.tradeCurrency?.value || "USD"
 
 /**
  * Build a TrnUpdatePayload for the PATCH API (edit mode).
@@ -31,8 +29,7 @@ export const buildEditPayload = (
     quantity: isExpense ? 1 : formData.quantity,
     price: isExpense ? formData.tradeAmount || 0 : formData.price,
     tradeCurrency: formData.tradeCurrency.value,
-    tradeAmount:
-      formData.tradeAmount || formData.quantity * formData.price,
+    tradeAmount: formData.tradeAmount || formData.quantity * formData.price,
     cashCurrency: settlementCurrency,
     cashAssetId: formData.settlementAccount?.value || undefined,
     cashAmount: isExpense

@@ -113,12 +113,7 @@ export const calculateQuantityFromTargetWeight = (
   price: number,
   portfolioMarketValue: number,
 ): { quantity: number; tradeType: "BUY" | "SELL" } | null => {
-  if (
-    isNaN(targetWeightPercent) ||
-    !price ||
-    !portfolioMarketValue
-  )
-    return null
+  if (isNaN(targetWeightPercent) || !price || !portfolioMarketValue) return null
 
   const targetValue = (targetWeightPercent / 100) * portfolioMarketValue
   const currentValue = (currentPositionWeight / 100) * portfolioMarketValue
@@ -167,7 +162,9 @@ export interface TradeFormValues {
 /**
  * Build form values from a Transaction for edit mode.
  */
-export const buildEditModeValues = (transaction: Transaction): TradeFormValues => ({
+export const buildEditModeValues = (
+  transaction: Transaction,
+): TradeFormValues => ({
   type: { value: transaction.trnType, label: transaction.trnType },
   status: { value: transaction.status, label: transaction.status },
   asset: getDisplayCode(transaction.asset),
@@ -233,8 +230,7 @@ export const buildInitialSettlementAccount = (
     label:
       asset.name ||
       `${getDisplayCode(asset)} ${asset.market?.code === "CASH" ? "Balance" : ""}`,
-    currency:
-      asset.priceSymbol || asset.code || transaction.tradeCurrency.code,
+    currency: asset.priceSymbol || asset.code || transaction.tradeCurrency.code,
     market: asset.market?.code,
   }
 }
@@ -336,9 +332,8 @@ export const resolveBrokerSettlementAccount = (params: {
 
   // Prefer exact currency match, fall back to first available
   const settlement =
-    broker.settlementAccounts.find(
-      (sa) => sa.currencyCode === tradeCurrency,
-    ) || broker.settlementAccounts[0]
+    broker.settlementAccounts.find((sa) => sa.currencyCode === tradeCurrency) ||
+    broker.settlementAccounts[0]
 
   const bankAccount = allBankAccounts.find((a) => a.id === settlement.accountId)
   if (!bankAccount) return null

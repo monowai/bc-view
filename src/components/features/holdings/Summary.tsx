@@ -121,19 +121,19 @@ export function SummaryHeaderMobile({
                 <i className="fas fa-exchange-alt text-xs"></i>
               </button>
             )}
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <Controller
-              name="date"
-              control={control}
-              render={({ field }) => (
-                <DateInput
-                  value={field.value || getTodayDate(holdingState.asAt)}
-                  onChange={handleDateChange(field)}
-                  className="input text-xs w-28"
-                />
-              )}
-            />
-          </form>
+            <form onSubmit={handleSubmit(onSubmit)}>
+              <Controller
+                name="date"
+                control={control}
+                render={({ field }) => (
+                  <DateInput
+                    value={field.value || getTodayDate(holdingState.asAt)}
+                    onChange={handleDateChange(field)}
+                    className="input text-xs w-28"
+                  />
+                )}
+              />
+            </form>
           </div>
         </div>
       </div>

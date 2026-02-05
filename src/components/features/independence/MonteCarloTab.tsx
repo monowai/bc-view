@@ -115,9 +115,11 @@ export default function MonteCarloTab({
       return {
         ...entry,
         pctOfTotal: (entry.count / totalIterations) * 100,
-        pctOfDepleted: depletedCount > 0 ? (entry.count / depletedCount) * 100 : 0,
+        pctOfDepleted:
+          depletedCount > 0 ? (entry.count / depletedCount) * 100 : 0,
         cumulativeCount: cumulative,
-        cumulativePctOfDepleted: depletedCount > 0 ? (cumulative / depletedCount) * 100 : 0,
+        cumulativePctOfDepleted:
+          depletedCount > 0 ? (cumulative / depletedCount) * 100 : 0,
       }
     })
   })()
@@ -252,7 +254,9 @@ export default function MonteCarloTab({
                   }`}
                   title={fanTooltipEnabled ? "Hide tooltip" : "Show tooltip"}
                 >
-                  <i className={`fas ${fanTooltipEnabled ? "fa-eye-slash" : "fa-eye"} mr-1`}></i>
+                  <i
+                    className={`fas ${fanTooltipEnabled ? "fa-eye-slash" : "fa-eye"} mr-1`}
+                  ></i>
                   Tooltip
                 </button>
               </div>
@@ -285,9 +289,15 @@ export default function MonteCarloTab({
                         content={({ active, payload, label }) => {
                           if (!active || !payload?.length) return null
                           // Hide tooltip when p50, p75, and p95 are all 0
-                          const p50 = payload.find((p) => p.dataKey === "p50")?.value
-                          const p75 = payload.find((p) => p.dataKey === "p75")?.value
-                          const p95 = payload.find((p) => p.dataKey === "p95")?.value
+                          const p50 = payload.find(
+                            (p) => p.dataKey === "p50",
+                          )?.value
+                          const p75 = payload.find(
+                            (p) => p.dataKey === "p75",
+                          )?.value
+                          const p95 = payload.find(
+                            (p) => p.dataKey === "p95",
+                          )?.value
                           if (
                             Number(p50 ?? 0) === 0 &&
                             Number(p75 ?? 0) === 0 &&
@@ -325,7 +335,8 @@ export default function MonteCarloTab({
                                   .filter((p) => p.value != null)
                                   .map((p) => {
                                     const key = String(p.dataKey ?? "")
-                                    const isDeterministic = key === "deterministic"
+                                    const isDeterministic =
+                                      key === "deterministic"
                                     return (
                                       <div
                                         key={key}
@@ -343,7 +354,9 @@ export default function MonteCarloTab({
                                         <span
                                           className={`font-medium ${isDeterministic ? "text-blue-700" : "text-gray-900"}`}
                                         >
-                                          {formatFullCurrency(Number(p.value ?? 0))}
+                                          {formatFullCurrency(
+                                            Number(p.value ?? 0),
+                                          )}
                                         </span>
                                       </div>
                                     )
@@ -604,7 +617,9 @@ export default function MonteCarloTab({
                               </div>
                               <div className="space-y-1">
                                 <div className="flex justify-between gap-4">
-                                  <span className="text-gray-600">Iterations</span>
+                                  <span className="text-gray-600">
+                                    Iterations
+                                  </span>
                                   <span className="font-medium text-red-700">
                                     {entry.count.toLocaleString()}
                                   </span>
@@ -647,8 +662,10 @@ export default function MonteCarloTab({
                                   </div>
                                   {(() => {
                                     const avgReturn =
-                                      paths.reduce((s, p) => s + p.averageReturn, 0) /
-                                      paths.length
+                                      paths.reduce(
+                                        (s, p) => s + p.averageReturn,
+                                        0,
+                                      ) / paths.length
                                     const worstReturn = Math.min(
                                       ...paths.map((p) => p.worstReturn),
                                     )

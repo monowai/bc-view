@@ -19,10 +19,7 @@ const BrokerSelectionDialog: React.FC<BrokerSelectionDialogProps> = ({
   t,
 }) => (
   <div className="fixed inset-0 z-[60] flex items-center justify-center">
-    <div
-      className="fixed inset-0 bg-black opacity-50"
-      onClick={onSkip}
-    ></div>
+    <div className="fixed inset-0 bg-black opacity-50" onClick={onSkip}></div>
     <div
       className="bg-white rounded-lg shadow-lg w-full max-w-md mx-4 p-6 z-[60]"
       onClick={(e) => e.stopPropagation()}
@@ -61,10 +58,7 @@ const BrokerSelectionDialog: React.FC<BrokerSelectionDialogProps> = ({
         className="w-full mt-4 p-2 text-gray-500 hover:text-gray-700 text-sm"
         onClick={onSkip}
       >
-        {t(
-          "trn.broker.skipSelection",
-          "Skip - sell without specifying broker",
-        )}
+        {t("trn.broker.skipSelection", "Skip - sell without specifying broker")}
       </button>
     </div>
   </div>

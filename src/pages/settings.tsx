@@ -103,13 +103,17 @@ function SettingsPage(): React.ReactElement {
   useEffect(() => {
     const fetchData = async (): Promise<void> => {
       try {
-        const [meResponse, currenciesResponse, taxRatesResponse, marketsResponse] =
-          await Promise.all([
-            fetch("/api/me"),
-            fetch("/api/currencies"),
-            fetch("/api/tax-rates"),
-            fetch("/api/markets"),
-          ])
+        const [
+          meResponse,
+          currenciesResponse,
+          taxRatesResponse,
+          marketsResponse,
+        ] = await Promise.all([
+          fetch("/api/me"),
+          fetch("/api/currencies"),
+          fetch("/api/tax-rates"),
+          fetch("/api/markets"),
+        ])
 
         if (meResponse.ok) {
           const meData: RegistrationResponse = await meResponse.json()

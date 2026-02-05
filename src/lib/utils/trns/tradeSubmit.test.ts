@@ -99,7 +99,9 @@ describe("tradeSubmit", () => {
       await submitEditMode(params)
       jest.advanceTimersByTime(1500)
 
-      expect(params.mutate).toHaveBeenCalledWith("/api/holdings/TEST?asAt=today")
+      expect(params.mutate).toHaveBeenCalledWith(
+        "/api/holdings/TEST?asAt=today",
+      )
       expect(params.mutate).toHaveBeenCalledWith(
         "/api/holdings/aggregated?asAt=today",
       )
@@ -204,7 +206,9 @@ describe("tradeSubmit", () => {
       await submitExpense(params)
       jest.advanceTimersByTime(1500)
 
-      expect(params.mutate).toHaveBeenCalledWith("/api/holdings/TEST?asAt=today")
+      expect(params.mutate).toHaveBeenCalledWith(
+        "/api/holdings/TEST?asAt=today",
+      )
       expect(params.mutate).toHaveBeenCalledWith(
         "/api/holdings/aggregated?asAt=today",
       )

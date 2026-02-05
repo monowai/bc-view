@@ -139,7 +139,7 @@ export const resolveFxDisplayInfo = (
   if (!opt) return { label: optionValue, isCash: true }
   const isCash = opt.market === "CASH"
   return {
-    label: isCash ? optionValue : (opt.label || optionValue),
+    label: isCash ? optionValue : opt.label || optionValue,
     isCash,
   }
 }

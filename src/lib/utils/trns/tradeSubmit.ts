@@ -14,7 +14,11 @@ type MutateFn = (key: string) => Promise<any>
 
 export interface SubmitEditModeParams {
   data: TradeFormValues
-  transaction: { id: string; portfolio: { id: string; code: string }; asset: { id: string } }
+  transaction: {
+    id: string
+    portfolio: { id: string; code: string }
+    asset: { id: string }
+  }
   selectedModelId: string | undefined
   selectedPortfolioId: string
   portfolioChanged: boolean
@@ -29,7 +33,9 @@ export interface SubmitEditModeParams {
 /**
  * Submit handler for edit mode: PATCH existing transaction via API.
  */
-export async function submitEditMode(params: SubmitEditModeParams): Promise<void> {
+export async function submitEditMode(
+  params: SubmitEditModeParams,
+): Promise<void> {
   const {
     data,
     transaction,
@@ -47,14 +53,24 @@ export async function submitEditMode(params: SubmitEditModeParams): Promise<void
   setIsSubmitting(true)
   setSubmitError(null)
   try {
-    const payload = buildEditPayload(data, transaction.asset.id, selectedModelId)
-    const response = await updateTrn(selectedPortfolioId, transaction.id, payload)
+    const payload = buildEditPayload(
+      data,
+      transaction.asset.id,
+      selectedModelId,
+    )
+    const response = await updateTrn(
+      selectedPortfolioId,
+      transaction.id,
+      payload,
+    )
     if (response.ok) {
       setTimeout(() => {
         mutate(holdingKey(transaction.portfolio.code, "today"))
         mutate("/api/holdings/aggregated?asAt=today")
         if (portfolioChanged) {
-          const newPortfolio = portfolios.find((p) => p.id === selectedPortfolioId)
+          const newPortfolio = portfolios.find(
+            (p) => p.id === selectedPortfolioId,
+          )
           if (newPortfolio) {
             mutate(holdingKey(newPortfolio.code, "today"))
           }
@@ -85,8 +101,17 @@ export interface SubmitExpenseParams {
 /**
  * Submit handler for EXPENSE: direct REST POST (synchronous, bypasses message broker).
  */
-export async function submitExpense(params: SubmitExpenseParams): Promise<void> {
-  const { data, portfolio, mutate, setModalOpen, setSubmitError, setIsSubmitting } = params
+export async function submitExpense(
+  params: SubmitExpenseParams,
+): Promise<void> {
+  const {
+    data,
+    portfolio,
+    mutate,
+    setModalOpen,
+    setSubmitError,
+    setIsSubmitting,
+  } = params
 
   setIsSubmitting(true)
   setSubmitError(null)
@@ -107,7 +132,9 @@ export async function submitExpense(params: SubmitExpenseParams): Promise<void> 
       const errorData = await response.json().catch(() => ({}))
       console.error("EXPENSE creation failed:", response.status, errorData)
       setSubmitError(
-        errorData.message || errorData.error || `Failed: ${response.statusText}`,
+        errorData.message ||
+          errorData.error ||
+          `Failed: ${response.statusText}`,
       )
     }
   } catch (error) {
@@ -133,5 +160,10 @@ export interface SubmitCreateModeParams {
 export function submitCreateMode(params: SubmitCreateModeParams): void {
   const { data, portfolio, errors, setModalOpen } = params
   const settlementCurrency = deriveSettlementCurrency(data)
-  onSubmit(portfolio, errors, buildCreateModeData(data, settlementCurrency), setModalOpen)
+  onSubmit(
+    portfolio,
+    errors,
+    buildCreateModeData(data, settlementCurrency),
+    setModalOpen,
+  )
 }
