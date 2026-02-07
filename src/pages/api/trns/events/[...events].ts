@@ -1,26 +1,9 @@
-import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0"
-import { requestInit } from "@utils/api/fetchHelper"
-import handleResponse, { fetchError } from "@utils/api/responseWriter"
-import { Transaction } from "types/beancounter"
-import { baseUrl } from "@pages/api/trns"
-import { NextApiRequest, NextApiResponse } from "next"
+import { createApiHandler } from "@utils/api/createApiHandler"
+import { getDataUrl } from "@utils/api/bcConfig"
 
-export default withApiAuthRequired(async function eventTrns(
-  req: NextApiRequest,
-  res: NextApiResponse,
-) {
-  try {
-    const { events } = req.query
-    const { accessToken } = await getAccessToken(req, res)
-    if (events) {
-      console.log(`Looking up events for ${events[0]} / ${events[1]}`)
-      const response = await fetch(
-        `${baseUrl}/${events[0]}/asset/${events[1]}/events`,
-        requestInit(accessToken, "GET", req),
-      )
-      await handleResponse<Transaction[]>(response, res)
-    }
-  } catch (error: any) {
-    fetchError(req, res, error)
-  }
+export default createApiHandler({
+  url: (req) => {
+    const events = req.query.events as string[]
+    return getDataUrl(`/trns/${events[0]}/asset/${events[1]}/events`)
+  },
 })

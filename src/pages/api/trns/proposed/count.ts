@@ -1,32 +1,6 @@
-import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0"
-import { requestInit } from "@utils/api/fetchHelper"
-import handleResponse, { fetchError } from "@utils/api/responseWriter"
+import { createApiHandler } from "@utils/api/createApiHandler"
 import { getDataUrl } from "@utils/api/bcConfig"
-import { NextApiRequest, NextApiResponse } from "next"
 
-/**
- * GET /api/trns/proposed/count
- * Gets the count of PROPOSED transactions for the current user across all portfolios.
- * Returns: { count: number }
- */
-export default withApiAuthRequired(async function proposedCount(
-  req: NextApiRequest,
-  res: NextApiResponse,
-) {
-  try {
-    const { accessToken } = await getAccessToken(req, res)
-    const { method } = req
-
-    if (method?.toUpperCase() !== "GET") {
-      res.setHeader("Allow", ["GET"])
-      res.status(405).end(`Method ${method} Not Allowed`)
-      return
-    }
-
-    const url = getDataUrl("/trns/proposed/count")
-    const response = await fetch(url, requestInit(accessToken, "GET", req))
-    await handleResponse(response, res)
-  } catch (error: unknown) {
-    fetchError(req, res, error)
-  }
+export default createApiHandler({
+  url: getDataUrl("/trns/proposed/count"),
 })

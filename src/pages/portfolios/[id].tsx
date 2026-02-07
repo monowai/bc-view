@@ -79,11 +79,23 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
     resolver: yupResolver(portfolioInputSchema),
     mode: "onChange",
   })
-  const key = portfolioKey(`${router.query.id}`)
-  const { data, error } = useSwr(key, simpleFetcher(key))
-  const ccyResponse = useSwr(ccyKey, simpleFetcher(ccyKey))
-
   const isNewPortfolio = router.query.id === "__NEW__"
+  const key = portfolioKey(`${router.query.id}`)
+  const defaultPortfolio = {
+    data: {
+      id: "",
+      code: "",
+      name: "",
+      currency: { id: "USD", code: "USD", symbol: "$" },
+      base: { id: "USD", code: "USD", symbol: "$" },
+    },
+  }
+  const { data, error } = useSwr(
+    isNewPortfolio ? null : key,
+    simpleFetcher(key),
+    isNewPortfolio ? { fallbackData: defaultPortfolio } : undefined,
+  )
+  const ccyResponse = useSwr(ccyKey, simpleFetcher(ccyKey))
 
   // Get the default base currency - use user preference for new portfolios
   const defaultBaseCurrency = useMemo((): Currency | undefined => {
