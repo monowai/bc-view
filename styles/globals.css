@@ -7,13 +7,25 @@
       display: none !important;
     }
   }
+
+  /* Tabular numbers for financial data alignment */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Monospace numeric cells */
+  .font-numeric {
+    font-family: var(--font-jetbrains-mono, ui-monospace), monospace;
+    font-variant-numeric: tabular-nums;
+  }
 }
+
 html,
 body {
   padding: 0;
   margin: 0;
-  font-family: Helvetica Neue, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
-    Ubuntu, Cantarell, Fira Sans, Droid Sans,  sans-serif;
+  font-family: var(--font-dm-sans, "Helvetica Neue"), -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
+    Ubuntu, Cantarell, Fira Sans, Droid Sans, sans-serif;
 }
 
 a {
@@ -50,8 +62,25 @@ a {
   opacity: 1;
 }
 
+/* Refined tooltip styling */
+.tooltip-refined {
+  background-color: #1e293b; /* slate-800 */
+  color: #f8fafc; /* slate-50 */
+  font-size: 0.75rem;
+  border-radius: 0.375rem;
+  padding: 0.375rem 0.625rem;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  transition: opacity 150ms ease-in-out;
+}
+
+/* Holdings table row hover - Wealth blue theme */
+.holding-row {
+  transition: background-color 150ms ease-in-out, border-color 150ms ease-in-out;
+}
+
 .holding-row:hover {
-  background-color: #f0f0f0; /* Adjust this color as needed */
+  background-color: #eff6ff !important; /* blue-50 for subtle highlight */
+  border-left: 2px solid #3b82f6; /* blue-500 accent */
 }
 
 .menu-list {
@@ -99,4 +128,29 @@ a {
   .mobile-portrait\:hidden {
     display: none !important;
   }
+}
+
+/* Custom scrollbar styling for holdings table */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9; /* thumb: slate-300, track: slate-100 */
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: #f1f5f9; /* slate-100 */
+  border-radius: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #cbd5e1; /* slate-300 */
+  border-radius: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8; /* slate-400 */
 }

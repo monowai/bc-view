@@ -11,6 +11,22 @@ import { useRouter } from "next/router"
 import { RegistrationProvider } from "@contexts/RegistrationContext"
 import { UserPreferencesProvider } from "@contexts/UserPreferencesContext"
 import { PrivacyModeProvider } from "@hooks/usePrivacyMode"
+import { DM_Sans, JetBrains_Mono } from "next/font/google"
+
+// Load fonts with next/font for optimal performance
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-dm-sans",
+  display: "swap",
+})
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-jetbrains-mono",
+  display: "swap",
+})
 
 // Inner component that renders the app content
 interface AppContentProps {
@@ -25,13 +41,13 @@ const AppContent: React.FC<AppContentProps> = ({
   alwaysVisible,
 }) => {
   return (
-    <>
+    <div className={`${dmSans.variable} ${jetbrainsMono.variable} font-sans`}>
       <div className="pt-2 px-2 pb-2 sm:pt-3 sm:px-3 sm:pb-3 md:px-4 md:pb-4 bg-gray-100">
         <Header />
         <Component {...pageProps} />
       </div>
       <GitInfo alwaysVisible={alwaysVisible} />
-    </>
+    </div>
   )
 }
 

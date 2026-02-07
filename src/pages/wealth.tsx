@@ -438,7 +438,7 @@ function WealthDashboard(): React.ReactElement {
       <div className="min-h-screen bg-linear-to-br from-slate-50 to-blue-50 py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Hero — Net Worth */}
-          <div className="bg-linear-to-br from-blue-600 to-blue-800 rounded-2xl shadow-xl mb-8 overflow-hidden">
+          <div className="bg-linear-to-br from-blue-500 to-blue-700 rounded-2xl shadow-xl mb-8 overflow-hidden">
             {/* Top bar: title + nav + currency */}
             <div className="flex items-center justify-between px-8 pt-6 pb-3 gap-4">
               <h1 className="text-sm font-semibold uppercase tracking-widest text-white/80">

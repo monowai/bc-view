@@ -26,6 +26,8 @@
   "roi": "ROI",
   "irr": "IRR",
   "irr.weighted.tooltip": "Weighted by market value. Cash positions excluded.",
+  "irr.exact.tooltip": "Portfolio IRR calculated using cash flow timing.",
+  "irr.subtotal.hidden": "IRR not computed for subtotals. See portfolio summary for overall IRR.",
   "asset.price": "Price",
   "gain.onday": "Change",
   "asset.change": "Change",

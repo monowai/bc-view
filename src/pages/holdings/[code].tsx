@@ -24,7 +24,6 @@ import { holdingKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { errorOut } from "@components/errors/ErrorOut"
 import { useHoldingState } from "@lib/holdings/holdingState"
 import { useHoldingsView } from "@lib/holdings/useHoldingsView"
-import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import HoldingMenu from "@components/features/holdings/HoldingMenu"
 import HoldingsHeader from "@components/features/holdings/HoldingsHeader"
 import Rows, {
@@ -41,7 +40,6 @@ import SummaryView from "@components/features/holdings/SummaryView"
 import CardView from "@components/features/holdings/CardView"
 import { compareByReportCategory, compareBySector } from "@lib/categoryMapping"
 import { GroupBy } from "@components/features/holdings/GroupByOptions"
-import HoldingsToolbar from "@components/features/holdings/HoldingsToolbar"
 import CorporateActionsPopup from "@components/features/holdings/CorporateActionsPopup"
 import TargetWeightDialog from "@components/features/holdings/TargetWeightDialog"
 import SetCashBalanceDialog from "@components/features/holdings/SetCashBalanceDialog"
@@ -57,7 +55,6 @@ function HoldingsPage(): React.ReactElement {
   const router = useRouter()
   const { t, ready } = useTranslation("common")
   const holdingState = useHoldingState()
-  const { preferences } = useUserPreferences()
   const { data, error, isLoading } = useSwr(
     holdingKey(`${router.query.code}`, `${holdingState.asAt}`),
     simpleFetcher(holdingKey(`${router.query.code}`, `${holdingState.asAt}`)),
@@ -388,13 +385,13 @@ function HoldingsPage(): React.ReactElement {
         quickSellData={quickSellData}
         onQuickSellHandled={handleQuickSellHandled}
         viewMode={viewMode}
+        onViewModeChange={setViewMode}
         allocationData={allocationData}
         holdings={holdings}
       />
 
       {viewMode === "summary" ? (
         <div className="grid grid-cols-1 gap-3">
-          <HoldingsToolbar viewMode={viewMode} onViewModeChange={setViewMode} />
           <HoldingsHeader
             portfolio={holdingResults.portfolio}
             holdings={holdings}
@@ -409,15 +406,18 @@ function HoldingsPage(): React.ReactElement {
           />
         </div>
       ) : viewMode === "table" ? (
-        <div className="grid grid-cols-1 gap-3">
-          <HoldingsToolbar viewMode={viewMode} onViewModeChange={setViewMode} />
-          <HoldingsHeader
-            portfolio={holdingResults.portfolio}
-            holdings={holdings}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-          />
-          <div className="overflow-x-auto overflow-y-visible">
+        <div className="flex flex-col">
+          {/* Fixed header area */}
+          <div className="shrink-0">
+            <HoldingsHeader
+              portfolio={holdingResults.portfolio}
+              holdings={holdings}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+            />
+          </div>
+          {/* Scrollable table container */}
+          <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)] md:max-h-[calc(100vh-320px)] scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
             <table className="min-w-full bg-white">
               {(() => {
                 let cumulativeCount = 0
@@ -464,7 +464,6 @@ function HoldingsPage(): React.ReactElement {
                           positionCount={
                             holdings.holdingGroups[groupKey].positions.length
                           }
-                          showWeightedIrr={preferences?.showWeightedIrr}
                         />
                       </React.Fragment>
                     )
@@ -479,7 +478,6 @@ function HoldingsPage(): React.ReactElement {
         </div>
       ) : viewMode === "cards" ? (
         <div className="grid grid-cols-1 gap-3">
-          <HoldingsToolbar viewMode={viewMode} onViewModeChange={setViewMode} />
           <CardView
             holdings={holdings}
             portfolio={holdingResults.portfolio}
@@ -490,7 +488,6 @@ function HoldingsPage(): React.ReactElement {
         </div>
       ) : viewMode === "heatmap" ? (
         <div className="grid grid-cols-1 gap-3">
-          <HoldingsToolbar viewMode={viewMode} onViewModeChange={setViewMode} />
           <HoldingsHeader
             portfolio={holdingResults.portfolio}
             holdings={holdings}
@@ -507,7 +504,6 @@ function HoldingsPage(): React.ReactElement {
         </div>
       ) : viewMode === "income" ? (
         <div className="grid grid-cols-1 gap-3">
-          <HoldingsToolbar viewMode={viewMode} onViewModeChange={setViewMode} />
           <HoldingsHeader
             portfolio={holdingResults.portfolio}
             holdings={holdings}

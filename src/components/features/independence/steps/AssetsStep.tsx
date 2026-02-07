@@ -3,7 +3,12 @@ import { Control, Controller, useWatch, UseFormSetValue } from "react-hook-form"
 import useSwr, { mutate } from "swr"
 import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { WizardFormData, ManualAssetCategory } from "types/independence"
-import { Asset, Portfolio, PolicyType, SubAccountRequest } from "types/beancounter"
+import {
+  Asset,
+  Portfolio,
+  PolicyType,
+  SubAccountRequest,
+} from "types/beancounter"
 import { wizardMessages } from "@lib/independence/messages"
 import CompositeAssetEditor from "@components/features/assets/CompositeAssetEditor"
 import { buildCashRow } from "@lib/trns/tradeUtils"
@@ -98,7 +103,9 @@ export default function AssetsStep({
   const [createError, setCreateError] = useState<string | null>(null)
   const [accountCode, setAccountCode] = useState("")
   const [accountName, setAccountName] = useState("")
-  const [policyType, setPolicyType] = useState<PolicyType | undefined>(undefined)
+  const [policyType, setPolicyType] = useState<PolicyType | undefined>(
+    undefined,
+  )
   const [lockedUntilDate, setLockedUntilDate] = useState("")
   const [subAccounts, setSubAccounts] = useState<SubAccountRequest[]>([])
   // Simple asset balance (when no policyType)
@@ -108,14 +115,19 @@ export default function AssetsStep({
   const [payoutAge, setPayoutAge] = useState<string>("65")
   const [monthlyPayoutAmount, setMonthlyPayoutAmount] = useState<string>("")
   const [contributionAmount, setContributionAmount] = useState<string>("")
-  const [contributionFrequency, setContributionFrequency] = useState<"MONTHLY" | "ANNUAL">("MONTHLY")
+  const [contributionFrequency, setContributionFrequency] = useState<
+    "MONTHLY" | "ANNUAL"
+  >("MONTHLY")
   const [isPension, setIsPension] = useState(true)
   const [lumpSum, setLumpSum] = useState(false)
   // Portfolio for balance transaction
-  const [selectedBalancePortfolioId, setSelectedBalancePortfolioId] = useState<string>("")
+  const [selectedBalancePortfolioId, setSelectedBalancePortfolioId] =
+    useState<string>("")
 
   // Existing POLICY assets without balances
-  const [assetsWithoutBalance, setAssetsWithoutBalance] = useState<AssetWithoutBalance[]>([])
+  const [assetsWithoutBalance, setAssetsWithoutBalance] = useState<
+    AssetWithoutBalance[]
+  >([])
   const [isCheckingBalances, setIsCheckingBalances] = useState(false)
   const [isSettingBalance, setIsSettingBalance] = useState<string | null>(null)
 
@@ -191,7 +203,7 @@ export default function AssetsStep({
           policyAssets.map(async (asset) => {
             try {
               const positionsResponse = await fetch(
-                `/api/assets/${asset.id}/positions?date=today`
+                `/api/assets/${asset.id}/positions?date=today`,
               )
               if (!positionsResponse.ok) {
                 // If we can't check, assume it needs balance
@@ -212,7 +224,7 @@ export default function AssetsStep({
               // Calculate total balance across all portfolios
               const totalBalance = positions.reduce(
                 (sum, p) => sum + (p.balance || 0),
-                0
+                0,
               )
 
               // Include assets with zero balance OR allow editing existing balances
@@ -230,7 +242,7 @@ export default function AssetsStep({
             } catch (err) {
               console.error(`Error checking positions for ${asset.code}:`, err)
             }
-          })
+          }),
         )
 
         setAssetsWithoutBalance(assetsNeedingBalance)
@@ -285,20 +297,26 @@ export default function AssetsStep({
 
   // Update an existing asset's balance input
   const updateAssetBalance = useCallback(
-    (assetId: string, field: keyof AssetWithoutBalance, value: string | number) => {
+    (
+      assetId: string,
+      field: keyof AssetWithoutBalance,
+      value: string | number,
+    ) => {
       setAssetsWithoutBalance((prev) =>
         prev.map((item) =>
-          item.asset.id === assetId ? { ...item, [field]: value } : item
-        )
+          item.asset.id === assetId ? { ...item, [field]: value } : item,
+        ),
       )
     },
-    []
+    [],
   )
 
   // Set balance for an existing POLICY asset
   const handleSetExistingAssetBalance = useCallback(
     async (assetId: string) => {
-      const assetEntry = assetsWithoutBalance.find((a) => a.asset.id === assetId)
+      const assetEntry = assetsWithoutBalance.find(
+        (a) => a.asset.id === assetId,
+      )
       if (!assetEntry) return
 
       const targetBalance = parseFloat(assetEntry.targetBalance)
@@ -306,7 +324,7 @@ export default function AssetsStep({
       if (!assetEntry.selectedPortfolioId) return
 
       const portfolio = portfoliosData?.data?.find(
-        (p) => p.id === assetEntry.selectedPortfolioId
+        (p) => p.id === assetEntry.selectedPortfolioId,
       )
       if (!portfolio) return
 
@@ -325,7 +343,10 @@ export default function AssetsStep({
       setIsSettingBalance(assetId)
 
       try {
-        const assetCurrency = assetEntry.asset.priceSymbol || assetEntry.asset.market?.currency?.code || planCurrency
+        const assetCurrency =
+          assetEntry.asset.priceSymbol ||
+          assetEntry.asset.market?.currency?.code ||
+          planCurrency
 
         // Build the row with the specified date
         const row = buildCashRow({
@@ -342,11 +363,16 @@ export default function AssetsStep({
 
         // If withdrawal, also credit the cash account
         if (transactionType === "WITHDRAWAL" && assetEntry.cashAccountId) {
-          const cashAccount = cashAccounts.find((a) => a.id === assetEntry.cashAccountId)
+          const cashAccount = cashAccounts.find(
+            (a) => a.id === assetEntry.cashAccountId,
+          )
           if (cashAccount) {
             const cashRow = buildCashRow({
               type: "DEPOSIT",
-              currency: cashAccount.priceSymbol || cashAccount.market?.currency?.code || assetCurrency,
+              currency:
+                cashAccount.priceSymbol ||
+                cashAccount.market?.currency?.code ||
+                assetCurrency,
               amount,
               tradeDate: assetEntry.transactionDate,
               comments: `Withdrawal from ${assetEntry.asset.name || assetEntry.asset.code}`,
@@ -359,7 +385,7 @@ export default function AssetsStep({
 
         // Remove from list after successful creation
         setAssetsWithoutBalance((prev) =>
-          prev.filter((a) => a.asset.id !== assetId)
+          prev.filter((a) => a.asset.id !== assetId),
         )
 
         // Refresh portfolios to update balances
@@ -370,7 +396,7 @@ export default function AssetsStep({
         setIsSettingBalance(null)
       }
     },
-    [assetsWithoutBalance, portfoliosData?.data, planCurrency, cashAccounts]
+    [assetsWithoutBalance, portfoliosData?.data, planCurrency, cashAccounts],
   )
 
   // Reset form state
@@ -424,7 +450,10 @@ export default function AssetsStep({
 
       if (!assetResponse.ok) {
         const errorData = await assetResponse.json().catch(() => ({}))
-        setCreateError(errorData.message || `Failed to create asset: ${assetResponse.status}`)
+        setCreateError(
+          errorData.message ||
+            `Failed to create asset: ${assetResponse.status}`,
+        )
         setIsCreating(false)
         return
       }
@@ -441,13 +470,17 @@ export default function AssetsStep({
       // Calculate the total balance
       let totalBalance = simpleBalance
       if (policyType && subAccounts.length > 0) {
-        totalBalance = subAccounts.reduce((sum, sa) => sum + (sa.balance || 0), 0)
+        totalBalance = subAccounts.reduce(
+          (sum, sa) => sum + (sa.balance || 0),
+          0,
+        )
       }
 
       // Convert contribution to monthly if annual
-      const monthlyContributionValue = contributionFrequency === "ANNUAL"
-        ? (parseFloat(contributionAmount) || 0) / 12
-        : (parseFloat(contributionAmount) || 0)
+      const monthlyContributionValue =
+        contributionFrequency === "ANNUAL"
+          ? (parseFloat(contributionAmount) || 0) / 12
+          : parseFloat(contributionAmount) || 0
 
       // Step 2: Save the policy config (always save for POLICY category)
       const configPayload: Record<string, unknown> = {
@@ -470,11 +503,14 @@ export default function AssetsStep({
         })
       }
 
-      const configResponse = await fetch(`/api/assets/config/${createdAsset.id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(configPayload),
-      })
+      const configResponse = await fetch(
+        `/api/assets/config/${createdAsset.id}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(configPayload),
+        },
+      )
 
       if (!configResponse.ok) {
         console.error("Failed to save asset config, but asset was created")
@@ -483,7 +519,7 @@ export default function AssetsStep({
       // Step 3: Create DEPOSIT transaction for the balance
       if (totalBalance > 0 && selectedBalancePortfolioId) {
         const selectedPortfolio = portfoliosData?.data?.find(
-          (p) => p.id === selectedBalancePortfolioId
+          (p) => p.id === selectedBalancePortfolioId,
         )
 
         if (selectedPortfolio) {
@@ -515,7 +551,9 @@ export default function AssetsStep({
       // Reset form and close
       resetCreateForm()
     } catch (err) {
-      setCreateError(err instanceof Error ? err.message : "Failed to create account")
+      setCreateError(
+        err instanceof Error ? err.message : "Failed to create account",
+      )
     } finally {
       setIsCreating(false)
     }
@@ -731,7 +769,8 @@ export default function AssetsStep({
                       </span>
                     </div>
                     <span className="text-xs text-gray-400">
-                      {entry.asset.priceSymbol || entry.asset.market?.currency?.code}
+                      {entry.asset.priceSymbol ||
+                        entry.asset.market?.currency?.code}
                     </span>
                   </div>
 
@@ -743,14 +782,20 @@ export default function AssetsStep({
                         {msg.currentBalance}
                       </label>
                       <div className="relative">
-                        <span className="absolute left-2 top-2 text-gray-500 text-sm">$</span>
+                        <span className="absolute left-2 top-2 text-gray-500 text-sm">
+                          $
+                        </span>
                         <input
                           type="number"
                           min={0}
                           step={1000}
                           value={entry.targetBalance}
                           onChange={(e) =>
-                            updateAssetBalance(entry.asset.id, "targetBalance", e.target.value)
+                            updateAssetBalance(
+                              entry.asset.id,
+                              "targetBalance",
+                              e.target.value,
+                            )
                           }
                           placeholder="0"
                           className="w-full pl-6 pr-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
@@ -767,7 +812,11 @@ export default function AssetsStep({
                         type="date"
                         value={entry.transactionDate}
                         onChange={(e) =>
-                          updateAssetBalance(entry.asset.id, "transactionDate", e.target.value)
+                          updateAssetBalance(
+                            entry.asset.id,
+                            "transactionDate",
+                            e.target.value,
+                          )
                         }
                         className="w-full py-1.5 px-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                       />
@@ -784,7 +833,11 @@ export default function AssetsStep({
                       <select
                         value={entry.selectedPortfolioId}
                         onChange={(e) =>
-                          updateAssetBalance(entry.asset.id, "selectedPortfolioId", e.target.value)
+                          updateAssetBalance(
+                            entry.asset.id,
+                            "selectedPortfolioId",
+                            e.target.value,
+                          )
                         }
                         className="w-full py-1.5 px-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                       >
@@ -799,40 +852,53 @@ export default function AssetsStep({
 
                     {/* Cash Account Selector - only shown for withdrawals */}
                     {entry.targetBalance &&
-                     parseFloat(entry.targetBalance) < entry.currentBalance && (
-                      <div className="flex-1">
-                        <label className="block text-xs text-gray-600 mb-1">
-                          {msg.cashAccount}
-                        </label>
-                        <select
-                          value={entry.cashAccountId}
-                          onChange={(e) =>
-                            updateAssetBalance(entry.asset.id, "cashAccountId", e.target.value)
-                          }
-                          className="w-full py-1.5 px-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                        >
-                          <option value="">{msg.cashAccountHint}</option>
-                          {cashAccounts.map((account) => (
-                            <option key={account.id} value={account.id}>
-                              {account.code} ({account.priceSymbol || account.market?.currency?.code})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
+                      parseFloat(entry.targetBalance) <
+                        entry.currentBalance && (
+                        <div className="flex-1">
+                          <label className="block text-xs text-gray-600 mb-1">
+                            {msg.cashAccount}
+                          </label>
+                          <select
+                            value={entry.cashAccountId}
+                            onChange={(e) =>
+                              updateAssetBalance(
+                                entry.asset.id,
+                                "cashAccountId",
+                                e.target.value,
+                              )
+                            }
+                            className="w-full py-1.5 px-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                          >
+                            <option value="">{msg.cashAccountHint}</option>
+                            {cashAccounts.map((account) => (
+                              <option key={account.id} value={account.id}>
+                                {account.code} (
+                                {account.priceSymbol ||
+                                  account.market?.currency?.code}
+                                )
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
 
                     {/* Set Balance Button */}
                     <button
                       type="button"
-                      onClick={() => handleSetExistingAssetBalance(entry.asset.id)}
+                      onClick={() =>
+                        handleSetExistingAssetBalance(entry.asset.id)
+                      }
                       disabled={
                         isSettingBalance === entry.asset.id ||
                         !entry.targetBalance ||
                         !entry.selectedPortfolioId ||
                         // No change needed if target equals current
-                        parseFloat(entry.targetBalance) === entry.currentBalance ||
+                        parseFloat(entry.targetBalance) ===
+                          entry.currentBalance ||
                         // For withdrawals, require cash account selection
-                        (parseFloat(entry.targetBalance) < entry.currentBalance && !entry.cashAccountId)
+                        (parseFloat(entry.targetBalance) <
+                          entry.currentBalance &&
+                          !entry.cashAccountId)
                       }
                       className="px-3 py-1.5 bg-amber-600 text-white text-sm rounded hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center whitespace-nowrap"
                     >
@@ -851,23 +917,34 @@ export default function AssetsStep({
                   </div>
 
                   {/* Transaction Type Indicator */}
-                  {entry.targetBalance && parseFloat(entry.targetBalance) !== entry.currentBalance && (
-                    <div className="mt-2 text-xs">
-                      {parseFloat(entry.targetBalance) > entry.currentBalance ? (
-                        <span className="text-green-600">
-                          <i className="fas fa-arrow-up mr-1"></i>
-                          {msg.depositTransaction}: {entry.asset.priceSymbol || planCurrency}{" "}
-                          {(parseFloat(entry.targetBalance) - entry.currentBalance).toLocaleString()}
-                        </span>
-                      ) : (
-                        <span className="text-red-600">
-                          <i className="fas fa-arrow-down mr-1"></i>
-                          {msg.withdrawalTransaction}: {entry.asset.priceSymbol || planCurrency}{" "}
-                          {(entry.currentBalance - parseFloat(entry.targetBalance)).toLocaleString()}
-                        </span>
-                      )}
-                    </div>
-                  )}
+                  {entry.targetBalance &&
+                    parseFloat(entry.targetBalance) !==
+                      entry.currentBalance && (
+                      <div className="mt-2 text-xs">
+                        {parseFloat(entry.targetBalance) >
+                        entry.currentBalance ? (
+                          <span className="text-green-600">
+                            <i className="fas fa-arrow-up mr-1"></i>
+                            {msg.depositTransaction}:{" "}
+                            {entry.asset.priceSymbol || planCurrency}{" "}
+                            {(
+                              parseFloat(entry.targetBalance) -
+                              entry.currentBalance
+                            ).toLocaleString()}
+                          </span>
+                        ) : (
+                          <span className="text-red-600">
+                            <i className="fas fa-arrow-down mr-1"></i>
+                            {msg.withdrawalTransaction}:{" "}
+                            {entry.asset.priceSymbol || planCurrency}{" "}
+                            {(
+                              entry.currentBalance -
+                              parseFloat(entry.targetBalance)
+                            ).toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                    )}
                 </div>
               ))}
             </div>
@@ -947,7 +1024,10 @@ export default function AssetsStep({
               {/* Currency note */}
               <div className="text-sm text-gray-600">
                 <i className="fas fa-info-circle mr-1"></i>
-                Currency: <span className="font-medium">{planCurrency}</span> (matches your plan currency)
+                Currency: <span className="font-medium">
+                  {planCurrency}
+                </span>{" "}
+                (matches your plan currency)
               </div>
 
               {/* Composite Asset Editor */}
@@ -967,13 +1047,17 @@ export default function AssetsStep({
                     {msg.currentBalance}
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-2.5 text-gray-500">$</span>
+                    <span className="absolute left-3 top-2.5 text-gray-500">
+                      $
+                    </span>
                     <input
                       type="number"
                       min={0}
                       step={1000}
                       value={simpleBalance || ""}
-                      onChange={(e) => setSimpleBalance(Number(e.target.value) || 0)}
+                      onChange={(e) =>
+                        setSimpleBalance(Number(e.target.value) || 0)
+                      }
                       placeholder={msg.currentBalanceHint}
                       className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                     />
@@ -989,7 +1073,9 @@ export default function AssetsStep({
                   </label>
                   <select
                     value={selectedBalancePortfolioId}
-                    onChange={(e) => setSelectedBalancePortfolioId(e.target.value)}
+                    onChange={(e) =>
+                      setSelectedBalancePortfolioId(e.target.value)
+                    }
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   >
                     <option value="">{msg.selectPortfolioHint}</option>
@@ -1028,7 +1114,9 @@ export default function AssetsStep({
                         onChange={(e) => setExpectedReturnRate(e.target.value)}
                         className="w-full pr-8 py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                       />
-                      <span className="absolute right-3 top-2.5 text-gray-500">%</span>
+                      <span className="absolute right-3 top-2.5 text-gray-500">
+                        %
+                      </span>
                     </div>
                   </div>
 
@@ -1055,20 +1143,28 @@ export default function AssetsStep({
                     </label>
                     <div className="flex space-x-2">
                       <div className="relative flex-1">
-                        <span className="absolute left-3 top-2.5 text-gray-500">$</span>
+                        <span className="absolute left-3 top-2.5 text-gray-500">
+                          $
+                        </span>
                         <input
                           type="number"
                           min={0}
                           step={100}
                           value={contributionAmount}
-                          onChange={(e) => setContributionAmount(e.target.value)}
+                          onChange={(e) =>
+                            setContributionAmount(e.target.value)
+                          }
                           placeholder={msg.contributionAmountHint}
                           className="w-full pl-8 py-2 pr-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                         />
                       </div>
                       <select
                         value={contributionFrequency}
-                        onChange={(e) => setContributionFrequency(e.target.value as "MONTHLY" | "ANNUAL")}
+                        onChange={(e) =>
+                          setContributionFrequency(
+                            e.target.value as "MONTHLY" | "ANNUAL",
+                          )
+                        }
                         className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                       >
                         <option value="MONTHLY">{msg.monthly}</option>
@@ -1083,7 +1179,9 @@ export default function AssetsStep({
                       {msg.monthlyPayoutAmount}
                     </label>
                     <div className="relative">
-                      <span className="absolute left-3 top-2.5 text-gray-500">$</span>
+                      <span className="absolute left-3 top-2.5 text-gray-500">
+                        $
+                      </span>
                       <input
                         type="number"
                         min={0}
@@ -1106,7 +1204,9 @@ export default function AssetsStep({
                       onChange={(e) => setIsPension(e.target.checked)}
                       className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                     />
-                    <span className="ml-2 text-sm text-gray-700">{msg.isPension}</span>
+                    <span className="ml-2 text-sm text-gray-700">
+                      {msg.isPension}
+                    </span>
                   </label>
                   <label className="flex items-center cursor-pointer">
                     <input
@@ -1115,7 +1215,9 @@ export default function AssetsStep({
                       onChange={(e) => setLumpSum(e.target.checked)}
                       className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                     />
-                    <span className="ml-2 text-sm text-gray-700">{msg.lumpSum}</span>
+                    <span className="ml-2 text-sm text-gray-700">
+                      {msg.lumpSum}
+                    </span>
                   </label>
                 </div>
               </div>
@@ -1125,7 +1227,9 @@ export default function AssetsStep({
                 <button
                   type="button"
                   onClick={handleCreateRetirementAccount}
-                  disabled={isCreating || !accountCode.trim() || !accountName.trim()}
+                  disabled={
+                    isCreating || !accountCode.trim() || !accountName.trim()
+                  }
                   className="flex-1 bg-indigo-600 text-white rounded-lg py-2 px-4 font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                 >
                   {isCreating ? (

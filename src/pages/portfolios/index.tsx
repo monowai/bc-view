@@ -577,7 +577,9 @@ export default withPageAuthRequired(function Portfolios({
                   </div>
                   <div className="text-right">
                     <div className="text-lg font-bold text-gray-900">
-                      {displayCurrency?.symbol === "?" ? displayCurrency?.code : displayCurrency?.symbol}
+                      {displayCurrency?.symbol === "?"
+                        ? displayCurrency?.code
+                        : displayCurrency?.symbol}
                       <FormatValue
                         value={
                           (portfolio.marketValue ? portfolio.marketValue : 0) *
@@ -682,7 +684,9 @@ export default withPageAuthRequired(function Portfolios({
               </span>
               <div className="text-right">
                 <span className="text-xl font-bold text-gray-900">
-                  {displayCurrency?.symbol === "?" ? displayCurrency?.code : displayCurrency?.symbol}
+                  {displayCurrency?.symbol === "?"
+                    ? displayCurrency?.code
+                    : displayCurrency?.symbol}
                   <FormatValue value={totalMarketValue} />
                 </span>
                 {totalGainOnDay !== 0 && totalMarketValue && (
@@ -937,7 +941,9 @@ export default withPageAuthRequired(function Portfolios({
                     {t("portfolios.total")}: {displayCurrency?.code}
                   </td>
                   <td className="px-4 py-3 text-right font-bold text-gray-900 text-lg">
-                    {displayCurrency?.symbol === "?" ? displayCurrency?.code : displayCurrency?.symbol}
+                    {displayCurrency?.symbol === "?"
+                      ? displayCurrency?.code
+                      : displayCurrency?.symbol}
                     <FormatValue value={totalMarketValue} />
                   </td>
                   <td className="px-4 py-3 text-right">

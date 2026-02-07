@@ -101,7 +101,7 @@ describe("Summary Mobile View Tests (TDD)", () => {
 
       // Verify the order: Value (visible), Income (hidden), Gain (visible), IRR (visible)
       const columnLabels = Array.from(columns || []).map(
-        (col) => col.querySelector(".text-gray-500")?.textContent,
+        (col) => col.querySelector(".text-slate-500")?.textContent,
       )
 
       expect(columnLabels[0]).toBe("summary.value")
@@ -159,7 +159,7 @@ describe("Summary Mobile View Tests (TDD)", () => {
 
       // Verify the order: Value, Income, Gain, IRR
       const columnLabels = Array.from(columns || []).map(
-        (col) => col.querySelector(".text-gray-500")?.textContent,
+        (col) => col.querySelector(".text-slate-500")?.textContent,
       )
 
       expect(columnLabels[0]).toBe("summary.value")
@@ -246,8 +246,7 @@ describe("Summary Mobile View Tests (TDD)", () => {
       expect(dateCell).toBeInTheDocument()
 
       // Date cell should have matching font size classes as value cells
-      expect(dateCell).toHaveClass("text-xs")
-      expect(dateCell).toHaveClass("md:text-sm")
+      expect(dateCell).toHaveClass("text-sm")
 
       // Date cell should be bold/medium weight to match values
       const hasFontWeight =

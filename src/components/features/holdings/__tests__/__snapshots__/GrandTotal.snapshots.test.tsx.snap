@@ -7,15 +7,15 @@ exports[`GrandTotal Snapshot Tests matches desktop snapshot: desktop-layout 1`] 
   >
     <tr>
       <td
-        class="border-t-2 border-gray-600"
+        class="border-t-2 border-blue-500"
         colspan="14"
       />
     </tr>
     <tr
-      class="holding-footer text-sm bg-gray-100 border-b-2 border-gray-600 hover:!bg-slate-200 transition-colors duration-200"
+      class="holding-footer text-sm bg-gradient-to-r from-blue-500 to-blue-600 text-white border-b-2 border-blue-500"
     >
       <td
-        class="px-1 py-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right"
+        class="px-1 py-2 sm:px-2 md:px-3 text-xs md:text-sm font-semibold text-left"
       >
         <div>
           Value in PORTFOLIO
@@ -26,126 +26,187 @@ exports[`GrandTotal Snapshot Tests matches desktop snapshot: desktop-layout 1`] 
         colspan="1"
       />
       <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right  text-green-500"
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right  text-emerald-200 "
         colspan="1"
       >
+        <span
+          class="sm:hidden"
+        >
+          <span>
+            73
+          </span>
+        </span>
         <span
           class="hidden sm:inline"
         >
-          ▲ 
-        </span>
-        <span>
-          72.76
+          <span>
+            72.76
+          </span>
         </span>
       </td>
       <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden text-green-500"
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden text-emerald-200 "
         colspan="1"
       >
         <span
+          class="sm:hidden"
+        >
+          <span>
+            73
+          </span>
+        </span>
+        <span
           class="hidden sm:inline"
-        />
-        <span>
-          72.76
+        >
+          <span>
+            72.76
+          </span>
         </span>
       </td>
       <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden sm:table-cell "
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden sm:table-cell  "
         colspan="1"
       />
       <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden sm:table-cell "
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden sm:table-cell  font-mono tabular-nums"
         colspan="1"
       >
         <span
-          class="hidden sm:inline"
-        />
-        <span>
-          8,150.65
+          class="sm:hidden"
+        >
+          <span>
+            8,151
+          </span>
         </span>
-      </td>
-      <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right  "
-        colspan="1"
-      >
-        <span
-          class="hidden sm:inline"
-        />
-        <span>
-          12,643.74
-        </span>
-      </td>
-      <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right  text-green-500"
-        colspan="1"
-      >
         <span
           class="hidden sm:inline"
         >
-          ▲ 
-        </span>
-        <span>
-          15.00
-        </span>
-      </td>
-      <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden sm:table-cell "
-        colspan="1"
-      >
-        <span
-          class="hidden sm:inline"
-        />
-        <span>
-          299.02
+          <span>
+            8,150.65
+          </span>
         </span>
       </td>
       <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden xl:table-cell "
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right   font-mono tabular-nums"
         colspan="1"
       >
         <span
+          class="sm:hidden"
+        >
+          <span>
+            12,644
+          </span>
+        </span>
+        <span
           class="hidden sm:inline"
-        />
-        <span>
-          3,503.85
+        >
+          <span>
+            12,643.74
+          </span>
         </span>
       </td>
       <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden xl:table-cell "
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right   "
         colspan="1"
       >
         <span
-          class="hidden sm:inline"
-        />
-        <span>
-          481.44
+          class="group relative cursor-help text-blue-200"
+        >
+          -
+          <span
+            class="invisible group-hover:visible absolute right-0 bottom-full mb-1 z-10 w-48 p-2 bg-slate-800 text-white text-xs rounded shadow-lg"
+          >
+            irr.subtotal.hidden
+          </span>
         </span>
       </td>
       <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right  text-green-500"
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden sm:table-cell  font-mono tabular-nums"
         colspan="1"
       >
         <span
+          class="sm:hidden"
+        >
+          <span>
+            299
+          </span>
+        </span>
+        <span
           class="hidden sm:inline"
-        />
+        >
+          <span>
+            299.02
+          </span>
+        </span>
+      </td>
+      <td
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden xl:table-cell  font-mono tabular-nums"
+        colspan="1"
+      >
+        <span
+          class="sm:hidden"
+        >
+          <span>
+            3,504
+          </span>
+        </span>
+        <span
+          class="hidden sm:inline"
+        >
+          <span>
+            3,503.85
+          </span>
+        </span>
+      </td>
+      <td
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden xl:table-cell  font-mono tabular-nums"
+        colspan="1"
+      >
+        <span
+          class="sm:hidden"
+        >
+          <span>
+            481
+          </span>
+        </span>
+        <span
+          class="hidden sm:inline"
+        >
+          <span>
+            481.44
+          </span>
+        </span>
+      </td>
+      <td
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right  text-emerald-200 "
+        colspan="1"
+      >
         <span>
           100.00
         </span>
         %
       </td>
       <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-center hidden xl:table-cell "
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-center hidden xl:table-cell  "
         colspan="1"
       />
       <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden sm:table-cell "
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden sm:table-cell  font-mono tabular-nums"
         colspan="1"
       >
         <span
+          class="sm:hidden"
+        >
+          <span>
+            4,284
+          </span>
+        </span>
+        <span
           class="hidden sm:inline"
-        />
-        <span>
-          4,284.31
+        >
+          <span>
+            4,284.31
+          </span>
         </span>
       </td>
     </tr>
@@ -160,15 +221,15 @@ exports[`GrandTotal Snapshot Tests matches mobile snapshot: mobile-layout 1`] = 
   >
     <tr>
       <td
-        class="border-t-2 border-gray-600"
+        class="border-t-2 border-blue-500"
         colspan="14"
       />
     </tr>
     <tr
-      class="holding-footer text-sm bg-gray-100 border-b-2 border-gray-600 hover:!bg-slate-200 transition-colors duration-200"
+      class="holding-footer text-sm bg-gradient-to-r from-blue-500 to-blue-600 text-white border-b-2 border-blue-500"
     >
       <td
-        class="px-1 py-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right"
+        class="px-1 py-2 sm:px-2 md:px-3 text-xs md:text-sm font-semibold text-left"
       >
         <div>
           Value in PORTFOLIO
@@ -179,126 +240,187 @@ exports[`GrandTotal Snapshot Tests matches mobile snapshot: mobile-layout 1`] = 
         colspan="1"
       />
       <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right  text-green-500"
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right  text-emerald-200 "
         colspan="1"
       >
+        <span
+          class="sm:hidden"
+        >
+          <span>
+            73
+          </span>
+        </span>
         <span
           class="hidden sm:inline"
         >
-          ▲ 
-        </span>
-        <span>
-          72.76
+          <span>
+            72.76
+          </span>
         </span>
       </td>
       <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden text-green-500"
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden text-emerald-200 "
         colspan="1"
       >
         <span
+          class="sm:hidden"
+        >
+          <span>
+            73
+          </span>
+        </span>
+        <span
           class="hidden sm:inline"
-        />
-        <span>
-          72.76
+        >
+          <span>
+            72.76
+          </span>
         </span>
       </td>
       <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden sm:table-cell "
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden sm:table-cell  "
         colspan="1"
       />
       <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden sm:table-cell "
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden sm:table-cell  font-mono tabular-nums"
         colspan="1"
       >
         <span
-          class="hidden sm:inline"
-        />
-        <span>
-          8,150.65
+          class="sm:hidden"
+        >
+          <span>
+            8,151
+          </span>
         </span>
-      </td>
-      <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right  "
-        colspan="1"
-      >
-        <span
-          class="hidden sm:inline"
-        />
-        <span>
-          12,643.74
-        </span>
-      </td>
-      <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right  text-green-500"
-        colspan="1"
-      >
         <span
           class="hidden sm:inline"
         >
-          ▲ 
-        </span>
-        <span>
-          15.00
-        </span>
-      </td>
-      <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden sm:table-cell "
-        colspan="1"
-      >
-        <span
-          class="hidden sm:inline"
-        />
-        <span>
-          299.02
+          <span>
+            8,150.65
+          </span>
         </span>
       </td>
       <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden xl:table-cell "
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right   font-mono tabular-nums"
         colspan="1"
       >
         <span
+          class="sm:hidden"
+        >
+          <span>
+            12,644
+          </span>
+        </span>
+        <span
           class="hidden sm:inline"
-        />
-        <span>
-          3,503.85
+        >
+          <span>
+            12,643.74
+          </span>
         </span>
       </td>
       <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden xl:table-cell "
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right   "
         colspan="1"
       >
         <span
-          class="hidden sm:inline"
-        />
-        <span>
-          481.44
+          class="group relative cursor-help text-blue-200"
+        >
+          -
+          <span
+            class="invisible group-hover:visible absolute right-0 bottom-full mb-1 z-10 w-48 p-2 bg-slate-800 text-white text-xs rounded shadow-lg"
+          >
+            irr.subtotal.hidden
+          </span>
         </span>
       </td>
       <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right  text-green-500"
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden sm:table-cell  font-mono tabular-nums"
         colspan="1"
       >
         <span
+          class="sm:hidden"
+        >
+          <span>
+            299
+          </span>
+        </span>
+        <span
           class="hidden sm:inline"
-        />
+        >
+          <span>
+            299.02
+          </span>
+        </span>
+      </td>
+      <td
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden xl:table-cell  font-mono tabular-nums"
+        colspan="1"
+      >
+        <span
+          class="sm:hidden"
+        >
+          <span>
+            3,504
+          </span>
+        </span>
+        <span
+          class="hidden sm:inline"
+        >
+          <span>
+            3,503.85
+          </span>
+        </span>
+      </td>
+      <td
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden xl:table-cell  font-mono tabular-nums"
+        colspan="1"
+      >
+        <span
+          class="sm:hidden"
+        >
+          <span>
+            481
+          </span>
+        </span>
+        <span
+          class="hidden sm:inline"
+        >
+          <span>
+            481.44
+          </span>
+        </span>
+      </td>
+      <td
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right  text-emerald-200 "
+        colspan="1"
+      >
         <span>
           100.00
         </span>
         %
       </td>
       <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-center hidden xl:table-cell "
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-center hidden xl:table-cell  "
         colspan="1"
       />
       <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden sm:table-cell "
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden sm:table-cell  font-mono tabular-nums"
         colspan="1"
       >
         <span
+          class="sm:hidden"
+        >
+          <span>
+            4,284
+          </span>
+        </span>
+        <span
           class="hidden sm:inline"
-        />
-        <span>
-          4,284.31
+        >
+          <span>
+            4,284.31
+          </span>
         </span>
       </td>
     </tr>
@@ -313,15 +435,15 @@ exports[`GrandTotal Snapshot Tests matches tablet snapshot: tablet-layout 1`] = 
   >
     <tr>
       <td
-        class="border-t-2 border-gray-600"
+        class="border-t-2 border-blue-500"
         colspan="14"
       />
     </tr>
     <tr
-      class="holding-footer text-sm bg-gray-100 border-b-2 border-gray-600 hover:!bg-slate-200 transition-colors duration-200"
+      class="holding-footer text-sm bg-gradient-to-r from-blue-500 to-blue-600 text-white border-b-2 border-blue-500"
     >
       <td
-        class="px-1 py-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right"
+        class="px-1 py-2 sm:px-2 md:px-3 text-xs md:text-sm font-semibold text-left"
       >
         <div>
           Value in PORTFOLIO
@@ -332,126 +454,187 @@ exports[`GrandTotal Snapshot Tests matches tablet snapshot: tablet-layout 1`] = 
         colspan="1"
       />
       <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right  text-green-500"
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right  text-emerald-200 "
         colspan="1"
       >
+        <span
+          class="sm:hidden"
+        >
+          <span>
+            73
+          </span>
+        </span>
         <span
           class="hidden sm:inline"
         >
-          ▲ 
-        </span>
-        <span>
-          72.76
+          <span>
+            72.76
+          </span>
         </span>
       </td>
       <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden text-green-500"
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden text-emerald-200 "
         colspan="1"
       >
         <span
+          class="sm:hidden"
+        >
+          <span>
+            73
+          </span>
+        </span>
+        <span
           class="hidden sm:inline"
-        />
-        <span>
-          72.76
+        >
+          <span>
+            72.76
+          </span>
         </span>
       </td>
       <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden sm:table-cell "
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden sm:table-cell  "
         colspan="1"
       />
       <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden sm:table-cell "
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden sm:table-cell  font-mono tabular-nums"
         colspan="1"
       >
         <span
-          class="hidden sm:inline"
-        />
-        <span>
-          8,150.65
+          class="sm:hidden"
+        >
+          <span>
+            8,151
+          </span>
         </span>
-      </td>
-      <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right  "
-        colspan="1"
-      >
-        <span
-          class="hidden sm:inline"
-        />
-        <span>
-          12,643.74
-        </span>
-      </td>
-      <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right  text-green-500"
-        colspan="1"
-      >
         <span
           class="hidden sm:inline"
         >
-          ▲ 
-        </span>
-        <span>
-          15.00
-        </span>
-      </td>
-      <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden sm:table-cell "
-        colspan="1"
-      >
-        <span
-          class="hidden sm:inline"
-        />
-        <span>
-          299.02
+          <span>
+            8,150.65
+          </span>
         </span>
       </td>
       <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden xl:table-cell "
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right   font-mono tabular-nums"
         colspan="1"
       >
         <span
+          class="sm:hidden"
+        >
+          <span>
+            12,644
+          </span>
+        </span>
+        <span
           class="hidden sm:inline"
-        />
-        <span>
-          3,503.85
+        >
+          <span>
+            12,643.74
+          </span>
         </span>
       </td>
       <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden xl:table-cell "
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right   "
         colspan="1"
       >
         <span
-          class="hidden sm:inline"
-        />
-        <span>
-          481.44
+          class="group relative cursor-help text-blue-200"
+        >
+          -
+          <span
+            class="invisible group-hover:visible absolute right-0 bottom-full mb-1 z-10 w-48 p-2 bg-slate-800 text-white text-xs rounded shadow-lg"
+          >
+            irr.subtotal.hidden
+          </span>
         </span>
       </td>
       <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right  text-green-500"
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden sm:table-cell  font-mono tabular-nums"
         colspan="1"
       >
         <span
+          class="sm:hidden"
+        >
+          <span>
+            299
+          </span>
+        </span>
+        <span
           class="hidden sm:inline"
-        />
+        >
+          <span>
+            299.02
+          </span>
+        </span>
+      </td>
+      <td
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden xl:table-cell  font-mono tabular-nums"
+        colspan="1"
+      >
+        <span
+          class="sm:hidden"
+        >
+          <span>
+            3,504
+          </span>
+        </span>
+        <span
+          class="hidden sm:inline"
+        >
+          <span>
+            3,503.85
+          </span>
+        </span>
+      </td>
+      <td
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden xl:table-cell  font-mono tabular-nums"
+        colspan="1"
+      >
+        <span
+          class="sm:hidden"
+        >
+          <span>
+            481
+          </span>
+        </span>
+        <span
+          class="hidden sm:inline"
+        >
+          <span>
+            481.44
+          </span>
+        </span>
+      </td>
+      <td
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right  text-emerald-200 "
+        colspan="1"
+      >
         <span>
           100.00
         </span>
         %
       </td>
       <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-center hidden xl:table-cell "
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-center hidden xl:table-cell  "
         colspan="1"
       />
       <td
-        class="px-0.5 py-1 sm:px-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right hidden sm:table-cell "
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden sm:table-cell  font-mono tabular-nums"
         colspan="1"
       >
         <span
+          class="sm:hidden"
+        >
+          <span>
+            4,284
+          </span>
+        </span>
+        <span
           class="hidden sm:inline"
-        />
-        <span>
-          4,284.31
+        >
+          <span>
+            4,284.31
+          </span>
         </span>
       </td>
     </tr>

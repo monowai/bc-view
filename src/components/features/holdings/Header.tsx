@@ -164,12 +164,12 @@ export default function Header({
 
   const getSortIcon = (headerKey: string): React.ReactElement => {
     if (!sortConfig || sortConfig.key !== headerKey) {
-      return <span className="ml-1 text-gray-400">↕</span>
+      return <span className="ml-1 text-blue-200/60 text-xs">↕</span>
     }
     return sortConfig.direction === "asc" ? (
-      <span className="ml-1 text-blue-600">↑</span>
+      <span className="ml-1 text-white font-bold">▲</span>
     ) : (
-      <span className="ml-1 text-blue-600">↓</span>
+      <span className="ml-1 text-white font-bold">▼</span>
     )
   }
 
@@ -187,18 +187,18 @@ export default function Header({
       isIrrColumn ||
       isWeightColumn
     ) {
-      return "px-0.5 py-1 sm:px-1 md:px-2 xl:px-3" // Minimal padding on portrait for breathing room
+      return "px-0.5 py-2 sm:px-1 md:px-2 xl:px-3" // Taller header with minimal horizontal padding
     }
-    return "px-0.5 py-1 sm:px-1 md:px-2 xl:px-3" // Minimal padding on portrait for breathing room
+    return "px-0.5 py-2 sm:px-1 md:px-2 xl:px-3" // Taller header with minimal horizontal padding
   }
 
   return (
-    <thead className="bg-gray-100">
-      <tr className="border-t-2 border-b-2 border-gray-400">
+    <thead className="bg-gradient-to-r from-blue-500 to-blue-600 text-white sticky top-0 z-20">
+      <tr className="border-b border-blue-400/50">
         <th
-          className={`px-0.5 py-1 sm:px-2 md:px-3 text-left text-sm font-medium ${
+          className={`px-1 py-2 sm:px-2 md:px-3 text-left text-xs uppercase tracking-wider font-medium ${
             onSort && showColumnHeaders
-              ? "cursor-pointer hover:bg-gray-200 transition-colors select-none"
+              ? "cursor-pointer hover:bg-blue-400/30 transition-colors select-none"
               : ""
           }`}
           colSpan={showColumnHeaders ? 1 : headers.length + 1}
@@ -207,7 +207,9 @@ export default function Header({
           }
         >
           <div className="flex items-center justify-start">
-            {groupKey}
+            <span className="font-semibold text-sm sm:text-base normal-case tracking-normal text-white">
+              {groupKey}
+            </span>
             {onSort && showColumnHeaders && getSortIcon("assetName")}
           </div>
         </th>
@@ -227,7 +229,7 @@ export default function Header({
             return (
               <th
                 key={header.key}
-                className={`${getHeaderPadding(index)} text-sm font-medium ${
+                className={`${getHeaderPadding(index)} text-xs uppercase tracking-wider font-medium ${
                   header.align === "right"
                     ? "text-right"
                     : header.align === "center"
@@ -235,7 +237,7 @@ export default function Header({
                       : "text-left"
                 } ${visibility} ${
                   header.sortable && onSort
-                    ? "cursor-pointer hover:bg-gray-200 transition-colors select-none"
+                    ? "cursor-pointer hover:bg-blue-400/30 transition-colors select-none"
                     : ""
                 }`}
                 onClick={
@@ -258,7 +260,7 @@ export default function Header({
                     header.costRelated &&
                     isCostApproximate && (
                       <span
-                        className="ml-1 text-amber-500 text-xs"
+                        className="ml-1 text-amber-300 text-xs"
                         title={t("displayCurrency.approximate")}
                       >
                         ⚠

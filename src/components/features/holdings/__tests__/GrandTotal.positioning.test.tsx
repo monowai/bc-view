@@ -23,7 +23,7 @@ describe("GrandTotal Column Positioning Tests", () => {
       expect(dataCells[2]).toHaveTextContent("") // empty quantity column
       expect(dataCells[3].textContent).toMatch(/8,?150\.65/) // HEADER_INDICES.COST - costValue
       expect(dataCells[4].textContent).toMatch(/12,?643\.74/) // HEADER_INDICES.MARKET_VALUE - marketValue
-      expect(dataCells[5]).toHaveTextContent("15.00") // HEADER_INDICES.IRR - irr (no %) - swapped with weight
+      expect(dataCells[5]).toHaveTextContent("-") // HEADER_INDICES.IRR - hidden in grand total, shows dash with tooltip
       expect(dataCells[6].textContent).toMatch(/299\.02/) // HEADER_INDICES.DIVIDENDS - dividends
       expect(dataCells[7].textContent).toMatch(/3,?503\.85/) // HEADER_INDICES.UNREALISED_GAIN - unrealisedGain
       expect(dataCells[8].textContent).toMatch(/481\.44/) // HEADER_INDICES.REALISED_GAIN - realisedGain
@@ -39,9 +39,9 @@ describe("GrandTotal Column Positioning Tests", () => {
       const cells = dataRow?.querySelectorAll("td")
       const dataCells = Array.from(cells!).slice(2)
 
-      // IRR should contain irr value (15.00) and NOT totalGain value
-      // IRR is now at position 5 (swapped with weight)
-      expect(dataCells[5]).toHaveTextContent("15.00") // HEADER_INDICES.IRR
+      // IRR is hidden in grand total (shows "-" with tooltip) and NOT totalGain value
+      // IRR is at position 5
+      expect(dataCells[5]).toHaveTextContent("-") // HEADER_INDICES.IRR - hidden
       expect(dataCells[5].textContent).not.toMatch(/4,?284\.31/)
 
       // totalGain should contain totalGain value in correct position
@@ -127,9 +127,8 @@ describe("GrandTotal Column Positioning Tests", () => {
       const cells = dataRow?.querySelectorAll("td")
       const dataCells = Array.from(cells!).slice(2)
 
-      // IRR should be multiplied by 100 but NOT show % (cleaner appearance) - now at position 5 (swapped with weight)
-      expect(dataCells[5]).toHaveTextContent("15.00") // HEADER_INDICES.IRR - 0.15 * 100 = 15.00
-      expect(dataCells[5]).not.toHaveTextContent("%")
+      // IRR is hidden in grand total - shows "-" with tooltip
+      expect(dataCells[5]).toHaveTextContent("-") // HEADER_INDICES.IRR - hidden in grand total
 
       // Weight should be multiplied by 100 and show % - now at position 9 (swapped with irr)
       expect(dataCells[9]).toHaveTextContent("100.00%") // HEADER_INDICES.WEIGHT

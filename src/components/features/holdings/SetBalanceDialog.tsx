@@ -70,11 +70,16 @@ export default function SetBalanceDialog({
     const fetchBalance = async (): Promise<void> => {
       setIsLoadingBalance(true)
       try {
-        const response = await fetch(`/api/assets/${asset.id}/positions?date=today`)
+        const response = await fetch(
+          `/api/assets/${asset.id}/positions?date=today`,
+        )
         if (response.ok) {
           const data = await response.json()
           const positions: AssetPosition[] = data.data || []
-          const totalBalance = positions.reduce((sum, p) => sum + (p.balance || 0), 0)
+          const totalBalance = positions.reduce(
+            (sum, p) => sum + (p.balance || 0),
+            0,
+          )
           setCurrentBalance(totalBalance)
           setTargetBalance(totalBalance)
           // Auto-select first portfolio if asset is in one
@@ -112,7 +117,9 @@ export default function SetBalanceDialog({
       return
     }
 
-    const portfolio = portfoliosData?.data?.find((p) => p.id === selectedPortfolioId)
+    const portfolio = portfoliosData?.data?.find(
+      (p) => p.id === selectedPortfolioId,
+    )
     if (!portfolio) {
       setError(t("balance.error.noPortfolio"))
       return
@@ -122,7 +129,8 @@ export default function SetBalanceDialog({
     setError(null)
 
     try {
-      const assetCurrency = asset.priceSymbol || asset.market?.currency?.code || "USD"
+      const assetCurrency =
+        asset.priceSymbol || asset.market?.currency?.code || "USD"
 
       // Create the main transaction
       const row = buildCashRow({
@@ -143,7 +151,10 @@ export default function SetBalanceDialog({
         if (cashAccount) {
           const cashRow = buildCashRow({
             type: "DEPOSIT",
-            currency: cashAccount.priceSymbol || cashAccount.market?.currency?.code || assetCurrency,
+            currency:
+              cashAccount.priceSymbol ||
+              cashAccount.market?.currency?.code ||
+              assetCurrency,
             amount: transactionInfo.amount,
             tradeDate: date,
             comments: `Withdrawal from ${asset.name || getDisplayCode(asset.code)}`,
@@ -199,7 +210,8 @@ export default function SetBalanceDialog({
             <div className="font-semibold text-lg">{asset.name}</div>
             <div className="text-sm text-gray-600">
               {getDisplayCode(asset.code)} -{" "}
-              {t(`category.${asset.assetCategory?.id}`) || asset.assetCategory?.name}
+              {t(`category.${asset.assetCategory?.id}`) ||
+                asset.assetCategory?.name}
             </div>
             {!isLoadingBalance && (
               <div className="mt-2 text-sm">
@@ -227,7 +239,8 @@ export default function SetBalanceDialog({
           {/* Target Balance */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("balance.target")} ({asset.priceSymbol || asset.market?.currency?.code || "USD"})
+              {t("balance.target")} (
+              {asset.priceSymbol || asset.market?.currency?.code || "USD"})
             </label>
             <MathInput
               value={targetBalance}
@@ -270,7 +283,8 @@ export default function SetBalanceDialog({
                 <option value="">{t("balance.cashAccount.hint")}</option>
                 {cashAccounts.map((account) => (
                   <option key={account.id} value={account.id}>
-                    {getDisplayCode(account.code)} ({account.priceSymbol || account.market?.currency?.code})
+                    {getDisplayCode(account.code)} (
+                    {account.priceSymbol || account.market?.currency?.code})
                   </option>
                 ))}
               </select>
@@ -282,15 +296,22 @@ export default function SetBalanceDialog({
 
           {/* Transaction Preview */}
           {transactionInfo && (
-            <div className={`rounded-lg p-3 text-sm ${
-              transactionInfo.type === "DEPOSIT"
-                ? "bg-green-50 border border-green-200 text-green-800"
-                : "bg-red-50 border border-red-200 text-red-800"
-            }`}>
+            <div
+              className={`rounded-lg p-3 text-sm ${
+                transactionInfo.type === "DEPOSIT"
+                  ? "bg-green-50 border border-green-200 text-green-800"
+                  : "bg-red-50 border border-red-200 text-red-800"
+              }`}
+            >
               <div className="flex items-center">
-                <i className={`fas ${transactionInfo.type === "DEPOSIT" ? "fa-arrow-up" : "fa-arrow-down"} mr-2`}></i>
+                <i
+                  className={`fas ${transactionInfo.type === "DEPOSIT" ? "fa-arrow-up" : "fa-arrow-down"} mr-2`}
+                ></i>
                 <span className="font-medium">
-                  {transactionInfo.type === "DEPOSIT" ? t("balance.deposit") : t("balance.withdrawal")}:
+                  {transactionInfo.type === "DEPOSIT"
+                    ? t("balance.deposit")
+                    : t("balance.withdrawal")}
+                  :
                 </span>
                 <span className="ml-2">
                   {asset.priceSymbol || asset.market?.currency?.code}{" "}
@@ -318,12 +339,20 @@ export default function SetBalanceDialog({
           <button
             type="button"
             className={`px-4 py-2 rounded transition-colors text-white ${
-              isSubmitting || !transactionInfo || !selectedPortfolioId || (isWithdrawal && !cashAccountId)
+              isSubmitting ||
+              !transactionInfo ||
+              !selectedPortfolioId ||
+              (isWithdrawal && !cashAccountId)
                 ? "bg-gray-400 cursor-not-allowed"
                 : "bg-amber-600 hover:bg-amber-700"
             }`}
             onClick={handleSave}
-            disabled={isSubmitting || !transactionInfo || !selectedPortfolioId || (isWithdrawal && !cashAccountId)}
+            disabled={
+              isSubmitting ||
+              !transactionInfo ||
+              !selectedPortfolioId ||
+              (isWithdrawal && !cashAccountId)
+            }
           >
             {isSubmitting ? (
               <span className="flex items-center">

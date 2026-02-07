@@ -62,8 +62,8 @@ describe("GrandTotal Component", () => {
       // Check marketValue (allow for comma formatting)
       expect(dataCells[4]).toHaveTextContent(/12,?643\.74/)
 
-      // Check IRR (15.00) - IRR is now at data[5] (swapped with weight)
-      expect(dataCells[5]).toHaveTextContent("15.00")
+      // Check IRR - hidden in grand total, shows "-" with tooltip
+      expect(dataCells[5]).toHaveTextContent("-")
 
       // Check weight (100.00%) - weight is now at data[9] (swapped with irr)
       expect(dataCells[9]).toHaveTextContent("100.00%")
@@ -131,8 +131,8 @@ describe("GrandTotal Component", () => {
       // data[4] → HEADER_INDICES.MARKET_VALUE (5)
       expect(dataCells[4]).toHaveTextContent(/12,?643\.74/) // marketValue
 
-      // data[5] → HEADER_INDICES.IRR (6) - swapped with weight
-      expect(dataCells[5]).toHaveTextContent("15.00") // irr (15.00 without %)
+      // data[5] → HEADER_INDICES.IRR (6) - hidden in grand total
+      expect(dataCells[5]).toHaveTextContent("-") // irr hidden, shows dash with tooltip
 
       // data[9] → HEADER_INDICES.WEIGHT (10) - swapped with irr
       expect(dataCells[9]).toHaveTextContent("100.00%") // weight
@@ -157,7 +157,8 @@ describe("GrandTotal Component", () => {
       )
       const gainOnDayCell = dataCells[GRANDTOTAL_LAYOUT.GAIN_ON_DAY_POSITION] // gainOnDay cell
 
-      expect(gainOnDayCell).toHaveClass("text-green-500")
+      // Uses lighter tints for better contrast on blue background
+      expect(gainOnDayCell).toHaveClass("text-emerald-200")
     })
   })
 
@@ -209,9 +210,9 @@ describe("GrandTotal Component", () => {
       expect(dataCells[4]).not.toHaveClass("hidden")
       expect(dataCells[4]).toHaveTextContent(/12,?643\.74/)
 
-      // IRR should be visible on mobile (mobile: true) - IRR is now at data[5] (swapped with weight)
+      // IRR should be visible on mobile (mobile: true) - IRR is now at data[5], hidden in grand total
       expect(dataCells[5]).not.toHaveClass("hidden")
-      expect(dataCells[5]).toHaveTextContent("15.00")
+      expect(dataCells[5]).toHaveTextContent("-") // IRR hidden, shows dash with tooltip
 
       // weight should be visible on mobile (mobile: true) - weight is now at data[9] (swapped with irr)
       expect(dataCells[9]).not.toHaveClass("hidden")
@@ -253,9 +254,9 @@ describe("GrandTotal Component", () => {
         GRANDTOTAL_LAYOUT.DATA_CELLS_SLICE_START,
       )
 
-      // IRR should be at position 9 (data[9]) and visible on mobile (mobile: true in header)
-      const irrCell = dataCells[9]
-      expect(irrCell).not.toHaveClass("hidden")
+      // Weight should be at position 9 (data[9]) and visible on mobile (mobile: true in header)
+      const weightCell = dataCells[9]
+      expect(weightCell).not.toHaveClass("hidden")
 
       // totalGain should be at position 11 (data[11]) and hidden on mobile portrait, visible on landscape+ (mobile: false)
       const totalGainCell = dataCells[11]
@@ -333,9 +334,8 @@ describe("GrandTotal Component", () => {
         GRANDTOTAL_LAYOUT.DATA_CELLS_SLICE_START,
       )
 
-      // IRR should not show % (removed for cleaner appearance) - IRR is now at data[5] (swapped with weight)
-      expect(dataCells[5]).toHaveTextContent("15.00") // 0.15 * 100 = 15.00, no %
-      expect(dataCells[5]).not.toHaveTextContent("%")
+      // IRR is hidden in grand total - shows "-" with tooltip
+      expect(dataCells[5]).toHaveTextContent("-")
 
       // Weight should show % and be multiplied by 100 - Weight is now at data[9] (swapped with irr)
       expect(dataCells[9]).toHaveTextContent("100.00%") // 1.0 * 100 = 100.00%

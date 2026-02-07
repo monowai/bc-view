@@ -11,7 +11,11 @@ import {
   CostAdjustData,
   Asset,
 } from "types/beancounter"
-import { FormatValue, PrivateQuantity } from "@components/ui/MoneyUtils"
+import {
+  FormatValue,
+  ResponsiveFormatValue,
+  PrivateQuantity,
+} from "@components/ui/MoneyUtils"
 import {
   isCash,
   isCashRelated,
@@ -73,12 +77,25 @@ const getCellClasses = (headerIndex: number): string => {
 
   let padding
   if (isChangeColumn || isMarketValueColumn || isIrrColumn || isWeightColumn) {
-    padding = "px-0.5 py-1 sm:px-1 md:px-2 xl:px-3" // Minimal padding on portrait for breathing room
+    padding = "px-0.5 py-1.5 sm:px-1 md:px-2 xl:px-3" // Slightly taller rows
   } else {
-    padding = "px-0.5 py-1 sm:px-1 md:px-2 xl:px-3" // Minimal padding on portrait for breathing room
+    padding = "px-0.5 py-1.5 sm:px-1 md:px-2 xl:px-3" // Slightly taller rows
   }
 
-  return `text-right ${padding} ${visibility}`
+  // Add monospace font for numeric columns
+  const isNumeric =
+    headerIndex === 0 || // price
+    headerIndex === 3 || // quantity
+    headerIndex === 4 || // cost
+    headerIndex === 5 || // market value
+    headerIndex === 7 || // dividends
+    headerIndex === 8 || // unrealised gain
+    headerIndex === 9 || // realised gain
+    headerIndex === 12 // total gain
+
+  const fontClass = isNumeric ? "font-mono tabular-nums" : ""
+
+  return `text-right ${padding} ${visibility} ${fontClass}`
 }
 
 // Helper function to truncate text with ellipsis
@@ -153,17 +170,17 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
       <button
         type="button"
         aria-label={`${t("actions.menu")} ${assetCode}`}
-        className="inline-flex items-center justify-center w-6 h-6 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors duration-200"
+        className="inline-flex items-center justify-center w-8 h-8 min-w-[44px] min-h-[44px] -m-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors duration-150"
         onClick={(e) => {
           e.stopPropagation()
           setIsOpen(!isOpen)
         }}
         title={t("actions.menu")}
       >
-        <i className="fas fa-ellipsis-vertical text-xs"></i>
+        <i className="fas fa-ellipsis-vertical text-sm"></i>
       </button>
       {isOpen && (
-        <div className="absolute left-0 mt-1 w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200">
+        <div className="absolute left-0 mt-1 w-48 bg-white rounded-lg shadow-xl z-50 border border-slate-200">
           <div className="py-1">
             {onQuickSell && (
               <button
@@ -204,34 +221,38 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
                 {t("corporate.view")}
               </button>
             )}
-            {asset.market?.code === "PRIVATE" && isConstantPrice(asset) && onSetBalance && (
-              <button
-                type="button"
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setIsOpen(false)
-                  onSetBalance({ asset })
-                }}
-              >
-                <i className="fas fa-piggy-bank text-amber-500 w-4"></i>
-                {t("balance.set")}
-              </button>
-            )}
-            {onSetPrice && asset.market?.code === "PRIVATE" && !isConstantPrice(asset) && (
-              <button
-                type="button"
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setIsOpen(false)
-                  onSetPrice({ asset })
-                }}
-              >
-                <i className="fas fa-tag text-green-500 w-4"></i>
-                {t("price.set")}
-              </button>
-            )}
+            {asset.market?.code === "PRIVATE" &&
+              isConstantPrice(asset) &&
+              onSetBalance && (
+                <button
+                  type="button"
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setIsOpen(false)
+                    onSetBalance({ asset })
+                  }}
+                >
+                  <i className="fas fa-piggy-bank text-amber-500 w-4"></i>
+                  {t("balance.set")}
+                </button>
+              )}
+            {onSetPrice &&
+              asset.market?.code === "PRIVATE" &&
+              !isConstantPrice(asset) && (
+                <button
+                  type="button"
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setIsOpen(false)
+                    onSetPrice({ asset })
+                  }}
+                >
+                  <i className="fas fa-tag text-green-500 w-4"></i>
+                  {t("price.set")}
+                </button>
+              )}
             {onSectorWeightings && asset.assetCategory?.id === "ETF" && (
               <button
                 type="button"
@@ -313,17 +334,17 @@ const CashActionsMenu: React.FC<CashActionsMenuProps> = ({
       <button
         type="button"
         aria-label={`${t("actions.menu")} ${assetCode}`}
-        className="inline-flex items-center justify-center w-6 h-6 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors duration-200"
+        className="inline-flex items-center justify-center w-8 h-8 min-w-[44px] min-h-[44px] -m-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors duration-150"
         onClick={(e) => {
           e.stopPropagation()
           setIsOpen(!isOpen)
         }}
         title={t("actions.menu")}
       >
-        <i className="fas fa-ellipsis-vertical text-xs"></i>
+        <i className="fas fa-ellipsis-vertical text-sm"></i>
       </button>
       {isOpen && (
-        <div className="absolute left-0 bottom-full mb-1 w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200">
+        <div className="absolute left-0 bottom-full mb-1 w-48 bg-white rounded-lg shadow-xl z-50 border border-slate-200">
           <div className="py-1">
             {onSetCashBalance && (
               <button
@@ -470,7 +491,9 @@ export default function Rows({
         ({ asset, moneyValues, quantityValues, dateValues, held }, index) => (
           <tr
             key={`${groupBy}-${valueIn}-${index}`}
-            className="holding-row text-sm bg-white hover:!bg-slate-200 transition-colors duration-200 cursor-pointer"
+            className={`holding-row text-sm cursor-pointer border-l-2 border-l-transparent ${
+              index % 2 === 0 ? "bg-white" : "bg-slate-50/40"
+            }`}
             onDoubleClick={() =>
               supportsBalanceSetting(asset)
                 ? router.push(`/trns/cash-ladder/${portfolio.id}/${asset.id}`)
@@ -478,12 +501,12 @@ export default function Rows({
             }
             title={t("actions.doubleClickToOpen")}
           >
-            <td className="px-0.5 py-1 sm:px-2 md:px-3 text-ellipsis min-w-0">
+            <td className="px-1 py-1.5 sm:px-2 md:px-3 text-ellipsis min-w-0">
               {/* Unified layout: code on top, name below for both mobile and desktop */}
               <div className="flex items-start gap-1">
                 <div className="flex-1 min-w-0">
                   <div
-                    className="font-semibold text-sm sm:text-base"
+                    className="font-semibold text-sm sm:text-base text-slate-900"
                     title={asset.code}
                   >
                     {isCash(asset)
@@ -494,10 +517,10 @@ export default function Rows({
                   </div>
                   {!isCash(asset) && asset.name && (
                     <div
-                      className="text-[10px] xl:text-xs text-gray-600"
+                      className="text-[10px] xl:text-xs text-slate-500 truncate max-w-[120px] sm:max-w-[180px] xl:max-w-none"
                       title={asset.name}
                     >
-                      {truncateText(asset.name, 20)}
+                      {truncateText(asset.name, 18)}
                     </div>
                   )}
                 </div>
@@ -506,7 +529,9 @@ export default function Rows({
                     onCorporateActions ||
                     onCostAdjust ||
                     (onSetPrice && asset.market?.code === "PRIVATE") ||
-                    (onSetBalance && asset.market?.code === "PRIVATE" && isConstantPrice(asset))) && (
+                    (onSetBalance &&
+                      asset.market?.code === "PRIVATE" &&
+                      isConstantPrice(asset))) && (
                     <div className="flex items-center">
                       <ActionsMenu
                         asset={asset}
@@ -553,14 +578,14 @@ export default function Rows({
                 " "
               ) : (
                 <span className="relative group">
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-slate-500">
                     {moneyValues[valueIn].currency.symbol}
                   </span>
                   <FormatValue
                     value={moneyValues[valueIn].priceData.close}
                     isPublic
                   />
-                  <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full mb-1 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap z-50">
+                  <span className="absolute right-0 transform -translate-y-full mb-1 bg-slate-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none whitespace-nowrap z-50 shadow-lg">
                     {moneyValues[valueIn].priceData.priceDate}
                   </span>
                 </span>
@@ -570,23 +595,23 @@ export default function Rows({
               {hideValue(moneyValues[valueIn].priceData?.changePercent) ? (
                 " "
               ) : (
-                <span
-                  className={`relative group ${
-                    moneyValues[valueIn].priceData.changePercent < 0
-                      ? "text-red-500"
-                      : "text-green-500"
-                  }`}
-                >
-                  <span className="hidden sm:inline">
-                    {moneyValues[valueIn].priceData.changePercent < 0
-                      ? "▼ "
-                      : "▲ "}
+                <span className="relative group">
+                  <span
+                    className={`inline-flex items-center px-1.5 py-0.5 rounded-sm font-mono text-xs sm:text-sm ${
+                      moneyValues[valueIn].priceData.changePercent < 0
+                        ? "text-red-600 bg-red-50"
+                        : moneyValues[valueIn].priceData.changePercent > 0
+                          ? "text-emerald-600 bg-emerald-50"
+                          : "text-slate-600 bg-slate-50"
+                    }`}
+                  >
+                    {(
+                      Math.abs(moneyValues[valueIn].priceData.changePercent) *
+                      100
+                    ).toFixed(2)}
+                    %
                   </span>
-                  {(
-                    Math.abs(moneyValues[valueIn].priceData.changePercent) * 100
-                  ).toFixed(2)}
-                  %
-                  <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full mb-1 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap z-50">
+                  <span className="absolute right-0 transform -translate-y-full mb-1 bg-slate-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none whitespace-nowrap z-50 shadow-lg">
                     Change: {effectiveCurrencySymbol}
                     {convert(moneyValues[valueIn].gainOnDay)?.toLocaleString(
                       undefined,
@@ -603,7 +628,9 @@ export default function Rows({
               {hideValue(moneyValues[valueIn].priceData) ? (
                 " "
               ) : (
-                <FormatValue value={convert(moneyValues[valueIn].gainOnDay)} />
+                <ResponsiveFormatValue
+                  value={convert(moneyValues[valueIn].gainOnDay)}
+                />
               )}
             </td>
 
@@ -617,7 +644,7 @@ export default function Rows({
                     value={quantityValues.total}
                     precision={quantityValues.precision}
                   />
-                  <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full mb-1 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap z-50">
+                  <span className="absolute right-0 transform -translate-y-full mb-1 bg-slate-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none whitespace-nowrap z-50 shadow-lg">
                     {Object.entries(held).map(([broker, qty]) => (
                       <div key={broker}>
                         {broker}: {qty.toLocaleString()}
@@ -634,15 +661,17 @@ export default function Rows({
             </td>
             <td className={getCellClasses(4)}>
               <span className="relative group">
-                <FormatValue value={convert(moneyValues[valueIn].costValue)} />
-                <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full mb-1 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap z-50">
+                <ResponsiveFormatValue
+                  value={convert(moneyValues[valueIn].costValue)}
+                />
+                <span className="absolute right-0 transform -translate-y-full mb-1 bg-slate-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none whitespace-nowrap z-50 shadow-lg">
                   Average:{" "}
                   {convert(moneyValues[valueIn].averageCost).toLocaleString()}
                 </span>
               </span>
             </td>
             <td className={getCellClasses(5)}>
-              <FormatValue
+              <ResponsiveFormatValue
                 value={convert(moneyValues[valueIn].marketValue)}
                 defaultValue="0"
               />
@@ -650,12 +679,12 @@ export default function Rows({
             <td className={getCellClasses(6)}>
               {!isCashRelated(asset) && (
                 <span
-                  className={`relative group ${
+                  className={`relative group font-mono tabular-nums ${
                     moneyValues[valueIn].irr < 0
-                      ? "text-red-500"
+                      ? "text-red-600"
                       : moneyValues[valueIn].irr > 0
-                        ? "text-green-500"
-                        : ""
+                        ? "text-emerald-600"
+                        : "text-slate-600"
                   }`}
                 >
                   <FormatValue
@@ -664,7 +693,7 @@ export default function Rows({
                     isPublic
                   />
                   {"%"}
-                  <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full mb-1 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap z-50">
+                  <span className="absolute right-0 transform -translate-y-full mb-1 bg-slate-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none whitespace-nowrap z-50 shadow-lg">
                     ROI: {(Math.abs(moneyValues[valueIn].roi) * 100).toFixed(2)}
                     %
                   </span>
@@ -676,35 +705,37 @@ export default function Rows({
                 <Link
                   href={`/trns/events`}
                   as={`/trns/events/${portfolio.id}/${asset.id}`}
-                  className="text-blue-600 hover:text-blue-800"
+                  className="text-blue-600 hover:text-blue-800 hover:underline"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <FormatValue
+                  <ResponsiveFormatValue
                     value={convert(moneyValues[valueIn].dividends)}
                   />
                 </Link>
-                <span className="absolute left-1/2 transform -translate-x-1/2 -translate-y-full mb-1 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap z-50">
+                <span className="absolute right-0 transform -translate-y-full mb-1 bg-slate-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none whitespace-nowrap z-50 shadow-lg">
                   Last Event: {dateValues?.lastDividend || "N/A"}
                 </span>
               </span>
             </td>
             <td className={getCellClasses(8)}>
-              <FormatValue
+              <ResponsiveFormatValue
                 value={convert(moneyValues[valueIn].unrealisedGain)}
               />
             </td>
             <td className={getCellClasses(9)}>
-              <FormatValue value={convert(moneyValues[valueIn].realisedGain)} />
+              <ResponsiveFormatValue
+                value={convert(moneyValues[valueIn].realisedGain)}
+              />
             </td>
             <td className={getCellClasses(10)}>
               <span
-                className={`${
+                className={`font-mono tabular-nums ${
                   moneyValues[valueIn].weight < 0
-                    ? "text-red-500"
+                    ? "text-red-600"
                     : moneyValues[valueIn].weight > 0
-                      ? "text-green-500"
-                      : ""
-                } ${onWeightClick && !isCashRelated(asset) ? "cursor-pointer hover:underline" : ""}`}
+                      ? "text-emerald-600"
+                      : "text-slate-600"
+                } ${onWeightClick && !isCashRelated(asset) ? "cursor-pointer hover:underline decoration-dotted underline-offset-2" : ""}`}
                 onClick={
                   onWeightClick && !isCashRelated(asset)
                     ? (e) => {
@@ -741,7 +772,9 @@ export default function Rows({
               />
             </td>
             <td className={getCellClasses(12)}>
-              <FormatValue value={convert(moneyValues[valueIn].totalGain)} />
+              <ResponsiveFormatValue
+                value={convert(moneyValues[valueIn].totalGain)}
+              />
             </td>
           </tr>
         ),
