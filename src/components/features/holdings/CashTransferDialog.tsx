@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react"
 import { useTranslation } from "next-i18next"
+import Dialog from "@components/ui/Dialog"
 import { Portfolio, CashTransferData, Asset } from "types/beancounter"
 import MathInput from "@components/ui/MathInput"
 import useSWR from "swr"
@@ -293,335 +294,283 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
       ? { name: sourceData.assetName }
       : allTargetAssets.find((a) => a.id === targetAssetId)
 
+  const stepFooter =
+    step === "amounts" ? (
+      <>
+        <Dialog.CancelButton onClick={onClose} label={t("cancel")} />
+        <Dialog.SubmitButton
+          onClick={() => setStep("target")}
+          label={t("next")}
+          disabled={!isAmountsValid}
+          variant="purple"
+        />
+      </>
+    ) : (
+      <>
+        <button
+          type="button"
+          className="text-gray-600 hover:text-gray-800 px-4 py-2"
+          onClick={() => setStep("amounts")}
+          disabled={isSubmitting}
+        >
+          &larr; {t("back")}
+        </button>
+        <div className="flex space-x-2">
+          <Dialog.CancelButton onClick={onClose} label={t("cancel")} />
+          <Dialog.SubmitButton
+            onClick={handleTransfer}
+            label={
+              submitSuccess ? t("success") : t("cash.transfer.confirm")
+            }
+            loadingLabel={t("submitting")}
+            isSubmitting={isSubmitting}
+            disabled={!isTargetValid || submitSuccess}
+            variant={submitSuccess ? "green" : "purple"}
+          />
+        </div>
+      </>
+    )
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div
-        className="fixed inset-0 bg-black opacity-50"
-        onClick={onClose}
-      ></div>
-      <div
-        className="bg-white rounded-lg shadow-lg w-full max-w-md mx-4 p-4 sm:p-6 z-50 max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header with step indicator */}
-        <header className="flex justify-between items-center border-b pb-2 mb-4">
-          <div>
-            <h2 className="text-xl font-semibold">
-              {t("cash.transfer.title")}
-            </h2>
-            <div className="flex items-center gap-2 mt-1">
-              <span
-                className={`text-xs px-2 py-0.5 rounded ${step === "amounts" ? "bg-purple-500 text-white" : "bg-gray-200 text-gray-600"}`}
-              >
-                1
-              </span>
-              <span className="text-xs text-gray-400">―</span>
-              <span
-                className={`text-xs px-2 py-0.5 rounded ${step === "target" ? "bg-purple-500 text-white" : "bg-gray-200 text-gray-600"}`}
-              >
-                2
-              </span>
+    <Dialog
+      title={
+        <div>
+          <div>{t("cash.transfer.title")}</div>
+          <div className="flex items-center gap-2 mt-1">
+            <span
+              className={`text-xs px-2 py-0.5 rounded ${step === "amounts" ? "bg-purple-500 text-white" : "bg-gray-200 text-gray-600"}`}
+            >
+              1
+            </span>
+            <span className="text-xs text-gray-400">―</span>
+            <span
+              className={`text-xs px-2 py-0.5 rounded ${step === "target" ? "bg-purple-500 text-white" : "bg-gray-200 text-gray-600"}`}
+            >
+              2
+            </span>
+          </div>
+        </div>
+      }
+      onClose={onClose}
+      maxWidth="md"
+      scrollable={true}
+      footer={stepFooter}
+    >
+      {/* Step 1: Amounts */}
+      {step === "amounts" && (
+        <div className="space-y-4">
+          {/* Source Info */}
+          <div className="bg-blue-50 rounded-lg p-3">
+            <div className="text-sm text-gray-600">
+              {t("cash.transfer.from")}
+            </div>
+            <div className="font-semibold">{sourceData.assetName}</div>
+            <div className="text-sm text-gray-500">
+              {sourceData.portfolioCode} &bull; {sourceData.currency}{" "}
+              {sourceData.currentBalance.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
             </div>
           </div>
-          <button
-            className="text-gray-500 hover:text-gray-700"
-            onClick={onClose}
-          >
-            &times;
-          </button>
-        </header>
 
-        {/* Step 1: Amounts */}
-        {step === "amounts" && (
-          <div className="space-y-4">
-            {/* Source Info */}
-            <div className="bg-blue-50 rounded-lg p-3">
-              <div className="text-sm text-gray-600">
-                {t("cash.transfer.from")}
-              </div>
-              <div className="font-semibold">{sourceData.assetName}</div>
-              <div className="text-sm text-gray-500">
-                {sourceData.portfolioCode} &bull; {sourceData.currency}{" "}
-                {sourceData.currentBalance.toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
+          {/* Amount Sent */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t("cash.transfer.amountSent")}
+            </label>
+            <div className="flex items-center gap-2">
+              <span className="text-gray-500">{sourceData.currency}</span>
+              <MathInput
+                value={sentAmount === "" ? "" : parsedSentAmount}
+                onChange={handleSentChange}
+                placeholder="0.00"
+                className="flex-1 border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-purple-500 focus:border-purple-500"
+              />
+            </div>
+            {parsedSentAmount > sourceData.currentBalance && (
+              <p className="text-red-500 text-sm mt-1">
+                {t("cash.transfer.insufficientBalance")}
+              </p>
+            )}
+          </div>
+
+          {/* Amount Received */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t("cash.transfer.amountReceived")}
+            </label>
+            <div className="flex items-center gap-2">
+              <span className="text-gray-500">{sourceData.currency}</span>
+              <MathInput
+                value={receivedAmount === "" ? "" : parsedReceivedAmount}
+                onChange={(value) => setReceivedAmount(String(value))}
+                placeholder="0.00"
+                className="flex-1 border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-purple-500 focus:border-purple-500"
+              />
+            </div>
+            {parsedReceivedAmount > parsedSentAmount && (
+              <p className="text-red-500 text-sm mt-1">
+                {t("cash.transfer.receivedExceedsSent")}
+              </p>
+            )}
+          </div>
+
+          {/* Fee display */}
+          {fee > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-amber-700">
+                  {t("cash.transfer.fee")}
+                </span>
+                <span className="font-semibold text-amber-700">
+                  {sourceData.currency}{" "}
+                  {fee.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </span>
               </div>
             </div>
+          )}
+        </div>
+      )}
 
-            {/* Amount Sent */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t("cash.transfer.amountSent")}
-              </label>
-              <div className="flex items-center gap-2">
-                <span className="text-gray-500">{sourceData.currency}</span>
-                <MathInput
-                  value={sentAmount === "" ? "" : parsedSentAmount}
-                  onChange={handleSentChange}
-                  placeholder="0.00"
-                  className="flex-1 border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-purple-500 focus:border-purple-500"
-                />
-              </div>
-              {parsedSentAmount > sourceData.currentBalance && (
-                <p className="text-red-500 text-sm mt-1">
-                  {t("cash.transfer.insufficientBalance")}
-                </p>
+      {/* Step 2: Target & Confirm */}
+      {step === "target" && (
+        <div className="space-y-4">
+          {/* Target Portfolio */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t("cash.transfer.toPortfolio")}
+            </label>
+            <select
+              value={targetPortfolioId}
+              onChange={(e) => setTargetPortfolioId(e.target.value)}
+              className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-purple-500 focus:border-purple-500"
+            >
+              {portfolios.map((portfolio) => (
+                <option key={portfolio.id} value={portfolio.id}>
+                  {portfolio.code} - {portfolio.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Target Asset */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t("cash.transfer.toAsset")}
+            </label>
+            <select
+              value={targetAssetId}
+              onChange={(e) => setTargetAssetId(e.target.value)}
+              className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-purple-500 focus:border-purple-500"
+            >
+              <option value="">{t("cash.transfer.selectAsset")}</option>
+              <option value={sourceData.assetId}>
+                {sourceData.assetName} ({t("cash.transfer.sameAsset")})
+              </option>
+              {eligibleTargetAssets.currencies.length > 0 && (
+                <optgroup
+                  label={t(
+                    "cash.transfer.currencyBalances",
+                    "Currency Balances",
+                  )}
+                >
+                  {eligibleTargetAssets.currencies.map((asset) => (
+                    <option key={`ccy-${asset.code}`} value={asset.id}>
+                      {asset.name}
+                    </option>
+                  ))}
+                </optgroup>
               )}
-            </div>
-
-            {/* Amount Received */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t("cash.transfer.amountReceived")}
-              </label>
-              <div className="flex items-center gap-2">
-                <span className="text-gray-500">{sourceData.currency}</span>
-                <MathInput
-                  value={receivedAmount === "" ? "" : parsedReceivedAmount}
-                  onChange={(value) => setReceivedAmount(String(value))}
-                  placeholder="0.00"
-                  className="flex-1 border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-purple-500 focus:border-purple-500"
-                />
-              </div>
-              {parsedReceivedAmount > parsedSentAmount && (
-                <p className="text-red-500 text-sm mt-1">
-                  {t("cash.transfer.receivedExceedsSent")}
-                </p>
+              {eligibleTargetAssets.accounts.length > 0 && (
+                <optgroup
+                  label={t("cash.transfer.bankAccounts", "Bank Accounts")}
+                >
+                  {eligibleTargetAssets.accounts.map((asset) => (
+                    <option key={asset.id} value={asset.id}>
+                      {asset.name}
+                    </option>
+                  ))}
+                </optgroup>
               )}
-            </div>
+            </select>
+          </div>
 
-            {/* Fee display */}
-            {fee > 0 && (
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-amber-700">
-                    {t("cash.transfer.fee")}
+          {/* Description (optional) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t("cash.transfer.description")} ({t("optional")})
+            </label>
+            <input
+              type="text"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder={t("cash.transfer.descriptionPlaceholder")}
+              className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-purple-500 focus:border-purple-500"
+            />
+          </div>
+
+          {/* Transfer Summary */}
+          {isTargetValid && (
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+              <div className="text-sm text-gray-600 mb-2">
+                {t("cash.transfer.summary")}
+              </div>
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span>{t("cash.transfer.from")}:</span>
+                  <span className="font-medium">{sourceData.assetName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>{t("cash.transfer.to")}:</span>
+                  <span className="font-medium">
+                    {selectedAsset?.name} ({selectedPortfolio?.code})
                   </span>
-                  <span className="font-semibold text-amber-700">
+                </div>
+                <div className="flex justify-between">
+                  <span>{t("cash.transfer.amountSent")}:</span>
+                  <span className="font-semibold">
                     {sourceData.currency}{" "}
-                    {fee.toLocaleString(undefined, {
+                    {parsedSentAmount.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                </div>
+                {fee > 0 && (
+                  <div className="flex justify-between text-amber-600">
+                    <span>{t("cash.transfer.fee")}:</span>
+                    <span>
+                      {sourceData.currency}{" "}
+                      {fee.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span>{t("cash.transfer.amountReceived")}:</span>
+                  <span className="font-semibold">
+                    {sourceData.currency}{" "}
+                    {parsedReceivedAmount.toLocaleString(undefined, {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}
                   </span>
                 </div>
               </div>
-            )}
-
-            {/* Actions */}
-            <div className="flex justify-end space-x-2 pt-2">
-              <button
-                type="button"
-                className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 transition-colors"
-                onClick={onClose}
-              >
-                {t("cancel")}
-              </button>
-              <button
-                type="button"
-                className={`px-4 py-2 rounded transition-colors text-white ${
-                  !isAmountsValid
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-purple-500 hover:bg-purple-600"
-                }`}
-                onClick={() => setStep("target")}
-                disabled={!isAmountsValid}
-              >
-                {t("next")}
-              </button>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Step 2: Target & Confirm */}
-        {step === "target" && (
-          <div className="space-y-4">
-            {/* Target Portfolio */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t("cash.transfer.toPortfolio")}
-              </label>
-              <select
-                value={targetPortfolioId}
-                onChange={(e) => setTargetPortfolioId(e.target.value)}
-                className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-purple-500 focus:border-purple-500"
-              >
-                {portfolios.map((portfolio) => (
-                  <option key={portfolio.id} value={portfolio.id}>
-                    {portfolio.code} - {portfolio.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Target Asset */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t("cash.transfer.toAsset")}
-              </label>
-              <select
-                value={targetAssetId}
-                onChange={(e) => setTargetAssetId(e.target.value)}
-                className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-purple-500 focus:border-purple-500"
-              >
-                <option value="">{t("cash.transfer.selectAsset")}</option>
-                <option value={sourceData.assetId}>
-                  {sourceData.assetName} ({t("cash.transfer.sameAsset")})
-                </option>
-                {eligibleTargetAssets.currencies.length > 0 && (
-                  <optgroup
-                    label={t(
-                      "cash.transfer.currencyBalances",
-                      "Currency Balances",
-                    )}
-                  >
-                    {eligibleTargetAssets.currencies.map((asset) => (
-                      <option key={`ccy-${asset.code}`} value={asset.id}>
-                        {asset.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                )}
-                {eligibleTargetAssets.accounts.length > 0 && (
-                  <optgroup
-                    label={t("cash.transfer.bankAccounts", "Bank Accounts")}
-                  >
-                    {eligibleTargetAssets.accounts.map((asset) => (
-                      <option key={asset.id} value={asset.id}>
-                        {asset.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                )}
-              </select>
-            </div>
-
-            {/* Description (optional) */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t("cash.transfer.description")} ({t("optional")})
-              </label>
-              <input
-                type="text"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder={t("cash.transfer.descriptionPlaceholder")}
-                className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-purple-500 focus:border-purple-500"
-              />
-            </div>
-
-            {/* Transfer Summary */}
-            {isTargetValid && (
-              <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
-                <div className="text-sm text-gray-600 mb-2">
-                  {t("cash.transfer.summary")}
-                </div>
-                <div className="space-y-1 text-sm">
-                  <div className="flex justify-between">
-                    <span>{t("cash.transfer.from")}:</span>
-                    <span className="font-medium">{sourceData.assetName}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>{t("cash.transfer.to")}:</span>
-                    <span className="font-medium">
-                      {selectedAsset?.name} ({selectedPortfolio?.code})
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>{t("cash.transfer.amountSent")}:</span>
-                    <span className="font-semibold">
-                      {sourceData.currency}{" "}
-                      {parsedSentAmount.toLocaleString(undefined, {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                    </span>
-                  </div>
-                  {fee > 0 && (
-                    <div className="flex justify-between text-amber-600">
-                      <span>{t("cash.transfer.fee")}:</span>
-                      <span>
-                        {sourceData.currency}{" "}
-                        {fee.toLocaleString(undefined, {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                      </span>
-                    </div>
-                  )}
-                  <div className="flex justify-between">
-                    <span>{t("cash.transfer.amountReceived")}:</span>
-                    <span className="font-semibold">
-                      {sourceData.currency}{" "}
-                      {parsedReceivedAmount.toLocaleString(undefined, {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Error message */}
-            {submitError && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm">
-                {submitError}
-              </div>
-            )}
-
-            {/* Actions */}
-            <div className="flex justify-between pt-2">
-              <button
-                type="button"
-                className="text-gray-600 hover:text-gray-800 px-4 py-2"
-                onClick={() => setStep("amounts")}
-                disabled={isSubmitting}
-              >
-                &larr; {t("back")}
-              </button>
-              <div className="flex space-x-2">
-                <button
-                  type="button"
-                  className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 transition-colors"
-                  onClick={onClose}
-                  disabled={isSubmitting}
-                >
-                  {t("cancel")}
-                </button>
-                <button
-                  type="button"
-                  className={`px-4 py-2 rounded transition-colors text-white ${
-                    !isTargetValid || isSubmitting
-                      ? "bg-gray-400 cursor-not-allowed"
-                      : submitSuccess
-                        ? "bg-green-600"
-                        : "bg-purple-500 hover:bg-purple-600"
-                  }`}
-                  onClick={handleTransfer}
-                  disabled={!isTargetValid || isSubmitting || submitSuccess}
-                >
-                  {isSubmitting ? (
-                    <span className="flex items-center">
-                      <i className="fas fa-spinner fa-spin mr-2"></i>
-                      {t("submitting")}
-                    </span>
-                  ) : submitSuccess ? (
-                    <span className="flex items-center">
-                      <i className="fas fa-check mr-2"></i>
-                      {t("success")}
-                    </span>
-                  ) : (
-                    t("cash.transfer.confirm")
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+          {/* Error message */}
+          <Dialog.ErrorAlert message={submitError} />
+        </div>
+      )}
+    </Dialog>
   )
 }
 

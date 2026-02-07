@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react"
 import { useTranslation } from "next-i18next"
+import Dialog from "@components/ui/Dialog"
 import { Asset, Portfolio, Position } from "types/beancounter"
 import { postData } from "@components/ui/DropZone"
 import {
@@ -8,6 +9,7 @@ import {
   CashBalanceAdjustment,
 } from "@lib/trns/tradeUtils"
 import MathInput from "@components/ui/MathInput"
+import { stripOwnerPrefix } from "@lib/assets/assetUtils"
 
 interface AssetPosition {
   portfolio: Portfolio
@@ -28,11 +30,6 @@ interface BalanceEntry {
   adjustment: CashBalanceAdjustment
 }
 
-// Extract display code without owner prefix
-function getDisplayCode(code: string): string {
-  const dotIndex = code.lastIndexOf(".")
-  return dotIndex >= 0 ? code.substring(dotIndex + 1) : code
-}
 
 const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
   asset,
@@ -132,7 +129,7 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
       for (const entry of balanceEntries) {
         if (entry.adjustment.amount === 0) continue
 
-        const displayName = asset.name || getDisplayCode(asset.code)
+        const displayName = asset.name || stripOwnerPrefix(asset.code)
         const row = buildCashRow({
           type: entry.adjustment.type,
           currency,
@@ -163,190 +160,154 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div
-        className="fixed inset-0 bg-black opacity-50"
-        onClick={onClose}
-      ></div>
-      <div
-        className="bg-white rounded-lg shadow-lg w-full max-w-2xl mx-auto p-6 z-50 max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <header className="flex justify-between items-center border-b pb-2 mb-4">
-          <h2 className="text-xl font-semibold">
-            {t("accounts.setBalances.title")}
-          </h2>
-          <button
-            className="text-gray-500 hover:text-gray-700"
-            onClick={onClose}
-          >
-            &times;
-          </button>
-        </header>
-
-        {/* Asset Info */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-          <div className="font-semibold text-lg">{asset.name}</div>
-          <div className="text-sm text-gray-600">
-            {getDisplayCode(asset.code)} - {currency}
-          </div>
-        </div>
-
-        <p className="text-sm text-gray-600 mb-4">
-          {t("accounts.setBalances.description")}
-        </p>
-
-        {/* Loading State */}
-        {isLoading && (
-          <div className="flex items-center justify-center py-8">
-            <i className="fas fa-spinner fa-spin text-2xl text-blue-500"></i>
-            <span className="ml-2 text-gray-600">{t("loading")}</span>
-          </div>
-        )}
-
-        {/* Error State */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 mb-4">
-            {error}
-          </div>
-        )}
-
-        {/* No Portfolios State */}
-        {!isLoading && !error && positions.length === 0 && (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
-            <i className="fas fa-info-circle text-3xl text-gray-400 mb-2"></i>
-            <p className="text-gray-600">{t("accounts.setBalances.notHeld")}</p>
-            <p className="text-sm text-gray-500 mt-1">
-              {t("accounts.setBalances.notHeld.hint")}
-            </p>
-          </div>
-        )}
-
-        {/* Balance Table */}
-        {!isLoading && !error && positions.length > 0 && (
-          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    {t("accounts.setBalances.portfolio")}
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                    {t("accounts.setBalances.current")}
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                    {t("accounts.setBalances.target")}
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                    {t("accounts.setBalances.change")}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {balanceEntries.map((entry) => (
-                  <tr key={entry.portfolio.id}>
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-gray-900">
-                        {entry.portfolio.name}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {entry.portfolio.code}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-right text-gray-600">
-                      {currency}{" "}
-                      {entry.currentBalance.toLocaleString(undefined, {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                    </td>
-                    <td className="px-4 py-3">
-                      <MathInput
-                        value={
-                          entry.targetBalance === ""
-                            ? ""
-                            : parseFloat(entry.targetBalance)
-                        }
-                        onChange={(value) =>
-                          handleBalanceChange(entry.portfolio.id, String(value))
-                        }
-                        className="w-full text-right border-gray-300 rounded-md shadow-sm px-2 py-1 border focus:ring-blue-500 focus:border-blue-500"
-                        disabled={isSubmitting || submitSuccess}
-                      />
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {entry.adjustment.amount > 0 ? (
-                        <span
-                          className={`font-medium ${
-                            entry.adjustment.type === "DEPOSIT"
-                              ? "text-green-600"
-                              : "text-red-600"
-                          }`}
-                        >
-                          {entry.adjustment.type === "DEPOSIT" ? "+" : "-"}
-                          {currency}{" "}
-                          {entry.adjustment.amount.toLocaleString(undefined, {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </span>
-                      ) : (
-                        <span className="text-gray-400">-</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* Success Message */}
-        {submitSuccess && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mt-4 text-center">
-            <i className="fas fa-check-circle text-green-500 text-2xl mb-2"></i>
-            <p className="text-green-700 font-medium">
-              {t("accounts.setBalances.success", { count: successCount })}
-            </p>
-          </div>
-        )}
-
-        {/* Actions */}
-        <div className="flex justify-end space-x-2 mt-6">
-          <button
-            type="button"
-            className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 transition-colors"
-            onClick={onClose}
-            disabled={isSubmitting}
-          >
-            {t("cancel")}
-          </button>
+    <Dialog
+      title={t("accounts.setBalances.title")}
+      onClose={onClose}
+      maxWidth="2xl"
+      scrollable={true}
+      footer={
+        <>
+          <Dialog.CancelButton onClick={onClose} label={t("cancel")} />
           {!submitSuccess && positions.length > 0 && (
-            <button
-              type="button"
-              className={`px-4 py-2 rounded transition-colors text-white ${
-                changesCount === 0 || isSubmitting
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-blue-500 hover:bg-blue-600"
-              }`}
+            <Dialog.SubmitButton
               onClick={handleApply}
-              disabled={changesCount === 0 || isSubmitting}
-            >
-              {isSubmitting ? (
-                <span className="flex items-center">
-                  <i className="fas fa-spinner fa-spin mr-2"></i>
-                  {t("accounts.setBalances.applying")}
-                </span>
-              ) : changesCount === 0 ? (
-                t("accounts.setBalances.noChanges")
-              ) : (
-                `${t("cash.proceed")} (${changesCount})`
-              )}
-            </button>
+              label={
+                changesCount === 0
+                  ? t("accounts.setBalances.noChanges")
+                  : `${t("cash.proceed")} (${changesCount})`
+              }
+              loadingLabel={t("accounts.setBalances.applying")}
+              isSubmitting={isSubmitting}
+              disabled={changesCount === 0}
+              variant="blue"
+            />
           )}
+        </>
+      }
+    >
+      {/* Asset Info */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="font-semibold text-lg">{asset.name}</div>
+        <div className="text-sm text-gray-600">
+          {stripOwnerPrefix(asset.code)} - {currency}
         </div>
       </div>
-    </div>
+
+      <p className="text-sm text-gray-600">
+        {t("accounts.setBalances.description")}
+      </p>
+
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-8">
+          <i className="fas fa-spinner fa-spin text-2xl text-blue-500"></i>
+          <span className="ml-2 text-gray-600">{t("loading")}</span>
+        </div>
+      )}
+
+      {/* Error State */}
+      <Dialog.ErrorAlert message={error} />
+
+      {/* No Portfolios State */}
+      {!isLoading && !error && positions.length === 0 && (
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
+          <i className="fas fa-info-circle text-3xl text-gray-400 mb-2"></i>
+          <p className="text-gray-600">{t("accounts.setBalances.notHeld")}</p>
+          <p className="text-sm text-gray-500 mt-1">
+            {t("accounts.setBalances.notHeld.hint")}
+          </p>
+        </div>
+      )}
+
+      {/* Balance Table */}
+      {!isLoading && !error && positions.length > 0 && (
+        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  {t("accounts.setBalances.portfolio")}
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  {t("accounts.setBalances.current")}
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  {t("accounts.setBalances.target")}
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  {t("accounts.setBalances.change")}
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {balanceEntries.map((entry) => (
+                <tr key={entry.portfolio.id}>
+                  <td className="px-4 py-3">
+                    <div className="font-medium text-gray-900">
+                      {entry.portfolio.name}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {entry.portfolio.code}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-right text-gray-600">
+                    {currency}{" "}
+                    {entry.currentBalance.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </td>
+                  <td className="px-4 py-3">
+                    <MathInput
+                      value={
+                        entry.targetBalance === ""
+                          ? ""
+                          : parseFloat(entry.targetBalance)
+                      }
+                      onChange={(value) =>
+                        handleBalanceChange(entry.portfolio.id, String(value))
+                      }
+                      className="w-full text-right border-gray-300 rounded-md shadow-sm px-2 py-1 border focus:ring-blue-500 focus:border-blue-500"
+                      disabled={isSubmitting || submitSuccess}
+                    />
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {entry.adjustment.amount > 0 ? (
+                      <span
+                        className={`font-medium ${
+                          entry.adjustment.type === "DEPOSIT"
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        {entry.adjustment.type === "DEPOSIT" ? "+" : "-"}
+                        {currency}{" "}
+                        {entry.adjustment.amount.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Success Message */}
+      {submitSuccess && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+          <i className="fas fa-check-circle text-green-500 text-2xl mb-2"></i>
+          <p className="text-green-700 font-medium">
+            {t("accounts.setBalances.success", { count: successCount })}
+          </p>
+        </div>
+      )}
+    </Dialog>
   )
 }
 

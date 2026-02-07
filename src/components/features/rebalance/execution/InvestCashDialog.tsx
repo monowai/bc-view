@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback } from "react"
 import { useTranslation } from "next-i18next"
 import useSWR from "swr"
+import Dialog from "@components/ui/Dialog"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import {
   parseShorthandAmount,
@@ -265,451 +266,389 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
 
   if (!modalOpen) return null
 
+  const stepFooter =
+    step === "input" ? (
+      <>
+        <Dialog.CancelButton onClick={handleClose} label={t("cancel", "Cancel")} />
+        <Dialog.SubmitButton
+          onClick={handlePreview}
+          label={t("rebalance.investCash.preview", "Preview")}
+          loadingLabel={t("loading", "Loading...")}
+          isSubmitting={loading}
+          disabled={
+            !selectedModel ||
+            !amount ||
+            parseShorthandAmount(amount) <= 0
+          }
+          variant="blue"
+        />
+      </>
+    ) : (
+      <>
+        <Dialog.CancelButton onClick={handleBack} label={t("back", "Back")} />
+        <Dialog.SubmitButton
+          onClick={handleCommit}
+          label={`${t("rebalance.investCash.createProposed", "Create Proposed")} (${formatCurrency(totalSpending)})`}
+          loadingLabel={t("creating", "Creating...")}
+          isSubmitting={committing}
+          disabled={buyItems.length === 0}
+          variant="green"
+        />
+      </>
+    )
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div
-        className="fixed inset-0 bg-black opacity-50"
-        onClick={handleClose}
-      ></div>
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl mx-auto p-6 z-50 max-h-[85vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">
-            {step === "input"
-              ? t("rebalance.investCash.title", "Invest Cash")
-              : t("rebalance.investCash.preview", "Preview Transactions")}
-          </h2>
-          <button
-            className="text-gray-500 hover:text-gray-700 text-2xl leading-none"
-            onClick={handleClose}
-          >
-            &times;
-          </button>
-        </div>
+    <Dialog
+      title={
+        step === "input"
+          ? t("rebalance.investCash.title", "Invest Cash")
+          : t("rebalance.investCash.preview", "Preview Transactions")
+      }
+      onClose={handleClose}
+      maxWidth="2xl"
+      scrollable={true}
+      footer={stepFooter}
+    >
+      <Dialog.ErrorAlert message={error} />
 
-        {/* Error display */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 mb-4 text-sm">
-            {error}
+      {step === "input" ? (
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t("rebalance.investCash.amount", "Investment Amount")}
+            </label>
+            <input
+              type="text"
+              inputMode="decimal"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="10k"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              {t(
+                "rebalance.investCash.amountHint",
+                "Use h=100, k=1000, m=1000000 (e.g., 4k = 4,000)",
+              )}
+              {amount && hasShorthandSuffix(amount) && (
+                <span className="ml-2 text-blue-600 font-medium">
+                  = {parseShorthandAmount(amount).toLocaleString()}
+                </span>
+              )}
+            </p>
           </div>
-        )}
 
-        {step === "input" ? (
-          <>
-            {/* Step 1: Amount + Model Selection */}
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("rebalance.investCash.amount", "Investment Amount")}
-                </label>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="10k"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                />
-                <p className="mt-1 text-xs text-gray-500">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              {t("rebalance.investCash.selectModel", "Select Model")}
+            </label>
+
+            {loadingModels ? (
+              <div className="py-4 text-center text-gray-500">
+                <i className="fas fa-spinner fa-spin mr-2"></i>
+                {t("loading", "Loading...")}
+              </div>
+            ) : modelsWithApprovedPlans.length === 0 ? (
+              <div className="py-4 text-center text-gray-500">
+                <i className="fas fa-folder-open text-2xl mb-2"></i>
+                <p className="text-sm">
                   {t(
-                    "rebalance.investCash.amountHint",
-                    "Use h=100, k=1000, m=1000000 (e.g., 4k = 4,000)",
-                  )}
-                  {amount && hasShorthandSuffix(amount) && (
-                    <span className="ml-2 text-blue-600 font-medium">
-                      = {parseShorthandAmount(amount).toLocaleString()}
-                    </span>
+                    "rebalance.investCash.noModels",
+                    "No approved models found. Create a model and approve a plan first.",
                   )}
                 </p>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t("rebalance.investCash.selectModel", "Select Model")}
-                </label>
-
-                {loadingModels ? (
-                  <div className="py-4 text-center text-gray-500">
-                    <i className="fas fa-spinner fa-spin mr-2"></i>
-                    {t("loading", "Loading...")}
-                  </div>
-                ) : modelsWithApprovedPlans.length === 0 ? (
-                  <div className="py-4 text-center text-gray-500">
-                    <i className="fas fa-folder-open text-2xl mb-2"></i>
-                    <p className="text-sm">
-                      {t(
-                        "rebalance.investCash.noModels",
-                        "No approved models found. Create a model and approve a plan first.",
-                      )}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {modelsWithApprovedPlans.map((model) => (
-                      <button
-                        key={model.id}
-                        onClick={() => setSelectedModel(model)}
-                        className={`w-full text-left p-3 border rounded-lg transition-colors ${
-                          selectedModel?.id === model.id
-                            ? "border-blue-500 bg-blue-50"
-                            : "border-gray-200 hover:border-blue-300 hover:bg-gray-50"
-                        }`}
-                      >
-                        <div className="font-medium text-gray-900">
-                          {model.name}
-                        </div>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">
-                            {model.baseCurrency}
-                          </span>
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">
-                            <i className="fas fa-check-circle mr-1"></i>v
-                            {model.currentPlanVersion}
-                          </span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {/* Plan Preview - show when a model is selected */}
-                {selectedModel && (
-                  <div className="mt-4 border border-gray-200 rounded-lg overflow-hidden">
-                    <div className="bg-gray-50 px-3 py-2 border-b border-gray-200">
-                      <h4 className="text-sm font-medium text-gray-700">
-                        <i className="fas fa-chart-pie mr-2 text-gray-400"></i>
-                        {t(
-                          "rebalance.investCash.planAssets",
-                          "Plan Allocations",
-                        )}
-                      </h4>
-                    </div>
-                    {loadingPlan ? (
-                      <div className="py-4 text-center text-gray-500 text-sm">
-                        <i className="fas fa-spinner fa-spin mr-2"></i>
-                        {t("loading", "Loading...")}
-                      </div>
-                    ) : planAssets.length === 0 ? (
-                      <div className="py-4 text-center text-gray-500 text-sm">
-                        {t(
-                          "rebalance.investCash.noAssets",
-                          "No assets in plan",
-                        )}
-                      </div>
-                    ) : (
-                      <div className="max-h-48 overflow-y-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                          <thead className="bg-gray-50 sticky top-0">
-                            <tr>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                {t("asset", "Asset")}
-                              </th>
-                              <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase w-20">
-                                {t("weight", "Weight")}
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody className="bg-white divide-y divide-gray-200">
-                            {planAssets
-                              .sort((a, b) => b.weight - a.weight)
-                              .map((asset) => (
-                                <tr key={asset.id}>
-                                  <td
-                                    className="px-3 py-2"
-                                    title={asset.rationale || undefined}
-                                  >
-                                    <div className="font-medium text-gray-900 text-sm">
-                                      {formatAssetCode(asset.assetCode) ||
-                                        asset.assetId}
-                                      {asset.rationale && (
-                                        <i className="fas fa-info-circle ml-1 text-gray-400 text-xs"></i>
-                                      )}
-                                    </div>
-                                    {asset.assetName && (
-                                      <div className="text-xs text-gray-500 truncate max-w-48">
-                                        {asset.assetName}
-                                      </div>
-                                    )}
-                                  </td>
-                                  <td className="px-3 py-2 text-right text-sm text-gray-700">
-                                    {(asset.weight * 100).toFixed(1)}%
-                                  </td>
-                                </tr>
-                              ))}
-                            {cashWeight > 0 && (
-                              <tr className="bg-blue-50">
-                                <td className="px-3 py-2">
-                                  <div className="font-medium text-blue-700 text-sm">
-                                    <i className="fas fa-coins mr-1"></i>
-                                    {t("cash", "Cash")}
-                                  </div>
-                                </td>
-                                <td className="px-3 py-2 text-right text-sm text-blue-700">
-                                  {(cashWeight * 100).toFixed(1)}%
-                                </td>
-                              </tr>
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Step 1 footer */}
-            <div className="flex justify-end space-x-2 mt-6 pt-4 border-t">
-              <button
-                onClick={handleClose}
-                className="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300 transition-colors"
-              >
-                {t("cancel", "Cancel")}
-              </button>
-              <button
-                onClick={handlePreview}
-                disabled={
-                  !selectedModel ||
-                  !amount ||
-                  parseShorthandAmount(amount) <= 0 ||
-                  loading
-                }
-                className={`px-4 py-2 rounded text-white transition-colors ${
-                  selectedModel &&
-                  amount &&
-                  parseShorthandAmount(amount) > 0 &&
-                  !loading
-                    ? "bg-blue-500 hover:bg-blue-600"
-                    : "bg-gray-400 cursor-not-allowed"
-                }`}
-              >
-                {loading ? (
-                  <span className="flex items-center">
-                    <i className="fas fa-spinner fa-spin mr-2"></i>
-                    {t("loading", "Loading...")}
-                  </span>
-                ) : (
-                  t("rebalance.investCash.preview", "Preview")
-                )}
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
-            {/* Step 2: Preview - backend provides complete data, UI calculates qty × price */}
-            <div className="space-y-4">
-              <div className="border rounded-lg overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                        {t("asset", "Asset")}
-                      </th>
-                      <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase w-24">
-                        {t("quantity", "Qty")}
-                      </th>
-                      <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase w-28">
-                        {t("price", "Price")}
-                      </th>
-                      <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase w-28">
-                        {t("value", "Value")}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {buyItems.map((item) => {
-                      const { qty, price, value } = getItemValues(item)
-                      const displayCode = formatAssetCode(item.assetCode)
-                      return (
-                        <tr key={item.assetId} className="bg-green-50">
-                          <td
-                            className="px-3 py-2"
-                            title={item.rationale || undefined}
-                          >
-                            <div className="font-medium text-gray-900 text-sm cursor-help">
-                              {displayCode || item.assetId}
-                              {item.rationale && (
-                                <i className="fas fa-info-circle ml-1 text-gray-400 text-xs"></i>
-                              )}
-                            </div>
-                            {item.assetName && (
-                              <div className="text-xs text-gray-500 truncate max-w-45">
-                                {item.assetName}
-                              </div>
-                            )}
-                          </td>
-                          <td className="px-3 py-2">
-                            <input
-                              type="number"
-                              min="0"
-                              step="1"
-                              value={qty}
-                              onChange={(e) =>
-                                handleQuantityChange(
-                                  item.assetId,
-                                  parseInt(e.target.value) || 0,
-                                )
-                              }
-                              className="w-full px-2 py-1 text-right text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                            />
-                          </td>
-                          <td className="px-3 py-2">
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={price.toFixed(2)}
-                              onChange={(e) =>
-                                handlePriceChange(
-                                  item.assetId,
-                                  parseFloat(e.target.value) || 0,
-                                )
-                              }
-                              className="w-full px-2 py-1 text-right text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                            />
-                          </td>
-                          <td className="px-3 py-2 text-right text-green-700 font-medium text-sm">
-                            {formatCurrency(value)}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Summary panel */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="grid grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <div className="text-gray-500">
-                      {t(
-                        "rebalance.investCash.portfolioCash",
-                        "Portfolio Cash",
-                      )}
-                    </div>
-                    <div className="font-semibold">
-                      {formatCurrency(portfolioCash)}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-gray-500">
-                      {t("rebalance.investCash.spending", "Spending")}
-                    </div>
-                    <div className="font-semibold text-green-600">
-                      {formatCurrency(totalSpending)}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-gray-500">
-                      {t("rebalance.investCash.cashAfter", "Cash After")}
-                    </div>
-                    <div
-                      className={`font-semibold ${
-                        cashAfter < 0
-                          ? "text-red-600"
-                          : cashAfter < portfolioCash * 0.05
-                            ? "text-orange-600"
-                            : "text-blue-600"
-                      }`}
-                    >
-                      {formatCurrency(cashAfter)}
-                    </div>
-                  </div>
-                </div>
-                {cashAfter < 0 && (
-                  <div className="mt-2 text-xs text-amber-600">
-                    <i className="fas fa-exclamation-triangle mr-1"></i>
-                    {t(
-                      "rebalance.investCash.insufficientCash",
-                      "Warning: Insufficient cash. You may still create proposed transactions for review.",
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Broker Selection */}
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-medium text-gray-700">
-                    {t("trn.broker", "Broker")}
-                  </label>
-                  <a
-                    href="/brokers"
-                    target="_blank"
-                    className="text-xs text-emerald-600 hover:text-emerald-700"
+            ) : (
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {modelsWithApprovedPlans.map((model) => (
+                  <button
+                    key={model.id}
+                    onClick={() => setSelectedModel(model)}
+                    className={`w-full text-left p-3 border rounded-lg transition-colors ${
+                      selectedModel?.id === model.id
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-gray-200 hover:border-blue-300 hover:bg-gray-50"
+                    }`}
                   >
-                    {t("brokers.manage", "Manage")}
-                  </a>
-                </div>
-                <select
-                  value={selectedBrokerId || ""}
-                  onChange={(e) =>
-                    setSelectedBrokerId(e.target.value || undefined)
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
-                >
-                  <option value="">
-                    {t("trn.broker.none", "-- No broker --")}
-                  </option>
-                  {brokers.map((broker) => (
-                    <option key={broker.id} value={broker.id}>
-                      {broker.name}
-                      {broker.accountNumber ? ` (${broker.accountNumber})` : ""}
-                    </option>
-                  ))}
-                </select>
+                    <div className="font-medium text-gray-900">
+                      {model.name}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">
+                        {model.baseCurrency}
+                      </span>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">
+                        <i className="fas fa-check-circle mr-1"></i>v
+                        {model.currentPlanVersion}
+                      </span>
+                    </div>
+                  </button>
+                ))}
               </div>
+            )}
 
-              <div className="text-sm text-gray-500 flex items-start gap-2">
-                <i className="fas fa-info-circle mt-0.5"></i>
-                <span>
-                  {t(
-                    "rebalance.investCash.proposedNote",
-                    "Transactions will be created as PROPOSED. You can review and settle them from the transaction list.",
-                  )}
-                </span>
-              </div>
-            </div>
-
-            {/* Step 2 footer */}
-            <div className="flex justify-between mt-6 pt-4 border-t">
-              <button
-                onClick={handleBack}
-                className="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300 transition-colors"
-              >
-                {t("back", "Back")}
-              </button>
-              <button
-                onClick={handleCommit}
-                disabled={committing || buyItems.length === 0}
-                className={`px-4 py-2 rounded text-white transition-colors ${
-                  !committing && buyItems.length > 0
-                    ? "bg-green-500 hover:bg-green-600"
-                    : "bg-gray-400 cursor-not-allowed"
-                }`}
-              >
-                {committing ? (
-                  <span className="flex items-center">
-                    <i className="fas fa-spinner fa-spin mr-2"></i>
-                    {t("creating", "Creating...")}
-                  </span>
-                ) : (
-                  <>
-                    <i className="fas fa-check mr-2"></i>
+            {/* Plan Preview - show when a model is selected */}
+            {selectedModel && (
+              <div className="mt-4 border border-gray-200 rounded-lg overflow-hidden">
+                <div className="bg-gray-50 px-3 py-2 border-b border-gray-200">
+                  <h4 className="text-sm font-medium text-gray-700">
+                    <i className="fas fa-chart-pie mr-2 text-gray-400"></i>
                     {t(
-                      "rebalance.investCash.createProposed",
-                      "Create Proposed",
-                    )}{" "}
-                    ({formatCurrency(totalSpending)})
-                  </>
+                      "rebalance.investCash.planAssets",
+                      "Plan Allocations",
+                    )}
+                  </h4>
+                </div>
+                {loadingPlan ? (
+                  <div className="py-4 text-center text-gray-500 text-sm">
+                    <i className="fas fa-spinner fa-spin mr-2"></i>
+                    {t("loading", "Loading...")}
+                  </div>
+                ) : planAssets.length === 0 ? (
+                  <div className="py-4 text-center text-gray-500 text-sm">
+                    {t(
+                      "rebalance.investCash.noAssets",
+                      "No assets in plan",
+                    )}
+                  </div>
+                ) : (
+                  <div className="max-h-48 overflow-y-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50 sticky top-0">
+                        <tr>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                            {t("asset", "Asset")}
+                          </th>
+                          <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase w-20">
+                            {t("weight", "Weight")}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {planAssets
+                          .sort((a, b) => b.weight - a.weight)
+                          .map((asset) => (
+                            <tr key={asset.id}>
+                              <td
+                                className="px-3 py-2"
+                                title={asset.rationale || undefined}
+                              >
+                                <div className="font-medium text-gray-900 text-sm">
+                                  {formatAssetCode(asset.assetCode) ||
+                                    asset.assetId}
+                                  {asset.rationale && (
+                                    <i className="fas fa-info-circle ml-1 text-gray-400 text-xs"></i>
+                                  )}
+                                </div>
+                                {asset.assetName && (
+                                  <div className="text-xs text-gray-500 truncate max-w-48">
+                                    {asset.assetName}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="px-3 py-2 text-right text-sm text-gray-700">
+                                {(asset.weight * 100).toFixed(1)}%
+                              </td>
+                            </tr>
+                          ))}
+                        {cashWeight > 0 && (
+                          <tr className="bg-blue-50">
+                            <td className="px-3 py-2">
+                              <div className="font-medium text-blue-700 text-sm">
+                                <i className="fas fa-coins mr-1"></i>
+                                {t("cash", "Cash")}
+                              </div>
+                            </td>
+                            <td className="px-3 py-2 text-right text-sm text-blue-700">
+                              {(cashWeight * 100).toFixed(1)}%
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
-              </button>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="border rounded-lg overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    {t("asset", "Asset")}
+                  </th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase w-24">
+                    {t("quantity", "Qty")}
+                  </th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase w-28">
+                    {t("price", "Price")}
+                  </th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase w-28">
+                    {t("value", "Value")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {buyItems.map((item) => {
+                  const { qty, price, value } = getItemValues(item)
+                  const displayCode = formatAssetCode(item.assetCode)
+                  return (
+                    <tr key={item.assetId} className="bg-green-50">
+                      <td
+                        className="px-3 py-2"
+                        title={item.rationale || undefined}
+                      >
+                        <div className="font-medium text-gray-900 text-sm cursor-help">
+                          {displayCode || item.assetId}
+                          {item.rationale && (
+                            <i className="fas fa-info-circle ml-1 text-gray-400 text-xs"></i>
+                          )}
+                        </div>
+                        {item.assetName && (
+                          <div className="text-xs text-gray-500 truncate max-w-45">
+                            {item.assetName}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-3 py-2">
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={qty}
+                          onChange={(e) =>
+                            handleQuantityChange(
+                              item.assetId,
+                              parseInt(e.target.value) || 0,
+                            )
+                          }
+                          className="w-full px-2 py-1 text-right text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={price.toFixed(2)}
+                          onChange={(e) =>
+                            handlePriceChange(
+                              item.assetId,
+                              parseFloat(e.target.value) || 0,
+                            )
+                          }
+                          className="w-full px-2 py-1 text-right text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </td>
+                      <td className="px-3 py-2 text-right text-green-700 font-medium text-sm">
+                        {formatCurrency(value)}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Summary panel */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="grid grid-cols-3 gap-4 text-sm">
+              <div>
+                <div className="text-gray-500">
+                  {t(
+                    "rebalance.investCash.portfolioCash",
+                    "Portfolio Cash",
+                  )}
+                </div>
+                <div className="font-semibold">
+                  {formatCurrency(portfolioCash)}
+                </div>
+              </div>
+              <div>
+                <div className="text-gray-500">
+                  {t("rebalance.investCash.spending", "Spending")}
+                </div>
+                <div className="font-semibold text-green-600">
+                  {formatCurrency(totalSpending)}
+                </div>
+              </div>
+              <div>
+                <div className="text-gray-500">
+                  {t("rebalance.investCash.cashAfter", "Cash After")}
+                </div>
+                <div
+                  className={`font-semibold ${
+                    cashAfter < 0
+                      ? "text-red-600"
+                      : cashAfter < portfolioCash * 0.05
+                        ? "text-orange-600"
+                        : "text-blue-600"
+                  }`}
+                >
+                  {formatCurrency(cashAfter)}
+                </div>
+              </div>
             </div>
-          </>
-        )}
-      </div>
-    </div>
+            {cashAfter < 0 && (
+              <div className="mt-2 text-xs text-amber-600">
+                <i className="fas fa-exclamation-triangle mr-1"></i>
+                {t(
+                  "rebalance.investCash.insufficientCash",
+                  "Warning: Insufficient cash. You may still create proposed transactions for review.",
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Broker Selection */}
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium text-gray-700">
+                {t("trn.broker", "Broker")}
+              </label>
+              <a
+                href="/brokers"
+                target="_blank"
+                className="text-xs text-emerald-600 hover:text-emerald-700"
+              >
+                {t("brokers.manage", "Manage")}
+              </a>
+            </div>
+            <select
+              value={selectedBrokerId || ""}
+              onChange={(e) =>
+                setSelectedBrokerId(e.target.value || undefined)
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+            >
+              <option value="">
+                {t("trn.broker.none", "-- No broker --")}
+              </option>
+              {brokers.map((broker) => (
+                <option key={broker.id} value={broker.id}>
+                  {broker.name}
+                  {broker.accountNumber ? ` (${broker.accountNumber})` : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="text-sm text-gray-500 flex items-start gap-2">
+            <i className="fas fa-info-circle mt-0.5"></i>
+            <span>
+              {t(
+                "rebalance.investCash.proposedNote",
+                "Transactions will be created as PROPOSED. You can review and settle them from the transaction list.",
+              )}
+            </span>
+          </div>
+        </div>
+      )}
+    </Dialog>
   )
 }
 

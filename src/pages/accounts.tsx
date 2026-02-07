@@ -11,6 +11,7 @@ import { currencyOptions } from "@lib/currency"
 import { useRouter } from "next/router"
 import SetAccountBalancesDialog from "@components/features/accounts/SetAccountBalancesDialog"
 import SetBalanceDialog from "@components/features/holdings/SetBalanceDialog"
+import { stripOwnerPrefix } from "@lib/assets/assetUtils"
 import MathInput from "@components/ui/MathInput"
 import CompositeAssetEditor from "@components/features/assets/CompositeAssetEditor"
 import { PolicyType, SubAccountRequest } from "types/beancounter"
@@ -42,11 +43,6 @@ interface CategoryOption {
   label: string
 }
 
-// Extract display code without owner prefix (e.g., "userId.WISE" -> "WISE")
-function getDisplayCode(code: string): string {
-  const dotIndex = code.lastIndexOf(".")
-  return dotIndex >= 0 ? code.substring(dotIndex + 1) : code
-}
 
 interface EditAccountData {
   asset: Asset
@@ -289,7 +285,7 @@ const AssetTable: React.FC<AssetTableProps> = ({
           {accounts.map((account) => (
             <tr key={account.id}>
               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                {getDisplayCode(account.code)}
+                {stripOwnerPrefix(account.code)}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                 {account.name}
@@ -837,7 +833,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
 }) => {
   const { t } = useTranslation("common")
   const [activeTab, setActiveTab] = useState<EditTab>("details")
-  const [code, setCode] = useState(getDisplayCode(asset.code))
+  const [code, setCode] = useState(stripOwnerPrefix(asset.code))
   const [name, setName] = useState(asset.name || "")
   const [currency, setCurrency] = useState(
     asset.priceSymbol || asset.market?.currency?.code || "USD",
@@ -2186,7 +2182,7 @@ const DeleteAccountDialog: React.FC<DeleteAccountDialogProps> = ({
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="font-semibold text-lg">{asset.name}</div>
             <div className="text-sm text-gray-600">
-              {getDisplayCode(asset.code)} (
+              {stripOwnerPrefix(asset.code)} (
               {asset.priceSymbol || asset.market?.currency?.code})
             </div>
           </div>
@@ -2292,7 +2288,7 @@ const SetPriceDialog: React.FC<SetPriceDialogProps> = ({
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="font-semibold text-lg">{asset.name}</div>
             <div className="text-sm text-gray-600">
-              {getDisplayCode(asset.code)} -{" "}
+              {stripOwnerPrefix(asset.code)} -{" "}
               {t(`category.${asset.assetCategory?.id}`) ||
                 asset.assetCategory?.name}
             </div>
