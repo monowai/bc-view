@@ -39,59 +39,64 @@ function detectEnvironment(): string {
 }
 
 const environment = detectEnvironment()
+const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN
 
-console.log("[Sentry Client] Initializing with environment:", environment)
+if (!dsn) {
+  console.log("[Sentry Client] No DSN configured, skipping initialization")
+} else {
+  console.log("[Sentry Client] Initializing with environment:", environment)
 
-Sentry.init({
-  dsn: "https://77443f1427eaf68cd124ec3af629a438@o4508146873466880.ingest.de.sentry.io/4508155588182096",
-  environment,
+  Sentry.init({
+    dsn,
+    environment,
 
-  // Define how likely traces are sampled. Adjust this value in production.
-  tracesSampleRate: 0.2,
+    // Define how likely traces are sampled. Adjust this value in production.
+    tracesSampleRate: 0.2,
 
-  // Setting this option to true will print useful information to the console while you're setting up Sentry.
-  debug: false,
+    // Setting this option to true will print useful information to the console while you're setting up Sentry.
+    debug: false,
 
-  // Capture replays on errors
-  replaysOnErrorSampleRate: 1.0,
-  replaysSessionSampleRate: 0.1,
+    // Capture replays on errors
+    replaysOnErrorSampleRate: 1.0,
+    replaysSessionSampleRate: 0.1,
 
-  // Propagate trace headers to API routes for distributed tracing
-  tracePropagationTargets: [/^\/api\//],
+    // Propagate trace headers to API routes for distributed tracing
+    tracePropagationTargets: [/^\/api\//],
 
-  // Filter transactions by URL pattern and remove noisy spans
-  beforeSendTransaction(event) {
-    const url = event.request?.url || event.transaction || ""
-    if (ignorePatterns.some((pattern) => url.includes(pattern))) {
-      return null
-    }
-    // Filter out spans matching ignore patterns
-    if (event.spans) {
-      event.spans = event.spans.filter(
-        (span) => !ignorePatterns.some((pattern) => span.op === pattern),
-      )
-    }
-    return event
-  },
+    // Filter transactions by URL pattern and remove noisy spans
+    beforeSendTransaction(event) {
+      const url = event.request?.url || event.transaction || ""
+      if (ignorePatterns.some((pattern) => url.includes(pattern))) {
+        return null
+      }
+      // Filter out spans matching ignore patterns
+      if (event.spans) {
+        event.spans = event.spans.filter(
+          (span) => !ignorePatterns.some((pattern) => span.op === pattern),
+        )
+      }
+      return event
+    },
 
-  integrations: [
-    Sentry.replayIntegration({
-      maskAllText: false,
-      blockAllMedia: false,
-    }),
-    // Configure browser tracing to exclude noisy requests
-    Sentry.browserTracingIntegration({
-      // Don't create spans for Next.js internal fetch requests
-      shouldCreateSpanForRequest: (url) => {
-        return !ignorePatterns.some((pattern) => url.includes(pattern))
-      },
-      // Don't create spans for static resource loading
-      ignoreResourceSpans: ignorePatterns,
-    }),
-  ],
-})
+    integrations: [
+      Sentry.replayIntegration({
+        maskAllText: false,
+        blockAllMedia: false,
+      }),
+      // Configure browser tracing to exclude noisy requests
+      Sentry.browserTracingIntegration({
+        // Don't create spans for Next.js internal fetch requests
+        shouldCreateSpanForRequest: (url) => {
+          return !ignorePatterns.some((pattern) => url.includes(pattern))
+        },
+        // Don't create spans for static resource loading
+        ignoreResourceSpans: ignorePatterns,
+      }),
+    ],
+  })
 
-console.log("[Sentry Client] Initialized successfully")
+  console.log("[Sentry Client] Initialized successfully")
+}
 
 // Required for navigation instrumentation with Turbopack
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart
