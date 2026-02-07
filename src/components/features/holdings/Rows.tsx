@@ -6,6 +6,7 @@ import {
   WeightClickData,
   SetCashBalanceData,
   SetPriceData,
+  SetBalanceData,
   CashTransferData,
   CostAdjustData,
   Asset,
@@ -15,6 +16,7 @@ import {
   isCash,
   isCashRelated,
   isAccount,
+  isConstantPrice,
   supportsBalanceSetting,
 } from "@lib/assets/assetUtils"
 import { headers } from "./Header"
@@ -42,6 +44,7 @@ interface RowsProps extends HoldingValues {
   onWeightClick?: (data: WeightClickData) => void
   onSetCashBalance?: (data: SetCashBalanceData) => void
   onSetPrice?: (data: SetPriceData) => void
+  onSetBalance?: (data: SetBalanceData) => void
   onSectorWeightings?: (data: SectorWeightingsData) => void
   onCashTransfer?: (data: CashTransferData) => void
   onCashTransaction?: (assetCode: string) => void
@@ -105,6 +108,7 @@ interface ActionsMenuProps {
   onQuickSell?: (data: QuickSellData) => void
   onCorporateActions?: (data: CorporateActionsData) => void
   onSetPrice?: (data: SetPriceData) => void
+  onSetBalance?: (data: SetBalanceData) => void
   onSectorWeightings?: (data: SectorWeightingsData) => void
   onCostAdjust?: (data: CostAdjustData) => void
   t: (key: string) => string
@@ -123,6 +127,7 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
   onQuickSell,
   onCorporateActions,
   onSetPrice,
+  onSetBalance,
   onSectorWeightings,
   onCostAdjust,
   t,
@@ -199,7 +204,21 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
                 {t("corporate.view")}
               </button>
             )}
-            {onSetPrice && asset.market?.code === "PRIVATE" && (
+            {asset.market?.code === "PRIVATE" && isConstantPrice(asset) && onSetBalance && (
+              <button
+                type="button"
+                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setIsOpen(false)
+                  onSetBalance({ asset })
+                }}
+              >
+                <i className="fas fa-piggy-bank text-amber-500 w-4"></i>
+                {t("balance.set")}
+              </button>
+            )}
+            {onSetPrice && asset.market?.code === "PRIVATE" && !isConstantPrice(asset) && (
               <button
                 type="button"
                 className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
@@ -390,6 +409,7 @@ export default function Rows({
   onWeightClick,
   onSetCashBalance,
   onSetPrice,
+  onSetBalance,
   onSectorWeightings,
   onCashTransfer,
   onCashTransaction,
@@ -485,7 +505,8 @@ export default function Rows({
                   (onQuickSell ||
                     onCorporateActions ||
                     onCostAdjust ||
-                    (onSetPrice && asset.market?.code === "PRIVATE")) && (
+                    (onSetPrice && asset.market?.code === "PRIVATE") ||
+                    (onSetBalance && asset.market?.code === "PRIVATE" && isConstantPrice(asset))) && (
                     <div className="flex items-center">
                       <ActionsMenu
                         asset={asset}
@@ -503,6 +524,7 @@ export default function Rows({
                         onQuickSell={onQuickSell}
                         onCorporateActions={onCorporateActions}
                         onSetPrice={onSetPrice}
+                        onSetBalance={onSetBalance}
                         onSectorWeightings={onSectorWeightings}
                         onCostAdjust={onCostAdjust}
                         t={t}

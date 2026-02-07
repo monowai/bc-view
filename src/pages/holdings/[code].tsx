@@ -5,6 +5,7 @@ import {
   RebalanceData,
   SetCashBalanceData,
   SetPriceData,
+  SetBalanceData,
   CashTransferData,
   CostAdjustData,
   Asset,
@@ -45,6 +46,7 @@ import CorporateActionsPopup from "@components/features/holdings/CorporateAction
 import TargetWeightDialog from "@components/features/holdings/TargetWeightDialog"
 import SetCashBalanceDialog from "@components/features/holdings/SetCashBalanceDialog"
 import SetPriceDialog from "@components/features/holdings/SetPriceDialog"
+import SetBalanceDialog from "@components/features/holdings/SetBalanceDialog"
 import CashTransferDialog from "@components/features/holdings/CashTransferDialog"
 import CostAdjustDialog from "@components/features/holdings/CostAdjustDialog"
 import CashInputForm from "@pages/trns/cash"
@@ -89,6 +91,9 @@ function HoldingsPage(): React.ReactElement {
   const [setPriceData, setSetPriceData] = useState<SetPriceData | undefined>(
     undefined,
   )
+  const [setBalanceData, setSetBalanceData] = useState<
+    SetBalanceData | undefined
+  >(undefined)
   const [sectorWeightingsAsset, setSectorWeightingsAsset] = useState<
     Asset | undefined
   >(undefined)
@@ -170,6 +175,22 @@ function HoldingsPage(): React.ReactElement {
   const handleSetPriceDialogClose = useCallback(() => {
     setSetPriceData(undefined)
   }, [])
+
+  // Handle set balance from position row (for POLICY assets)
+  const handleSetBalance = useCallback((data: SetBalanceData) => {
+    setSetBalanceData(data)
+  }, [])
+
+  // Close set balance dialog and refresh
+  const handleSetBalanceClose = useCallback(() => {
+    setSetBalanceData(undefined)
+  }, [])
+
+  // Refresh holdings after balance is set
+  const handleSetBalanceComplete = useCallback(async (): Promise<void> => {
+    setSetBalanceData(undefined)
+    await router.replace(router.asPath)
+  }, [router])
 
   // Handle sector weightings popup for ETFs
   const handleSectorWeightings = useCallback((data: SectorWeightingsData) => {
@@ -430,6 +451,7 @@ function HoldingsPage(): React.ReactElement {
                           onWeightClick={handleWeightClick}
                           onSetCashBalance={handleSetCashBalance}
                           onSetPrice={handleSetPrice}
+                          onSetBalance={handleSetBalance}
                           onSectorWeightings={handleSectorWeightings}
                           onCashTransfer={handleCashTransfer}
                           onCashTransaction={handleCashTransaction}
@@ -535,6 +557,13 @@ function HoldingsPage(): React.ReactElement {
           asset={setPriceData.asset}
           onClose={handleSetPriceDialogClose}
           onSave={handleSetPriceSave}
+        />
+      )}
+      {setBalanceData && (
+        <SetBalanceDialog
+          asset={setBalanceData.asset}
+          onClose={handleSetBalanceClose}
+          onComplete={handleSetBalanceComplete}
         />
       )}
       {sectorWeightingsAsset && (

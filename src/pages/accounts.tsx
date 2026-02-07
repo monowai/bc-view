@@ -10,6 +10,7 @@ import { Asset, AssetCategory, CurrencyOption } from "types/beancounter"
 import { currencyOptions } from "@lib/currency"
 import { useRouter } from "next/router"
 import SetAccountBalancesDialog from "@components/features/accounts/SetAccountBalancesDialog"
+import SetBalanceDialog from "@components/features/holdings/SetBalanceDialog"
 import MathInput from "@components/ui/MathInput"
 import CompositeAssetEditor from "@components/features/assets/CompositeAssetEditor"
 import { PolicyType, SubAccountRequest } from "types/beancounter"
@@ -60,6 +61,10 @@ interface SetPriceData {
 }
 
 interface SetBalancesData {
+  asset: Asset
+}
+
+interface SetBalanceData {
   asset: Asset
 }
 
@@ -234,6 +239,7 @@ interface AssetTableProps {
   onDelete: (asset: Asset) => void
   onSetPrice: (asset: Asset) => void
   onSetBalances: (asset: Asset) => void
+  onSetBalance: (asset: Asset) => void
   emptyMessage?: string
 }
 
@@ -243,6 +249,7 @@ const AssetTable: React.FC<AssetTableProps> = ({
   onDelete,
   onSetPrice,
   onSetBalances,
+  onSetBalance,
   emptyMessage,
 }) => {
   const { t } = useTranslation("common")
@@ -303,6 +310,14 @@ const AssetTable: React.FC<AssetTableProps> = ({
                   >
                     <i className="fas fa-balance-scale mr-1"></i>
                     {t("accounts.setBalances")}
+                  </button>
+                ) : account.assetCategory?.id === "POLICY" ? (
+                  <button
+                    onClick={() => onSetBalance(account)}
+                    className="text-amber-600 hover:text-amber-900 mr-4"
+                  >
+                    <i className="fas fa-piggy-bank mr-1"></i>
+                    {t("balance.set")}
                   </button>
                 ) : (
                   <button
@@ -390,6 +405,9 @@ function AccountsPage(): React.ReactElement {
   )
   const [setBalancesData, setSetBalancesData] = useState<
     SetBalancesData | undefined
+  >(undefined)
+  const [setBalanceData, setSetBalanceData] = useState<
+    SetBalanceData | undefined
   >(undefined)
   const [showImportDialog, setShowImportDialog] = useState(false)
 
@@ -487,6 +505,20 @@ function AccountsPage(): React.ReactElement {
 
   const handleSetBalancesComplete = useCallback(() => {
     setSetBalancesData(undefined)
+  }, [])
+
+  // POLICY asset balance handlers
+  const handleSetBalance = useCallback((asset: Asset) => {
+    setSetBalanceData({ asset })
+  }, [])
+
+  const handleSetBalanceClose = useCallback(() => {
+    setSetBalanceData(undefined)
+  }, [])
+
+  const handleSetBalanceComplete = useCallback(async () => {
+    await mutate("/api/assets")
+    setSetBalanceData(undefined)
   }, [])
 
   const handleImportClick = useCallback(() => {
@@ -636,6 +668,7 @@ function AccountsPage(): React.ReactElement {
           onDelete={handleDelete}
           onSetPrice={handleSetPrice}
           onSetBalances={handleSetBalances}
+          onSetBalance={handleSetBalance}
           emptyMessage={
             activeTab === "all"
               ? t("accounts.empty")
@@ -676,12 +709,21 @@ function AccountsPage(): React.ReactElement {
         />
       )}
 
-      {/* Set Balances Dialog */}
+      {/* Set Balances Dialog (for ACCOUNT category) */}
       {setBalancesData && (
         <SetAccountBalancesDialog
           asset={setBalancesData.asset}
           onClose={handleSetBalancesClose}
           onComplete={handleSetBalancesComplete}
+        />
+      )}
+
+      {/* Set Balance Dialog (for POLICY/Retirement Fund category) */}
+      {setBalanceData && (
+        <SetBalanceDialog
+          asset={setBalanceData.asset}
+          onClose={handleSetBalanceClose}
+          onComplete={handleSetBalanceComplete}
         />
       )}
 
@@ -808,6 +850,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
   )
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [submitSuccess, setSubmitSuccess] = useState(false)
 
   // Private Asset Config state (for RE category)
   const [config, setConfig] = useState<AssetConfigState>(defaultConfigState)
@@ -1163,6 +1206,12 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
           body: JSON.stringify(configPayload),
         })
       }
+
+      // Show success and auto-close
+      setSubmitSuccess(true)
+      setTimeout(() => {
+        onClose()
+      }, 1500)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save")
     } finally {
@@ -1177,7 +1226,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
         onClick={onClose}
       ></div>
       <div
-        className="bg-white rounded-lg shadow-lg w-full max-w-md mx-auto p-6 z-50"
+        className="bg-white rounded-lg shadow-lg w-full max-w-md mx-4 p-4 sm:p-6 z-50 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex justify-between items-center border-b pb-2 mb-4">
@@ -2040,6 +2089,13 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
           </div>
         )}
 
+        {submitSuccess && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mt-4 text-center">
+            <i className="fas fa-check-circle text-green-500 text-2xl mb-2"></i>
+            <p className="text-green-700 font-medium">{t("saved")}</p>
+          </div>
+        )}
+
         <div className="flex justify-end space-x-2 mt-6">
           <button
             type="button"
@@ -2048,25 +2104,27 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
           >
             {t("cancel")}
           </button>
-          <button
-            type="button"
-            className={`px-4 py-2 rounded transition-colors text-white ${
-              isSubmitting
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-indigo-500 hover:bg-indigo-600"
-            }`}
-            onClick={handleSave}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <span className="flex items-center">
-                <i className="fas fa-spinner fa-spin mr-2"></i>
-                {t("saving")}
-              </span>
-            ) : (
-              t("save")
-            )}
-          </button>
+          {!submitSuccess && (
+            <button
+              type="button"
+              className={`px-4 py-2 rounded transition-colors text-white ${
+                isSubmitting
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-indigo-500 hover:bg-indigo-600"
+              }`}
+              onClick={handleSave}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <span className="flex items-center">
+                  <i className="fas fa-spinner fa-spin mr-2"></i>
+                  {t("saving")}
+                </span>
+              ) : (
+                t("save")
+              )}
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -2107,7 +2165,7 @@ const DeleteAccountDialog: React.FC<DeleteAccountDialogProps> = ({
         onClick={onClose}
       ></div>
       <div
-        className="bg-white rounded-lg shadow-lg w-full max-w-md mx-auto p-6 z-50"
+        className="bg-white rounded-lg shadow-lg w-full max-w-md mx-4 p-4 sm:p-6 z-50 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex justify-between items-center border-b pb-2 mb-4">
@@ -2376,7 +2434,7 @@ const ImportDialog: React.FC<ImportDialogProps> = ({ onClose, onComplete }) => {
         onClick={onClose}
       ></div>
       <div
-        className="bg-white rounded-lg shadow-lg w-full max-w-md mx-auto p-6 z-50"
+        className="bg-white rounded-lg shadow-lg w-full max-w-md mx-4 p-4 sm:p-6 z-50 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex justify-between items-center border-b pb-2 mb-4">

@@ -67,6 +67,10 @@ export interface SetPriceData {
   asset: Asset
 }
 
+export interface SetBalanceData {
+  asset: Asset
+}
+
 export interface CostAdjustData {
   asset: Asset
   portfolioId: string
