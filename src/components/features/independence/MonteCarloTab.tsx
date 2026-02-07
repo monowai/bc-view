@@ -148,7 +148,7 @@ export default function MonteCarloTab({
               value={iterations}
               onChange={(e) => setIterations(Number(e.target.value))}
               disabled={isRunning}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
             >
               {ITERATION_OPTIONS.map((n) => (
                 <option key={n} value={n}>
@@ -159,7 +159,7 @@ export default function MonteCarloTab({
             <button
               onClick={() => runSimulation(iterations)}
               disabled={isRunning}
-              className="px-4 py-2 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+              className="px-4 py-2 bg-independence-500 hover:bg-independence-600 disabled:bg-independence-200 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
             >
               {isRunning ? (
                 <>
@@ -250,7 +250,7 @@ export default function MonteCarloTab({
                   className={`text-xs px-2 py-1 rounded transition-colors ${
                     fanTooltipEnabled
                       ? "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                      : "bg-orange-100 text-orange-700 hover:bg-orange-200"
+                      : "bg-independence-100 text-independence-700 hover:bg-independence-200"
                   }`}
                   title={fanTooltipEnabled ? "Hide tooltip" : "Show tooltip"}
                 >

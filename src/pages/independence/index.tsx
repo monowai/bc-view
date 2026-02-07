@@ -62,14 +62,14 @@ function PlanCard({
     if (progress >= 100) return "text-green-600"
     if (progress >= 75) return "text-blue-600"
     if (progress >= 50) return "text-yellow-600"
-    return "text-orange-600"
+    return "text-independence-600"
   }
 
   const getProgressBgColor = (progress: number): string => {
     if (progress >= 100) return "bg-green-500"
     if (progress >= 75) return "bg-blue-500"
     if (progress >= 50) return "bg-yellow-500"
-    return "bg-orange-500"
+    return "bg-independence-500"
   }
 
   return (
@@ -85,7 +85,7 @@ function PlanCard({
         <div className="flex space-x-1">
           <Link
             href={`/independence/wizard/${plan.id}`}
-            className="text-gray-400 hover:text-orange-600 p-1"
+            className="text-gray-400 hover:text-independence-600 p-1"
             title="Edit plan"
           >
             <i className="fas fa-edit"></i>
@@ -101,14 +101,14 @@ function PlanCard({
       </div>
 
       {/* FI Number and Progress */}
-      <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-lg p-3 mb-4 border border-orange-100">
+      <div className="bg-gradient-to-r from-independence-50 to-independence-100 rounded-lg p-3 mb-4 border border-independence-100">
         <div className="flex justify-between items-center">
           <span className="text-sm text-gray-600">
-            <i className="fas fa-bullseye text-orange-500 mr-1"></i>
+            <i className="fas fa-bullseye text-independence-500 mr-1"></i>
             FI Number
           </span>
           <span
-            className={`font-bold ${hideValues ? "text-gray-400" : "text-orange-600"}`}
+            className={`font-bold ${hideValues ? "text-gray-400" : "text-independence-600"}`}
           >
             {hideValues
               ? HIDDEN_VALUE
@@ -198,7 +198,7 @@ function PlanCard({
 
       <Link
         href={`/independence/plans/${plan.id}`}
-        className="w-full block text-center bg-orange-50 text-orange-600 px-4 py-2 rounded-lg hover:bg-orange-100 font-medium"
+        className="w-full block text-center bg-independence-50 text-independence-600 px-4 py-2 rounded-lg hover:bg-independence-100 font-medium"
       >
         View Projections
       </Link>
@@ -361,7 +361,7 @@ function RetirementPlanning(): React.ReactElement {
               </button>
               <Link
                 href="/independence/wizard"
-                className="bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 font-medium flex items-center"
+                className="bg-independence-600 text-white px-6 py-3 rounded-lg hover:bg-independence-700 font-medium flex items-center"
               >
                 <i className="fas fa-plus mr-2"></i>
                 Create Plan
@@ -386,7 +386,7 @@ function RetirementPlanning(): React.ReactElement {
 
           {isLoading && (
             <div className="text-center py-12">
-              <i className="fas fa-spinner fa-spin text-3xl text-orange-600"></i>
+              <i className="fas fa-spinner fa-spin text-3xl text-independence-600"></i>
               <p className="mt-4 text-gray-500">Loading plans...</p>
             </div>
           )}
@@ -400,8 +400,8 @@ function RetirementPlanning(): React.ReactElement {
 
           {!isLoading && !error && plans.length === 0 && (
             <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-              <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <i className="fas fa-umbrella-beach text-3xl text-orange-600"></i>
+              <div className="w-20 h-20 bg-independence-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i className="fas fa-umbrella-beach text-3xl text-independence-600"></i>
               </div>
               <h2 className="text-xl font-semibold text-gray-900 mb-2">
                 No independence plans yet
@@ -412,7 +412,7 @@ function RetirementPlanning(): React.ReactElement {
               </p>
               <Link
                 href="/independence/wizard"
-                className="inline-flex items-center bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 font-medium"
+                className="inline-flex items-center bg-independence-600 text-white px-6 py-3 rounded-lg hover:bg-independence-700 font-medium"
               >
                 <i className="fas fa-plus mr-2"></i>
                 Create Your First Plan

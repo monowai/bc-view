@@ -1016,7 +1016,7 @@ function PlanView(): React.ReactElement {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="container mx-auto px-4 text-center">
-          <i className="fas fa-spinner fa-spin text-3xl text-orange-600"></i>
+          <i className="fas fa-spinner fa-spin text-3xl text-independence-600"></i>
           <p className="mt-4 text-gray-500">Loading plan...</p>
         </div>
       </div>
@@ -1050,7 +1050,7 @@ function PlanView(): React.ReactElement {
           {isCalculating && !adjustedProjection && (
             <div className="fixed inset-0 bg-white/80 z-40 flex items-center justify-center">
               <div className="text-center">
-                <i className="fas fa-spinner fa-spin text-4xl text-orange-500 mb-4"></i>
+                <i className="fas fa-spinner fa-spin text-4xl text-independence-500 mb-4"></i>
                 <p className="text-gray-600 font-medium">
                   Calculating projections...
                 </p>
@@ -1229,7 +1229,7 @@ function PlanView(): React.ReactElement {
                       </h2>
                       <button
                         onClick={() => setShowEditDetailsModal(true)}
-                        className="text-sm text-orange-600 hover:text-orange-700"
+                        className="text-sm text-independence-600 hover:text-independence-700"
                       >
                         <i className="fas fa-edit mr-1"></i>
                         Edit
@@ -1310,7 +1310,7 @@ function PlanView(): React.ReactElement {
                           </span>
                         </InfoTooltip>
                         <span
-                          className={`font-medium ${hideValues ? "text-gray-400" : "text-orange-600"}`}
+                          className={`font-medium ${hideValues ? "text-gray-400" : "text-independence-600"}`}
                         >
                           {hideValues
                             ? HIDDEN_VALUE
@@ -1538,11 +1538,11 @@ function PlanView(): React.ReactElement {
                               Pension + Benefits + Rental + Other
                             </div>
                           </div>
-                          <div className="p-4 bg-orange-50 rounded-lg">
+                          <div className="p-4 bg-independence-50 rounded-lg">
                             <div className="text-sm text-gray-500 mb-1">
                               Net Monthly Need from Investments
                             </div>
-                            <div className="text-xl font-bold text-orange-600">
+                            <div className="text-xl font-bold text-independence-600">
                               {hideValues ? (
                                 HIDDEN_VALUE
                               ) : (
@@ -1683,7 +1683,7 @@ function PlanView(): React.ReactElement {
                               key={slice.key}
                               className={`p-3 rounded-lg border transition-colors ${
                                 isSpendable
-                                  ? "border-orange-200 bg-orange-50"
+                                  ? "border-independence-200 bg-independence-50"
                                   : "border-gray-200 bg-gray-50"
                               }`}
                             >
@@ -1693,7 +1693,7 @@ function PlanView(): React.ReactElement {
                                     type="checkbox"
                                     checked={isSpendable}
                                     onChange={() => toggleCategory(slice.key)}
-                                    className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500"
+                                    className="w-4 h-4 text-independence-600 rounded focus:ring-independence-500"
                                   />
                                   <div
                                     className="w-3 h-3 rounded-full"
@@ -1830,7 +1830,7 @@ function PlanView(): React.ReactElement {
                           {t("retire.assets.spendable")}
                         </span>
                         <span
-                          className={`font-medium ${hideValues ? "text-gray-400" : "text-orange-600"}`}
+                          className={`font-medium ${hideValues ? "text-gray-400" : "text-independence-600"}`}
                         >
                           {hideValues
                             ? HIDDEN_VALUE
@@ -1882,7 +1882,7 @@ function PlanView(): React.ReactElement {
                         </span>
                         <span
                           className={
-                            hideValues ? "text-gray-400" : "text-orange-600"
+                            hideValues ? "text-gray-400" : "text-independence-600"
                           }
                         >
                           {hideValues
@@ -1924,7 +1924,7 @@ function PlanView(): React.ReactElement {
                   <div className="text-center py-12 text-gray-500">
                     {isCalculating ? (
                       <>
-                        <i className="fas fa-spinner fa-spin text-4xl mb-3 text-orange-400"></i>
+                        <i className="fas fa-spinner fa-spin text-4xl mb-3 text-independence-500"></i>
                         <p>{t("retire.assets.calculating")}</p>
                       </>
                     ) : (
@@ -2284,7 +2284,7 @@ function PlanView(): React.ReactElement {
                   <CollapsibleSection
                     title="Scenario Impact"
                     icon="fa-calculator"
-                    iconColor="text-orange-500"
+                    iconColor="text-independence-500"
                     isOpen={openSections["scenarioImpact"]}
                     onToggle={() => toggleSection("scenarioImpact")}
                   >

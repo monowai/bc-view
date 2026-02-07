@@ -41,12 +41,12 @@ export default function GrandTotal({
       <tr>
         <td
           colSpan={GRANDTOTAL_LAYOUT.TOTAL_CELLS}
-          className="border-t-2 border-blue-500"
+          className="border-t-2 border-wealth-500"
         />
       </tr>
       <tr
         key={valueIn}
-        className="holding-footer text-sm bg-gradient-to-r from-blue-500 to-blue-600 text-white border-b-2 border-blue-500"
+        className="holding-footer text-sm bg-gradient-to-r from-wealth-500 to-wealth-600 text-white border-b-2 border-wealth-500"
       >
         <td className="px-1 py-2 sm:px-2 md:px-3 text-xs md:text-sm font-semibold text-left">
           <div>{t("holdings.valueTitle", { valueIn })}</div>
@@ -140,7 +140,7 @@ export default function GrandTotal({
             headerIndex === HEADER_INDICES.UNREALISED_GAIN ||
             headerIndex === HEADER_INDICES.REALISED_GAIN ||
             headerIndex === HEADER_INDICES.TOTAL_GAIN
-          const fontClass = isNumeric ? "font-mono tabular-nums" : ""
+          const fontClass = isNumeric ? "tabular-nums" : ""
 
           // Apply same padding logic as Header and Rows
           const padding = "px-0.5 py-2 sm:px-1 md:px-2 xl:px-3" // Taller grand total row
@@ -175,7 +175,7 @@ export default function GrandTotal({
                   {headerIndex === HEADER_INDICES.WEIGHT && "%"}
                 </>
               ) : item.tooltip ? (
-                <span className="group relative cursor-help text-blue-200">
+                <span className="group relative cursor-help text-wealth-200">
                   -
                   <span className="invisible group-hover:visible absolute right-0 bottom-full mb-1 z-10 w-48 p-2 bg-slate-800 text-white text-xs rounded shadow-lg">
                     {t(item.tooltip)}

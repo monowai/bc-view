@@ -13,7 +13,7 @@ function ExecutionsPage(): React.ReactElement {
     <div className="w-full py-4">
       {/* Breadcrumb */}
       <nav className="text-sm text-gray-500 mb-4">
-        <Link href="/rebalance" className="hover:text-emerald-600">
+        <Link href="/rebalance" className="hover:text-invest-600">
           {t("rebalance.title", "Rebalancing")}
         </Link>
         <span className="mx-2">/</span>

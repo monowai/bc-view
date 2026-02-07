@@ -25,6 +25,30 @@ module.exports = {
           DEFAULT: "#dc2626", // red-600
           bg: "#fef2f2", // red-50
         },
+        wealth: {
+          50: "#eff6ff", // blue-50
+          100: "#dbeafe", // blue-100
+          200: "#bfdbfe", // blue-200
+          500: "#3b82f6", // blue-500
+          600: "#2563eb", // blue-600
+          700: "#1d4ed8", // blue-700
+        },
+        independence: {
+          50: "#fff7ed", // orange-50
+          100: "#ffedd5", // orange-100
+          200: "#fed7aa", // orange-200
+          500: "#f97316", // orange-500
+          600: "#ea580c", // orange-600
+          700: "#c2410c", // orange-700
+        },
+        invest: {
+          50: "#ecfdf5", // emerald-50
+          100: "#d1fae5", // emerald-100
+          200: "#a7f3d0", // emerald-200
+          500: "#10b981", // emerald-500
+          600: "#059669", // emerald-600
+          700: "#047857", // emerald-700
+        },
       },
     },
   },

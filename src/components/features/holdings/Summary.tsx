@@ -352,7 +352,7 @@ export default function SummaryHeader({
         })}
       </tr>
       {/* Values row with refined styling */}
-      <tr className="bg-gradient-to-br from-slate-50 via-white to-blue-50/20 border-b border-slate-200/60">
+      <tr className="bg-gradient-to-br from-slate-50 via-white to-wealth-50/20 border-b border-slate-200/60">
         <td className="px-3 py-3 text-sm font-medium text-slate-700">
           <form onSubmit={handleSubmit(onSubmit)}>
             <Controller
@@ -390,7 +390,7 @@ export default function SummaryHeader({
           return (
             <td
               key={index}
-              className={`px-2 py-3 text-sm font-semibold font-mono tabular-nums text-${alignment} ${visibility} ${colorClass}`}
+              className={`px-2 py-3 text-sm font-semibold tabular-nums text-${alignment} ${visibility} ${colorClass}`}
             >
               {item.content}
             </td>
@@ -439,9 +439,9 @@ export function SummaryRowMobile({
   return (
     <div className="xl:hidden mx-2 my-3 relative">
       {/* Refined summary card with subtle gradient and shadow */}
-      <div className="bg-gradient-to-br from-slate-50 via-white to-blue-50/30 rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
+      <div className="bg-gradient-to-br from-slate-50 via-white to-wealth-50/30 rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
         {/* Top accent line */}
-        <div className="h-0.5 bg-gradient-to-r from-blue-400 via-blue-500 to-indigo-400" />
+        <div className="h-0.5 bg-gradient-to-r from-wealth-500 via-wealth-600 to-wealth-700" />
 
         <div className="px-4 py-4 md:px-6 md:py-5">
           <div className="grid grid-cols-3 md:grid-cols-4 gap-3 md:gap-6">
@@ -450,7 +450,7 @@ export function SummaryRowMobile({
               <div className="text-[10px] md:text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
                 {t("summary.value")}
               </div>
-              <div className="font-semibold text-lg md:text-2xl text-slate-800 font-mono tabular-nums">
+              <div className="font-semibold text-lg md:text-2xl text-slate-800 tabular-nums">
                 {currencyTotals ? (
                   <FormatValue value={totals.marketValue} defaultValue="-" />
                 ) : (
@@ -469,7 +469,7 @@ export function SummaryRowMobile({
               <div className="text-[10px] md:text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
                 {t("summary.dividends")}
               </div>
-              <div className="font-semibold text-lg md:text-2xl text-slate-700 font-mono tabular-nums">
+              <div className="font-semibold text-lg md:text-2xl text-slate-700 tabular-nums">
                 {currencyTotals ? (
                   <FormatValue value={totals.income} defaultValue="-" />
                 ) : (
@@ -484,7 +484,7 @@ export function SummaryRowMobile({
                 {t("summary.gain")}
               </div>
               <div
-                className={`font-semibold text-lg md:text-2xl font-mono tabular-nums ${gainColorClass}`}
+                className={`font-semibold text-lg md:text-2xl tabular-nums ${gainColorClass}`}
               >
                 {currencyTotals ? (
                   <FormatValue value={totals.gain} defaultValue="-" />
@@ -500,7 +500,7 @@ export function SummaryRowMobile({
                 {t("summary.irr")}
               </div>
               <div
-                className={`inline-flex items-center font-semibold text-lg md:text-2xl font-mono tabular-nums ${irrColorClass}`}
+                className={`inline-flex items-center font-semibold text-lg md:text-2xl tabular-nums ${irrColorClass}`}
               >
                 {currencyTotals ? (
                   <>

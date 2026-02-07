@@ -33,12 +33,12 @@ const colorClasses = {
     description: "text-green-700",
   },
   orange: {
-    bg: "bg-orange-50",
-    border: "border-orange-200",
-    icon: "text-orange-600",
-    label: "text-orange-800",
-    value: "text-orange-700",
-    description: "text-orange-700",
+    bg: "bg-independence-50",
+    border: "border-independence-200",
+    icon: "text-independence-600",
+    label: "text-independence-700",
+    value: "text-independence-700",
+    description: "text-independence-700",
   },
   red: {
     bg: "bg-red-50",

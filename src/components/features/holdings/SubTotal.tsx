@@ -1,43 +1,11 @@
 import React, { ReactElement } from "react"
 import { GroupedSubtotals } from "types/beancounter"
 import { FormatValue, ResponsiveFormatValue } from "@components/ui/MoneyUtils"
-import { headers } from "./Header"
 import { useTranslation } from "next-i18next"
+import { getSubTotalCellClasses as getCellClasses } from "@lib/holdings/cellClasses"
 
 interface SubTotalProps extends GroupedSubtotals {
   positionCount: number
-}
-
-// Helper function to generate responsive classes for table cells
-const getCellClasses = (headerIndex: number): string => {
-  const header = headers[headerIndex]
-  let visibility
-  if ("hidden" in header && header.hidden) {
-    visibility = "hidden" // Hidden on all screens
-  } else if (header.mobile) {
-    visibility = ""
-  } else if (header.medium) {
-    visibility = "hidden sm:table-cell" // Hidden on mobile portrait, visible on landscape (640px+)
-  } else {
-    visibility = "hidden xl:table-cell"
-  }
-  const align = header.align === "center" ? "text-center" : "text-right"
-
-  // Apply same padding logic as Header and Rows
-  const padding = "px-0.5 py-1.5 sm:px-1 md:px-2 xl:px-3"
-
-  // Monospace for numeric columns
-  const isNumeric =
-    headerIndex === 0 || // price
-    headerIndex === 4 || // cost
-    headerIndex === 5 || // market value
-    headerIndex === 7 || // dividends
-    headerIndex === 8 || // unrealised gain
-    headerIndex === 9 || // realised gain
-    headerIndex === 12 // total gain
-  const fontClass = isNumeric ? "font-mono tabular-nums" : ""
-
-  return `${padding} ${align} ${visibility} ${fontClass}`
 }
 
 export default function SubTotal({
@@ -62,7 +30,7 @@ export default function SubTotal({
   ) : (
     <span
       key="gainOnDay"
-      className={`font-mono tabular-nums ${gainOnDay < 0 ? "text-red-600" : gainOnDay > 0 ? "text-emerald-600" : "text-slate-600"}`}
+      className={`tabular-nums ${gainOnDay < 0 ? "text-red-600" : gainOnDay > 0 ? "text-emerald-600" : "text-slate-600"}`}
     >
       <ResponsiveFormatValue value={gainOnDay} />
     </span>
@@ -101,7 +69,7 @@ export default function SubTotal({
     />, // gain.realised
     <span
       key="weight"
-      className={`font-mono tabular-nums ${
+      className={`tabular-nums ${
         subTotals[valueIn].weight < 0
           ? "text-red-600"
           : subTotals[valueIn].weight > 0
@@ -126,13 +94,13 @@ export default function SubTotal({
   return (
     <tbody className="font-medium">
       <tr>
-        <td colSpan={14} className="border-t border-blue-200"></td>
+        <td colSpan={14} className="border-t border-wealth-200"></td>
       </tr>
       <tr
         key={groupBy}
-        className="holding-footer text-xs sm:text-sm bg-blue-50/60 hover:bg-blue-100/60 transition-colors duration-150"
+        className="holding-footer text-xs sm:text-sm bg-wealth-50/60 hover:bg-wealth-100/60 transition-colors duration-150"
       >
-        <td className="px-1 py-1.5 sm:px-2 md:px-3 text-left font-semibold text-blue-900">
+        <td className="px-1 py-1.5 sm:px-2 md:px-3 text-left font-semibold text-wealth-700">
           Sub Total - {subTotals[valueIn].currency.code}
         </td>
         {data.map((item, index) => (

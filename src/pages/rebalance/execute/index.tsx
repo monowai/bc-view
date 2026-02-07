@@ -565,7 +565,7 @@ function ExecuteRebalancePage(): React.ReactElement {
     <div className="w-full py-4">
       {/* Breadcrumb */}
       <nav className="text-sm text-gray-500 mb-4">
-        <Link href={sourceUrl} className="hover:text-emerald-600">
+        <Link href={sourceUrl} className="hover:text-invest-600">
           {isAggregated
             ? t("holdings.aggregated", "Aggregated Holdings")
             : t("holdings.title", "Holdings")}
@@ -613,7 +613,7 @@ function ExecuteRebalancePage(): React.ReactElement {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="px-3 py-2 text-sm text-white bg-emerald-500 rounded hover:bg-emerald-600 disabled:opacity-50"
+                className="px-3 py-2 text-sm text-white bg-invest-500 rounded hover:bg-invest-600 disabled:opacity-50"
               >
                 <i
                   className={`fas ${saving ? "fa-spinner fa-spin" : "fa-save"} mr-1`}
@@ -666,7 +666,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                         onClick={handleSetAllToTarget}
                         className={`px-3 py-1 text-xs font-medium rounded-l-md border ${
                           Object.keys(localOverrides).length === 0
-                            ? "bg-emerald-100 text-emerald-700 border-emerald-300"
+                            ? "bg-invest-100 text-invest-700 border-invest-200"
                             : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
                         }`}
                         title="Use original model target weights - helps rebalance toward targets"
@@ -826,7 +826,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                                   item.snapshotWeight,
                                 )
                               }
-                              className="text-gray-400 hover:text-emerald-600 p-0.5"
+                              className="text-gray-400 hover:text-invest-600 p-0.5"
                               title="Copy to %"
                             >
                               <i className="fas fa-arrow-right text-xs"></i>
@@ -851,7 +851,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                           <div className="flex items-center justify-end gap-1">
                             <button
                               onClick={() => handleSetToTarget(item.assetId)}
-                              className="text-gray-400 hover:text-emerald-600 p-0.5"
+                              className="text-gray-400 hover:text-invest-600 p-0.5"
                               title="Copy to %"
                             >
                               <i className="fas fa-arrow-right text-xs"></i>
@@ -875,7 +875,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                                     item.returnAdjustedTarget!,
                                   )
                                 }
-                                className="text-gray-400 hover:text-emerald-600 p-0.5"
+                                className="text-gray-400 hover:text-invest-600 p-0.5"
                                 title="Copy return-adjusted target to %"
                               >
                                 <i className="fas fa-arrow-right text-xs"></i>
@@ -905,7 +905,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                               handleTargetChange(item.assetId, val / 100)
                             }}
                             disabled={item.isExcluded}
-                            className={`w-20 px-2 py-1 text-right border rounded focus:ring-emerald-500 focus:border-emerald-500 ${
+                            className={`w-20 px-2 py-1 text-right border rounded focus:ring-invest-500 focus:border-invest-500 ${
                               isCash
                                 ? "border-blue-300 bg-blue-50"
                                 : item.isExcluded
@@ -994,7 +994,7 @@ function ExecuteRebalancePage(): React.ReactElement {
               disabled={activeItems.length === 0}
               className={`px-4 py-2 rounded text-white transition-colors ${
                 activeItems.length > 0
-                  ? "bg-emerald-500 hover:bg-emerald-600"
+                  ? "bg-invest-500 hover:bg-invest-600"
                   : "bg-gray-400 cursor-not-allowed"
               }`}
             >
@@ -1147,7 +1147,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                   <a
                     href="/brokers"
                     target="_blank"
-                    className="text-xs text-emerald-600 hover:text-emerald-700"
+                    className="text-xs text-invest-600 hover:text-invest-700"
                   >
                     {t("brokers.manage", "Manage")}
                   </a>
@@ -1163,7 +1163,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                   onChange={(e) =>
                     setSelectedBrokerId(e.target.value || undefined)
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-invest-500 focus:border-invest-500"
                 >
                   <option value="">
                     {t("trn.broker.none", "-- No broker --")}
@@ -1197,7 +1197,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                     onChange={(e) =>
                       setSelectedSettlementAccount(e.target.value || undefined)
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-emerald-500 focus:border-emerald-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-invest-500 focus:border-invest-500"
                   >
                     <option value="">
                       {t(
@@ -1234,7 +1234,7 @@ function ExecuteRebalancePage(): React.ReactElement {
               className={`px-4 py-2 rounded text-white transition-colors ${
                 committing || activeItems.length === 0
                   ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-emerald-500 hover:bg-emerald-600"
+                  : "bg-invest-500 hover:bg-invest-600"
               }`}
             >
               <i

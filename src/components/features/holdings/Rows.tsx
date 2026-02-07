@@ -24,12 +24,12 @@ import {
   supportsBalanceSetting,
   stripOwnerPrefix,
 } from "@lib/assets/assetUtils"
-import { headers } from "./Header"
 import Link from "next/link"
 import { useRouter } from "next/router"
 import { AlphaProgress } from "@components/ui/ProgressBar"
 import { useTranslation } from "next-i18next"
 import { useDisplayCurrencyConversion } from "@lib/hooks/useDisplayCurrencyConversion"
+import { getCellClasses } from "@lib/holdings/cellClasses"
 
 export interface CorporateActionsData {
   asset: Asset
@@ -54,49 +54,6 @@ interface RowsProps extends HoldingValues {
   onCashTransfer?: (data: CashTransferData) => void
   onCashTransaction?: (assetCode: string) => void
   onCostAdjust?: (data: CostAdjustData) => void
-}
-
-// Helper function to generate responsive classes for table cells
-const getCellClasses = (headerIndex: number): string => {
-  const header = headers[headerIndex]
-  let visibility
-  if ("hidden" in header && header.hidden) {
-    visibility = "hidden" // Hidden on all screens
-  } else if (header.mobile) {
-    visibility = ""
-  } else if (header.medium) {
-    visibility = "hidden sm:table-cell" // Hidden on mobile portrait, visible on landscape (640px+)
-  } else {
-    visibility = "hidden xl:table-cell"
-  }
-
-  // Reduce padding for mobile-visible columns to maximize space
-  const isChangeColumn = headerIndex === 1
-  const isMarketValueColumn = headerIndex === 5
-  const isIrrColumn = headerIndex === 6
-  const isWeightColumn = headerIndex === 10
-
-  let padding
-  if (isChangeColumn || isMarketValueColumn || isIrrColumn || isWeightColumn) {
-    padding = "px-0.5 py-1.5 sm:px-1 md:px-2 xl:px-3" // Slightly taller rows
-  } else {
-    padding = "px-0.5 py-1.5 sm:px-1 md:px-2 xl:px-3" // Slightly taller rows
-  }
-
-  // Add monospace font for numeric columns
-  const isNumeric =
-    headerIndex === 0 || // price
-    headerIndex === 3 || // quantity
-    headerIndex === 4 || // cost
-    headerIndex === 5 || // market value
-    headerIndex === 7 || // dividends
-    headerIndex === 8 || // unrealised gain
-    headerIndex === 9 || // realised gain
-    headerIndex === 12 // total gain
-
-  const fontClass = isNumeric ? "font-mono tabular-nums" : ""
-
-  return `text-right ${padding} ${visibility} ${fontClass}`
 }
 
 // Helper function to truncate text with ellipsis
@@ -673,7 +630,7 @@ export default function Rows({
             <td className={getCellClasses(6)}>
               {!isCashRelated(asset) && (
                 <span
-                  className={`relative group font-mono tabular-nums ${
+                  className={`relative group tabular-nums ${
                     moneyValues[valueIn].irr < 0
                       ? "text-red-600"
                       : moneyValues[valueIn].irr > 0
@@ -723,7 +680,7 @@ export default function Rows({
             </td>
             <td className={getCellClasses(10)}>
               <span
-                className={`font-mono tabular-nums ${
+                className={`tabular-nums ${
                   moneyValues[valueIn].weight < 0
                     ? "text-red-600"
                     : moneyValues[valueIn].weight > 0

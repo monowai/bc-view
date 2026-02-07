@@ -64,7 +64,7 @@ function PrivacyMoneyInput({
         onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
-        className={`w-full pl-8 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+        className={`w-full pl-8 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 ${
           hideValues && !isFocused ? "text-transparent" : ""
         }`}
         min={min}
@@ -230,7 +230,7 @@ export default function EditPlanDetailsModal({
                         equityReturnRate: parseFloat(e.target.value) || 0,
                       }))
                     }
-                    className="w-full pl-2 pr-6 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    className="w-full pl-2 pr-6 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
                     min={0}
                     max={30}
                     step={0.5}
@@ -252,7 +252,7 @@ export default function EditPlanDetailsModal({
                         cashReturnRate: parseFloat(e.target.value) || 0,
                       }))
                     }
-                    className="w-full pl-2 pr-6 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    className="w-full pl-2 pr-6 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
                     min={0}
                     max={20}
                     step={0.5}
@@ -276,7 +276,7 @@ export default function EditPlanDetailsModal({
                         housingReturnRate: parseFloat(e.target.value) || 0,
                       }))
                     }
-                    className="w-full pl-2 pr-6 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    className="w-full pl-2 pr-6 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
                     min={0}
                     max={20}
                     step={0.5}
@@ -309,7 +309,7 @@ export default function EditPlanDetailsModal({
                         equityAllocation: parseFloat(e.target.value) || 0,
                       }))
                     }
-                    className="w-full pl-2 pr-6 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    className="w-full pl-2 pr-6 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
                     min={0}
                     max={100}
                     step={5}
@@ -331,7 +331,7 @@ export default function EditPlanDetailsModal({
                         cashAllocation: parseFloat(e.target.value) || 0,
                       }))
                     }
-                    className="w-full pl-2 pr-6 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    className="w-full pl-2 pr-6 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
                     min={0}
                     max={100}
                     step={5}
@@ -355,7 +355,7 @@ export default function EditPlanDetailsModal({
                         housingAllocation: parseFloat(e.target.value) || 0,
                       }))
                     }
-                    className="w-full pl-2 pr-6 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    className="w-full pl-2 pr-6 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
                     min={0}
                     max={100}
                     step={5}
@@ -390,7 +390,7 @@ export default function EditPlanDetailsModal({
                     inflationRate: parseFloat(e.target.value) || 0,
                   }))
                 }
-                className="w-full pl-4 pr-8 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                className="w-full pl-4 pr-8 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
                 min={0}
                 max={20}
                 step={0.1}
@@ -422,7 +422,7 @@ export default function EditPlanDetailsModal({
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Net Monthly Need</span>
               <span
-                className={`font-medium ${hideValues ? "text-gray-400" : "text-orange-600"}`}
+                className={`font-medium ${hideValues ? "text-gray-400" : "text-independence-600"}`}
               >
                 {hideValues
                   ? HIDDEN_VALUE
@@ -441,7 +441,7 @@ export default function EditPlanDetailsModal({
           </button>
           <button
             onClick={handleApply}
-            className="flex-1 py-2 px-4 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 transition-colors"
+            className="flex-1 py-2 px-4 bg-independence-500 text-white rounded-lg font-medium hover:bg-independence-600 transition-colors"
           >
             <i className="fas fa-check mr-2"></i>
             Apply

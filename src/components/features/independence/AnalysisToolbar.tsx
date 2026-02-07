@@ -35,7 +35,7 @@ export default function AnalysisToolbar({
     <div className="flex flex-wrap items-center gap-3 mb-4">
       <button
         onClick={onWhatIfClick}
-        className="py-1.5 px-3 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors flex items-center"
+        className="py-1.5 px-3 bg-independence-500 text-white rounded-lg text-sm font-medium hover:bg-independence-600 transition-colors flex items-center"
       >
         <i className="fas fa-sliders-h mr-2"></i>
         What-If
@@ -52,7 +52,7 @@ export default function AnalysisToolbar({
                 onClick={() => onScenarioToggle(scenario.id)}
                 className={`px-2 py-1 text-xs rounded-full transition-colors ${
                   isSelected
-                    ? "bg-orange-500 text-white"
+                    ? "bg-independence-500 text-white"
                     : "border border-gray-300 text-gray-600 hover:bg-gray-50"
                 }`}
                 title={scenario.description}
@@ -68,14 +68,14 @@ export default function AnalysisToolbar({
       {/* Save/Reset and unsaved indicator */}
       {hasUnsavedChanges && (
         <div className="flex items-center gap-2">
-          <span className="text-xs text-orange-600">
+          <span className="text-xs text-independence-600">
             <i className="fas fa-circle text-[6px] mr-1"></i>
             Unsaved
           </span>
           {onSave && (
             <button
               onClick={onSave}
-              className="py-1 px-3 border border-orange-500 text-orange-500 rounded-lg text-xs font-medium hover:bg-orange-50 transition-colors"
+              className="py-1 px-3 border border-independence-500 text-independence-500 rounded-lg text-xs font-medium hover:bg-independence-50 transition-colors"
             >
               <i className="fas fa-save mr-1"></i>
               Save

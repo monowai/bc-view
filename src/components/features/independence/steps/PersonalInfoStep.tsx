@@ -57,7 +57,7 @@ export default function PersonalInfoStep({
                 type="text"
                 placeholder="e.g., My Independence Plan"
                 className={`
-                  w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500
+                  w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
                   ${errors.planName ? "border-red-500" : "border-gray-300"}
                 `}
               />
@@ -88,7 +88,7 @@ export default function PersonalInfoStep({
                 {...field}
                 id="expensesCurrency"
                 className={`
-                  w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500
+                  w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
                   ${errors.expensesCurrency ? "border-red-500" : "border-gray-300"}
                 `}
               >
@@ -130,7 +130,7 @@ export default function PersonalInfoStep({
                   max={currentYear - 18}
                   onChange={(e) => field.onChange(Number(e.target.value))}
                   className={`
-                    w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500
+                    w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
                     ${errors.yearOfBirth ? "border-red-500" : "border-gray-300"}
                   `}
                 />
@@ -167,7 +167,7 @@ export default function PersonalInfoStep({
                   max={100}
                   onChange={(e) => field.onChange(Number(e.target.value))}
                   className={`
-                    w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500
+                    w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
                     ${errors.targetRetirementAge ? "border-red-500" : "border-gray-300"}
                   `}
                 />
@@ -199,7 +199,7 @@ export default function PersonalInfoStep({
                   max={120}
                   onChange={(e) => field.onChange(Number(e.target.value))}
                   className={`
-                    w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500
+                    w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
                     ${errors.lifeExpectancy ? "border-red-500" : "border-gray-300"}
                   `}
                 />
@@ -213,10 +213,10 @@ export default function PersonalInfoStep({
           </div>
         </div>
 
-        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+        <div className="bg-independence-50 border border-independence-200 rounded-lg p-4">
           <div className="flex">
-            <i className="fas fa-info-circle text-orange-600 mt-0.5 mr-3"></i>
-            <div className="text-sm text-orange-800">
+            <i className="fas fa-info-circle text-independence-600 mt-0.5 mr-3"></i>
+            <div className="text-sm text-independence-700">
               <p className="font-medium">Planning horizon</p>
               <p className="mt-1">
                 Your planning horizon will be calculated as the years from

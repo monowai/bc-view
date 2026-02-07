@@ -170,17 +170,17 @@ export default function FiMetrics({
 
       <div className="space-y-4">
         {/* FI Number */}
-        <div className="p-4 bg-linear-to-r from-orange-50 to-amber-50 rounded-lg border border-orange-100">
+        <div className="p-4 bg-linear-to-r from-independence-50 to-independence-100 rounded-lg border border-independence-100">
           <div className="flex justify-between items-center">
             <div>
               <InfoTooltip text="Your FI Number is 25× your annual expenses. At this amount, a 4% annual withdrawal covers your expenses indefinitely.">
                 <span className="text-sm text-gray-600 flex items-center gap-1">
-                  <i className="fas fa-bullseye text-orange-500"></i>
+                  <i className="fas fa-bullseye text-independence-500"></i>
                   FI Number (25×)
                 </span>
               </InfoTooltip>
             </div>
-            <span className="text-xl font-bold text-orange-600">
+            <span className="text-xl font-bold text-independence-600">
               <PrivateCurrency
                 value={fiNumber}
                 currency={currency}

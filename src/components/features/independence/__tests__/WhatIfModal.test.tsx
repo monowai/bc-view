@@ -282,7 +282,7 @@ describe("WhatIfModal", () => {
 
     // The Advanced tab should have a dot indicator
     const advancedTab = screen.getByText("Advanced").closest("button")
-    expect(advancedTab?.querySelector(".bg-orange-500")).toBeInTheDocument()
+    expect(advancedTab?.querySelector(".bg-independence-500")).toBeInTheDocument()
   })
 
   it("shows indicator on Advanced tab when independence age changes", () => {
@@ -297,7 +297,7 @@ describe("WhatIfModal", () => {
 
     // The Advanced tab should have a dot indicator
     const advancedTab = screen.getByText("Advanced").closest("button")
-    expect(advancedTab?.querySelector(".bg-orange-500")).toBeInTheDocument()
+    expect(advancedTab?.querySelector(".bg-independence-500")).toBeInTheDocument()
   })
 
   it("shows indicator on Advanced tab when inflation changes", () => {
@@ -312,6 +312,6 @@ describe("WhatIfModal", () => {
 
     // The Advanced tab should have a dot indicator
     const advancedTab = screen.getByText("Advanced").closest("button")
-    expect(advancedTab?.querySelector(".bg-orange-500")).toBeInTheDocument()
+    expect(advancedTab?.querySelector(".bg-independence-500")).toBeInTheDocument()
   })
 })

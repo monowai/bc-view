@@ -151,7 +151,7 @@ export default function WhatIfModal({
             onClick={() => setActiveTab("scenarios")}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
               activeTab === "scenarios"
-                ? "border-orange-500 text-orange-600"
+                ? "border-independence-500 text-independence-600"
                 : "border-transparent text-gray-500 hover:text-gray-700"
             }`}
           >
@@ -162,14 +162,14 @@ export default function WhatIfModal({
             onClick={() => setActiveTab("advanced")}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
               activeTab === "advanced"
-                ? "border-orange-500 text-orange-600"
+                ? "border-independence-500 text-independence-600"
                 : "border-transparent text-gray-500 hover:text-gray-700"
             }`}
           >
             <i className="fas fa-cog mr-2"></i>
             Advanced
             {hasAdvancedChanges && (
-              <span className="ml-2 w-2 h-2 bg-orange-500 rounded-full inline-block"></span>
+              <span className="ml-2 w-2 h-2 bg-independence-500 rounded-full inline-block"></span>
             )}
           </button>
         </div>
@@ -230,7 +230,7 @@ export default function WhatIfModal({
             {/* Projection Scenarios */}
             <div className="border-t pt-4">
               <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
-                <i className="fas fa-chart-line text-orange-500 mr-2"></i>
+                <i className="fas fa-chart-line text-independence-500 mr-2"></i>
                 Projection Scenarios
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
@@ -395,7 +395,7 @@ export default function WhatIfModal({
         <div className="mt-6 pt-4 border-t">
           <button
             onClick={onClose}
-            className="w-full py-2 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 transition-colors"
+            className="w-full py-2 bg-independence-500 text-white rounded-lg font-medium hover:bg-independence-600 transition-colors"
           >
             Apply
           </button>
