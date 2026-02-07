@@ -359,15 +359,15 @@ export default withPageAuthRequired(function Portfolios({
     }
   }
 
-  // Sort icon component
+  // Sort icon component - styled for wealth blue header
   const getSortIcon = (headerKey: string): React.ReactElement => {
     if (!sortConfig || sortConfig.key !== headerKey) {
-      return <span className="ml-1 text-gray-400">↕</span>
+      return <span className="ml-1 text-blue-200/60">↕</span>
     }
     return sortConfig.direction === "asc" ? (
-      <span className="ml-1 text-blue-300">↑</span>
+      <span className="ml-1 text-white font-bold">↑</span>
     ) : (
-      <span className="ml-1 text-blue-300">↓</span>
+      <span className="ml-1 text-white font-bold">↓</span>
     )
   }
 
@@ -594,9 +594,9 @@ export default withPageAuthRequired(function Portfolios({
                           text={`${portfolio.gainOnDay >= 0 ? "+" : ""}${displayCurrency?.code || ""} ${(portfolio.gainOnDay * (fxRates[portfolio.base.code] || 1)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                         >
                           <span
-                            className={`text-sm font-medium ${
+                            className={`text-sm font-medium font-mono tabular-nums ${
                               portfolio.gainOnDay >= 0
-                                ? "text-green-600"
+                                ? "text-emerald-600"
                                 : "text-red-600"
                             }`}
                           >
@@ -610,9 +610,9 @@ export default withPageAuthRequired(function Portfolios({
                         </QuickTooltip>
                       )}
                     <div
-                      className={`text-sm font-medium ${
+                      className={`text-sm font-medium font-mono tabular-nums ${
                         (portfolio.irr || 0) >= 0
-                          ? "text-green-600"
+                          ? "text-emerald-600"
                           : "text-red-600"
                       }`}
                     >
@@ -676,14 +676,14 @@ export default withPageAuthRequired(function Portfolios({
             </div>
           ))}
 
-          {/* Mobile total */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+          {/* Mobile total - refined finance footer */}
+          <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-sm p-4">
             <div className="flex justify-between items-center">
-              <span className="font-semibold text-gray-700">
+              <span className="font-semibold text-white/90">
                 {t("portfolios.total")}: {displayCurrency?.code}
               </span>
               <div className="text-right">
-                <span className="text-xl font-bold text-gray-900">
+                <span className="text-xl font-bold text-white font-mono tabular-nums">
                   {displayCurrency?.symbol === "?"
                     ? displayCurrency?.code
                     : displayCurrency?.symbol}
@@ -694,8 +694,8 @@ export default withPageAuthRequired(function Portfolios({
                     text={`${totalGainOnDay >= 0 ? "+" : ""}${displayCurrency?.code || ""} ${totalGainOnDay.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                   >
                     <span
-                      className={`text-sm font-semibold ${
-                        totalGainOnDay >= 0 ? "text-green-600" : "text-red-600"
+                      className={`text-sm font-semibold font-mono tabular-nums ${
+                        totalGainOnDay >= 0 ? "text-emerald-200" : "text-red-200"
                       }`}
                     >
                       {(
@@ -711,23 +711,23 @@ export default withPageAuthRequired(function Portfolios({
           </div>
         </div>
 
-        {/* Desktop: Table layout */}
+        {/* Desktop: Table layout - Refined Finance styling */}
         <div className="hidden md:block px-4 py-4">
-          <div className="bg-white shadow-sm border border-gray-200 rounded-xl overflow-hidden">
+          <div className="bg-white shadow-sm border border-slate-200 rounded-xl overflow-hidden">
             <table className="min-w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
                 <tr>
                   <th className="px-4 py-3 text-center w-12">
                     <input
                       type="checkbox"
                       checked={allSelected}
                       onChange={toggleAllSelection}
-                      className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                      className="w-4 h-4 text-blue-500 rounded border-blue-300 bg-blue-400 focus:ring-white cursor-pointer"
                       title={t("portfolios.selectAll", "Select all")}
                     />
                   </th>
                   <th
-                    className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    className="px-4 py-3 text-left text-sm font-semibold cursor-pointer hover:bg-blue-600/50 transition-colors"
                     onClick={() => handleSort("code")}
                   >
                     <div className="flex items-center">
@@ -736,7 +736,7 @@ export default withPageAuthRequired(function Portfolios({
                     </div>
                   </th>
                   <th
-                    className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    className="px-4 py-3 text-left text-sm font-semibold cursor-pointer hover:bg-blue-600/50 transition-colors"
                     onClick={() => handleSort("name")}
                   >
                     <div className="flex items-center">
@@ -745,7 +745,7 @@ export default withPageAuthRequired(function Portfolios({
                     </div>
                   </th>
                   <th
-                    className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    className="px-4 py-3 text-right text-sm font-semibold cursor-pointer hover:bg-blue-600/50 transition-colors"
                     onClick={() => handleSort("marketValue")}
                   >
                     <div className="flex items-center justify-end">
@@ -754,7 +754,7 @@ export default withPageAuthRequired(function Portfolios({
                     </div>
                   </th>
                   <th
-                    className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    className="px-4 py-3 text-right text-sm font-semibold cursor-pointer hover:bg-blue-600/50 transition-colors"
                     onClick={() => handleSort("gainOnDayPercent")}
                   >
                     <div className="flex items-center justify-end">
@@ -763,7 +763,7 @@ export default withPageAuthRequired(function Portfolios({
                     </div>
                   </th>
                   <th
-                    className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    className="px-4 py-3 text-right text-sm font-semibold cursor-pointer hover:bg-blue-600/50 transition-colors"
                     onClick={() => handleSort("irr")}
                   >
                     <div className="flex items-center justify-end">
@@ -772,7 +772,7 @@ export default withPageAuthRequired(function Portfolios({
                     </div>
                   </th>
                   <th
-                    className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors hidden xl:table-cell"
+                    className="px-4 py-3 text-center text-sm font-semibold cursor-pointer hover:bg-blue-600/50 transition-colors hidden xl:table-cell"
                     onClick={() => handleSort("valuedAt")}
                   >
                     <div className="flex items-center justify-center">
@@ -780,17 +780,21 @@ export default withPageAuthRequired(function Portfolios({
                       {getSortIcon("valuedAt")}
                     </div>
                   </th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider w-32">
+                  <th className="px-4 py-3 text-center text-sm font-semibold w-32">
                     {t("portfolio.actions")}
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
-                {portfolios.map((portfolio) => (
+              <tbody className="divide-y divide-slate-100">
+                {portfolios.map((portfolio, index) => (
                   <tr
                     key={portfolio.id}
-                    className={`hover:bg-gray-50 transition-colors cursor-pointer ${
-                      selectedPortfolios.has(portfolio.code) ? "bg-blue-50" : ""
+                    className={`transition-colors duration-150 cursor-pointer ${
+                      selectedPortfolios.has(portfolio.code)
+                        ? "bg-blue-50 hover:bg-blue-100"
+                        : index % 2 === 0
+                          ? "bg-white hover:bg-sky-50"
+                          : "bg-slate-50/40 hover:bg-sky-50"
                     }`}
                     onClick={(e) => {
                       if (
@@ -811,7 +815,7 @@ export default withPageAuthRequired(function Portfolios({
                           togglePortfolioSelection(portfolio.code)
                         }
                         onClick={(e) => e.stopPropagation()}
-                        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                        className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
                       />
                     </td>
                     <td className="px-4 py-3">
@@ -819,10 +823,10 @@ export default withPageAuthRequired(function Portfolios({
                         {portfolio.code}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-gray-900 font-medium">
+                    <td className="px-4 py-3 text-slate-900 font-medium">
                       {portfolio.name}
                     </td>
-                    <td className="px-4 py-3 text-right font-semibold text-gray-900">
+                    <td className="px-4 py-3 text-right font-semibold text-slate-900 font-mono tabular-nums">
                       <FormatValue
                         value={
                           (portfolio.marketValue ? portfolio.marketValue : 0) *
@@ -838,9 +842,9 @@ export default withPageAuthRequired(function Portfolios({
                           text={`${portfolio.gainOnDay >= 0 ? "+" : ""}${displayCurrency?.code || ""} ${(portfolio.gainOnDay * (fxRates[portfolio.base.code] || 1)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                         >
                           <span
-                            className={`font-semibold ${
+                            className={`font-semibold font-mono tabular-nums ${
                               portfolio.gainOnDay >= 0
-                                ? "text-green-600"
+                                ? "text-emerald-600"
                                 : "text-red-600"
                             }`}
                           >
@@ -853,14 +857,14 @@ export default withPageAuthRequired(function Portfolios({
                           </span>
                         </QuickTooltip>
                       ) : (
-                        <span className="text-gray-400">-</span>
+                        <span className="text-slate-400">-</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <span
-                        className={`font-semibold ${
+                        className={`font-semibold font-mono tabular-nums ${
                           (portfolio.irr || 0) >= 0
-                            ? "text-green-600"
+                            ? "text-emerald-600"
                             : "text-red-600"
                         }`}
                       >
@@ -877,7 +881,7 @@ export default withPageAuthRequired(function Portfolios({
                         className={
                           isStale(portfolio.valuedAt)
                             ? "text-amber-500"
-                            : "text-gray-600"
+                            : "text-slate-600"
                         }
                         title={
                           portfolio.valuedAt
@@ -898,14 +902,14 @@ export default withPageAuthRequired(function Portfolios({
                             e.stopPropagation()
                             setCorporateActionsPortfolio(portfolio)
                           }}
-                          className="text-gray-400 hover:text-blue-600 transition-colors"
+                          className="text-slate-400 hover:text-blue-600 transition-colors"
                           title={t("corporate.portfolio.scan")}
                         >
                           <i className="fas fa-calendar-check text-lg"></i>
                         </button>
                         <Link
                           href={`/portfolios/${portfolio.id}`}
-                          className="text-gray-400 hover:text-blue-600 transition-colors"
+                          className="text-slate-400 hover:text-blue-600 transition-colors"
                           title={t("portfolio.edit", "Edit Portfolio")}
                           onClick={(e) => e.stopPropagation()}
                         >
@@ -919,7 +923,7 @@ export default withPageAuthRequired(function Portfolios({
                               t("portfolio.delete", { code: portfolio.code }),
                             )
                           }}
-                          className="text-gray-400 hover:text-red-600 transition-colors"
+                          className="text-slate-400 hover:text-red-600 transition-colors"
                           title={t(
                             "portfolio.delete.title",
                             "Delete Portfolio",
@@ -932,30 +936,30 @@ export default withPageAuthRequired(function Portfolios({
                   </tr>
                 ))}
               </tbody>
-              <tfoot className="bg-gray-50 border-t-2 border-gray-200">
+              <tfoot className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-t-2 border-blue-500">
                 <tr>
                   <td
                     colSpan={3}
-                    className="px-4 py-3 text-right font-bold text-gray-700"
+                    className="px-4 py-3 text-right text-sm font-semibold text-white/90"
                   >
                     {t("portfolios.total")}: {displayCurrency?.code}
                   </td>
-                  <td className="px-4 py-3 text-right font-bold text-gray-900 text-lg">
+                  <td className="px-4 py-3 text-right text-sm font-bold text-white font-mono tabular-nums">
                     {displayCurrency?.symbol === "?"
                       ? displayCurrency?.code
                       : displayCurrency?.symbol}
                     <FormatValue value={totalMarketValue} />
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-right text-sm">
                     {totalGainOnDay !== 0 && totalMarketValue ? (
                       <QuickTooltip
                         text={`${totalGainOnDay >= 0 ? "+" : ""}${displayCurrency?.code || ""} ${totalGainOnDay.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                       >
                         <span
-                          className={`font-bold text-lg ${
+                          className={`font-bold font-mono tabular-nums ${
                             totalGainOnDay >= 0
-                              ? "text-green-600"
-                              : "text-red-600"
+                              ? "text-emerald-200"
+                              : "text-red-200"
                           }`}
                         >
                           {(
@@ -967,7 +971,7 @@ export default withPageAuthRequired(function Portfolios({
                         </span>
                       </QuickTooltip>
                     ) : (
-                      <span className="text-gray-400">-</span>
+                      <span className="text-blue-200">-</span>
                     )}
                   </td>
                   <td colSpan={3}></td>
