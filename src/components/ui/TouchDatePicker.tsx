@@ -16,13 +16,33 @@ interface TouchDatePickerProps {
 }
 
 const MONTHS = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
 ]
 
 const FULL_MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December"
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ]
 
 export default function TouchDatePicker({
@@ -101,7 +121,10 @@ export default function TouchDatePicker({
   useEffect(() => {
     if (!isOpen) return undefined
     const handleClick = (e: MouseEvent): void => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
         setIsOpen(false)
       }
     }
@@ -126,19 +149,21 @@ export default function TouchDatePicker({
         <span className={value ? "text-gray-900" : "text-gray-400"}>
           {displayValue}
         </span>
-        <i className={`fas fa-calendar-alt text-gray-400 transition-transform ${isOpen ? "text-indigo-500" : ""}`}></i>
+        <i
+          className={`fas fa-calendar-alt text-gray-400 transition-transform ${isOpen ? "text-indigo-500" : ""}`}
+        ></i>
       </button>
 
-      {hint && (
-        <p className="text-xs text-gray-500 mt-1">{hint}</p>
-      )}
+      {hint && <p className="text-xs text-gray-500 mt-1">{hint}</p>}
 
       {/* Picker Modal */}
       {isOpen && (
         <div className="absolute z-50 mt-2 w-full bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
           {/* Header */}
           <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-4 py-3">
-            <div className="text-white/70 text-xs uppercase tracking-wider">Locked Until</div>
+            <div className="text-white/70 text-xs uppercase tracking-wider">
+              Locked Until
+            </div>
             <div className="text-white text-xl font-semibold">
               {selectedDay} {FULL_MONTHS[selectedMonth]} {selectedYear}
             </div>
@@ -146,7 +171,9 @@ export default function TouchDatePicker({
 
           {/* Year Quick Select */}
           <div className="px-3 py-3 border-b border-gray-100">
-            <div className="text-xs text-gray-500 uppercase tracking-wide mb-2 px-1">Year</div>
+            <div className="text-xs text-gray-500 uppercase tracking-wide mb-2 px-1">
+              Year
+            </div>
             <div className="flex flex-wrap gap-1.5">
               {years.slice(0, 12).map((year) => (
                 <button
@@ -169,7 +196,9 @@ export default function TouchDatePicker({
                   className="px-2 py-2 rounded-lg text-sm bg-gray-100 text-gray-700 border-0 focus:ring-2 focus:ring-indigo-500"
                 >
                   {years.map((year) => (
-                    <option key={year} value={year}>{year}</option>
+                    <option key={year} value={year}>
+                      {year}
+                    </option>
                   ))}
                 </select>
               )}
@@ -178,7 +207,9 @@ export default function TouchDatePicker({
 
           {/* Month Grid */}
           <div className="px-3 py-3 border-b border-gray-100">
-            <div className="text-xs text-gray-500 uppercase tracking-wide mb-2 px-1">Month</div>
+            <div className="text-xs text-gray-500 uppercase tracking-wide mb-2 px-1">
+              Month
+            </div>
             <div className="grid grid-cols-4 gap-1.5">
               {MONTHS.map((month, idx) => (
                 <button
@@ -199,22 +230,26 @@ export default function TouchDatePicker({
 
           {/* Day Grid */}
           <div className="px-3 py-3 border-b border-gray-100">
-            <div className="text-xs text-gray-500 uppercase tracking-wide mb-2 px-1">Day</div>
+            <div className="text-xs text-gray-500 uppercase tracking-wide mb-2 px-1">
+              Day
+            </div>
             <div className="grid grid-cols-7 gap-1">
-              {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => (
-                <button
-                  key={day}
-                  type="button"
-                  onClick={() => setSelectedDay(day)}
-                  className={`py-2.5 rounded-lg text-sm font-medium transition-all ${
-                    day === selectedDay
-                      ? "bg-indigo-600 text-white shadow-md"
-                      : "bg-gray-50 text-gray-700 hover:bg-gray-200 active:bg-gray-300"
-                  }`}
-                >
-                  {day}
-                </button>
-              ))}
+              {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(
+                (day) => (
+                  <button
+                    key={day}
+                    type="button"
+                    onClick={() => setSelectedDay(day)}
+                    className={`py-2.5 rounded-lg text-sm font-medium transition-all ${
+                      day === selectedDay
+                        ? "bg-indigo-600 text-white shadow-md"
+                        : "bg-gray-50 text-gray-700 hover:bg-gray-200 active:bg-gray-300"
+                    }`}
+                  >
+                    {day}
+                  </button>
+                ),
+              )}
             </div>
           </div>
 

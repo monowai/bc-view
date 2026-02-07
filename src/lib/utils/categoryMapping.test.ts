@@ -52,6 +52,22 @@ describe("categoryMapping", () => {
       )
     })
 
+    it("maps RETIREMENT to Retirement", () => {
+      expect(mapToReportCategory("RETIREMENT")).toBe(
+        REPORT_CATEGORIES.RETIREMENT,
+      )
+    })
+
+    it("maps PENSION to Retirement", () => {
+      expect(mapToReportCategory("PENSION")).toBe(REPORT_CATEGORIES.RETIREMENT)
+    })
+
+    it("maps SUPERANNUATION to Retirement", () => {
+      expect(mapToReportCategory("SUPERANNUATION")).toBe(
+        REPORT_CATEGORIES.RETIREMENT,
+      )
+    })
+
     it("returns original category for unknown categories", () => {
       expect(mapToReportCategory("SomeNewCategory")).toBe("SomeNewCategory")
     })
@@ -110,8 +126,12 @@ describe("categoryMapping", () => {
       expect(compareByReportCategory("Mutual Fund", "Property")).toBeLessThan(0)
     })
 
-    it("sorts Property before Cash", () => {
-      expect(compareByReportCategory("Property", "Cash")).toBeLessThan(0)
+    it("sorts Property before Retirement", () => {
+      expect(compareByReportCategory("Property", "Retirement")).toBeLessThan(0)
+    })
+
+    it("sorts Retirement before Cash", () => {
+      expect(compareByReportCategory("Retirement", "Cash")).toBeLessThan(0)
     })
 
     it("sorts unknown categories after known ones", () => {

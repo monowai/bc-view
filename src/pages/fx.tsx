@@ -135,7 +135,7 @@ const RateChartModal: React.FC<RateChartModalProps> = ({
       <div className="fixed inset-0 bg-black/50" onClick={onClose}></div>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl mx-auto z-50 overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 text-white">
+        <div className="bg-gradient-to-r from-blue-500 to-indigo-500 px-6 py-4 text-white">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
               <div>

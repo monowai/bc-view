@@ -90,37 +90,69 @@ export function SummaryHeaderMobile({
 
   return (
     <>
-      {/* Mobile header - Single row layout */}
-      <div className="md:hidden bg-gray-100 p-2 mx-2 mt-2 rounded-t-lg border border-b-0 border-gray-200">
-        <div className="flex items-center justify-between gap-2">
-          {/* Portfolio name - truncate if too long */}
-          <h3 className="font-medium text-xs text-gray-900 truncate flex-shrink min-w-0">
-            {displayName}
-            {!isAggregated && (
-              <Link
-                href={`/portfolios/${portfolio.id}`}
-                className="far fa-edit text-gray-500 hover:text-gray-700 ml-1"
-              />
-            )}
-          </h3>
+      {/* Mobile header - Refined styling */}
+      <div className="md:hidden mx-2 mt-2">
+        <div className="bg-gradient-to-r from-slate-50 to-white rounded-t-xl border border-b-0 border-slate-200/80 px-3 py-2.5">
+          <div className="flex items-center justify-between gap-2">
+            {/* Portfolio name */}
+            <h3 className="font-semibold text-sm text-slate-800 truncate flex-shrink min-w-0">
+              {displayName}
+              {!isAggregated && (
+                <Link
+                  href={`/portfolios/${portfolio.id}`}
+                  className="far fa-edit text-slate-400 hover:text-blue-500 ml-1.5 transition-colors"
+                />
+              )}
+            </h3>
 
-          {/* Trade button + Date picker - right */}
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            {!isAggregated && (
-              <button
-                type="button"
-                onClick={() =>
-                  router.push({
-                    pathname: router.pathname,
-                    query: { ...router.query, action: "trade" },
-                  })
-                }
-                className="inline-flex items-center justify-center w-7 h-7 text-green-600 hover:text-green-800 hover:bg-green-50 rounded transition-colors duration-200"
-                title={t("trade.title")}
-              >
-                <i className="fas fa-exchange-alt text-xs"></i>
-              </button>
-            )}
+            {/* Trade button + Date picker */}
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              {!isAggregated && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    router.push({
+                      pathname: router.pathname,
+                      query: { ...router.query, action: "trade" },
+                    })
+                  }
+                  className="inline-flex items-center justify-center w-8 h-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors duration-200"
+                  title={t("trade.title")}
+                >
+                  <i className="fas fa-exchange-alt text-sm"></i>
+                </button>
+              )}
+              <form onSubmit={handleSubmit(onSubmit)}>
+                <Controller
+                  name="date"
+                  control={control}
+                  render={({ field }) => (
+                    <DateInput
+                      value={field.value || getTodayDate(holdingState.asAt)}
+                      onChange={handleDateChange(field)}
+                      className="input text-xs w-28"
+                    />
+                  )}
+                />
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Tablet header */}
+      <div className="hidden md:block xl:hidden mx-2 mt-2">
+        <div className="bg-gradient-to-r from-slate-50 to-white rounded-t-xl border border-b-0 border-slate-200/80 px-4 py-3">
+          <div className="flex items-center justify-between gap-4">
+            <h3 className="font-semibold text-base text-slate-800">
+              {displayName}
+              {!isAggregated && (
+                <Link
+                  href={`/portfolios/${portfolio.id}`}
+                  className="far fa-edit text-slate-400 hover:text-blue-500 ml-2 transition-colors"
+                />
+              )}
+            </h3>
             <form onSubmit={handleSubmit(onSubmit)}>
               <Controller
                 name="date"
@@ -129,42 +161,12 @@ export function SummaryHeaderMobile({
                   <DateInput
                     value={field.value || getTodayDate(holdingState.asAt)}
                     onChange={handleDateChange(field)}
-                    className="input text-xs w-28"
+                    className="input text-sm"
                   />
                 )}
               />
             </form>
           </div>
-        </div>
-      </div>
-
-      {/* Tablet header */}
-      <div className="hidden md:block xl:hidden bg-gray-100 p-4 mx-2 mt-2 rounded-t-lg border border-b-0 border-gray-200">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h3 className="font-medium text-base text-gray-900">
-              {displayName}
-              {!isAggregated && (
-                <Link
-                  href={`/portfolios/${portfolio.id}`}
-                  className="far fa-edit text-gray-500 hover:text-gray-700 ml-2"
-                />
-              )}
-            </h3>
-          </div>
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <Controller
-              name="date"
-              control={control}
-              render={({ field }) => (
-                <DateInput
-                  value={field.value || getTodayDate(holdingState.asAt)}
-                  onChange={handleDateChange(field)}
-                  className="input text-sm"
-                />
-              )}
-            />
-          </form>
         </div>
       </div>
     </>
@@ -298,15 +300,34 @@ export default function SummaryHeader({
     [handleSubmit, onSubmit],
   )
 
+  // Determine IRR color
+  const irrValue = totals?.irr || 0
+  const irrColorClass =
+    irrValue > 0
+      ? "text-emerald-600"
+      : irrValue < 0
+        ? "text-red-600"
+        : "text-slate-700"
+
+  // Determine gain color
+  const gainValue = totals?.gain || 0
+  const gainColorClass =
+    gainValue > 0
+      ? "text-emerald-600"
+      : gainValue < 0
+        ? "text-red-600"
+        : "text-slate-700"
+
   return (
     <thead className="hidden xl:table-header-group">
-      <tr className="bg-gray-200">
-        <th className="px-2 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm text-left">
+      {/* Header row with portfolio name and column labels */}
+      <tr className="bg-gradient-to-r from-slate-100 to-slate-50 border-b border-slate-200">
+        <th className="px-3 py-2.5 text-sm text-left font-semibold text-slate-800">
           {displayName}
           {!isAggregated && (
             <Link
               href={`/portfolios/${portfolio.id}`}
-              className="far fa-edit text-gray-500 hover:text-gray-700 ml-2"
+              className="far fa-edit text-slate-400 hover:text-blue-500 ml-2 transition-colors"
             />
           )}
         </th>
@@ -323,15 +344,16 @@ export default function SummaryHeader({
           return (
             <th
               key={header.key}
-              className={`px-1 py-2 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-${header.align} ${visibility}`}
+              className={`px-2 py-2.5 text-xs font-medium uppercase tracking-wide text-slate-500 text-${header.align} ${visibility}`}
             >
               {t(header.key)}
             </th>
           )
         })}
       </tr>
-      <tr className="bg-gray-100">
-        <td className="px-2 py-2 text-xs md:text-sm font-medium text-gray-700">
+      {/* Values row with refined styling */}
+      <tr className="bg-gradient-to-br from-slate-50 via-white to-blue-50/20 border-b border-slate-200/60">
+        <td className="px-3 py-3 text-sm font-medium text-slate-700">
           <form onSubmit={handleSubmit(onSubmit)}>
             <Controller
               name="date"
@@ -340,13 +362,13 @@ export default function SummaryHeader({
                 <DateInput
                   value={field.value || getTodayDate(holdingState.asAt)}
                   onChange={handleDateChange(field)}
-                  className="input text-xs md:text-sm font-medium"
+                  className="input text-sm font-medium"
                 />
               )}
             />
           </form>
         </td>
-        {/* Summary values in the same row as the date */}
+        {/* Summary values with enhanced styling */}
         {dataWithVisibility.map((item, index) => {
           let visibility
           if (item.mobile) {
@@ -360,10 +382,15 @@ export default function SummaryHeader({
           // Get alignment from headers array
           const alignment = headers[index]?.align || "right"
 
+          // Apply color coding to IRR (index 6) and Gain (index 7)
+          let colorClass = "text-slate-800"
+          if (index === 6) colorClass = irrColorClass
+          if (index === 7) colorClass = gainColorClass
+
           return (
             <td
               key={index}
-              className={`px-1 py-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-${alignment} ${visibility}`}
+              className={`px-2 py-3 text-sm font-semibold font-mono tabular-nums text-${alignment} ${visibility} ${colorClass}`}
             >
               {item.content}
             </td>
@@ -391,73 +418,105 @@ export function SummaryRowMobile({
       ? displayCurrencyOption.customCode
       : currency?.code
 
+  // Determine IRR color
+  const irrValue = totals?.irr || 0
+  const irrColorClass =
+    irrValue > 0
+      ? "text-emerald-600"
+      : irrValue < 0
+        ? "text-red-600"
+        : "text-slate-700"
+
+  // Determine gain color
+  const gainValue = totals?.gain || 0
+  const gainColorClass =
+    gainValue > 0
+      ? "text-emerald-600"
+      : gainValue < 0
+        ? "text-red-600"
+        : "text-slate-700"
+
   return (
-    <div className="xl:hidden bg-white rounded-lg border border-gray-200 mx-4 my-4 px-6 py-5 md:px-8 md:py-6 relative">
-      {/* DEBUG: Show which layout is active */}
-      {process.env.NODE_ENV === "development" && (
-        <div className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-bold">
-          <span className="md:hidden">MOBILE</span>
-          <span className="hidden md:inline xl:hidden">TABLET</span>
-        </div>
-      )}
-      <div className="grid grid-cols-3 md:grid-cols-4 gap-x-8 md:gap-x-12 text-xs md:text-sm">
-        <div className="text-center min-w-0">
-          <div className="text-gray-500 font-medium text-xs md:text-sm mb-3 leading-relaxed">
-            {t("summary.value")}
-          </div>
-          <div className="font-bold text-base md:text-xl">
-            {currencyTotals ? (
-              <FormatValue value={totals.marketValue} defaultValue="-" />
-            ) : (
-              "-"
-            )}
-            {displayCurrencyCode && (
-              <div className="text-gray-500 text-xs">{displayCurrencyCode}</div>
-            )}
-          </div>
-        </div>
-        <div className="hidden md:block text-center min-w-0">
-          <div className="text-gray-500 font-medium text-xs md:text-sm mb-3 leading-relaxed">
-            {t("summary.dividends")}
-          </div>
-          <div className="font-bold text-base md:text-xl">
-            {currencyTotals ? (
-              <FormatValue value={totals.income} defaultValue="-" />
-            ) : (
-              "-"
-            )}
-          </div>
-        </div>
-        <div className="text-center min-w-0">
-          <div className="text-gray-500 font-medium text-xs md:text-sm mb-3 leading-relaxed">
-            {t("summary.gain")}
-          </div>
-          <div className="font-bold text-base md:text-xl">
-            {currencyTotals ? (
-              <FormatValue value={totals.gain} defaultValue="-" />
-            ) : (
-              "-"
-            )}
-          </div>
-        </div>
-        <div className="text-center min-w-0">
-          <div className="text-gray-500 font-medium text-xs md:text-sm mb-3 leading-relaxed">
-            {t("summary.irr")}
-          </div>
-          <div className="font-bold text-base md:text-xl">
-            {currencyTotals ? (
-              <>
-                <FormatValue
-                  value={totals.irr}
-                  defaultValue="-"
-                  multiplier={100}
-                  scale={2}
-                />
-                %
-              </>
-            ) : (
-              "-"
-            )}
+    <div className="xl:hidden mx-2 my-3 relative">
+      {/* Refined summary card with subtle gradient and shadow */}
+      <div className="bg-gradient-to-br from-slate-50 via-white to-blue-50/30 rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
+        {/* Top accent line */}
+        <div className="h-0.5 bg-gradient-to-r from-blue-400 via-blue-500 to-indigo-400" />
+
+        <div className="px-4 py-4 md:px-6 md:py-5">
+          <div className="grid grid-cols-3 md:grid-cols-4 gap-3 md:gap-6">
+            {/* Market Value - Primary metric */}
+            <div className="text-center">
+              <div className="text-[10px] md:text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
+                {t("summary.value")}
+              </div>
+              <div className="font-semibold text-lg md:text-2xl text-slate-800 font-mono tabular-nums">
+                {currencyTotals ? (
+                  <FormatValue value={totals.marketValue} defaultValue="-" />
+                ) : (
+                  "-"
+                )}
+              </div>
+              {displayCurrencyCode && (
+                <div className="text-[10px] md:text-xs text-slate-400 mt-0.5">
+                  {displayCurrencyCode}
+                </div>
+              )}
+            </div>
+
+            {/* Dividends - Hidden on mobile */}
+            <div className="hidden md:block text-center">
+              <div className="text-[10px] md:text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
+                {t("summary.dividends")}
+              </div>
+              <div className="font-semibold text-lg md:text-2xl text-slate-700 font-mono tabular-nums">
+                {currencyTotals ? (
+                  <FormatValue value={totals.income} defaultValue="-" />
+                ) : (
+                  "-"
+                )}
+              </div>
+            </div>
+
+            {/* Gain - Color coded */}
+            <div className="text-center">
+              <div className="text-[10px] md:text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
+                {t("summary.gain")}
+              </div>
+              <div
+                className={`font-semibold text-lg md:text-2xl font-mono tabular-nums ${gainColorClass}`}
+              >
+                {currencyTotals ? (
+                  <FormatValue value={totals.gain} defaultValue="-" />
+                ) : (
+                  "-"
+                )}
+              </div>
+            </div>
+
+            {/* IRR - Color coded with background pill */}
+            <div className="text-center">
+              <div className="text-[10px] md:text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
+                {t("summary.irr")}
+              </div>
+              <div
+                className={`inline-flex items-center font-semibold text-lg md:text-2xl font-mono tabular-nums ${irrColorClass}`}
+              >
+                {currencyTotals ? (
+                  <>
+                    <FormatValue
+                      value={totals.irr}
+                      defaultValue="-"
+                      multiplier={100}
+                      scale={2}
+                    />
+                    <span className="text-sm md:text-lg ml-0.5">%</span>
+                  </>
+                ) : (
+                  "-"
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>

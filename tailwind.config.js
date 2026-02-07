@@ -11,6 +11,21 @@ module.exports = {
         portrait: { raw: "(orientation: portrait)" },
         landscape: { raw: "(orientation: landscape)" },
       },
+      fontFamily: {
+        sans: ["var(--font-dm-sans)", "system-ui", "sans-serif"],
+        display: ["var(--font-dm-sans)", "system-ui", "sans-serif"],
+        mono: ["var(--font-jetbrains-mono)", "ui-monospace", "monospace"],
+      },
+      colors: {
+        gain: {
+          DEFAULT: "#059669", // emerald-600
+          bg: "#ecfdf5", // emerald-50
+        },
+        loss: {
+          DEFAULT: "#dc2626", // red-600
+          bg: "#fef2f2", // red-50
+        },
+      },
     },
   },
   plugins: [

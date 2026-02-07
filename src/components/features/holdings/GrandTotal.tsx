@@ -1,6 +1,6 @@
 import { HoldingsInCurrency } from "types/beancounter"
 import React, { ReactElement } from "react"
-import { FormatValue } from "@components/ui/MoneyUtils"
+import { FormatValue, ResponsiveFormatValue } from "@components/ui/MoneyUtils"
 import { useTranslation } from "next-i18next"
 import { headers, HEADER_INDICES } from "./Header"
 import { GRANDTOTAL_LAYOUT } from "./constants"
@@ -20,13 +20,14 @@ export default function GrandTotal({
     value: number | string | null
     colSpan: number
     multiplier?: number
+    tooltip?: string
   }[] = [
     { value: gainOnDay, colSpan: 1 }, // Maps to CHANGE% (headers[1]) - shows gainOnDay sum on mobile
     { value: gainOnDay, colSpan: 1 }, // Maps to GAIN_ON_DAY (headers[2]) - hidden
     { value: null, colSpan: 1 }, // Maps to QUANTITY (headers[3]) - no total for quantity
     { value: holdings.viewTotals.costValue, colSpan: 1 }, // Maps to COST (headers[4])
     { value: holdings.viewTotals.marketValue, colSpan: 1 }, // Maps to MARKET_VALUE (headers[5])
-    { value: holdings.viewTotals.irr, colSpan: 1, multiplier: 100 }, // Maps to IRR (headers[6]) - swapped with weight
+    { value: null, colSpan: 1, tooltip: "irr.subtotal.hidden" }, // Maps to IRR (headers[6]) - hidden with tooltip
     { value: holdings.viewTotals.dividends, colSpan: 1 }, // Maps to DIVIDENDS (headers[7])
     { value: holdings.viewTotals.unrealisedGain, colSpan: 1 }, // Maps to UNREALISED_GAIN (headers[8])
     { value: holdings.viewTotals.realisedGain, colSpan: 1 }, // Maps to REALISED_GAIN (headers[9])
@@ -40,14 +41,14 @@ export default function GrandTotal({
       <tr>
         <td
           colSpan={GRANDTOTAL_LAYOUT.TOTAL_CELLS}
-          className="border-t-2 border-gray-600"
+          className="border-t-2 border-blue-500"
         />
       </tr>
       <tr
         key={valueIn}
-        className="holding-footer text-sm bg-gray-100 border-b-2 border-gray-600 hover:!bg-slate-200 transition-colors duration-200"
+        className="holding-footer text-sm bg-gradient-to-r from-blue-500 to-blue-600 text-white border-b-2 border-blue-500"
       >
-        <td className="px-1 py-1 md:px-2 xl:px-4 text-xs md:text-sm font-medium text-right">
+        <td className="px-1 py-2 sm:px-2 md:px-3 text-xs md:text-sm font-semibold text-left">
           <div>{t("holdings.valueTitle", { valueIn })}</div>
         </td>
         {/* Skip Price column - hidden on mobile portrait, visible on landscape (640px+) */}
@@ -115,6 +116,7 @@ export default function GrandTotal({
           const alignment = header?.align || "right"
 
           // Determine color for gainOnDay, change, IRR, and weight columns
+          // Use lighter tints for better contrast on blue background
           let colorClass = ""
           if (
             (headerIndex === HEADER_INDICES.GAIN_ON_DAY ||
@@ -124,57 +126,61 @@ export default function GrandTotal({
             typeof item.value === "number"
           ) {
             if (item.value < 0) {
-              colorClass = "text-red-500"
+              colorClass = "text-red-200"
             } else if (item.value > 0) {
-              colorClass = "text-green-500"
+              colorClass = "text-emerald-200"
             }
           }
 
+          // Add monospace for numeric columns
+          const isNumeric =
+            headerIndex === HEADER_INDICES.COST ||
+            headerIndex === HEADER_INDICES.MARKET_VALUE ||
+            headerIndex === HEADER_INDICES.DIVIDENDS ||
+            headerIndex === HEADER_INDICES.UNREALISED_GAIN ||
+            headerIndex === HEADER_INDICES.REALISED_GAIN ||
+            headerIndex === HEADER_INDICES.TOTAL_GAIN
+          const fontClass = isNumeric ? "font-mono tabular-nums" : ""
+
           // Apply same padding logic as Header and Rows
-          const padding = "px-0.5 py-1 sm:px-1 md:px-2 xl:px-4" // Minimal padding on portrait for breathing room
+          const padding = "px-0.5 py-2 sm:px-1 md:px-2 xl:px-3" // Taller grand total row
 
           return (
             <td
               key={index}
               colSpan={item.colSpan}
-              className={`${padding} text-xs md:text-sm font-medium text-${alignment} ${visibility} ${colorClass}`}
+              className={`${padding} text-xs md:text-sm font-medium text-${alignment} ${visibility} ${colorClass} ${fontClass}`}
             >
               {item.value !== null && item.value !== "" ? (
                 <>
-                  <span className="hidden sm:inline">
-                    {(headerIndex === HEADER_INDICES.CHANGE ||
-                      headerIndex === HEADER_INDICES.IRR) &&
-                    typeof item.value === "number"
-                      ? item.value < 0
-                        ? "▼ "
-                        : item.value > 0
-                          ? "▲ "
-                          : ""
-                      : ""}
-                  </span>
-                  <FormatValue
-                    value={
-                      (headerIndex === HEADER_INDICES.CHANGE ||
-                        headerIndex === HEADER_INDICES.IRR) &&
-                      typeof item.value === "number"
-                        ? Math.abs(item.value)
-                        : item.value
-                    }
-                    defaultValue=""
-                    multiplier={
-                      headerIndex === HEADER_INDICES.IRR ||
-                      headerIndex === HEADER_INDICES.WEIGHT
-                        ? 100
-                        : 1
-                    }
-                    isPublic={
-                      headerIndex === HEADER_INDICES.IRR ||
-                      headerIndex === HEADER_INDICES.WEIGHT
-                    }
-                  />
+                  {/* Use ResponsiveFormatValue for monetary amounts, FormatValue for percentages */}
+                  {headerIndex === HEADER_INDICES.WEIGHT ? (
+                    <FormatValue
+                      value={item.value}
+                      defaultValue=""
+                      multiplier={100}
+                      isPublic
+                    />
+                  ) : (
+                    <ResponsiveFormatValue
+                      value={
+                        headerIndex === HEADER_INDICES.CHANGE &&
+                        typeof item.value === "number"
+                          ? Math.abs(item.value)
+                          : item.value
+                      }
+                      defaultValue=""
+                    />
+                  )}
                   {headerIndex === HEADER_INDICES.WEIGHT && "%"}
-                  {/* Remove % signs from IRR for cleaner appearance */}
                 </>
+              ) : item.tooltip ? (
+                <span className="group relative cursor-help text-blue-200">
+                  -
+                  <span className="invisible group-hover:visible absolute right-0 bottom-full mb-1 z-10 w-48 p-2 bg-slate-800 text-white text-xs rounded shadow-lg">
+                    {t(item.tooltip)}
+                  </span>
+                </span>
               ) : typeof item.value === "string" ? (
                 item.value
               ) : headerIndex === HEADER_INDICES.GAIN_ON_DAY ? (

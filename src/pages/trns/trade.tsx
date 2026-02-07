@@ -1072,7 +1072,10 @@ const TradeInputForm: React.FC<{
                       fees,
                       type.value,
                     )
-                    setValue("tradeAmount", parseFloat(newTradeAmount.toFixed(2)))
+                    setValue(
+                      "tradeAmount",
+                      parseFloat(newTradeAmount.toFixed(2)),
+                    )
                     tradeAmountOverriddenRef.current = false
                   }
                 }}

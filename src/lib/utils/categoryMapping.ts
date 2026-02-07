@@ -10,6 +10,7 @@ export const REPORT_CATEGORIES = {
   ETF: "ETF",
   MUTUAL_FUND: "Mutual Fund",
   PROPERTY: "Property",
+  RETIREMENT: "Retirement",
 } as const
 
 export type ReportCategory =
@@ -38,6 +39,10 @@ export function mapToReportCategory(categoryId: string): string {
       return REPORT_CATEGORIES.ETF
     case "MUTUAL FUND":
       return REPORT_CATEGORIES.MUTUAL_FUND
+    case "RETIREMENT":
+    case "PENSION":
+    case "SUPERANNUATION":
+      return REPORT_CATEGORIES.RETIREMENT
     default:
       // Default: return original category as-is
       return categoryId
@@ -67,13 +72,14 @@ export function getReportCategory(asset: Asset): string {
 
 /**
  * Sort order for report categories in holdings display.
- * Categories not in this list will appear at the end.
+ * Cash is always last.
  */
 export const REPORT_CATEGORY_SORT_ORDER = [
   REPORT_CATEGORIES.EQUITY,
   REPORT_CATEGORIES.ETF,
   REPORT_CATEGORIES.MUTUAL_FUND,
   REPORT_CATEGORIES.PROPERTY,
+  REPORT_CATEGORIES.RETIREMENT,
   REPORT_CATEGORIES.CASH,
 ]
 

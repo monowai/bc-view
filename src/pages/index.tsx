@@ -148,7 +148,7 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
             {/* Wealth - Blue */}
             <Link
               href="/wealth"
-              className="group relative overflow-hidden rounded-2xl bg-linear-to-br from-blue-500 to-blue-700 p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+              className="group relative overflow-hidden rounded-2xl bg-linear-to-br from-blue-500 to-blue-600 p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
             >
               <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white/10"></div>
               <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-32 w-32 rounded-full bg-white/5"></div>

@@ -11,6 +11,11 @@ import { ViewMode } from "./ViewToggle"
 import { AllocationSlice } from "@lib/allocation/aggregateHoldings"
 import { ModelDto, PlanDto } from "types/rebalance"
 import { useIsAdmin } from "@hooks/useIsAdmin"
+import {
+  GroupBy,
+  useGroupOptions,
+} from "@components/features/holdings/GroupByOptions"
+import { useHoldingState } from "@lib/holdings/holdingState"
 
 // Dropdown Menu Component
 interface DropdownMenuProps {
@@ -48,26 +53,30 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({
   return (
     <div className="relative" ref={dropdownRef}>
       <button
-        className={`mobile-portrait:hidden w-full sm:w-auto ${colorClass} text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+        className={`mobile-portrait:hidden w-full sm:w-auto ${colorClass} text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center justify-center gap-1.5 ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
       >
-        <i className={`fas ${icon} mr-2`}></i>
-        {label}
-        <i className={`fas fa-chevron-down ml-2 text-xs`}></i>
+        <i className={`fas ${icon} text-[10px]`}></i>
+        <span>{label}</span>
+        <i
+          className={`fas fa-chevron-down text-[8px] transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+        ></i>
       </button>
       {isOpen && (
-        <div className="absolute left-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+        <div className="absolute right-0 mt-1.5 w-44 bg-white rounded-lg shadow-lg shadow-slate-200/50 border border-slate-200/80 z-50 overflow-hidden">
           {items.map((item, index) => (
             <button
               key={index}
-              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 first:rounded-t-lg last:rounded-b-lg flex items-center"
+              className="w-full text-left px-3 py-2 text-xs text-slate-600 hover:bg-slate-50 hover:text-slate-900 flex items-center gap-2 transition-colors duration-150"
               onClick={() => {
                 setIsOpen(false)
                 item.onClick()
               }}
             >
-              <i className={`fas ${item.icon} mr-2 w-4 text-gray-500`}></i>
+              <i
+                className={`fas ${item.icon} w-3.5 text-center text-slate-400`}
+              ></i>
               {item.label}
             </button>
           ))}
@@ -99,9 +108,192 @@ interface HoldingActionsProps {
   onQuickSellHandled?: () => void
   emptyHoldings?: boolean
   viewMode?: ViewMode
+  onViewModeChange?: (mode: ViewMode) => void
   allocationData?: AllocationSlice[]
   holdings?: Holdings | null
+  /** Hide GroupBy controls */
+  hideGroupBy?: boolean
 }
+
+/** View mode icon component */
+const ViewModeIcon: React.FC<{ mode: string; className?: string }> = ({
+  mode,
+  className = "w-3.5 h-3.5",
+}) => {
+  switch (mode) {
+    case "summary":
+      return (
+        <svg
+          className={className}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+          />
+        </svg>
+      )
+    case "cards":
+      return (
+        <svg
+          className={className}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"
+          />
+        </svg>
+      )
+    case "heatmap":
+      return (
+        <svg
+          className={className}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"
+          />
+        </svg>
+      )
+    case "income":
+      return (
+        <svg
+          className={className}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+      )
+    case "table":
+      return (
+        <svg
+          className={className}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M3 4h18M3 10h18M3 16h18"
+          />
+        </svg>
+      )
+    default:
+      return null
+  }
+}
+
+/** GroupBy icon component */
+const GroupByIcon: React.FC<{ groupBy: string; className?: string }> = ({
+  groupBy,
+  className = "w-3.5 h-3.5",
+}) => {
+  switch (groupBy) {
+    case GroupBy.ASSET_CLASS:
+      return (
+        <svg
+          className={className}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+          />
+        </svg>
+      )
+    case GroupBy.SECTOR:
+      return (
+        <svg
+          className={className}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"
+          />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"
+          />
+        </svg>
+      )
+    case GroupBy.MARKET_CURRENCY:
+      return (
+        <svg
+          className={className}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+      )
+    case GroupBy.MARKET:
+      return (
+        <svg
+          className={className}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+      )
+    default:
+      return null
+  }
+}
+
+const viewModes: { value: ViewMode; label: string }[] = [
+  { value: "summary", label: "Summary" },
+  { value: "cards", label: "Cards" },
+  { value: "heatmap", label: "Heatmap" },
+  { value: "income", label: "Income" },
+  { value: "table", label: "Table" },
+]
 
 const HoldingActions: React.FC<HoldingActionsProps> = ({
   holdingResults,
@@ -111,11 +303,15 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
   onQuickSellHandled,
   emptyHoldings = false,
   viewMode = "table",
+  onViewModeChange,
   allocationData = [],
   holdings,
+  hideGroupBy = false,
 }) => {
   const router = useRouter()
   const { isAdmin } = useIsAdmin()
+  const holdingState = useHoldingState()
+  const groupOptions = useGroupOptions()
   const [tradeModalOpen, setTradeModalOpen] = useState(false)
   const [cashModalOpen, setCashModalOpen] = useState(false)
 
@@ -314,36 +510,100 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
 
   return (
     <>
-      <div
-        className={`mobile-portrait:hidden flex flex-col sm:flex-row py-2 space-y-2 sm:space-y-0 sm:space-x-2 mb-4 ${emptyHoldings ? "justify-start" : "justify-end"}`}
-      >
-        {!emptyHoldings && (
-          <button
-            className={`mobile-portrait:hidden w-full sm:w-auto px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center ${
-              copied
-                ? "bg-green-500 hover:bg-green-600 text-white"
-                : "bg-blue-500 hover:bg-blue-600 text-white"
-            }`}
-            onClick={handleCopyClick}
-          >
-            <i className={`fas ${copied ? "fa-check" : "fa-copy"} mr-2`}></i>
-            {getCopyButtonText()}
-          </button>
+      {/* Refined toolbar - cohesive bar with subtle depth */}
+      <div className="flex items-center justify-between py-2 mb-2 gap-3 overflow-x-auto">
+        {/* Left side: View mode and GroupBy controls */}
+        {onViewModeChange && !emptyHoldings && (
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {/* View Mode section */}
+            <div className="flex items-center gap-0.5 bg-slate-100/80 backdrop-blur-sm rounded-lg p-0.5 border border-slate-200/60 shadow-sm">
+              <span className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                View
+              </span>
+              {viewModes.map((mode) => (
+                <button
+                  key={mode.value}
+                  onClick={() => onViewModeChange(mode.value)}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all duration-200 whitespace-nowrap ${
+                    viewMode === mode.value
+                      ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200/50"
+                      : "text-slate-500 hover:text-slate-700 hover:bg-white/50"
+                  }`}
+                  aria-label={`${mode.label} view`}
+                  title={mode.label}
+                >
+                  <ViewModeIcon
+                    mode={mode.value}
+                    className={`w-3.5 h-3.5 ${viewMode === mode.value ? "text-blue-500" : ""}`}
+                  />
+                  <span className="hidden lg:inline">{mode.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* GroupBy section - more compact on mobile */}
+            {!hideGroupBy && (
+              <div className="flex items-center gap-0.5 bg-amber-50/80 backdrop-blur-sm rounded-lg p-0.5 border border-amber-200/60 shadow-sm">
+                <span className="hidden sm:inline px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-amber-500">
+                  Group
+                </span>
+                {groupOptions.values.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => holdingState.setGroupBy(option)}
+                    className={`flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2.5 py-1.5 text-xs font-medium rounded-md transition-all duration-200 whitespace-nowrap ${
+                      holdingState.groupBy.value === option.value
+                        ? "bg-white text-slate-900 shadow-sm ring-1 ring-amber-200/50"
+                        : "text-slate-500 hover:text-slate-700 hover:bg-white/50"
+                    }`}
+                    aria-label={option.label}
+                    title={option.label}
+                  >
+                    <GroupByIcon
+                      groupBy={option.value}
+                      className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${holdingState.groupBy.value === option.value ? "text-amber-500" : ""}`}
+                    />
+                    <span className="hidden xl:inline">{option.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         )}
-        {/* Trade Dropdown */}
-        <DropdownMenu
-          label="Trade"
-          icon="fa-exchange-alt"
-          colorClass="bg-green-500 hover:bg-green-600"
-          items={tradeItems}
-        />
-        {/* Rebalance Dropdown */}
-        <DropdownMenu
-          label="Rebalance"
-          icon="fa-balance-scale"
-          colorClass="bg-indigo-500 hover:bg-indigo-600"
-          items={rebalanceItems}
-        />
+
+        {/* Right side: Action buttons - hidden on mobile portrait */}
+        <div className="mobile-portrait:hidden flex items-center gap-2 flex-shrink-0">
+          {!emptyHoldings && (
+            <button
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1.5 shadow-sm ${
+                copied
+                  ? "bg-emerald-500 hover:bg-emerald-600 text-white"
+                  : "bg-white hover:bg-slate-50 text-slate-700 ring-1 ring-slate-200/80 hover:ring-slate-300"
+              }`}
+              onClick={handleCopyClick}
+            >
+              <i
+                className={`fas ${copied ? "fa-check" : "fa-copy"} text-[10px] ${copied ? "" : "text-blue-500"}`}
+              ></i>
+              <span className="hidden sm:inline">{getCopyButtonText()}</span>
+              <span className="sm:hidden">Copy</span>
+            </button>
+          )}
+          {/* Trade Dropdown */}
+          <DropdownMenu
+            label="Trade"
+            icon="fa-exchange-alt"
+            colorClass="bg-emerald-500 hover:bg-emerald-600 shadow-sm shadow-emerald-500/20"
+            items={tradeItems}
+          />
+          {/* Rebalance Dropdown */}
+          <DropdownMenu
+            label="Rebalance"
+            icon="fa-balance-scale"
+            colorClass="bg-blue-500 hover:bg-blue-600 shadow-sm shadow-blue-500/20"
+            items={rebalanceItems}
+          />
+        </div>
       </div>
       <TradeInputForm
         portfolio={holdingResults.portfolio}

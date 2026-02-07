@@ -147,7 +147,7 @@ describe("HoldingActions Mobile Portrait Tests (TDD)", () => {
       setupMatchMedia(375, 667)
     })
 
-    it("should have mobile-portrait:hidden class on Copy Holdings button", () => {
+    it("should have mobile-portrait:hidden class on actions container", () => {
       render(
         <HoldingActions
           holdingResults={mockHoldingResults}
@@ -156,8 +156,10 @@ describe("HoldingActions Mobile Portrait Tests (TDD)", () => {
         />,
       )
 
+      // The parent container has mobile-portrait:hidden class
       const copyButton = screen.getByText("Copy Holdings")
-      expect(copyButton).toHaveClass("mobile-portrait:hidden")
+      const container = copyButton.closest(".mobile-portrait\\:hidden")
+      expect(container).toBeInTheDocument()
     })
 
     it("should have mobile-portrait:hidden class on Trade dropdown button", () => {
@@ -170,7 +172,8 @@ describe("HoldingActions Mobile Portrait Tests (TDD)", () => {
       )
 
       const tradeButton = screen.getByText("Trade")
-      expect(tradeButton).toHaveClass("mobile-portrait:hidden")
+      const button = tradeButton.closest("button")
+      expect(button).toHaveClass("mobile-portrait:hidden")
     })
 
     it("should have mobile-portrait:hidden class on Rebalance dropdown button", () => {
@@ -183,7 +186,8 @@ describe("HoldingActions Mobile Portrait Tests (TDD)", () => {
       )
 
       const rebalanceButton = screen.getByText("Rebalance")
-      expect(rebalanceButton).toHaveClass("mobile-portrait:hidden")
+      const button = rebalanceButton.closest("button")
+      expect(button).toHaveClass("mobile-portrait:hidden")
     })
   })
 
@@ -212,14 +216,19 @@ describe("HoldingActions Mobile Portrait Tests (TDD)", () => {
         />,
       )
 
+      // The parent container has mobile-portrait:hidden class
       const copyButton = screen.getByText("Copy Holdings")
-      const tradeButton = screen.getByText("Trade")
-      const rebalanceButton = screen.getByText("Rebalance")
+      const container = copyButton.closest(".mobile-portrait\\:hidden")
+      expect(container).toBeInTheDocument()
 
-      // Buttons have the class but won't be hidden because not in portrait orientation
-      expect(copyButton).toHaveClass("mobile-portrait:hidden")
-      expect(tradeButton).toHaveClass("mobile-portrait:hidden")
-      expect(rebalanceButton).toHaveClass("mobile-portrait:hidden")
+      // Trade and Rebalance buttons have mobile-portrait:hidden class
+      const tradeButton = screen.getByText("Trade")
+      const tradeButtonElement = tradeButton.closest("button")
+      expect(tradeButtonElement).toHaveClass("mobile-portrait:hidden")
+
+      const rebalanceButton = screen.getByText("Rebalance")
+      const rebalanceButtonElement = rebalanceButton.closest("button")
+      expect(rebalanceButtonElement).toHaveClass("mobile-portrait:hidden")
     })
   })
 
@@ -248,14 +257,19 @@ describe("HoldingActions Mobile Portrait Tests (TDD)", () => {
         />,
       )
 
+      // The parent container has mobile-portrait:hidden class
       const copyButton = screen.getByText("Copy Holdings")
-      const tradeButton = screen.getByText("Trade")
-      const rebalanceButton = screen.getByText("Rebalance")
+      const container = copyButton.closest(".mobile-portrait\\:hidden")
+      expect(container).toBeInTheDocument()
 
-      // Buttons have the class but won't be hidden because not in mobile portrait mode
-      expect(copyButton).toHaveClass("mobile-portrait:hidden")
-      expect(tradeButton).toHaveClass("mobile-portrait:hidden")
-      expect(rebalanceButton).toHaveClass("mobile-portrait:hidden")
+      // Trade and Rebalance buttons have mobile-portrait:hidden class
+      const tradeButton = screen.getByText("Trade")
+      const tradeButtonElement = tradeButton.closest("button")
+      expect(tradeButtonElement).toHaveClass("mobile-portrait:hidden")
+
+      const rebalanceButton = screen.getByText("Rebalance")
+      const rebalanceButtonElement = rebalanceButton.closest("button")
+      expect(rebalanceButtonElement).toHaveClass("mobile-portrait:hidden")
     })
   })
 })

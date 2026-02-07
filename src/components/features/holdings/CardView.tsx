@@ -270,7 +270,7 @@ const CardView: React.FC<CardViewProps> = ({
   return (
     <div className="space-y-4">
       {/* Portfolio Summary Card - always at top */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-5 text-white">
+      <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-5 text-white">
         <div className="flex justify-between items-start mb-2">
           <div>
             <div className="text-sm opacity-90">
