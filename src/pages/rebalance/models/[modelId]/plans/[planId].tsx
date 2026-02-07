@@ -519,13 +519,13 @@ function PlanDetailPage(): React.ReactElement {
     <div className="w-full py-4">
       {/* Breadcrumb */}
       <nav className="text-sm text-gray-500 mb-4 max-w-2xl mx-auto">
-        <Link href="/rebalance/models" className="hover:text-emerald-600">
+        <Link href="/rebalance/models" className="hover:text-invest-600">
           {t("rebalance.models.title", "Model Portfolios")}
         </Link>
         <span className="mx-2">/</span>
         <Link
           href={`/rebalance/models/${modelId}`}
-          className="hover:text-emerald-600"
+          className="hover:text-invest-600"
         >
           {model?.name || "..."}
         </Link>
@@ -550,7 +550,7 @@ function PlanDetailPage(): React.ReactElement {
             <button
               onClick={handleCreateNewVersion}
               disabled={creatingVersion}
-              className="bg-emerald-600 text-white px-3 py-1.5 rounded text-sm hover:bg-emerald-700 transition-colors flex items-center disabled:opacity-50"
+              className="bg-invest-600 text-white px-3 py-1.5 rounded text-sm hover:bg-invest-700 transition-colors flex items-center disabled:opacity-50"
             >
               {creatingVersion ? (
                 <i className="fas fa-spinner fa-spin mr-2"></i>
@@ -599,7 +599,7 @@ function PlanDetailPage(): React.ReactElement {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700 transition-colors flex items-center disabled:opacity-50"
+                className="bg-invest-600 text-white px-4 py-2 rounded hover:bg-invest-700 transition-colors flex items-center disabled:opacity-50"
               >
                 {saving ? (
                   <i className="fas fa-spinner fa-spin mr-2"></i>
@@ -773,7 +773,7 @@ function PlanDetailPage(): React.ReactElement {
                               </div>
                             )}
                             {asset.rationale && (
-                              <div className="text-xs text-emerald-600 italic mt-1">
+                              <div className="text-xs text-invest-600 italic mt-1">
                                 <i className="fas fa-comment-alt mr-1"></i>
                                 {asset.rationale}
                               </div>

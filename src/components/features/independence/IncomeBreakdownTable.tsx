@@ -133,7 +133,7 @@ export default function IncomeBreakdownTable({
               )}
               {columnVisibility.otherIncome && (
                 <th className="text-right py-2 px-2 font-medium text-gray-600">
-                  <span className="text-orange-600">Other</span>
+                  <span className="text-independence-600">Other</span>
                 </th>
               )}
               {columnVisibility.rentalIncome && (
@@ -231,7 +231,7 @@ export default function IncomeBreakdownTable({
                     </td>
                   )}
                   {columnVisibility.otherIncome && (
-                    <td className="text-right py-2 px-2 text-orange-600">
+                    <td className="text-right py-2 px-2 text-independence-600">
                       {breakdown ? formatCurrency(breakdown.otherIncome) : "-"}
                     </td>
                   )}
@@ -303,7 +303,7 @@ export default function IncomeBreakdownTable({
           )}
           {columnVisibility.otherIncome && (
             <span>
-              <span className="font-medium text-orange-600">Other:</span> Not
+              <span className="font-medium text-independence-600">Other:</span> Not
               indexed
             </span>
           )}

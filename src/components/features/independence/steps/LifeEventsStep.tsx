@@ -61,7 +61,7 @@ export default function LifeEventsStep({
               }
               min={18}
               max={120}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
             />
           </div>
           <div>
@@ -80,7 +80,7 @@ export default function LifeEventsStep({
                   })
                 }
                 min={0}
-                className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
               />
             </div>
           </div>
@@ -96,7 +96,7 @@ export default function LifeEventsStep({
               setNewEvent({ ...newEvent, description: e.target.value })
             }
             placeholder="e.g., Inheritance, Property sale, Car purchase"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
           />
         </div>
         <div className="flex items-center gap-4">
@@ -130,7 +130,7 @@ export default function LifeEventsStep({
             type="button"
             onClick={addLifeEvent}
             disabled={!newEvent.amount || !newEvent.description}
-            className="ml-auto px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="ml-auto px-4 py-2 bg-independence-500 text-white rounded-lg text-sm font-medium hover:bg-independence-600 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Add Event
           </button>

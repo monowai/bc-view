@@ -177,7 +177,7 @@ export default function AssumptionsStep({
                   step={0.5}
                   onChange={(e) => field.onChange(Number(e.target.value))}
                   className={`
-                    w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500
+                    w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
                     ${errors.equityReturnRate ? "border-red-500" : "border-gray-300"}
                   `}
                 />
@@ -210,7 +210,7 @@ export default function AssumptionsStep({
                   step={0.5}
                   onChange={(e) => field.onChange(Number(e.target.value))}
                   className={`
-                    w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500
+                    w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
                     ${errors.cashReturnRate ? "border-red-500" : "border-gray-300"}
                   `}
                 />
@@ -243,7 +243,7 @@ export default function AssumptionsStep({
                   step={0.5}
                   onChange={(e) => field.onChange(Number(e.target.value))}
                   className={`
-                    w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500
+                    w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
                     ${errors.housingReturnRate ? "border-red-500" : "border-gray-300"}
                   `}
                 />
@@ -276,7 +276,7 @@ export default function AssumptionsStep({
                   step={0.5}
                   onChange={(e) => field.onChange(Number(e.target.value))}
                   className={`
-                    w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500
+                    w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
                     ${errors.inflationRate ? "border-red-500" : "border-gray-300"}
                   `}
                 />
@@ -345,7 +345,7 @@ export default function AssumptionsStep({
                   step={5}
                   onChange={(e) => field.onChange(Number(e.target.value))}
                   className={`
-                    w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500
+                    w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
                     ${errors.equityAllocation ? "border-red-500" : "border-gray-300"}
                   `}
                 />
@@ -378,7 +378,7 @@ export default function AssumptionsStep({
                   step={5}
                   onChange={(e) => field.onChange(Number(e.target.value))}
                   className={`
-                    w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500
+                    w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
                     ${errors.cashAllocation ? "border-red-500" : "border-gray-300"}
                   `}
                 />
@@ -411,7 +411,7 @@ export default function AssumptionsStep({
                   step={5}
                   onChange={(e) => field.onChange(Number(e.target.value))}
                   className={`
-                    w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500
+                    w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
                     ${errors.housingAllocation ? "border-red-500" : "border-gray-300"}
                   `}
                 />
@@ -490,7 +490,7 @@ export default function AssumptionsStep({
                   }
                   placeholder={msg.targetBalancePlaceholder}
                   className={`
-                    w-full pl-8 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500
+                    w-full pl-8 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
                     ${errors.targetBalance ? "border-red-500" : "border-gray-300"}
                   `}
                 />

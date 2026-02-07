@@ -79,7 +79,7 @@ const PortfolioActions = ({
         {t("portfolios.import")}
       </button>
       <button
-        className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors flex items-center shadow-sm"
+        className="bg-wealth-500 text-white py-2 px-4 rounded-lg hover:bg-wealth-600 transition-colors flex items-center shadow-sm"
         onClick={() => router.push(`/portfolios/__NEW__`)}
       >
         <i className="fas fa-plus mr-2"></i>
@@ -362,7 +362,7 @@ export default withPageAuthRequired(function Portfolios({
   // Sort icon component - styled for wealth blue header
   const getSortIcon = (headerKey: string): React.ReactElement => {
     if (!sortConfig || sortConfig.key !== headerKey) {
-      return <span className="ml-1 text-blue-200/60">↕</span>
+      return <span className="ml-1 text-wealth-200/60">↕</span>
     }
     return sortConfig.direction === "asc" ? (
       <span className="ml-1 text-white font-bold">↑</span>
@@ -417,10 +417,10 @@ export default withPageAuthRequired(function Portfolios({
               {/* Guided Setup - for novice users */}
               <Link
                 href="/onboarding"
-                className="bg-white border border-gray-200 rounded-xl p-6 text-center shadow-sm hover:border-blue-300 hover:shadow-md transition-all"
+                className="bg-white border border-gray-200 rounded-xl p-6 text-center shadow-sm hover:border-wealth-200 hover:shadow-md transition-all"
               >
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <i className="fas fa-rocket text-xl text-blue-500"></i>
+                <div className="w-12 h-12 bg-wealth-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <i className="fas fa-rocket text-xl text-wealth-500"></i>
                 </div>
                 <h3 className="font-semibold text-gray-900 mb-2">
                   {t("home.startSetup", "Start Setup")}
@@ -551,7 +551,7 @@ export default withPageAuthRequired(function Portfolios({
               key={portfolio.id}
               className={`bg-white rounded-xl shadow-sm border overflow-hidden ${
                 selectedPortfolios.has(portfolio.code)
-                  ? "border-blue-300 bg-blue-50"
+                  ? "border-wealth-200 bg-wealth-50"
                   : "border-gray-200"
               }`}
             >
@@ -569,7 +569,7 @@ export default withPageAuthRequired(function Portfolios({
                       className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
                     />
                     <div>
-                      <div className="font-semibold text-blue-600">
+                      <div className="font-semibold text-wealth-600">
                         {portfolio.code}
                       </div>
                       <div className="text-gray-900">{portfolio.name}</div>
@@ -594,7 +594,7 @@ export default withPageAuthRequired(function Portfolios({
                           text={`${portfolio.gainOnDay >= 0 ? "+" : ""}${displayCurrency?.code || ""} ${(portfolio.gainOnDay * (fxRates[portfolio.base.code] || 1)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                         >
                           <span
-                            className={`text-sm font-medium font-mono tabular-nums ${
+                            className={`text-sm font-medium tabular-nums ${
                               portfolio.gainOnDay >= 0
                                 ? "text-emerald-600"
                                 : "text-red-600"
@@ -610,7 +610,7 @@ export default withPageAuthRequired(function Portfolios({
                         </QuickTooltip>
                       )}
                     <div
-                      className={`text-sm font-medium font-mono tabular-nums ${
+                      className={`text-sm font-medium tabular-nums ${
                         (portfolio.irr || 0) >= 0
                           ? "text-emerald-600"
                           : "text-red-600"
@@ -677,13 +677,13 @@ export default withPageAuthRequired(function Portfolios({
           ))}
 
           {/* Mobile total - refined finance footer */}
-          <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-sm p-4">
+          <div className="bg-gradient-to-r from-wealth-500 to-wealth-600 rounded-xl shadow-sm p-4">
             <div className="flex justify-between items-center">
               <span className="font-semibold text-white/90">
                 {t("portfolios.total")}: {displayCurrency?.code}
               </span>
               <div className="text-right">
-                <span className="text-xl font-bold text-white font-mono tabular-nums">
+                <span className="text-xl font-bold text-white tabular-nums">
                   {displayCurrency?.symbol === "?"
                     ? displayCurrency?.code
                     : displayCurrency?.symbol}
@@ -694,7 +694,7 @@ export default withPageAuthRequired(function Portfolios({
                     text={`${totalGainOnDay >= 0 ? "+" : ""}${displayCurrency?.code || ""} ${totalGainOnDay.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                   >
                     <span
-                      className={`text-sm font-semibold font-mono tabular-nums ${
+                      className={`text-sm font-semibold tabular-nums ${
                         totalGainOnDay >= 0 ? "text-emerald-200" : "text-red-200"
                       }`}
                     >
@@ -715,7 +715,7 @@ export default withPageAuthRequired(function Portfolios({
         <div className="hidden md:block px-4 py-4">
           <div className="bg-white shadow-sm border border-slate-200 rounded-xl overflow-hidden">
             <table className="min-w-full">
-              <thead className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+              <thead className="bg-gradient-to-r from-wealth-500 to-wealth-600 text-white">
                 <tr>
                   <th className="px-4 py-3 text-center w-12">
                     <input
@@ -727,7 +727,7 @@ export default withPageAuthRequired(function Portfolios({
                     />
                   </th>
                   <th
-                    className="px-4 py-3 text-left text-sm font-semibold cursor-pointer hover:bg-blue-600/50 transition-colors"
+                    className="px-4 py-3 text-left text-sm font-semibold cursor-pointer hover:bg-wealth-600/50 transition-colors"
                     onClick={() => handleSort("code")}
                   >
                     <div className="flex items-center">
@@ -736,7 +736,7 @@ export default withPageAuthRequired(function Portfolios({
                     </div>
                   </th>
                   <th
-                    className="px-4 py-3 text-left text-sm font-semibold cursor-pointer hover:bg-blue-600/50 transition-colors"
+                    className="px-4 py-3 text-left text-sm font-semibold cursor-pointer hover:bg-wealth-600/50 transition-colors"
                     onClick={() => handleSort("name")}
                   >
                     <div className="flex items-center">
@@ -745,7 +745,7 @@ export default withPageAuthRequired(function Portfolios({
                     </div>
                   </th>
                   <th
-                    className="px-4 py-3 text-right text-sm font-semibold cursor-pointer hover:bg-blue-600/50 transition-colors"
+                    className="px-4 py-3 text-right text-sm font-semibold cursor-pointer hover:bg-wealth-600/50 transition-colors"
                     onClick={() => handleSort("marketValue")}
                   >
                     <div className="flex items-center justify-end">
@@ -754,7 +754,7 @@ export default withPageAuthRequired(function Portfolios({
                     </div>
                   </th>
                   <th
-                    className="px-4 py-3 text-right text-sm font-semibold cursor-pointer hover:bg-blue-600/50 transition-colors"
+                    className="px-4 py-3 text-right text-sm font-semibold cursor-pointer hover:bg-wealth-600/50 transition-colors"
                     onClick={() => handleSort("gainOnDayPercent")}
                   >
                     <div className="flex items-center justify-end">
@@ -763,7 +763,7 @@ export default withPageAuthRequired(function Portfolios({
                     </div>
                   </th>
                   <th
-                    className="px-4 py-3 text-right text-sm font-semibold cursor-pointer hover:bg-blue-600/50 transition-colors"
+                    className="px-4 py-3 text-right text-sm font-semibold cursor-pointer hover:bg-wealth-600/50 transition-colors"
                     onClick={() => handleSort("irr")}
                   >
                     <div className="flex items-center justify-end">
@@ -772,7 +772,7 @@ export default withPageAuthRequired(function Portfolios({
                     </div>
                   </th>
                   <th
-                    className="px-4 py-3 text-center text-sm font-semibold cursor-pointer hover:bg-blue-600/50 transition-colors hidden xl:table-cell"
+                    className="px-4 py-3 text-center text-sm font-semibold cursor-pointer hover:bg-wealth-600/50 transition-colors hidden xl:table-cell"
                     onClick={() => handleSort("valuedAt")}
                   >
                     <div className="flex items-center justify-center">
@@ -791,7 +791,7 @@ export default withPageAuthRequired(function Portfolios({
                     key={portfolio.id}
                     className={`transition-colors duration-150 cursor-pointer ${
                       selectedPortfolios.has(portfolio.code)
-                        ? "bg-blue-50 hover:bg-blue-100"
+                        ? "bg-wealth-50 hover:bg-wealth-100"
                         : index % 2 === 0
                           ? "bg-white hover:bg-sky-50"
                           : "bg-slate-50/40 hover:bg-sky-50"
@@ -819,14 +819,14 @@ export default withPageAuthRequired(function Portfolios({
                       />
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-blue-600 font-semibold">
+                      <span className="text-wealth-600 font-semibold">
                         {portfolio.code}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-slate-900 font-medium">
                       {portfolio.name}
                     </td>
-                    <td className="px-4 py-3 text-right font-semibold text-slate-900 font-mono tabular-nums">
+                    <td className="px-4 py-3 text-right font-semibold text-slate-900 tabular-nums">
                       <FormatValue
                         value={
                           (portfolio.marketValue ? portfolio.marketValue : 0) *
@@ -842,7 +842,7 @@ export default withPageAuthRequired(function Portfolios({
                           text={`${portfolio.gainOnDay >= 0 ? "+" : ""}${displayCurrency?.code || ""} ${(portfolio.gainOnDay * (fxRates[portfolio.base.code] || 1)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                         >
                           <span
-                            className={`font-semibold font-mono tabular-nums ${
+                            className={`font-semibold tabular-nums ${
                               portfolio.gainOnDay >= 0
                                 ? "text-emerald-600"
                                 : "text-red-600"
@@ -862,7 +862,7 @@ export default withPageAuthRequired(function Portfolios({
                     </td>
                     <td className="px-4 py-3 text-right">
                       <span
-                        className={`font-semibold font-mono tabular-nums ${
+                        className={`font-semibold tabular-nums ${
                           (portfolio.irr || 0) >= 0
                             ? "text-emerald-600"
                             : "text-red-600"
@@ -936,7 +936,7 @@ export default withPageAuthRequired(function Portfolios({
                   </tr>
                 ))}
               </tbody>
-              <tfoot className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-t-2 border-blue-500">
+              <tfoot className="bg-gradient-to-r from-wealth-500 to-wealth-600 text-white border-t-2 border-wealth-500">
                 <tr>
                   <td
                     colSpan={3}
@@ -944,7 +944,7 @@ export default withPageAuthRequired(function Portfolios({
                   >
                     {t("portfolios.total")}: {displayCurrency?.code}
                   </td>
-                  <td className="px-4 py-3 text-right text-sm font-bold text-white font-mono tabular-nums">
+                  <td className="px-4 py-3 text-right text-sm font-bold text-white tabular-nums">
                     {displayCurrency?.symbol === "?"
                       ? displayCurrency?.code
                       : displayCurrency?.symbol}
@@ -956,7 +956,7 @@ export default withPageAuthRequired(function Portfolios({
                         text={`${totalGainOnDay >= 0 ? "+" : ""}${displayCurrency?.code || ""} ${totalGainOnDay.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                       >
                         <span
-                          className={`font-bold font-mono tabular-nums ${
+                          className={`font-bold tabular-nums ${
                             totalGainOnDay >= 0
                               ? "text-emerald-200"
                               : "text-red-200"
@@ -971,7 +971,7 @@ export default withPageAuthRequired(function Portfolios({
                         </span>
                       </QuickTooltip>
                     ) : (
-                      <span className="text-blue-200">-</span>
+                      <span className="text-wealth-200">-</span>
                     )}
                   </td>
                   <td colSpan={3}></td>

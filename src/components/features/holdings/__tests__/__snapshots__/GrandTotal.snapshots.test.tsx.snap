@@ -7,12 +7,12 @@ exports[`GrandTotal Snapshot Tests matches desktop snapshot: desktop-layout 1`] 
   >
     <tr>
       <td
-        class="border-t-2 border-blue-500"
+        class="border-t-2 border-wealth-500"
         colspan="14"
       />
     </tr>
     <tr
-      class="holding-footer text-sm bg-gradient-to-r from-blue-500 to-blue-600 text-white border-b-2 border-blue-500"
+      class="holding-footer text-sm bg-gradient-to-r from-wealth-500 to-wealth-600 text-white border-b-2 border-wealth-500"
     >
       <td
         class="px-1 py-2 sm:px-2 md:px-3 text-xs md:text-sm font-semibold text-left"
@@ -68,7 +68,7 @@ exports[`GrandTotal Snapshot Tests matches desktop snapshot: desktop-layout 1`] 
         colspan="1"
       />
       <td
-        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden sm:table-cell  font-mono tabular-nums"
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden sm:table-cell  tabular-nums"
         colspan="1"
       >
         <span
@@ -87,7 +87,7 @@ exports[`GrandTotal Snapshot Tests matches desktop snapshot: desktop-layout 1`] 
         </span>
       </td>
       <td
-        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right   font-mono tabular-nums"
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right   tabular-nums"
         colspan="1"
       >
         <span
@@ -110,7 +110,7 @@ exports[`GrandTotal Snapshot Tests matches desktop snapshot: desktop-layout 1`] 
         colspan="1"
       >
         <span
-          class="group relative cursor-help text-blue-200"
+          class="group relative cursor-help text-wealth-200"
         >
           -
           <span
@@ -121,7 +121,7 @@ exports[`GrandTotal Snapshot Tests matches desktop snapshot: desktop-layout 1`] 
         </span>
       </td>
       <td
-        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden sm:table-cell  font-mono tabular-nums"
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden sm:table-cell  tabular-nums"
         colspan="1"
       >
         <span
@@ -140,7 +140,7 @@ exports[`GrandTotal Snapshot Tests matches desktop snapshot: desktop-layout 1`] 
         </span>
       </td>
       <td
-        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden xl:table-cell  font-mono tabular-nums"
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden xl:table-cell  tabular-nums"
         colspan="1"
       >
         <span
@@ -159,7 +159,7 @@ exports[`GrandTotal Snapshot Tests matches desktop snapshot: desktop-layout 1`] 
         </span>
       </td>
       <td
-        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden xl:table-cell  font-mono tabular-nums"
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden xl:table-cell  tabular-nums"
         colspan="1"
       >
         <span
@@ -191,7 +191,7 @@ exports[`GrandTotal Snapshot Tests matches desktop snapshot: desktop-layout 1`] 
         colspan="1"
       />
       <td
-        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden sm:table-cell  font-mono tabular-nums"
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden sm:table-cell  tabular-nums"
         colspan="1"
       >
         <span
@@ -221,12 +221,12 @@ exports[`GrandTotal Snapshot Tests matches mobile snapshot: mobile-layout 1`] = 
   >
     <tr>
       <td
-        class="border-t-2 border-blue-500"
+        class="border-t-2 border-wealth-500"
         colspan="14"
       />
     </tr>
     <tr
-      class="holding-footer text-sm bg-gradient-to-r from-blue-500 to-blue-600 text-white border-b-2 border-blue-500"
+      class="holding-footer text-sm bg-gradient-to-r from-wealth-500 to-wealth-600 text-white border-b-2 border-wealth-500"
     >
       <td
         class="px-1 py-2 sm:px-2 md:px-3 text-xs md:text-sm font-semibold text-left"
@@ -282,7 +282,7 @@ exports[`GrandTotal Snapshot Tests matches mobile snapshot: mobile-layout 1`] = 
         colspan="1"
       />
       <td
-        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden sm:table-cell  font-mono tabular-nums"
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden sm:table-cell  tabular-nums"
         colspan="1"
       >
         <span
@@ -301,7 +301,7 @@ exports[`GrandTotal Snapshot Tests matches mobile snapshot: mobile-layout 1`] = 
         </span>
       </td>
       <td
-        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right   font-mono tabular-nums"
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right   tabular-nums"
         colspan="1"
       >
         <span
@@ -324,7 +324,7 @@ exports[`GrandTotal Snapshot Tests matches mobile snapshot: mobile-layout 1`] = 
         colspan="1"
       >
         <span
-          class="group relative cursor-help text-blue-200"
+          class="group relative cursor-help text-wealth-200"
         >
           -
           <span
@@ -335,7 +335,7 @@ exports[`GrandTotal Snapshot Tests matches mobile snapshot: mobile-layout 1`] = 
         </span>
       </td>
       <td
-        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden sm:table-cell  font-mono tabular-nums"
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden sm:table-cell  tabular-nums"
         colspan="1"
       >
         <span
@@ -354,7 +354,7 @@ exports[`GrandTotal Snapshot Tests matches mobile snapshot: mobile-layout 1`] = 
         </span>
       </td>
       <td
-        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden xl:table-cell  font-mono tabular-nums"
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden xl:table-cell  tabular-nums"
         colspan="1"
       >
         <span
@@ -373,7 +373,7 @@ exports[`GrandTotal Snapshot Tests matches mobile snapshot: mobile-layout 1`] = 
         </span>
       </td>
       <td
-        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden xl:table-cell  font-mono tabular-nums"
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden xl:table-cell  tabular-nums"
         colspan="1"
       >
         <span
@@ -405,7 +405,7 @@ exports[`GrandTotal Snapshot Tests matches mobile snapshot: mobile-layout 1`] = 
         colspan="1"
       />
       <td
-        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden sm:table-cell  font-mono tabular-nums"
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden sm:table-cell  tabular-nums"
         colspan="1"
       >
         <span
@@ -435,12 +435,12 @@ exports[`GrandTotal Snapshot Tests matches tablet snapshot: tablet-layout 1`] = 
   >
     <tr>
       <td
-        class="border-t-2 border-blue-500"
+        class="border-t-2 border-wealth-500"
         colspan="14"
       />
     </tr>
     <tr
-      class="holding-footer text-sm bg-gradient-to-r from-blue-500 to-blue-600 text-white border-b-2 border-blue-500"
+      class="holding-footer text-sm bg-gradient-to-r from-wealth-500 to-wealth-600 text-white border-b-2 border-wealth-500"
     >
       <td
         class="px-1 py-2 sm:px-2 md:px-3 text-xs md:text-sm font-semibold text-left"
@@ -496,7 +496,7 @@ exports[`GrandTotal Snapshot Tests matches tablet snapshot: tablet-layout 1`] = 
         colspan="1"
       />
       <td
-        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden sm:table-cell  font-mono tabular-nums"
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden sm:table-cell  tabular-nums"
         colspan="1"
       >
         <span
@@ -515,7 +515,7 @@ exports[`GrandTotal Snapshot Tests matches tablet snapshot: tablet-layout 1`] = 
         </span>
       </td>
       <td
-        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right   font-mono tabular-nums"
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right   tabular-nums"
         colspan="1"
       >
         <span
@@ -538,7 +538,7 @@ exports[`GrandTotal Snapshot Tests matches tablet snapshot: tablet-layout 1`] = 
         colspan="1"
       >
         <span
-          class="group relative cursor-help text-blue-200"
+          class="group relative cursor-help text-wealth-200"
         >
           -
           <span
@@ -549,7 +549,7 @@ exports[`GrandTotal Snapshot Tests matches tablet snapshot: tablet-layout 1`] = 
         </span>
       </td>
       <td
-        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden sm:table-cell  font-mono tabular-nums"
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden sm:table-cell  tabular-nums"
         colspan="1"
       >
         <span
@@ -568,7 +568,7 @@ exports[`GrandTotal Snapshot Tests matches tablet snapshot: tablet-layout 1`] = 
         </span>
       </td>
       <td
-        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden xl:table-cell  font-mono tabular-nums"
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden xl:table-cell  tabular-nums"
         colspan="1"
       >
         <span
@@ -587,7 +587,7 @@ exports[`GrandTotal Snapshot Tests matches tablet snapshot: tablet-layout 1`] = 
         </span>
       </td>
       <td
-        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden xl:table-cell  font-mono tabular-nums"
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden xl:table-cell  tabular-nums"
         colspan="1"
       >
         <span
@@ -619,7 +619,7 @@ exports[`GrandTotal Snapshot Tests matches tablet snapshot: tablet-layout 1`] = 
         colspan="1"
       />
       <td
-        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden sm:table-cell  font-mono tabular-nums"
+        class="px-0.5 py-2 sm:px-1 md:px-2 xl:px-3 text-xs md:text-sm font-medium text-right hidden sm:table-cell  tabular-nums"
         colspan="1"
       >
         <span

@@ -49,7 +49,7 @@ export default function WizardNavigation({
             type="button"
             onClick={onSave}
             disabled={isSubmitting}
-            className="px-6 py-2 border border-orange-600 text-orange-600 rounded-lg hover:bg-orange-50 font-medium disabled:opacity-50 flex items-center"
+            className="px-6 py-2 border border-independence-600 text-independence-600 rounded-lg hover:bg-independence-50 font-medium disabled:opacity-50 flex items-center"
           >
             {isSubmitting && <i className="fas fa-spinner fa-spin mr-2"></i>}
             Save
@@ -59,7 +59,7 @@ export default function WizardNavigation({
           type="button"
           onClick={isLastStep ? onSave || onNext : onNext}
           disabled={isSubmitting}
-          className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-medium disabled:opacity-50 flex items-center"
+          className="px-6 py-2 bg-independence-600 text-white rounded-lg hover:bg-independence-700 font-medium disabled:opacity-50 flex items-center"
         >
           {isSubmitting && isLastStep && (
             <i className="fas fa-spinner fa-spin mr-2"></i>

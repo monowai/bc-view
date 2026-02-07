@@ -63,6 +63,15 @@ function isActiveRoute(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(href + "/")
 }
 
+const sectionColors: Record<string, { bg: string; text: string; border: string }> = {
+  Wealth: { bg: "bg-wealth-50", text: "text-wealth-600", border: "border-wealth-600" },
+  Invest: { bg: "bg-invest-50", text: "text-invest-600", border: "border-invest-600" },
+  Plan: { bg: "bg-independence-50", text: "text-independence-600", border: "border-independence-600" },
+  Tools: { bg: "bg-gray-50", text: "text-gray-600", border: "border-gray-600" },
+}
+
+const defaultSectionColor = { bg: "bg-gray-50", text: "text-gray-600", border: "border-gray-600" }
+
 // Desktop dropdown — opens on hover with a close delay, click also toggles
 function DesktopDropdown({
   section,
@@ -149,6 +158,7 @@ function DesktopDropdown({
         <div className="absolute left-0 mt-1 w-52 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden py-1 text-gray-800">
           {filteredItems.map((item) => {
             const active = isActiveRoute(router.pathname, item.href)
+            const colors = sectionColors[section.title] || defaultSectionColor
             return (
               <Link
                 key={item.href}
@@ -156,13 +166,13 @@ function DesktopDropdown({
                 onClick={() => setIsOpen(false)}
                 className={`flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
                   active
-                    ? "bg-blue-50 text-blue-600 border-l-2 border-blue-600"
+                    ? `${colors.bg} ${colors.text} border-l-2 ${colors.border}`
                     : "text-gray-700 hover:bg-gray-50"
                 }`}
               >
                 <i
                   className={`fas ${item.icon} w-4 text-center text-xs ${
-                    active ? "text-blue-600" : "text-gray-400"
+                    active ? colors.text : "text-gray-400"
                   }`}
                 ></i>
                 {item.label}
@@ -247,19 +257,20 @@ function HeaderBrand(): React.ReactElement {
                     </div>
                     {filteredItems.map((item) => {
                       const active = isActiveRoute(router.pathname, item.href)
+                      const colors = sectionColors[section.title] || defaultSectionColor
                       return (
                         <Link
                           key={item.href}
                           href={item.href}
                           className={`flex items-center gap-2.5 px-3 py-2 transition-colors ${
                             active
-                              ? "bg-blue-50 border-l-2 border-blue-600 text-blue-600"
+                              ? `${colors.bg} border-l-2 ${colors.border} ${colors.text}`
                               : "text-gray-700 hover:bg-gray-50"
                           }`}
                         >
                           <i
                             className={`fas ${item.icon} w-4 text-center text-xs ${
-                              active ? "text-blue-600" : "text-gray-400"
+                              active ? colors.text : "text-gray-400"
                             }`}
                           ></i>
                           <span className="text-sm">{item.label}</span>

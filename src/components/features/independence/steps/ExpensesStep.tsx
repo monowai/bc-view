@@ -117,7 +117,7 @@ export default function ExpensesStep({
                     {expenses[index]?.categoryName || field.categoryName}
                   </span>
                   {isCustom && (
-                    <span className="ml-2 text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded">
+                    <span className="ml-2 text-xs bg-independence-100 text-independence-700 px-2 py-0.5 rounded">
                       Custom
                     </span>
                   )}
@@ -145,7 +145,7 @@ export default function ExpensesStep({
                           inputField.onChange(Number(e.target.value) || 0)
                         }
                         className={`
-                          w-full pl-8 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-right
+                          w-full pl-8 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 text-right
                           ${errors.expenses?.[index]?.monthlyAmount ? "border-red-500" : "border-gray-300"}
                         `}
                       />
@@ -177,13 +177,13 @@ export default function ExpensesStep({
 
         {/* Add Custom Category */}
         {showAddCustom ? (
-          <div className="flex items-center space-x-2 p-4 bg-orange-50 rounded-lg border border-orange-200">
+          <div className="flex items-center space-x-2 p-4 bg-independence-50 rounded-lg border border-independence-200">
             <input
               type="text"
               value={customCategoryName}
               onChange={(e) => setCustomCategoryName(e.target.value)}
               placeholder="Enter custom category name..."
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
@@ -195,7 +195,7 @@ export default function ExpensesStep({
             <button
               type="button"
               onClick={handleAddCustomCategory}
-              className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
+              className="px-4 py-2 bg-independence-600 text-white rounded-lg hover:bg-independence-700"
             >
               Add
             </button>
@@ -214,7 +214,7 @@ export default function ExpensesStep({
           <button
             type="button"
             onClick={() => setShowAddCustom(true)}
-            className="w-full py-3 border-2 border-dashed border-orange-300 text-orange-600 rounded-lg hover:bg-orange-50 hover:border-orange-400 transition-colors"
+            className="w-full py-3 border-2 border-dashed border-independence-200 text-independence-600 rounded-lg hover:bg-independence-50 hover:border-independence-500 transition-colors"
           >
             <i className="fas fa-plus mr-2"></i>
             Add Custom Category
@@ -226,15 +226,15 @@ export default function ExpensesStep({
         )}
       </div>
 
-      <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+      <div className="bg-independence-50 border border-independence-200 rounded-lg p-4">
         <div className="flex justify-between items-center">
           <div className="flex items-center">
-            <i className="fas fa-calculator text-orange-600 mr-3"></i>
-            <span className="font-medium text-orange-800">
+            <i className="fas fa-calculator text-independence-600 mr-3"></i>
+            <span className="font-medium text-independence-700">
               {msg.totalLabel}
             </span>
           </div>
-          <span className="text-xl font-bold text-orange-700">
+          <span className="text-xl font-bold text-independence-700">
             ${totalMonthlyExpenses.toLocaleString()}
           </span>
         </div>

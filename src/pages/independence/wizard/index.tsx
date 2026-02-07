@@ -16,7 +16,7 @@ function RetirementWizard(): React.ReactElement {
           <div className="mb-8">
             <Link
               href="/independence"
-              className="text-orange-600 hover:text-orange-700 font-medium"
+              className="text-independence-600 hover:text-independence-700 font-medium"
             >
               <i className="fas fa-arrow-left mr-2"></i>
               Back to Plans

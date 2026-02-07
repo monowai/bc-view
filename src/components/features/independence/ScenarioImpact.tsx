@@ -76,7 +76,7 @@ export default function ScenarioImpact({
             {projection.liquidBalanceAtLiquidation !== undefined && (
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
                 <span className="text-gray-600">
-                  <i className="fas fa-piggy-bank text-orange-500 mr-2"></i>
+                  <i className="fas fa-piggy-bank text-independence-500 mr-2"></i>
                   Liquid balance at sale
                 </span>
                 <span
@@ -154,7 +154,7 @@ export default function ScenarioImpact({
                 onChange={(e) =>
                   onLiquidationThresholdChange(parseInt(e.target.value))
                 }
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-orange-500"
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-independence-500"
               />
               <p className="text-xs text-gray-500 mt-1">
                 Sell illiquid assets when liquid drops below this % of initial

@@ -77,7 +77,7 @@ function EditPlanWizard(): React.ReactElement {
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="container mx-auto px-4">
           <div className="text-center py-12">
-            <i className="fas fa-spinner fa-spin text-3xl text-orange-600"></i>
+            <i className="fas fa-spinner fa-spin text-3xl text-independence-600"></i>
             <p className="mt-4 text-gray-500">Loading plan...</p>
           </div>
         </div>

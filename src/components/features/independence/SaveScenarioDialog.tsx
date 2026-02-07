@@ -43,7 +43,7 @@ export default function SaveScenarioDialog({
           <label
             className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
               saveMode === "update"
-                ? "border-orange-500 bg-orange-50"
+                ? "border-independence-500 bg-independence-50"
                 : "border-gray-200 hover:bg-gray-50"
             }`}
           >
@@ -52,7 +52,7 @@ export default function SaveScenarioDialog({
               name="saveMode"
               checked={saveMode === "update"}
               onChange={() => setSaveMode("update")}
-              className="mt-1 text-orange-500 focus:ring-orange-500"
+              className="mt-1 text-independence-500 focus:ring-independence-500"
             />
             <div>
               <p className="font-medium text-gray-900">
@@ -67,7 +67,7 @@ export default function SaveScenarioDialog({
           <label
             className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
               saveMode === "new"
-                ? "border-orange-500 bg-orange-50"
+                ? "border-independence-500 bg-independence-50"
                 : "border-gray-200 hover:bg-gray-50"
             }`}
           >
@@ -76,7 +76,7 @@ export default function SaveScenarioDialog({
               name="saveMode"
               checked={saveMode === "new"}
               onChange={() => setSaveMode("new")}
-              className="mt-1 text-orange-500 focus:ring-orange-500"
+              className="mt-1 text-independence-500 focus:ring-independence-500"
             />
             <div>
               <p className="font-medium text-gray-900">Save as New Plan</p>
@@ -96,7 +96,7 @@ export default function SaveScenarioDialog({
                 value={newPlanName}
                 onChange={(e) => setNewPlanName(e.target.value)}
                 placeholder={`${planName} (Scenario)`}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
               />
             </div>
           )}
@@ -113,7 +113,7 @@ export default function SaveScenarioDialog({
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="flex-1 py-2 px-4 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 transition-colors disabled:opacity-50"
+            className="flex-1 py-2 px-4 bg-independence-500 text-white rounded-lg font-medium hover:bg-independence-600 transition-colors disabled:opacity-50"
           >
             {isSaving ? (
               <>

@@ -613,7 +613,7 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
               <a
                 href="/brokers"
                 target="_blank"
-                className="text-xs text-emerald-600 hover:text-emerald-700"
+                className="text-xs text-invest-600 hover:text-invest-700"
               >
                 {t("brokers.manage", "Manage")}
               </a>
