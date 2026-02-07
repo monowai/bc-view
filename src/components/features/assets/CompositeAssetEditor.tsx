@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo } from "react"
 import { PolicyType, SubAccountRequest } from "types/beancounter"
+import TouchDatePicker from "@components/ui/TouchDatePicker"
 
 /**
  * CPF default sub-accounts with Board-published interest rates (as of 2024).
@@ -140,21 +141,15 @@ export default function CompositeAssetEditor({
 
       {isComposite && (
         <>
-          {/* Locked Until Date */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Locked Until Date
-            </label>
-            <input
-              type="date"
-              value={lockedUntilDate}
-              onChange={(e) => onLockedUntilDateChange(e.target.value)}
-              className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Asset cannot be liquidated before this date.
-            </p>
-          </div>
+          {/* Locked Until Date - Touch-friendly picker */}
+          <TouchDatePicker
+            value={lockedUntilDate}
+            onChange={onLockedUntilDateChange}
+            label="Locked Until Date"
+            hint="Asset cannot be liquidated before this date."
+            minYear={new Date().getFullYear()}
+            maxYear={new Date().getFullYear() + 40}
+          />
 
           {/* Template Buttons */}
           <div className="flex space-x-2">

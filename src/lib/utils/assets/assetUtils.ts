@@ -11,6 +11,15 @@ export function isAccount(asset: Asset): boolean {
   return asset.assetCategory.id === "ACCOUNT"
 }
 
+export function isPolicy(asset: Asset): boolean {
+  return asset.assetCategory.id === "POLICY"
+}
+
+// Assets with constant price of 1 - don't require external market data pricing
+export function isConstantPrice(asset: Asset): boolean {
+  return isCash(asset) || isAccount(asset) || isPolicy(asset)
+}
+
 // Check if asset supports balance setting (CASH currencies or ACCOUNT bank accounts)
 export function supportsBalanceSetting(asset: Asset): boolean {
   return isCash(asset) || isAccount(asset)
