@@ -5,14 +5,10 @@ import useSwr from "swr"
 import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
 import MathInput from "@components/ui/MathInput"
 import DateInput from "@components/ui/DateInput"
+import Dialog from "@components/ui/Dialog"
 import { buildCashRow } from "@lib/trns/tradeUtils"
 import { postData } from "@components/ui/DropZone"
-
-// Extract display code without owner prefix (e.g., "userId.WISE" -> "WISE")
-function getDisplayCode(code: string): string {
-  const dotIndex = code.lastIndexOf(".")
-  return dotIndex >= 0 ? code.substring(dotIndex + 1) : code
-}
+import { stripOwnerPrefix } from "@lib/assets/assetUtils"
 
 interface PortfoliosResponse {
   data: Portfolio[]
@@ -138,9 +134,9 @@ export default function SetBalanceDialog({
         currency: assetCurrency,
         amount: transactionInfo.amount,
         tradeDate: date,
-        comments: `${transactionInfo.type === "DEPOSIT" ? "Add" : "Withdraw"} ${assetCurrency} ${transactionInfo.amount.toLocaleString()} ${transactionInfo.type === "DEPOSIT" ? "to" : "from"} ${asset.name || getDisplayCode(asset.code)}`,
+        comments: `${transactionInfo.type === "DEPOSIT" ? "Add" : "Withdraw"} ${assetCurrency} ${transactionInfo.amount.toLocaleString()} ${transactionInfo.type === "DEPOSIT" ? "to" : "from"} ${asset.name || stripOwnerPrefix(asset.code)}`,
         market: "PRIVATE",
-        assetCode: getDisplayCode(asset.code),
+        assetCode: stripOwnerPrefix(asset.code),
       })
 
       await postData(portfolio, false, row)
@@ -157,9 +153,9 @@ export default function SetBalanceDialog({
               assetCurrency,
             amount: transactionInfo.amount,
             tradeDate: date,
-            comments: `Withdrawal from ${asset.name || getDisplayCode(asset.code)}`,
+            comments: `Withdrawal from ${asset.name || stripOwnerPrefix(asset.code)}`,
             market: "PRIVATE",
-            assetCode: getDisplayCode(cashAccount.code),
+            assetCode: stripOwnerPrefix(cashAccount.code),
           })
           await postData(portfolio, false, cashRow)
         }
@@ -185,186 +181,144 @@ export default function SetBalanceDialog({
   ])
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div
-        className="fixed inset-0 bg-black opacity-50"
-        onClick={onClose}
-      ></div>
-      <div
-        className="bg-white rounded-lg shadow-lg w-full max-w-md mx-auto p-6 z-50"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <header className="flex justify-between items-center border-b pb-2 mb-4">
-          <h2 className="text-xl font-semibold">{t("balance.set.title")}</h2>
-          <button
-            className="text-gray-500 hover:text-gray-700"
-            onClick={onClose}
-          >
-            &times;
-          </button>
-        </header>
-
-        <div className="space-y-4">
-          {/* Asset Info */}
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-            <div className="font-semibold text-lg">{asset.name}</div>
-            <div className="text-sm text-gray-600">
-              {getDisplayCode(asset.code)} -{" "}
-              {t(`category.${asset.assetCategory?.id}`) ||
-                asset.assetCategory?.name}
-            </div>
-            {!isLoadingBalance && (
-              <div className="mt-2 text-sm">
-                <span className="text-gray-500">{t("balance.current")}:</span>{" "}
-                <span className="font-medium">
-                  {asset.priceSymbol || asset.market?.currency?.code}{" "}
-                  {currentBalance.toLocaleString()}
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Date */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("balance.date")}
-            </label>
-            <DateInput
-              value={date}
-              onChange={setDate}
-              className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-amber-500 focus:border-amber-500"
-            />
-          </div>
-
-          {/* Target Balance */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("balance.target")} (
-              {asset.priceSymbol || asset.market?.currency?.code || "USD"})
-            </label>
-            <MathInput
-              value={targetBalance}
-              onChange={(value) => setTargetBalance(value)}
-              placeholder={t("balance.target.hint")}
-              className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-amber-500 focus:border-amber-500"
-            />
-          </div>
-
-          {/* Portfolio Selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("balance.portfolio")}
-            </label>
-            <select
-              value={selectedPortfolioId}
-              onChange={(e) => setSelectedPortfolioId(e.target.value)}
-              className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-amber-500 focus:border-amber-500"
-            >
-              <option value="">{t("balance.portfolio.hint")}</option>
-              {portfoliosData?.data?.map((portfolio) => (
-                <option key={portfolio.id} value={portfolio.id}>
-                  {portfolio.code} - {portfolio.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Cash Account Selection (for withdrawals) */}
-          {isWithdrawal && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t("balance.cashAccount")}
-              </label>
-              <select
-                value={cashAccountId}
-                onChange={(e) => setCashAccountId(e.target.value)}
-                className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-amber-500 focus:border-amber-500"
-              >
-                <option value="">{t("balance.cashAccount.hint")}</option>
-                {cashAccounts.map((account) => (
-                  <option key={account.id} value={account.id}>
-                    {getDisplayCode(account.code)} (
-                    {account.priceSymbol || account.market?.currency?.code})
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-gray-500 mt-1">
-                {t("balance.cashAccount.description")}
-              </p>
-            </div>
-          )}
-
-          {/* Transaction Preview */}
-          {transactionInfo && (
-            <div
-              className={`rounded-lg p-3 text-sm ${
-                transactionInfo.type === "DEPOSIT"
-                  ? "bg-green-50 border border-green-200 text-green-800"
-                  : "bg-red-50 border border-red-200 text-red-800"
-              }`}
-            >
-              <div className="flex items-center">
-                <i
-                  className={`fas ${transactionInfo.type === "DEPOSIT" ? "fa-arrow-up" : "fa-arrow-down"} mr-2`}
-                ></i>
-                <span className="font-medium">
-                  {transactionInfo.type === "DEPOSIT"
-                    ? t("balance.deposit")
-                    : t("balance.withdrawal")}
-                  :
-                </span>
-                <span className="ml-2">
-                  {asset.priceSymbol || asset.market?.currency?.code}{" "}
-                  {transactionInfo.amount.toLocaleString()}
-                </span>
-              </div>
-            </div>
-          )}
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm">
-              {error}
-            </div>
-          )}
-        </div>
-
-        <div className="flex justify-end space-x-2 mt-6">
-          <button
-            type="button"
-            className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 transition-colors"
-            onClick={onClose}
-          >
-            {t("cancel")}
-          </button>
-          <button
-            type="button"
-            className={`px-4 py-2 rounded transition-colors text-white ${
-              isSubmitting ||
-              !transactionInfo ||
-              !selectedPortfolioId ||
-              (isWithdrawal && !cashAccountId)
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-amber-600 hover:bg-amber-700"
-            }`}
+    <Dialog
+      title={t("balance.set.title")}
+      onClose={onClose}
+      footer={
+        <>
+          <Dialog.CancelButton onClick={onClose} label={t("cancel")} />
+          <Dialog.SubmitButton
             onClick={handleSave}
+            label={t("balance.set.confirm")}
+            loadingLabel={t("saving")}
+            isSubmitting={isSubmitting}
             disabled={
-              isSubmitting ||
               !transactionInfo ||
               !selectedPortfolioId ||
               (isWithdrawal && !cashAccountId)
             }
-          >
-            {isSubmitting ? (
-              <span className="flex items-center">
-                <i className="fas fa-spinner fa-spin mr-2"></i>
-                {t("saving")}
-              </span>
-            ) : (
-              t("balance.set.confirm")
-            )}
-          </button>
+            variant="amber"
+          />
+        </>
+      }
+    >
+      {/* Asset Info */}
+      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+        <div className="font-semibold text-lg">{asset.name}</div>
+        <div className="text-sm text-gray-600">
+          {stripOwnerPrefix(asset.code)} -{" "}
+          {t(`category.${asset.assetCategory?.id}`) ||
+            asset.assetCategory?.name}
         </div>
+        {!isLoadingBalance && (
+          <div className="mt-2 text-sm">
+            <span className="text-gray-500">{t("balance.current")}:</span>{" "}
+            <span className="font-medium">
+              {asset.priceSymbol || asset.market?.currency?.code}{" "}
+              {currentBalance.toLocaleString()}
+            </span>
+          </div>
+        )}
       </div>
-    </div>
+
+      {/* Date */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          {t("balance.date")}
+        </label>
+        <DateInput
+          value={date}
+          onChange={setDate}
+          className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-amber-500 focus:border-amber-500"
+        />
+      </div>
+
+      {/* Target Balance */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          {t("balance.target")} (
+          {asset.priceSymbol || asset.market?.currency?.code || "USD"})
+        </label>
+        <MathInput
+          value={targetBalance}
+          onChange={(value) => setTargetBalance(value)}
+          placeholder={t("balance.target.hint")}
+          className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-amber-500 focus:border-amber-500"
+        />
+      </div>
+
+      {/* Portfolio Selection */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          {t("balance.portfolio")}
+        </label>
+        <select
+          value={selectedPortfolioId}
+          onChange={(e) => setSelectedPortfolioId(e.target.value)}
+          className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-amber-500 focus:border-amber-500"
+        >
+          <option value="">{t("balance.portfolio.hint")}</option>
+          {portfoliosData?.data?.map((portfolio) => (
+            <option key={portfolio.id} value={portfolio.id}>
+              {portfolio.code} - {portfolio.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Cash Account Selection (for withdrawals) */}
+      {isWithdrawal && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {t("balance.cashAccount")}
+          </label>
+          <select
+            value={cashAccountId}
+            onChange={(e) => setCashAccountId(e.target.value)}
+            className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-amber-500 focus:border-amber-500"
+          >
+            <option value="">{t("balance.cashAccount.hint")}</option>
+            {cashAccounts.map((account) => (
+              <option key={account.id} value={account.id}>
+                {stripOwnerPrefix(account.code)} (
+                {account.priceSymbol || account.market?.currency?.code})
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-gray-500 mt-1">
+            {t("balance.cashAccount.description")}
+          </p>
+        </div>
+      )}
+
+      {/* Transaction Preview */}
+      {transactionInfo && (
+        <div
+          className={`rounded-lg p-3 text-sm ${
+            transactionInfo.type === "DEPOSIT"
+              ? "bg-green-50 border border-green-200 text-green-800"
+              : "bg-red-50 border border-red-200 text-red-800"
+          }`}
+        >
+          <div className="flex items-center">
+            <i
+              className={`fas ${transactionInfo.type === "DEPOSIT" ? "fa-arrow-up" : "fa-arrow-down"} mr-2`}
+            ></i>
+            <span className="font-medium">
+              {transactionInfo.type === "DEPOSIT"
+                ? t("balance.deposit")
+                : t("balance.withdrawal")}
+              :
+            </span>
+            <span className="ml-2">
+              {asset.priceSymbol || asset.market?.currency?.code}{" "}
+              {transactionInfo.amount.toLocaleString()}
+            </span>
+          </div>
+        </div>
+      )}
+
+      <Dialog.ErrorAlert message={error} />
+    </Dialog>
   )
 }

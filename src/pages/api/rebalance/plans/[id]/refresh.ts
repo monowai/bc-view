@@ -1,35 +1,7 @@
-import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0"
-import { requestInit } from "@utils/api/fetchHelper"
-import handleResponse, { fetchError } from "@utils/api/responseWriter"
+import { createApiHandler } from "@utils/api/createApiHandler"
 import { getRebalanceUrl } from "@utils/api/bcConfig"
-import { NextApiRequest, NextApiResponse } from "next"
-import { RebalancePlanDto } from "types/rebalance"
 
-const baseUrl = getRebalanceUrl("/plans")
-
-export default withApiAuthRequired(async function refreshPlan(
-  req: NextApiRequest,
-  res: NextApiResponse,
-) {
-  try {
-    const {
-      method,
-      query: { id },
-    } = req
-    const { accessToken } = await getAccessToken(req, res)
-
-    if (method?.toUpperCase() !== "POST") {
-      res.setHeader("Allow", ["POST"])
-      res.status(405).end(`Method ${method} Not Allowed`)
-      return
-    }
-
-    const response = await fetch(
-      `${baseUrl}/${id}/refresh`,
-      requestInit(accessToken, "POST", req),
-    )
-    await handleResponse<RebalancePlanDto>(response, res)
-  } catch (error: any) {
-    fetchError(req, res, error)
-  }
+export default createApiHandler({
+  url: (req) => getRebalanceUrl(`/plans/${req.query.id}/refresh`),
+  methods: ["POST"],
 })

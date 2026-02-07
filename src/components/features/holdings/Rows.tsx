@@ -22,6 +22,7 @@ import {
   isAccount,
   isConstantPrice,
   supportsBalanceSetting,
+  stripOwnerPrefix,
 } from "@lib/assets/assetUtils"
 import { headers } from "./Header"
 import Link from "next/link"
@@ -104,11 +105,6 @@ const truncateText = (text: string, maxLength: number): string => {
   return text.substring(0, maxLength) + "..."
 }
 
-// Helper to extract asset code without market prefix
-const getAssetCode = (code: string): string => {
-  const dotIndex = code.indexOf(".")
-  return dotIndex > 0 ? code.substring(dotIndex + 1) : code
-}
 
 // Actions dropdown menu component
 interface ActionsMenuProps {
@@ -163,7 +159,7 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
-  const assetCode = getAssetCode(asset.code)
+  const assetCode = stripOwnerPrefix(asset.code)
 
   return (
     <div className="relative" ref={menuRef}>
@@ -327,7 +323,7 @@ const CashActionsMenu: React.FC<CashActionsMenuProps> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
-  const assetCode = getAssetCode(asset.code)
+  const assetCode = stripOwnerPrefix(asset.code)
 
   return (
     <div className="relative" ref={menuRef}>
@@ -511,9 +507,7 @@ export default function Rows({
                   >
                     {isCash(asset)
                       ? asset.name
-                      : asset.code.indexOf(".") > 0
-                        ? asset.code.substring(asset.code.indexOf(".") + 1)
-                        : asset.code}
+                      : stripOwnerPrefix(asset.code)}
                   </div>
                   {!isCash(asset) && asset.name && (
                     <div
