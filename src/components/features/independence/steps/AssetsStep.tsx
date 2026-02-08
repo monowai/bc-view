@@ -136,6 +136,13 @@ export default function AssetsStep({
     simpleFetcher(portfoliosKey),
   )
 
+  // Auto-select balance portfolio when only one exists
+  useEffect(() => {
+    if (portfoliosData?.data?.length === 1 && !selectedBalancePortfolioId) {
+      setSelectedBalancePortfolioId(portfoliosData.data[0].id)
+    }
+  }, [portfoliosData?.data, selectedBalancePortfolioId])
+
   // Fetch cash/bank accounts for withdrawal destination
   const { data: cashAccountsData } = useSwr<AssetsResponse>(
     "/api/assets?category=ACCOUNT",
@@ -348,18 +355,61 @@ export default function AssetsStep({
           assetEntry.asset.market?.currency?.code ||
           planCurrency
 
-        // Build the row with the specified date
-        const row = buildCashRow({
-          type: transactionType,
-          currency: assetCurrency,
-          amount,
-          tradeDate: assetEntry.transactionDate,
-          comments: `${transactionType === "DEPOSIT" ? "Add" : "Withdraw"} ${assetCurrency} ${amount.toLocaleString()} ${transactionType === "DEPOSIT" ? "to" : "from"} ${assetEntry.asset.name || assetEntry.asset.code}`,
-          market: "PRIVATE",
-          assetCode: assetEntry.asset.code,
-        })
+        // Fetch sub-accounts from asset config for DEPOSIT transactions
+        let subAccountsMap: Record<string, number> | undefined
+        if (transactionType === "DEPOSIT") {
+          try {
+            const configResponse = await fetch(
+              `/api/assets/config/${assetEntry.asset.id}`,
+            )
+            if (configResponse.ok) {
+              const configData = await configResponse.json()
+              const config = configData.data
+              if (config?.subAccounts?.length > 0) {
+                subAccountsMap = Object.fromEntries(
+                  config.subAccounts
+                    .filter(
+                      (sa: { code: string; balance: number }) => sa.balance > 0,
+                    )
+                    .map((sa: { code: string; balance: number }) => [
+                      sa.code,
+                      sa.balance,
+                    ]),
+                )
+                if (Object.keys(subAccountsMap!).length === 0) {
+                  subAccountsMap = undefined
+                }
+              }
+            }
+          } catch {
+            // Proceed without sub-accounts
+          }
+        }
 
-        await postData(portfolio, false, row)
+        // Use JSON API to include subAccounts
+        const trnData: Record<string, unknown> = {
+          assetId: assetEntry.asset.id,
+          trnType: transactionType,
+          quantity: amount,
+          tradeDate: assetEntry.transactionDate,
+          tradeCurrency: assetCurrency,
+          cashCurrency: assetCurrency,
+          status: "SETTLED",
+          comments: `${transactionType === "DEPOSIT" ? "Add" : "Withdraw"} ${assetCurrency} ${amount.toLocaleString()} ${transactionType === "DEPOSIT" ? "to" : "from"} ${assetEntry.asset.name || assetEntry.asset.code}`,
+        }
+
+        if (subAccountsMap) {
+          trnData.subAccounts = subAccountsMap
+        }
+
+        await fetch("/api/trns", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            portfolioId: assetEntry.selectedPortfolioId,
+            data: [trnData],
+          }),
+        })
 
         // If withdrawal, also credit the cash account
         if (transactionType === "WITHDRAWAL" && assetEntry.cashAccountId) {
@@ -426,6 +476,17 @@ export default function AssetsStep({
       return
     }
 
+    // Calculate the total balance early for validation
+    const totalBalance =
+      policyType && subAccounts.length > 0
+        ? subAccounts.reduce((sum, sa) => sum + (sa.balance || 0), 0)
+        : simpleBalance
+
+    if (totalBalance > 0 && !selectedBalancePortfolioId) {
+      setCreateError("Please select a portfolio for the balance transaction")
+      return
+    }
+
     setIsCreating(true)
     setCreateError(null)
 
@@ -465,15 +526,6 @@ export default function AssetsStep({
         setCreateError("Asset created but ID not returned")
         setIsCreating(false)
         return
-      }
-
-      // Calculate the total balance
-      let totalBalance = simpleBalance
-      if (policyType && subAccounts.length > 0) {
-        totalBalance = subAccounts.reduce(
-          (sum, sa) => sum + (sa.balance || 0),
-          0,
-        )
       }
 
       // Convert contribution to monthly if annual
@@ -518,26 +570,38 @@ export default function AssetsStep({
 
       // Step 3: Create DEPOSIT transaction for the balance
       if (totalBalance > 0 && selectedBalancePortfolioId) {
-        const selectedPortfolio = portfoliosData?.data?.find(
-          (p) => p.id === selectedBalancePortfolioId,
-        )
+        const name_ = accountName.trim()
 
-        if (selectedPortfolio) {
-          const row = buildCashRow({
-            type: "DEPOSIT",
-            currency: planCurrency,
-            amount: totalBalance,
-            comments: `Initial balance for ${accountName.trim()}`,
-            market: "PRIVATE",
-            assetCode: accountCode.trim().toUpperCase(),
-          })
-
-          try {
-            await postData(selectedPortfolio, false, row)
-          } catch (err) {
-            console.error("Failed to create balance transaction:", err)
-            // Don't fail the whole operation, asset is already created
+        try {
+          const trnData: Record<string, unknown> = {
+            assetId: createdAsset.id,
+            trnType: "DEPOSIT",
+            quantity: totalBalance,
+            tradeCurrency: planCurrency,
+            cashCurrency: planCurrency,
+            status: "SETTLED",
+            comments: `Initial balance for ${name_}`,
           }
+
+          if (policyType && subAccounts.length > 0) {
+            trnData.subAccounts = Object.fromEntries(
+              subAccounts
+                .filter((sa) => sa.balance > 0)
+                .map((sa) => [sa.code, sa.balance]),
+            )
+          }
+
+          await fetch("/api/trns", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              portfolioId: selectedBalancePortfolioId,
+              data: [trnData],
+            }),
+          })
+        } catch (err) {
+          console.error("Failed to create balance transaction:", err)
+          // Don't fail the whole operation, asset is already created
         }
       }
 
@@ -573,7 +637,6 @@ export default function AssetsStep({
     isPension,
     lumpSum,
     selectedBalancePortfolioId,
-    portfoliosData?.data,
     selectedPortfolioIds,
     setValue,
     resetCreateForm,
@@ -1066,30 +1129,54 @@ export default function AssetsStep({
               )}
 
               {/* Portfolio Selection for Balance Transaction */}
-              {portfoliosData?.data && portfoliosData.data.length > 0 && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {msg.selectPortfolio}
-                  </label>
-                  <select
-                    value={selectedBalancePortfolioId}
-                    onChange={(e) =>
-                      setSelectedBalancePortfolioId(e.target.value)
-                    }
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  >
-                    <option value="">{msg.selectPortfolioHint}</option>
-                    {portfoliosData.data.map((portfolio) => (
-                      <option key={portfolio.id} value={portfolio.id}>
-                        {portfolio.code} - {portfolio.name}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-gray-500 mt-1">
-                    A DEPOSIT transaction will be created in this portfolio
-                  </p>
-                </div>
-              )}
+              {portfoliosData?.data &&
+                portfoliosData.data.length > 0 &&
+                (() => {
+                  const currentBalance =
+                    policyType && subAccounts.length > 0
+                      ? subAccounts.reduce(
+                          (sum, sa) => sum + (sa.balance || 0),
+                          0,
+                        )
+                      : simpleBalance
+                  const needsPortfolio =
+                    currentBalance > 0 && !selectedBalancePortfolioId
+                  return (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {msg.selectPortfolio}
+                        {currentBalance > 0 && (
+                          <span className="text-red-500 ml-1">*</span>
+                        )}
+                      </label>
+                      <select
+                        value={selectedBalancePortfolioId}
+                        onChange={(e) =>
+                          setSelectedBalancePortfolioId(e.target.value)
+                        }
+                        className={`w-full rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
+                          needsPortfolio
+                            ? "border-2 border-red-400"
+                            : "border border-gray-300"
+                        }`}
+                      >
+                        <option value="">{msg.selectPortfolioHint}</option>
+                        {portfoliosData.data.map((portfolio) => (
+                          <option key={portfolio.id} value={portfolio.id}>
+                            {portfolio.code} - {portfolio.name}
+                          </option>
+                        ))}
+                      </select>
+                      <p
+                        className={`text-xs mt-1 ${needsPortfolio ? "text-red-500" : "text-gray-500"}`}
+                      >
+                        {needsPortfolio
+                          ? "Required — a portfolio must be selected to record the balance"
+                          : "A DEPOSIT transaction will be created in this portfolio"}
+                      </p>
+                    </div>
+                  )
+                })()}
 
               {/* Income & Planning Section */}
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-4">
