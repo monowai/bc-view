@@ -320,6 +320,7 @@
   "balance.error.noCashAccount": "Please select a cash account for the withdrawal",
   "balance.error.noPortfolio": "Please select a portfolio",
   "balance.error.failed": "Failed to set balance",
+  "balance.subAccounts": "Sub-Account Balances",
   "costAdjust.menu": "Adjust Cost",
   "costAdjust.title": "Adjust Cost Basis",
   "costAdjust.currentCostBasis": "Current Cost Basis",

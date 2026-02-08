@@ -168,6 +168,7 @@ export interface Position {
   lastTradeDate: string
   roi: number
   held?: Record<string, number> // Broker name -> quantity held
+  subAccounts?: Record<string, number>
 }
 
 export interface DateValues {
@@ -335,6 +336,7 @@ export interface Transaction {
   brokerId?: string
   /** Model ID for tracking which rebalance model this transaction belongs to */
   modelId?: string
+  subAccounts?: Record<string, number>
 }
 
 interface Registration {
