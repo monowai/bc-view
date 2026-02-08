@@ -7,8 +7,8 @@ test.describe("Authentication", () => {
     const context = await browser.newContext()
     const page = await context.newPage()
 
-    // Navigate to the login API endpoint directly
-    await page.goto("/api/auth/login")
+    // Navigate to the login endpoint directly
+    await page.goto("/auth/login")
 
     // Should redirect to Auth0 login page
     await expect(page).toHaveURL(/beancounter\.eu\.auth0\.com/, {
@@ -42,7 +42,7 @@ test.describe("Authentication", () => {
       await logoutLink.click()
 
       // After logout, should redirect to home or login
-      await expect(page).toHaveURL(/\/$|\/api\/auth\/login/)
+      await expect(page).toHaveURL(/\/$|\/auth\/login/)
     }
   })
 

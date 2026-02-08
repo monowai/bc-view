@@ -122,9 +122,7 @@ const TargetWeightDialog: React.FC<TargetWeightDialogProps> = ({
         <span className="text-sm font-medium text-gray-700">
           {t("rebalance.currentWeight")}
         </span>
-        <span className="text-lg font-bold">
-          {currentWeight.toFixed(2)}%
-        </span>
+        <span className="text-lg font-bold">{currentWeight.toFixed(2)}%</span>
       </div>
 
       {/* Target Weight Input */}
@@ -153,9 +151,7 @@ const TargetWeightDialog: React.FC<TargetWeightDialogProps> = ({
         }`}
       >
         <div className="flex justify-between items-center mb-2">
-          <span className="text-sm font-medium">
-            {t("rebalance.action")}
-          </span>
+          <span className="text-sm font-medium">{t("rebalance.action")}</span>
           <span
             className={`font-bold ${
               calculation.type === "BUY" ? "text-green-600" : "text-red-600"

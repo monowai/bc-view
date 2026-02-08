@@ -159,7 +159,10 @@ const CreateModelFromHoldingsDialog: React.FC<
       scrollable={true}
       footer={
         <>
-          <Dialog.CancelButton onClick={onClose} label={t("cancel", "Cancel")} />
+          <Dialog.CancelButton
+            onClick={onClose}
+            label={t("cancel", "Cancel")}
+          />
           <Dialog.SubmitButton
             onClick={handleSubmit}
             label={t("rebalance.models.create", "Create Model")}

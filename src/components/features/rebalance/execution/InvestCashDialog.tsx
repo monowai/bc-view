@@ -269,16 +269,17 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
   const stepFooter =
     step === "input" ? (
       <>
-        <Dialog.CancelButton onClick={handleClose} label={t("cancel", "Cancel")} />
+        <Dialog.CancelButton
+          onClick={handleClose}
+          label={t("cancel", "Cancel")}
+        />
         <Dialog.SubmitButton
           onClick={handlePreview}
           label={t("rebalance.investCash.preview", "Preview")}
           loadingLabel={t("loading", "Loading...")}
           isSubmitting={loading}
           disabled={
-            !selectedModel ||
-            !amount ||
-            parseShorthandAmount(amount) <= 0
+            !selectedModel || !amount || parseShorthandAmount(amount) <= 0
           }
           variant="blue"
         />
@@ -393,10 +394,7 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
                 <div className="bg-gray-50 px-3 py-2 border-b border-gray-200">
                   <h4 className="text-sm font-medium text-gray-700">
                     <i className="fas fa-chart-pie mr-2 text-gray-400"></i>
-                    {t(
-                      "rebalance.investCash.planAssets",
-                      "Plan Allocations",
-                    )}
+                    {t("rebalance.investCash.planAssets", "Plan Allocations")}
                   </h4>
                 </div>
                 {loadingPlan ? (
@@ -406,10 +404,7 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
                   </div>
                 ) : planAssets.length === 0 ? (
                   <div className="py-4 text-center text-gray-500 text-sm">
-                    {t(
-                      "rebalance.investCash.noAssets",
-                      "No assets in plan",
-                    )}
+                    {t("rebalance.investCash.noAssets", "No assets in plan")}
                   </div>
                 ) : (
                   <div className="max-h-48 overflow-y-auto">
@@ -559,10 +554,7 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
             <div className="grid grid-cols-3 gap-4 text-sm">
               <div>
                 <div className="text-gray-500">
-                  {t(
-                    "rebalance.investCash.portfolioCash",
-                    "Portfolio Cash",
-                  )}
+                  {t("rebalance.investCash.portfolioCash", "Portfolio Cash")}
                 </div>
                 <div className="font-semibold">
                   {formatCurrency(portfolioCash)}
@@ -620,9 +612,7 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
             </div>
             <select
               value={selectedBrokerId || ""}
-              onChange={(e) =>
-                setSelectedBrokerId(e.target.value || undefined)
-              }
+              onChange={(e) => setSelectedBrokerId(e.target.value || undefined)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
             >
               <option value="">

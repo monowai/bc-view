@@ -1,10 +1,13 @@
-import {createApiHandler} from "../createApiHandler"
-import {fetchError} from "@utils/api/responseWriter"
+import { createApiHandler } from "../createApiHandler"
+import { fetchError } from "@utils/api/responseWriter"
+import { auth0 } from "@lib/auth0"
 
-// Mock Auth0
-jest.mock("@auth0/nextjs-auth0", () => ({
-  getAccessToken: jest.fn().mockResolvedValue({ accessToken: "test-token" }),
-  withApiAuthRequired: (handler: any) => handler,
+// Mock Auth0 v4
+jest.mock("@lib/auth0", () => ({
+  auth0: {
+    getSession: jest.fn().mockResolvedValue({ user: { sub: "test-user" } }),
+    getAccessToken: jest.fn().mockResolvedValue({ token: "test-token" }),
+  },
 }))
 
 // Mock fetchHelper
@@ -163,6 +166,20 @@ describe("createApiHandler", () => {
       res,
       expect.objectContaining({ message: "network failure" }),
     )
+  })
+
+  it("returns 401 when not authenticated", async () => {
+    ;(auth0.getSession as jest.Mock).mockResolvedValueOnce(null)
+
+    const handler = createApiHandler({ url: "http://backend/items" })
+    const req = createMockReq("GET")
+    const res = createMockRes()
+
+    await handler(req, res)
+
+    expect(res.status).toHaveBeenCalledWith(401)
+    expect(res.json).toHaveBeenCalledWith({ error: "Not authenticated" })
+    expect(mockFetch).not.toHaveBeenCalled()
   })
 
   it("forwards body for PATCH but not DELETE", async () => {

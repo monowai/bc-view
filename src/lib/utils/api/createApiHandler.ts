@@ -1,5 +1,5 @@
 import { NextApiHandler, NextApiRequest, NextApiResponse } from "next"
-import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0"
+import { auth0 } from "@lib/auth0"
 import { requestInit } from "@utils/api/fetchHelper"
 import handleResponse, { fetchError } from "@utils/api/responseWriter"
 
@@ -17,16 +17,16 @@ interface ApiHandlerConfig {
 }
 
 export function createApiHandler(config: ApiHandlerConfig): NextApiHandler {
-  const {
-    methods = ["GET"],
-    bodyMethods = DEFAULT_BODY_METHODS,
-  } = config
+  const { methods = ["GET"], bodyMethods = DEFAULT_BODY_METHODS } = config
 
-  return withApiAuthRequired(async function handler(
-    req: NextApiRequest,
-    res: NextApiResponse,
-  ) {
+  return async function handler(req: NextApiRequest, res: NextApiResponse) {
     try {
+      const session = await auth0.getSession(req)
+      if (!session) {
+        res.status(401).json({ error: "Not authenticated" })
+        return
+      }
+
       const method = req.method?.toUpperCase() as HttpMethod
       if (!methods.includes(method)) {
         res.setHeader("Allow", methods)
@@ -34,12 +34,15 @@ export function createApiHandler(config: ApiHandlerConfig): NextApiHandler {
         return
       }
 
-      const { accessToken } = await getAccessToken(req, res)
+      const { token: accessToken } = await auth0.getAccessToken(req, res)
       const url =
         typeof config.url === "function" ? config.url(req) : config.url
 
       const init = bodyMethods.includes(method)
-        ? { ...requestInit(accessToken, method, req), body: JSON.stringify(req.body) }
+        ? {
+            ...requestInit(accessToken, method, req),
+            body: JSON.stringify(req.body),
+          }
         : requestInit(accessToken, method, req)
 
       const response = await fetch(url, init)
@@ -47,5 +50,5 @@ export function createApiHandler(config: ApiHandlerConfig): NextApiHandler {
     } catch (error: unknown) {
       fetchError(req, res, error)
     }
-  })
+  }
 }

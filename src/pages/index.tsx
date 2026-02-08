@@ -264,7 +264,7 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
       </div>
     )
   }
-  return <Link href={"/api/auth/login"}>{t("user.login")}</Link>
+  return <Link href={"/auth/login"}>{t("user.login")}</Link>
 })
 
 export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({

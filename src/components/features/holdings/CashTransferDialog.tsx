@@ -319,9 +319,7 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
           <Dialog.CancelButton onClick={onClose} label={t("cancel")} />
           <Dialog.SubmitButton
             onClick={handleTransfer}
-            label={
-              submitSuccess ? t("success") : t("cash.transfer.confirm")
-            }
+            label={submitSuccess ? t("success") : t("cash.transfer.confirm")}
             loadingLabel={t("submitting")}
             isSubmitting={isSubmitting}
             disabled={!isTargetValid || submitSuccess}

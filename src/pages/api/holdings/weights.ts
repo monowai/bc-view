@@ -1,4 +1,4 @@
-import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0"
+import { auth0 } from "@lib/auth0"
 import { requestInit } from "@utils/api/fetchHelper"
 import { fetchError } from "@utils/api/responseWriter"
 import { getPositionsUrl } from "@utils/api/bcConfig"
@@ -22,30 +22,35 @@ interface WeightsResponse {
   currency: string
 }
 
-export default withApiAuthRequired(async function holdingsWeights(
+export default async function holdingsWeights(
   req: NextApiRequest,
   res: NextApiResponse,
-) {
+): Promise<void> {
   if (req.method !== "GET") {
     res.setHeader("Allow", ["GET"])
-    return res.status(405).end(`Method ${req.method} Not Allowed`)
+    res.status(405).end(`Method ${req.method} Not Allowed`)
+    return
   }
 
   try {
-    const { accessToken } = await getAccessToken(req, res)
+    const session = await auth0.getSession(req)
+    if (!session) {
+      res.status(401).json({ error: "Not authenticated" })
+      return
+    }
+
+    const { token: accessToken } = await auth0.getAccessToken(req, res)
     const portfolioIds = req.query.portfolioIds as string
 
     if (!portfolioIds) {
-      return res
-        .status(400)
-        .json({ error: "portfolioIds query parameter required" })
+      res.status(400).json({ error: "portfolioIds query parameter required" })
+      return
     }
 
     const codes = portfolioIds.split(",").filter(Boolean)
     if (codes.length === 0) {
-      return res
-        .status(400)
-        .json({ error: "At least one portfolio code required" })
+      res.status(400).json({ error: "At least one portfolio code required" })
+      return
     }
 
     // Fetch holdings for each portfolio
@@ -153,8 +158,8 @@ export default withApiAuthRequired(async function holdingsWeights(
       currency,
     }
 
-    return res.status(200).json(result)
+    res.status(200).json(result)
   } catch (error: unknown) {
-    return fetchError(req, res, error)
+    fetchError(req, res, error)
   }
-})
+}

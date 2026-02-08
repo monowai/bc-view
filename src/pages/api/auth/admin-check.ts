@@ -1,16 +1,21 @@
-import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0"
+import { auth0 } from "@lib/auth0"
 import { NextApiRequest, NextApiResponse } from "next"
 
 /**
  * Check if the current user has admin privileges.
  * Decodes the JWT access token to check for beancounter:admin scope.
  */
-export default withApiAuthRequired(async function adminCheck(
+export default async function adminCheck(
   req: NextApiRequest,
   res: NextApiResponse,
-) {
+): Promise<void> {
   try {
-    const { accessToken } = await getAccessToken(req, res)
+    const session = await auth0.getSession(req)
+    if (!session) {
+      return res.status(401).json({ error: "Not authenticated" })
+    }
+
+    const { token: accessToken } = await auth0.getAccessToken(req, res)
 
     if (!accessToken) {
       return res.status(200).json({ isAdmin: false })
@@ -39,4 +44,4 @@ export default withApiAuthRequired(async function adminCheck(
     console.error("Admin check error:", error)
     return res.status(200).json({ isAdmin: false })
   }
-})
+}

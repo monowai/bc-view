@@ -168,6 +168,8 @@ export const PerformanceHeatmap: React.FC<PerformanceHeatmapProps> = ({
         return cell.irr
       case "dailyGain":
         return cell.gainOnDay / cell.marketValue // Convert to percentage
+      default:
+        return 0
     }
   }
 
@@ -184,6 +186,8 @@ export const PerformanceHeatmap: React.FC<PerformanceHeatmapProps> = ({
         return "IRR"
       case "dailyGain":
         return "Daily Gain"
+      default:
+        return metric
     }
   }
 
@@ -195,6 +199,8 @@ export const PerformanceHeatmap: React.FC<PerformanceHeatmapProps> = ({
         return "Simple return: (Current Value - Cost) / Cost. Does not account for timing of purchases."
       case "irr":
         return "Internal Rate of Return: Annualized return accounting for when you bought and sold. Better for comparing investments held for different periods."
+      default:
+        return ""
     }
   }
 

@@ -62,7 +62,6 @@ const truncateText = (text: string, maxLength: number): string => {
   return text.substring(0, maxLength) + "..."
 }
 
-
 // Actions dropdown menu component
 interface ActionsMenuProps {
   asset: Asset
@@ -462,9 +461,7 @@ export default function Rows({
                     className="font-semibold text-sm sm:text-base text-slate-900"
                     title={asset.code}
                   >
-                    {isCash(asset)
-                      ? asset.name
-                      : stripOwnerPrefix(asset.code)}
+                    {isCash(asset) ? asset.name : stripOwnerPrefix(asset.code)}
                   </div>
                   {!isCash(asset) && asset.name && (
                     <div

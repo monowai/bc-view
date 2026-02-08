@@ -50,10 +50,10 @@ export default function CompleteStep({
       {accountDeleted ? (
         <div className="text-center">
           <p className="text-gray-600 mb-4">{t("complete.accountDeleted")}</p>
-          {/* Using <a> intentionally - /api/auth/logout requires full page navigation for Auth0 logout flow */}
-          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+          {/* Using <a> intentionally - /auth/logout requires full page navigation for Auth0 logout flow */}
+          {}
           <a
-            href="/api/auth/logout"
+            href="/auth/logout"
             className="inline-flex items-center px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
           >
             <i className="fas fa-sign-out-alt mr-2"></i>

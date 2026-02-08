@@ -4,7 +4,10 @@ import "@testing-library/jest-dom"
 import Portfolios from "@pages/portfolios"
 import useSWR from "swr"
 import { beforeEach, afterEach, describe, it } from "@jest/globals"
-import { portfolioResult } from "../../__fixtures__/fixtures"
+import { portfolioResult, mockUserProfile } from "../../__fixtures__/fixtures"
+
+// Cast to any since withPageAuthRequired HOC strips prop types in v4
+const PortfoliosPage = Portfolios as React.ComponentType<any>
 
 // Mock useSWR with specific data setup
 jest.mock("swr", () => ({
@@ -49,7 +52,7 @@ describe("Portfolios Page", () => {
   })
 
   it("renders the portfolios table when data is available", async () => {
-    render(<Portfolios />)
+    render(<PortfoliosPage user={mockUserProfile} />)
 
     // Wait for portfolio table to render (requires currencies + FX rates to load)
     await waitFor(() => {
@@ -76,7 +79,7 @@ describe("Portfolios Page", () => {
       mutate: jest.fn(),
     })
     ;(useSWR as jest.Mock).mockImplementation(() => mockUseSWR())
-    render(<Portfolios />)
+    render(<PortfoliosPage user={mockUserProfile} />)
 
     // Wait for async currency fetch to complete
     await waitFor(() => {

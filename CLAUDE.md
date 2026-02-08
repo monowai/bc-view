@@ -59,9 +59,9 @@ Then in `.env.local`, reference shell variables for secrets and set non-sensitiv
 
 ```bash
 # Auth0 - secrets come from shell environment
-AUTH0_BASE_URL='http://localhost:3000'
-AUTH0_ISSUER_BASE_URL='https://beancounter.eu.auth0.com'
-AUTH0_AUDIENCE='https://holdsworth.app'
+APP_BASE_URL='http://localhost:3000'
+AUTH0_DOMAIN='beancounter.eu.auth0.com'
+# AUTH0_AUDIENCE is configured in src/lib/utils/auth0.ts (not an env var in v4)
 
 # Backend services (point to local or remote)
 BC_DATA='http://localhost:9610'      # or kauri.monowai.com:30610
@@ -216,11 +216,11 @@ yarn check-imports
 
 ## Common Issues
 
-**Auth redirect loop**: Check `AUTH0_BASE_URL` matches actual URL
+**Auth redirect loop**: Check `APP_BASE_URL` matches actual URL
 
 **Backend connection refused**: Verify `BC_DATA`, `BC_POSITION`, `BC_EVENT` URLs are accessible
 
-**CORS errors**: Backend services must allow origin from `AUTH0_BASE_URL`
+**CORS errors**: Backend services must allow origin from `APP_BASE_URL`
 
 **Message broker connection failed**: Check `RABBIT_URL` or `KAFKA_URL` and `BROKER_TYPE`
 

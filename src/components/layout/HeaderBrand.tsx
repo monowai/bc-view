@@ -63,14 +63,33 @@ function isActiveRoute(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(href + "/")
 }
 
-const sectionColors: Record<string, { bg: string; text: string; border: string }> = {
-  Wealth: { bg: "bg-wealth-50", text: "text-wealth-600", border: "border-wealth-600" },
-  Invest: { bg: "bg-invest-50", text: "text-invest-600", border: "border-invest-600" },
-  Plan: { bg: "bg-independence-50", text: "text-independence-600", border: "border-independence-600" },
+const sectionColors: Record<
+  string,
+  { bg: string; text: string; border: string }
+> = {
+  Wealth: {
+    bg: "bg-wealth-50",
+    text: "text-wealth-600",
+    border: "border-wealth-600",
+  },
+  Invest: {
+    bg: "bg-invest-50",
+    text: "text-invest-600",
+    border: "border-invest-600",
+  },
+  Plan: {
+    bg: "bg-independence-50",
+    text: "text-independence-600",
+    border: "border-independence-600",
+  },
   Tools: { bg: "bg-gray-50", text: "text-gray-600", border: "border-gray-600" },
 }
 
-const defaultSectionColor = { bg: "bg-gray-50", text: "text-gray-600", border: "border-gray-600" }
+const defaultSectionColor = {
+  bg: "bg-gray-50",
+  text: "text-gray-600",
+  border: "border-gray-600",
+}
 
 // Desktop dropdown — opens on hover with a close delay, click also toggles
 function DesktopDropdown({
@@ -257,7 +276,8 @@ function HeaderBrand(): React.ReactElement {
                     </div>
                     {filteredItems.map((item) => {
                       const active = isActiveRoute(router.pathname, item.href)
-                      const colors = sectionColors[section.title] || defaultSectionColor
+                      const colors =
+                        sectionColors[section.title] || defaultSectionColor
                       return (
                         <Link
                           key={item.href}

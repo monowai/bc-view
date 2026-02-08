@@ -1,8 +1,9 @@
-import { UserProfile, UserProvider } from "@auth0/nextjs-auth0/client"
+import { Auth0Provider } from "@auth0/nextjs-auth0/client"
+import type { User } from "@auth0/nextjs-auth0/types"
 import React, { ReactNode } from "react"
 import { PortfolioResponses, RegistrationResponse } from "types/beancounter"
 
-export const mockUserProfile: UserProfile = {
+export const mockUserProfile: User = {
   email: "foo@example.com",
   email_verified: true,
   name: "foo",
@@ -48,13 +49,13 @@ export const portfolioResult: PortfolioResponses = {
   ],
 }
 export const withUserProvider = (
-  user: UserProfile = mockUserProfile,
+  user: User = mockUserProfile,
 ): React.ComponentType<{ children: ReactNode }> => {
   const TestUserProvider = ({
     children,
   }: {
     children: ReactNode
-  }): React.ReactElement => <UserProvider>{children}</UserProvider>
+  }): React.ReactElement => <Auth0Provider>{children}</Auth0Provider>
   TestUserProvider.displayName = `TestUserProvider(${user.name})`
   return TestUserProvider
 }
