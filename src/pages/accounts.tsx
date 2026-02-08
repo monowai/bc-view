@@ -43,7 +43,6 @@ interface CategoryOption {
   label: string
 }
 
-
 interface EditAccountData {
   asset: Asset
 }

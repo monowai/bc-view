@@ -134,9 +134,7 @@ const SetCashBalanceDialog: React.FC<SetCashBalanceDialogProps> = ({
         <div className="font-semibold text-lg">
           {assetName || assetCode || `${currency} Cash`}
         </div>
-        {assetCode && (
-          <div className="text-sm text-gray-500">{currency}</div>
-        )}
+        {assetCode && <div className="text-sm text-gray-500">{currency}</div>}
       </div>
 
       {/* Current Balance */}

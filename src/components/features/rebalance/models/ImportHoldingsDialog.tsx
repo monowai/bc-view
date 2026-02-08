@@ -127,7 +127,10 @@ const ImportHoldingsDialog: React.FC<ImportHoldingsDialogProps> = ({
       scrollable={true}
       footer={
         <>
-          <Dialog.CancelButton onClick={onClose} label={t("cancel", "Cancel")} />
+          <Dialog.CancelButton
+            onClick={onClose}
+            label={t("cancel", "Cancel")}
+          />
           <Dialog.SubmitButton
             onClick={handleImport}
             label={t("import", "Import")}
@@ -163,9 +166,7 @@ const ImportHoldingsDialog: React.FC<ImportHoldingsDialogProps> = ({
       {loadingWeights && (
         <div className="flex items-center justify-center py-8">
           <i className="fas fa-spinner fa-spin text-gray-400 text-xl mr-2"></i>
-          <span className="text-gray-500">
-            {t("loading", "Loading...")}
-          </span>
+          <span className="text-gray-500">{t("loading", "Loading...")}</span>
         </div>
       )}
 

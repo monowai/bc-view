@@ -71,6 +71,8 @@ function getGroupKey(
         key: position.asset.market.code,
         label: position.asset.market.code,
       }
+    default:
+      return { key: "unknown", label: "Unknown" }
   }
 }
 

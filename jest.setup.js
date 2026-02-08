@@ -37,7 +37,7 @@ jest.mock("next/router", () => ({
   },
 }))
 
-// Mock Auth0 client modules
+// Mock Auth0 client modules (v4)
 jest.mock("@auth0/nextjs-auth0/client", () => {
   const mockUser = {
     sub: "auth0|test-user-id",
@@ -58,9 +58,12 @@ jest.mock("@auth0/nextjs-auth0/client", () => {
       return (props) =>
         React.createElement(Component, { ...props, user: mockUser })
     },
-    UserProvider: ({ children }) => children,
+    Auth0Provider: ({ children }) => children,
   }
 })
+
+// Mock Auth0 types module (v4)
+jest.mock("@auth0/nextjs-auth0/types", () => ({}))
 
 // Mock fetch globally for API calls
 global.fetch = jest.fn(() =>

@@ -136,9 +136,7 @@ export default function CostAdjustDialog({
           }`}
         >
           <div className="flex justify-between text-sm">
-            <span className="text-gray-600">
-              {t("costAdjust.adjustment")}
-            </span>
+            <span className="text-gray-600">{t("costAdjust.adjustment")}</span>
             <span
               className={`font-medium ${adjustmentAmount > 0 ? "text-green-600" : "text-orange-600"}`}
             >

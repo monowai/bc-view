@@ -1,4 +1,4 @@
-import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0"
+import { auth0 } from "@lib/auth0"
 import { requestInit } from "@utils/api/fetchHelper"
 import { getDataUrl, getPositionsUrl } from "@utils/api/bcConfig"
 import { fetchError } from "@utils/api/responseWriter"
@@ -45,10 +45,10 @@ interface AssetResponse {
  *
  * Returns portfolios that hold the asset along with the current position/balance.
  */
-export default withApiAuthRequired(async function getAssetPositions(
+export default async function getAssetPositions(
   req: NextApiRequest,
   res: NextApiResponse,
-) {
+): Promise<void> {
   if (req.method !== "GET") {
     res.setHeader("Allow", ["GET"])
     res.status(405).json({ error: "Method not allowed" })
@@ -56,7 +56,13 @@ export default withApiAuthRequired(async function getAssetPositions(
   }
 
   try {
-    const { accessToken } = await getAccessToken(req, res)
+    const session = await auth0.getSession(req)
+    if (!session) {
+      res.status(401).json({ error: "Not authenticated" })
+      return
+    }
+
+    const { token: accessToken } = await auth0.getAccessToken(req, res)
     const assetId = req.query.id as string
     const date = (req.query.date as string) || "today"
 
@@ -195,4 +201,4 @@ export default withApiAuthRequired(async function getAssetPositions(
   } catch (error: unknown) {
     fetchError(req, res, error)
   }
-})
+}

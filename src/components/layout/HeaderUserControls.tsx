@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react"
-import { useUser, UserProfile } from "@auth0/nextjs-auth0/client"
+import { useUser } from "@auth0/nextjs-auth0/client"
+import type { User } from "@auth0/nextjs-auth0/types"
 import Link from "next/link"
 import Image from "next/image"
 import { useTranslation } from "next-i18next"
@@ -11,7 +12,7 @@ function Avatar({
   user,
   size,
 }: {
-  user: UserProfile
+  user: User
   size: number
 }): React.ReactElement {
   return (
@@ -67,7 +68,7 @@ export default function HeaderUserControls(): React.ReactElement {
   if (!user)
     return (
       <div>
-        <Link href="/api/auth/login">{t("user.login")}</Link>
+        <Link href="/auth/login">{t("user.login")}</Link>
       </div>
     )
 
@@ -123,7 +124,7 @@ export default function HeaderUserControls(): React.ReactElement {
           )}
           <hr className="my-1 border-gray-100" />
           <Link
-            href="/api/auth/logout"
+            href="/auth/logout"
             className="flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
           >
             <i className="fas fa-sign-out-alt w-4 text-center text-xs"></i>

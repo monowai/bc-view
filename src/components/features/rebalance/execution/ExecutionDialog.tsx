@@ -90,7 +90,10 @@ const ExecutionDialog: React.FC<ExecutionDialogProps> = ({
           />
         ) : (
           <>
-            <Dialog.CancelButton onClick={handleClose} label={t("cancel", "Cancel")} />
+            <Dialog.CancelButton
+              onClick={handleClose}
+              label={t("cancel", "Cancel")}
+            />
             <Dialog.SubmitButton
               onClick={handleExecute}
               label={t("rebalance.execution.confirm", "Execute Plan")}
@@ -128,16 +131,11 @@ const ExecutionDialog: React.FC<ExecutionDialogProps> = ({
               <div className="flex gap-4 mt-2">
                 <span className="text-green-600">
                   <i className="fas fa-plus mr-1"></i>
-                  {
-                    eligibleItems.filter((i) => i.action === "BUY").length
-                  }{" "}
-                  buys
+                  {eligibleItems.filter((i) => i.action === "BUY").length} buys
                 </span>
                 <span className="text-red-600">
                   <i className="fas fa-minus mr-1"></i>
-                  {
-                    eligibleItems.filter((i) => i.action === "SELL").length
-                  }{" "}
+                  {eligibleItems.filter((i) => i.action === "SELL").length}{" "}
                   sells
                 </span>
               </div>

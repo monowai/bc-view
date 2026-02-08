@@ -1,4 +1,4 @@
-import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0"
+import { auth0 } from "@lib/auth0"
 import { requestInit } from "@utils/api/fetchHelper"
 import { fetchError } from "@utils/api/responseWriter"
 import { getDataUrl } from "@utils/api/bcConfig"
@@ -6,12 +6,18 @@ import { NextApiRequest, NextApiResponse } from "next"
 
 const exportUrl = getDataUrl("/assets/me/export")
 
-export default withApiAuthRequired(async function exportAssets(
+export default async function exportAssets(
   req: NextApiRequest,
   res: NextApiResponse,
-) {
+): Promise<void> {
   try {
-    const { accessToken } = await getAccessToken(req, res)
+    const session = await auth0.getSession(req)
+    if (!session) {
+      res.status(401).json({ error: "Not authenticated" })
+      return
+    }
+
+    const { token: accessToken } = await auth0.getAccessToken(req, res)
     const { method } = req
 
     if (method?.toUpperCase() !== "GET") {
@@ -37,4 +43,4 @@ export default withApiAuthRequired(async function exportAssets(
   } catch (error: unknown) {
     fetchError(req, res, error)
   }
-})
+}

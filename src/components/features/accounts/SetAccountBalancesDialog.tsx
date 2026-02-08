@@ -30,7 +30,6 @@ interface BalanceEntry {
   adjustment: CashBalanceAdjustment
 }
 
-
 const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
   asset,
   onClose,

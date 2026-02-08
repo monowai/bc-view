@@ -1,4 +1,4 @@
-import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0"
+import { auth0 } from "@lib/auth0"
 import { fetchError, hasError, handleErrors } from "@utils/api/responseWriter"
 import { getDataUrl } from "@utils/api/bcConfig"
 import { NextApiRequest, NextApiResponse } from "next"
@@ -6,12 +6,18 @@ import { PortfolioResponses } from "types/beancounter"
 
 const importUrl = getDataUrl("/portfolios/import")
 
-export default withApiAuthRequired(async function importPortfolios(
+export default async function importPortfolios(
   req: NextApiRequest,
   res: NextApiResponse,
-) {
+): Promise<void> {
   try {
-    const { accessToken } = await getAccessToken(req, res)
+    const session = await auth0.getSession(req)
+    if (!session) {
+      res.status(401).json({ error: "Not authenticated" })
+      return
+    }
+
+    const { token: accessToken } = await auth0.getAccessToken(req, res)
     const { method, body } = req
 
     if (method?.toUpperCase() !== "POST") {
@@ -50,4 +56,4 @@ export default withApiAuthRequired(async function importPortfolios(
   } catch (error: unknown) {
     fetchError(req, res, error)
   }
-})
+}

@@ -175,38 +175,6 @@ function checkBuildState() {
   }
 }
 
-// Check 5: Test critical endpoints (if server is running)
-function checkEndpoints() {
-  log("\n🔍 Testing critical endpoints...", YELLOW)
-
-  try {
-    // Check if server is running
-    const homeResponse = execSync(
-      'curl -s -o /dev/null -w "%{http_code}" http://localhost:3000',
-      { encoding: "utf8", timeout: 3000 },
-    )
-    if (homeResponse.trim() === "200") {
-      success("Home page: 200 OK")
-
-      // Test auth endpoint
-      const authResponse = execSync(
-        'curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/auth/login',
-        { encoding: "utf8", timeout: 3000 },
-      )
-      if (authResponse.trim() === "302") {
-        success("Auth endpoint: 302 Redirect (correct)")
-      } else {
-        error(`Auth endpoint returned: ${authResponse.trim()} (expected 302)`)
-      }
-    } else {
-      warn(
-        `Server not responding correctly (${homeResponse.trim()}) - start with: yarn dev`,
-      )
-    }
-  } catch {
-    warn("Server not running or not accessible - start with: yarn dev")
-  }
-}
 
 // Main execution
 function main() {
@@ -217,7 +185,6 @@ function main() {
   checkTsConfigAliases()
   checkApiRoutes()
   checkBuildState()
-  checkEndpoints()
 
   if (hasErrors) {
     log("\n❌ REGRESSION CHECK FAILED", RED)

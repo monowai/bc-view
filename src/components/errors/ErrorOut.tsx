@@ -63,7 +63,7 @@ export default function ErrorOut({
   }
 
   const handleLogin = (): void => {
-    router.push("/api/auth/login")
+    router.push("/auth/login")
   }
 
   const getErrorIcon = (): ReactElement => {

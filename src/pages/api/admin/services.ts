@@ -1,4 +1,4 @@
-import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0"
+import { auth0 } from "@lib/auth0"
 import { fetchError } from "@utils/api/responseWriter"
 import {
   getDataActuatorUrl,
@@ -103,11 +103,17 @@ async function fetchServiceStatus(
  * Returns health and version information for all backend services.
  * Admin-only endpoint.
  */
-export default withApiAuthRequired(async function servicesHandler(
+export default async function servicesHandler(
   req: NextApiRequest,
   res: NextApiResponse<ServicesResponse | { error: string }>,
-) {
+): Promise<void> {
   try {
+    const session = await auth0.getSession(req)
+    if (!session) {
+      res.status(401).json({ error: "Not authenticated" })
+      return
+    }
+
     const { method } = req
 
     if (method?.toUpperCase() !== "GET") {
@@ -116,7 +122,7 @@ export default withApiAuthRequired(async function servicesHandler(
       return
     }
 
-    const { accessToken } = await getAccessToken(req, res)
+    const { token: accessToken } = await auth0.getAccessToken(req, res)
     if (!accessToken) {
       res.status(401).json({ error: "Unauthorized" })
       return
@@ -143,4 +149,4 @@ export default withApiAuthRequired(async function servicesHandler(
   } catch (error: unknown) {
     fetchError(req, res, error)
   }
-})
+}

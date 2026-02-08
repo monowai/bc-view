@@ -303,8 +303,8 @@ export default function IncomeBreakdownTable({
           )}
           {columnVisibility.otherIncome && (
             <span>
-              <span className="font-medium text-independence-600">Other:</span> Not
-              indexed
+              <span className="font-medium text-independence-600">Other:</span>{" "}
+              Not indexed
             </span>
           )}
           {columnVisibility.rentalIncome && (

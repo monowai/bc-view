@@ -1882,7 +1882,9 @@ function PlanView(): React.ReactElement {
                         </span>
                         <span
                           className={
-                            hideValues ? "text-gray-400" : "text-independence-600"
+                            hideValues
+                              ? "text-gray-400"
+                              : "text-independence-600"
                           }
                         >
                           {hideValues

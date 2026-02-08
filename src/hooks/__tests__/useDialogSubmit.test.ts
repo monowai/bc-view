@@ -90,9 +90,7 @@ describe("useDialogSubmit", () => {
 
   it("does not call onSuccess on failure", async () => {
     const onSuccess = jest.fn()
-    const { result } = renderHook(() =>
-      useDialogSubmit({ onSuccess }),
-    )
+    const { result } = renderHook(() => useDialogSubmit({ onSuccess }))
 
     await act(async () => {
       await result.current.handleSubmit(() => {

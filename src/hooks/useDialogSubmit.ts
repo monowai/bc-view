@@ -47,9 +47,7 @@ export function useDialogSubmit({
           onSuccess()
         }
       } catch (error: unknown) {
-        setSubmitError(
-          error instanceof Error ? error.message : fallbackError,
-        )
+        setSubmitError(error instanceof Error ? error.message : fallbackError)
       } finally {
         setIsSubmitting(false)
       }

@@ -110,12 +110,13 @@ export default [
       "no-return-await": "error",
       "no-var": "error",
       "@typescript-eslint/explicit-function-return-type": [
-        "warn",
+        "error",
         {
           allowExpressions: true,
           allowTypedFunctionExpressions: true,
         },
       ],
+      "consistent-return": "error",
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/ban-ts-ignore": "off",
       "react-hooks/rules-of-hooks": "error",

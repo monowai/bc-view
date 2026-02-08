@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from "react"
 import useSwr from "swr"
-import { UserProfile, withPageAuthRequired } from "@auth0/nextjs-auth0/client"
+import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
+import type { User } from "@auth0/nextjs-auth0/types"
 import { useTranslation } from "next-i18next"
 import { Portfolio, Currency, FxResponse } from "types/beancounter"
 import Link from "next/link"
@@ -92,7 +93,9 @@ const PortfolioActions = ({
 
 export default withPageAuthRequired(function Portfolios({
   user,
-}: UserProfile): React.ReactElement {
+}: {
+  user: User
+}): React.ReactElement {
   const { t, ready } = useTranslation("common")
   const router = useRouter()
   const { preferences } = useUserPreferences()
@@ -695,7 +698,9 @@ export default withPageAuthRequired(function Portfolios({
                   >
                     <span
                       className={`text-sm font-semibold tabular-nums ${
-                        totalGainOnDay >= 0 ? "text-emerald-200" : "text-red-200"
+                        totalGainOnDay >= 0
+                          ? "text-emerald-200"
+                          : "text-red-200"
                       }`}
                     >
                       {(

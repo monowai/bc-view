@@ -134,7 +134,10 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
       maxWidth="md"
       footer={
         <>
-          <Dialog.CancelButton onClick={handleClose} label={t("cancel", "Cancel")} />
+          <Dialog.CancelButton
+            onClick={handleClose}
+            label={t("cancel", "Cancel")}
+          />
           <Dialog.SubmitButton
             onClick={handleAdd}
             label={t("add", "Add")}

@@ -1,4 +1,4 @@
-// Mock Auth0 Next.js SDK for Jest tests
+// Mock Auth0 Next.js SDK v4 for Jest tests (root import = client)
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 
 const mockUser = {
@@ -18,21 +18,17 @@ export const useUser = jest.fn(() => ({
 }))
 
 // Mock HOCs - for testing, just return the component as-is
-// The UserProvider wrapper in tests will handle providing the user
 export const withPageAuthRequired = (Component) => {
   return Component
 }
 
-// Mock provider
+// Mock provider (v4: Auth0Provider replaces UserProvider)
 export const Auth0Provider = jest.fn(({ children }) => children)
 
-// Mock getAccessToken for server-side usage
+// Mock getAccessToken (client-side)
 export const getAccessToken = jest.fn(() =>
-  Promise.resolve({ accessToken: "mock-access-token" }),
+  Promise.resolve({ token: "mock-access-token" }),
 )
-
-// Mock User type
-export const User = {}
 
 // Default export for CommonJS compatibility
 module.exports = {
@@ -40,5 +36,4 @@ module.exports = {
   withPageAuthRequired,
   Auth0Provider,
   getAccessToken,
-  User,
 }
