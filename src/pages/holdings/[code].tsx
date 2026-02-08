@@ -417,7 +417,7 @@ function HoldingsPage(): React.ReactElement {
             />
           </div>
           {/* Scrollable table container */}
-          <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)] md:max-h-[calc(100vh-320px)] scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
+          <div className="overflow-x-auto overflow-y-auto h-[calc(100vh-280px)] md:h-[calc(100vh-320px)] scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
             <table className="min-w-full bg-white">
               {(() => {
                 let cumulativeCount = 0
