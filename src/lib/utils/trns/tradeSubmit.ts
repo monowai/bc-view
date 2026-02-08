@@ -152,18 +152,22 @@ export interface SubmitCreateModeParams {
   portfolio: Portfolio
   errors: Record<string, any>
   setModalOpen: (open: boolean) => void
+  mutate: MutateFn
 }
 
 /**
  * Submit handler for create mode: CSV import via message broker.
  */
 export function submitCreateMode(params: SubmitCreateModeParams): void {
-  const { data, portfolio, errors, setModalOpen } = params
+  const { data, portfolio, errors, setModalOpen, mutate } = params
   const settlementCurrency = deriveSettlementCurrency(data)
-  onSubmit(
-    portfolio,
-    errors,
-    buildCreateModeData(data, settlementCurrency),
-    setModalOpen,
-  )
+  onSubmit(portfolio, errors, buildCreateModeData(data, settlementCurrency), (open) => {
+    setModalOpen(open)
+    if (!open) {
+      setTimeout(() => {
+        mutate(holdingKey(portfolio.code, "today"))
+        mutate("/api/holdings/aggregated?asAt=today")
+      }, 1500)
+    }
+  })
 }

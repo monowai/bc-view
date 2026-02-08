@@ -477,8 +477,9 @@ function AccountsPage(): React.ReactElement {
       console.error("Error deleting asset:", error)
       throw error
     }
-    // Refresh the assets list
+    // Refresh the assets list and invalidate holdings
     await mutate("/api/assets")
+    mutate("/api/holdings/aggregated?asAt=today")
     setDeleteData(undefined)
   }, [])
 
