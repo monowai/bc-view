@@ -3,6 +3,8 @@ import { useDropzone } from "react-dropzone"
 import { Portfolio, TransactionImport } from "types/beancounter"
 import { DelimitedImport } from "types/app"
 import Papa from "papaparse"
+import { mutate } from "swr"
+import { holdingKey } from "@utils/api/fetchHelper"
 
 // Function to read and parse file
 function readFile(file: Blob): Promise<string[][]> {
@@ -95,6 +97,12 @@ export default function TrnDropZone({
         }
       }
       console.log(`Sent ${rows} rows`)
+      if (rows > 0) {
+        setTimeout(() => {
+          mutate(holdingKey(portfolio.code, "today"))
+          mutate("/api/holdings/aggregated?asAt=today")
+        }, 1500)
+      }
     },
     [portfolio, purge],
   )

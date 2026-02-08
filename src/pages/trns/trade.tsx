@@ -712,6 +712,7 @@ const TradeInputForm: React.FC<{
                     portfolio,
                     errors,
                     setModalOpen,
+                    mutate,
                   })
                 }
               })}

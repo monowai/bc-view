@@ -3,8 +3,8 @@ import { useTranslation } from "next-i18next"
 import Dialog from "@components/ui/Dialog"
 import { Portfolio, CashTransferData, Asset } from "types/beancounter"
 import MathInput from "@components/ui/MathInput"
-import useSWR from "swr"
-import { simpleFetcher, ccyKey } from "@utils/api/fetchHelper"
+import useSWR, { mutate } from "swr"
+import { simpleFetcher, ccyKey, holdingKey } from "@utils/api/fetchHelper"
 import { stripOwnerPrefix, resolveAssetId } from "@lib/assets/assetUtils"
 
 interface CashTransferDialogProps {
@@ -262,6 +262,16 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
       }
 
       setSubmitSuccess(true)
+      setTimeout(() => {
+        mutate(holdingKey(sourceData.portfolioCode, "today"))
+        mutate("/api/holdings/aggregated?asAt=today")
+        if (sourceData.portfolioId !== targetPortfolioId) {
+          const tp = portfolios.find((p) => p.id === targetPortfolioId)
+          if (tp) {
+            mutate(holdingKey(tp.code, "today"))
+          }
+        }
+      }, 1500)
       setTimeout(() => {
         onClose()
       }, 1000)

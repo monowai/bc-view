@@ -6,8 +6,8 @@ import { FxResponse, Portfolio } from "types/beancounter"
 import { SelectInstance } from "react-select"
 import { calculateTradeAmount } from "@lib/trns/tradeUtils"
 import { useTranslation } from "next-i18next"
-import useSwr from "swr"
-import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper"
+import useSwr, { mutate } from "swr"
+import { ccyKey, holdingKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { rootLoader } from "@components/ui/PageLoader"
 import { CurrencyOptionSchema } from "@lib/portfolio/schema"
 import {
@@ -437,7 +437,15 @@ const CashInputForm: React.FC<{
 
             <form
               onSubmit={handleSubmit((data) =>
-                onSubmit(portfolio, errors, data, setModalOpen),
+                onSubmit(portfolio, errors, data, (open) => {
+                  setModalOpen(open)
+                  if (!open) {
+                    setTimeout(() => {
+                      mutate(holdingKey(portfolio.code, "today"))
+                      mutate("/api/holdings/aggregated?asAt=today")
+                    }, 1500)
+                  }
+                }),
               )}
               className="flex-1 overflow-y-auto py-4 space-y-4"
             >
@@ -785,7 +793,15 @@ const CashInputForm: React.FC<{
                 form="cash-form"
                 className="px-5 py-2.5 rounded-lg text-white text-sm font-medium bg-blue-600 hover:bg-blue-700 active:bg-blue-800 transition-colors"
                 onClick={handleSubmit((data) =>
-                  onSubmit(portfolio, errors, data, setModalOpen),
+                  onSubmit(portfolio, errors, data, (open) => {
+                    setModalOpen(open)
+                    if (!open) {
+                      setTimeout(() => {
+                        mutate(holdingKey(portfolio.code, "today"))
+                        mutate("/api/holdings/aggregated?asAt=today")
+                      }, 1500)
+                    }
+                  }),
                 )}
               >
                 {t("submit", "Submit")}
