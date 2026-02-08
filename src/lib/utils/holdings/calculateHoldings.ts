@@ -24,7 +24,9 @@ function getPath(path: string, position: Position): string {
  * Gets the group key for a position based on the groupBy option.
  * For ASSET_CLASS grouping, uses report categories with backward compatibility.
  * For SECTOR grouping, uses sector classification with "Unclassified" as fallback.
- * For MARKET_CURRENCY grouping, Cash assets are grouped by their asset code (the currency they represent).
+ * For MARKET_CURRENCY grouping, Cash assets are grouped by their asset code; non-cash
+ *   assets are grouped by their trade currency (not market currency, which is wrong for
+ *   PRIVATE market assets that have no inherent currency).
  * For MARKET grouping, Cash assets are grouped by their market (CASH).
  */
 function getGroupKey(groupBy: GroupBy, position: Position): string {
@@ -36,9 +38,14 @@ function getGroupKey(groupBy: GroupBy, position: Position): string {
     // Use sector with fallback for unclassified assets
     return position.asset.sector || "Unclassified"
   }
-  // For Currency grouping, Cash assets should be grouped by their asset code (the currency they represent)
-  if (groupBy === GroupBy.MARKET_CURRENCY && isCash(position.asset)) {
-    return position.asset.code
+  if (groupBy === GroupBy.MARKET_CURRENCY) {
+    // Cash assets are grouped by their asset code (the currency they represent)
+    if (isCash(position.asset)) {
+      return position.asset.code
+    }
+    // Non-cash assets use the trade currency, not the market currency.
+    // The market currency is wrong for PRIVATE market assets which have no inherent currency.
+    return position.moneyValues["TRADE"]?.currency?.code || getPath(groupBy, position)
   }
   return getPath(groupBy, position)
 }

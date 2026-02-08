@@ -10,13 +10,13 @@ interface PersonalInfoStepProps {
 const currentYear = new Date().getFullYear()
 
 const CURRENCIES = [
-  { code: "NZD", name: "New Zealand Dollar", symbol: "$" },
-  { code: "AUD", name: "Australian Dollar", symbol: "$" },
+  { code: "NZD", name: "New Zealand Dollar", symbol: "NZ$" },
+  { code: "AUD", name: "Australian Dollar", symbol: "A$" },
   { code: "USD", name: "US Dollar", symbol: "$" },
   { code: "GBP", name: "British Pound", symbol: "£" },
   { code: "EUR", name: "Euro", symbol: "€" },
-  { code: "CAD", name: "Canadian Dollar", symbol: "$" },
-  { code: "SGD", name: "Singapore Dollar", symbol: "$" },
+  { code: "CAD", name: "Canadian Dollar", symbol: "C$" },
+  { code: "SGD", name: "Singapore Dollar", symbol: "S$" },
   { code: "JPY", name: "Japanese Yen", symbol: "¥" },
 ]
 

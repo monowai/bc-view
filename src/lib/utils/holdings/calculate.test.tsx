@@ -216,7 +216,7 @@ describe("Cash grouping behavior", () => {
     expect(cashPosition.asset.market.code).toEqual("CASH")
   })
 
-  it("should group Equities by market currency when grouping by MARKET_CURRENCY", () => {
+  it("should group Equities by trade currency when grouping by MARKET_CURRENCY", () => {
     const holdings = calculateHoldings(
       mockContract,
       hideEmpty,
@@ -224,7 +224,7 @@ describe("Cash grouping behavior", () => {
       GroupBy.MARKET_CURRENCY,
     )
 
-    // Equities on US market should be grouped under "USD" (the market's currency)
+    // Equities should be grouped under "USD" (their trade currency)
     expect(holdings.holdingGroups["USD"]).toBeDefined()
 
     // Find equity positions in USD group

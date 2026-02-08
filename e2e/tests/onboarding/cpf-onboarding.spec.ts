@@ -261,10 +261,11 @@ test.describe("CPF Onboarding Flow", () => {
       await newPage.goto("/holdings/SGD")
       await newPage.waitForLoadState("networkidle")
 
-      // Verify holdings loaded with the correct total
-      await expect(newPage.getByText("$110,000.00").first()).toBeVisible({
+      // Verify holdings loaded with the correct total and currency is SGD
+      await expect(newPage.getByText("110,000.00").first()).toBeVisible({
         timeout: 15_000,
       })
+      await expect(newPage.getByText("SGD").first()).toBeVisible()
 
       // Default card view groups by Asset Class — expand to see individual assets
       const retirementGroup = newPage.getByText("Retirement Fund")
