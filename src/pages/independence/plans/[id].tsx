@@ -882,21 +882,40 @@ function PlanView(): React.ReactElement {
 
     try {
       const response = await fetch(`/api/independence/plans/${plan.id}/export`)
-      if (response.ok) {
-        const result = await response.json()
-        const exportData = result.data
+      if (!response.ok) return
+      const result = await response.json()
+      const exportData = result.data
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+        type: "application/json",
+      })
+      const fileName = `${plan.name.replace(/[^a-z0-9]/gi, "_")}_retirement_plan.json`
 
-        const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-          type: "application/json",
-        })
+      const downloadFallback = (): void => {
         const url = URL.createObjectURL(blob)
         const a = document.createElement("a")
         a.href = url
-        a.download = `${plan.name.replace(/[^a-z0-9]/gi, "_")}_retirement_plan.json`
+        a.download = fileName
         document.body.appendChild(a)
         a.click()
         document.body.removeChild(a)
         URL.revokeObjectURL(url)
+      }
+
+      if ("showSaveFilePicker" in window) {
+        try {
+          const handle = await (window as never as { showSaveFilePicker: (opts: Record<string, unknown>) => Promise<FileSystemFileHandle> }).showSaveFilePicker({
+            suggestedName: fileName,
+            types: [{ description: "JSON", accept: { "application/json": [".json"] } }],
+          })
+          const writable = await handle.createWritable()
+          await writable.write(blob)
+          await writable.close()
+        } catch (pickerErr) {
+          if (pickerErr instanceof DOMException && pickerErr.name === "AbortError" && pickerErr.message.includes("user aborted")) return
+          downloadFallback()
+        }
+      } else {
+        downloadFallback()
       }
     } catch (err) {
       console.error("Failed to export plan:", err)

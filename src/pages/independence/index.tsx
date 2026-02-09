@@ -23,11 +23,13 @@ function PlanCard({
   assets,
   hideValues,
   onDelete,
+  onExport,
 }: {
   plan: RetirementPlan
   assets: AssetBreakdown
   hideValues: boolean
   onDelete: (planId: string) => void
+  onExport: (plan: RetirementPlan) => void
 }): React.ReactElement {
   // Use unified projection hook with shared assets
   const { projection, isLoading: fiLoading } = useFiProjectionSimple({
@@ -82,21 +84,28 @@ function PlanCard({
             {plan.expensesCurrency && ` · ${plan.expensesCurrency}`}
           </p>
         </div>
-        <div className="flex space-x-1">
+        <div className="flex items-center space-x-1">
+          <button
+            onClick={() => onDelete(plan.id)}
+            className="text-red-600 hover:text-red-900 p-1.5 mr-1"
+            title="Delete plan"
+          >
+            <i className="fas fa-trash text-xs"></i>
+          </button>
+          <button
+            onClick={() => onExport(plan)}
+            className="text-gray-400 hover:text-gray-600 p-1.5"
+            title="Export plan as JSON"
+          >
+            <i className="fas fa-download text-xs"></i>
+          </button>
           <Link
             href={`/independence/wizard/${plan.id}`}
-            className="text-gray-400 hover:text-independence-600 p-1"
+            className="!text-green-600 hover:!text-green-900 p-1.5"
             title="Edit plan"
           >
             <i className="fas fa-edit"></i>
           </Link>
-          <button
-            onClick={() => onDelete(plan.id)}
-            className="text-gray-400 hover:text-red-600 p-1"
-            title="Delete plan"
-          >
-            <i className="fas fa-trash"></i>
-          </button>
         </div>
       </div>
 
@@ -235,6 +244,51 @@ function RetirementPlanning(): React.ReactElement {
   const assets = useAssetBreakdown(holdingsData)
 
   const plans = data?.data || []
+
+  const handleExportPlan = async (plan: RetirementPlan): Promise<void> => {
+    try {
+      const response = await fetch(`/api/independence/plans/${plan.id}/export`)
+      if (!response.ok) return
+      const result = await response.json()
+      const exportData = result.data
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+        type: "application/json",
+      })
+      const fileName = `${plan.name.replace(/[^a-z0-9]/gi, "_")}_retirement_plan.json`
+
+      const downloadFallback = (): void => {
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = url
+        a.download = fileName
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+      }
+
+      // Use native Save As dialog when available, fall back to auto-download
+      if ("showSaveFilePicker" in window) {
+        try {
+          const handle = await (window as never as { showSaveFilePicker: (opts: Record<string, unknown>) => Promise<FileSystemFileHandle> }).showSaveFilePicker({
+            suggestedName: fileName,
+            types: [{ description: "JSON", accept: { "application/json": [".json"] } }],
+          })
+          const writable = await handle.createWritable()
+          await writable.write(blob)
+          await writable.close()
+        } catch (pickerErr) {
+          // User cancelled — do nothing; any other failure — use fallback
+          if (pickerErr instanceof DOMException && pickerErr.name === "AbortError" && pickerErr.message.includes("user aborted")) return
+          downloadFallback()
+        }
+      } else {
+        downloadFallback()
+      }
+    } catch (err) {
+      console.error("Failed to export plan:", err)
+    }
+  }
 
   const handleDeletePlan = async (planId: string): Promise<void> => {
     if (!confirm("Are you sure you want to delete this plan?")) return
@@ -429,6 +483,7 @@ function RetirementPlanning(): React.ReactElement {
                   assets={assets}
                   hideValues={hideValues}
                   onDelete={handleDeletePlan}
+                  onExport={handleExportPlan}
                 />
               ))}
             </div>
