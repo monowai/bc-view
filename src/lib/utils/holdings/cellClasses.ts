@@ -41,7 +41,7 @@ function getVisibility(headerIndex: number): string {
  */
 export function getCellClasses(headerIndex: number): string {
   const visibility = getVisibility(headerIndex)
-  const padding = "px-0.5 py-1.5 sm:px-1 md:px-2 xl:px-3"
+  const padding = "px-1 py-1.5 sm:px-2 md:px-3 xl:px-4"
   const fontClass = ROWS_NUMERIC_INDICES.has(headerIndex) ? "tabular-nums" : ""
   return `text-right ${padding} ${visibility} ${fontClass}`
 }
@@ -54,7 +54,7 @@ export function getSubTotalCellClasses(headerIndex: number): string {
   const header = headers[headerIndex]
   const visibility = getVisibility(headerIndex)
   const align = header.align === "center" ? "text-center" : "text-right"
-  const padding = "px-0.5 py-1.5 sm:px-1 md:px-2 xl:px-3"
+  const padding = "px-1 py-1.5 sm:px-2 md:px-3 xl:px-4"
   const fontClass = SUBTOTAL_NUMERIC_INDICES.has(headerIndex)
     ? "tabular-nums"
     : ""
