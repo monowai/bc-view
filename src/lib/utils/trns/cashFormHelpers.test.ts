@@ -27,6 +27,11 @@ const makeAsset = (
   code,
   name,
   priceSymbol,
+  accountingType: {
+    id: "ACCOUNT",
+    category: "Account",
+    currency: { code: priceSymbol, name: priceSymbol, symbol: priceSymbol },
+  },
   assetCategory: { id: "ACCOUNT", name: "Account" },
   market: {
     code: marketCode,

@@ -903,15 +903,31 @@ function PlanView(): React.ReactElement {
 
       if ("showSaveFilePicker" in window) {
         try {
-          const handle = await (window as never as { showSaveFilePicker: (opts: Record<string, unknown>) => Promise<FileSystemFileHandle> }).showSaveFilePicker({
+          const handle = await (
+            window as never as {
+              showSaveFilePicker: (
+                opts: Record<string, unknown>,
+              ) => Promise<FileSystemFileHandle>
+            }
+          ).showSaveFilePicker({
             suggestedName: fileName,
-            types: [{ description: "JSON", accept: { "application/json": [".json"] } }],
+            types: [
+              {
+                description: "JSON",
+                accept: { "application/json": [".json"] },
+              },
+            ],
           })
           const writable = await handle.createWritable()
           await writable.write(blob)
           await writable.close()
         } catch (pickerErr) {
-          if (pickerErr instanceof DOMException && pickerErr.name === "AbortError" && pickerErr.message.includes("user aborted")) return
+          if (
+            pickerErr instanceof DOMException &&
+            pickerErr.name === "AbortError" &&
+            pickerErr.message.includes("user aborted")
+          )
+            return
           downloadFallback()
         }
       } else {

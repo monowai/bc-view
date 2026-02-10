@@ -1,5 +1,5 @@
 import { Asset, Currency, CurrencyOption } from "types/beancounter"
-import { stripOwnerPrefix } from "@lib/assets/assetUtils"
+import { stripOwnerPrefix, getAssetCurrency } from "@lib/assets/assetUtils"
 import { currencyOptions } from "@lib/currency"
 
 /** Extended option that includes market info for accounts */
@@ -28,8 +28,7 @@ export const buildCombinedAssetOptions = (
 
   if (accounts) {
     Object.values(accounts).forEach((account) => {
-      const accountCurrency =
-        account.priceSymbol || account.market?.currency?.code || "?"
+      const accountCurrency = getAssetCurrency(account) || "?"
       options.push({
         value: stripOwnerPrefix(account.code),
         label: `${account.name} (${accountCurrency})`,
@@ -42,8 +41,7 @@ export const buildCombinedAssetOptions = (
 
   if (tradeAccounts) {
     Object.values(tradeAccounts).forEach((account) => {
-      const accountCurrency =
-        account.priceSymbol || account.market?.currency?.code || "?"
+      const accountCurrency = getAssetCurrency(account) || "?"
       options.push({
         value: stripOwnerPrefix(account.code),
         label: `${account.name} (${accountCurrency})`,

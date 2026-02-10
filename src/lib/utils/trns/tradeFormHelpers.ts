@@ -230,7 +230,11 @@ export const buildInitialSettlementAccount = (
     label:
       asset.name ||
       `${getDisplayCode(asset)} ${asset.market?.code === "CASH" ? "Balance" : ""}`,
-    currency: asset.priceSymbol || asset.code || transaction.tradeCurrency.code,
+    currency:
+      asset.accountingType?.currency?.code ||
+      asset.priceSymbol ||
+      asset.code ||
+      transaction.tradeCurrency.code,
     market: asset.market?.code,
   }
 }
@@ -242,6 +246,7 @@ interface AssetLike {
   code: string
   name?: string
   market: { code: string; currency?: { code: string } }
+  accountingType?: { currency?: { code?: string } }
   priceSymbol?: string
 }
 

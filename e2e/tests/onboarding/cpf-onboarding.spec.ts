@@ -30,8 +30,7 @@ test.describe("CPF Onboarding Flow", () => {
       })
       for (const planId of plans) {
         await page.evaluate(
-          (id) =>
-            fetch(`/api/independence/plans/${id}`, { method: "DELETE" }),
+          (id) => fetch(`/api/independence/plans/${id}`, { method: "DELETE" }),
           planId,
         )
       }
@@ -50,8 +49,7 @@ test.describe("CPF Onboarding Flow", () => {
       })
       for (const pid of portfolios) {
         await page.evaluate(
-          (id) =>
-            fetch(`/api/portfolios/${id}`, { method: "DELETE" }),
+          (id) => fetch(`/api/portfolios/${id}`, { method: "DELETE" }),
           pid,
         )
       }

@@ -399,6 +399,11 @@ describe("tradeFormHelpers", () => {
           name: "SCB USD Account",
           market: { code: "PRIVATE" },
           priceSymbol: "USD",
+          accountingType: {
+            id: "ACCOUNT",
+            category: "Account",
+            currency: { code: "USD" },
+          },
         },
         tradeCurrency: { code: "USD", name: "US Dollar", symbol: "$" },
       }

@@ -160,9 +160,7 @@ export interface SubmitIncomeParams {
 /**
  * Submit handler for INCOME: direct REST POST (synchronous, bypasses message broker).
  */
-export async function submitIncome(
-  params: SubmitIncomeParams,
-): Promise<void> {
+export async function submitIncome(params: SubmitIncomeParams): Promise<void> {
   const {
     data,
     portfolio,
@@ -220,13 +218,18 @@ export interface SubmitCreateModeParams {
 export function submitCreateMode(params: SubmitCreateModeParams): void {
   const { data, portfolio, errors, setModalOpen, mutate } = params
   const settlementCurrency = deriveSettlementCurrency(data)
-  onSubmit(portfolio, errors, buildCreateModeData(data, settlementCurrency), (open) => {
-    setModalOpen(open)
-    if (!open) {
-      setTimeout(() => {
-        mutate(holdingKey(portfolio.code, "today"))
-        mutate("/api/holdings/aggregated?asAt=today")
-      }, 1500)
-    }
-  })
+  onSubmit(
+    portfolio,
+    errors,
+    buildCreateModeData(data, settlementCurrency),
+    (open) => {
+      setModalOpen(open)
+      if (!open) {
+        setTimeout(() => {
+          mutate(holdingKey(portfolio.code, "today"))
+          mutate("/api/holdings/aggregated?asAt=today")
+        }, 1500)
+      }
+    },
+  )
 }

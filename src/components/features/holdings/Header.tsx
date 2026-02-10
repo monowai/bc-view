@@ -164,41 +164,27 @@ export default function Header({
 
   const getSortIcon = (headerKey: string): React.ReactElement => {
     if (!sortConfig || sortConfig.key !== headerKey) {
-      return <span className="ml-1 text-blue-200/60 text-xs">↕</span>
+      return <span className="ml-1 text-blue-300 text-xs">↕</span>
     }
     return sortConfig.direction === "asc" ? (
-      <span className="ml-1 text-white font-bold">▲</span>
+      <span className="ml-1 text-blue-800 font-bold">▲</span>
     ) : (
-      <span className="ml-1 text-white font-bold">▼</span>
+      <span className="ml-1 text-blue-800 font-bold">▼</span>
     )
   }
 
   // Get optimized header padding to match data cell padding for mobile space efficiency
-  const getHeaderPadding = (headerIndex: number): string => {
-    // Apply same logic as data cells for mobile-visible columns
-    const isChangeColumn = headerIndex === 1
-    const isMarketValueColumn = headerIndex === 5
-    const isIrrColumn = headerIndex === 6
-    const isWeightColumn = headerIndex === 10
-
-    if (
-      isChangeColumn ||
-      isMarketValueColumn ||
-      isIrrColumn ||
-      isWeightColumn
-    ) {
-      return "px-0.5 py-2 sm:px-1 md:px-2 xl:px-3" // Taller header with minimal horizontal padding
-    }
-    return "px-0.5 py-2 sm:px-1 md:px-2 xl:px-3" // Taller header with minimal horizontal padding
+  const getHeaderPadding = (): string => {
+    return "px-0.5 py-1 sm:px-1 md:px-2 xl:px-3"
   }
 
   return (
-    <thead className="bg-gradient-to-r from-blue-500 to-blue-600 text-white sticky top-0 z-20">
-      <tr className="border-b border-blue-400/50">
+    <thead className="bg-blue-50 text-blue-600 sticky top-0 z-20">
+      <tr className="border-b border-blue-100">
         <th
-          className={`px-1 py-2 sm:px-2 md:px-3 text-left text-xs uppercase tracking-wider font-medium ${
-            onSort && showColumnHeaders
-              ? "cursor-pointer hover:bg-blue-400/30 transition-colors select-none"
+          className={`px-1 py-1 sm:px-2 md:px-3 text-left text-xs uppercase tracking-wider font-medium bg-blue-100/80 ${
+            showColumnHeaders && onSort
+              ? "cursor-pointer hover:bg-blue-100/60 transition-colors select-none"
               : ""
           }`}
           colSpan={showColumnHeaders ? 1 : headers.length + 1}
@@ -207,14 +193,14 @@ export default function Header({
           }
         >
           <div className="flex items-center justify-start">
-            <span className="font-semibold text-sm sm:text-base normal-case tracking-normal text-white">
+            <span className="font-semibold text-sm normal-case tracking-normal text-blue-900">
               {groupKey}
             </span>
             {onSort && showColumnHeaders && getSortIcon("assetName")}
           </div>
         </th>
         {showColumnHeaders &&
-          headers.map((header, index) => {
+          headers.map((header) => {
             let visibility
             if ("hidden" in header && header.hidden) {
               visibility = "hidden" // Hidden on all screens
@@ -229,7 +215,7 @@ export default function Header({
             return (
               <th
                 key={header.key}
-                className={`${getHeaderPadding(index)} text-xs uppercase tracking-wider font-medium ${
+                className={`${getHeaderPadding()} bg-blue-100/60 text-xs uppercase tracking-wider font-medium ${
                   header.align === "right"
                     ? "text-right"
                     : header.align === "center"
@@ -237,7 +223,7 @@ export default function Header({
                       : "text-left"
                 } ${visibility} ${
                   header.sortable && onSort
-                    ? "cursor-pointer hover:bg-blue-400/30 transition-colors select-none"
+                    ? "cursor-pointer hover:bg-blue-100 transition-colors select-none"
                     : ""
                 }`}
                 onClick={
@@ -260,7 +246,7 @@ export default function Header({
                     header.costRelated &&
                     isCostApproximate && (
                       <span
-                        className="ml-1 text-amber-300 text-xs"
+                        className="ml-1 text-amber-500 text-xs"
                         title={t("displayCurrency.approximate")}
                       >
                         ⚠

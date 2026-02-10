@@ -38,8 +38,7 @@ test.describe("Plan Export / Import Round-Trip", () => {
       })
       for (const planId of plans) {
         await page.evaluate(
-          (id) =>
-            fetch(`/api/independence/plans/${id}`, { method: "DELETE" }),
+          (id) => fetch(`/api/independence/plans/${id}`, { method: "DELETE" }),
           planId,
         )
       }
@@ -70,9 +69,7 @@ test.describe("Plan Export / Import Round-Trip", () => {
     await test.step("Steps 2-7 - Advance through defaults", async () => {
       for (let step = 2; step <= 7; step++) {
         await page.waitForTimeout(500)
-        await page
-          .getByRole("button", { name: "Next", exact: true })
-          .click()
+        await page.getByRole("button", { name: "Next", exact: true }).click()
       }
     })
 
@@ -118,8 +115,7 @@ test.describe("Plan Export / Import Round-Trip", () => {
       expect(planId).toBeTruthy()
 
       await page.evaluate(
-        (id) =>
-          fetch(`/api/independence/plans/${id}`, { method: "DELETE" }),
+        (id) => fetch(`/api/independence/plans/${id}`, { method: "DELETE" }),
         planId,
       )
 

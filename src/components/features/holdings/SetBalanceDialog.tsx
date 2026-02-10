@@ -13,7 +13,7 @@ import DateInput from "@components/ui/DateInput"
 import Dialog from "@components/ui/Dialog"
 import { buildCashRow } from "@lib/trns/tradeUtils"
 import { postData } from "@components/ui/DropZone"
-import { stripOwnerPrefix } from "@lib/assets/assetUtils"
+import { stripOwnerPrefix, getAssetCurrency } from "@lib/assets/assetUtils"
 
 interface PortfoliosResponse {
   data: Portfolio[]
@@ -175,8 +175,7 @@ export default function SetBalanceDialog({
     setError(null)
 
     try {
-      const assetCurrency =
-        asset.priceSymbol || asset.market?.currency?.code || "USD"
+      const assetCurrency = getAssetCurrency(asset) || "USD"
 
       // Build sub-accounts map for DEPOSIT transactions
       let subAccountsMap: Record<string, number> | undefined
@@ -228,10 +227,7 @@ export default function SetBalanceDialog({
         if (cashAccount) {
           const cashRow = buildCashRow({
             type: "DEPOSIT",
-            currency:
-              cashAccount.priceSymbol ||
-              cashAccount.market?.currency?.code ||
-              assetCurrency,
+            currency: getAssetCurrency(cashAccount) || assetCurrency,
             amount: transactionInfo.amount,
             tradeDate: date,
             comments: `Withdrawal from ${asset.name || stripOwnerPrefix(asset.code)}`,
@@ -298,8 +294,7 @@ export default function SetBalanceDialog({
           <div className="mt-2 text-sm">
             <span className="text-gray-500">{t("balance.current")}:</span>{" "}
             <span className="font-medium">
-              {asset.priceSymbol || asset.market?.currency?.code}{" "}
-              {currentBalance.toLocaleString()}
+              {getAssetCurrency(asset)} {currentBalance.toLocaleString()}
             </span>
           </div>
         )}
@@ -346,16 +341,14 @@ export default function SetBalanceDialog({
               {t("balance.target")}
             </span>
             <span className="text-sm font-medium">
-              {asset.priceSymbol || asset.market?.currency?.code}{" "}
-              {targetBalance.toLocaleString()}
+              {getAssetCurrency(asset)} {targetBalance.toLocaleString()}
             </span>
           </div>
         </div>
       ) : (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            {t("balance.target")} (
-            {asset.priceSymbol || asset.market?.currency?.code || "USD"})
+            {t("balance.target")} ({getAssetCurrency(asset) || "USD"})
           </label>
           <MathInput
             value={targetBalance}
@@ -399,8 +392,7 @@ export default function SetBalanceDialog({
             <option value="">{t("balance.cashAccount.hint")}</option>
             {cashAccounts.map((account) => (
               <option key={account.id} value={account.id}>
-                {stripOwnerPrefix(account.code)} (
-                {account.priceSymbol || account.market?.currency?.code})
+                {stripOwnerPrefix(account.code)} ({getAssetCurrency(account)})
               </option>
             ))}
           </select>
@@ -430,7 +422,7 @@ export default function SetBalanceDialog({
               :
             </span>
             <span className="ml-2">
-              {asset.priceSymbol || asset.market?.currency?.code}{" "}
+              {getAssetCurrency(asset)}{" "}
               {transactionInfo.amount.toLocaleString()}
             </span>
           </div>

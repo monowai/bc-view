@@ -1,5 +1,11 @@
 import React, { useMemo, useState, useCallback, useEffect, useRef } from "react"
-import { Holdings, Portfolio, Position, Currency, QuickSellData } from "types/beancounter"
+import {
+  Holdings,
+  Portfolio,
+  Position,
+  Currency,
+  QuickSellData,
+} from "types/beancounter"
 import { FormatValue, PrivateQuantity } from "@components/ui/MoneyUtils"
 import { isCash, isCashRelated, stripOwnerPrefix } from "@lib/assets/assetUtils"
 import { useDisplayCurrencyConversion } from "@lib/hooks/useDisplayCurrencyConversion"
@@ -176,92 +182,94 @@ const PositionCard: React.FC<PositionCardProps> = ({
         className="block bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
         onClick={() => router.push(`/trns/trades/${portfolio.id}/${asset.id}`)}
       >
-      {/* Header: Asset code, today's change, and actions menu */}
-      <div className="flex justify-between items-start mb-3">
-        <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-gray-900 text-lg">{displayName}</h3>
-          {!isCash(asset) && (
-            <p className="text-sm text-gray-500 truncate">{truncatedName}</p>
-          )}
-        </div>
-        <div className="flex items-start gap-1">
-          {values.priceData?.changePercent !== undefined && (
-            <div
-              className={`text-right ${isDayPositive ? "text-green-600" : "text-red-600"}`}
-            >
-              <div className="text-sm font-medium">
-                {isDayPositive ? "+" : ""}
-                {(values.priceData.changePercent * 100).toFixed(2)}%
+        {/* Header: Asset code, today's change, and actions menu */}
+        <div className="flex justify-between items-start mb-3">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-gray-900 text-lg">
+              {displayName}
+            </h3>
+            {!isCash(asset) && (
+              <p className="text-sm text-gray-500 truncate">{truncatedName}</p>
+            )}
+          </div>
+          <div className="flex items-start gap-1">
+            {values.priceData?.changePercent !== undefined && (
+              <div
+                className={`text-right ${isDayPositive ? "text-green-600" : "text-red-600"}`}
+              >
+                <div className="text-sm font-medium">
+                  {isDayPositive ? "+" : ""}
+                  {(values.priceData.changePercent * 100).toFixed(2)}%
+                </div>
+                <div className="text-xs">today</div>
               </div>
-              <div className="text-xs">today</div>
-            </div>
-          )}
-          {!isCashRelated(asset) && (onRecordIncome || onRecordExpense) && (
-            <CardActionsMenu
-              asset={asset}
-              portfolioId={portfolio.id}
-              onRecordIncome={onRecordIncome}
-              onRecordExpense={onRecordExpense}
-            />
-          )}
+            )}
+            {!isCashRelated(asset) && (onRecordIncome || onRecordExpense) && (
+              <CardActionsMenu
+                asset={asset}
+                portfolioId={portfolio.id}
+                onRecordIncome={onRecordIncome}
+                onRecordExpense={onRecordExpense}
+              />
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Main value */}
-      <div className="mb-3">
-        <div className="text-2xl font-bold text-gray-900">
-          {currencySymbol}
-          <FormatValue value={marketValue} />
-        </div>
-        <div className="text-sm text-gray-500">Current Value</div>
-      </div>
-
-      {/* Profit/Loss section */}
-      <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-        <div>
-          <div
-            className={`text-lg font-semibold ${isPositive ? "text-green-600" : "text-red-600"}`}
-          >
-            {isPositive && totalGain > 0 ? "+" : ""}
+        {/* Main value */}
+        <div className="mb-3">
+          <div className="text-2xl font-bold text-gray-900">
             {currencySymbol}
-            <FormatValue value={totalGain} />
+            <FormatValue value={marketValue} />
           </div>
-          <div className="text-sm text-gray-500">
-            {isPositive ? "Your Profit" : "Your Loss"}
-          </div>
+          <div className="text-sm text-gray-500">Current Value</div>
         </div>
 
-        {/* Growth rate - simple language */}
-        {!isCashRelated(asset) && (
-          <div className="text-right">
+        {/* Profit/Loss section */}
+        <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+          <div>
             <div
-              className={`text-lg font-semibold ${values.irr >= 0 ? "text-green-600" : "text-red-600"}`}
+              className={`text-lg font-semibold ${isPositive ? "text-green-600" : "text-red-600"}`}
             >
-              {values.irr >= 0 ? "+" : ""}
-              {(values.irr * 100).toFixed(1)}%
+              {isPositive && totalGain > 0 ? "+" : ""}
+              {currencySymbol}
+              <FormatValue value={totalGain} />
             </div>
-            <div className="text-sm text-gray-500">Growth</div>
+            <div className="text-sm text-gray-500">
+              {isPositive ? "Your Profit" : "Your Loss"}
+            </div>
+          </div>
+
+          {/* Growth rate - simple language */}
+          {!isCashRelated(asset) && (
+            <div className="text-right">
+              <div
+                className={`text-lg font-semibold ${values.irr >= 0 ? "text-green-600" : "text-red-600"}`}
+              >
+                {values.irr >= 0 ? "+" : ""}
+                {(values.irr * 100).toFixed(1)}%
+              </div>
+              <div className="text-sm text-gray-500">Growth</div>
+            </div>
+          )}
+        </div>
+
+        {/* Quantity for non-cash assets */}
+        {!isCashRelated(asset) && (
+          <div className="mt-3 pt-3 border-t border-gray-100 flex justify-between text-sm text-gray-500">
+            <span>
+              <PrivateQuantity
+                value={quantityValues.total}
+                precision={quantityValues.precision}
+              />{" "}
+              shares
+            </span>
+            <span>
+              {currencySymbol}
+              {values.priceData?.close?.toFixed(2) || "-"} each
+            </span>
           </div>
         )}
       </div>
-
-      {/* Quantity for non-cash assets */}
-      {!isCashRelated(asset) && (
-        <div className="mt-3 pt-3 border-t border-gray-100 flex justify-between text-sm text-gray-500">
-          <span>
-            <PrivateQuantity
-              value={quantityValues.total}
-              precision={quantityValues.precision}
-            />{" "}
-            shares
-          </span>
-          <span>
-            {currencySymbol}
-            {values.priceData?.close?.toFixed(2) || "-"} each
-          </span>
-        </div>
-      )}
-    </div>
     )
   }
 

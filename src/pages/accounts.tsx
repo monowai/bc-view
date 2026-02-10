@@ -11,7 +11,7 @@ import { currencyOptions } from "@lib/currency"
 import { useRouter } from "next/router"
 import SetAccountBalancesDialog from "@components/features/accounts/SetAccountBalancesDialog"
 import SetBalanceDialog from "@components/features/holdings/SetBalanceDialog"
-import { stripOwnerPrefix } from "@lib/assets/assetUtils"
+import { stripOwnerPrefix, getAssetCurrency } from "@lib/assets/assetUtils"
 import MathInput from "@components/ui/MathInput"
 import CompositeAssetEditor from "@components/features/assets/CompositeAssetEditor"
 import { PolicyType, SubAccountRequest } from "types/beancounter"
@@ -295,7 +295,7 @@ const AssetTable: React.FC<AssetTableProps> = ({
                   "-"}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {account.priceSymbol || account.market?.currency?.code || "-"}
+                {getAssetCurrency(account) || "-"}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 {account.assetCategory?.id === "ACCOUNT" ? (
@@ -835,9 +835,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
   const [activeTab, setActiveTab] = useState<EditTab>("details")
   const [code, setCode] = useState(stripOwnerPrefix(asset.code))
   const [name, setName] = useState(asset.name || "")
-  const [currency, setCurrency] = useState(
-    asset.priceSymbol || asset.market?.currency?.code || "USD",
-  )
+  const [currency, setCurrency] = useState(getAssetCurrency(asset) || "USD")
   const [category, setCategory] = useState(asset.assetCategory?.id || "ACCOUNT")
   const [sector, setSector] = useState("")
   // Expected return rate as percentage (e.g., 3.0 for 3%)
@@ -2182,8 +2180,7 @@ const DeleteAccountDialog: React.FC<DeleteAccountDialogProps> = ({
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="font-semibold text-lg">{asset.name}</div>
             <div className="text-sm text-gray-600">
-              {stripOwnerPrefix(asset.code)} (
-              {asset.priceSymbol || asset.market?.currency?.code})
+              {stripOwnerPrefix(asset.code)} ({getAssetCurrency(asset)})
             </div>
           </div>
 
@@ -2308,8 +2305,7 @@ const SetPriceDialog: React.FC<SetPriceDialogProps> = ({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("price.value")} (
-              {asset.priceSymbol || asset.market?.currency?.code || "USD"})
+              {t("price.value")} ({getAssetCurrency(asset) || "USD"})
             </label>
             <input
               type="number"

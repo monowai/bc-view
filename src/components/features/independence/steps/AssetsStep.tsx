@@ -13,6 +13,7 @@ import { wizardMessages } from "@lib/independence/messages"
 import CompositeAssetEditor from "@components/features/assets/CompositeAssetEditor"
 import { buildCashRow } from "@lib/trns/tradeUtils"
 import { postData } from "@components/ui/DropZone"
+import { getAssetCurrency } from "@lib/assets/assetUtils"
 
 const msg = wizardMessages.steps.assets
 
@@ -350,10 +351,7 @@ export default function AssetsStep({
       setIsSettingBalance(assetId)
 
       try {
-        const assetCurrency =
-          assetEntry.asset.priceSymbol ||
-          assetEntry.asset.market?.currency?.code ||
-          planCurrency
+        const assetCurrency = getAssetCurrency(assetEntry.asset) || planCurrency
 
         // Fetch sub-accounts from asset config for DEPOSIT transactions
         let subAccountsMap: Record<string, number> | undefined
@@ -419,10 +417,7 @@ export default function AssetsStep({
           if (cashAccount) {
             const cashRow = buildCashRow({
               type: "DEPOSIT",
-              currency:
-                cashAccount.priceSymbol ||
-                cashAccount.market?.currency?.code ||
-                assetCurrency,
+              currency: getAssetCurrency(cashAccount) || assetCurrency,
               amount,
               tradeDate: assetEntry.transactionDate,
               comments: `Withdrawal from ${assetEntry.asset.name || assetEntry.asset.code}`,
@@ -832,8 +827,7 @@ export default function AssetsStep({
                       </span>
                     </div>
                     <span className="text-xs text-gray-400">
-                      {entry.asset.priceSymbol ||
-                        entry.asset.market?.currency?.code}
+                      {getAssetCurrency(entry.asset)}
                     </span>
                   </div>
 
@@ -935,10 +929,7 @@ export default function AssetsStep({
                             <option value="">{msg.cashAccountHint}</option>
                             {cashAccounts.map((account) => (
                               <option key={account.id} value={account.id}>
-                                {account.code} (
-                                {account.priceSymbol ||
-                                  account.market?.currency?.code}
-                                )
+                                {account.code} ({getAssetCurrency(account)})
                               </option>
                             ))}
                           </select>
@@ -989,7 +980,7 @@ export default function AssetsStep({
                           <span className="text-green-600">
                             <i className="fas fa-arrow-up mr-1"></i>
                             {msg.depositTransaction}:{" "}
-                            {entry.asset.priceSymbol || planCurrency}{" "}
+                            {getAssetCurrency(entry.asset) || planCurrency}{" "}
                             {(
                               parseFloat(entry.targetBalance) -
                               entry.currentBalance
@@ -999,7 +990,7 @@ export default function AssetsStep({
                           <span className="text-red-600">
                             <i className="fas fa-arrow-down mr-1"></i>
                             {msg.withdrawalTransaction}:{" "}
-                            {entry.asset.priceSymbol || planCurrency}{" "}
+                            {getAssetCurrency(entry.asset) || planCurrency}{" "}
                             {(
                               entry.currentBalance -
                               parseFloat(entry.targetBalance)

@@ -270,16 +270,32 @@ function RetirementPlanning(): React.ReactElement {
       // Use native Save As dialog when available, fall back to auto-download
       if ("showSaveFilePicker" in window) {
         try {
-          const handle = await (window as never as { showSaveFilePicker: (opts: Record<string, unknown>) => Promise<FileSystemFileHandle> }).showSaveFilePicker({
+          const handle = await (
+            window as never as {
+              showSaveFilePicker: (
+                opts: Record<string, unknown>,
+              ) => Promise<FileSystemFileHandle>
+            }
+          ).showSaveFilePicker({
             suggestedName: fileName,
-            types: [{ description: "JSON", accept: { "application/json": [".json"] } }],
+            types: [
+              {
+                description: "JSON",
+                accept: { "application/json": [".json"] },
+              },
+            ],
           })
           const writable = await handle.createWritable()
           await writable.write(blob)
           await writable.close()
         } catch (pickerErr) {
           // User cancelled — do nothing; any other failure — use fallback
-          if (pickerErr instanceof DOMException && pickerErr.name === "AbortError" && pickerErr.message.includes("user aborted")) return
+          if (
+            pickerErr instanceof DOMException &&
+            pickerErr.name === "AbortError" &&
+            pickerErr.message.includes("user aborted")
+          )
+            return
           downloadFallback()
         }
       } else {

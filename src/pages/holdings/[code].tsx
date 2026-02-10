@@ -466,6 +466,8 @@ function HoldingsPage(): React.ReactElement {
                           onCashTransfer={handleCashTransfer}
                           onCashTransaction={handleCashTransaction}
                           onCostAdjust={handleCostAdjust}
+                          onRecordIncome={handleRecordIncome}
+                          onRecordExpense={handleRecordExpense}
                         />
                         <SubTotal
                           groupBy={groupKey}
