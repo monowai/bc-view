@@ -380,28 +380,37 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>
-                        <span className="text-gray-500">{t("quantity")}:</span>
-                        <span className="ml-1 font-medium">
-                          <NumericFormat
-                            value={trn.quantity}
-                            displayType={"text"}
-                            decimalScale={2}
-                            thousandSeparator={true}
-                          />
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">{t("trn.price")}:</span>
-                        <span className="ml-1 font-medium">
-                          <NumericFormat
-                            value={trn.price}
-                            displayType={"text"}
-                            decimalScale={2}
-                            thousandSeparator={true}
-                          />
-                        </span>
-                      </div>
+                      {trn.trnType !== "INCOME" &&
+                        trn.trnType !== "EXPENSE" && (
+                          <>
+                            <div>
+                              <span className="text-gray-500">
+                                {t("quantity")}:
+                              </span>
+                              <span className="ml-1 font-medium">
+                                <NumericFormat
+                                  value={trn.quantity}
+                                  displayType={"text"}
+                                  decimalScale={2}
+                                  thousandSeparator={true}
+                                />
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">
+                                {t("trn.price")}:
+                              </span>
+                              <span className="ml-1 font-medium">
+                                <NumericFormat
+                                  value={trn.price}
+                                  displayType={"text"}
+                                  decimalScale={2}
+                                  thousandSeparator={true}
+                                />
+                              </span>
+                            </div>
+                          </>
+                        )}
                       <div>
                         <span className="text-gray-500">
                           {t("trn.amount.trade")}:
@@ -600,22 +609,32 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                           {trn.tradeDate}
                         </td>
                         <td className="px-4 py-3 text-right whitespace-nowrap">
-                          <NumericFormat
-                            value={trn.quantity}
-                            displayType={"text"}
-                            decimalScale={2}
-                            fixedDecimalScale={true}
-                            thousandSeparator={true}
-                          />
+                          {trn.trnType === "INCOME" ||
+                          trn.trnType === "EXPENSE" ? (
+                            <span className="text-gray-400">-</span>
+                          ) : (
+                            <NumericFormat
+                              value={trn.quantity}
+                              displayType={"text"}
+                              decimalScale={2}
+                              fixedDecimalScale={true}
+                              thousandSeparator={true}
+                            />
+                          )}
                         </td>
                         <td className="px-4 py-3 text-right whitespace-nowrap">
-                          <NumericFormat
-                            value={trn.price}
-                            displayType={"text"}
-                            decimalScale={2}
-                            fixedDecimalScale={true}
-                            thousandSeparator={true}
-                          />
+                          {trn.trnType === "INCOME" ||
+                          trn.trnType === "EXPENSE" ? (
+                            <span className="text-gray-400">-</span>
+                          ) : (
+                            <NumericFormat
+                              value={trn.price}
+                              displayType={"text"}
+                              decimalScale={2}
+                              fixedDecimalScale={true}
+                              thousandSeparator={true}
+                            />
+                          )}
                         </td>
                         <td className="px-4 py-3 text-right whitespace-nowrap">
                           <NumericFormat

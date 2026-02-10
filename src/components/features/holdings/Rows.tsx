@@ -254,6 +254,8 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
                   setIsOpen(false)
                   onRecordIncome({
                     asset: assetCode,
+                    assetId: asset.id,
+                    currency: tradeCurrency.code,
                     market: asset.market.code,
                     quantity: 0,
                     price: 0,
@@ -274,6 +276,8 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
                   setIsOpen(false)
                   onRecordExpense({
                     asset: assetCode,
+                    assetId: asset.id,
+                    currency: tradeCurrency.code,
                     market: asset.market.code,
                     quantity: 0,
                     price: 0,
@@ -504,7 +508,7 @@ export default function Rows({
                 <div className="flex-1 min-w-0">
                   <div
                     className="font-semibold text-sm sm:text-base text-slate-900"
-                    title={asset.code}
+                    title={stripOwnerPrefix(asset.code)}
                   >
                     {isCash(asset) ? asset.name : stripOwnerPrefix(asset.code)}
                   </div>

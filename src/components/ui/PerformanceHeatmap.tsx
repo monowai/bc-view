@@ -1,7 +1,7 @@
 import React, { useState } from "react"
 import { HoldingGroup } from "types/beancounter"
 import { FormatValue } from "@components/ui/MoneyUtils"
-import { isCash, isCashRelated } from "@lib/assets/assetUtils"
+import { isCash, isCashRelated, stripOwnerPrefix } from "@lib/assets/assetUtils"
 import { compareByReportCategory, compareBySector } from "@lib/categoryMapping"
 import { GroupBy } from "@components/features/holdings/GroupByOptions"
 import { ProgressBar } from "@components/ui/ProgressBar"
@@ -100,7 +100,7 @@ export const PerformanceHeatmap: React.FC<PerformanceHeatmapProps> = ({
             : 0
 
         cells.push({
-          code: position.asset.code,
+          code: stripOwnerPrefix(position.asset.code),
           name: position.asset.name,
           marketValue: moneyValues.marketValue,
           totalGain: moneyValues.totalGain,
@@ -331,9 +331,7 @@ export const PerformanceHeatmap: React.FC<PerformanceHeatmapProps> = ({
                     >
                       <div className="flex-1 min-w-0">
                         <div className="text-xs font-semibold truncate">
-                          {cell.code.includes(".")
-                            ? cell.code.substring(cell.code.indexOf(".") + 1)
-                            : cell.code}
+                          {cell.code}
                         </div>
                         {cell.weight >= 0.05 && (
                           <div className="text-[10px] opacity-90 truncate mt-1">
@@ -494,11 +492,7 @@ export const PerformanceHeatmap: React.FC<PerformanceHeatmapProps> = ({
                         >
                           <td className="py-3">
                             <div className="font-medium text-gray-900">
-                              {cell.code.includes(".")
-                                ? cell.code.substring(
-                                    cell.code.indexOf(".") + 1,
-                                  )
-                                : cell.code}
+                              {cell.code}
                             </div>
                             <div className="text-xs text-gray-500 truncate max-w-[150px]">
                               {cell.name}

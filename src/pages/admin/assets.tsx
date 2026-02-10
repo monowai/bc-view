@@ -4,13 +4,20 @@ import { useTranslation } from "next-i18next"
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { rootLoader } from "@components/ui/PageLoader"
-import { Asset, AssetOption, Market } from "types/beancounter"
+import { Asset, AssetOption, Currency, Market } from "types/beancounter"
 import { useIsAdmin } from "@hooks/useIsAdmin"
 import Link from "next/link"
 import useSWR from "swr"
-import { marketsKey, simpleFetcher } from "@utils/api/fetchHelper"
+import { ccyKey, marketsKey, simpleFetcher } from "@utils/api/fetchHelper"
 import AssetSearch from "@components/features/assets/AssetSearch"
 import { getAssetCurrency, getDisplayCode } from "@lib/assets/assetUtils"
+
+const EDITABLE_CATEGORIES = [
+  { id: "ACCOUNT", name: "Bank Account" },
+  { id: "POLICY", name: "Retirement Fund" },
+  { id: "RE", name: "Real Estate" },
+  { id: "Equity", name: "Equity" },
+]
 
 export default withPageAuthRequired(function AssetAdmin(): React.ReactElement {
   const { t, ready } = useTranslation("common")
@@ -20,13 +27,22 @@ export default withPageAuthRequired(function AssetAdmin(): React.ReactElement {
     marketsKey,
     simpleFetcher(marketsKey),
   )
+  const { data: currenciesData } = useSWR<{ data: Currency[] }>(
+    ccyKey,
+    simpleFetcher(ccyKey),
+  )
   const knownMarkets = (marketsData?.data || []).map((m) => m.code)
+  const currencies = currenciesData?.data || []
   const [selectedMarket, setSelectedMarket] = useState<string>("LOCAL")
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isEnriching, setIsEnriching] = useState(false)
   const [editName, setEditName] = useState("")
+  const [editCode, setEditCode] = useState("")
+  const [editCurrency, setEditCurrency] = useState("")
+  const [editCategory, setEditCategory] = useState("")
+  const [editReturnRate, setEditReturnRate] = useState("")
   const [message, setMessage] = useState<{
     type: "success" | "error"
     text: string
@@ -87,6 +103,14 @@ export default withPageAuthRequired(function AssetAdmin(): React.ReactElement {
       const asset: Asset = data.data
       setSelectedAsset(asset)
       setEditName(asset.name || "")
+      setEditCode(getDisplayCode(asset))
+      setEditCurrency(getAssetCurrency(asset))
+      setEditCategory(asset.assetCategory?.id || "Equity")
+      setEditReturnRate(
+        asset.expectedReturnRate != null
+          ? String(asset.expectedReturnRate * 100)
+          : "",
+      )
     } catch (err) {
       setMessage({
         type: "error",
@@ -154,6 +178,14 @@ export default withPageAuthRequired(function AssetAdmin(): React.ReactElement {
       if (data.data) {
         setSelectedAsset(data.data)
         setEditName(data.data.name || "")
+        setEditCode(getDisplayCode(data.data))
+        setEditCurrency(getAssetCurrency(data.data))
+        setEditCategory(data.data.assetCategory?.id || "Equity")
+        setEditReturnRate(
+          data.data.expectedReturnRate != null
+            ? String(data.data.expectedReturnRate * 100)
+            : "",
+        )
       }
       setMessage({ type: "success", text: "Asset enriched successfully" })
     } catch (err) {
@@ -166,31 +198,56 @@ export default withPageAuthRequired(function AssetAdmin(): React.ReactElement {
     }
   }
 
-  const handleSaveName = async (): Promise<void> => {
-    if (!selectedAsset || editName === selectedAsset.name) return
+  const isUserOwned = selectedAsset?.market?.code === "PRIVATE"
+
+  const handleSaveAsset = async (): Promise<void> => {
+    if (!selectedAsset) return
     setIsSaving(true)
     setMessage(null)
     try {
+      const returnRate = editReturnRate.trim()
+        ? parseFloat(editReturnRate) / 100
+        : undefined
+      const body = {
+        market: selectedAsset.market.code,
+        code: editCode,
+        name: editName,
+        currency: editCurrency || undefined,
+        category: editCategory,
+        expectedReturnRate: returnRate,
+      }
       const response = await fetch(`/api/assets/${selectedAsset.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: editName }),
+        body: JSON.stringify(body),
       })
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         setMessage({
           type: "error",
           text:
-            errorData.message || `Failed to update name: ${response.status}`,
+            errorData.message || `Failed to update asset: ${response.status}`,
         })
         return
       }
-      setSelectedAsset({ ...selectedAsset, name: editName })
-      setMessage({ type: "success", text: "Asset name updated" })
+      const data = await response.json()
+      if (data.data) {
+        setSelectedAsset(data.data)
+        setEditName(data.data.name || "")
+        setEditCode(getDisplayCode(data.data))
+        setEditCurrency(getAssetCurrency(data.data))
+        setEditCategory(data.data.assetCategory?.id || "Equity")
+        setEditReturnRate(
+          data.data.expectedReturnRate != null
+            ? String(data.data.expectedReturnRate * 100)
+            : "",
+        )
+      }
+      setMessage({ type: "success", text: "Asset updated" })
     } catch (err) {
       setMessage({
         type: "error",
-        text: err instanceof Error ? err.message : "Failed to update name",
+        text: err instanceof Error ? err.message : "Failed to update asset",
       })
     } finally {
       setIsSaving(false)
@@ -369,36 +426,97 @@ export default withPageAuthRequired(function AssetAdmin(): React.ReactElement {
               )}
             </div>
 
-            {/* Edit Name */}
-            <div className="border-t border-gray-200 pt-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t("admin.assets.editName", "Name")}
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  className="flex-1 border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-500 focus:border-blue-500 text-sm"
-                />
-                <button
-                  type="button"
-                  onClick={handleSaveName}
-                  disabled={
-                    isSaving ||
-                    editName === selectedAsset.name ||
-                    !editName.trim()
-                  }
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSaving ? (
-                    <i className="fas fa-spinner fa-spin"></i>
-                  ) : (
-                    t("save", "Save")
-                  )}
-                </button>
+            {/* Edit Form (user-owned assets only) */}
+            {isUserOwned && (
+              <div className="border-t border-gray-200 pt-4 space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {t("admin.assets.editCode", "Code")}
+                    </label>
+                    <input
+                      type="text"
+                      value={editCode}
+                      onChange={(e) =>
+                        setEditCode(e.target.value.toUpperCase())
+                      }
+                      className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {t("admin.assets.editName", "Name")}
+                    </label>
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {t("admin.assets.editCurrency", "Currency")}
+                    </label>
+                    <select
+                      value={editCurrency}
+                      onChange={(e) => setEditCurrency(e.target.value)}
+                      className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    >
+                      {currencies.map((c) => (
+                        <option key={c.code} value={c.code}>
+                          {c.code} - {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {t("admin.assets.editCategory", "Category")}
+                    </label>
+                    <select
+                      value={editCategory}
+                      onChange={(e) => setEditCategory(e.target.value)}
+                      className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    >
+                      {EDITABLE_CATEGORIES.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {t("admin.assets.editReturnRate", "Expected Return (%)")}
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={editReturnRate}
+                      onChange={(e) => setEditReturnRate(e.target.value)}
+                      placeholder="e.g. 3.0"
+                      className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleSaveAsset}
+                    disabled={isSaving || !editName.trim() || !editCode.trim()}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSaving ? (
+                      <i className="fas fa-spinner fa-spin mr-1"></i>
+                    ) : (
+                      <i className="fas fa-save mr-1"></i>
+                    )}
+                    {t("save", "Save")}
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Actions */}
             <div className="border-t border-gray-200 pt-4 flex flex-wrap gap-3">

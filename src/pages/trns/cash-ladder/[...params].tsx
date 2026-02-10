@@ -7,7 +7,7 @@ import { useRouter } from "next/router"
 import { assetKey, portfolioKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { useTranslation } from "next-i18next"
 import { Asset, Portfolio, Transaction } from "types/beancounter"
-import { getAssetCurrency } from "@lib/assets/assetUtils"
+import { getAssetCurrency, stripOwnerPrefix } from "@lib/assets/assetUtils"
 import { rootLoader } from "@components/ui/PageLoader"
 import { errorOut } from "@components/errors/ErrorOut"
 import useSwr from "swr"
@@ -23,7 +23,8 @@ function formatTransaction(trn: Transaction): string {
   if (trn.comments) return trn.comments
 
   const type = trn.trnType
-  const assetName = trn.asset?.name || trn.asset?.code || ""
+  const assetName =
+    trn.asset?.name || (trn.asset?.code ? stripOwnerPrefix(trn.asset.code) : "")
   const qty = trn.quantity
 
   if (type === "DEPOSIT") return "Deposit"
@@ -82,15 +83,19 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
   )
 
   // Get the cash impact matching svc-position logic
-  // - Cash types (DEPOSIT, WITHDRAWAL, INCOME, DEDUCTION) use quantity field
+  // - DEPOSIT, WITHDRAWAL, DEDUCTION use quantity field (quantity=amount, price=1)
+  // - INCOME uses tradeAmount field (quantity=1, price=amount)
   // - FX_BUY uses quantity when asset is the cash asset (credit to purchased currency)
   // - Other types (BUY, SELL, DIVI) use cashAmount field
   // Then enforce correct sign based on transaction type
   const getSignedCashAmount = useCallback(
     (trn: Transaction, queriedCashAssetId: string): number => {
-      // Cash transaction types use quantity, others use cashAmount
-      const cashTypes = ["DEPOSIT", "WITHDRAWAL", "INCOME", "DEDUCTION"]
-      const isCashType = cashTypes.includes(trn.trnType)
+      // Cash transaction types that store amount in quantity (quantity=amount, price=1)
+      const quantityBasedCashTypes = ["DEPOSIT", "WITHDRAWAL", "DEDUCTION"]
+      const isQuantityBasedCash = quantityBasedCashTypes.includes(trn.trnType)
+
+      // INCOME stores amount differently (quantity=1, price=amount)
+      const isIncome = trn.trnType === "INCOME"
 
       // FX_BUY: if asset.id matches the queried cash asset, this is a credit to that cash
       // The quantity is the amount of cash purchased
@@ -98,7 +103,9 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
         trn.trnType === "FX_BUY" && trn.asset?.id === queriedCashAssetId
 
       let rawAmount: number
-      if (isCashType || isFxBuyCredit) {
+      if (isIncome) {
+        rawAmount = trn.tradeAmount
+      } else if (isQuantityBasedCash || isFxBuyCredit) {
         rawAmount = trn.quantity
       } else {
         rawAmount = trn.cashAmount

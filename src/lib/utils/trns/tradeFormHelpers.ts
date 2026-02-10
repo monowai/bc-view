@@ -145,6 +145,7 @@ export interface TradeFormValues {
   type: { value: string; label: string }
   status: { value: string; label: string }
   asset: string
+  assetId?: string // UUID — set by INCOME/EXPENSE quick actions from holdings
   market: string
   tradeDate: string
   quantity: number
@@ -168,6 +169,7 @@ export const buildEditModeValues = (
   type: { value: transaction.trnType, label: transaction.trnType },
   status: { value: transaction.status, label: transaction.status },
   asset: getDisplayCode(transaction.asset),
+  assetId: transaction.asset.id,
   market: transaction.asset.market.code,
   tradeDate: transaction.tradeDate,
   quantity: transaction.quantity,
@@ -193,13 +195,18 @@ export const buildQuickSellValues = (
   defaults: TradeFormValues,
 ): TradeFormValues => {
   const tradeType = quickSell.type || "SELL"
+  const currency = quickSell.currency
   return {
     ...defaults,
     type: { value: tradeType, label: tradeType },
     asset: quickSell.asset,
+    assetId: quickSell.assetId,
     market: quickSell.market,
     quantity: quickSell.quantity,
     price: quickSell.price,
+    ...(currency && {
+      tradeCurrency: { value: currency, label: currency },
+    }),
   }
 }
 

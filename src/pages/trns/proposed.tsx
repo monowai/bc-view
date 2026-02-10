@@ -10,6 +10,7 @@ import { Broker, Transaction, TrnStatus } from "types/beancounter"
 import Head from "next/head"
 import { useUser } from "@auth0/nextjs-auth0/client"
 import { calculateTradeAmount } from "@utils/trns/tradeUtils"
+import { stripOwnerPrefix } from "@lib/assets/assetUtils"
 import DateInput from "@components/ui/DateInput"
 
 interface ProposedTransaction extends Transaction {
@@ -71,14 +72,8 @@ const setSessionValue = <T,>(key: string, value: T): void => {
 }
 
 // Get display code for an asset, stripping owner ID prefix for private assets
-const getAssetDisplayCode = (asset: {
-  code: string
-  market: { code: string }
-}): string => {
-  if (asset.market.code === "PRIVATE" && asset.code.includes(".")) {
-    return asset.code.split(".").slice(1).join(".")
-  }
-  return asset.code
+const getAssetDisplayCode = (asset: { code: string }): string => {
+  return stripOwnerPrefix(asset.code)
 }
 
 /**
