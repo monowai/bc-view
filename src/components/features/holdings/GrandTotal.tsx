@@ -41,18 +41,18 @@ export default function GrandTotal({
       <tr>
         <td
           colSpan={GRANDTOTAL_LAYOUT.TOTAL_CELLS}
-          className="border-t-2 border-wealth-500"
+          className="border-t border-blue-200"
         />
       </tr>
       <tr
         key={valueIn}
-        className="holding-footer text-sm bg-gradient-to-r from-wealth-500 to-wealth-600 text-white border-b-2 border-wealth-500"
+        className="holding-footer text-sm bg-blue-50 text-blue-600 border-b border-blue-100"
       >
-        <td className="px-1 py-2 sm:px-2 md:px-3 text-xs md:text-sm font-semibold text-left">
+        <td className="px-1 py-1 sm:px-2 md:px-3 text-sm font-semibold text-left text-blue-900 bg-blue-100/80">
           <div>{t("holdings.valueTitle", { valueIn })}</div>
         </td>
         {/* Skip Price column - hidden on mobile portrait, visible on landscape (640px+) */}
-        <td colSpan={1} className="hidden sm:table-cell" />
+        <td colSpan={1} className="hidden sm:table-cell bg-blue-100/60" />
         {data.map((item, index) => {
           // Explicit mapping for each data position to ensure correct alignment
           // Data array order matches header order: Change, GainOnDay, Quantity, Cost, MarketValue, Weight, Dividends, etc.
@@ -126,9 +126,9 @@ export default function GrandTotal({
             typeof item.value === "number"
           ) {
             if (item.value < 0) {
-              colorClass = "text-red-200"
+              colorClass = "text-red-600"
             } else if (item.value > 0) {
-              colorClass = "text-emerald-200"
+              colorClass = "text-emerald-600"
             }
           }
 
@@ -143,13 +143,13 @@ export default function GrandTotal({
           const fontClass = isNumeric ? "tabular-nums" : ""
 
           // Apply same padding logic as Header and Rows
-          const padding = "px-0.5 py-2 sm:px-1 md:px-2 xl:px-3" // Taller grand total row
+          const padding = "px-0.5 py-1 sm:px-1 md:px-2 xl:px-3"
 
           return (
             <td
               key={index}
               colSpan={item.colSpan}
-              className={`${padding} text-xs md:text-sm font-medium text-${alignment} ${visibility} ${colorClass} ${fontClass}`}
+              className={`${padding} bg-blue-100/60 text-xs md:text-sm font-medium text-${alignment} ${visibility} ${colorClass} ${fontClass}`}
             >
               {item.value !== null && item.value !== "" ? (
                 <>
@@ -175,7 +175,7 @@ export default function GrandTotal({
                   {headerIndex === HEADER_INDICES.WEIGHT && "%"}
                 </>
               ) : item.tooltip ? (
-                <span className="group relative cursor-help text-wealth-200">
+                <span className="group relative cursor-help text-blue-400">
                   -
                   <span className="invisible group-hover:visible absolute right-0 bottom-full mb-1 z-10 w-48 p-2 bg-slate-800 text-white text-xs rounded shadow-lg">
                     {t(item.tooltip)}

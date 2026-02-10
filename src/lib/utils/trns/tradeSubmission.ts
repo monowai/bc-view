@@ -37,7 +37,7 @@ export const buildEditPayload = (
     cashAmount: isExpense
       ? -(formData.tradeAmount || 0)
       : isIncome
-        ? (formData.tradeAmount || 0)
+        ? formData.tradeAmount || 0
         : formData.cashAmount ||
           -(formData.quantity * formData.price + (formData.fees || 0)),
     fees: formData.fees,

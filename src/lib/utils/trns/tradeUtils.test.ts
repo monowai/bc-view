@@ -655,6 +655,17 @@ describe("TradeUtils", () => {
       ).toBe("USD")
     })
 
+    test("returns accountingType currency when available", () => {
+      expect(
+        getAssetCurrency({
+          code: "owner.SCB-USD",
+          accountingType: { currency: { code: "USD" } },
+          priceSymbol: "SGD",
+          market: { code: "PRIVATE", currency: { code: "SGD" } },
+        }),
+      ).toBe("USD")
+    })
+
     test("returns empty string when no currency info available", () => {
       expect(
         getAssetCurrency({

@@ -529,32 +529,38 @@ export default function Rows({
                       isConstantPrice(asset)))) ||
                 (asset.assetCategory?.id === "RE" &&
                   (onRecordIncome || onRecordExpense)) ? (
-                    <div className="flex items-center">
-                      <ActionsMenu
-                        asset={asset}
-                        portfolioId={portfolio.id}
-                        fromDate={dateValues?.opened}
-                        closedDate={dateValues?.closed}
-                        quantity={quantityValues.total}
-                        price={moneyValues[valueIn].priceData?.close || 0}
-                        costBasis={moneyValues["TRADE"]?.costBasis || 0}
-                        tradeCurrency={
-                          moneyValues["TRADE"]?.currency || portfolio.currency
-                        }
-                        valueIn={valueIn}
-                        held={held}
-                        onQuickSell={isCashRelated(asset) ? undefined : onQuickSell}
-                        onCorporateActions={isCashRelated(asset) ? undefined : onCorporateActions}
-                        onSetPrice={onSetPrice}
-                        onSetBalance={onSetBalance}
-                        onSectorWeightings={onSectorWeightings}
-                        onCostAdjust={isCashRelated(asset) ? undefined : onCostAdjust}
-                        onRecordIncome={onRecordIncome}
-                        onRecordExpense={onRecordExpense}
-                        t={t}
-                      />
-                    </div>
-                  ) : null}
+                  <div className="flex items-center">
+                    <ActionsMenu
+                      asset={asset}
+                      portfolioId={portfolio.id}
+                      fromDate={dateValues?.opened}
+                      closedDate={dateValues?.closed}
+                      quantity={quantityValues.total}
+                      price={moneyValues[valueIn].priceData?.close || 0}
+                      costBasis={moneyValues["TRADE"]?.costBasis || 0}
+                      tradeCurrency={
+                        moneyValues["TRADE"]?.currency || portfolio.currency
+                      }
+                      valueIn={valueIn}
+                      held={held}
+                      onQuickSell={
+                        isCashRelated(asset) ? undefined : onQuickSell
+                      }
+                      onCorporateActions={
+                        isCashRelated(asset) ? undefined : onCorporateActions
+                      }
+                      onSetPrice={onSetPrice}
+                      onSetBalance={onSetBalance}
+                      onSectorWeightings={onSectorWeightings}
+                      onCostAdjust={
+                        isCashRelated(asset) ? undefined : onCostAdjust
+                      }
+                      onRecordIncome={onRecordIncome}
+                      onRecordExpense={onRecordExpense}
+                      t={t}
+                    />
+                  </div>
+                ) : null}
                 {supportsBalanceSetting(asset) &&
                   (onSetCashBalance || onCashTransfer || onCashTransaction) && (
                     <div className="flex items-center">

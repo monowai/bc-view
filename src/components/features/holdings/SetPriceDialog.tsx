@@ -4,7 +4,7 @@ import { useTranslation } from "next-i18next"
 import MathInput from "@components/ui/MathInput"
 import DateInput from "@components/ui/DateInput"
 import Dialog from "@components/ui/Dialog"
-import { stripOwnerPrefix } from "@lib/assets/assetUtils"
+import { stripOwnerPrefix, getAssetCurrency } from "@lib/assets/assetUtils"
 
 interface SetPriceDialogProps {
   asset: Asset
@@ -77,8 +77,7 @@ export default function SetPriceDialog({
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          {t("price.value")} (
-          {asset.priceSymbol || asset.market?.currency?.code || "USD"})
+          {t("price.value")} ({getAssetCurrency(asset) || "USD"})
         </label>
         <MathInput
           value={price ? parseFloat(price) : 0}

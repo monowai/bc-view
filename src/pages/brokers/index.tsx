@@ -6,6 +6,7 @@ import { BrokerInput, BrokerWithAccounts, Asset } from "types/beancounter"
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { simpleFetcher } from "@utils/api/fetchHelper"
+import { getAssetCurrency } from "@lib/assets/assetUtils"
 import { errorOut } from "@components/errors/ErrorOut"
 import { useRouter } from "next/router"
 import { rootLoader } from "@components/ui/PageLoader"
@@ -403,9 +404,7 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
                           formData.settlementAccounts?.[currency] || ""
                         // Filter accounts that match this currency
                         const matchingAccounts = accountAssets.filter(
-                          (asset) =>
-                            asset.priceSymbol === currency ||
-                            asset.market?.currency?.code === currency,
+                          (asset) => getAssetCurrency(asset) === currency,
                         )
                         // Ensure selected account is always in the list
                         const selectedAccount =

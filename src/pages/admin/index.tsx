@@ -67,6 +67,15 @@ export default withPageAuthRequired(function AdminPage(): React.ReactElement {
       icon: "fa-tags",
     },
     {
+      title: t("admin.cards.assets.title", "Asset Admin"),
+      description: t(
+        "admin.cards.assets.description",
+        "Search for any asset and manage its name, status, and enrichment.",
+      ),
+      href: "/admin/assets",
+      icon: "fa-cubes",
+    },
+    {
       title: t("admin.cards.scenarios.title", "Quick Scenarios"),
       description: t(
         "admin.cards.scenarios.description",

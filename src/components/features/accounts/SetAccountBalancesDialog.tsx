@@ -9,7 +9,7 @@ import {
   CashBalanceAdjustment,
 } from "@lib/trns/tradeUtils"
 import MathInput from "@components/ui/MathInput"
-import { stripOwnerPrefix } from "@lib/assets/assetUtils"
+import { stripOwnerPrefix, getAssetCurrency } from "@lib/assets/assetUtils"
 
 interface AssetPosition {
   portfolio: Portfolio
@@ -44,7 +44,7 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
   const [submitSuccess, setSubmitSuccess] = useState(false)
   const [successCount, setSuccessCount] = useState(0)
 
-  const currency = asset.priceSymbol || asset.market?.currency?.code || "USD"
+  const currency = getAssetCurrency(asset) || "USD"
 
   // Fetch positions when dialog opens
   useEffect(() => {

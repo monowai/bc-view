@@ -15,6 +15,7 @@ import {
   ExecutionItemUpdate,
 } from "types/rebalance"
 import { Asset, AssetResponse, Broker } from "types/beancounter"
+import { getAssetCurrency } from "@lib/assets/assetUtils"
 
 function ExecuteRebalancePage(): React.ReactElement {
   const { t } = useTranslation("common")
@@ -1208,10 +1209,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                     {settlementAccounts.map((account) => (
                       <option key={account.id} value={account.id}>
                         {account.name || account.code} (
-                        {account.priceSymbol ||
-                          account.market?.currency?.code ||
-                          ""}
-                        )
+                        {getAssetCurrency(account)})
                       </option>
                     ))}
                   </select>

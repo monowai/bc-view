@@ -5,7 +5,11 @@ import { Portfolio, CashTransferData, Asset } from "types/beancounter"
 import MathInput from "@components/ui/MathInput"
 import useSWR, { mutate } from "swr"
 import { simpleFetcher, ccyKey, holdingKey } from "@utils/api/fetchHelper"
-import { stripOwnerPrefix, resolveAssetId } from "@lib/assets/assetUtils"
+import {
+  stripOwnerPrefix,
+  resolveAssetId,
+  getAssetCurrency,
+} from "@lib/assets/assetUtils"
 
 interface CashTransferDialogProps {
   modalOpen: boolean
@@ -51,14 +55,6 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
     modalOpen ? ccyKey : null,
     simpleFetcher(ccyKey),
   )
-
-  // Helper to get currency from an asset
-  const getAssetCurrency = (asset: Asset): string => {
-    if (asset.assetCategory?.id === "CASH") {
-      return asset.code
-    }
-    return asset.priceSymbol || asset.market?.currency?.code || asset.code
-  }
 
   // Build target asset options: currency balances + bank accounts (excluding source asset)
   const eligibleTargetAssets = useMemo((): {

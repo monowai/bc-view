@@ -45,7 +45,10 @@ function getGroupKey(groupBy: GroupBy, position: Position): string {
     }
     // Non-cash assets use the trade currency, not the market currency.
     // The market currency is wrong for PRIVATE market assets which have no inherent currency.
-    return position.moneyValues["TRADE"]?.currency?.code || getPath(groupBy, position)
+    return (
+      position.moneyValues["TRADE"]?.currency?.code ||
+      getPath(groupBy, position)
+    )
   }
   return getPath(groupBy, position)
 }

@@ -7,6 +7,7 @@ import { useRouter } from "next/router"
 import { assetKey, portfolioKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { useTranslation } from "next-i18next"
 import { Asset, Portfolio, Transaction } from "types/beancounter"
+import { getAssetCurrency } from "@lib/assets/assetUtils"
 import { rootLoader } from "@components/ui/PageLoader"
 import { errorOut } from "@components/errors/ErrorOut"
 import useSwr from "swr"
@@ -193,7 +194,10 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
   const portfolio = portfolioData.data?.data
   const assetName = cashAsset?.name || cashAsset?.code || "Cash"
   const currencyCode =
-    cashAsset?.priceSymbol || cashAsset?.code || portfolio?.currency?.code || ""
+    (cashAsset ? getAssetCurrency(cashAsset) : "") ||
+    cashAsset?.code ||
+    portfolio?.currency?.code ||
+    ""
 
   return (
     <div className="min-h-screen bg-gray-50 text-sm">

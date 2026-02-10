@@ -1,5 +1,22 @@
 import { Asset } from "types/beancounter"
 
+/**
+ * Canonical way to get an asset's currency code.
+ * Checks accountingType (V11+), then priceSymbol (legacy), then market currency.
+ */
+export function getAssetCurrency(asset: {
+  accountingType?: { currency?: { code?: string } }
+  priceSymbol?: string
+  market?: { currency?: { code?: string } }
+}): string {
+  return (
+    asset.accountingType?.currency?.code ||
+    asset.priceSymbol ||
+    asset.market?.currency?.code ||
+    ""
+  )
+}
+
 export function isCashRelated(asset: Asset): boolean {
   return asset.assetCategory.id === "RE" || isCash(asset) || isAccount(asset)
 }
