@@ -1,6 +1,7 @@
 import React, { useState } from "react"
 import { Position } from "types/beancounter"
 import { getReportCategory } from "@lib/categoryMapping"
+import { stripOwnerPrefix } from "@lib/assets/assetUtils"
 
 interface CopyPopupProps {
   columns: string[]
@@ -35,7 +36,7 @@ const CopyPopup: React.FC<CopyPopupProps> = ({
           .map((col) => {
             switch (col.toLowerCase()) {
               case "asset code":
-                return row.asset.code
+                return stripOwnerPrefix(row.asset.code)
               case "asset name":
                 return row.asset.name
               case "classification":

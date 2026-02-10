@@ -84,7 +84,7 @@ export const buildExpensePayload = (
     portfolioId,
     data: [
       {
-        assetId: formData.asset,
+        assetId: formData.assetId || formData.asset,
         trnType: "EXPENSE",
         quantity: 1,
         price: expenseAmount,
@@ -138,7 +138,7 @@ export const buildIncomePayload = (
     portfolioId,
     data: [
       {
-        assetId: formData.asset,
+        assetId: formData.assetId || formData.asset,
         trnType: "INCOME",
         quantity: 1,
         price: incomeAmount,

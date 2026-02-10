@@ -165,11 +165,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
   const isDayPositive = gainOnDay >= 0
 
   // Simple display name - show code for stocks, name for cash
-  const displayName = isCash(asset)
-    ? asset.name
-    : asset.code.indexOf(".") > 0
-      ? asset.code.substring(asset.code.indexOf(".") + 1)
-      : asset.code
+  const displayName = isCash(asset) ? asset.name : stripOwnerPrefix(asset.code)
 
   // Truncate long names
   const truncatedName =

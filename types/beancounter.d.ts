@@ -21,6 +21,8 @@ export type TrnStatus = "PROPOSED" | "SETTLED"
 
 export interface QuickSellData {
   asset: string
+  assetId?: string // UUID — used by INCOME/EXPENSE REST payloads
+  currency?: string // Trade currency code (e.g., "NZD") for settlement grouping
   market: string
   quantity: number
   price: number

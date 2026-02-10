@@ -76,6 +76,15 @@ export default withPageAuthRequired(function AdminPage(): React.ReactElement {
       icon: "fa-cubes",
     },
     {
+      title: t("admin.cards.accountingTypes.title", "Accounting Types"),
+      description: t(
+        "admin.cards.accountingTypes.description",
+        "Manage accounting types: board lots, settlement days, and category-currency mappings.",
+      ),
+      href: "/admin/accounting-types",
+      icon: "fa-receipt",
+    },
+    {
       title: t("admin.cards.scenarios.title", "Quick Scenarios"),
       description: t(
         "admin.cards.scenarios.description",

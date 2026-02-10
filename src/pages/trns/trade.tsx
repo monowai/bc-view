@@ -49,7 +49,6 @@ import {
   buildEditModeValues,
   buildQuickSellValues,
   buildCreateModeValues,
-  filterBankAccountsByCurrency,
   buildAllCashBalances,
   buildDefaultCashAsset,
   resolveBrokerSettlementAccount,
@@ -523,12 +522,6 @@ const TradeInputForm: React.FC<{
       : []
     return accounts as any[]
   }, [bankAccountsData])
-
-  // Bank accounts filtered by trade currency - for settlement dropdown
-  const filteredBankAccounts = useMemo(
-    () => filterBankAccountsByCurrency(allBankAccounts, currentTradeCurrency),
-    [allBankAccounts, currentTradeCurrency],
-  )
 
   // All trade accounts - show all currencies, SettlementAccountSelect handles grouping
   const allTradeAccounts = useMemo(() => {
@@ -1020,9 +1013,15 @@ const TradeInputForm: React.FC<{
                 <SettlementAccountSelect
                   name="settlementAccount"
                   control={control}
-                  accounts={allTradeAccounts as any[]}
-                  bankAccounts={filteredBankAccounts as any[]}
-                  cashAssets={cashAssetsForDropdown as any[]}
+                  accounts={
+                    isIncome || isExpense ? [] : (allTradeAccounts as any[])
+                  }
+                  bankAccounts={allBankAccounts as any[]}
+                  cashAssets={
+                    isIncome || isExpense
+                      ? (filteredCashAssets as any[])
+                      : (cashAssetsForDropdown as any[])
+                  }
                   trnType={type?.value || "BUY"}
                   tradeCurrency={currentTradeCurrency}
                   defaultValue={defaultCashAsset}

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react"
 import { NumericFormat } from "react-number-format"
 import useSwr from "swr"
 import { useTranslation } from "next-i18next"
+import { stripOwnerPrefix } from "@lib/assets/assetUtils"
 import {
   CorporateEvent,
   Portfolio,
@@ -325,7 +326,9 @@ const PortfolioCorporateActionsPopup: React.FC<
                           }`}
                         >
                           <td className="px-4 py-2">
-                            <div className="font-medium">{asset.code}</div>
+                            <div className="font-medium">
+                              {stripOwnerPrefix(asset.code)}
+                            </div>
                             <div className="text-xs text-gray-500">
                               {asset.name}
                             </div>
