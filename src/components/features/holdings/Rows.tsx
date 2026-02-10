@@ -23,6 +23,7 @@ import {
   isConstantPrice,
   supportsBalanceSetting,
   stripOwnerPrefix,
+  getAssetCurrency,
 } from "@lib/assets/assetUtils"
 import Link from "next/link"
 import { useRouter } from "next/router"
@@ -54,6 +55,8 @@ interface RowsProps extends HoldingValues {
   onCashTransfer?: (data: CashTransferData) => void
   onCashTransaction?: (assetCode: string) => void
   onCostAdjust?: (data: CostAdjustData) => void
+  onRecordIncome?: (data: QuickSellData) => void
+  onRecordExpense?: (data: QuickSellData) => void
 }
 
 // Helper function to truncate text with ellipsis
@@ -80,7 +83,9 @@ interface ActionsMenuProps {
   onSetBalance?: (data: SetBalanceData) => void
   onSectorWeightings?: (data: SectorWeightingsData) => void
   onCostAdjust?: (data: CostAdjustData) => void
-  t: (key: string) => string
+  onRecordIncome?: (data: QuickSellData) => void
+  onRecordExpense?: (data: QuickSellData) => void
+  t: any
 }
 
 const ActionsMenu: React.FC<ActionsMenuProps> = ({
@@ -99,6 +104,8 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
   onSetBalance,
   onSectorWeightings,
   onCostAdjust,
+  onRecordIncome,
+  onRecordExpense,
   t,
 }) => {
   const [isOpen, setIsOpen] = useState(false)
@@ -238,6 +245,46 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
                 {t("costAdjust.menu")}
               </button>
             )}
+            {onRecordIncome && (
+              <button
+                type="button"
+                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setIsOpen(false)
+                  onRecordIncome({
+                    asset: assetCode,
+                    market: asset.market.code,
+                    quantity: 0,
+                    price: 0,
+                    type: "INCOME",
+                  })
+                }}
+              >
+                <i className="fas fa-arrow-down text-green-500 w-4"></i>
+                {t("actions.recordIncome", "Record Income")}
+              </button>
+            )}
+            {onRecordExpense && (
+              <button
+                type="button"
+                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setIsOpen(false)
+                  onRecordExpense({
+                    asset: assetCode,
+                    market: asset.market.code,
+                    quantity: 0,
+                    price: 0,
+                    type: "EXPENSE",
+                  })
+                }}
+              >
+                <i className="fas fa-arrow-up text-red-500 w-4"></i>
+                {t("actions.recordExpense", "Record Expense")}
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -308,9 +355,7 @@ const CashActionsMenu: React.FC<CashActionsMenuProps> = ({
                   const isAccountAsset = isAccount(asset)
                   onSetCashBalance({
                     currency: isAccountAsset
-                      ? asset.priceSymbol ||
-                        asset.market.currency?.code ||
-                        asset.code
+                      ? getAssetCurrency(asset) || asset.code
                       : asset.code,
                     currentBalance: marketValue,
                     market: isAccountAsset ? "PRIVATE" : "CASH",
@@ -338,9 +383,7 @@ const CashActionsMenu: React.FC<CashActionsMenuProps> = ({
                     assetCode: asset.code,
                     assetName: asset.name || asset.code,
                     currency: isAccountAsset
-                      ? asset.priceSymbol ||
-                        asset.market.currency?.code ||
-                        asset.code
+                      ? getAssetCurrency(asset) || asset.code
                       : asset.code,
                     currentBalance: marketValue,
                   })
@@ -387,6 +430,8 @@ export default function Rows({
   onCashTransfer,
   onCashTransaction,
   onCostAdjust,
+  onRecordIncome,
+  onRecordExpense,
 }: RowsProps): React.ReactElement {
   const { t } = useTranslation("common")
   const router = useRouter()
@@ -472,14 +517,18 @@ export default function Rows({
                     </div>
                   )}
                 </div>
-                {!isCashRelated(asset) &&
+                {(!isCashRelated(asset) &&
                   (onQuickSell ||
                     onCorporateActions ||
                     onCostAdjust ||
+                    onRecordIncome ||
+                    onRecordExpense ||
                     (onSetPrice && asset.market?.code === "PRIVATE") ||
                     (onSetBalance &&
                       asset.market?.code === "PRIVATE" &&
-                      isConstantPrice(asset))) && (
+                      isConstantPrice(asset)))) ||
+                (asset.assetCategory?.id === "RE" &&
+                  (onRecordIncome || onRecordExpense)) ? (
                     <div className="flex items-center">
                       <ActionsMenu
                         asset={asset}
@@ -494,16 +543,18 @@ export default function Rows({
                         }
                         valueIn={valueIn}
                         held={held}
-                        onQuickSell={onQuickSell}
-                        onCorporateActions={onCorporateActions}
+                        onQuickSell={isCashRelated(asset) ? undefined : onQuickSell}
+                        onCorporateActions={isCashRelated(asset) ? undefined : onCorporateActions}
                         onSetPrice={onSetPrice}
                         onSetBalance={onSetBalance}
                         onSectorWeightings={onSectorWeightings}
-                        onCostAdjust={onCostAdjust}
+                        onCostAdjust={isCashRelated(asset) ? undefined : onCostAdjust}
+                        onRecordIncome={onRecordIncome}
+                        onRecordExpense={onRecordExpense}
                         t={t}
                       />
                     </div>
-                  )}
+                  ) : null}
                 {supportsBalanceSetting(asset) &&
                   (onSetCashBalance || onCashTransfer || onCashTransaction) && (
                     <div className="flex items-center">

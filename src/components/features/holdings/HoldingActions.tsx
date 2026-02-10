@@ -511,7 +511,7 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
   return (
     <>
       {/* Refined toolbar - cohesive bar with subtle depth */}
-      <div className="flex items-center justify-between py-2 mb-2 gap-3 overflow-x-auto">
+      <div className="flex items-center justify-between py-2 mb-2 gap-3 flex-wrap">
         {/* Left side: View mode and GroupBy controls */}
         {onViewModeChange && !emptyHoldings && (
           <div className="flex items-center gap-2 flex-shrink-0">

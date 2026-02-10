@@ -4,6 +4,7 @@ import {
   deriveSettlementCurrency,
   buildEditPayload,
   buildExpensePayload,
+  buildIncomePayload,
   buildCreateModeData,
 } from "./tradeSubmission"
 import { updateTrn } from "./apiHelper"
@@ -141,6 +142,64 @@ export async function submitExpense(
     console.error("EXPENSE submission error:", error)
     setSubmitError(
       error instanceof Error ? error.message : "Failed to create expense",
+    )
+  } finally {
+    setIsSubmitting(false)
+  }
+}
+
+export interface SubmitIncomeParams {
+  data: TradeFormValues
+  portfolio: Portfolio
+  mutate: MutateFn
+  setModalOpen: (open: boolean) => void
+  setSubmitError: (error: string | null) => void
+  setIsSubmitting: (submitting: boolean) => void
+}
+
+/**
+ * Submit handler for INCOME: direct REST POST (synchronous, bypasses message broker).
+ */
+export async function submitIncome(
+  params: SubmitIncomeParams,
+): Promise<void> {
+  const {
+    data,
+    portfolio,
+    mutate,
+    setModalOpen,
+    setSubmitError,
+    setIsSubmitting,
+  } = params
+
+  setIsSubmitting(true)
+  setSubmitError(null)
+  try {
+    const payload = buildIncomePayload(data, portfolio.id)
+    const response = await fetch("/api/trns", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+    if (response.ok) {
+      setTimeout(() => {
+        mutate(holdingKey(portfolio.code, "today"))
+        mutate("/api/holdings/aggregated?asAt=today")
+      }, 1500)
+      setModalOpen(false)
+    } else {
+      const errorData = await response.json().catch(() => ({}))
+      console.error("INCOME creation failed:", response.status, errorData)
+      setSubmitError(
+        errorData.message ||
+          errorData.error ||
+          `Failed: ${response.statusText}`,
+      )
+    }
+  } catch (error) {
+    console.error("INCOME submission error:", error)
+    setSubmitError(
+      error instanceof Error ? error.message : "Failed to create income",
     )
   } finally {
     setIsSubmitting(false)

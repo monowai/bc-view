@@ -227,6 +227,16 @@ function HoldingsPage(): React.ReactElement {
     [router],
   )
 
+  // Handle record income from card/row menu
+  const handleRecordIncome = useCallback((data: QuickSellData) => {
+    setQuickSellData({ ...data, type: "INCOME" })
+  }, [])
+
+  // Handle record expense from card/row menu
+  const handleRecordExpense = useCallback((data: QuickSellData) => {
+    setQuickSellData({ ...data, type: "EXPENSE" })
+  }, [])
+
   // Handle cost adjust from position row
   const handleCostAdjust = useCallback((data: CostAdjustData) => {
     setCostAdjustData(data)
@@ -484,6 +494,8 @@ function HoldingsPage(): React.ReactElement {
             valueIn={holdingState.valueIn.value}
             groupBy={holdingState.groupBy.value}
             isMixedCurrencies={holdingResults.isMixedCurrencies}
+            onRecordIncome={handleRecordIncome}
+            onRecordExpense={handleRecordExpense}
           />
         </div>
       ) : viewMode === "heatmap" ? (

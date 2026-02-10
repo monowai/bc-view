@@ -142,6 +142,10 @@ export const calculateCashAmount = (data: TradeFormData): number => {
   if (data.type.value === "EXPENSE") {
     return -(data.tradeAmount || 0)
   }
+  // INCOME: the user-entered tradeAmount is the cash credit
+  if (data.type.value === "INCOME") {
+    return data.tradeAmount || 0
+  }
   // For FX trades, use cashAmount (the buy amount calculated from FX rate)
   // For other CASH market transactions, use quantity
   const cashAmount =
@@ -185,6 +189,8 @@ export const convertToTradeImport = (data: TradeFormData): TradeImport => {
 
   const cashAmount = calculateCashAmount(data)
   const isExpense = data.type.value === "EXPENSE"
+  const isIncome = data.type.value === "INCOME"
+  const isSimpleAmount = isExpense || isIncome
   const rawAsset: string =
     data.market === "CASH"
       ? data.tradeCurrency && data.tradeCurrency.value
@@ -194,8 +200,8 @@ export const convertToTradeImport = (data: TradeFormData): TradeImport => {
   // Strip owner prefix from private asset codes (e.g., "userId.APT" → "APT")
   const asset = stripOwnerPrefix(rawAsset)
 
-  // EXPENSE: quantity is 1, price is the expense amount (form hides qty/price fields)
-  const qty: number = isExpense
+  // EXPENSE/INCOME: quantity is 1, price is the amount (form hides qty/price fields)
+  const qty: number = isSimpleAmount
     ? 1
     : data.market === "CASH"
       ? (data.cashAmount ?? 0)
@@ -217,7 +223,7 @@ export const convertToTradeImport = (data: TradeFormData): TradeImport => {
     tradeDate: data.tradeDate,
     quantity: qty,
     tradeCurrency,
-    price: isExpense ? data.tradeAmount || 0 : data.price,
+    price: isSimpleAmount ? data.tradeAmount || 0 : data.price,
     fees: data.fees,
     cashAmount,
     comments,
@@ -286,20 +292,34 @@ export const hasCashImpact = (tradeType: string): boolean =>
 export const isExpenseType = (tradeType: string): boolean =>
   tradeType === "EXPENSE"
 
+/** Returns true if the trade type is INCOME */
+export const isIncomeType = (tradeType: string): boolean =>
+  tradeType === "INCOME"
+
+/** Returns true if the trade type uses simplified amount-only form (hides qty/price/broker) */
+export const isSimpleAmountType = (tradeType: string): boolean =>
+  tradeType === "EXPENSE" || tradeType === "INCOME"
+
 /**
  * Extract the currency code from an asset object.
  * CASH market assets use their code as the currency.
- * Other assets use priceSymbol or fall back to market.currency.code.
+ * Other assets check accountingType, then priceSymbol, then market.currency.code.
  */
 export const getAssetCurrency = (assetData: {
   code: string
+  accountingType?: { currency?: { code?: string } }
   priceSymbol?: string
   market: { code: string; currency?: { code: string } }
 }): string => {
   if (assetData.market?.code === "CASH") {
     return assetData.code
   }
-  return assetData.priceSymbol || assetData.market?.currency?.code || ""
+  return (
+    assetData.accountingType?.currency?.code ||
+    assetData.priceSymbol ||
+    assetData.market?.currency?.code ||
+    ""
+  )
 }
 
 /**
