@@ -450,27 +450,27 @@ function WealthDashboard(): React.ReactElement {
                   className="text-sky-300 hover:text-sky-200 hover:bg-white/15 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
                   title="Portfolios"
                 >
-                  <i className="fas fa-chart-pie text-sm"></i>
+                  <i className="fas fa-chart-pie text-sm text-white"></i>
                   <span className="text-xs font-medium hidden sm:inline">
                     Portfolios
                   </span>
                 </Link>
                 <Link
-                  href="/brokers"
-                  className="text-sky-300 hover:text-sky-200 hover:bg-white/15 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
-                  title="Brokers"
+                  href="/rebalance/wizard"
+                  className="text-emerald-300 hover:text-emerald-200 hover:bg-white/15 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
+                  title="Strategy"
                 >
-                  <i className="fas fa-building text-sm"></i>
+                  <i className="fas fa-chess text-sm text-emerald-300"></i>
                   <span className="text-xs font-medium hidden sm:inline">
-                    Brokers
+                    Strategy
                   </span>
                 </Link>
                 <Link
                   href="/independence"
-                  className="text-sky-300 hover:text-sky-200 hover:bg-white/15 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
+                  className="text-orange-300 hover:text-orange-200 hover:bg-white/15 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
                   title="Independence"
                 >
-                  <i className="fas fa-umbrella-beach text-sm"></i>
+                  <i className="fas fa-umbrella-beach text-sm text-orange-300"></i>
                   <span className="text-xs font-medium hidden sm:inline">
                     Independence
                   </span>
@@ -583,7 +583,7 @@ function WealthDashboard(): React.ReactElement {
                   <i
                     className={`fas fa-chevron-${collapsedSections.independence ? "right" : "down"} text-gray-400 mr-2 w-4`}
                   ></i>
-                  <i className="fas fa-chart-line text-green-500 mr-2"></i>
+                  <i className="fas fa-chart-line text-white mr-2"></i>
                   Independence Metrics
                   {projectionLoading && (
                     <span className="ml-2 inline-flex items-center">
@@ -787,7 +787,7 @@ function WealthDashboard(): React.ReactElement {
                   {(projectionLoading || projectionData) && (
                     <div className="bg-linear-to-br from-purple-50 to-violet-50 rounded-lg p-4">
                       <p className="text-sm text-gray-600 mb-1">
-                        <i className="fas fa-home text-purple-400 mr-1"></i>
+                        <i className="fas fa-home text-white mr-1"></i>
                         Property Sale Age
                       </p>
                       {projectionLoading && !projectionData ? (
@@ -860,7 +860,7 @@ function WealthDashboard(): React.ReactElement {
                 <i
                   className={`fas fa-chevron-${collapsedSections.charts ? "right" : "down"} text-gray-400 mr-2 w-4`}
                 ></i>
-                <i className="fas fa-chart-pie text-blue-500 mr-2"></i>
+                <i className="fas fa-chart-pie text-white mr-2"></i>
                 Asset Allocation
               </button>
 
@@ -990,7 +990,7 @@ function WealthDashboard(): React.ReactElement {
                 <i
                   className={`fas fa-chevron-${collapsedSections.portfolioDetails ? "right" : "down"} text-gray-400 mr-2 w-4`}
                 ></i>
-                <i className="fas fa-table text-gray-500 mr-2"></i>
+                <i className="fas fa-table text-white mr-2"></i>
                 Portfolio Details
               </button>
             </div>
@@ -1157,7 +1157,7 @@ function WealthDashboard(): React.ReactElement {
             >
               <div className="flex items-center">
                 <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center mr-4 group-hover:bg-amber-200 transition-colors">
-                  <i className="fas fa-layer-group text-amber-600 text-xl"></i>
+                  <i className="fas fa-layer-group text-white text-xl"></i>
                 </div>
                 <div>
                   <p className="font-semibold text-gray-900">
@@ -1176,7 +1176,7 @@ function WealthDashboard(): React.ReactElement {
             >
               <div className="flex items-center">
                 <div className="w-12 h-12 bg-violet-100 rounded-lg flex items-center justify-center mr-4 group-hover:bg-violet-200 transition-colors">
-                  <i className="fas fa-balance-scale text-violet-600 text-xl"></i>
+                  <i className="fas fa-balance-scale text-white text-xl"></i>
                 </div>
                 <div>
                   <p className="font-semibold text-gray-900">Rebalance</p>
@@ -1193,7 +1193,7 @@ function WealthDashboard(): React.ReactElement {
             >
               <div className="flex items-center">
                 <div className="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center mr-4 group-hover:bg-emerald-200 transition-colors">
-                  <i className="fas fa-gem text-emerald-600 text-xl"></i>
+                  <i className="fas fa-gem text-white text-xl"></i>
                 </div>
                 <div>
                   <p className="font-semibold text-gray-900">Custom Assets</p>
