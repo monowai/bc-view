@@ -24,7 +24,7 @@ export interface QuickSellData {
   market: string
   quantity: number
   price: number
-  type?: "BUY" | "SELL"
+  type?: "BUY" | "SELL" | "INCOME" | "EXPENSE"
   currentPositionQuantity?: number // For rebalance: the current position size
   held?: Record<string, number> // Broker name -> quantity for broker selection
 }
@@ -412,6 +412,14 @@ export interface Currency {
   symbol: string
 }
 
+export interface AccountingType {
+  id: string
+  category: string
+  currency: Currency
+  boardLot?: number
+  settlementDays?: number
+}
+
 export interface Asset {
   id: string
   code: string
@@ -419,6 +427,8 @@ export interface Asset {
   assetCategory: AssetCategory
   market: Market
   priceSymbol?: string // Currency code for ACCOUNT/CASH assets
+  accountingType?: AccountingType // V11: replaces priceSymbol for CASH/PRIVATE assets
+  status?: string // "Active" | "Inactive"
   reportCategory?: string // Higher-level category for reporting (nullable, for backward compatibility)
   effectiveReportCategory?: string // Computed: reportCategory if set, otherwise mapped from assetCategory
   sector?: string // Sector classification (e.g., "Technology", "Health Care")

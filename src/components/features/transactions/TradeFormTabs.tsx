@@ -4,6 +4,7 @@ import MathInput from "@components/ui/MathInput"
 
 interface TradeFormTabsProps {
   isExpense: boolean
+  isSimpleAmount: boolean
   isEditMode: boolean
   activeTab: "trade" | "invest"
   setActiveTab: (tab: "trade" | "invest") => void
@@ -23,6 +24,7 @@ interface TradeFormTabsProps {
 
 const TradeFormTabs: React.FC<TradeFormTabsProps> = ({
   isExpense,
+  isSimpleAmount,
   isEditMode,
   activeTab,
   setActiveTab,
@@ -40,7 +42,7 @@ const TradeFormTabs: React.FC<TradeFormTabsProps> = ({
   t,
 }) => (
   <div className="border-t border-gray-100 pt-3">
-    {!isExpense && (
+    {!isSimpleAmount && (
       <div className="flex border-b border-gray-200">
         <button
           type="button"
@@ -78,12 +80,14 @@ const TradeFormTabs: React.FC<TradeFormTabsProps> = ({
       </div>
     )}
 
-    {/* EXPENSE: Simplified content - just comments */}
-    {isExpense && (
+    {/* EXPENSE/INCOME: Simplified content - just comments */}
+    {isSimpleAmount && (
       <div className="mt-3 space-y-2">
         <div>
           <label className={labelClass}>
-            {t("trn.expense.description", "Expense Description")}
+            {isExpense
+              ? t("trn.expense.description", "Expense Description")
+              : t("trn.income.description", "Income Description")}
           </label>
           <Controller
             name="comment"
@@ -94,10 +98,17 @@ const TradeFormTabs: React.FC<TradeFormTabsProps> = ({
                 type="text"
                 className={inputClass}
                 value={field.value || ""}
-                placeholder={t(
-                  "trn.expense.descPlaceholder",
-                  "e.g., Property rates, Insurance, Maintenance",
-                )}
+                placeholder={
+                  isExpense
+                    ? t(
+                        "trn.expense.descPlaceholder",
+                        "e.g., Property rates, Insurance, Maintenance",
+                      )
+                    : t(
+                        "trn.income.descPlaceholder",
+                        "e.g., Rental income, Dividend",
+                      )
+                }
               />
             )}
           />
@@ -106,7 +117,7 @@ const TradeFormTabs: React.FC<TradeFormTabsProps> = ({
     )}
 
     {/* Trade Tab Content */}
-    {!isExpense && activeTab === "trade" && (
+    {!isSimpleAmount && activeTab === "trade" && (
       <div className="mt-3 space-y-2">
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -179,7 +190,7 @@ const TradeFormTabs: React.FC<TradeFormTabsProps> = ({
     )}
 
     {/* Invest Tab Content */}
-    {!isExpense && activeTab === "invest" && (
+    {!isSimpleAmount && activeTab === "invest" && (
       <div className="mt-3 space-y-3">
         <div>
           <label className={labelClass}>

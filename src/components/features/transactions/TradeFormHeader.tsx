@@ -15,6 +15,7 @@ interface TradeFormHeaderProps {
   portfolio: Portfolio
   type: { value: string }
   isExpense: boolean
+  isSimpleAmount: boolean
   cashImpact: boolean
   quantity: number
   price: number
@@ -38,6 +39,7 @@ const TradeFormHeader: React.FC<TradeFormHeaderProps> = ({
   portfolio,
   type,
   isExpense,
+  isSimpleAmount,
   cashImpact,
   quantity,
   price,
@@ -152,7 +154,7 @@ const TradeFormHeader: React.FC<TradeFormHeaderProps> = ({
         >
           {type?.value || "BUY"}
         </div>
-        {isExpense ? (
+        {isSimpleAmount ? (
           <>
             <div className="font-bold text-lg text-gray-900">
               <NumericFormat
@@ -188,7 +190,7 @@ const TradeFormHeader: React.FC<TradeFormHeaderProps> = ({
           </>
         )}
       </div>
-      {cashImpact && tradeAmount > 0 && !isExpense && (
+      {cashImpact && tradeAmount > 0 && !isSimpleAmount && (
         <>
           <div className="text-gray-300">
             <i className="fas fa-arrow-right text-xs"></i>
@@ -213,7 +215,7 @@ const TradeFormHeader: React.FC<TradeFormHeaderProps> = ({
     </div>
 
     {/* Weight info */}
-    {weightInfo && !isExpense && (
+    {weightInfo && !isSimpleAmount && (
       <div className="mt-2 text-center text-xs font-medium text-blue-600">
         {weightInfo.label}: {weightInfo.value.toFixed(2)}%
         {weightInfo.tradeWeight !== undefined && (

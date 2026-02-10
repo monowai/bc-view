@@ -13,6 +13,8 @@ import {
   calculateTradeAmount,
   hasCashImpact,
   isExpenseType,
+  isIncomeType,
+  isSimpleAmountType,
   deriveDefaultMarket,
 } from "@lib/trns/tradeUtils"
 import { useTranslation } from "next-i18next"
@@ -56,6 +58,7 @@ import {
 import {
   submitEditMode,
   submitExpense,
+  submitIncome,
   submitCreateMode,
 } from "@lib/trns/tradeSubmit"
 import { GetServerSideProps } from "next"
@@ -70,6 +73,7 @@ const TradeTypeValues = [
   "DIVI",
   "SPLIT",
   "EXPENSE",
+  "INCOME",
 ] as const
 
 const defaultValues = {
@@ -625,6 +629,8 @@ const TradeInputForm: React.FC<{
 
   const cashImpact = hasCashImpact(type?.value)
   const isExpense = isExpenseType(type?.value)
+  const isIncome = isIncomeType(type?.value)
+  const isSimpleAmount = isSimpleAmountType(type?.value)
   const tradeAmount = watch("tradeAmount") || 0
 
   return (
@@ -663,6 +669,7 @@ const TradeInputForm: React.FC<{
               portfolio={portfolio}
               type={type}
               isExpense={isExpense}
+              isSimpleAmount={isSimpleAmount}
               cashImpact={cashImpact}
               quantity={quantity}
               price={price}
@@ -699,6 +706,15 @@ const TradeInputForm: React.FC<{
                   })
                 } else if (data.type.value === "EXPENSE") {
                   await submitExpense({
+                    data: data as any,
+                    portfolio,
+                    mutate,
+                    setModalOpen,
+                    setSubmitError,
+                    setIsSubmitting,
+                  })
+                } else if (data.type.value === "INCOME") {
+                  await submitIncome({
                     data: data as any,
                     portfolio,
                     mutate,
@@ -835,11 +851,13 @@ const TradeInputForm: React.FC<{
                 </div>
               )}
 
-              {/* Expense Amount - shown for EXPENSE type */}
-              {isExpense && (
+              {/* Amount - shown for EXPENSE/INCOME types */}
+              {isSimpleAmount && (
                 <div>
                   <label className={labelClass}>
-                    {t("trn.expense.amount", "Expense Amount")}
+                    {isIncome
+                      ? t("trn.income.amount", "Income Amount")
+                      : t("trn.expense.amount", "Expense Amount")}
                   </label>
                   <Controller
                     name="tradeAmount"
@@ -849,24 +867,53 @@ const TradeInputForm: React.FC<{
                         value={field.value}
                         onChange={field.onChange}
                         className={`${inputClass} text-lg font-medium`}
-                        placeholder={t(
-                          "trn.expense.placeholder",
-                          "Enter expense amount",
-                        )}
+                        placeholder={
+                          isIncome
+                            ? t("trn.income.placeholder", "Enter income amount")
+                            : t(
+                                "trn.expense.placeholder",
+                                "Enter expense amount",
+                              )
+                        }
                       />
                     )}
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    {t(
-                      "trn.expense.hint",
-                      "This amount will be debited from the settlement account",
-                    )}
+                    {isIncome
+                      ? t(
+                          "trn.income.hint",
+                          "This amount will be credited to the settlement account",
+                        )
+                      : t(
+                          "trn.expense.hint",
+                          "This amount will be debited from the settlement account",
+                        )}
                   </p>
                 </div>
               )}
 
-              {/* Quantity, Price, Fees - hidden for EXPENSE type */}
-              {!isExpense && (
+              {/* Fees - shown for EXPENSE/INCOME types */}
+              {isSimpleAmount && (
+                <div>
+                  <label className={labelClass}>
+                    {t("trn.amount.charges")}
+                  </label>
+                  <Controller
+                    name="fees"
+                    control={control}
+                    render={({ field }) => (
+                      <MathInput
+                        value={field.value}
+                        onChange={field.onChange}
+                        className={inputClass}
+                      />
+                    )}
+                  />
+                </div>
+              )}
+
+              {/* Quantity, Price, Fees - hidden for EXPENSE/INCOME types */}
+              {!isSimpleAmount && (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   <div>
                     <label className={labelClass}>
@@ -920,8 +967,8 @@ const TradeInputForm: React.FC<{
                 </div>
               )}
 
-              {/* Broker - select before settlement account (hidden for EXPENSE) */}
-              {!isExpense && (
+              {/* Broker - select before settlement account (hidden for EXPENSE/INCOME) */}
+              {!isSimpleAmount && (
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className={labelClass}>
@@ -964,9 +1011,11 @@ const TradeInputForm: React.FC<{
               {/* Settlement Account */}
               <div>
                 <label className={labelClass}>
-                  {isExpense
-                    ? t("trn.expense.debitAccount", "Debit From Account")
-                    : t("trn.settlement.account")}
+                  {isIncome
+                    ? t("trn.income.creditAccount", "Credit To Account")
+                    : isExpense
+                      ? t("trn.expense.debitAccount", "Debit From Account")
+                      : t("trn.settlement.account")}
                 </label>
                 <SettlementAccountSelect
                   name="settlementAccount"
@@ -1046,6 +1095,7 @@ const TradeInputForm: React.FC<{
 
               <TradeFormTabs
                 isExpense={isExpense}
+                isSimpleAmount={isSimpleAmount}
                 isEditMode={isEditMode}
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
