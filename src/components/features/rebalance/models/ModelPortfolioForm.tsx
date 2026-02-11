@@ -5,6 +5,7 @@ import useSWR from "swr"
 import { ModelDto, CreateModelRequest } from "types/rebalance"
 import { Currency } from "types/beancounter"
 import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper"
+import ClientSelector from "@components/features/shares/ClientSelector"
 
 interface ModelPortfolioFormProps {
   model?: ModelDto
@@ -29,6 +30,7 @@ const ModelPortfolioForm: React.FC<ModelPortfolioFormProps> = ({
   const [objective, setObjective] = useState(model?.objective || "")
   const [description, setDescription] = useState(model?.description || "")
   const [baseCurrency, setBaseCurrency] = useState(model?.baseCurrency || "NZD")
+  const [clientId, setClientId] = useState(model?.clientId || "")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -47,6 +49,7 @@ const ModelPortfolioForm: React.FC<ModelPortfolioFormProps> = ({
         objective: objective.trim() || undefined,
         description: description.trim() || undefined,
         baseCurrency,
+        clientId: clientId.trim() || undefined,
       }
 
       const url = isEditing
@@ -173,6 +176,10 @@ const ModelPortfolioForm: React.FC<ModelPortfolioFormProps> = ({
           )}
         </select>
       </div>
+
+      {!isEditing && (
+        <ClientSelector clientId={clientId} onChange={setClientId} />
+      )}
 
       <div className="flex justify-end space-x-3 pt-4 border-t">
         <button

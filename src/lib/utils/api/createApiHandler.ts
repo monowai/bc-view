@@ -1,7 +1,22 @@
 import { NextApiHandler, NextApiRequest, NextApiResponse } from "next"
 import { auth0 } from "@lib/auth0"
+import { BcApiError } from "@components/errors/bcApiError"
 import { requestInit } from "@utils/api/fetchHelper"
 import handleResponse, { fetchError } from "@utils/api/responseWriter"
+
+/**
+ * Validate and coerce a path parameter, rejecting traversal attempts.
+ */
+export function sanitizePathParam(
+  value: string | string[] | undefined,
+  name = "parameter",
+): string {
+  const str = Array.isArray(value) ? value[0] : value
+  if (!str || /\/|\\|\.\.|\0/.test(str)) {
+    throw new BcApiError(400, `Invalid ${name}`, "Bad Request", undefined)
+  }
+  return str
+}
 
 type HttpMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE"
 

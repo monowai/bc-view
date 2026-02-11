@@ -212,12 +212,18 @@ function PlanView(): React.ReactElement {
     },
   )
 
+  const isClientPlan = planData?.data?.clientId != null
+  const [isTransferring, setIsTransferring] = useState(false)
+  const [transferError, setTransferError] = useState<string | null>(null)
+
+  // For client plans, fetch the client's managed portfolios instead of adviser's own
   const { data: portfoliosData } = useSwr<PortfoliosResponse>(
-    portfoliosKey,
-    simpleFetcher(portfoliosKey),
+    isClientPlan ? "/api/shares/managed" : portfoliosKey,
+    simpleFetcher(isClientPlan ? "/api/shares/managed" : portfoliosKey),
   )
 
   // Fetch aggregated holdings to get category breakdown
+  // For client plans, skip holdings fetch (adviser's token returns adviser's data)
   // Disable auto-revalidation - only refresh on manual action for performance
   // Use dedupingInterval for caching across page refreshes
   const {
@@ -226,8 +232,10 @@ function PlanView(): React.ReactElement {
     mutate: refreshHoldings,
     isValidating: isRefreshingHoldings,
   } = useSwr<{ data: HoldingContract }>(
-    "/api/holdings/aggregated?asAt=today",
-    simpleFetcher("/api/holdings/aggregated?asAt=today"),
+    isClientPlan ? null : "/api/holdings/aggregated?asAt=today",
+    isClientPlan
+      ? null
+      : simpleFetcher("/api/holdings/aggregated?asAt=today"),
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
@@ -938,6 +946,31 @@ function PlanView(): React.ReactElement {
     }
   }
 
+  const handleTransfer = async (): Promise<void> => {
+    if (!plan || !isClientPlan) return
+    setIsTransferring(true)
+    setTransferError(null)
+    try {
+      const response = await fetch(
+        `/api/independence/plans/${plan.id}/transfer`,
+        { method: "POST" },
+      )
+      if (response.ok) {
+        router.push("/independence")
+      } else {
+        const errorData = await response.json().catch(() => ({}))
+        setTransferError(
+          errorData.message || t("client.transfer.failed", "Failed to transfer plan"),
+        )
+      }
+    } catch (err) {
+      console.error("Failed to transfer plan:", err)
+      setTransferError(t("client.transfer.failed", "Failed to transfer plan"))
+    } finally {
+      setIsTransferring(false)
+    }
+  }
+
   // Reset what-if adjustments
   const resetWhatIf = (): void => {
     setWhatIfAdjustments(DEFAULT_WHAT_IF_ADJUSTMENTS)
@@ -1080,6 +1113,33 @@ function PlanView(): React.ReactElement {
             onCurrencyChange={setDisplayCurrency}
             onExport={handleExport}
           />
+
+          {/* Client Plan Banner */}
+          {isClientPlan && (
+            <div className="mb-4 rounded-lg bg-blue-50 border border-blue-200 px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <i className="fas fa-user-tie text-blue-600"></i>
+                <span className="text-sm text-blue-800">
+                  {t("client.managingFor", "Managing for client")}:{" "}
+                  {plan.clientId}
+                </span>
+              </div>
+              <button
+                onClick={handleTransfer}
+                disabled={isTransferring}
+                className="text-sm px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                {isTransferring
+                  ? t("transferring", "Transferring...")
+                  : t("client.transfer", "Transfer to Client")}
+              </button>
+            </div>
+          )}
+          {transferError && (
+            <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+              {transferError}
+            </div>
+          )}
 
           {/* Loading Overlay - shown during initial projection calculation */}
           {isCalculating && !adjustedProjection && (

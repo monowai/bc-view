@@ -784,5 +784,14 @@
   "resourceShares.managed.plans": "Shared Plans",
   "resourceShares.managed.models": "Shared Models",
   "resourceShares.managed.plans.empty": "No shared plans yet",
-  "resourceShares.managed.models.empty": "No shared models yet"
+  "resourceShares.managed.models.empty": "No shared models yet",
+
+  "client.createFor": "Create on behalf of a client",
+  "client.email": "Client Email",
+  "client.email.placeholder": "Enter client's email address",
+  "client.email.hint": "The client must have shared their portfolios with you.",
+  "client.managingFor": "Managing for client",
+  "client.transfer": "Transfer to Client",
+  "client.transfer.success": "Ownership transferred successfully",
+  "client.transfer.confirm": "Transfer ownership to the client? This cannot be undone."
 }

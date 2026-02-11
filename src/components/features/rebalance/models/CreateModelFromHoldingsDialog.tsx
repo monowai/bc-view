@@ -3,6 +3,7 @@ import { useTranslation } from "next-i18next"
 import { useRouter } from "next/router"
 import Dialog from "@components/ui/Dialog"
 import WeightsSummary from "../common/WeightsSummary"
+import ClientSelector from "@components/features/shares/ClientSelector"
 import { AssetWeightWithDetails, ModelDto } from "types/rebalance"
 import { Holdings, Position } from "types/beancounter"
 
@@ -62,6 +63,7 @@ const CreateModelFromHoldingsDialog: React.FC<
   const [description, setDescription] = useState("")
   const [weights, setWeights] =
     useState<AssetWeightWithDetails[]>(initialWeights)
+  const [clientId, setClientId] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -91,6 +93,7 @@ const CreateModelFromHoldingsDialog: React.FC<
         objective: objective.trim() || undefined,
         description: description.trim() || undefined,
         baseCurrency: holdings.portfolio.currency.code,
+        clientId: clientId.trim() || undefined,
       }
 
       const modelResponse = await fetch("/api/rebalance/models", {
@@ -233,6 +236,8 @@ const CreateModelFromHoldingsDialog: React.FC<
             )}
           />
         </div>
+
+        <ClientSelector clientId={clientId} onChange={setClientId} />
 
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
           <div className="flex items-center gap-2 text-blue-700">

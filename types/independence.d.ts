@@ -37,6 +37,7 @@ export interface RetirementPlan {
   investmentAllocationPercent: number
   lifeEvents?: string // JSON array of life events
   manualAssets?: Record<string, number> // JSON map of category -> value
+  clientId?: string // When set, plan managed by adviser on behalf of client
   createdDate: string
   updatedDate: string
 }
@@ -75,6 +76,7 @@ export interface PlanRequest {
   investmentAllocationPercent?: number
   lifeEvents?: string
   manualAssets?: Record<string, number> | null
+  clientId?: string
 }
 
 export interface PlanResponse {
@@ -621,6 +623,7 @@ export interface PlanExport {
   expenses: ExportedExpense[]
   lifeEvents?: string
   manualAssets?: Record<string, number>
+  clientId?: string
 }
 
 export interface PlanExportResponse {

@@ -1,9 +1,13 @@
-import { createApiHandler } from "@utils/api/createApiHandler"
+import {
+  createApiHandler,
+  sanitizePathParam,
+} from "@utils/api/createApiHandler"
 import { getDataUrl } from "@utils/api/bcConfig"
 
 export default createApiHandler({
   url: (req) => {
     const price = req.query.price as string[]
-    return getDataUrl(`/prices/${price.join("/")}`)
+    const sanitized = price.map((p) => sanitizePathParam(p, "price"))
+    return getDataUrl(`/prices/${sanitized.join("/")}`)
   },
 })
