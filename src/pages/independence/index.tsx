@@ -13,6 +13,7 @@ import {
   useFiProjectionSimple,
   AssetBreakdown,
 } from "@components/features/independence"
+import ResourceShareInviteDialog from "@components/features/shares/ResourceShareInviteDialog"
 
 const plansKey = "/api/independence/plans"
 const HIDDEN_VALUE = "****"
@@ -221,6 +222,7 @@ function RetirementPlanning(): React.ReactElement {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isImporting, setIsImporting] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
+  const [showShareDialog, setShowShareDialog] = useState(false)
 
   const { data, error, isLoading, mutate } = useSwr<PlansResponse>(
     plansKey,
@@ -412,6 +414,15 @@ function RetirementPlanning(): React.ReactElement {
                 accept=".json"
                 className="hidden"
               />
+              {plans.length > 0 && (
+                <button
+                  onClick={() => setShowShareDialog(true)}
+                  className="hidden sm:flex border border-blue-300 text-blue-700 px-4 py-3 rounded-lg hover:bg-blue-50 font-medium items-center"
+                >
+                  <i className="fas fa-share-alt mr-2"></i>
+                  Share
+                </button>
+              )}
               <button
                 onClick={handleImportClick}
                 disabled={isImporting}
@@ -506,6 +517,15 @@ function RetirementPlanning(): React.ReactElement {
           )}
         </div>
       </div>
+
+      {showShareDialog && plans.length > 0 && (
+        <ResourceShareInviteDialog
+          resourceType="INDEPENDENCE_PLAN"
+          resources={plans.map((p) => ({ id: p.id, name: p.name }))}
+          onClose={() => setShowShareDialog(false)}
+          onSuccess={() => setShowShareDialog(false)}
+        />
+      )}
     </>
   )
 }
