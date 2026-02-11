@@ -604,22 +604,23 @@ export default function Rows({
               {hideValue(moneyValues[valueIn].priceData?.changePercent) ? (
                 " "
               ) : (
-                <span className="relative group">
-                  <span
-                    className={`inline-flex items-center px-1.5 py-0.5 rounded-sm font-mono text-xs sm:text-sm ${
-                      moneyValues[valueIn].priceData.changePercent < 0
-                        ? "text-red-600 bg-red-50"
-                        : moneyValues[valueIn].priceData.changePercent > 0
-                          ? "text-emerald-600 bg-emerald-50"
-                          : "text-slate-600 bg-slate-50"
-                    }`}
-                  >
-                    {(
-                      Math.abs(moneyValues[valueIn].priceData.changePercent) *
-                      100
-                    ).toFixed(2)}
-                    %
-                  </span>
+                <span
+                  className={`relative group tabular-nums ${
+                    moneyValues[valueIn].priceData.changePercent < 0
+                      ? "text-red-600"
+                      : moneyValues[valueIn].priceData.changePercent > 0
+                        ? "text-emerald-600"
+                        : "text-slate-600"
+                  }`}
+                >
+                  <FormatValue
+                    value={Math.abs(
+                      moneyValues[valueIn].priceData.changePercent,
+                    )}
+                    multiplier={100}
+                    isPublic
+                  />
+                  {"%"}
                   <span className="absolute right-0 transform -translate-y-full mb-1 bg-slate-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none whitespace-nowrap z-50 shadow-lg">
                     Change: {effectiveCurrencySymbol}
                     {convert(moneyValues[valueIn].gainOnDay)?.toLocaleString(
@@ -777,7 +778,7 @@ export default function Rows({
               <AlphaProgress
                 irr={moneyValues[valueIn].irr}
                 lastTradeDate={dateValues?.opened || undefined}
-                className="min-w-[120px]"
+                className="min-w-[80px]"
               />
             </td>
             <td className={getCellClasses(12)}>

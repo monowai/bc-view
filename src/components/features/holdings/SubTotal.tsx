@@ -100,7 +100,7 @@ export default function SubTotal({
         key={groupBy}
         className="holding-footer text-xs sm:text-sm bg-wealth-50/60 hover:bg-wealth-100/60 transition-colors duration-150"
       >
-        <td className="px-1 py-1.5 sm:px-2 md:px-3 text-left font-semibold text-wealth-700">
+        <td className="px-0.5 py-1.5 sm:px-1 md:px-2 xl:px-3 text-left font-semibold text-wealth-700">
           Sub Total - {subTotals[valueIn].currency.code}
         </td>
         {data.map((item, index) => (
