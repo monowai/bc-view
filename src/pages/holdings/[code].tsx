@@ -429,7 +429,7 @@ function HoldingsPage(): React.ReactElement {
             onViewModeChange={setViewMode}
           />
           <div>
-            <table className="min-w-full bg-white">
+            <table className="w-full bg-white">
               {(() => {
                 let cumulativeCount = 0
                 return Object.keys(holdings.holdingGroups)

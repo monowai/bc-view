@@ -23,7 +23,7 @@
   "error-global": "That shouldn't have happened",
   "error.portfolios.empty": "You have no portfolios",
   "tagline": "Wealth management for the rest of us",
-  "quantity": "Quantity",
+  "quantity": "Qty",
   "roi": "ROI",
   "irr": "IRR",
   "irr.weighted.tooltip": "Weighted by market value. Cash positions excluded.",

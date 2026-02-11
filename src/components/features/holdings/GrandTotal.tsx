@@ -48,7 +48,7 @@ export default function GrandTotal({
         key={valueIn}
         className="holding-footer text-sm bg-blue-50 text-blue-600 border-b border-blue-100"
       >
-        <td className="px-1 py-1 sm:px-2 md:px-3 text-sm font-semibold text-left text-blue-900 bg-blue-100/80">
+        <td className="px-0.5 py-1.5 sm:px-1 md:px-2 xl:px-3 text-sm font-semibold text-left text-blue-900 bg-blue-100/80">
           <div>{t("holdings.valueTitle", { valueIn })}</div>
         </td>
         {/* Skip Price column - hidden on mobile portrait, visible on landscape (640px+) */}
@@ -143,7 +143,7 @@ export default function GrandTotal({
           const fontClass = isNumeric ? "tabular-nums" : ""
 
           // Apply same padding logic as Header and Rows
-          const padding = "px-0.5 py-1 sm:px-1 md:px-2 xl:px-3"
+          const padding = "px-0.5 py-1.5 sm:px-1 md:px-2 xl:px-3"
 
           return (
             <td

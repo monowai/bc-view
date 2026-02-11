@@ -175,7 +175,7 @@ export default function Header({
 
   // Get optimized header padding to match data cell padding for mobile space efficiency
   const getHeaderPadding = (): string => {
-    return "px-1 py-1 sm:px-2 md:px-3 xl:px-4"
+    return "px-0.5 py-1 sm:px-1 md:px-2 xl:px-3"
   }
 
   return (
