@@ -25,6 +25,7 @@ import {
   useAssetBreakdown,
   useFiProjectionSimple,
 } from "@components/features/independence"
+import ShareInviteDialog from "@components/features/portfolios/ShareInviteDialog"
 import { rootLoader } from "@components/ui/PageLoader"
 import { errorOut } from "@components/errors/ErrorOut"
 import { FormatValue } from "@components/ui/MoneyUtils"
@@ -111,6 +112,8 @@ function WealthDashboard(): React.ReactElement {
     key: "value",
     direction: "desc",
   })
+
+  const [showShareDialog, setShowShareDialog] = useState(false)
 
   // Collapsible sections state - all collapsed by default
   const [collapsedSections, setCollapsedSections] = useState<
@@ -475,6 +478,18 @@ function WealthDashboard(): React.ReactElement {
                     Independence
                   </span>
                 </Link>
+                {portfolios.length > 0 && (
+                  <button
+                    onClick={() => setShowShareDialog(true)}
+                    className="text-white/70 hover:text-white hover:bg-white/15 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
+                    title={t("shares.invite.title")}
+                  >
+                    <i className="fas fa-share-alt text-sm"></i>
+                    <span className="text-xs font-medium hidden sm:inline">
+                      {t("share")}
+                    </span>
+                  </button>
+                )}
                 {currencies.length > 0 && displayCurrency && (
                   <>
                     <div className="w-px h-5 bg-white/20 mx-1"></div>
@@ -1206,6 +1221,14 @@ function WealthDashboard(): React.ReactElement {
           </div>
         </div>
       </div>
+
+      {showShareDialog && (
+        <ShareInviteDialog
+          portfolios={portfolios}
+          onClose={() => setShowShareDialog(false)}
+          onSuccess={() => setShowShareDialog(false)}
+        />
+      )}
 
       {/* Monthly Investment Transactions Modal */}
       {showInvestmentModal && (
