@@ -776,5 +776,13 @@
   "shares.status.PENDING_CLIENT_INVITE": "Pending Invite",
   "shares.status.PENDING_ADVISER_REQUEST": "Pending Request",
   "shares.status.ACTIVE": "Active",
-  "shares.status.REVOKED": "Revoked"
+  "shares.status.REVOKED": "Revoked",
+  "resourceShares.type.plan": "Plans",
+  "resourceShares.type.model": "Models",
+  "resourceShares.invite.title": "Share {{type}}",
+  "resourceShares.invite.select": "Select {{type}} to share",
+  "resourceShares.managed.plans": "Shared Plans",
+  "resourceShares.managed.models": "Shared Models",
+  "resourceShares.managed.plans.empty": "No shared plans yet",
+  "resourceShares.managed.models.empty": "No shared models yet"
 }

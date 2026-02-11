@@ -949,3 +949,25 @@ export interface PendingSharesResponse {
   invites: PortfolioShare[]
   requests: PortfolioShare[]
 }
+
+export type ShareResourceType = "INDEPENDENCE_PLAN" | "REBALANCE_MODEL"
+
+export interface ResourceShare {
+  id: string
+  resourceType: ShareResourceType
+  resourceId: string
+  resourceName?: string
+  sharedWith: SystemUser
+  accessLevel: ShareAccessLevel
+  status: ShareStatus
+  createdAt: string
+  createdBy: SystemUser
+  resourceOwner: SystemUser
+  targetUser?: SystemUser
+  acceptedAt?: string
+}
+
+export interface PendingResourceSharesResponse {
+  invites: ResourceShare[]
+  requests: ResourceShare[]
+}

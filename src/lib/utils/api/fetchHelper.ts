@@ -123,3 +123,4 @@ export const executionKey = (id: string): string => `${executionsKey}/${id}`
 // Shares API keys
 export const sharesPendingKey = `${apiRoot}/shares/pending`
 export const sharesManagedKey = `${apiRoot}/shares/managed`
+export const resourceSharesPendingKey = `${apiRoot}/resource-shares/pending`
