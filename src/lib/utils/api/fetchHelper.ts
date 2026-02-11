@@ -119,3 +119,7 @@ export const executionsKey = `${apiRoot}/rebalance/executions`
 export const modelKey = (id: string): string => `${modelsKey}/${id}`
 export const planKey = (id: string): string => `${plansKey}/${id}`
 export const executionKey = (id: string): string => `${executionsKey}/${id}`
+
+// Shares API keys
+export const sharesPendingKey = `${apiRoot}/shares/pending`
+export const sharesManagedKey = `${apiRoot}/shares/managed`

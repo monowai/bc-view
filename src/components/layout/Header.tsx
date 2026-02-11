@@ -2,6 +2,7 @@ import React from "react"
 import HeaderBrand from "@components/layout/HeaderBrand"
 import HeaderUserControls from "@components/layout/HeaderUserControls"
 import ProposedBadge from "@components/layout/ProposedBadge"
+import SharesBadge from "@components/layout/SharesBadge"
 
 export default function Header(): React.ReactElement {
   return (
@@ -20,6 +21,7 @@ export default function Header(): React.ReactElement {
       <nav className="flex items-center justify-between px-2 py-2 sm:px-3 bg-gray-800 text-white">
         <HeaderBrand />
         <div className="flex items-center gap-2">
+          <SharesBadge />
           <ProposedBadge />
           <HeaderUserControls />
         </div>

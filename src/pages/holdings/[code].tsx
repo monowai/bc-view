@@ -50,6 +50,7 @@ import CostAdjustDialog from "@components/features/holdings/CostAdjustDialog"
 import CashInputForm from "@pages/trns/cash"
 import TrnDropZone from "@components/ui/DropZone"
 import IncomeView from "@components/features/holdings/IncomeView"
+import ShareInviteDialog from "@components/features/portfolios/ShareInviteDialog"
 
 function HoldingsPage(): React.ReactElement {
   const router = useRouter()
@@ -103,6 +104,9 @@ function HoldingsPage(): React.ReactElement {
   const [cashTransactionAsset, setCashTransactionAsset] = useState<
     string | undefined
   >(undefined)
+
+  // Share dialog state
+  const [showShareDialog, setShowShareDialog] = useState(false)
 
   // Fetch portfolios for cash transfer dialog
   const { data: portfoliosData } = useSwr(
@@ -398,6 +402,7 @@ function HoldingsPage(): React.ReactElement {
         onViewModeChange={setViewMode}
         allocationData={allocationData}
         holdings={holdings}
+        onShare={() => setShowShareDialog(true)}
       />
 
       {viewMode === "summary" ? (
@@ -603,6 +608,14 @@ function HoldingsPage(): React.ReactElement {
           modalOpen={true}
           setModalOpen={handleCashTransactionClose}
           initialAsset={cashTransactionAsset}
+        />
+      )}
+      {showShareDialog && portfoliosData?.data && (
+        <ShareInviteDialog
+          portfolios={portfoliosData.data}
+          preSelectedPortfolioId={holdingResults.portfolio.id}
+          onClose={() => setShowShareDialog(false)}
+          onSuccess={() => setShowShareDialog(false)}
         />
       )}
     </div>

@@ -923,3 +923,29 @@ export interface MonthlyIncomeResponse {
   months: MonthlyIncomeData[]
   groups: IncomeGroupData[]
 }
+
+// ============ Portfolio Sharing ============
+
+export type ShareAccessLevel = "VIEW" | "FULL"
+export type ShareStatus =
+  | "PENDING_CLIENT_INVITE"
+  | "PENDING_ADVISER_REQUEST"
+  | "ACTIVE"
+  | "REVOKED"
+
+export interface PortfolioShare {
+  id: string
+  portfolio?: Portfolio
+  sharedWith: SystemUser
+  accessLevel: ShareAccessLevel
+  status: ShareStatus
+  createdAt: string
+  createdBy: SystemUser
+  targetUser?: SystemUser
+  acceptedAt?: string
+}
+
+export interface PendingSharesResponse {
+  invites: PortfolioShare[]
+  requests: PortfolioShare[]
+}

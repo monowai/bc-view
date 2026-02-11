@@ -15,6 +15,8 @@ import { FormatValue } from "@components/ui/MoneyUtils"
 import { QuickTooltip } from "@components/ui/Tooltip"
 import PortfolioCorporateActionsPopup from "@components/features/portfolios/PortfolioCorporateActionsPopup"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
+import ManagedPortfolios from "@components/features/portfolios/ManagedPortfolios"
+import ShareInviteDialog from "@components/features/portfolios/ShareInviteDialog"
 
 type SortConfig = {
   key: string | null
@@ -23,10 +25,12 @@ type SortConfig = {
 
 interface PortfolioActionsProps {
   onImportClick: () => void
+  onShareClick: () => void
 }
 
 const PortfolioActions = ({
   onImportClick,
+  onShareClick,
 }: PortfolioActionsProps): React.ReactElement => {
   const router = useRouter()
   const { t } = useTranslation("common")
@@ -80,6 +84,13 @@ const PortfolioActions = ({
         {t("portfolios.import")}
       </button>
       <button
+        className="hidden md:flex bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition-colors items-center"
+        onClick={onShareClick}
+      >
+        <i className="fas fa-share-alt mr-2"></i>
+        {t("shares.share")}
+      </button>
+      <button
         className="bg-wealth-500 text-white py-2 px-4 rounded-lg hover:bg-wealth-600 transition-colors flex items-center shadow-sm"
         onClick={() => router.push(`/portfolios/__NEW__`)}
       >
@@ -121,6 +132,24 @@ export default withPageAuthRequired(function Portfolios({
 
   // Import dialog state
   const [showImportDialog, setShowImportDialog] = useState(false)
+
+  // Share dialog state - null=closed, undefined=open with no preselection, string=open with preselected portfolio ID
+  const [sharePortfolioId, setSharePortfolioId] = useState<
+    string | undefined | null
+  >(null)
+
+  // Tab state - read from query param, default to "my"
+  const activeTab = (router.query.tab as string) === "managed" ? "managed" : "my"
+  const setActiveTab = useCallback(
+    (tab: "my" | "managed") => {
+      router.replace(
+        { pathname: router.pathname, query: tab === "my" ? {} : { tab } },
+        undefined,
+        { shallow: true },
+      )
+    },
+    [router],
+  )
 
   // Currency display state
   const [currencies, setCurrencies] = useState<Currency[]>([])
@@ -214,6 +243,10 @@ export default withPageAuthRequired(function Portfolios({
 
   const handleImportClick = useCallback(() => {
     setShowImportDialog(true)
+  }, [])
+
+  const handleShareClick = useCallback((portfolioId?: string) => {
+    setSharePortfolioId(portfolioId ?? undefined)
   }, [])
 
   const handleImportClose = useCallback(() => {
@@ -514,7 +547,7 @@ export default withPageAuthRequired(function Portfolios({
                   </select>
                 )}
               </div>
-              <PortfolioActions onImportClick={handleImportClick} />
+              <PortfolioActions onImportClick={handleImportClick} onShareClick={() => handleShareClick()} />
             </div>
 
             {/* Selection actions - only show when portfolios selected */}
@@ -647,6 +680,13 @@ export default withPageAuthRequired(function Portfolios({
                     className="flex items-center space-x-4"
                     onClick={(e) => e.stopPropagation()}
                   >
+                    <button
+                      onClick={() => handleShareClick(portfolio.id)}
+                      className="text-blue-500 hover:text-blue-700 p-1"
+                      title={t("shares.share")}
+                    >
+                      <i className="fas fa-share-alt"></i>
+                    </button>
                     <button
                       onClick={() => setCorporateActionsPortfolio(portfolio)}
                       className="text-blue-500 hover:text-blue-700 p-1"
@@ -905,6 +945,16 @@ export default withPageAuthRequired(function Portfolios({
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
+                            handleShareClick(portfolio.id)
+                          }}
+                          className="text-slate-400 hover:text-blue-600 transition-colors"
+                          title={t("shares.share")}
+                        >
+                          <i className="fas fa-share-alt text-lg"></i>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
                             setCorporateActionsPortfolio(portfolio)
                           }}
                           className="text-slate-400 hover:text-blue-600 transition-colors"
@@ -989,13 +1039,44 @@ export default withPageAuthRequired(function Portfolios({
     )
   }
 
-  if (!data || !ready || (data.data.length > 0 && !fxRatesReady)) {
+  if (activeTab === "my" && (!data || !ready || (data.data.length > 0 && !fxRatesReady))) {
     return rootLoader(t("loading"))
   }
-  // Use the user variable somewhere in your component
+
   return (
     <>
-      {listPortfolios(sortedPortfolios)}
+      {/* Tab bar */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="flex px-4">
+          <button
+            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === "my"
+                ? "border-wealth-500 text-wealth-600"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            }`}
+            onClick={() => setActiveTab("my")}
+          >
+            <i className="fas fa-briefcase mr-2"></i>
+            {t("shares.tab.my")}
+          </button>
+          <button
+            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === "managed"
+                ? "border-wealth-500 text-wealth-600"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            }`}
+            onClick={() => setActiveTab("managed")}
+          >
+            <i className="fas fa-users mr-2"></i>
+            {t("shares.tab.managed")}
+          </button>
+        </div>
+      </div>
+
+      {/* Tab content */}
+      {activeTab === "my" && data && listPortfolios(sortedPortfolios)}
+      {activeTab === "managed" && <ManagedPortfolios />}
+
       {corporateActionsPortfolio && (
         <PortfolioCorporateActionsPopup
           portfolio={corporateActionsPortfolio}
@@ -1007,6 +1088,14 @@ export default withPageAuthRequired(function Portfolios({
         <PortfolioImportDialog
           onClose={handleImportClose}
           onComplete={handleImportComplete}
+        />
+      )}
+      {sharePortfolioId !== null && data?.data && (
+        <ShareInviteDialog
+          portfolios={data.data}
+          preSelectedPortfolioId={sharePortfolioId}
+          onClose={() => setSharePortfolioId(null)}
+          onSuccess={() => setSharePortfolioId(null)}
         />
       )}
     </>

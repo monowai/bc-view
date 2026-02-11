@@ -113,6 +113,8 @@ interface HoldingActionsProps {
   holdings?: Holdings | null
   /** Hide GroupBy controls */
   hideGroupBy?: boolean
+  /** Callback to open share dialog for this portfolio */
+  onShare?: () => void
 }
 
 /** View mode icon component */
@@ -307,6 +309,7 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
   allocationData = [],
   holdings,
   hideGroupBy = false,
+  onShare,
 }) => {
   const router = useRouter()
   const { isAdmin } = useIsAdmin()
@@ -573,6 +576,15 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
 
         {/* Right side: Action buttons - hidden on mobile portrait */}
         <div className="mobile-portrait:hidden flex items-center gap-2 flex-shrink-0">
+          {onShare && (
+            <button
+              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1.5 shadow-sm bg-white hover:bg-slate-50 text-slate-700 ring-1 ring-slate-200/80 hover:ring-slate-300"
+              onClick={onShare}
+            >
+              <i className="fas fa-share-alt text-[10px] text-blue-500"></i>
+              <span className="hidden sm:inline">Share</span>
+            </button>
+          )}
           {!emptyHoldings && (
             <button
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1.5 shadow-sm ${
