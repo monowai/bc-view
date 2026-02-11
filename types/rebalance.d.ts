@@ -27,6 +27,7 @@ export interface ModelDto {
   description?: string
   baseCurrency: string
   shared: boolean
+  clientId?: string
   isOwner: boolean
   currentPlanId?: string
   currentPlanVersion?: number
@@ -40,6 +41,7 @@ export interface CreateModelRequest {
   objective?: string
   description?: string
   baseCurrency?: string
+  clientId?: string
 }
 
 export interface UpdateModelRequest {

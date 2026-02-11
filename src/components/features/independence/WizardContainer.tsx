@@ -13,6 +13,7 @@ import ContributionsStep from "./steps/ContributionsStep"
 import IncomeSourcesStep from "./steps/IncomeSourcesStep"
 import LifeEventsStep from "./steps/LifeEventsStep"
 import ExpensesStep from "./steps/ExpensesStep"
+import ClientSelector from "@components/features/shares/ClientSelector"
 import { wizardSchema, defaultWizardValues } from "@lib/independence/schema"
 import {
   TOTAL_STEPS,
@@ -35,6 +36,7 @@ export default function WizardContainer({
   const isEditMode = Boolean(planId)
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
+  const [clientId, setClientId] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [stepErrors, setStepErrors] = useState<Set<number>>(new Set())
@@ -211,6 +213,7 @@ export default function WizardContainer({
             ? JSON.stringify(formData.lifeEvents)
             : undefined,
         manualAssets,
+        ...(!isEditMode && { clientId: clientId.trim() || undefined }),
       }
 
       const url = isEditMode
@@ -416,6 +419,12 @@ export default function WizardContainer({
 
         <form onSubmit={(e) => e.preventDefault()}>
           {renderStep()}
+
+          {currentStep === 1 && !isEditMode && (
+            <div className="mt-6">
+              <ClientSelector clientId={clientId} onChange={setClientId} />
+            </div>
+          )}
 
           <WizardNavigation
             currentStep={currentStep}

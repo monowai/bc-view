@@ -1,6 +1,7 @@
-import { createApiHandler } from "../createApiHandler"
+import { createApiHandler, sanitizePathParam } from "../createApiHandler"
 import { fetchError } from "@utils/api/responseWriter"
 import { auth0 } from "@lib/auth0"
+import { BcApiError } from "@components/errors/bcApiError"
 
 // Mock Auth0 v4
 jest.mock("@lib/auth0", () => ({
@@ -206,6 +207,50 @@ describe("createApiHandler", () => {
     expect(mockFetch).toHaveBeenCalledWith(
       "http://backend/items",
       expect.not.objectContaining({ body: expect.anything() }),
+    )
+  })
+})
+
+describe("sanitizePathParam", () => {
+  it("passes through valid simple strings", () => {
+    expect(sanitizePathParam("abc-123")).toBe("abc-123")
+    expect(sanitizePathParam("2024-01-01")).toBe("2024-01-01")
+    expect(sanitizePathParam("portfolio_id")).toBe("portfolio_id")
+  })
+
+  it("takes first element from string array", () => {
+    expect(sanitizePathParam(["first", "second"])).toBe("first")
+  })
+
+  it("rejects path traversal (..)", () => {
+    expect(() => sanitizePathParam("..")).toThrow(BcApiError)
+    expect(() => sanitizePathParam("../etc/passwd")).toThrow(BcApiError)
+    expect(() => sanitizePathParam("foo/../bar")).toThrow(BcApiError)
+  })
+
+  it("rejects forward slash", () => {
+    expect(() => sanitizePathParam("foo/bar")).toThrow(BcApiError)
+  })
+
+  it("rejects backslash", () => {
+    expect(() => sanitizePathParam("foo\\bar")).toThrow(BcApiError)
+  })
+
+  it("rejects null bytes", () => {
+    expect(() => sanitizePathParam("foo\0bar")).toThrow(BcApiError)
+  })
+
+  it("rejects undefined", () => {
+    expect(() => sanitizePathParam(undefined)).toThrow(BcApiError)
+  })
+
+  it("rejects empty string", () => {
+    expect(() => sanitizePathParam("")).toThrow(BcApiError)
+  })
+
+  it("includes parameter name in error message", () => {
+    expect(() => sanitizePathParam(undefined, "portfolioId")).toThrow(
+      /Invalid portfolioId/,
     )
   })
 })

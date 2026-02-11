@@ -1,13 +1,18 @@
-import { createApiHandler } from "@utils/api/createApiHandler"
+import {
+  createApiHandler,
+  sanitizePathParam,
+} from "@utils/api/createApiHandler"
 import { getDataUrl } from "@utils/api/bcConfig"
 
 export default createApiHandler({
   url: (req) => {
     const trades = req.query.trades as string[]
+    const portfolioId = sanitizePathParam(trades[0], "portfolioId")
     if (req.method === "DELETE") {
-      return getDataUrl(`/trns/${trades[0]}`)
+      return getDataUrl(`/trns/${portfolioId}`)
     }
-    return getDataUrl(`/trns/${trades[0]}/asset/${trades[1]}/trades`)
+    const assetId = sanitizePathParam(trades[1], "assetId")
+    return getDataUrl(`/trns/${portfolioId}/asset/${assetId}/trades`)
   },
   methods: ["GET", "DELETE"],
 })
