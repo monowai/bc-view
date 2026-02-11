@@ -179,7 +179,7 @@ export default function Header({
   }
 
   return (
-    <thead className="bg-blue-50 text-blue-600 sticky top-0 z-20">
+    <thead className="bg-blue-50 text-blue-600">
       <tr className="border-b border-blue-100">
         <th
           className={`px-1 py-1 sm:px-2 md:px-3 text-left text-xs uppercase tracking-wider font-medium bg-blue-100/80 ${
