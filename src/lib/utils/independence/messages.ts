@@ -103,12 +103,16 @@ export const wizardMessages = {
       title: "Life Events",
       description:
         "Add significant financial events that will impact your plan.",
+      skipHint:
+        "Life events are optional — click Save Plan to finish.",
     },
     income: {
       name: "Income",
       title: "Independence Income",
       description:
         "Enter your expected income sources during independence (retirement).",
+      skipHint:
+        "You can configure income sources later — click Next to continue.",
     },
     workingExpenses: {
       name: "Working Expenses",
@@ -116,6 +120,8 @@ export const wizardMessages = {
       description:
         "Define your current monthly expenses during your working years. These may differ from your expenses after independence.",
       totalLabel: "Total Working Expenses",
+      skipHint:
+        "You can add expenses later — click Next to continue with defaults.",
     },
     employment: {
       name: "Employment",
@@ -132,12 +138,16 @@ export const wizardMessages = {
         "You don't have any pension or insurance assets configured. If you have pension contributions, first add the pension asset in your portfolio settings with 'Is Pension' enabled.",
       skipInfo:
         "You can skip pension contributions if you don't make regular pension or insurance contributions.",
+      skipHint:
+        "Income fields default to zero — click Next to continue if you don't have these details yet.",
     },
     expenses: {
       name: "Expenses",
       title: "Projected Monthly Expenses after Independence",
       description: "Define your expected monthly expenses during independence.",
       totalLabel: "Total Monthly Expenses",
+      skipHint:
+        "You can add expenses later — click Next to continue with defaults.",
     },
   },
   fields: {

@@ -473,8 +473,11 @@ function AccountsPage(): React.ReactElement {
       method: "DELETE",
     })
     if (!response.ok) {
-      const error = new Error("Failed to delete asset")
-      console.error("Error deleting asset:", error)
+      const errorData = await response.json().catch(() => ({}))
+      const message =
+        (errorData as Record<string, string>).error || "Failed to delete asset"
+      const error = new Error(message)
+      console.error("Error deleting asset:", message)
       throw error
     }
     // Refresh the assets list and invalidate holdings

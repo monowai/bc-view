@@ -12,6 +12,7 @@
     "currency": "Currency",
     "portfolio": "Portfolio",
     "assets": "Assets",
+    "independence": "Independence",
     "complete": "Complete"
   },
   "welcome": {
@@ -51,12 +52,27 @@
     "currentValue": "Current",
     "propertyHint": "Leave current value blank to use purchase price"
   },
+  "independence": {
+    "title": "Quick Independence Check",
+    "description": "Want to see how your finances might look in retirement? Just three quick questions.",
+    "yesPlease": "Yes, let's do it",
+    "skip": "Skip for now",
+    "yearOfBirth": "Year of Birth",
+    "currentAge": "Currently {{age}} years old",
+    "monthlyExpenses": "Estimated Monthly Expenses ({{currency}})",
+    "expensesPlaceholder": "e.g. 3000",
+    "targetAge": "Target Independence Age",
+    "hint": "A plan called \"My Independence Plan\" will be created with sensible defaults. You can refine it anytime from the Independence page.",
+    "skipHint": "No worries! You can create an independence plan anytime from the menu."
+  },
   "complete": {
     "title": "You're all set!",
     "description": "Your account has been set up successfully. Here's what was created:",
     "portfolio": "Portfolio:",
     "bankAccounts": "{{count}} bank account(s)",
     "properties": "{{count}} property(ies)",
+    "independencePlan": "Independence Plan created",
+    "viewPlan": "View plan",
     "csvTitle": "Import Your Transactions",
     "csvDescription": "Download our example CSV to see the format for importing transactions like deposits and stock purchases.",
     "downloadCsv": "Download CSV Template"

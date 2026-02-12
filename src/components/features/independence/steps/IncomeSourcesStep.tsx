@@ -75,9 +75,16 @@ export default function IncomeSourcesStep({
   return (
     <div className="space-y-6">
       <StepHeader
-        title="Income Sources"
-        description="Tell us about your expected income sources. These amounts will offset your monthly expenses."
+        title="Income Sources after Independence"
+        description="Tell us about your expected indepdendnce income sources. These amounts will offset your monthly expenses."
       />
+
+      <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-start">
+        <i className="fas fa-check-circle text-green-600 mt-0.5 mr-2"></i>
+        <p className="text-sm text-green-700">
+          You can configure income sources later — click Next to continue.
+        </p>
+      </div>
 
       {/* Property Rental Income (read-only) */}
       {!configsLoading && hasRentalIncome && (

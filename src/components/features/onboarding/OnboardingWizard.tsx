@@ -4,7 +4,7 @@ import { useRouter } from "next/router"
 import useSwr from "swr"
 import { useUser } from "@auth0/nextjs-auth0/client"
 import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper"
-import { Currency } from "types/beancounter"
+import { Currency, PolicyType, SubAccountRequest } from "types/beancounter"
 import OnboardingProgress from "./OnboardingProgress"
 import WelcomeStep from "./steps/WelcomeStep"
 import CurrencyStep from "./steps/CurrencyStep"
@@ -12,6 +12,7 @@ import PortfolioStep from "./steps/PortfolioStep"
 import AssetsStep from "./steps/AssetsStep"
 import ReviewStep from "./steps/ReviewStep"
 import CompleteStep from "./steps/CompleteStep"
+import IndependencePlanStep from "./steps/IndependencePlanStep"
 import { useRegistration } from "@contexts/RegistrationContext"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 
@@ -37,6 +38,9 @@ export interface Pension {
   monthlyPayoutAmount?: number
   lumpSum?: boolean // If true, pays out in full rather than monthly
   monthlyContribution?: number // Regular contribution amount
+  policyType?: PolicyType // Composite policy type (CPF, ILP, GENERIC)
+  lockedUntilDate?: string // Date when asset can be liquidated
+  subAccounts?: SubAccountRequest[] // Sub-accounts for composite policies
 }
 
 export interface Insurance {
@@ -58,6 +62,21 @@ export interface OnboardingState {
   properties: Property[]
   pensions: Pension[]
   insurances: Insurance[]
+}
+
+function generateAssetCode(name: string): string {
+  const words = name
+    .trim()
+    .split(/\s+/)
+    .filter((w) => w.length > 0)
+  if (words.length === 0) return "ASSET"
+  if (words.length >= 2) {
+    return words
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase()
+  }
+  return words[0].substring(0, 4).toUpperCase()
 }
 
 const OnboardingWizard: React.FC = () => {
@@ -114,6 +133,17 @@ const OnboardingWizard: React.FC = () => {
     null,
   )
 
+  // Independence plan state
+  const currentYear = new Date().getFullYear()
+  const [independencePlanEnabled, setIndependencePlanEnabled] = useState(false)
+  const [independenceYearOfBirth, setIndependenceYearOfBirth] = useState(
+    currentYear - 55,
+  )
+  const [independenceMonthlyExpenses, setIndependenceMonthlyExpenses] =
+    useState(0)
+  const [independenceTargetAge, setIndependenceTargetAge] = useState(65)
+  const [independencePlanCreated, setIndependencePlanCreated] = useState(false)
+
   // Steps configuration
   const steps = useMemo(
     () => [
@@ -122,7 +152,8 @@ const OnboardingWizard: React.FC = () => {
       { id: 3, label: t("steps.portfolio", "Portfolio") },
       { id: 4, label: t("steps.assets", "Assets") },
       { id: 5, label: t("steps.review", "Review") },
-      { id: 6, label: t("steps.complete", "Complete") },
+      { id: 6, label: t("steps.independence", "Independence") },
+      { id: 7, label: t("steps.complete", "Complete") },
     ],
     [t],
   )
@@ -158,6 +189,8 @@ const OnboardingWizard: React.FC = () => {
       case 5:
         return true // Review - always can proceed
       case 6:
+        return true // Independence - always can proceed (optional step)
+      case 7:
         return true
       default:
         return false
@@ -180,8 +213,8 @@ const OnboardingWizard: React.FC = () => {
 
   const handleBack = (): void => {
     if (currentStep > 1) {
-      // Skip portfolio step when going back from assets or review
-      if (currentStep === 4 || currentStep === 5) {
+      // Skip portfolio step when going back from assets, review, or independence
+      if (currentStep === 4 || currentStep === 5 || currentStep === 6) {
         setCurrentStep(currentStep - 1 === 3 ? 2 : currentStep - 1)
         return
       }
@@ -221,6 +254,7 @@ const OnboardingWizard: React.FC = () => {
     tradeCurrency: string,
     tradeDate: string,
     cashCurrency?: string,
+    cashAssetId?: string,
   ): Promise<void> => {
     const requestBody = {
       portfolioId: portfolioId,
@@ -233,8 +267,8 @@ const OnboardingWizard: React.FC = () => {
           tradeCurrency: tradeCurrency,
           tradeDate: tradeDate,
           status: "SETTLED",
-          // For DEPOSIT transactions, cashCurrency is required
           ...(cashCurrency && { cashCurrency }),
+          ...(cashAssetId && { cashAssetId }),
         },
       ],
     }
@@ -264,234 +298,207 @@ const OnboardingWizard: React.FC = () => {
     return assets.length > 0 ? assets[0] : null
   }
 
+  // Find an existing asset by code, or create a new one
+  const findOrCreateAsset = async (
+    assetCode: string,
+    existingAssets: Record<string, { id: string }>,
+    assetPayload: Record<string, unknown>,
+  ): Promise<{ id: string } | null> => {
+    // Check if asset already exists
+    const existing = existingAssets[assetCode]
+    if (existing) {
+      console.log(`Asset ${assetCode} already exists: id=${existing.id}`)
+      return existing
+    }
+
+    const assetResponse = await fetch("/api/assets", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ data: { [assetCode]: assetPayload } }),
+    })
+
+    if (!assetResponse.ok) return null
+    const assetData = await assetResponse.json()
+    return extractAsset(assetData)
+  }
+
   const createAssets = async (portfolioId: string): Promise<void> => {
+    // Fetch existing user assets to avoid creating duplicates
+    const existingResponse = await fetch("/api/assets")
+    const existingAssets: Record<string, { id: string }> =
+      existingResponse.ok
+        ? ((await existingResponse.json()) as { data: Record<string, { id: string }> })
+            .data || {}
+        : {}
+
     // Create bank accounts
     for (const account of bankAccounts) {
-      const assetCode = account.name.replace(/\s+/g, "_").toUpperCase()
-      // Backend expects { data: { "CODE": AssetInput } }
-      const assetResponse = await fetch("/api/assets", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          data: {
-            [assetCode]: {
-              market: "PRIVATE",
-              code: assetCode,
-              name: account.name,
-              category: "ACCOUNT",
-              currency: account.currency,
-            },
-          },
-        }),
+      const assetCode = generateAssetCode(account.name)
+      const asset = await findOrCreateAsset(assetCode, existingAssets, {
+        market: "PRIVATE",
+        code: assetCode,
+        name: account.name,
+        category: "ACCOUNT",
+        currency: account.currency,
       })
 
-      if (assetResponse.ok) {
-        const assetData = await assetResponse.json()
-        const asset = extractAsset(assetData)
-
-        // Only create transaction if asset was successfully created and has balance
-        console.log(
-          `Bank account asset created: id=${asset?.id}, balance=${account.balance}`,
+      if (asset?.id && account.balance && account.balance > 0) {
+        await createTransaction(
+          portfolioId,
+          asset.id,
+          "DEPOSIT",
+          account.balance,
+          1,
+          account.currency,
+          new Date().toISOString().split("T")[0],
+          account.currency,
+          asset.id,
         )
-        if (asset?.id && account.balance && account.balance > 0) {
-          await createTransaction(
-            portfolioId,
-            asset.id,
-            "DEPOSIT",
-            account.balance,
-            1,
-            account.currency,
-            new Date().toISOString().split("T")[0],
-            account.currency, // cashCurrency same as account currency for deposits
-          )
-        }
       }
     }
 
     // Create properties
     for (const property of properties) {
-      const assetCode = property.name.replace(/\s+/g, "_").toUpperCase()
+      const assetCode = generateAssetCode(property.name)
       const currentValue = property.value || property.price
       const tradeDate =
         property.purchaseDate || new Date().toISOString().split("T")[0]
 
-      // Backend expects { data: { "CODE": AssetInput } }
-      const assetResponse = await fetch("/api/assets", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          data: {
-            [assetCode]: {
-              market: "PRIVATE",
-              code: assetCode,
-              name: property.name,
-              category: "RE",
-              currency: baseCurrency,
-            },
-          },
-        }),
+      const asset = await findOrCreateAsset(assetCode, existingAssets, {
+        market: "PRIVATE",
+        code: assetCode,
+        name: property.name,
+        category: "RE",
+        currency: baseCurrency,
       })
 
-      if (assetResponse.ok) {
-        const assetData = await assetResponse.json()
-        const asset = extractAsset(assetData)
+      if (asset?.id && property.price > 0) {
+        await createTransaction(
+          portfolioId,
+          asset.id,
+          "ADD",
+          1,
+          property.price,
+          baseCurrency,
+          tradeDate,
+        )
 
-        // Only create transaction if asset was successfully created
-        if (asset?.id && property.price > 0) {
-          await createTransaction(
-            portfolioId,
-            asset.id,
-            "ADD",
-            1,
-            property.price,
-            baseCurrency,
-            tradeDate,
-          )
-
-          // Set current market value as a price for the asset if different from purchase price
-          if (currentValue !== property.price) {
-            await fetch("/api/prices/write", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                assetId: asset.id,
-                date: new Date().toISOString().split("T")[0],
-                closePrice: currentValue,
-              }),
-            })
-          }
-        }
-      }
-    }
-
-    // Create pensions
-    for (const pension of pensions) {
-      const assetCode = pension.name.replace(/\s+/g, "_").toUpperCase()
-      // Backend expects { data: { "CODE": AssetInput } }
-      const assetResponse = await fetch("/api/assets", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          data: {
-            [assetCode]: {
-              market: "PRIVATE",
-              code: assetCode,
-              name: pension.name,
-              category: "POLICY",
-              currency: pension.currency,
-            },
-          },
-        }),
-      })
-
-      if (assetResponse.ok) {
-        const assetData = await assetResponse.json()
-        const asset = extractAsset(assetData)
-
-        // Only proceed if asset was successfully created
-        if (asset?.id) {
-          // Always create PrivateAssetConfig for pension assets with isPension: true
-          await fetch(`/api/assets/config/${asset.id}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              isPension: true,
-              expectedReturnRate: pension.expectedReturnRate,
-              payoutAge: pension.payoutAge,
-              monthlyPayoutAmount: pension.lumpSum
-                ? undefined
-                : pension.monthlyPayoutAmount,
-              lumpSum: pension.lumpSum,
-              monthlyContribution: pension.monthlyContribution,
-              rentalCurrency: pension.currency,
-            }),
-          })
-
-          // Create ADD transaction for initial balance if provided (doesn't impact cash)
-          if (pension.balance && pension.balance > 0) {
-            await createTransaction(
-              portfolioId,
-              asset.id,
-              "ADD",
-              pension.balance,
-              1,
-              pension.currency,
-              new Date().toISOString().split("T")[0],
-            )
-          }
-        }
-      }
-    }
-
-    // Create life insurance policies
-    for (const insurance of insurances) {
-      const assetCode = insurance.name.replace(/\s+/g, "_").toUpperCase()
-      // Backend expects { data: { "CODE": AssetInput } }
-      const assetResponse = await fetch("/api/assets", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          data: {
-            [assetCode]: {
-              market: "PRIVATE",
-              code: assetCode,
-              name: insurance.name,
-              category: "POLICY",
-              currency: insurance.currency,
-            },
-          },
-        }),
-      })
-
-      if (assetResponse.ok) {
-        const assetData = await assetResponse.json()
-        const asset = extractAsset(assetData)
-
-        // Only proceed if asset was successfully created
-        if (asset?.id) {
-          // Create PrivateAssetConfig for insurance settings
-          await fetch(`/api/assets/config/${asset.id}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              isPension: true, // Insurance policies are tracked like pensions
-              expectedReturnRate: insurance.expectedReturnRate,
-              payoutAge: insurance.payoutAge,
-              monthlyPayoutAmount: insurance.lumpSum
-                ? undefined
-                : insurance.payoutAmount,
-              lumpSum: insurance.lumpSum !== false, // Default to true for insurance
-              monthlyContribution: insurance.monthlyContribution,
-              rentalCurrency: insurance.currency,
-            }),
-          })
-
-          // Create ADD transaction - use current value if provided, otherwise default to 1
-          const quantity =
-            insurance.currentValue && insurance.currentValue > 0
-              ? insurance.currentValue
-              : 1
-          await createTransaction(
-            portfolioId,
-            asset.id,
-            "ADD",
-            quantity,
-            1,
-            insurance.currency,
-            new Date().toISOString().split("T")[0],
-          )
-
-          // Set constant price of 1 for insurance assets
+        // Set current market value as a price for the asset if different from purchase price
+        if (currentValue !== property.price) {
           await fetch("/api/prices/write", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               assetId: asset.id,
               date: new Date().toISOString().split("T")[0],
-              closePrice: 1,
+              closePrice: currentValue,
             }),
           })
         }
+      }
+    }
+
+    // Create pensions
+    for (const pension of pensions) {
+      const assetCode = generateAssetCode(pension.name)
+      const asset = await findOrCreateAsset(assetCode, existingAssets, {
+        market: "PRIVATE",
+        code: assetCode,
+        name: pension.name,
+        category: "POLICY",
+        currency: pension.currency,
+      })
+
+      if (asset?.id) {
+        // Always create PrivateAssetConfig for pension assets with isPension: true
+        await fetch(`/api/assets/config/${asset.id}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            isPension: true,
+            expectedReturnRate: pension.expectedReturnRate,
+            payoutAge: pension.payoutAge,
+            monthlyPayoutAmount: pension.lumpSum
+              ? undefined
+              : pension.monthlyPayoutAmount,
+            lumpSum: pension.lumpSum,
+            monthlyContribution: pension.monthlyContribution,
+            rentalCurrency: pension.currency,
+            policyType: pension.policyType,
+            lockedUntilDate: pension.lockedUntilDate || null,
+            subAccounts: pension.subAccounts,
+          }),
+        })
+
+        // Create ADD transaction for initial balance if provided (doesn't impact cash)
+        if (pension.balance && pension.balance > 0) {
+          await createTransaction(
+            portfolioId,
+            asset.id,
+            "ADD",
+            pension.balance,
+            1,
+            pension.currency,
+            new Date().toISOString().split("T")[0],
+          )
+        }
+      }
+    }
+
+    // Create life insurance policies
+    for (const insurance of insurances) {
+      const assetCode = generateAssetCode(insurance.name)
+      const asset = await findOrCreateAsset(assetCode, existingAssets, {
+        market: "PRIVATE",
+        code: assetCode,
+        name: insurance.name,
+        category: "POLICY",
+        currency: insurance.currency,
+      })
+
+      if (asset?.id) {
+        // Create PrivateAssetConfig for insurance settings
+        await fetch(`/api/assets/config/${asset.id}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            isPension: true, // Insurance policies are tracked like pensions
+            expectedReturnRate: insurance.expectedReturnRate,
+            payoutAge: insurance.payoutAge,
+            monthlyPayoutAmount: insurance.lumpSum
+              ? undefined
+              : insurance.payoutAmount,
+            lumpSum: insurance.lumpSum !== false, // Default to true for insurance
+            monthlyContribution: insurance.monthlyContribution,
+            rentalCurrency: insurance.currency,
+          }),
+        })
+
+        // Create ADD transaction - use current value if provided, otherwise default to 1
+        const quantity =
+          insurance.currentValue && insurance.currentValue > 0
+            ? insurance.currentValue
+            : 1
+        await createTransaction(
+          portfolioId,
+          asset.id,
+          "ADD",
+          quantity,
+          1,
+          insurance.currency,
+          new Date().toISOString().split("T")[0],
+        )
+
+        // Set constant price of 1 for insurance assets
+        await fetch("/api/prices/write", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            assetId: asset.id,
+            date: new Date().toISOString().split("T")[0],
+            closePrice: 1,
+          }),
+        })
       }
     }
   }
@@ -565,8 +572,48 @@ const OnboardingWizard: React.FC = () => {
         )
       }
 
+      // Create independence plan if enabled
+      if (independencePlanEnabled) {
+        try {
+          const planResponse = await fetch("/api/independence/plans", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: "My Independence Plan",
+              yearOfBirth: independenceYearOfBirth,
+              planningHorizonYears: 90 - independenceTargetAge,
+              lifeExpectancy: 90,
+              monthlyExpenses: independenceMonthlyExpenses,
+              expensesCurrency: baseCurrency,
+              cashReturnRate: 0.03,
+              equityReturnRate: 0.08,
+              housingReturnRate: 0.04,
+              inflationRate: 0.025,
+              cashAllocation: 0.2,
+              equityAllocation: 0.8,
+              housingAllocation: 0.0,
+              pensionMonthly: 0,
+              socialSecurityMonthly: 0,
+              otherIncomeMonthly: 0,
+              workingIncomeMonthly: 0,
+              workingExpensesMonthly: 0,
+              taxesMonthly: 0,
+              bonusMonthly: 0,
+              investmentAllocationPercent: 0.8,
+            }),
+          })
+          if (planResponse.ok) {
+            setIndependencePlanCreated(true)
+          } else {
+            console.warn("Failed to create independence plan")
+          }
+        } catch (planErr) {
+          console.warn("Independence plan creation failed:", planErr)
+        }
+      }
+
       // Move to complete step
-      setCurrentStep(6)
+      setCurrentStep(7)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Setup failed")
     } finally {
@@ -639,6 +686,20 @@ const OnboardingWizard: React.FC = () => {
         )
       case 6:
         return (
+          <IndependencePlanStep
+            enabled={independencePlanEnabled}
+            yearOfBirth={independenceYearOfBirth}
+            monthlyExpenses={independenceMonthlyExpenses}
+            targetRetirementAge={independenceTargetAge}
+            onEnabledChange={setIndependencePlanEnabled}
+            onYearOfBirthChange={setIndependenceYearOfBirth}
+            onMonthlyExpensesChange={setIndependenceMonthlyExpenses}
+            onTargetRetirementAgeChange={setIndependenceTargetAge}
+            baseCurrency={baseCurrency}
+          />
+        )
+      case 7:
+        return (
           <CompleteStep
             portfolioName={portfolioName}
             bankAccountCount={bankAccounts.length}
@@ -646,6 +707,7 @@ const OnboardingWizard: React.FC = () => {
             pensionCount={pensions.length}
             insuranceCount={insurances.length}
             portfolioId={createdPortfolioId}
+            independencePlanCreated={independencePlanCreated}
           />
         )
       default:
@@ -670,7 +732,7 @@ const OnboardingWizard: React.FC = () => {
       {/* Navigation */}
       <div className="flex justify-between mt-6">
         <div>
-          {currentStep > 1 && currentStep < 6 && (
+          {currentStep > 1 && currentStep < 7 && (
             <button
               type="button"
               onClick={handleBack}
@@ -692,7 +754,7 @@ const OnboardingWizard: React.FC = () => {
             </button>
           )}
 
-          {currentStep < 5 && (
+          {currentStep < 6 && (
             <button
               type="button"
               onClick={handleNext}
@@ -707,7 +769,7 @@ const OnboardingWizard: React.FC = () => {
             </button>
           )}
 
-          {currentStep === 5 && (
+          {currentStep === 6 && (
             <button
               type="button"
               onClick={handleComplete}
@@ -729,7 +791,7 @@ const OnboardingWizard: React.FC = () => {
             </button>
           )}
 
-          {currentStep === 6 && (
+          {currentStep === 7 && (
             <button
               type="button"
               onClick={handleFinish}

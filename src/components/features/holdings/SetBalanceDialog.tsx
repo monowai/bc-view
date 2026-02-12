@@ -196,6 +196,7 @@ export default function SetBalanceDialog({
         tradeDate: date,
         tradeCurrency: assetCurrency,
         cashCurrency: assetCurrency,
+        cashAssetId: asset.id,
         status: "SETTLED",
         comments: `${transactionInfo.type === "DEPOSIT" ? "Add" : "Withdraw"} ${assetCurrency} ${transactionInfo.amount.toLocaleString()} ${transactionInfo.type === "DEPOSIT" ? "to" : "from"} ${asset.name || stripOwnerPrefix(asset.code)}`,
       }
