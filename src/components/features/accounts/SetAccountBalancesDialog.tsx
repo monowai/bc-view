@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react"
 import { useTranslation } from "next-i18next"
+import useSwr from "swr"
 import Dialog from "@components/ui/Dialog"
 import { Asset, Portfolio, Position } from "types/beancounter"
 import { postData } from "@components/ui/DropZone"
@@ -10,6 +11,7 @@ import {
 } from "@lib/trns/tradeUtils"
 import MathInput from "@components/ui/MathInput"
 import { stripOwnerPrefix, getAssetCurrency } from "@lib/assets/assetUtils"
+import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
 
 interface AssetPosition {
   portfolio: Portfolio
@@ -43,8 +45,20 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitSuccess, setSubmitSuccess] = useState(false)
   const [successCount, setSuccessCount] = useState(0)
+  const [selectedPortfolioId, setSelectedPortfolioId] = useState("")
+  const [targetBalance, setTargetBalance] = useState<string>("")
 
   const currency = getAssetCurrency(asset) || "USD"
+
+  // Fetch portfolios only when account is not held in any portfolio
+  const { data: portfoliosData } = useSwr<{ data: Portfolio[] }>(
+    !isLoading && positions.length === 0 ? portfoliosKey : null,
+    simpleFetcher(portfoliosKey),
+  )
+  const portfolios = useMemo(
+    () => portfoliosData?.data || [],
+    [portfoliosData?.data],
+  )
 
   // Fetch positions when dialog opens
   useEffect(() => {
@@ -116,6 +130,52 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
     [],
   )
 
+  const canSubmitAddForm = useMemo(() => {
+    if (!selectedPortfolioId || !targetBalance) return false
+    const target = parseFloat(targetBalance)
+    return (
+      !isNaN(target) &&
+      target !== 0 &&
+      portfolios.some((p) => p.id === selectedPortfolioId)
+    )
+  }, [selectedPortfolioId, targetBalance, portfolios])
+
+  const handleAddToPortfolio = async (): Promise<void> => {
+    const portfolio = portfolios.find((p) => p.id === selectedPortfolioId)
+    if (!portfolio || !canSubmitAddForm) return
+
+    setIsSubmitting(true)
+    setError(null)
+
+    try {
+      const target = parseFloat(targetBalance)
+      const adjustment = calculateCashAdjustment(0, target)
+      const displayName = asset.name || stripOwnerPrefix(asset.code)
+      const row = buildCashRow({
+        type: adjustment.type,
+        currency,
+        amount: adjustment.amount,
+        comments: `Set ${displayName} balance to ${currency} ${adjustment.newBalance.toFixed(2)}`,
+        market: "PRIVATE",
+        assetCode: asset.code,
+      })
+
+      await postData(portfolio, false, row)
+
+      setSuccessCount(1)
+      setSubmitSuccess(true)
+      setTimeout(() => {
+        onComplete()
+      }, 1500)
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : t("accounts.setBalances.error"),
+      )
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   const handleApply = async (): Promise<void> => {
     if (changesCount === 0) return
 
@@ -181,6 +241,16 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
               variant="blue"
             />
           )}
+          {!submitSuccess && positions.length === 0 && portfolios.length > 0 && (
+            <Dialog.SubmitButton
+              onClick={handleAddToPortfolio}
+              label={t("accounts.setBalances.addToPortfolio")}
+              loadingLabel={t("accounts.setBalances.adding")}
+              isSubmitting={isSubmitting}
+              disabled={!canSubmitAddForm}
+              variant="blue"
+            />
+          )}
         </>
       }
     >
@@ -207,14 +277,69 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
       {/* Error State */}
       <Dialog.ErrorAlert message={error} />
 
-      {/* No Portfolios State */}
-      {!isLoading && !error && positions.length === 0 && (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
-          <i className="fas fa-info-circle text-3xl text-gray-400 mb-2"></i>
-          <p className="text-gray-600">{t("accounts.setBalances.notHeld")}</p>
-          <p className="text-sm text-gray-500 mt-1">
-            {t("accounts.setBalances.notHeld.hint")}
+      {/* Not Held — Add to Portfolio Form */}
+      {!isLoading && !error && positions.length === 0 && !submitSuccess && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-1">
+            {t("accounts.setBalances.addToPortfolio.title")}
+          </h3>
+          <p className="text-sm text-gray-600 mb-4">
+            {t("accounts.setBalances.addToPortfolio.description")}
           </p>
+
+          {portfolios.length === 0 ? (
+            <div className="flex items-center justify-center py-4">
+              <i className="fas fa-spinner fa-spin text-2xl text-blue-500"></i>
+              <span className="ml-2 text-gray-600">{t("loading")}</span>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div>
+                <label
+                  htmlFor="portfolio-select"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  {t("accounts.setBalances.selectPortfolio")}
+                </label>
+                <select
+                  id="portfolio-select"
+                  value={selectedPortfolioId}
+                  onChange={(e) => setSelectedPortfolioId(e.target.value)}
+                  className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-500 focus:border-blue-500"
+                  disabled={isSubmitting}
+                >
+                  <option value="">
+                    {t("accounts.setBalances.selectPortfolio.placeholder")}
+                  </option>
+                  {portfolios.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="balance-input"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  {t("accounts.setBalances.balance")} ({currency})
+                </label>
+                <MathInput
+                  id="balance-input"
+                  value={targetBalance === "" ? "" : parseFloat(targetBalance)}
+                  onChange={(value) => setTargetBalance(String(value))}
+                  className="w-full text-right border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="0.00"
+                  disabled={isSubmitting}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  {t("accounts.setBalances.balance.hint")}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
