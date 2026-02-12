@@ -15,7 +15,7 @@ describe("WIZARD_STEPS", () => {
     expect(WIZARD_STEPS[0].name).toBe("Personal Info")
     expect(WIZARD_STEPS[1].name).toBe("Working Expenses")
     expect(WIZARD_STEPS[2].name).toBe("Income") // Contributions + Employment merged
-    expect(WIZARD_STEPS[3].name).toBe("Assets")
+    expect(WIZARD_STEPS[3].name).toBe("Wealth")
     expect(WIZARD_STEPS[4].name).toBe("Assumptions")
     expect(WIZARD_STEPS[5].name).toBe("Income") // Retirement income sources
     expect(WIZARD_STEPS[6].name).toBe("Expenses")

@@ -153,7 +153,7 @@ export default function PersonalInfoStep({
               htmlFor="targetRetirementAge"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              Independence Age
+              Target Independence Age
             </label>
             <Controller
               name="targetRetirementAge"
@@ -178,6 +178,10 @@ export default function PersonalInfoStep({
                 {errors.targetRetirementAge.message}
               </p>
             )}
+            <p className="mt-1 text-sm text-gray-500">
+              Your baseline age for projections. You can explore
+              different ages using scenarios later.
+            </p>
           </div>
 
           <div>
