@@ -103,6 +103,11 @@ export default function WizardContainer({
   )
 
   const handleNext = async (): Promise<void> => {
+    // Auto-fill plan name if empty on Step 1
+    if (currentStep === 1 && !getValues("planName")?.trim()) {
+      setValue("planName", "My Independence Plan")
+    }
+
     const isValid = await validateStep(currentStep)
 
     if (isValid) {

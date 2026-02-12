@@ -1,4 +1,5 @@
 import React from "react"
+import Link from "next/link"
 import { useTranslation } from "next-i18next"
 
 interface CompleteStepProps {
@@ -8,6 +9,7 @@ interface CompleteStepProps {
   pensionCount: number
   insuranceCount: number
   portfolioId: string | null
+  independencePlanCreated?: boolean
 }
 
 const CompleteStep: React.FC<CompleteStepProps> = ({
@@ -16,6 +18,7 @@ const CompleteStep: React.FC<CompleteStepProps> = ({
   propertyCount,
   pensionCount,
   insuranceCount,
+  independencePlanCreated,
 }) => {
   const { t } = useTranslation("onboarding")
 
@@ -83,6 +86,23 @@ const CompleteStep: React.FC<CompleteStepProps> = ({
                 {t("complete.insurances", "{{count}} insurance policy(ies)", {
                   count: insuranceCount,
                 })}
+              </span>
+            </li>
+          )}
+          {independencePlanCreated && (
+            <li className="flex items-center text-gray-700">
+              <i className="fas fa-chart-line text-independence-500 w-6"></i>
+              <span>
+                {t(
+                  "complete.independencePlan",
+                  "Independence Plan created",
+                )}{" "}
+                <Link
+                  href="/independence"
+                  className="text-independence-600 hover:underline"
+                >
+                  {t("complete.viewPlan", "View plan")}
+                </Link>
               </span>
             </li>
           )}

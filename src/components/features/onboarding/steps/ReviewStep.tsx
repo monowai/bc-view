@@ -217,6 +217,11 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
                       <tr key={index} className="hover:bg-gray-100">
                         <td className="px-4 py-3 text-sm text-gray-900">
                           {pension.name}
+                          {pension.policyType && (
+                            <span className="ml-2 text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded">
+                              {pension.policyType}
+                            </span>
+                          )}
                           {pension.lumpSum && (
                             <span className="ml-2 text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">
                               lump sum
@@ -332,7 +337,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
           <i className="fas fa-info-circle mr-2"></i>
           {t(
             "review.info",
-            "Click 'Complete Setup' to create your portfolio and assets. This may take a moment.",
+            "Click 'Continue' to proceed with your setup. You can still make changes in the next step.",
           )}
         </p>
       </div>

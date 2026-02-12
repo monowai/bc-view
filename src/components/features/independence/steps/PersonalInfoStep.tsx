@@ -69,7 +69,8 @@ export default function PersonalInfoStep({
             </p>
           )}
           <p className="mt-1 text-sm text-gray-500">
-            Give your plan a descriptive name to help you identify it later.
+            Give your plan a descriptive name, or leave blank to use
+            &quot;My Independence Plan&quot;.
           </p>
         </div>
 

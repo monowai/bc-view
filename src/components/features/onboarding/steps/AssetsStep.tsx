@@ -2,6 +2,8 @@ import React, { useState } from "react"
 import { useTranslation } from "next-i18next"
 import { BankAccount, Property, Pension, Insurance } from "../OnboardingWizard"
 import MathInput from "@components/ui/MathInput"
+import { PolicyType, SubAccountRequest } from "types/beancounter"
+import CompositeAssetEditor from "@components/features/assets/CompositeAssetEditor"
 
 type AssetType = "bank" | "property" | "pension" | "insurance" | null
 
@@ -54,6 +56,9 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
     monthlyPayoutAmount: undefined,
     lumpSum: false,
     monthlyContribution: undefined,
+    policyType: undefined,
+    lockedUntilDate: "",
+    subAccounts: [],
   })
   const [newInsurance, setNewInsurance] = useState<Insurance>({
     name: "",
@@ -83,6 +88,9 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
       monthlyPayoutAmount: undefined,
       lumpSum: false,
       monthlyContribution: undefined,
+      policyType: undefined,
+      lockedUntilDate: "",
+      subAccounts: [],
     })
     setNewInsurance({
       name: "",
@@ -319,6 +327,11 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                   {pension.balance && (
                     <span className="text-gray-600 ml-2">
                       {pension.balance.toLocaleString()}
+                    </span>
+                  )}
+                  {pension.policyType && (
+                    <span className="text-purple-600 ml-2 text-sm">
+                      [{pension.policyType}]
                     </span>
                   )}
                   {pension.payoutAge && (
@@ -736,6 +749,22 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                 )}
               </p>
             </div>
+
+            {/* Composite Policy Type */}
+            <CompositeAssetEditor
+              policyType={newPension.policyType}
+              lockedUntilDate={newPension.lockedUntilDate || ""}
+              subAccounts={newPension.subAccounts || []}
+              onPolicyTypeChange={(value: PolicyType | undefined) =>
+                setNewPension({ ...newPension, policyType: value })
+              }
+              onLockedUntilDateChange={(value: string) =>
+                setNewPension({ ...newPension, lockedUntilDate: value })
+              }
+              onSubAccountsChange={(accounts: SubAccountRequest[]) =>
+                setNewPension({ ...newPension, subAccounts: accounts })
+              }
+            />
 
             {/* Lump Sum Toggle */}
             <div className="flex items-center p-3 bg-purple-100 rounded-lg">
