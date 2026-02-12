@@ -376,14 +376,21 @@ export default function ContributionsStep({
                           control={control}
                           render={({ field: inputField }) => (
                             <input
-                              {...inputField}
                               type="number"
                               min={0}
                               step={50}
-                              onChange={(e) =>
-                                inputField.onChange(Number(e.target.value) || 0)
-                              }
                               placeholder="0"
+                              value={inputField.value || ""}
+                              onChange={(e) =>
+                                inputField.onChange(
+                                  e.target.value === ""
+                                    ? 0
+                                    : Number(e.target.value),
+                                )
+                              }
+                              onBlur={inputField.onBlur}
+                              ref={inputField.ref}
+                              name={inputField.name}
                               className={`
                                 w-full pl-8 pr-4 py-2 border rounded-lg focus:ring-2 text-right
                                 ${isHousing ? "focus:ring-amber-500 focus:border-amber-500" : "focus:ring-purple-500 focus:border-purple-500"}

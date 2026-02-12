@@ -164,14 +164,22 @@ export default function WorkingExpensesStep({
                     control={control}
                     render={({ field: inputField }) => (
                       <input
-                        {...inputField}
                         type="number"
                         min={0}
                         step={50}
+                        placeholder="0"
+                        value={inputField.value || ""}
                         onChange={(e) => {
                           hasUserChanges.current = true
-                          inputField.onChange(Number(e.target.value) || 0)
+                          inputField.onChange(
+                            e.target.value === ""
+                              ? 0
+                              : Number(e.target.value),
+                          )
                         }}
+                        onBlur={inputField.onBlur}
+                        ref={inputField.ref}
+                        name={inputField.name}
                         className={`
                           w-full pl-8 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-right
                           ${errors.workingExpenses?.[index]?.monthlyAmount ? "border-red-500" : "border-gray-300"}
