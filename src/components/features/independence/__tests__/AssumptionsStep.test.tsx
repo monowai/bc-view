@@ -1,5 +1,6 @@
 import React from "react"
 import { render, screen } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import "@testing-library/jest-dom"
 import { useForm, FormProvider } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
@@ -66,11 +67,16 @@ describe("AssumptionsStep", () => {
     expect(screen.getByText(/financial assumptions/i)).toBeInTheDocument()
   })
 
-  it("shows return assumption fields", () => {
+  it("shows return assumption fields when accordion is opened", async () => {
     render(
       <TestWrapper>
         <div />
       </TestWrapper>,
+    )
+
+    // Click the Return Assumptions accordion to open it
+    await userEvent.click(
+      screen.getByRole("button", { name: /return assumptions/i }),
     )
 
     expect(screen.getByLabelText(/equity return rate/i)).toBeInTheDocument()
@@ -79,11 +85,15 @@ describe("AssumptionsStep", () => {
     expect(screen.getByLabelText(/inflation rate/i)).toBeInTheDocument()
   })
 
-  it("shows default return rate values", () => {
+  it("shows default return rate values when accordion is opened", async () => {
     render(
       <TestWrapper>
         <div />
       </TestWrapper>,
+    )
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /return assumptions/i }),
     )
 
     expect(screen.getByLabelText(/equity return rate/i)).toHaveValue(8)
@@ -92,23 +102,31 @@ describe("AssumptionsStep", () => {
     expect(screen.getByLabelText(/inflation rate/i)).toHaveValue(2.5)
   })
 
-  it("shows target balance field", () => {
+  it("shows target balance field when accordion is opened", async () => {
     render(
       <TestWrapper>
         <div />
       </TestWrapper>,
     )
 
+    await userEvent.click(
+      screen.getByRole("button", { name: /legacy/i }),
+    )
+
     expect(
-      screen.getByRole("spinbutton", { name: /target balance/i }),
+      screen.getByRole("spinbutton", { name: /target amount/i }),
     ).toBeInTheDocument()
   })
 
-  it("shows target balance description", () => {
+  it("shows target balance description when accordion is opened", async () => {
     render(
       <TestWrapper>
         <div />
       </TestWrapper>,
+    )
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /legacy/i }),
     )
 
     expect(
@@ -118,16 +136,23 @@ describe("AssumptionsStep", () => {
     ).toBeInTheDocument()
   })
 
-  it("shows asset allocation section", () => {
+  it("shows asset allocation fields when accordion is opened", async () => {
     render(
       <TestWrapper>
         <div />
       </TestWrapper>,
     )
 
+    // The heading is visible in the accordion header even when collapsed
     expect(
       screen.getByRole("heading", { name: /asset allocation/i }),
     ).toBeInTheDocument()
+
+    // Click to open and see the input fields
+    await userEvent.click(
+      screen.getByRole("button", { name: /asset allocation/i }),
+    )
+
     expect(screen.getByLabelText(/equities \(%\)/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/cash \(%\)/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/housing \(%\)/i)).toBeInTheDocument()

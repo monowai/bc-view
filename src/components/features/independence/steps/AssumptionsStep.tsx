@@ -138,6 +138,16 @@ export default function AssumptionsStep({
     housingReturnRate,
   ])
 
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    allocation: false,
+    returns: false,
+    legacy: false,
+  })
+
+  const toggleSection = (section: string): void => {
+    setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }))
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -147,362 +157,452 @@ export default function AssumptionsStep({
         <p className="text-gray-600">{msg.description}</p>
       </div>
 
-      {/* Return Rate Assumptions */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium text-gray-800">
-          {msg.returnAssumptions}
-        </h3>
-        <p className="text-sm text-gray-600">
-          {msg.returnAssumptionsDescription}
-        </p>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label
-              htmlFor="equityReturnRate"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              {fields.equityReturnRate}
-            </label>
-            <Controller
-              name="equityReturnRate"
-              control={control}
-              render={({ field }) => (
-                <input
-                  {...field}
-                  id="equityReturnRate"
-                  type="number"
-                  min={0}
-                  max={30}
-                  step={0.5}
-                  onChange={(e) => field.onChange(Number(e.target.value))}
-                  className={`
-                    w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
-                    ${errors.equityReturnRate ? "border-red-500" : "border-gray-300"}
-                  `}
-                />
-              )}
-            />
-            {errors.equityReturnRate && (
-              <p className="mt-1 text-sm text-red-600">
-                {errors.equityReturnRate.message}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label
-              htmlFor="cashReturnRate"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              {fields.cashReturnRate}
-            </label>
-            <Controller
-              name="cashReturnRate"
-              control={control}
-              render={({ field }) => (
-                <input
-                  {...field}
-                  id="cashReturnRate"
-                  type="number"
-                  min={0}
-                  max={20}
-                  step={0.5}
-                  onChange={(e) => field.onChange(Number(e.target.value))}
-                  className={`
-                    w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
-                    ${errors.cashReturnRate ? "border-red-500" : "border-gray-300"}
-                  `}
-                />
-              )}
-            />
-            {errors.cashReturnRate && (
-              <p className="mt-1 text-sm text-red-600">
-                {errors.cashReturnRate.message}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label
-              htmlFor="housingReturnRate"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              {fields.housingReturnRate}
-            </label>
-            <Controller
-              name="housingReturnRate"
-              control={control}
-              render={({ field }) => (
-                <input
-                  {...field}
-                  id="housingReturnRate"
-                  type="number"
-                  min={0}
-                  max={20}
-                  step={0.5}
-                  onChange={(e) => field.onChange(Number(e.target.value))}
-                  className={`
-                    w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
-                    ${errors.housingReturnRate ? "border-red-500" : "border-gray-300"}
-                  `}
-                />
-              )}
-            />
-            {errors.housingReturnRate && (
-              <p className="mt-1 text-sm text-red-600">
-                {errors.housingReturnRate.message}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label
-              htmlFor="inflationRate"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              {fields.inflationRate}
-            </label>
-            <Controller
-              name="inflationRate"
-              control={control}
-              render={({ field }) => (
-                <input
-                  {...field}
-                  id="inflationRate"
-                  type="number"
-                  min={0}
-                  max={10}
-                  step={0.5}
-                  onChange={(e) => field.onChange(Number(e.target.value))}
-                  className={`
-                    w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
-                    ${errors.inflationRate ? "border-red-500" : "border-gray-300"}
-                  `}
-                />
-              )}
-            />
-            {errors.inflationRate && (
-              <p className="mt-1 text-sm text-red-600">
-                {errors.inflationRate.message}
-              </p>
-            )}
-          </div>
+      <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start">
+        <i className="fas fa-check-circle text-green-600 mt-0.5 mr-3"></i>
+        <div>
+          <p className="font-medium text-green-800">
+            Defaults are ready to go
+          </p>
+          <p className="text-sm text-green-700 mt-0.5">
+            {msg.defaultsNote}
+          </p>
         </div>
       </div>
 
-      {/* Asset Allocation */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-medium text-gray-800">
-              {msg.assetAllocation}
-            </h3>
-            <p className="text-sm text-gray-600">
-              {msg.assetAllocationDescription}
-            </p>
-          </div>
-          {selectedPortfolioIds.length > 0 && (
-            <button
-              type="button"
-              onClick={refreshAllocation}
-              disabled={isLoadingAllocation}
-              className="flex items-center px-3 py-1.5 text-sm bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 disabled:opacity-50"
-            >
-              {isLoadingAllocation ? (
-                <>
-                  <i className="fas fa-spinner fa-spin mr-2"></i>
-                  {msg.loading}
-                </>
-              ) : (
-                <>
-                  <i className="fas fa-sync-alt mr-2"></i>
-                  {msg.useActual}
-                </>
-              )}
-            </button>
-          )}
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label
-              htmlFor="equityAllocation"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              {fields.equityAllocation}
-            </label>
-            <Controller
-              name="equityAllocation"
-              control={control}
-              render={({ field }) => (
-                <input
-                  {...field}
-                  id="equityAllocation"
-                  type="number"
-                  min={0}
-                  max={100}
-                  step={5}
-                  onChange={(e) => field.onChange(Number(e.target.value))}
-                  className={`
-                    w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
-                    ${errors.equityAllocation ? "border-red-500" : "border-gray-300"}
-                  `}
-                />
-              )}
-            />
-            {errors.equityAllocation && (
-              <p className="mt-1 text-sm text-red-600">
-                {errors.equityAllocation.message}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label
-              htmlFor="cashAllocation"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              {fields.cashAllocation}
-            </label>
-            <Controller
-              name="cashAllocation"
-              control={control}
-              render={({ field }) => (
-                <input
-                  {...field}
-                  id="cashAllocation"
-                  type="number"
-                  min={0}
-                  max={100}
-                  step={5}
-                  onChange={(e) => field.onChange(Number(e.target.value))}
-                  className={`
-                    w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
-                    ${errors.cashAllocation ? "border-red-500" : "border-gray-300"}
-                  `}
-                />
-              )}
-            />
-            {errors.cashAllocation && (
-              <p className="mt-1 text-sm text-red-600">
-                {errors.cashAllocation.message}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label
-              htmlFor="housingAllocation"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              {fields.housingAllocation}
-            </label>
-            <Controller
-              name="housingAllocation"
-              control={control}
-              render={({ field }) => (
-                <input
-                  {...field}
-                  id="housingAllocation"
-                  type="number"
-                  min={0}
-                  max={100}
-                  step={5}
-                  onChange={(e) => field.onChange(Number(e.target.value))}
-                  className={`
-                    w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
-                    ${errors.housingAllocation ? "border-red-500" : "border-gray-300"}
-                  `}
-                />
-              )}
-            />
-            {errors.housingAllocation && (
-              <p className="mt-1 text-sm text-red-600">
-                {errors.housingAllocation.message}
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div
-          className={`rounded-lg p-4 ${totalAllocation === 100 ? "bg-green-50 border border-green-200" : "bg-yellow-50 border border-yellow-200"}`}
+      {/* Asset Allocation Accordion */}
+      <div className="border border-gray-200 rounded-lg overflow-hidden">
+        <button
+          type="button"
+          onClick={() => toggleSection("allocation")}
+          className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors"
         >
-          <div className="flex justify-between items-center">
-            <div className="flex items-center">
-              <i
-                className={`fas ${totalAllocation === 100 ? "fa-check-circle text-green-600" : "fa-exclamation-triangle text-yellow-600"} mr-3`}
-              ></i>
-              <div>
-                <span
-                  className={`font-medium ${totalAllocation === 100 ? "text-green-800" : "text-yellow-800"}`}
+          <div className="flex items-center">
+            <i className="fas fa-chart-pie text-independence-600 mr-3"></i>
+            <div className="text-left">
+              <h3 className="text-lg font-medium text-gray-800">
+                {msg.assetAllocation}
+              </h3>
+              {!openSections.allocation && (
+                <p className="text-sm text-gray-500">
+                  Equity {equityAllocation}%, Cash {cashAllocation}%, Housing{" "}
+                  {housingAllocation}% — {blendedReturn}% blended return
+                </p>
+              )}
+            </div>
+          </div>
+          <i
+            className={`fas fa-chevron-down text-gray-400 transition-transform ${openSections.allocation ? "rotate-180" : ""}`}
+          ></i>
+        </button>
+
+        {openSections.allocation && (
+          <div className="px-4 py-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-600">
+                {msg.assetAllocationDescription}
+              </p>
+              {selectedPortfolioIds.length > 0 && (
+                <button
+                  type="button"
+                  onClick={refreshAllocation}
+                  disabled={isLoadingAllocation}
+                  className="flex items-center px-3 py-1.5 text-sm bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 disabled:opacity-50 ml-4 shrink-0"
                 >
-                  {msg.totalAllocation}: {totalAllocation}%
-                </span>
-                {totalAllocation !== 100 && (
-                  <p className="text-sm text-yellow-700">
-                    {msg.allocationWarning}
+                  {isLoadingAllocation ? (
+                    <>
+                      <i className="fas fa-spinner fa-spin mr-2"></i>
+                      {msg.loading}
+                    </>
+                  ) : (
+                    <>
+                      <i className="fas fa-sync-alt mr-2"></i>
+                      {msg.useActual}
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label
+                  htmlFor="equityAllocation"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  {fields.equityAllocation}
+                </label>
+                <Controller
+                  name="equityAllocation"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      id="equityAllocation"
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={5}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      className={`
+                        w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
+                        ${errors.equityAllocation ? "border-red-500" : "border-gray-300"}
+                      `}
+                    />
+                  )}
+                />
+                {errors.equityAllocation && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.equityAllocation.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label
+                  htmlFor="cashAllocation"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  {fields.cashAllocation}
+                </label>
+                <Controller
+                  name="cashAllocation"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      id="cashAllocation"
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={5}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      className={`
+                        w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
+                        ${errors.cashAllocation ? "border-red-500" : "border-gray-300"}
+                      `}
+                    />
+                  )}
+                />
+                {errors.cashAllocation && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.cashAllocation.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label
+                  htmlFor="housingAllocation"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  {fields.housingAllocation}
+                </label>
+                <Controller
+                  name="housingAllocation"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      id="housingAllocation"
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={5}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      className={`
+                        w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
+                        ${errors.housingAllocation ? "border-red-500" : "border-gray-300"}
+                      `}
+                    />
+                  )}
+                />
+                {errors.housingAllocation && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.housingAllocation.message}
                   </p>
                 )}
               </div>
             </div>
-            <div className="text-right">
-              <span className="text-sm text-gray-600">{msg.blendedReturn}</span>
-              <p className="text-xl font-bold text-gray-900">
-                {blendedReturn}%
-              </p>
+
+            <div
+              className={`rounded-lg p-4 ${totalAllocation === 100 ? "bg-green-50 border border-green-200" : "bg-yellow-50 border border-yellow-200"}`}
+            >
+              <div className="flex justify-between items-center">
+                <div className="flex items-center">
+                  <i
+                    className={`fas ${totalAllocation === 100 ? "fa-check-circle text-green-600" : "fa-exclamation-triangle text-yellow-600"} mr-3`}
+                  ></i>
+                  <div>
+                    <span
+                      className={`font-medium ${totalAllocation === 100 ? "text-green-800" : "text-yellow-800"}`}
+                    >
+                      {msg.totalAllocation}: {totalAllocation}%
+                    </span>
+                    {totalAllocation !== 100 && (
+                      <p className="text-sm text-yellow-700">
+                        {msg.allocationWarning}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-sm text-gray-600">
+                    {msg.blendedReturn}
+                  </span>
+                  <p className="text-xl font-bold text-gray-900">
+                    {blendedReturn}%
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Target Balance */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium text-gray-800">
-          {msg.targetBalance}
-        </h3>
-        <p className="text-sm text-gray-600">{msg.targetBalanceDescription}</p>
-
-        <div>
-          <label
-            htmlFor="targetBalance"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            {msg.targetBalance}
-          </label>
-          <div className="relative">
-            <span className="absolute left-3 top-2.5 text-gray-500">$</span>
-            <Controller
-              name="targetBalance"
-              control={control}
-              render={({ field }) => (
-                <input
-                  {...field}
-                  id="targetBalance"
-                  type="number"
-                  min={0}
-                  step={10000}
-                  value={field.value || ""}
-                  onChange={(e) =>
-                    field.onChange(
-                      e.target.value ? Number(e.target.value) : undefined,
-                    )
-                  }
-                  placeholder={msg.targetBalancePlaceholder}
-                  className={`
-                    w-full pl-8 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
-                    ${errors.targetBalance ? "border-red-500" : "border-gray-300"}
-                  `}
-                />
+      {/* Return Assumptions Accordion */}
+      <div className="border border-gray-200 rounded-lg overflow-hidden">
+        <button
+          type="button"
+          onClick={() => toggleSection("returns")}
+          className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors"
+        >
+          <div className="flex items-center">
+            <i className="fas fa-percentage text-independence-600 mr-3"></i>
+            <div className="text-left">
+              <h3 className="text-lg font-medium text-gray-800">
+                {msg.returnAssumptions}
+              </h3>
+              {!openSections.returns && (
+                <p className="text-sm text-gray-500">
+                  Equity {equityReturnRate}%, Cash {cashReturnRate}%, Housing{" "}
+                  {housingReturnRate}%
+                </p>
               )}
-            />
+            </div>
           </div>
-          {errors.targetBalance && (
-            <p className="mt-1 text-sm text-red-600">
-              {errors.targetBalance.message}
+          <i
+            className={`fas fa-chevron-down text-gray-400 transition-transform ${openSections.returns ? "rotate-180" : ""}`}
+          ></i>
+        </button>
+
+        {openSections.returns && (
+          <div className="px-4 py-4 space-y-4">
+            <p className="text-sm text-gray-600">
+              {msg.returnAssumptionsDescription}
             </p>
-          )}
-        </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label
+                  htmlFor="equityReturnRate"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  {fields.equityReturnRate}
+                </label>
+                <Controller
+                  name="equityReturnRate"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      id="equityReturnRate"
+                      type="number"
+                      min={0}
+                      max={30}
+                      step={0.5}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      className={`
+                        w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
+                        ${errors.equityReturnRate ? "border-red-500" : "border-gray-300"}
+                      `}
+                    />
+                  )}
+                />
+                {errors.equityReturnRate && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.equityReturnRate.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label
+                  htmlFor="cashReturnRate"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  {fields.cashReturnRate}
+                </label>
+                <Controller
+                  name="cashReturnRate"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      id="cashReturnRate"
+                      type="number"
+                      min={0}
+                      max={20}
+                      step={0.5}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      className={`
+                        w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
+                        ${errors.cashReturnRate ? "border-red-500" : "border-gray-300"}
+                      `}
+                    />
+                  )}
+                />
+                {errors.cashReturnRate && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.cashReturnRate.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label
+                  htmlFor="housingReturnRate"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  {fields.housingReturnRate}
+                </label>
+                <Controller
+                  name="housingReturnRate"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      id="housingReturnRate"
+                      type="number"
+                      min={0}
+                      max={20}
+                      step={0.5}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      className={`
+                        w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
+                        ${errors.housingReturnRate ? "border-red-500" : "border-gray-300"}
+                      `}
+                    />
+                  )}
+                />
+                {errors.housingReturnRate && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.housingReturnRate.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label
+                  htmlFor="inflationRate"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  {fields.inflationRate}
+                </label>
+                <Controller
+                  name="inflationRate"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      id="inflationRate"
+                      type="number"
+                      min={0}
+                      max={10}
+                      step={0.5}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      className={`
+                        w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
+                        ${errors.inflationRate ? "border-red-500" : "border-gray-300"}
+                      `}
+                    />
+                  )}
+                />
+                {errors.inflationRate && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.inflationRate.message}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Legacy / Buffer Accordion */}
+      <div className="border border-gray-200 rounded-lg overflow-hidden">
+        <button
+          type="button"
+          onClick={() => toggleSection("legacy")}
+          className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors"
+        >
+          <div className="flex items-center">
+            <i className="fas fa-gift text-independence-600 mr-3"></i>
+            <div className="text-left">
+              <h3 className="text-lg font-medium text-gray-800">
+                {msg.targetBalance}
+              </h3>
+              {!openSections.legacy && (
+                <p className="text-sm text-gray-500">
+                  {msg.targetBalancePlaceholder}
+                </p>
+              )}
+            </div>
+          </div>
+          <i
+            className={`fas fa-chevron-down text-gray-400 transition-transform ${openSections.legacy ? "rotate-180" : ""}`}
+          ></i>
+        </button>
+
+        {openSections.legacy && (
+          <div className="px-4 py-4 space-y-4">
+            <p className="text-sm text-gray-600">
+              {msg.targetBalanceDescription}
+            </p>
+
+            <div>
+              <label
+                htmlFor="targetBalance"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Target Amount
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-2.5 text-gray-500">
+                  $
+                </span>
+                <Controller
+                  name="targetBalance"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      id="targetBalance"
+                      type="number"
+                      min={0}
+                      step={10000}
+                      value={field.value || ""}
+                      onChange={(e) =>
+                        field.onChange(
+                          e.target.value ? Number(e.target.value) : undefined,
+                        )
+                      }
+                      placeholder={msg.targetBalancePlaceholder}
+                      className={`
+                        w-full pl-8 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
+                        ${errors.targetBalance ? "border-red-500" : "border-gray-300"}
+                      `}
+                    />
+                  )}
+                />
+              </div>
+              {errors.targetBalance && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.targetBalance.message}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

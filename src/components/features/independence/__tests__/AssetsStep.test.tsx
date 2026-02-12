@@ -59,7 +59,7 @@ describe("AssetsStep", () => {
       </TestWrapper>,
     )
 
-    expect(screen.getByText(/your assets/i)).toBeInTheDocument()
+    expect(screen.getByText(/your wealth/i)).toBeInTheDocument()
   })
 
   it("shows portfolio selection section", () => {
@@ -80,7 +80,7 @@ describe("AssetsStep", () => {
     )
 
     expect(
-      screen.getByText(/select which portfolios to include/i),
+      screen.getByText(/we've selected your portfolios automatically/i),
     ).toBeInTheDocument()
   })
 })

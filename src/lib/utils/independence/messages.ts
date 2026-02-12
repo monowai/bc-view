@@ -12,13 +12,13 @@ export const wizardMessages = {
         "Let's start with some basic information to personalize your independence plan.",
     },
     assets: {
-      name: "Assets",
-      title: "Your Assets",
+      name: "Wealth",
+      title: "Your Wealth",
       description:
-        "Select which portfolios to include in your independence planning or enter manual asset values.",
+        "We've selected your portfolios automatically. You can simply continue to the next step, or make changes if needed.",
       selectPortfolios: "Select Portfolios",
       selectPortfoliosDescription:
-        "Choose which portfolios to include in your independence asset calculation.",
+        "Your portfolios are pre-selected. Untick any you don't want included.",
       noPortfolios: "No portfolios found",
       noPortfoliosDescription:
         "Enter your current asset values by category below. Growth rates will be applied based on your assumptions.",
@@ -79,21 +79,23 @@ export const wizardMessages = {
       name: "Assumptions",
       title: "Financial Assumptions",
       description:
-        "Set your expected return rates and target asset allocation for projections.",
+        "We've pre-filled sensible defaults based on long-term historical averages. You can continue without changes, or adjust if you prefer.",
+      defaultsNote:
+        "These defaults reflect widely-used long-term averages. Most people won't need to change them.",
       returnAssumptions: "Return Assumptions",
       returnAssumptionsDescription:
-        "Set expected annual return rates for different asset classes.",
+        "Annual growth rates for each asset class. The defaults are based on historical long-term averages.",
       assetAllocation: "Asset Allocation",
       assetAllocationDescription:
-        "Set your target asset allocation. This determines the blended return used in projections.",
+        "How your investments are split across asset classes. If you have portfolios, we've calculated this from your actual holdings.",
       useActual: "Use Actual",
       loading: "Loading...",
       totalAllocation: "Total Allocation",
       allocationWarning: "Allocation should equal 100%",
       blendedReturn: "Blended Return",
-      targetBalance: "Target Balance (Optional)",
+      targetBalance: "Legacy / Buffer",
       targetBalanceDescription:
-        "Set a target ending balance if you want to leave a legacy or buffer.",
+        "Set a target ending balance if you want to leave a legacy or maintain a financial buffer.",
       targetBalancePlaceholder: "Leave blank for $0 target",
     },
     lifeEvents: {

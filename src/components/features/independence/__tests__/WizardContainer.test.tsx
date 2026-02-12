@@ -115,8 +115,8 @@ describe("ExpensesStep - Custom Category", () => {
     const inputs = screen.getAllByRole("spinbutton")
     const customCategoryInput = inputs[inputs.length - 1]
 
-    // Verify initial value is 0
-    expect(customCategoryInput).toHaveValue(0)
+    // Verify initial value is empty (zero displays as empty)
+    expect(customCategoryInput).toHaveValue(null)
 
     // Change the value
     act(() => {
