@@ -73,10 +73,10 @@ export default function IncomeSourcesStep({
     pensionMonthly + socialSecurityMonthly + otherIncomeMonthly
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <StepHeader
         title="Income Sources after Independence"
-        description="Tell us about your expected indepdendnce income sources. These amounts will offset your monthly expenses."
+        description="Tell us about your expected independence income sources. These amounts will offset your monthly expenses."
       />
 
       <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-start">

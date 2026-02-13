@@ -39,7 +39,7 @@ export default function LifeEventsStep({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <StepHeader
         title="Life Events"
         description="Add one-off income or expenses at specific ages. These are significant financial events like inheritance, property sale, or major purchases."

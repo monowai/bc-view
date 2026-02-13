@@ -405,7 +405,7 @@ export default function WizardContainer({
 
   return (
     <div className="max-w-3xl mx-auto">
-      <div className="bg-white rounded-2xl shadow-lg p-8">
+      <div className="bg-white rounded-2xl shadow-lg px-6 py-4 sm:px-8 sm:py-5">
         <WizardProgress
           currentStep={currentStep}
           isEditMode={isEditMode}

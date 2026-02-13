@@ -21,7 +21,7 @@ export default function WizardProgress({
   }
 
   return (
-    <nav aria-label="Progress" className="mb-8">
+    <nav aria-label="Progress" className="mb-4">
       <ol className="flex items-center justify-between">
         {WIZARD_STEPS.map((step, index) => {
           const isCompleted = step.id < currentStep
@@ -46,10 +46,10 @@ export default function WizardProgress({
               >
                 <div
                   className={`
-                    w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium transition-all flex-shrink-0
-                    ${hasError ? "bg-red-500 text-white ring-2 sm:ring-4 ring-red-200" : ""}
+                    w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-medium transition-all flex-shrink-0
+                    ${hasError ? "bg-red-500 text-white ring-2 ring-red-200" : ""}
                     ${!hasError && isCompleted ? "bg-independence-600 text-white" : ""}
-                    ${!hasError && isCurrent ? "bg-independence-600 text-white ring-2 sm:ring-4 ring-independence-200" : ""}
+                    ${!hasError && isCurrent ? "bg-independence-600 text-white ring-2 ring-independence-200" : ""}
                     ${!hasError && isUpcoming ? "bg-gray-200 text-gray-500" : ""}
                     ${isClickable && !isCurrent ? "hover:ring-2 hover:ring-independence-200" : ""}
                   `}
@@ -64,7 +64,7 @@ export default function WizardProgress({
                 </div>
                 <span
                   className={`
-                    mt-1 sm:mt-2 text-[10px] sm:text-xs font-medium transition-colors text-center truncate max-w-full px-1
+                    mt-0.5 sm:mt-1 text-[10px] sm:text-xs font-medium transition-colors text-center truncate max-w-full px-1
                     ${hasError ? "text-red-600" : ""}
                     ${!hasError && isCurrent ? "text-independence-600" : ""}
                     ${!hasError && !isCurrent ? "text-gray-500" : ""}
@@ -78,7 +78,7 @@ export default function WizardProgress({
               {index < WIZARD_STEPS.length - 1 && (
                 <div
                   className={`
-                    absolute top-4 sm:top-5 left-1/2 w-full h-0.5 -translate-y-1/2
+                    absolute top-3.5 sm:top-4 left-1/2 w-full h-0.5 -translate-y-1/2
                     ${isCompleted && !stepErrors.has(step.id + 1) ? "bg-independence-600" : "bg-gray-200"}
                   `}
                 />

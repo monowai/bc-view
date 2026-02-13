@@ -28,14 +28,13 @@ export default function PersonalInfoStep({
   const currentAge = yearOfBirth ? currentYear - yearOfBirth : undefined
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+        <h2 className="text-lg font-semibold text-gray-900 mb-1">
           Personal Information
         </h2>
-        <p className="text-gray-600">
-          Let&apos;s start with some basic information about you and your
-          independence timeline.
+        <p className="text-sm text-gray-600">
+          Basic information about you and your independence timeline.
         </p>
       </div>
 
