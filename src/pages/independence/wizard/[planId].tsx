@@ -4,6 +4,7 @@ import Head from "next/head"
 import { useRouter } from "next/router"
 import useSwr from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
+import Alert from "@components/ui/Alert"
 import WizardContainer from "@components/features/independence/WizardContainer"
 import { toPercent } from "@lib/independence/conversions"
 import {
@@ -89,10 +90,7 @@ function EditPlanWizard(): React.ReactElement {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="container mx-auto px-4">
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-            <i className="fas fa-exclamation-circle mr-2"></i>
-            Failed to load plan. Please try again.
-          </div>
+          <Alert>Failed to load plan. Please try again.</Alert>
         </div>
       </div>
     )

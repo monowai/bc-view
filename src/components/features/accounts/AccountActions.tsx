@@ -2,6 +2,7 @@ import React, { useState } from "react"
 import { useRouter } from "next/router"
 import { useTranslation } from "next-i18next"
 import { TabType } from "./accountTypes"
+import { fetchAndDownloadCsv } from "@lib/csvExport"
 
 interface AccountActionsProps {
   onImportClick: () => void
@@ -19,21 +20,7 @@ const AccountActions = ({
   const handleExport = async (): Promise<void> => {
     setIsExporting(true)
     try {
-      const response = await fetch("/api/assets/export")
-      if (!response.ok) {
-        console.error("Export failed: HTTP", response.status)
-        return
-      }
-      const csvContent = await response.text()
-      const blob = new Blob([csvContent], { type: "text/csv" })
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = "assets.csv"
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
+      await fetchAndDownloadCsv("/api/assets/export", "assets.csv")
     } catch (err) {
       console.error("Export failed:", err)
     } finally {

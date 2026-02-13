@@ -4,6 +4,9 @@ import { useTranslation } from "next-i18next"
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { rootLoader } from "@components/ui/PageLoader"
+import Dialog from "@components/ui/Dialog"
+import Alert from "@components/ui/Alert"
+import Spinner from "@components/ui/Spinner"
 import { AssetOption, Market } from "types/beancounter"
 import { useIsAdmin } from "@hooks/useIsAdmin"
 import Link from "next/link"
@@ -566,15 +569,11 @@ export default withPageAuthRequired(
 
               {/* Message */}
               {message && (
-                <div
-                  className={`p-3 rounded-lg text-sm ${
-                    message.type === "success"
-                      ? "bg-green-50 text-green-700 border border-green-200"
-                      : "bg-red-50 text-red-700 border border-red-200"
-                  }`}
+                <Alert
+                  variant={message.type === "success" ? "success" : "error"}
                 >
                   {message.text}
-                </div>
+                </Alert>
               )}
 
               {/* Save Button */}
@@ -594,14 +593,7 @@ export default withPageAuthRequired(
                       : "bg-blue-500 hover:bg-blue-600"
                   }`}
                 >
-                  {isSaving ? (
-                    <span className="flex items-center">
-                      <i className="fas fa-spinner fa-spin mr-2"></i>
-                      {t("saving")}
-                    </span>
-                  ) : (
-                    t("save")
-                  )}
+                  {isSaving ? <Spinner label={t("saving")} /> : t("save")}
                 </button>
               </div>
             </div>
@@ -645,42 +637,32 @@ export default withPageAuthRequired(
 
         {/* Delete Confirmation Dialog */}
         {sectorToDelete && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl p-6 max-w-md mx-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {t("classifications.deleteConfirm.title", "Delete Sector?")}
-              </h3>
-              <p className="text-gray-600 mb-4">
-                {t(
-                  "classifications.deleteConfirm.message",
-                  `Are you sure you want to delete "${sectorToDelete.name}"? Any assets using this sector will become unclassified.`,
-                )}
-              </p>
-              <div className="flex justify-end space-x-3">
-                <button
+          <Dialog
+            title={t("classifications.deleteConfirm.title", "Delete Sector?")}
+            onClose={() => setSectorToDelete(null)}
+            footer={
+              <>
+                <Dialog.CancelButton
                   onClick={() => setSectorToDelete(null)}
-                  disabled={isDeleting}
-                  className="px-4 py-2 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                >
-                  {t("cancel")}
-                </button>
-                <button
+                  label={t("cancel")}
+                />
+                <Dialog.SubmitButton
                   onClick={handleDeleteSector}
-                  disabled={isDeleting}
-                  className="px-4 py-2 text-sm text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors disabled:bg-red-300"
-                >
-                  {isDeleting ? (
-                    <span className="flex items-center">
-                      <i className="fas fa-spinner fa-spin mr-2"></i>
-                      {t("deleting", "Deleting...")}
-                    </span>
-                  ) : (
-                    t("delete", "Delete")
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
+                  label={t("delete", "Delete")}
+                  loadingLabel={t("deleting", "Deleting...")}
+                  isSubmitting={isDeleting}
+                  variant="red"
+                />
+              </>
+            }
+          >
+            <p className="text-gray-600">
+              {t(
+                "classifications.deleteConfirm.message",
+                `Are you sure you want to delete "${sectorToDelete.name}"? Any assets using this sector will become unclassified.`,
+              )}
+            </p>
+          </Dialog>
         )}
       </div>
     )

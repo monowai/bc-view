@@ -2,6 +2,7 @@ import React, { useState } from "react"
 import { Position } from "types/beancounter"
 import { getReportCategory } from "@lib/categoryMapping"
 import { stripOwnerPrefix } from "@lib/assets/assetUtils"
+import Dialog from "@components/ui/Dialog"
 
 interface CopyPopupProps {
   columns: string[]
@@ -105,43 +106,35 @@ const CopyPopup: React.FC<CopyPopupProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div
-        className="fixed inset-0 bg-black opacity-50"
-        onClick={onClose}
-      ></div>
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-md mx-auto p-6 z-50">
-        <h2 className="text-xl font-semibold mb-4">Select Columns to Copy</h2>
-        <div className="mb-4 grid grid-cols-2 gap-2">
-          {columns.map((column) => (
-            <label key={column} className="flex items-center">
-              <input
-                type="checkbox"
-                value={column}
-                checked={selectedColumns.includes(column)}
-                onChange={() => handleColumnChange(column)}
-                className="mr-2"
-              />
-              {column}
-            </label>
-          ))}
-        </div>
-        <div className="flex justify-end space-x-2">
-          <button
-            className="bg-gray-300 text-gray-700 px-4 py-2 rounded"
-            onClick={onClose}
-          >
-            Cancel
-          </button>
-          <button
-            className="bg-blue-500 text-white px-4 py-2 rounded"
+    <Dialog
+      title="Select Columns to Copy"
+      onClose={onClose}
+      footer={
+        <>
+          <Dialog.CancelButton onClick={onClose} />
+          <Dialog.SubmitButton
             onClick={handleCopy}
-          >
-            Copy
-          </button>
-        </div>
+            label="Copy"
+            variant="blue"
+          />
+        </>
+      }
+    >
+      <div className="grid grid-cols-2 gap-2">
+        {columns.map((column) => (
+          <label key={column} className="flex items-center">
+            <input
+              type="checkbox"
+              value={column}
+              checked={selectedColumns.includes(column)}
+              onChange={() => handleColumnChange(column)}
+              className="mr-2"
+            />
+            {column}
+          </label>
+        ))}
       </div>
-    </div>
+    </Dialog>
   )
 }
 

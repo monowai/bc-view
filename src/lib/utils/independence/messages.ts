@@ -103,8 +103,7 @@ export const wizardMessages = {
       title: "Life Events",
       description:
         "Add significant financial events that will impact your plan.",
-      skipHint:
-        "Life events are optional — click Save Plan to finish.",
+      skipHint: "Life events are optional — click Save Plan to finish.",
     },
     income: {
       name: "Income",

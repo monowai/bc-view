@@ -5,6 +5,7 @@ import { isCash, isCashRelated, stripOwnerPrefix } from "@lib/assets/assetUtils"
 import { compareByReportCategory, compareBySector } from "@lib/categoryMapping"
 import { GroupBy } from "@components/features/holdings/GroupByOptions"
 import { ProgressBar } from "@components/ui/ProgressBar"
+import Dialog from "@components/ui/Dialog"
 
 interface PerformanceHeatmapProps {
   holdingGroups: Record<string, HoldingGroup>
@@ -413,137 +414,103 @@ export const PerformanceHeatmap: React.FC<PerformanceHeatmapProps> = ({
 
       {/* Group Detail Modal */}
       {selectedGroup && viewByGroup && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-          onClick={() => setSelectedGroup(null)}
+        <Dialog
+          title={
+            <div>
+              <div>{selectedGroup}</div>
+              <p className="text-sm text-gray-500 font-normal">
+                {groupedCells.find((g) => g.groupKey === selectedGroup)?.cells
+                  .length || 0}{" "}
+                assets
+              </p>
+            </div>
+          }
+          onClose={() => setSelectedGroup(null)}
+          maxWidth="2xl"
+          scrollable
+          footer={
+            <div className="flex justify-between items-center text-sm w-full">
+              <span className="text-gray-600">Group Total</span>
+              <span className="font-semibold text-gray-900">
+                <FormatValue
+                  value={
+                    groupedCells.find((g) => g.groupKey === selectedGroup)
+                      ?.groupMarketValue || 0
+                  }
+                />
+              </span>
+            </div>
+          }
         >
-          <div
-            className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">
-                  {selectedGroup}
-                </h2>
-                <p className="text-sm text-gray-500">
-                  {groupedCells.find((g) => g.groupKey === selectedGroup)?.cells
-                    .length || 0}{" "}
-                  assets
-                </p>
-              </div>
-              <button
-                onClick={() => setSelectedGroup(null)}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-              >
-                <svg
-                  className="w-5 h-5 text-gray-500"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-
-            {/* Modal Content */}
-            <div className="p-4 overflow-y-auto max-h-[60vh]">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200 text-left">
-                    <th className="pb-2 font-medium text-gray-600">Asset</th>
-                    <th className="pb-2 font-medium text-gray-600 text-right">
-                      Value
-                    </th>
-                    <th className="pb-2 font-medium text-gray-600 text-right">
-                      IRR
-                    </th>
-                    <th className="pb-2 font-medium text-gray-600 w-32 hidden sm:table-cell">
-                      Alpha
-                    </th>
-                    <th className="pb-2 font-medium text-gray-600 text-right">
-                      Weight
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {groupedCells
-                    .find((g) => g.groupKey === selectedGroup)
-                    ?.cells.map((cell) => {
-                      const irrColor =
-                        cell.irr >= 0.15
-                          ? "green"
-                          : cell.irr >= 0.08
-                            ? "blue"
-                            : cell.irr >= 0.03
-                              ? "purple"
-                              : "gray"
-                      return (
-                        <tr
-                          key={cell.code}
-                          className="border-b border-gray-100"
-                        >
-                          <td className="py-3">
-                            <div className="font-medium text-gray-900">
-                              {cell.code}
-                            </div>
-                            <div className="text-xs text-gray-500 truncate max-w-[150px]">
-                              {cell.name}
-                            </div>
-                          </td>
-                          <td className="py-3 text-right text-gray-900">
-                            <FormatValue value={cell.marketValue} />
-                          </td>
-                          <td
-                            className={`py-3 text-right font-medium ${
-                              cell.irr >= 0 ? "text-green-600" : "text-red-600"
-                            }`}
-                          >
-                            {cell.irr >= 0 ? "+" : ""}
-                            {(cell.irr * 100).toFixed(1)}%
-                          </td>
-                          <td className="py-3 hidden sm:table-cell">
-                            <ProgressBar
-                              value={Math.abs(cell.irr)}
-                              maxValue={0.3}
-                              showLabel={false}
-                              size="sm"
-                              color={irrColor}
-                            />
-                          </td>
-                          <td className="py-3 text-right text-gray-600">
-                            {(cell.weight * 100).toFixed(1)}%
-                          </td>
-                        </tr>
-                      )
-                    })}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="p-4 border-t border-gray-200 bg-gray-50">
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-600">Group Total</span>
-                <span className="font-semibold text-gray-900">
-                  <FormatValue
-                    value={
-                      groupedCells.find((g) => g.groupKey === selectedGroup)
-                        ?.groupMarketValue || 0
-                    }
-                  />
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-200 text-left">
+                <th className="pb-2 font-medium text-gray-600">Asset</th>
+                <th className="pb-2 font-medium text-gray-600 text-right">
+                  Value
+                </th>
+                <th className="pb-2 font-medium text-gray-600 text-right">
+                  IRR
+                </th>
+                <th className="pb-2 font-medium text-gray-600 w-32 hidden sm:table-cell">
+                  Alpha
+                </th>
+                <th className="pb-2 font-medium text-gray-600 text-right">
+                  Weight
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {groupedCells
+                .find((g) => g.groupKey === selectedGroup)
+                ?.cells.map((cell) => {
+                  const irrColor =
+                    cell.irr >= 0.15
+                      ? "green"
+                      : cell.irr >= 0.08
+                        ? "blue"
+                        : cell.irr >= 0.03
+                          ? "purple"
+                          : "gray"
+                  return (
+                    <tr key={cell.code} className="border-b border-gray-100">
+                      <td className="py-3">
+                        <div className="font-medium text-gray-900">
+                          {cell.code}
+                        </div>
+                        <div className="text-xs text-gray-500 truncate max-w-[150px]">
+                          {cell.name}
+                        </div>
+                      </td>
+                      <td className="py-3 text-right text-gray-900">
+                        <FormatValue value={cell.marketValue} />
+                      </td>
+                      <td
+                        className={`py-3 text-right font-medium ${
+                          cell.irr >= 0 ? "text-green-600" : "text-red-600"
+                        }`}
+                      >
+                        {cell.irr >= 0 ? "+" : ""}
+                        {(cell.irr * 100).toFixed(1)}%
+                      </td>
+                      <td className="py-3 hidden sm:table-cell">
+                        <ProgressBar
+                          value={Math.abs(cell.irr)}
+                          maxValue={0.3}
+                          showLabel={false}
+                          size="sm"
+                          color={irrColor}
+                        />
+                      </td>
+                      <td className="py-3 text-right text-gray-600">
+                        {(cell.weight * 100).toFixed(1)}%
+                      </td>
+                    </tr>
+                  )
+                })}
+            </tbody>
+          </table>
+        </Dialog>
       )}
     </div>
   )

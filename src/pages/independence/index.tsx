@@ -14,6 +14,8 @@ import {
   AssetBreakdown,
 } from "@components/features/independence"
 import ResourceShareInviteDialog from "@components/features/shares/ResourceShareInviteDialog"
+import Alert from "@components/ui/Alert"
+import Spinner from "@components/ui/Spinner"
 
 const plansKey = "/api/independence/plans"
 const HIDDEN_VALUE = "****"
@@ -129,8 +131,7 @@ function PlanCard({
         {/* FI Progress Bar */}
         {fiLoading ? (
           <div className="mt-2 flex items-center text-xs text-gray-400">
-            <i className="fas fa-spinner fa-spin mr-1"></i>
-            Calculating progress...
+            <Spinner label="Calculating progress..." />
           </div>
         ) : projection?.fiMetrics ? (
           <div className="mt-2">
@@ -429,10 +430,7 @@ function RetirementPlanning(): React.ReactElement {
                 className="hidden sm:flex border border-gray-300 text-gray-700 px-4 py-3 rounded-lg hover:bg-gray-50 font-medium items-center disabled:opacity-50"
               >
                 {isImporting ? (
-                  <>
-                    <i className="fas fa-spinner fa-spin mr-2"></i>
-                    Importing...
-                  </>
+                  <Spinner label="Importing..." />
                 ) : (
                   <>
                     <i className="fas fa-upload mr-2"></i>
@@ -451,14 +449,11 @@ function RetirementPlanning(): React.ReactElement {
           </div>
 
           {importError && (
-            <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex justify-between items-center">
-              <div>
-                <i className="fas fa-exclamation-circle mr-2"></i>
-                {importError}
-              </div>
+            <div className="mb-6 flex justify-between items-center">
+              <Alert>{importError}</Alert>
               <button
                 onClick={() => setImportError(null)}
-                className="text-red-500 hover:text-red-700"
+                className="text-red-500 hover:text-red-700 ml-2"
               >
                 <i className="fas fa-times"></i>
               </button>
@@ -467,17 +462,11 @@ function RetirementPlanning(): React.ReactElement {
 
           {isLoading && (
             <div className="text-center py-12">
-              <i className="fas fa-spinner fa-spin text-3xl text-independence-600"></i>
-              <p className="mt-4 text-gray-500">Loading plans...</p>
+              <Spinner label="Loading plans..." size="lg" />
             </div>
           )}
 
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-              <i className="fas fa-exclamation-circle mr-2"></i>
-              Failed to load plans. Please try again.
-            </div>
-          )}
+          {error && <Alert>Failed to load plans. Please try again.</Alert>}
 
           {!isLoading && !error && plans.length === 0 && (
             <div className="bg-white rounded-2xl shadow-lg p-12 text-center">

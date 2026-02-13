@@ -22,6 +22,9 @@ import {
   isEventReconciled,
   isPositionClosedBeforeEvent,
 } from "@lib/corporate-events"
+import Dialog from "@components/ui/Dialog"
+import Spinner from "@components/ui/Spinner"
+import Alert from "@components/ui/Alert"
 
 interface PortfolioCorporateActionsPopupProps {
   portfolio: Portfolio
@@ -225,172 +228,14 @@ const PortfolioCorporateActionsPopup: React.FC<
   ).length
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div
-        className="fixed inset-0 bg-black opacity-50"
-        onClick={onClose}
-      ></div>
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl mx-auto p-6 z-50 max-h-[80vh] overflow-hidden flex flex-col">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">
-            {t("corporate.portfolio.title")} - {portfolio.code}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            <i className="fas fa-times"></i>
-          </button>
-        </div>
-
-        <div className="bg-blue-50 border border-blue-200 rounded p-3 mb-4 text-sm text-blue-800">
-          <i className="fas fa-info-circle mr-2"></i>
-          {t("corporate.portfolio.info")}
-        </div>
-
-        {!scanComplete && !isScanning && (
-          <div className="flex flex-col items-center justify-center py-8">
-            <p className="text-gray-600 mb-4">
-              {t("corporate.portfolio.scan.prompt")}
-            </p>
-            <button
-              className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors flex items-center"
-              onClick={scanForMissingEvents}
-              disabled={!holdingsData}
-            >
-              <i className="fas fa-search mr-2"></i>
-              {t("corporate.portfolio.scan")}
-            </button>
-          </div>
-        )}
-
-        {isScanning && (
-          <div className="flex flex-col items-center justify-center py-8">
-            <i className="fas fa-spinner fa-spin text-3xl text-blue-500 mb-4"></i>
-            <p className="text-gray-600">
-              {t("corporate.portfolio.scanning")}
-              {scanProgress && (
-                <span className="ml-2">
-                  ({scanProgress.current}/{scanProgress.total})
-                </span>
-              )}
-            </p>
-          </div>
-        )}
-
-        {scanComplete && (
-          <div className="overflow-y-auto flex-1">
-            {missingEvents.length === 0 ? (
-              <div className="text-center py-8 text-green-600">
-                <i className="fas fa-check-circle text-4xl mb-4"></i>
-                <p>{t("corporate.portfolio.noMissing")}</p>
-              </div>
-            ) : (
-              <>
-                <div className="mb-4 text-sm text-gray-600">
-                  {t("corporate.portfolio.found", {
-                    count: missingEvents.length,
-                  })}
-                </div>
-                <table className="min-w-full bg-white">
-                  <thead className="bg-gray-50 sticky top-0">
-                    <tr>
-                      <th className="px-4 py-2 text-left">
-                        {t("trn.asset.code")}
-                      </th>
-                      <th className="px-4 py-2 text-left">
-                        {t("corporate.type")}
-                      </th>
-                      <th className="px-4 py-2 text-left">
-                        {t("corporate.recordDate")}
-                      </th>
-                      <th className="px-4 py-2 text-left">
-                        {t("corporate.effectiveDate")}
-                      </th>
-                      <th className="px-4 py-2 text-right">
-                        {t("corporate.rate")}
-                      </th>
-                      <th className="px-4 py-2 text-center">
-                        {t("corporate.actions")}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {missingEvents.map(({ asset, event }) => {
-                      const isProcessed = processedEvents.has(event.id)
-                      return (
-                        <tr
-                          key={event.id}
-                          className={`border-t hover:bg-gray-50 transition-colors ${
-                            isProcessed ? "bg-green-50" : ""
-                          }`}
-                        >
-                          <td className="px-4 py-2">
-                            <div className="font-medium">
-                              {stripOwnerPrefix(asset.code)}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {asset.name}
-                            </div>
-                          </td>
-                          <td className="px-4 py-2">
-                            <span className="flex items-center">
-                              <i
-                                className={`fas ${getEventTypeIcon(event.trnType)} mr-2 text-blue-500`}
-                              ></i>
-                              {getEventTypeLabel(event.trnType)}
-                            </span>
-                          </td>
-                          <td className="px-4 py-2">{event.recordDate}</td>
-                          <td className="px-4 py-2">
-                            {calculateEffectivePayDate(event)}
-                          </td>
-                          <td className="px-4 py-2 text-right">
-                            {event.trnType === "DIVI" ? (
-                              <NumericFormat
-                                value={event.rate}
-                                displayType={"text"}
-                                decimalScale={4}
-                                fixedDecimalScale={true}
-                                thousandSeparator={true}
-                              />
-                            ) : (
-                              <NumericFormat
-                                value={event.split}
-                                displayType={"text"}
-                                decimalScale={4}
-                                fixedDecimalScale={true}
-                              />
-                            )}
-                          </td>
-                          <td className="px-4 py-2 text-center">
-                            {isProcessed ? (
-                              <span className="text-green-500">
-                                <i className="fas fa-check mr-1"></i>
-                                {t("corporate.transactionCreated")}
-                              </span>
-                            ) : (
-                              <button
-                                onClick={() => handleProcessEvent(event.id)}
-                                className="text-blue-500 hover:text-blue-700"
-                                title={t("corporate.process")}
-                              >
-                                <i className="fas fa-play"></i>
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </>
-            )}
-          </div>
-        )}
-
-        <div className="flex justify-between items-center mt-4 pt-4 border-t">
-          <div className="flex items-center gap-2 flex-wrap">
+    <Dialog
+      title={`${t("corporate.portfolio.title")} - ${portfolio.code}`}
+      onClose={onClose}
+      maxWidth="xl"
+      scrollable
+      footer={
+        <>
+          <div className="flex items-center gap-2 flex-wrap flex-1">
             {scanComplete && missingEvents.length > 0 && (
               <button
                 className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
@@ -399,12 +244,13 @@ const PortfolioCorporateActionsPopup: React.FC<
                 title={t("corporate.backfill.hint")}
               >
                 {isBackfilling ? (
-                  <>
-                    <i className="fas fa-spinner fa-spin mr-2"></i>
-                    {backfillProgress
-                      ? `${backfillProgress.current}/${backfillProgress.total}`
-                      : t("corporate.loading")}
-                  </>
+                  <Spinner
+                    label={
+                      backfillProgress
+                        ? `${backfillProgress.current}/${backfillProgress.total}`
+                        : t("corporate.loading")
+                    }
+                  />
                 ) : (
                   <>
                     <i className="fas fa-forward mr-2"></i>
@@ -420,15 +266,156 @@ const PortfolioCorporateActionsPopup: React.FC<
               </span>
             )}
           </div>
+          <Dialog.CancelButton onClick={onClose} label={t("cancel")} />
+        </>
+      }
+    >
+      <Alert variant="info">
+        <i className="fas fa-info-circle mr-2"></i>
+        {t("corporate.portfolio.info")}
+      </Alert>
+
+      {!scanComplete && !isScanning && (
+        <div className="flex flex-col items-center justify-center py-8">
+          <p className="text-gray-600 mb-4">
+            {t("corporate.portfolio.scan.prompt")}
+          </p>
           <button
-            className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 transition-colors"
-            onClick={onClose}
+            className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors flex items-center"
+            onClick={scanForMissingEvents}
+            disabled={!holdingsData}
           >
-            {t("cancel")}
+            <i className="fas fa-search mr-2"></i>
+            {t("corporate.portfolio.scan")}
           </button>
         </div>
-      </div>
-    </div>
+      )}
+
+      {isScanning && (
+        <div className="flex flex-col items-center justify-center py-8">
+          <Spinner size="lg" className="text-blue-500 mb-4" />
+          <p className="text-gray-600">
+            {t("corporate.portfolio.scanning")}
+            {scanProgress && (
+              <span className="ml-2">
+                ({scanProgress.current}/{scanProgress.total})
+              </span>
+            )}
+          </p>
+        </div>
+      )}
+
+      {scanComplete && (
+        <div className="overflow-y-auto flex-1">
+          {missingEvents.length === 0 ? (
+            <div className="text-center py-8 text-green-600">
+              <i className="fas fa-check-circle text-4xl mb-4 block"></i>
+              <p>{t("corporate.portfolio.noMissing")}</p>
+            </div>
+          ) : (
+            <>
+              <div className="mb-4 text-sm text-gray-600">
+                {t("corporate.portfolio.found", {
+                  count: missingEvents.length,
+                })}
+              </div>
+              <table className="min-w-full bg-white">
+                <thead className="bg-gray-50 sticky top-0">
+                  <tr>
+                    <th className="px-4 py-2 text-left">
+                      {t("trn.asset.code")}
+                    </th>
+                    <th className="px-4 py-2 text-left">
+                      {t("corporate.type")}
+                    </th>
+                    <th className="px-4 py-2 text-left">
+                      {t("corporate.recordDate")}
+                    </th>
+                    <th className="px-4 py-2 text-left">
+                      {t("corporate.effectiveDate")}
+                    </th>
+                    <th className="px-4 py-2 text-right">
+                      {t("corporate.rate")}
+                    </th>
+                    <th className="px-4 py-2 text-center">
+                      {t("corporate.actions")}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {missingEvents.map(({ asset, event }) => {
+                    const isProcessed = processedEvents.has(event.id)
+                    return (
+                      <tr
+                        key={event.id}
+                        className={`border-t hover:bg-gray-50 transition-colors ${
+                          isProcessed ? "bg-green-50" : ""
+                        }`}
+                      >
+                        <td className="px-4 py-2">
+                          <div className="font-medium">
+                            {stripOwnerPrefix(asset.code)}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {asset.name}
+                          </div>
+                        </td>
+                        <td className="px-4 py-2">
+                          <span className="flex items-center">
+                            <i
+                              className={`fas ${getEventTypeIcon(event.trnType)} mr-2 text-blue-500`}
+                            ></i>
+                            {getEventTypeLabel(event.trnType)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2">{event.recordDate}</td>
+                        <td className="px-4 py-2">
+                          {calculateEffectivePayDate(event)}
+                        </td>
+                        <td className="px-4 py-2 text-right">
+                          {event.trnType === "DIVI" ? (
+                            <NumericFormat
+                              value={event.rate}
+                              displayType={"text"}
+                              decimalScale={4}
+                              fixedDecimalScale={true}
+                              thousandSeparator={true}
+                            />
+                          ) : (
+                            <NumericFormat
+                              value={event.split}
+                              displayType={"text"}
+                              decimalScale={4}
+                              fixedDecimalScale={true}
+                            />
+                          )}
+                        </td>
+                        <td className="px-4 py-2 text-center">
+                          {isProcessed ? (
+                            <span className="text-green-500">
+                              <i className="fas fa-check mr-1"></i>
+                              {t("corporate.transactionCreated")}
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => handleProcessEvent(event.id)}
+                              className="text-blue-500 hover:text-blue-700"
+                              title={t("corporate.process")}
+                            >
+                              <i className="fas fa-play"></i>
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </>
+          )}
+        </div>
+      )}
+    </Dialog>
   )
 }
 

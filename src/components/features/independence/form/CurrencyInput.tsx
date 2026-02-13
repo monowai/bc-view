@@ -71,11 +71,7 @@ export default function CurrencyInput({
       {error && (
         <p className="mt-1 text-sm text-red-600">{error.message as string}</p>
       )}
-      {helperText && (
-        <p className="mt-1 text-sm text-gray-500">
-          {helperText}
-        </p>
-      )}
+      {helperText && <p className="mt-1 text-sm text-gray-500">{helperText}</p>}
       {!helperText && (
         <p className="mt-1 text-xs text-gray-400">
           Supports math: 1000+500, 5000*12

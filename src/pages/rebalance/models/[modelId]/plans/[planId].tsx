@@ -12,6 +12,7 @@ import { TableSkeletonLoader } from "@components/ui/SkeletonLoader"
 import ModelWeightsEditor from "@components/features/rebalance/models/ModelWeightsEditor"
 import ImportHoldingsDialog from "@components/features/rebalance/models/ImportHoldingsDialog"
 import { PlanAssetDto, AssetWeightWithDetails } from "types/rebalance"
+import { escapeCSV, downloadCsv } from "@lib/csvExport"
 
 function PlanDetailPage(): React.ReactElement {
   const { t } = useTranslation("common")
@@ -339,22 +340,13 @@ function PlanDetailPage(): React.ReactElement {
     return `${(weight * 100).toFixed(2)}%`
   }
 
-  // Escape CSV field (quote if contains comma, quote, or newline)
-  const escapeCSV = (value: string): string => {
-    if (value.includes(",") || value.includes('"') || value.includes("\n")) {
-      return `"${value.replace(/"/g, '""')}"`
-    }
-    return value
-  }
-
   // Export allocations to CSV file
-  // Format: Asset (MARKET:CODE), Weight %, Price, Currency, Description
   const handleExportCSV = (): void => {
     if (!weights.length) return
 
     const headers = ["Asset", "Weight %", "Price", "Currency", "Description"]
     const rows = weights.map((w) => [
-      escapeCSV(w.assetCode || w.assetId), // MARKET:CODE format (e.g., NASDAQ:VOO)
+      escapeCSV(w.assetCode || w.assetId),
       w.weight.toFixed(2),
       w.capturedPrice?.toString() || "",
       w.priceCurrency || "",
@@ -362,16 +354,8 @@ function PlanDetailPage(): React.ReactElement {
     ])
 
     const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n")
-
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement("a")
-    link.href = url
-    link.download = `plan-${model?.name || "model"}-v${plan?.version || "1"}-${new Date().toISOString().split("T")[0]}.csv`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
+    const filename = `plan-${model?.name || "model"}-v${plan?.version || "1"}-${new Date().toISOString().split("T")[0]}.csv`
+    downloadCsv(filename, csv)
   }
 
   // Parse CSV line handling quoted fields

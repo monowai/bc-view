@@ -7,6 +7,8 @@ import { useTranslation } from "next-i18next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { GetServerSideProps } from "next"
 import { rootLoader } from "@components/ui/PageLoader"
+import Alert from "@components/ui/Alert"
+import Spinner from "@components/ui/Spinner"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import {
   Currency,
@@ -319,15 +321,11 @@ function SettingsPage(): React.ReactElement {
       </div>
 
       {/* Error/Success Messages */}
-      {error && (
-        <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-          {error}
-        </div>
-      )}
+      {error && <Alert className="mb-4">{error}</Alert>}
       {success && (
-        <div className="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
+        <Alert variant="success" className="mb-4">
           {success}
-        </div>
+        </Alert>
       )}
 
       {/* Profile Tab */}
@@ -696,11 +694,7 @@ function SettingsPage(): React.ReactElement {
                 disabled={!newTaxCountry || !newTaxRate || taxRateSaving}
                 className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
               >
-                {taxRateSaving ? (
-                  <i className="fas fa-spinner fa-spin"></i>
-                ) : (
-                  t("settings.taxRates.add")
-                )}
+                {taxRateSaving ? <Spinner /> : t("settings.taxRates.add")}
               </button>
             </div>
 

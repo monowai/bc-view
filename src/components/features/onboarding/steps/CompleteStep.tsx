@@ -93,10 +93,7 @@ const CompleteStep: React.FC<CompleteStepProps> = ({
             <li className="flex items-center text-gray-700">
               <i className="fas fa-chart-line text-independence-500 w-6"></i>
               <span>
-                {t(
-                  "complete.independencePlan",
-                  "Independence Plan created",
-                )}{" "}
+                {t("complete.independencePlan", "Independence Plan created")}{" "}
                 <Link
                   href="/independence"
                   className="text-independence-600 hover:underline"

@@ -14,6 +14,7 @@ import { calculateTradeAmount } from "@utils/trns/tradeUtils"
 import { stripOwnerPrefix } from "@lib/assets/assetUtils"
 import DateInput from "@components/ui/DateInput"
 import DecimalInput from "@components/ui/DecimalInput"
+import Alert from "@components/ui/Alert"
 import { getToday, getSessionValue, setSessionValue } from "@lib/sessionStorage"
 
 // Session storage keys for filter preferences
@@ -701,20 +702,20 @@ export default function ProposedTransactions(): React.JSX.Element {
         </div>
 
         {fetchError && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-            Failed to load proposed transactions
+          <div className="mb-4">
+            <Alert>Failed to load proposed transactions</Alert>
           </div>
         )}
 
         {settledError && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-            Failed to load settled transactions
+          <div className="mb-4">
+            <Alert>Failed to load settled transactions</Alert>
           </div>
         )}
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
+          <div className="mb-4">
+            <Alert>{error}</Alert>
           </div>
         )}
 

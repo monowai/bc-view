@@ -13,6 +13,7 @@ import ContributionsStep from "./steps/ContributionsStep"
 import IncomeSourcesStep from "./steps/IncomeSourcesStep"
 import LifeEventsStep from "./steps/LifeEventsStep"
 import ExpensesStep from "./steps/ExpensesStep"
+import Alert from "@components/ui/Alert"
 import ClientSelector from "@components/features/shares/ClientSelector"
 import { wizardSchema, defaultWizardValues } from "@lib/independence/schema"
 import {
@@ -414,11 +415,8 @@ export default function WizardContainer({
         />
 
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-            <div className="flex items-center">
-              <i className="fas fa-exclamation-circle mr-2"></i>
-              {error}
-            </div>
+          <div className="mb-6">
+            <Alert>{error}</Alert>
           </div>
         )}
 

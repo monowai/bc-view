@@ -149,9 +149,7 @@ export default function ExpensesStep({
                         value={inputField.value || ""}
                         onChange={(e) =>
                           inputField.onChange(
-                            e.target.value === ""
-                              ? 0
-                              : Number(e.target.value),
+                            e.target.value === "" ? 0 : Number(e.target.value),
                           )
                         }
                         onBlur={inputField.onBlur}

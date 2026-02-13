@@ -241,16 +241,18 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
               variant="blue"
             />
           )}
-          {!submitSuccess && positions.length === 0 && portfolios.length > 0 && (
-            <Dialog.SubmitButton
-              onClick={handleAddToPortfolio}
-              label={t("accounts.setBalances.addToPortfolio")}
-              loadingLabel={t("accounts.setBalances.adding")}
-              isSubmitting={isSubmitting}
-              disabled={!canSubmitAddForm}
-              variant="blue"
-            />
-          )}
+          {!submitSuccess &&
+            positions.length === 0 &&
+            portfolios.length > 0 && (
+              <Dialog.SubmitButton
+                onClick={handleAddToPortfolio}
+                label={t("accounts.setBalances.addToPortfolio")}
+                loadingLabel={t("accounts.setBalances.adding")}
+                isSubmitting={isSubmitting}
+                disabled={!canSubmitAddForm}
+                variant="blue"
+              />
+            )}
         </>
       }
     >

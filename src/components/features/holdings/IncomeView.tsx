@@ -13,6 +13,7 @@ import MonthlyIncomeChart, {
 import { FormatValue } from "@components/ui/MoneyUtils"
 import { TableSkeletonLoader } from "@components/ui/SkeletonLoader"
 import { useHoldingState } from "@lib/holdings/holdingState"
+import Dialog from "@components/ui/Dialog"
 import { GROUP_BY_OPTIONS } from "types/constants"
 
 interface IncomeViewProps {
@@ -72,130 +73,94 @@ const ContributorsPopup: React.FC<ContributorsPopupProps> = ({
   onClose,
 }) => {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black bg-opacity-50"
-        onClick={onClose}
-      />
-
-      {/* Modal */}
-      <div className="relative bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 max-h-[80vh] overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <div className="flex items-center">
-            <div
-              className="w-4 h-4 rounded-sm mr-3"
-              style={{ backgroundColor: getColorForIndex(colorIndex) }}
-            />
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">
-                {item.groupKey}
-              </h3>
-              <p className="text-sm text-gray-500">
-                Top 10 Contributors by Income
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        </div>
-
-        {/* Summary */}
-        <div className="px-6 py-3 bg-gray-50 border-b border-gray-200">
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">{groupByLabel} Total</span>
-            <span className="text-lg font-bold text-gray-900 tabular-nums">
-              {currencySymbol}
-              <FormatValue value={item.totalIncome} />
-            </span>
-          </div>
-          <div className="text-xs text-gray-500 mt-1">
-            {totalIncome > 0
-              ? ((item.totalIncome / totalIncome) * 100).toFixed(1)
-              : 0}
-            % of total income
+    <Dialog
+      title={
+        <div className="flex items-center">
+          <div
+            className="w-4 h-4 rounded-sm mr-3"
+            style={{ backgroundColor: getColorForIndex(colorIndex) }}
+          />
+          <div>
+            <div>{item.groupKey}</div>
+            <p className="text-sm text-gray-500 font-normal">
+              Top 10 Contributors by Income
+            </p>
           </div>
         </div>
-
-        {/* Contributors List */}
-        <div className="overflow-y-auto max-h-96">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50 sticky top-0">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Asset
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Income
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  % of {groupByLabel}
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {item.topContributors.map((contributor, index) => {
-                const percentage =
-                  item.totalIncome > 0
-                    ? (contributor.totalIncome / item.totalIncome) * 100
-                    : 0
-                return (
-                  <tr
-                    key={contributor.assetId}
-                    className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
-                  >
-                    <td className="px-6 py-3 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {contributor.assetCode}
-                      </div>
-                      {contributor.assetName && (
-                        <div className="text-xs text-gray-500 truncate max-w-[200px]">
-                          {contributor.assetName}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-3 whitespace-nowrap text-sm text-right font-medium text-gray-900 tabular-nums">
-                      {currencySymbol}
-                      <FormatValue value={contributor.totalIncome} />
-                    </td>
-                    <td className="px-6 py-3 whitespace-nowrap text-sm text-right text-gray-500 tabular-nums">
-                      {percentage.toFixed(1)}%
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+      }
+      onClose={onClose}
+      maxWidth="lg"
+      scrollable
+      footer={<Dialog.CancelButton onClick={onClose} label="Close" />}
+    >
+      {/* Summary */}
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+        <div className="flex justify-between items-center">
+          <span className="text-sm text-gray-600">{groupByLabel} Total</span>
+          <span className="text-lg font-bold text-gray-900 tabular-nums">
+            {currencySymbol}
+            <FormatValue value={item.totalIncome} />
+          </span>
         </div>
-
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
-          <button
-            onClick={onClose}
-            className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
-          >
-            Close
-          </button>
+        <div className="text-xs text-gray-500 mt-1">
+          {totalIncome > 0
+            ? ((item.totalIncome / totalIncome) * 100).toFixed(1)
+            : 0}
+          % of total income
         </div>
       </div>
-    </div>
+
+      {/* Contributors List */}
+      <div className="overflow-y-auto max-h-96">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50 sticky top-0">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Asset
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Income
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                % of {groupByLabel}
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {item.topContributors.map((contributor, index) => {
+              const percentage =
+                item.totalIncome > 0
+                  ? (contributor.totalIncome / item.totalIncome) * 100
+                  : 0
+              return (
+                <tr
+                  key={contributor.assetId}
+                  className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                >
+                  <td className="px-6 py-3 whitespace-nowrap">
+                    <div className="text-sm font-medium text-gray-900">
+                      {contributor.assetCode}
+                    </div>
+                    {contributor.assetName && (
+                      <div className="text-xs text-gray-500 truncate max-w-[200px]">
+                        {contributor.assetName}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-6 py-3 whitespace-nowrap text-sm text-right font-medium text-gray-900 tabular-nums">
+                    {currencySymbol}
+                    <FormatValue value={contributor.totalIncome} />
+                  </td>
+                  <td className="px-6 py-3 whitespace-nowrap text-sm text-right text-gray-500 tabular-nums">
+                    {percentage.toFixed(1)}%
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </Dialog>
   )
 }
 

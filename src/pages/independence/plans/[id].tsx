@@ -60,6 +60,8 @@ import {
 } from "@components/features/independence"
 import { usePrivateAssetConfigs } from "@utils/assets/usePrivateAssetConfigs"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
+import Alert from "@components/ui/Alert"
+import Spinner from "@components/ui/Spinner"
 
 const HIDDEN_VALUE = "****"
 
@@ -233,9 +235,7 @@ function PlanView(): React.ReactElement {
     isValidating: isRefreshingHoldings,
   } = useSwr<{ data: HoldingContract }>(
     isClientPlan ? null : "/api/holdings/aggregated?asAt=today",
-    isClientPlan
-      ? null
-      : simpleFetcher("/api/holdings/aggregated?asAt=today"),
+    isClientPlan ? null : simpleFetcher("/api/holdings/aggregated?asAt=today"),
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
@@ -960,7 +960,8 @@ function PlanView(): React.ReactElement {
       } else {
         const errorData = await response.json().catch(() => ({}))
         setTransferError(
-          errorData.message || t("client.transfer.failed", "Failed to transfer plan"),
+          errorData.message ||
+            t("client.transfer.failed", "Failed to transfer plan"),
         )
       }
     } catch (err) {
@@ -1071,10 +1072,7 @@ function PlanView(): React.ReactElement {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="container mx-auto px-4">
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-            <i className="fas fa-exclamation-circle mr-2"></i>
-            Failed to load plan. Please try again.
-          </div>
+          <Alert>Failed to load plan. Please try again.</Alert>
         </div>
       </div>
     )
@@ -1084,8 +1082,7 @@ function PlanView(): React.ReactElement {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="container mx-auto px-4 text-center">
-          <i className="fas fa-spinner fa-spin text-3xl text-independence-600"></i>
-          <p className="mt-4 text-gray-500">Loading plan...</p>
+          <Spinner label="Loading plan..." size="lg" />
         </div>
       </div>
     )
@@ -1136,8 +1133,8 @@ function PlanView(): React.ReactElement {
             </div>
           )}
           {transferError && (
-            <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-              {transferError}
+            <div className="mb-4">
+              <Alert>{transferError}</Alert>
             </div>
           )}
 
@@ -1145,10 +1142,7 @@ function PlanView(): React.ReactElement {
           {isCalculating && !adjustedProjection && (
             <div className="fixed inset-0 bg-white/80 z-40 flex items-center justify-center">
               <div className="text-center">
-                <i className="fas fa-spinner fa-spin text-4xl text-independence-500 mb-4"></i>
-                <p className="text-gray-600 font-medium">
-                  Calculating projections...
-                </p>
+                <Spinner label="Calculating projections..." size="lg" />
                 <p className="text-gray-400 text-sm mt-1">
                   Fetching assets and running calculations
                 </p>
@@ -1211,8 +1205,7 @@ function PlanView(): React.ReactElement {
             (isCalculating || (plan && !adjustedProjection)) && (
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
                 <div className="flex items-center gap-2 text-gray-500">
-                  <i className="fas fa-spinner fa-spin"></i>
-                  <span>Calculating FI metrics...</span>
+                  <Spinner label="Calculating FI metrics..." />
                 </div>
               </div>
             )
@@ -1734,8 +1727,10 @@ function PlanView(): React.ReactElement {
 
                 {!holdingsData && !usingManualAssets ? (
                   <div className="text-center py-8 text-gray-500">
-                    <i className="fas fa-spinner fa-spin text-2xl mb-2"></i>
-                    <p>{t("retire.assets.loadingHoldings")}</p>
+                    <Spinner
+                      label={t("retire.assets.loadingHoldings")}
+                      size="lg"
+                    />
                   </div>
                 ) : categorySlices.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
@@ -2002,8 +1997,7 @@ function PlanView(): React.ReactElement {
 
                     {isCalculating && (
                       <div className="mt-4 text-center text-gray-500">
-                        <i className="fas fa-spinner fa-spin mr-2"></i>
-                        {t("retire.assets.calculating")}
+                        <Spinner label={t("retire.assets.calculating")} />
                       </div>
                     )}
                   </div>
@@ -2021,8 +2015,10 @@ function PlanView(): React.ReactElement {
                   <div className="text-center py-12 text-gray-500">
                     {isCalculating ? (
                       <>
-                        <i className="fas fa-spinner fa-spin text-4xl mb-3 text-independence-500"></i>
-                        <p>{t("retire.assets.calculating")}</p>
+                        <Spinner
+                          label={t("retire.assets.calculating")}
+                          size="lg"
+                        />
                       </>
                     ) : (
                       <>

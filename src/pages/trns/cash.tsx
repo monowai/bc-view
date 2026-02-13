@@ -21,6 +21,8 @@ import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import DateInput from "@components/ui/DateInput"
 import MathInput from "@components/ui/MathInput"
+import Alert from "@components/ui/Alert"
+import Spinner from "@components/ui/Spinner"
 import {
   buildCombinedAssetOptions,
   resolveFxCurrencyPair,
@@ -394,7 +396,7 @@ const CashInputForm: React.FC<{
                       <i className="fas fa-arrow-right text-xs"></i>
                       {fxRateLoading ? (
                         <div className="text-xs mt-1 text-gray-400">
-                          <i className="fas fa-spinner fa-spin"></i>
+                          <Spinner />
                         </div>
                       ) : fxRate ? (
                         <div className="text-xs mt-1 font-mono text-gray-500">
@@ -771,11 +773,11 @@ const CashInputForm: React.FC<{
               </div>
 
               {Object.keys(errors).length > 0 && (
-                <div className="text-red-500 text-xs bg-red-50 p-2 rounded">
+                <Alert>
                   {Object.values(errors)
                     .map((error) => error?.message)
                     .join(" ")}
-                </div>
+                </Alert>
               )}
             </form>
 
