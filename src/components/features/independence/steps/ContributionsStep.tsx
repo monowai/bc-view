@@ -249,7 +249,7 @@ export default function ContributionsStep({
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4">
         <StepHeader
           title="Income & Contributions"
           description="Enter your current income details and pension contributions."
@@ -263,7 +263,7 @@ export default function ContributionsStep({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <StepHeader
         title="Income & Contributions"
         description="Enter your current income details and pension contributions."

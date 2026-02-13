@@ -11,8 +11,8 @@ export default function StepHeader({
 }: StepHeaderProps): React.ReactElement {
   return (
     <div>
-      <h2 className="text-xl font-semibold text-gray-900 mb-2">{title}</h2>
-      <p className="text-gray-600">{description}</p>
+      <h2 className="text-lg font-semibold text-gray-900 mb-1">{title}</h2>
+      <p className="text-sm text-gray-600">{description}</p>
     </div>
   )
 }

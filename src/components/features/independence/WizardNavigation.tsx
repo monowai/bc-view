@@ -22,7 +22,7 @@ export default function WizardNavigation({
   isEditMode = false,
 }: WizardNavigationProps): React.ReactElement {
   return (
-    <div className="flex justify-between items-center pt-6 border-t mt-8">
+    <div className="flex justify-between items-center pt-4 border-t mt-5">
       <div>
         <button
           type="button"

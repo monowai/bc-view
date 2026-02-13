@@ -73,7 +73,7 @@ export default function CurrencyInput({
       )}
       {helperText && (
         <p className="mt-1 text-sm text-gray-500">
-          {helperText} • Supports expressions (e.g., 1000*12)
+          {helperText}
         </p>
       )}
       {!helperText && (
