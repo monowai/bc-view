@@ -1,9 +1,10 @@
-import React from "react"
+import React, { useState } from "react"
 import { useTranslation } from "next-i18next"
 import { useRouter } from "next/router"
 import { ModelDto } from "types/rebalance"
 import { useModels } from "../hooks/useModels"
 import { TableSkeletonLoader } from "@components/ui/SkeletonLoader"
+import ConfirmDialog from "@components/ui/ConfirmDialog"
 
 interface ModelListProps {
   onSelect?: (model: ModelDto) => void
@@ -19,15 +20,12 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
   const { t } = useTranslation("common")
   const router = useRouter()
   const { models, isLoading, error, mutate } = useModels()
+  const [deleteModelId, setDeleteModelId] = useState<string | null>(null)
 
-  const handleDelete = async (modelId: string): Promise<void> => {
-    if (
-      !window.confirm(t("rebalance.models.deleteConfirm", "Delete this model?"))
-    ) {
-      return
-    }
+  const handleDeleteConfirm = async (): Promise<void> => {
+    if (!deleteModelId) return
     try {
-      const response = await fetch(`/api/rebalance/models/${modelId}`, {
+      const response = await fetch(`/api/rebalance/models/${deleteModelId}`, {
         method: "DELETE",
       })
       if (response.ok) {
@@ -35,6 +33,29 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
       }
     } catch (err) {
       console.error("Failed to delete model:", err)
+    } finally {
+      setDeleteModelId(null)
+    }
+  }
+
+  const handleTogglePublic = async (model: ModelDto): Promise<void> => {
+    try {
+      const response = await fetch(`/api/rebalance/models/${model.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: model.name,
+          objective: model.objective,
+          description: model.description,
+          baseCurrency: model.baseCurrency,
+          shared: !model.shared,
+        }),
+      })
+      if (response.ok) {
+        mutate()
+      }
+    } catch (err) {
+      console.error("Failed to toggle model visibility:", err)
     }
   }
 
@@ -135,16 +156,16 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
                   <span className="font-medium text-invest-600">
                     {model.name}
                   </span>
-                  {model.shared && !model.isOwner && (
+                  {model.shared && (
                     <span
                       className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700"
                       title={t(
                         "rebalance.models.sharedReadOnly",
-                        "Shared model (read-only)",
+                        "Public model (read-only)",
                       )}
                     >
-                      <i className="fas fa-share-alt mr-1 text-[10px]"></i>
-                      {t("rebalance.models.shared", "Shared")}
+                      <i className="fas fa-globe mr-1 text-[10px]"></i>
+                      {t("rebalance.models.public", "Public")}
                     </span>
                   )}
                 </div>
@@ -180,8 +201,26 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
               </td>
               {!selectable && (
                 <td className="px-4 py-3">
-                  {model.isOwner !== false ? (
+                  {model.isOwner ? (
                     <div className="flex items-center justify-center space-x-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleTogglePublic(model)
+                        }}
+                        className={`transition-colors ${model.shared ? "text-blue-500 hover:text-blue-700" : "text-gray-400 hover:text-blue-600"}`}
+                        title={
+                          model.shared
+                            ? t("rebalance.models.makePrivate", "Make private")
+                            : t("rebalance.models.makePublic", "Make public")
+                        }
+                      >
+                        <i
+                          className={
+                            model.shared ? "fas fa-globe" : "fas fa-lock"
+                          }
+                        ></i>
+                      </button>
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
@@ -195,7 +234,7 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
-                          handleDelete(model.id)
+                          setDeleteModelId(model.id)
                         }}
                         className="text-red-500 hover:text-red-700 transition-colors"
                         title={t("delete", "Delete")}
@@ -216,6 +255,21 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
           ))}
         </tbody>
       </table>
+
+      {deleteModelId && (
+        <ConfirmDialog
+          title={t("rebalance.models.deleteTitle", "Delete Model")}
+          message={t(
+            "rebalance.models.deleteConfirm",
+            "Delete this model?",
+          )}
+          confirmLabel={t("delete", "Delete")}
+          cancelLabel={t("cancel", "Cancel")}
+          variant="red"
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setDeleteModelId(null)}
+        />
+      )}
     </div>
   )
 }

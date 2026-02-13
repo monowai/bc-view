@@ -32,6 +32,7 @@ import TradeFormTabs from "@components/features/transactions/TradeFormTabs"
 import AssetSearch from "@components/features/assets/AssetSearch"
 import { AssetOption } from "types/beancounter"
 import { useEscapeHandler, copyToClipboard } from "@lib/trns/formUtils"
+import ConfirmDialog from "@components/ui/ConfirmDialog"
 import MathInput from "@components/ui/MathInput"
 import DateInput from "@components/ui/DateInput"
 import { convert } from "@lib/trns/tradeUtils"
@@ -428,7 +429,8 @@ const TradeInputForm: React.FC<{
     ],
   )
 
-  useEscapeHandler(isDirty, setModalOpen)
+  const { showEscapeConfirm, onEscapeConfirm, onEscapeCancel } =
+    useEscapeHandler(isDirty, setModalOpen)
 
   const currentTradeCurrency = tradeCurrency?.value || "USD"
 
@@ -633,11 +635,12 @@ const TradeInputForm: React.FC<{
                     setIsSubmitting,
                   })
                 } else {
-                  submitCreateMode({
+                  await submitCreateMode({
                     data: data as any,
                     portfolio,
                     errors,
                     setModalOpen,
+                    setSubmitError,
                     mutate,
                   })
                 }
@@ -1102,6 +1105,17 @@ const TradeInputForm: React.FC<{
             </div>
           </div>
         </div>
+      )}
+      {showEscapeConfirm && (
+        <ConfirmDialog
+          title="Unsaved Changes"
+          message="You have unsaved changes. Do you really want to close?"
+          confirmLabel="Close"
+          cancelLabel="Cancel"
+          variant="amber"
+          onConfirm={onEscapeConfirm}
+          onCancel={onEscapeCancel}
+        />
       )}
     </>
   )

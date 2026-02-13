@@ -3,6 +3,7 @@ import useSwr from "swr"
 import { useTranslation } from "next-i18next"
 import { useRouter } from "next/router"
 import { PortfolioShare, PendingSharesResponse } from "types/beancounter"
+import ConfirmDialog from "@components/ui/ConfirmDialog"
 import {
   fetcher,
   sharesManagedKey,
@@ -177,10 +178,10 @@ function RevokeButton({
 }): React.ReactElement {
   const { t } = useTranslation("common")
   const [isLoading, setIsLoading] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
 
-  const handleRevoke = async (e: React.MouseEvent): Promise<void> => {
-    e.stopPropagation()
-    if (!window.confirm(t("shares.managed.revoke.confirm"))) return
+  const handleRevoke = async (): Promise<void> => {
+    setShowConfirm(false)
     setIsLoading(true)
     try {
       await fetch(`/api/shares/${shareId}`, { method: "DELETE" })
@@ -193,15 +194,34 @@ function RevokeButton({
   }
 
   return (
-    <button
-      onClick={handleRevoke}
-      disabled={isLoading}
-      className="text-gray-400 hover:text-red-500 transition-colors p-1"
-      title={t("shares.managed.revoke")}
-    >
-      <i
-        className={`fas ${isLoading ? "fa-spinner fa-spin" : "fa-times-circle"}`}
-      ></i>
-    </button>
+    <>
+      <button
+        onClick={(e) => {
+          e.stopPropagation()
+          setShowConfirm(true)
+        }}
+        disabled={isLoading}
+        className="text-gray-400 hover:text-red-500 transition-colors p-1"
+        title={t("shares.managed.revoke")}
+      >
+        <i
+          className={`fas ${isLoading ? "fa-spinner fa-spin" : "fa-times-circle"}`}
+        ></i>
+      </button>
+      {showConfirm && (
+        <ConfirmDialog
+          title={t("shares.managed.revoke", "Revoke Access")}
+          message={t(
+            "shares.managed.revoke.confirm",
+            "Are you sure you want to revoke this share?",
+          )}
+          confirmLabel={t("shares.managed.revoke", "Revoke")}
+          cancelLabel={t("cancel", "Cancel")}
+          variant="red"
+          onConfirm={handleRevoke}
+          onCancel={() => setShowConfirm(false)}
+        />
+      )}
+    </>
   )
 }

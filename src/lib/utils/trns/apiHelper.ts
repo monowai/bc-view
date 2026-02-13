@@ -1,13 +1,7 @@
-export function deleteTrn(
-  trnId: string,
-  message: string,
-): Promise<Response | void> {
-  if (confirm(message)) {
-    return fetch(`/api/trns/trades/${trnId}`, {
-      method: "DELETE",
-    })
-  }
-  return Promise.resolve()
+export function deleteTrn(trnId: string): Promise<Response> {
+  return fetch(`/api/trns/trades/${trnId}`, {
+    method: "DELETE",
+  })
 }
 
 export interface TrnUpdatePayload {

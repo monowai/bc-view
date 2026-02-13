@@ -17,6 +17,7 @@ import {
 } from "@components/features/independence"
 import ResourceShareInviteDialog from "@components/features/shares/ResourceShareInviteDialog"
 import Alert from "@components/ui/Alert"
+import ConfirmDialog from "@components/ui/ConfirmDialog"
 import Spinner from "@components/ui/Spinner"
 
 const plansKey = "/api/independence/plans"
@@ -226,6 +227,7 @@ function RetirementPlanning(): React.ReactElement {
   const [isImporting, setIsImporting] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
   const [showShareDialog, setShowShareDialog] = useState(false)
+  const [deletePlanId, setDeletePlanId] = useState<string | null>(null)
 
   const { data, error, isLoading, mutate } = useSwr<PlansResponse>(
     plansKey,
@@ -311,16 +313,17 @@ function RetirementPlanning(): React.ReactElement {
     }
   }
 
-  const handleDeletePlan = async (planId: string): Promise<void> => {
-    if (!confirm("Are you sure you want to delete this plan?")) return
-
+  const handleDeletePlanConfirm = async (): Promise<void> => {
+    if (!deletePlanId) return
     try {
-      await fetch(`/api/independence/plans/${planId}`, {
+      await fetch(`/api/independence/plans/${deletePlanId}`, {
         method: "DELETE",
       })
       mutate()
     } catch (err) {
       console.error("Failed to delete plan:", err)
+    } finally {
+      setDeletePlanId(null)
     }
   }
 
@@ -504,7 +507,7 @@ function RetirementPlanning(): React.ReactElement {
                   plan={plan}
                   assets={assets}
                   hideValues={hideValues}
-                  onDelete={handleDeletePlan}
+                  onDelete={setDeletePlanId}
                   onExport={handleExportPlan}
                 />
               ))}
@@ -519,6 +522,17 @@ function RetirementPlanning(): React.ReactElement {
           resources={plans.map((p) => ({ id: p.id, name: p.name }))}
           onClose={() => setShowShareDialog(false)}
           onSuccess={() => setShowShareDialog(false)}
+        />
+      )}
+      {deletePlanId && (
+        <ConfirmDialog
+          title="Delete Plan"
+          message="Are you sure you want to delete this plan?"
+          confirmLabel="Delete"
+          cancelLabel="Cancel"
+          variant="red"
+          onConfirm={handleDeletePlanConfirm}
+          onCancel={() => setDeletePlanId(null)}
         />
       )}
     </>

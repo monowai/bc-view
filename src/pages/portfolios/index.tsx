@@ -20,6 +20,7 @@ import ShareInviteDialog from "@components/features/portfolios/ShareInviteDialog
 import PortfolioActions from "@components/features/portfolios/PortfolioActions"
 import { getSortIcon, SortConfig } from "@lib/sortIcon"
 import PortfolioImportDialog from "@components/features/portfolios/PortfolioImportDialog"
+import ConfirmDialog from "@components/ui/ConfirmDialog"
 
 export default withPageAuthRequired(function Portfolios({
   user,
@@ -50,6 +51,12 @@ export default withPageAuthRequired(function Portfolios({
 
   // Import dialog state
   const [showImportDialog, setShowImportDialog] = useState(false)
+
+  // Delete confirmation state
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: string
+    code: string
+  } | null>(null)
 
   // Share dialog state - null=closed, undefined=open with no preselection, string=open with preselected portfolio ID
   const [sharePortfolioId, setSharePortfolioId] = useState<
@@ -239,19 +246,17 @@ export default withPageAuthRequired(function Portfolios({
     return rootLoader(t("loading"))
   }
 
-  async function deletePortfolio(
-    portfolioId: string,
-    message: string,
-  ): Promise<void> {
-    if (window.confirm(message)) {
-      try {
-        await fetch(`/api/portfolios/${portfolioId}`, {
-          method: "DELETE",
-        })
-        await mutate() // Revalidate to refresh the list
-      } catch (error) {
-        console.error("Failed to delete portfolio:", error)
-      }
+  async function deletePortfolioConfirm(): Promise<void> {
+    if (!deleteTarget) return
+    try {
+      await fetch(`/api/portfolios/${deleteTarget.id}`, {
+        method: "DELETE",
+      })
+      await mutate()
+    } catch (error) {
+      console.error("Failed to delete portfolio:", error)
+    } finally {
+      setDeleteTarget(null)
     }
   }
 
@@ -557,10 +562,10 @@ export default withPageAuthRequired(function Portfolios({
                     </Link>
                     <button
                       onClick={() =>
-                        deletePortfolio(
-                          portfolio.id,
-                          t("portfolio.delete", { code: portfolio.code }),
-                        )
+                        setDeleteTarget({
+                          id: portfolio.id,
+                          code: portfolio.code,
+                        })
                       }
                       className="text-red-500 hover:text-red-700 p-1"
                       title={t("portfolio.delete.title", "Delete")}
@@ -827,10 +832,10 @@ export default withPageAuthRequired(function Portfolios({
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
-                            deletePortfolio(
-                              portfolio.id,
-                              t("portfolio.delete", { code: portfolio.code }),
-                            )
+                            setDeleteTarget({
+                              id: portfolio.id,
+                              code: portfolio.code,
+                            })
                           }}
                           className="text-slate-400 hover:text-red-600 transition-colors"
                           title={t(
@@ -953,6 +958,17 @@ export default withPageAuthRequired(function Portfolios({
           preSelectedPortfolioId={sharePortfolioId}
           onClose={() => setSharePortfolioId(null)}
           onSuccess={() => setSharePortfolioId(null)}
+        />
+      )}
+      {deleteTarget && (
+        <ConfirmDialog
+          title={t("portfolio.delete.title", "Delete Portfolio")}
+          message={t("portfolio.delete", { code: deleteTarget.code })}
+          confirmLabel={t("delete", "Delete")}
+          cancelLabel={t("cancel", "Cancel")}
+          variant="red"
+          onConfirm={deletePortfolioConfirm}
+          onCancel={() => setDeleteTarget(null)}
         />
       )}
     </>
