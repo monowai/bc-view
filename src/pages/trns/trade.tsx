@@ -1,12 +1,10 @@
 import React, { useEffect, useMemo, useState, useRef } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
-import * as yup from "yup"
 import {
   Portfolio,
   QuickSellData,
   BrokerWithAccounts,
-  Transaction,
 } from "types/beancounter"
 import { ModelDto } from "types/rebalance"
 import {
@@ -63,91 +61,14 @@ import {
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { getDisplayCode } from "@lib/assets/assetUtils"
-
-const TradeTypeValues = [
-  "BUY",
-  "SELL",
-  "ADD",
-  "REDUCE",
-  "DIVI",
-  "SPLIT",
-  "EXPENSE",
-  "INCOME",
-] as const
-
-const defaultValues = {
-  type: { value: "BUY", label: "BUY" },
-  status: { value: "PROPOSED", label: "PROPOSED" },
-  asset: "",
-  market: "US",
-  tradeDate: new Date().toISOString().split("T")[0],
-  quantity: 0,
-  price: 0,
-  tradeCurrency: { value: "USD", label: "USD" },
-  settlementAccount: { value: "", label: "", currency: "" },
-  tradeAmount: 0,
-  cashAmount: 0,
-  fees: 0,
-  tax: 0,
-  comment: "",
-  brokerId: "",
-}
-
-const schema = yup.object().shape({
-  type: yup
-    .object()
-    .shape({
-      value: yup.string().required().default(defaultValues.type.value),
-      label: yup.string().required().default(defaultValues.type.label),
-    })
-    .required(),
-  status: yup
-    .object()
-    .shape({
-      value: yup.string().required().default(defaultValues.status.value),
-      label: yup.string().required().default(defaultValues.status.label),
-    })
-    .required(),
-  asset: yup.string().required(),
-  market: yup.string().required(),
-  tradeDate: yup.string().required(),
-  quantity: yup.number().default(0).required(),
-  price: yup.number().required().default(0),
-  tradeCurrency: yup
-    .object()
-    .shape({
-      value: yup.string().required(),
-      label: yup.string().required(),
-    })
-    .required(),
-  tradeAmount: yup.number(),
-  settlementAccount: yup
-    .object()
-    .shape({
-      value: yup.string(),
-      label: yup.string(),
-      currency: yup.string(),
-    })
-    .nullable(),
-  cashAmount: yup.number(),
-  fees: yup.number().required().default(defaultValues.fees),
-  tax: yup.number().required().default(defaultValues.tax),
-  comment: yup.string().notRequired(),
-  brokerId: yup.string().default(""),
-})
-
-// Common CSS classes
-const inputClass =
-  "mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
-const labelClass =
-  "block text-xs font-medium text-gray-500 uppercase tracking-wide"
-
-// Props for edit mode
-interface EditModeProps {
-  transaction: Transaction
-  onClose: () => void
-  onDelete: () => void
-}
+import {
+  TradeTypeValues,
+  defaultValues,
+  schema,
+  inputClass,
+  labelClass,
+  EditModeProps,
+} from "@lib/trns/tradeFormConfig"
 
 const TradeInputForm: React.FC<{
   portfolio: Portfolio

@@ -1,0 +1,8 @@
+{
+  "error.selectFile": "Please select a file",
+  "error.importFailed": "Import failed",
+  "error.invalidPrice": "Please enter a valid price greater than 0",
+  "error.setPriceFailed": "Failed to set price",
+  "error.saveFailed": "Failed to save",
+  "error.configSaveFailed": "Failed to save configuration"
+}

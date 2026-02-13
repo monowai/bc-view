@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { useTranslation } from "next-i18next"
@@ -7,138 +7,23 @@ import useSwr, { mutate } from "swr"
 import { fetcher, simpleFetcher } from "@utils/api/fetchHelper"
 import { rootLoader } from "@components/ui/PageLoader"
 import { Broker, Transaction, TrnStatus } from "types/beancounter"
+import { ProposedTransaction, AggregatedTransaction } from "types/proposed"
 import Head from "next/head"
 import { useUser } from "@auth0/nextjs-auth0/client"
 import { calculateTradeAmount } from "@utils/trns/tradeUtils"
 import { stripOwnerPrefix } from "@lib/assets/assetUtils"
 import DateInput from "@components/ui/DateInput"
-
-interface ProposedTransaction extends Transaction {
-  editedPrice?: number
-  editedFees?: number
-  editedStatus?: TrnStatus
-  editedTradeDate?: string
-  editedBrokerId?: string
-}
-
-// Aggregated transaction for efficient execution view
-interface AggregatedTransaction {
-  aggregateKey: string // broker:asset key
-  brokerId: string | undefined
-  brokerName: string
-  assetId: string
-  assetCode: string
-  assetName: string
-  assetMarket: { code: string }
-  trnType: string
-  tradeCurrency: { code: string }
-  totalQuantity: number
-  avgPrice: number
-  totalFees: number
-  totalAmount: number
-  transactionIds: string[]
-  transactions: ProposedTransaction[]
-  // Editable fields that apply to all underlying transactions
-  editedPrice?: number
-  editedFees?: number
-  editedStatus?: TrnStatus
-  editedTradeDate?: string
-}
-
-// Get today's date in YYYY-MM-DD format
-const getToday = (): string => new Date().toISOString().split("T")[0]
+import DecimalInput from "@components/ui/DecimalInput"
+import { getToday, getSessionValue, setSessionValue } from "@lib/sessionStorage"
 
 // Session storage keys for filter preferences
 const SESSION_KEY_INCLUDE_SETTLED = "proposed-include-settled"
 const SESSION_KEY_SETTLED_DATE = "proposed-settled-date"
 const SESSION_KEY_AGGREGATE_VIEW = "proposed-aggregate-view"
 
-// Helper to safely get from sessionStorage (handles SSR)
-const getSessionValue = <T,>(key: string, defaultValue: T): T => {
-  if (typeof window === "undefined") return defaultValue
-  const stored = sessionStorage.getItem(key)
-  if (stored === null) return defaultValue
-  try {
-    return JSON.parse(stored) as T
-  } catch {
-    return defaultValue
-  }
-}
-
-// Helper to safely set sessionStorage
-const setSessionValue = <T,>(key: string, value: T): void => {
-  if (typeof window === "undefined") return
-  sessionStorage.setItem(key, JSON.stringify(value))
-}
-
 // Get display code for an asset, stripping owner ID prefix for private assets
 const getAssetDisplayCode = (asset: { code: string }): string => {
   return stripOwnerPrefix(asset.code)
-}
-
-/**
- * Numeric input that preserves intermediate text (e.g. "5.") while the user is
- * typing, then commits the parsed number on blur.
- */
-function DecimalInput({
-  value,
-  onChange,
-  className,
-  ...rest
-}: {
-  value: number | undefined
-  onChange: (value: number) => void
-  className?: string
-} & Omit<
-  React.InputHTMLAttributes<HTMLInputElement>,
-  "value" | "onChange"
->): React.ReactElement {
-  const [display, setDisplay] = useState(
-    value != null && value !== 0 ? String(value) : "",
-  )
-  const focusedRef = useRef(false)
-
-  // Sync from parent when not focused
-  useEffect(() => {
-    if (!focusedRef.current) {
-      setDisplay(value != null && value !== 0 ? String(value) : "")
-    }
-  }, [value])
-
-  return (
-    <input
-      type="text"
-      inputMode="decimal"
-      value={display}
-      onChange={(e) => {
-        const val = e.target.value
-        if (val === "" || /^[0-9]*\.?[0-9]*$/.test(val)) {
-          setDisplay(val)
-          const num = parseFloat(val)
-          if (!isNaN(num)) {
-            onChange(num)
-          } else if (val === "") {
-            onChange(0)
-          }
-        }
-      }}
-      onFocus={() => {
-        focusedRef.current = true
-      }}
-      onBlur={(e) => {
-        focusedRef.current = false
-        const num = parseFloat(e.target.value)
-        if (!isNaN(num)) {
-          onChange(num)
-          setDisplay(String(num))
-        } else {
-          setDisplay(value != null && value !== 0 ? String(value) : "")
-        }
-      }}
-      className={className}
-      {...rest}
-    />
-  )
 }
 
 export default function ProposedTransactions(): React.JSX.Element {
