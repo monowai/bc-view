@@ -5,7 +5,6 @@ import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { GetServerSideProps } from "next"
 import Head from "next/head"
 import Link from "next/link"
-import { useRouter } from "next/router"
 import useSwr from "swr"
 import {
   portfoliosKey,
@@ -28,75 +27,16 @@ import {
 import ShareInviteDialog from "@components/features/portfolios/ShareInviteDialog"
 import { rootLoader } from "@components/ui/PageLoader"
 import { errorOut } from "@components/errors/ErrorOut"
-import { FormatValue } from "@components/ui/MoneyUtils"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
-import { PieChart, Pie, ResponsiveContainer, Tooltip, Legend } from "recharts"
-
-// Color palette for charts
-const COLORS = [
-  "#3B82F6", // blue
-  "#10B981", // emerald
-  "#F59E0B", // amber
-  "#EF4444", // red
-  "#8B5CF6", // violet
-  "#EC4899", // pink
-  "#06B6D4", // cyan
-  "#84CC16", // lime
-]
-
-const LIQUIDITY_COLORS: Record<string, string> = {
-  Investment: "#3B82F6", // blue
-  Cash: "#10B981", // emerald
-  Property: "#F59E0B", // amber
-  Retirement: "#8B5CF6", // violet
-  Other: "#6B7280", // gray
-}
-
-function mapToLiquidityGroup(categoryName: string): string {
-  switch (categoryName) {
-    case "Equity":
-    case "Exchange Traded Fund":
-    case "Mutual Fund":
-      return "Investment"
-    case "Cash":
-    case "Bank Account":
-    case "Trade":
-      return "Cash"
-    case "Real Estate":
-    case "RE":
-    case "Property":
-      return "Property"
-    case "Pension":
-    case "Insurance":
-    case "Defined Contribution":
-    case "Superannuation":
-    case "Annuity":
-    case "Policy":
-    case "Retirement Fund":
-      return "Retirement"
-    default:
-      return "Other"
-  }
-}
-
-interface WealthSummary {
-  totalValue: number
-  totalGainOnDay: number
-  portfolioCount: number
-  classificationBreakdown: {
-    classification: string
-    value: number
-    percentage: number
-  }[]
-  portfolioBreakdown: {
-    code: string
-    name: string
-    value: number
-    percentage: number
-    irr: number
-  }[]
-}
+import {
+  mapToLiquidityGroup,
+  WealthSummary,
+} from "@lib/wealth/liquidityGroups"
+import WealthHeroSection from "@components/features/wealth/WealthHeroSection"
+import AssetAllocationCharts from "@components/features/wealth/AssetAllocationCharts"
+import PortfolioDetailsTable from "@components/features/wealth/PortfolioDetailsTable"
+import QuickActionCards from "@components/features/wealth/QuickActionCards"
 
 type SortConfig = {
   key: string | null
@@ -107,7 +47,6 @@ function WealthDashboard(): React.ReactElement {
   const { t, ready } = useTranslation("common")
   const { preferences } = useUserPreferences()
   const { hideValues } = usePrivacyMode()
-  const router = useRouter()
   const [sortConfig, setSortConfig] = useState<SortConfig>({
     key: "value",
     direction: "desc",
@@ -274,18 +213,6 @@ function WealthDashboard(): React.ReactElement {
     })
   }
 
-  // Sort icon component
-  const getSortIcon = (headerKey: string): React.ReactElement => {
-    if (sortConfig.key !== headerKey) {
-      return <span className="ml-1 text-gray-400">↕</span>
-    }
-    return sortConfig.direction === "asc" ? (
-      <span className="ml-1 text-blue-500">↑</span>
-    ) : (
-      <span className="ml-1 text-blue-500">↓</span>
-    )
-  }
-
   // Calculate wealth summary
   const summary: WealthSummary = useMemo(() => {
     if (portfolios.length === 0 || Object.keys(fxRates).length === 0) {
@@ -417,13 +344,6 @@ function WealthDashboard(): React.ReactElement {
       assets,
     })
 
-  // Chart data
-  const portfolioChartData = summary.portfolioBreakdown.map((p, index) => ({
-    name: p.code,
-    value: p.value,
-    fill: COLORS[index % COLORS.length],
-  }))
-
   if (portfolioError) {
     return errorOut(t("portfolios.error.retrieve"), portfolioError)
   }
@@ -441,150 +361,14 @@ function WealthDashboard(): React.ReactElement {
       <div className="min-h-screen bg-linear-to-br from-slate-50 to-blue-50 py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Hero — Net Worth */}
-          <div className="bg-linear-to-br from-blue-500 to-blue-700 rounded-2xl shadow-xl mb-8 overflow-hidden">
-            {/* Top bar: title + nav + currency */}
-            <div className="flex items-center justify-between px-8 pt-6 pb-3 gap-4">
-              <h1 className="text-sm font-semibold uppercase tracking-widest text-white/80">
-                Net Worth
-              </h1>
-              <div className="flex items-center gap-1">
-                <Link
-                  href="/portfolios"
-                  className="text-sky-300 hover:text-sky-200 hover:bg-white/15 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
-                  title="Portfolios"
-                >
-                  <i className="fas fa-chart-pie text-sm text-white"></i>
-                  <span className="text-xs font-medium hidden sm:inline">
-                    Portfolios
-                  </span>
-                </Link>
-                <Link
-                  href="/rebalance/wizard"
-                  className="text-emerald-300 hover:text-emerald-200 hover:bg-white/15 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
-                  title="Strategy"
-                >
-                  <i className="fas fa-chess text-sm text-emerald-300"></i>
-                  <span className="text-xs font-medium hidden sm:inline">
-                    Strategy
-                  </span>
-                </Link>
-                <Link
-                  href="/independence"
-                  className="text-orange-300 hover:text-orange-200 hover:bg-white/15 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
-                  title="Independence"
-                >
-                  <i className="fas fa-umbrella-beach text-sm text-orange-300"></i>
-                  <span className="text-xs font-medium hidden sm:inline">
-                    Independence
-                  </span>
-                </Link>
-                {portfolios.length > 0 && (
-                  <button
-                    onClick={() => setShowShareDialog(true)}
-                    className="text-white/70 hover:text-white hover:bg-white/15 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
-                    title={t("shares.invite.title")}
-                  >
-                    <i className="fas fa-share-alt text-sm"></i>
-                    <span className="text-xs font-medium hidden sm:inline">
-                      {t("share")}
-                    </span>
-                  </button>
-                )}
-                {currencies.length > 0 && displayCurrency && (
-                  <>
-                    <div className="w-px h-5 bg-white/20 mx-1"></div>
-                    <select
-                      value={displayCurrency.code}
-                      onChange={(e) => {
-                        const selected = currencies.find(
-                          (c) => c.code === e.target.value,
-                        )
-                        if (selected) setDisplayCurrency(selected)
-                      }}
-                      className="bg-white/20 border border-white/30 text-white rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-white/50"
-                    >
-                      {currencies.map((c) => (
-                        <option
-                          key={c.code}
-                          value={c.code}
-                          className="bg-blue-800 text-white"
-                        >
-                          {c.symbol} {c.code}
-                        </option>
-                      ))}
-                    </select>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Total value */}
-            <div className="px-8">
-              <div className="flex items-baseline gap-3 flex-wrap">
-                <span className="text-4xl sm:text-5xl font-bold text-white tracking-tight tabular-nums">
-                  {displayCurrency?.symbol}
-                  <FormatValue value={summary.totalValue} />
-                </span>
-                {summary.totalGainOnDay !== 0 && !hideValues && (
-                  <span
-                    className={`text-lg font-semibold tabular-nums ${summary.totalGainOnDay >= 0 ? "text-emerald-300" : "text-red-300"}`}
-                  >
-                    {summary.totalGainOnDay >= 0 ? "+" : ""}
-                    {displayCurrency?.symbol}
-                    <FormatValue value={summary.totalGainOnDay} />
-                    <span className="text-sm ml-1 text-white/60 font-normal">
-                      today
-                    </span>
-                  </span>
-                )}
-              </div>
-              <p className="text-white/70 text-sm mt-1">
-                Across {summary.portfolioCount} portfolio
-                {summary.portfolioCount !== 1 ? "s" : ""}
-              </p>
-            </div>
-
-            {/* Liquidity bar — inline in hero */}
-            {summary.classificationBreakdown.length > 0 && (
-              <div className="px-8 pt-4 pb-6">
-                <div className="flex h-3 rounded-full overflow-hidden bg-white/25 mb-3">
-                  {summary.classificationBreakdown.map((item) => (
-                    <div
-                      key={item.classification}
-                      style={{
-                        width: `${Math.max(item.percentage, 1)}%`,
-                        backgroundColor:
-                          LIQUIDITY_COLORS[item.classification] || "#6B7280",
-                      }}
-                      title={`${item.classification}: ${item.percentage.toFixed(1)}%`}
-                    />
-                  ))}
-                </div>
-                <div className="flex flex-wrap gap-x-6 gap-y-1">
-                  {summary.classificationBreakdown.map((item) => (
-                    <div
-                      key={item.classification}
-                      className="flex items-center gap-2"
-                    >
-                      <div
-                        className="w-3 h-3 rounded-full ring-2 ring-white/50"
-                        style={{
-                          backgroundColor:
-                            LIQUIDITY_COLORS[item.classification] || "#6B7280",
-                        }}
-                      />
-                      <span className="text-sm text-white/80">
-                        {item.classification}
-                      </span>
-                      <span className="text-sm font-semibold text-white tabular-nums">
-                        {item.percentage.toFixed(0)}%
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          <WealthHeroSection
+            summary={summary}
+            displayCurrency={displayCurrency}
+            currencies={currencies}
+            portfolios={portfolios}
+            onCurrencyChange={setDisplayCurrency}
+            onShareClick={() => setShowShareDialog(true)}
+          />
 
           {/* Independence Metrics - shown if user has an independence plan */}
           {primaryPlan && (
@@ -865,360 +649,25 @@ function WealthDashboard(): React.ReactElement {
           )}
 
           {/* Charts Row */}
-          {summary.portfolioBreakdown.length > 0 && (
-            <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-              <button
-                type="button"
-                onClick={() => toggleSection("charts")}
-                className="flex items-center text-lg font-semibold text-gray-900 hover:text-gray-700 mb-4"
-              >
-                <i
-                  className={`fas fa-chevron-${collapsedSections.charts ? "right" : "down"} text-gray-400 mr-2 w-4`}
-                ></i>
-                <i className="fas fa-chart-pie text-white mr-2"></i>
-                Asset Allocation
-              </button>
-
-              {!collapsedSections.charts && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Portfolio Breakdown Chart */}
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <h3 className="text-md font-medium text-gray-700 mb-4">
-                      By Portfolio
-                    </h3>
-                    <div className="h-64">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={portfolioChartData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={60}
-                            outerRadius={100}
-                            paddingAngle={2}
-                            dataKey="value"
-                          />
-                          <Tooltip
-                            formatter={(value) => [
-                              `${displayCurrency?.symbol}${Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
-                              "Value",
-                            ]}
-                          />
-                          <Legend />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-
-                  {/* Liquidity Breakdown */}
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <h3 className="text-md font-medium text-gray-700 mb-4">
-                      By Liquidity
-                    </h3>
-                    <div className="flex flex-col gap-3">
-                      {/* Stacked bar overview */}
-                      <div className="flex h-6 rounded-full overflow-hidden">
-                        {summary.classificationBreakdown.map((item) => (
-                          <div
-                            key={item.classification}
-                            className="transition-all"
-                            style={{
-                              width: `${Math.max(item.percentage, 1)}%`,
-                              backgroundColor:
-                                LIQUIDITY_COLORS[item.classification] ||
-                                "#6B7280",
-                            }}
-                            title={`${item.classification}: ${item.percentage.toFixed(1)}%`}
-                          />
-                        ))}
-                      </div>
-
-                      {/* Category rows */}
-                      <div className="flex flex-col gap-2 mt-1">
-                        {summary.classificationBreakdown.map((item) => (
-                          <div
-                            key={item.classification}
-                            className="flex items-center justify-between"
-                          >
-                            <div className="flex items-center gap-2">
-                              <div
-                                className="w-3 h-3 rounded-full shrink-0"
-                                style={{
-                                  backgroundColor:
-                                    LIQUIDITY_COLORS[item.classification] ||
-                                    "#6B7280",
-                                }}
-                              />
-                              <span className="text-sm text-gray-700">
-                                {item.classification}
-                              </span>
-                            </div>
-                            <div className="flex items-baseline gap-2">
-                              <span className="text-sm font-semibold text-gray-900 tabular-nums">
-                                {displayCurrency?.symbol}
-                                {item.value.toLocaleString(undefined, {
-                                  maximumFractionDigits: 0,
-                                })}
-                              </span>
-                              <span className="text-xs text-gray-500 tabular-nums w-12 text-right">
-                                {item.percentage.toFixed(1)}%
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Market exposure callout */}
-                      {(() => {
-                        const investmentPct =
-                          summary.classificationBreakdown.find(
-                            (c) => c.classification === "Investment",
-                          )?.percentage ?? 0
-                        return (
-                          <div className="mt-2 pt-3 border-t border-gray-200">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs text-gray-500 uppercase tracking-wider">
-                                Market Exposure
-                              </span>
-                              <span className="text-lg font-bold text-blue-600 tabular-nums">
-                                {investmentPct.toFixed(1)}%
-                              </span>
-                            </div>
-                          </div>
-                        )
-                      })()}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+          <AssetAllocationCharts
+            summary={summary}
+            displayCurrency={displayCurrency}
+            collapsed={collapsedSections.charts}
+            onToggle={() => toggleSection("charts")}
+          />
 
           {/* Portfolio Details Table */}
-          <div className="bg-white rounded-xl shadow-md overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100">
-              <button
-                type="button"
-                onClick={() => toggleSection("portfolioDetails")}
-                className="flex items-center text-lg font-semibold text-gray-900 hover:text-gray-700"
-              >
-                <i
-                  className={`fas fa-chevron-${collapsedSections.portfolioDetails ? "right" : "down"} text-gray-400 mr-2 w-4`}
-                ></i>
-                <i className="fas fa-table text-white mr-2"></i>
-                Portfolio Details
-              </button>
-            </div>
-
-            {!collapsedSections.portfolioDetails && (
-              <>
-                {summary.portfolioBreakdown.length === 0 ? (
-                  <div className="p-8">
-                    <p className="text-gray-600 mb-6 text-center">
-                      {t("portfolios.empty.title", "No portfolios yet")}
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-xl mx-auto">
-                      {/* Guided Setup */}
-                      <Link
-                        href="/onboarding"
-                        className="border border-gray-200 rounded-lg p-4 text-center hover:border-blue-300 hover:shadow-sm transition-all"
-                      >
-                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                          <i className="fas fa-rocket text-blue-500"></i>
-                        </div>
-                        <h4 className="font-medium text-gray-900 mb-1">
-                          {t("home.startSetup", "Start Setup")}
-                        </h4>
-                        <p className="text-gray-500 text-xs">
-                          {t("portfolios.guided", "Guided setup")}
-                        </p>
-                      </Link>
-                      {/* Direct Add */}
-                      <Link
-                        href="/portfolios/__NEW__"
-                        className="border border-gray-200 rounded-lg p-4 text-center hover:border-green-300 hover:shadow-sm transition-all"
-                      >
-                        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                          <i className="fas fa-plus text-green-500"></i>
-                        </div>
-                        <h4 className="font-medium text-gray-900 mb-1">
-                          {t("portfolio.create")}
-                        </h4>
-                        <p className="text-gray-500 text-xs">
-                          {t("portfolios.direct", "Direct control")}
-                        </p>
-                      </Link>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th
-                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                            onClick={() => handleSort("code")}
-                          >
-                            <div className="flex items-center">
-                              Portfolio
-                              {getSortIcon("code")}
-                            </div>
-                          </th>
-                          <th
-                            className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                            onClick={() => handleSort("value")}
-                          >
-                            <div className="flex items-center justify-end">
-                              Value ({displayCurrency?.code})
-                              {getSortIcon("value")}
-                            </div>
-                          </th>
-                          <th
-                            className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                            onClick={() => handleSort("percentage")}
-                          >
-                            <div className="flex items-center justify-end">
-                              % of Total
-                              {getSortIcon("percentage")}
-                            </div>
-                          </th>
-                          <th
-                            className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-                            onClick={() => handleSort("irr")}
-                          >
-                            <div className="flex items-center justify-end">
-                              IRR
-                              {getSortIcon("irr")}
-                            </div>
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {summary.portfolioBreakdown.map((portfolio, index) => (
-                          <tr
-                            key={portfolio.code}
-                            className="hover:bg-slate-100 transition-colors cursor-pointer"
-                            onClick={() =>
-                              router.push(`/holdings/${portfolio.code}`)
-                            }
-                          >
-                            <td className="px-6 py-4">
-                              <div className="flex items-center">
-                                <div
-                                  className="w-3 h-3 rounded-full mr-3"
-                                  style={{
-                                    backgroundColor:
-                                      COLORS[index % COLORS.length],
-                                  }}
-                                ></div>
-                                <div>
-                                  <Link
-                                    href={`/holdings/${portfolio.code}`}
-                                    className="font-medium text-blue-600 hover:text-blue-800"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    {portfolio.code}
-                                  </Link>
-                                  <p className="text-sm text-gray-500">
-                                    {portfolio.name}
-                                  </p>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 text-right font-medium text-gray-900">
-                              {displayCurrency?.symbol}
-                              <FormatValue value={portfolio.value} />
-                            </td>
-                            <td className="px-6 py-4 text-right text-gray-600">
-                              {portfolio.percentage.toFixed(1)}%
-                            </td>
-                            <td className="px-6 py-4 text-right">
-                              <span
-                                className={`font-medium ${portfolio.irr >= 0 ? "text-green-600" : "text-red-600"}`}
-                              >
-                                {(portfolio.irr * 100).toFixed(2)}%
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                      <tfoot className="bg-gray-50 border-t-2 border-gray-200">
-                        <tr>
-                          <td className="px-6 py-4 font-bold text-gray-900">
-                            Total
-                          </td>
-                          <td className="px-6 py-4 text-right font-bold text-gray-900">
-                            {displayCurrency?.symbol}
-                            <FormatValue value={summary.totalValue} />
-                          </td>
-                          <td className="px-6 py-4 text-right font-bold text-gray-600">
-                            100%
-                          </td>
-                          <td className="px-6 py-4"></td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
+          <PortfolioDetailsTable
+            summary={summary}
+            sortConfig={sortConfig}
+            onSort={handleSort}
+            displayCurrency={displayCurrency}
+            collapsed={collapsedSections.portfolioDetails}
+            onToggle={() => toggleSection("portfolioDetails")}
+          />
 
           {/* Quick Actions */}
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Link
-              href="/holdings/aggregated"
-              className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow group"
-            >
-              <div className="flex items-center">
-                <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center mr-4 group-hover:bg-amber-200 transition-colors">
-                  <i className="fas fa-layer-group text-white text-xl"></i>
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900">
-                    Aggregated Holdings
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    View all holdings combined
-                  </p>
-                </div>
-              </div>
-            </Link>
-
-            <Link
-              href="/rebalance/wizard"
-              className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow group"
-            >
-              <div className="flex items-center">
-                <div className="w-12 h-12 bg-violet-100 rounded-lg flex items-center justify-center mr-4 group-hover:bg-violet-200 transition-colors">
-                  <i className="fas fa-balance-scale text-white text-xl"></i>
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900">Rebalance</p>
-                  <p className="text-sm text-gray-500">
-                    Align to target allocations
-                  </p>
-                </div>
-              </div>
-            </Link>
-
-            <Link
-              href="/accounts"
-              className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow group"
-            >
-              <div className="flex items-center">
-                <div className="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center mr-4 group-hover:bg-emerald-200 transition-colors">
-                  <i className="fas fa-gem text-white text-xl"></i>
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900">Custom Assets</p>
-                  <p className="text-sm text-gray-500">
-                    Property, accounts & more
-                  </p>
-                </div>
-              </div>
-            </Link>
-          </div>
+          <QuickActionCards />
         </div>
       </div>
 
