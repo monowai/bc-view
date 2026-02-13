@@ -502,7 +502,7 @@ export default withPageAuthRequired(function AssetAdmin(): React.ReactElement {
                     className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isSaving ? (
-                      <Spinner />
+                      <Spinner className="mr-1" />
                     ) : (
                       <i className="fas fa-save mr-1"></i>
                     )}
@@ -525,7 +525,7 @@ export default withPageAuthRequired(function AssetAdmin(): React.ReactElement {
                 } disabled:opacity-50`}
               >
                 {isSaving ? (
-                  <Spinner />
+                  <Spinner className="mr-1" />
                 ) : (
                   <i
                     className={`fas ${isActive ? "fa-ban" : "fa-check-circle"} mr-1`}
@@ -542,7 +542,7 @@ export default withPageAuthRequired(function AssetAdmin(): React.ReactElement {
                 className="px-4 py-2 bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 rounded-md text-sm font-medium disabled:opacity-50"
               >
                 {isEnriching ? (
-                  <Spinner />
+                  <Spinner className="mr-1" />
                 ) : (
                   <i className="fas fa-sync-alt mr-1"></i>
                 )}

@@ -51,12 +51,12 @@ const DeleteAccountDialog: React.FC<DeleteAccountDialogProps> = ({
     >
       <p className="text-gray-700">{t("accounts.delete.confirm")}</p>
 
-      <Alert variant="error" className="p-4">
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
         <div className="font-semibold text-lg">{asset.name}</div>
         <div className="text-sm text-gray-600">
           {stripOwnerPrefix(asset.code)} ({getAssetCurrency(asset)})
         </div>
-      </Alert>
+      </div>
 
       <p className="text-sm text-gray-500">{t("accounts.delete.warning")}</p>
 
