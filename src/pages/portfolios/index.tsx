@@ -18,13 +18,8 @@ import ManagedPortfolios from "@components/features/portfolios/ManagedPortfolios
 import { useFxRates } from "@hooks/useFxRates"
 import ShareInviteDialog from "@components/features/portfolios/ShareInviteDialog"
 import PortfolioActions from "@components/features/portfolios/PortfolioActions"
-import { getSortIcon } from "@lib/sortIcon"
+import { getSortIcon, SortConfig } from "@lib/sortIcon"
 import PortfolioImportDialog from "@components/features/portfolios/PortfolioImportDialog"
-
-type SortConfig = {
-  key: string | null
-  direction: "asc" | "desc"
-}
 
 export default withPageAuthRequired(function Portfolios({
   user,

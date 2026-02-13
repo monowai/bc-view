@@ -1,5 +1,7 @@
 import React, { useRef, useState } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
+import { GetServerSideProps } from "next"
+import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import Head from "next/head"
 import Link from "next/link"
 import { useRouter } from "next/router"
@@ -449,14 +451,18 @@ function RetirementPlanning(): React.ReactElement {
           </div>
 
           {importError && (
-            <div className="mb-6 flex justify-between items-center">
-              <Alert>{importError}</Alert>
-              <button
-                onClick={() => setImportError(null)}
-                className="text-red-500 hover:text-red-700 ml-2"
-              >
-                <i className="fas fa-times"></i>
-              </button>
+            <div className="mb-6">
+              <Alert>
+                <div className="flex justify-between items-center">
+                  <span>{importError}</span>
+                  <button
+                    onClick={() => setImportError(null)}
+                    className="text-red-500 hover:text-red-700 ml-2"
+                  >
+                    <i className="fas fa-times"></i>
+                  </button>
+                </div>
+              </Alert>
             </div>
           )}
 
@@ -520,3 +526,9 @@ function RetirementPlanning(): React.ReactElement {
 }
 
 export default withPageAuthRequired(RetirementPlanning)
+
+export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
+  props: {
+    ...(await serverSideTranslations(locale ?? "en", ["common"])),
+  },
+})
