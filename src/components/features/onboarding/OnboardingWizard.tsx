@@ -325,11 +325,13 @@ const OnboardingWizard: React.FC = () => {
   const createAssets = async (portfolioId: string): Promise<void> => {
     // Fetch existing user assets to avoid creating duplicates
     const existingResponse = await fetch("/api/assets")
-    const existingAssets: Record<string, { id: string }> =
-      existingResponse.ok
-        ? ((await existingResponse.json()) as { data: Record<string, { id: string }> })
-            .data || {}
-        : {}
+    const existingAssets: Record<string, { id: string }> = existingResponse.ok
+      ? (
+          (await existingResponse.json()) as {
+            data: Record<string, { id: string }>
+          }
+        ).data || {}
+      : {}
 
     // Create bank accounts
     for (const account of bankAccounts) {

@@ -109,9 +109,7 @@ describe("AssumptionsStep", () => {
       </TestWrapper>,
     )
 
-    await userEvent.click(
-      screen.getByRole("button", { name: /legacy/i }),
-    )
+    await userEvent.click(screen.getByRole("button", { name: /legacy/i }))
 
     expect(
       screen.getByRole("spinbutton", { name: /target amount/i }),
@@ -125,9 +123,7 @@ describe("AssumptionsStep", () => {
       </TestWrapper>,
     )
 
-    await userEvent.click(
-      screen.getByRole("button", { name: /legacy/i }),
-    )
+    await userEvent.click(screen.getByRole("button", { name: /legacy/i }))
 
     expect(
       screen.getByText(

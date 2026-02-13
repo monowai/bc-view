@@ -25,13 +25,11 @@ import {
 } from "@components/features/independence"
 import ShareInviteDialog from "@components/features/portfolios/ShareInviteDialog"
 import { rootLoader } from "@components/ui/PageLoader"
+import Spinner from "@components/ui/Spinner"
 import { errorOut } from "@components/errors/ErrorOut"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import { useFxRates } from "@hooks/useFxRates"
-import {
-  mapToLiquidityGroup,
-  WealthSummary,
-} from "@lib/wealth/liquidityGroups"
+import { mapToLiquidityGroup, WealthSummary } from "@lib/wealth/liquidityGroups"
 import WealthHeroSection from "@components/features/wealth/WealthHeroSection"
 import AssetAllocationCharts from "@components/features/wealth/AssetAllocationCharts"
 import PortfolioDetailsTable from "@components/features/wealth/PortfolioDetailsTable"
@@ -115,8 +113,10 @@ function WealthDashboard(): React.ReactElement {
     () => portfolios.map((p) => p.base.code),
     [portfolios],
   )
-  const { displayCurrency, setDisplayCurrency, fxRates, fxReady } =
-    useFxRates(currencies, sourceCurrencyCodes)
+  const { displayCurrency, setDisplayCurrency, fxRates, fxReady } = useFxRates(
+    currencies,
+    sourceCurrencyCodes,
+  )
 
   // Fetch monthly investment for current month (depends on display currency)
   const monthlyInvestmentUrl = displayCurrency
@@ -326,10 +326,7 @@ function WealthDashboard(): React.ReactElement {
                   Independence Metrics
                   {projectionLoading && (
                     <span className="ml-2 inline-flex items-center">
-                      <i className="fas fa-spinner fa-spin text-blue-500 text-sm"></i>
-                      <span className="ml-1 text-sm font-normal text-gray-500">
-                        Calculating...
-                      </span>
+                      <Spinner label="Calculating..." />
                     </span>
                   )}
                 </button>
@@ -651,7 +648,7 @@ function WealthDashboard(): React.ReactElement {
               <div className="px-6 py-4 overflow-y-auto max-h-[60vh]">
                 {!investmentTrnsData ? (
                   <div className="flex justify-center py-8">
-                    <i className="fas fa-spinner fa-spin text-2xl text-gray-400"></i>
+                    <Spinner size="lg" />
                   </div>
                 ) : investmentTrnsData.data.length === 0 ? (
                   <p className="text-center text-gray-500 py-8">

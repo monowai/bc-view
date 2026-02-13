@@ -13,12 +13,8 @@ const QuickActionCards: React.FC = () => {
             <i className="fas fa-layer-group text-amber-700 text-xl"></i>
           </div>
           <div>
-            <p className="font-semibold text-gray-900">
-              Aggregated Holdings
-            </p>
-            <p className="text-sm text-gray-500">
-              View all holdings combined
-            </p>
+            <p className="font-semibold text-gray-900">Aggregated Holdings</p>
+            <p className="text-sm text-gray-500">View all holdings combined</p>
           </div>
         </div>
       </Link>
@@ -33,9 +29,7 @@ const QuickActionCards: React.FC = () => {
           </div>
           <div>
             <p className="font-semibold text-gray-900">Rebalance</p>
-            <p className="text-sm text-gray-500">
-              Align to target allocations
-            </p>
+            <p className="text-sm text-gray-500">Align to target allocations</p>
           </div>
         </div>
       </Link>
@@ -50,9 +44,7 @@ const QuickActionCards: React.FC = () => {
           </div>
           <div>
             <p className="font-semibold text-gray-900">Custom Assets</p>
-            <p className="text-sm text-gray-500">
-              Property, accounts & more
-            </p>
+            <p className="text-sm text-gray-500">Property, accounts & more</p>
           </div>
         </div>
       </Link>

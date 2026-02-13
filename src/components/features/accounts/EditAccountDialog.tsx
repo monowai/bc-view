@@ -6,6 +6,7 @@ import { stripOwnerPrefix, getAssetCurrency } from "@lib/assets/assetUtils"
 import MathInput from "@components/ui/MathInput"
 import CompositeAssetEditor from "@components/features/assets/CompositeAssetEditor"
 import { CategoryOption, SectorOption } from "./accountTypes"
+import Alert from "@components/ui/Alert"
 
 // Private Asset Config state interface
 interface AssetConfigState {
@@ -484,7 +485,9 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
         onClose()
       }, 1500)
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("wealth:error.saveFailed"))
+      setError(
+        err instanceof Error ? err.message : t("wealth:error.saveFailed"),
+      )
     } finally {
       setIsSubmitting(false)
     }
@@ -1353,18 +1356,13 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
           </div>
         )}
 
-        {/* Error display */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm mt-4">
-            {error}
-          </div>
-        )}
+        {error && <Alert className="mt-4">{error}</Alert>}
 
         {submitSuccess && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mt-4 text-center">
+          <Alert variant="success" className="p-4 mt-4 text-center">
             <i className="fas fa-check-circle text-green-500 text-2xl mb-2"></i>
             <p className="text-green-700 font-medium">{t("saved")}</p>
-          </div>
+          </Alert>
         )}
 
         <div className="flex justify-end space-x-2 mt-6">

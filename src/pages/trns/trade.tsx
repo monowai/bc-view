@@ -1,11 +1,7 @@
 import React, { useEffect, useMemo, useState, useRef } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
-import {
-  Portfolio,
-  QuickSellData,
-  BrokerWithAccounts,
-} from "types/beancounter"
+import { Portfolio, QuickSellData, BrokerWithAccounts } from "types/beancounter"
 import { ModelDto } from "types/rebalance"
 import {
   calculateTradeAmount,

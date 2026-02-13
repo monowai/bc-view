@@ -275,9 +275,10 @@ describe("CorporateActionsPopup", () => {
         />,
       )
 
-      const closeButton = document.querySelector(".fa-times")?.parentElement
+      // Dialog uses × character for close button
+      const closeButton = screen.getByText("×")
       expect(closeButton).toBeInTheDocument()
-      fireEvent.click(closeButton!)
+      fireEvent.click(closeButton)
 
       expect(mockOnClose).toHaveBeenCalledTimes(1)
     })

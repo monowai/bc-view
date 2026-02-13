@@ -117,11 +117,7 @@ export default function CurrencyInputWithPeriod({
       {error && (
         <p className="mt-1 text-sm text-red-600">{error.message as string}</p>
       )}
-      {helperText && (
-        <p className="mt-1 text-sm text-gray-500">
-          {helperText}
-        </p>
-      )}
+      {helperText && <p className="mt-1 text-sm text-gray-500">{helperText}</p>}
       {!helperText && !hidePeriodToggle && (
         <p className="mt-1 text-xs text-gray-400">
           {period === "annual"

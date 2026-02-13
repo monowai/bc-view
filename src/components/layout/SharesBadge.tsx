@@ -1,10 +1,7 @@
 import React from "react"
 import useSwr from "swr"
 import Link from "next/link"
-import {
-  fetcher,
-  resourceSharesPendingKey,
-} from "@utils/api/fetchHelper"
+import { fetcher, resourceSharesPendingKey } from "@utils/api/fetchHelper"
 import { useRegistration } from "@contexts/RegistrationContext"
 import {
   PendingSharesResponse,
@@ -45,9 +42,7 @@ export default function SharesBadge(): React.ReactElement | null {
     return null
   }
 
-  const portfolioCount = data
-    ? data.invites.length + data.requests.length
-    : 0
+  const portfolioCount = data ? data.invites.length + data.requests.length : 0
   const resourceCount = resourceData
     ? resourceData.invites.length + resourceData.requests.length
     : 0

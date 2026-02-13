@@ -10,6 +10,8 @@ import { getAssetCurrency } from "@lib/assets/assetUtils"
 import { errorOut } from "@components/errors/ErrorOut"
 import { useRouter } from "next/router"
 import { rootLoader } from "@components/ui/PageLoader"
+import Dialog from "@components/ui/Dialog"
+import Alert from "@components/ui/Alert"
 
 const brokersKey = "/api/brokers?includeAccounts=true"
 const accountAssetsKey = "/api/assets?category=ACCOUNT"
@@ -573,93 +575,61 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
 
       {/* Transfer Dialog */}
       {transferringBroker && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div
-            className="fixed inset-0 bg-black opacity-50"
-            onClick={handleCancelTransfer}
-          ></div>
-          <div
-            className="bg-white rounded-lg shadow-lg w-full max-w-md mx-4 p-6 z-50"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <header className="flex justify-between items-center border-b pb-2 mb-4">
-              <h2 className="text-xl font-semibold">
-                {t("brokers.transfer.title", "Transfer Transactions")}
-              </h2>
-              <button
-                className="text-gray-500 hover:text-gray-700 text-2xl"
+        <Dialog
+          title={t("brokers.transfer.title", "Transfer Transactions")}
+          onClose={handleCancelTransfer}
+          footer={
+            <>
+              <Dialog.CancelButton
                 onClick={handleCancelTransfer}
-              >
-                &times;
-              </button>
-            </header>
-
-            {deleteError && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-                {deleteError}
-              </div>
-            )}
-
-            <p className="text-gray-600 mb-4">
-              {t(
-                "brokers.transfer.description",
-                'Transfer all transactions from "{{name}}" to another broker:',
-                { name: transferringBroker.name },
-              )}
-            </p>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t("brokers.transfer.target", "Transfer to")}
-              </label>
-              <select
-                value={targetBrokerId}
-                onChange={(e) => setTargetBrokerId(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-              >
-                <option value="">
-                  {t("brokers.transfer.selectBroker", "Select a broker...")}
-                </option>
-                {brokers
-                  .filter((b) => b.id !== transferringBroker.id)
-                  .map((broker) => (
-                    <option key={broker.id} value={broker.id}>
-                      {broker.name}
-                    </option>
-                  ))}
-              </select>
-            </div>
-
-            <div className="flex justify-end space-x-2">
-              <button
-                type="button"
-                className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors"
-                onClick={handleCancelTransfer}
-              >
-                {t("cancel", "Cancel")}
-              </button>
-              <button
-                type="button"
-                className={`px-4 py-2 rounded-lg transition-colors text-white ${
-                  isTransferring || !targetBrokerId
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-orange-500 hover:bg-orange-600"
-                }`}
+                label={t("cancel", "Cancel")}
+              />
+              <Dialog.SubmitButton
                 onClick={handleTransfer}
-                disabled={isTransferring || !targetBrokerId}
-              >
-                {isTransferring ? (
-                  <span className="flex items-center">
-                    <i className="fas fa-spinner fa-spin mr-2"></i>
-                    {t("brokers.transfer.transferring", "Transferring...")}
-                  </span>
-                ) : (
-                  t("brokers.transfer.confirm", "Transfer")
+                label={t("brokers.transfer.confirm", "Transfer")}
+                loadingLabel={t(
+                  "brokers.transfer.transferring",
+                  "Transferring...",
                 )}
-              </button>
-            </div>
+                isSubmitting={isTransferring}
+                disabled={!targetBrokerId}
+                variant="amber"
+              />
+            </>
+          }
+        >
+          {deleteError && <Alert>{deleteError}</Alert>}
+
+          <p className="text-gray-600">
+            {t(
+              "brokers.transfer.description",
+              'Transfer all transactions from "{{name}}" to another broker:',
+              { name: transferringBroker.name },
+            )}
+          </p>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t("brokers.transfer.target", "Transfer to")}
+            </label>
+            <select
+              value={targetBrokerId}
+              onChange={(e) => setTargetBrokerId(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            >
+              <option value="">
+                {t("brokers.transfer.selectBroker", "Select a broker...")}
+              </option>
+              {brokers
+                .filter((b) => b.id !== transferringBroker.id)
+                .map((broker) => (
+                  <option key={broker.id} value={broker.id}>
+                    {broker.name}
+                  </option>
+                ))}
+            </select>
           </div>
-        </div>
+        </Dialog>
       )}
     </div>
   )

@@ -5,11 +5,7 @@ import { useRouter } from "next/router"
 import { Currency } from "types/beancounter"
 import { FormatValue } from "@components/ui/MoneyUtils"
 import { WealthSummary, COLORS } from "@lib/wealth/liquidityGroups"
-
-type SortConfig = {
-  key: string | null
-  direction: "asc" | "desc"
-}
+import { getSortIcon, SortConfig } from "@lib/sortIcon"
 
 interface PortfolioDetailsTableProps {
   summary: WealthSummary
@@ -30,17 +26,6 @@ const PortfolioDetailsTable: React.FC<PortfolioDetailsTableProps> = ({
 }) => {
   const { t } = useTranslation("common")
   const router = useRouter()
-
-  const getSortIcon = (headerKey: string): React.ReactElement => {
-    if (sortConfig.key !== headerKey) {
-      return <span className="ml-1 text-gray-400">&#8597;</span>
-    }
-    return sortConfig.direction === "asc" ? (
-      <span className="ml-1 text-blue-500">&#8593;</span>
-    ) : (
-      <span className="ml-1 text-blue-500">&#8595;</span>
-    )
-  }
 
   return (
     <div className="bg-white rounded-xl shadow-md overflow-hidden">
@@ -109,7 +94,7 @@ const PortfolioDetailsTable: React.FC<PortfolioDetailsTableProps> = ({
                     >
                       <div className="flex items-center">
                         Portfolio
-                        {getSortIcon("code")}
+                        {getSortIcon("code", sortConfig)}
                       </div>
                     </th>
                     <th
@@ -118,7 +103,7 @@ const PortfolioDetailsTable: React.FC<PortfolioDetailsTableProps> = ({
                     >
                       <div className="flex items-center justify-end">
                         Value ({displayCurrency?.code})
-                        {getSortIcon("value")}
+                        {getSortIcon("value", sortConfig)}
                       </div>
                     </th>
                     <th
@@ -127,7 +112,7 @@ const PortfolioDetailsTable: React.FC<PortfolioDetailsTableProps> = ({
                     >
                       <div className="flex items-center justify-end">
                         % of Total
-                        {getSortIcon("percentage")}
+                        {getSortIcon("percentage", sortConfig)}
                       </div>
                     </th>
                     <th
@@ -136,7 +121,7 @@ const PortfolioDetailsTable: React.FC<PortfolioDetailsTableProps> = ({
                     >
                       <div className="flex items-center justify-end">
                         IRR
-                        {getSortIcon("irr")}
+                        {getSortIcon("irr", sortConfig)}
                       </div>
                     </th>
                   </tr>
@@ -146,17 +131,14 @@ const PortfolioDetailsTable: React.FC<PortfolioDetailsTableProps> = ({
                     <tr
                       key={portfolio.code}
                       className="hover:bg-slate-100 transition-colors cursor-pointer"
-                      onClick={() =>
-                        router.push(`/holdings/${portfolio.code}`)
-                      }
+                      onClick={() => router.push(`/holdings/${portfolio.code}`)}
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center">
                           <div
                             className="w-3 h-3 rounded-full mr-3"
                             style={{
-                              backgroundColor:
-                                COLORS[index % COLORS.length],
+                              backgroundColor: COLORS[index % COLORS.length],
                             }}
                           ></div>
                           <div>
@@ -192,9 +174,7 @@ const PortfolioDetailsTable: React.FC<PortfolioDetailsTableProps> = ({
                 </tbody>
                 <tfoot className="bg-gray-50 border-t-2 border-gray-200">
                   <tr>
-                    <td className="px-6 py-4 font-bold text-gray-900">
-                      Total
-                    </td>
+                    <td className="px-6 py-4 font-bold text-gray-900">Total</td>
                     <td className="px-6 py-4 text-right font-bold text-gray-900">
                       {displayCurrency?.symbol}
                       <FormatValue value={summary.totalValue} />

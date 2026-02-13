@@ -177,9 +177,7 @@ export default function WorkingExpensesStep({
                         onChange={(e) => {
                           hasUserChanges.current = true
                           inputField.onChange(
-                            e.target.value === ""
-                              ? 0
-                              : Number(e.target.value),
+                            e.target.value === "" ? 0 : Number(e.target.value),
                           )
                         }}
                         onBlur={inputField.onBlur}

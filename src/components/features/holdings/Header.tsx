@@ -2,6 +2,7 @@ import React, { ReactElement } from "react"
 import { GroupKey } from "types/beancounter"
 import { useTranslation } from "next-i18next"
 import { useHoldingState } from "@lib/holdings/holdingState"
+import { getSortIcon } from "@lib/sortIcon"
 
 // Header column indices for consistent mapping
 export const HEADER_INDICES = {
@@ -162,16 +163,8 @@ export default function Header({
   const showColumnHeaders =
     isFirstGroup || cumulativePositionCount % HEADER_INTERVAL === 0
 
-  const getSortIcon = (headerKey: string): React.ReactElement => {
-    if (!sortConfig || sortConfig.key !== headerKey) {
-      return <span className="ml-1 text-blue-300 text-xs">↕</span>
-    }
-    return sortConfig.direction === "asc" ? (
-      <span className="ml-1 text-blue-800 font-bold">▲</span>
-    ) : (
-      <span className="ml-1 text-blue-800 font-bold">▼</span>
-    )
-  }
+  const renderSortIcon = (headerKey: string): React.ReactElement =>
+    getSortIcon(headerKey, sortConfig, "holdings")
 
   // Get optimized header padding to match data cell padding for mobile space efficiency
   const getHeaderPadding = (): string => {
@@ -196,7 +189,7 @@ export default function Header({
             <span className="font-semibold text-sm normal-case tracking-normal text-blue-900">
               {groupKey}
             </span>
-            {onSort && showColumnHeaders && getSortIcon("assetName")}
+            {onSort && showColumnHeaders && renderSortIcon("assetName")}
           </div>
         </th>
         {showColumnHeaders &&
@@ -252,7 +245,7 @@ export default function Header({
                         ⚠
                       </span>
                     )}
-                  {header.sortable && onSort && getSortIcon(header.sortKey)}
+                  {header.sortable && onSort && renderSortIcon(header.sortKey)}
                 </div>
               </th>
             )

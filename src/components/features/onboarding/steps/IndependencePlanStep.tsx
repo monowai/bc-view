@@ -35,10 +35,7 @@ const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
           <i className="fas fa-chart-line"></i>
         </div>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          {t(
-            "independence.title",
-            "Quick Independence Check",
-          )}
+          {t("independence.title", "Quick Independence Check")}
         </h2>
         <p className="text-gray-600">
           {t(
@@ -119,10 +116,7 @@ const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
                 value={monthlyExpenses || ""}
                 min={0}
                 step={100}
-                placeholder={t(
-                  "independence.expensesPlaceholder",
-                  "e.g. 3000",
-                )}
+                placeholder={t("independence.expensesPlaceholder", "e.g. 3000")}
                 onChange={(e) =>
                   onMonthlyExpensesChange(
                     e.target.value === "" ? 0 : Number(e.target.value),
@@ -138,10 +132,7 @@ const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
               htmlFor="independenceTargetAge"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              {t(
-                "independence.targetAge",
-                "Target Independence Age",
-              )}
+              {t("independence.targetAge", "Target Independence Age")}
             </label>
             <input
               id="independenceTargetAge"
@@ -162,7 +153,7 @@ const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
               <p className="text-sm text-independence-700">
                 {t(
                   "independence.hint",
-                  "A plan called \"My Independence Plan\" will be created with sensible defaults. You can refine it anytime from the Independence page.",
+                  'A plan called "My Independence Plan" will be created with sensible defaults. You can refine it anytime from the Independence page.',
                 )}
               </p>
             </div>

@@ -4,6 +4,9 @@ import { useTranslation } from "next-i18next"
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { rootLoader } from "@components/ui/PageLoader"
+import Dialog from "@components/ui/Dialog"
+import Alert from "@components/ui/Alert"
+import Spinner from "@components/ui/Spinner"
 import { useIsAdmin } from "@hooks/useIsAdmin"
 import Link from "next/link"
 import { AccountingType, Currency } from "types/beancounter"
@@ -263,15 +266,12 @@ export default withPageAuthRequired(
         </div>
 
         {message && (
-          <div
-            className={`mb-4 p-3 rounded-lg text-sm ${
-              message.type === "success"
-                ? "bg-green-50 text-green-700 border border-green-200"
-                : "bg-red-50 text-red-700 border border-red-200"
-            }`}
+          <Alert
+            variant={message.type === "success" ? "success" : "error"}
+            className="mb-4"
           >
             {message.text}
-          </div>
+          </Alert>
         )}
 
         {(isCreating || editingId) && (
@@ -392,14 +392,7 @@ export default withPageAuthRequired(
                     : "bg-blue-500 hover:bg-blue-600"
                 }`}
               >
-                {isSaving ? (
-                  <span className="flex items-center">
-                    <i className="fas fa-spinner fa-spin mr-2"></i>
-                    {t("saving")}
-                  </span>
-                ) : (
-                  t("save")
-                )}
+                {isSaving ? <Spinner label={t("saving")} /> : t("save")}
               </button>
             </div>
           </div>
@@ -408,8 +401,7 @@ export default withPageAuthRequired(
         <div className="bg-white rounded-lg border border-gray-200">
           {isLoading ? (
             <div className="p-8 text-center text-gray-500">
-              <i className="fas fa-spinner fa-spin text-2xl mb-2"></i>
-              <p>{t("loading")}</p>
+              <Spinner label={t("loading")} size="lg" />
             </div>
           ) : accountingTypes.length === 0 ? (
             <div className="p-8 text-center text-gray-500">
@@ -484,45 +476,35 @@ export default withPageAuthRequired(
         </div>
 
         {deleteConfirm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl p-6 max-w-md mx-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {t(
-                  "admin.accountingTypes.deleteConfirm.title",
-                  "Delete Accounting Type?",
-                )}
-              </h3>
-              <p className="text-gray-600 mb-4">
-                {t(
-                  "admin.accountingTypes.deleteConfirm.message",
-                  `Are you sure you want to delete "${deleteConfirm.category} (${deleteConfirm.currency.code})"? This will fail if assets reference it.`,
-                )}
-              </p>
-              <div className="flex justify-end space-x-3">
-                <button
+          <Dialog
+            title={t(
+              "admin.accountingTypes.deleteConfirm.title",
+              "Delete Accounting Type?",
+            )}
+            onClose={() => setDeleteConfirm(null)}
+            footer={
+              <>
+                <Dialog.CancelButton
                   onClick={() => setDeleteConfirm(null)}
-                  disabled={isDeleting}
-                  className="px-4 py-2 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                >
-                  {t("cancel")}
-                </button>
-                <button
+                  label={t("cancel")}
+                />
+                <Dialog.SubmitButton
                   onClick={handleDelete}
-                  disabled={isDeleting}
-                  className="px-4 py-2 text-sm text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors disabled:bg-red-300"
-                >
-                  {isDeleting ? (
-                    <span className="flex items-center">
-                      <i className="fas fa-spinner fa-spin mr-2"></i>
-                      {t("deleting", "Deleting...")}
-                    </span>
-                  ) : (
-                    t("delete", "Delete")
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
+                  label={t("delete", "Delete")}
+                  loadingLabel={t("deleting", "Deleting...")}
+                  isSubmitting={isDeleting}
+                  variant="red"
+                />
+              </>
+            }
+          >
+            <p className="text-gray-600">
+              {t(
+                "admin.accountingTypes.deleteConfirm.message",
+                `Are you sure you want to delete "${deleteConfirm.category} (${deleteConfirm.currency.code})"? This will fail if assets reference it.`,
+              )}
+            </p>
+          </Dialog>
         )}
       </div>
     )

@@ -4,6 +4,7 @@ import { useTranslation } from "next-i18next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { GetServerSideProps } from "next"
 import { rootLoader } from "@components/ui/PageLoader"
+import Alert from "@components/ui/Alert"
 import { TaxRate } from "types/beancounter"
 
 // Common country codes for tax rate configuration
@@ -349,18 +350,8 @@ function TaxRatesPage(): React.ReactElement {
             )}
 
             {/* Error/Success Messages */}
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded flex items-center">
-                <i className="fas fa-exclamation-circle mr-2"></i>
-                {error}
-              </div>
-            )}
-            {success && (
-              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded flex items-center">
-                <i className="fas fa-check-circle mr-2"></i>
-                {success}
-              </div>
-            )}
+            {error && <Alert>{error}</Alert>}
+            {success && <Alert variant="success">{success}</Alert>}
           </div>
         </div>
       </div>

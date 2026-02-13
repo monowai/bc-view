@@ -127,7 +127,8 @@ describe("SaveScenarioDialog", () => {
     render(<SaveScenarioDialog {...defaultProps} isSaving={true} />)
 
     const cancelButton = screen.getByText("Cancel")
-    const savingButton = screen.getByText("Saving...")
+    // Spinner renders inside a button — find the button containing the spinner text
+    const savingButton = screen.getByText("Saving...").closest("button")!
 
     expect(cancelButton).toBeDisabled()
     expect(savingButton).toBeDisabled()

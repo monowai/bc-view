@@ -17,6 +17,7 @@ import EditAccountDialog from "@components/features/accounts/EditAccountDialog"
 import DeleteAccountDialog from "@components/features/accounts/DeleteAccountDialog"
 import SetPriceDialog from "@components/features/accounts/SetPriceDialog"
 import ImportDialog from "@components/features/accounts/ImportDialog"
+import Alert from "@components/ui/Alert"
 import {
   SectorInfo,
   SectorOption,
@@ -284,9 +285,7 @@ function AccountsPage(): React.ReactElement {
   if (error) {
     return (
       <div className="p-4">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-          {t("accounts.error.load")}
-        </div>
+        <Alert className="p-4">{t("accounts.error.load")}</Alert>
       </div>
     )
   }

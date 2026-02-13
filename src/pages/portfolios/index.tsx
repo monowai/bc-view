@@ -18,6 +18,7 @@ import ManagedPortfolios from "@components/features/portfolios/ManagedPortfolios
 import { useFxRates } from "@hooks/useFxRates"
 import ShareInviteDialog from "@components/features/portfolios/ShareInviteDialog"
 import PortfolioActions from "@components/features/portfolios/PortfolioActions"
+import { getSortIcon } from "@lib/sortIcon"
 import PortfolioImportDialog from "@components/features/portfolios/PortfolioImportDialog"
 
 type SortConfig = {
@@ -61,7 +62,8 @@ export default withPageAuthRequired(function Portfolios({
   >(null)
 
   // Tab state - read from query param, default to "my"
-  const activeTab = (router.query.tab as string) === "managed" ? "managed" : "my"
+  const activeTab =
+    (router.query.tab as string) === "managed" ? "managed" : "my"
   const setActiveTab = useCallback(
     (tab: "my" | "managed") => {
       router.replace(
@@ -258,17 +260,8 @@ export default withPageAuthRequired(function Portfolios({
     }
   }
 
-  // Sort icon component - styled for wealth blue header
-  const getSortIcon = (headerKey: string): React.ReactElement => {
-    if (!sortConfig || sortConfig.key !== headerKey) {
-      return <span className="ml-1 text-wealth-200/60">↕</span>
-    }
-    return sortConfig.direction === "asc" ? (
-      <span className="ml-1 text-white font-bold">↑</span>
-    ) : (
-      <span className="ml-1 text-white font-bold">↓</span>
-    )
-  }
+  const renderSortIcon = (headerKey: string): React.ReactElement =>
+    getSortIcon(headerKey, sortConfig, "wealth")
 
   // Check if valuation date is stale (not today)
   const isStale = (valuedAt: string | undefined): boolean => {
@@ -410,7 +403,10 @@ export default withPageAuthRequired(function Portfolios({
                   </select>
                 )}
               </div>
-              <PortfolioActions onImportClick={handleImportClick} onShareClick={() => handleShareClick()} />
+              <PortfolioActions
+                onImportClick={handleImportClick}
+                onShareClick={() => handleShareClick()}
+              />
             </div>
 
             {/* Selection actions - only show when portfolios selected */}
@@ -640,7 +636,7 @@ export default withPageAuthRequired(function Portfolios({
                   >
                     <div className="flex items-center">
                       {t("portfolio.code")}
-                      {getSortIcon("code")}
+                      {renderSortIcon("code")}
                     </div>
                   </th>
                   <th
@@ -649,7 +645,7 @@ export default withPageAuthRequired(function Portfolios({
                   >
                     <div className="flex items-center">
                       {t("portfolio.name")}
-                      {getSortIcon("name")}
+                      {renderSortIcon("name")}
                     </div>
                   </th>
                   <th
@@ -658,7 +654,7 @@ export default withPageAuthRequired(function Portfolios({
                   >
                     <div className="flex items-center justify-end">
                       {t("portfolio.marketvalue")}
-                      {getSortIcon("marketValue")}
+                      {renderSortIcon("marketValue")}
                     </div>
                   </th>
                   <th
@@ -667,7 +663,7 @@ export default withPageAuthRequired(function Portfolios({
                   >
                     <div className="flex items-center justify-end">
                       {t("portfolio.gainOnDayPercent", "Day %")}
-                      {getSortIcon("gainOnDayPercent")}
+                      {renderSortIcon("gainOnDayPercent")}
                     </div>
                   </th>
                   <th
@@ -676,7 +672,7 @@ export default withPageAuthRequired(function Portfolios({
                   >
                     <div className="flex items-center justify-end">
                       {t("portfolio.irr")}
-                      {getSortIcon("irr")}
+                      {renderSortIcon("irr")}
                     </div>
                   </th>
                   <th
@@ -685,7 +681,7 @@ export default withPageAuthRequired(function Portfolios({
                   >
                     <div className="flex items-center justify-center">
                       {t("portfolio.valuedAt", "Valued")}
-                      {getSortIcon("valuedAt")}
+                      {renderSortIcon("valuedAt")}
                     </div>
                   </th>
                   <th className="px-4 py-3 text-center text-sm font-semibold w-32">
@@ -902,7 +898,10 @@ export default withPageAuthRequired(function Portfolios({
     )
   }
 
-  if (activeTab === "my" && (!data || !ready || (data.data.length > 0 && !fxRatesReady))) {
+  if (
+    activeTab === "my" &&
+    (!data || !ready || (data.data.length > 0 && !fxRatesReady))
+  ) {
     return rootLoader(t("loading"))
   }
 

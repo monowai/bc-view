@@ -5,7 +5,7 @@ export const getToday = (): string => {
 }
 
 // Helper to safely get from sessionStorage (handles SSR)
-export const getSessionValue = <T,>(key: string, defaultValue: T): T => {
+export const getSessionValue = <T>(key: string, defaultValue: T): T => {
   if (typeof window === "undefined") return defaultValue
   const stored = sessionStorage.getItem(key)
   if (stored === null) return defaultValue
@@ -17,7 +17,7 @@ export const getSessionValue = <T,>(key: string, defaultValue: T): T => {
 }
 
 // Helper to safely set sessionStorage
-export const setSessionValue = <T,>(key: string, value: T): void => {
+export const setSessionValue = <T>(key: string, value: T): void => {
   if (typeof window === "undefined") return
   sessionStorage.setItem(key, JSON.stringify(value))
 }

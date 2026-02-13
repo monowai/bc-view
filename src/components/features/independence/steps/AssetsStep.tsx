@@ -650,9 +650,7 @@ export default function AssetsStep({
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start">
           <i className="fas fa-check-circle text-green-600 mt-0.5 mr-3"></i>
           <div>
-            <p className="font-medium text-green-800">
-              You&apos;re all set
-            </p>
+            <p className="font-medium text-green-800">You&apos;re all set</p>
             <p className="text-sm text-green-700 mt-0.5">
               Your portfolios are already selected. You can click Next to
               continue, or adjust the selection below.

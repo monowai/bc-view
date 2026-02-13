@@ -2,10 +2,7 @@ import React, { useState } from "react"
 import useSwr from "swr"
 import { useTranslation } from "next-i18next"
 import { useRouter } from "next/router"
-import {
-  PortfolioShare,
-  PendingSharesResponse,
-} from "types/beancounter"
+import { PortfolioShare, PendingSharesResponse } from "types/beancounter"
 import {
   fetcher,
   sharesManagedKey,
@@ -49,11 +46,7 @@ export default function ManagedPortfolios(): React.ReactElement {
   }
 
   if (managedError || pendingError) {
-    return (
-      <div className="p-4 text-red-600">
-        {t("shares.request.error")}
-      </div>
-    )
+    return <div className="p-4 text-red-600">{t("shares.request.error")}</div>
   }
 
   if (!managedResponse || !pending) {
@@ -61,7 +54,9 @@ export default function ManagedPortfolios(): React.ReactElement {
   }
 
   const managed = managedResponse.data
-  const activeShares = managed.filter((s: PortfolioShare) => s.status === "ACTIVE")
+  const activeShares = managed.filter(
+    (s: PortfolioShare) => s.status === "ACTIVE",
+  )
 
   return (
     <div className="px-4 py-4">
@@ -144,7 +139,10 @@ export default function ManagedPortfolios(): React.ReactElement {
                       )}
                     </span>
                   )}
-                  <RevokeButton shareId={share.id} onRevoked={handlePendingAction} />
+                  <RevokeButton
+                    shareId={share.id}
+                    onRevoked={handlePendingAction}
+                  />
                 </div>
               </div>
             </div>
@@ -165,7 +163,8 @@ export default function ManagedPortfolios(): React.ReactElement {
 function maskEmail(email: string): string {
   const [local, domain] = email.split("@")
   if (!domain) return email
-  const masked = local.length > 2 ? local[0] + "***" + local[local.length - 1] : "***"
+  const masked =
+    local.length > 2 ? local[0] + "***" + local[local.length - 1] : "***"
   return `${masked}@${domain}`
 }
 
@@ -179,9 +178,7 @@ function RevokeButton({
   const { t } = useTranslation("common")
   const [isLoading, setIsLoading] = useState(false)
 
-  const handleRevoke = async (
-    e: React.MouseEvent,
-  ): Promise<void> => {
+  const handleRevoke = async (e: React.MouseEvent): Promise<void> => {
     e.stopPropagation()
     if (!window.confirm(t("shares.managed.revoke.confirm"))) return
     setIsLoading(true)
@@ -202,7 +199,9 @@ function RevokeButton({
       className="text-gray-400 hover:text-red-500 transition-colors p-1"
       title={t("shares.managed.revoke")}
     >
-      <i className={`fas ${isLoading ? "fa-spinner fa-spin" : "fa-times-circle"}`}></i>
+      <i
+        className={`fas ${isLoading ? "fa-spinner fa-spin" : "fa-times-circle"}`}
+      ></i>
     </button>
   )
 }

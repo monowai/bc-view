@@ -10,6 +10,8 @@ import Link from "next/link"
 import useSWR from "swr"
 import { ccyKey, marketsKey, simpleFetcher } from "@utils/api/fetchHelper"
 import AssetSearch from "@components/features/assets/AssetSearch"
+import Alert from "@components/ui/Alert"
+import Spinner from "@components/ui/Spinner"
 import { getAssetCurrency, getDisplayCode } from "@lib/assets/assetUtils"
 
 const EDITABLE_CATEGORIES = [
@@ -318,24 +320,16 @@ export default withPageAuthRequired(function AssetAdmin(): React.ReactElement {
       {/* Loading */}
       {isLoading && (
         <div className="flex items-center justify-center py-8">
-          <i className="fas fa-spinner fa-spin text-2xl text-blue-500"></i>
-          <span className="ml-2 text-gray-600">{t("loading")}</span>
+          <Spinner label={t("loading")} size="lg" />
         </div>
       )}
 
       {/* Message */}
       {message && (
-        <div
-          className={`rounded-lg p-3 mb-4 text-sm ${
-            message.type === "success"
-              ? "bg-green-50 border border-green-200 text-green-700"
-              : "bg-red-50 border border-red-200 text-red-700"
-          }`}
-        >
-          <i
-            className={`fas ${message.type === "success" ? "fa-check-circle" : "fa-exclamation-circle"} mr-2`}
-          ></i>
-          {message.text}
+        <div className="mb-4">
+          <Alert variant={message.type === "success" ? "success" : "error"}>
+            {message.text}
+          </Alert>
         </div>
       )}
 
@@ -508,7 +502,7 @@ export default withPageAuthRequired(function AssetAdmin(): React.ReactElement {
                     className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isSaving ? (
-                      <i className="fas fa-spinner fa-spin mr-1"></i>
+                      <Spinner />
                     ) : (
                       <i className="fas fa-save mr-1"></i>
                     )}
@@ -531,7 +525,7 @@ export default withPageAuthRequired(function AssetAdmin(): React.ReactElement {
                 } disabled:opacity-50`}
               >
                 {isSaving ? (
-                  <i className="fas fa-spinner fa-spin mr-1"></i>
+                  <Spinner />
                 ) : (
                   <i
                     className={`fas ${isActive ? "fa-ban" : "fa-check-circle"} mr-1`}
@@ -548,7 +542,7 @@ export default withPageAuthRequired(function AssetAdmin(): React.ReactElement {
                 className="px-4 py-2 bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 rounded-md text-sm font-medium disabled:opacity-50"
               >
                 {isEnriching ? (
-                  <i className="fas fa-spinner fa-spin mr-1"></i>
+                  <Spinner />
                 ) : (
                   <i className="fas fa-sync-alt mr-1"></i>
                 )}
