@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react"
+import React, { useMemo, useState } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useTranslation } from "next-i18next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
@@ -15,7 +15,6 @@ import {
 import {
   Portfolio,
   Currency,
-  FxResponse,
   HoldingContract,
   Transaction,
 } from "types/beancounter"
@@ -27,8 +26,8 @@ import {
 import ShareInviteDialog from "@components/features/portfolios/ShareInviteDialog"
 import { rootLoader } from "@components/ui/PageLoader"
 import { errorOut } from "@components/errors/ErrorOut"
-import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
+import { useFxRates } from "@hooks/useFxRates"
 import {
   mapToLiquidityGroup,
   WealthSummary,
@@ -45,7 +44,6 @@ type SortConfig = {
 
 function WealthDashboard(): React.ReactElement {
   const { t, ready } = useTranslation("common")
-  const { preferences } = useUserPreferences()
   const { hideValues } = usePrivacyMode()
   const [sortConfig, setSortConfig] = useState<SortConfig>({
     key: "value",
@@ -112,9 +110,13 @@ function WealthDashboard(): React.ReactElement {
     [portfolioData?.data],
   )
 
-  // Display currency state
-  const [displayCurrency, setDisplayCurrency] = useState<Currency | null>(null)
-  const [fxRates, setFxRates] = useState<Record<string, number>>({})
+  // FX rates for converting portfolio values to display currency
+  const sourceCurrencyCodes = useMemo(
+    () => portfolios.map((p) => p.base.code),
+    [portfolios],
+  )
+  const { displayCurrency, setDisplayCurrency, fxRates, fxReady } =
+    useFxRates(currencies, sourceCurrencyCodes)
 
   // Fetch monthly investment for current month (depends on display currency)
   const monthlyInvestmentUrl = displayCurrency
@@ -140,68 +142,6 @@ function WealthDashboard(): React.ReactElement {
     investmentTrnsUrl,
     investmentTrnsUrl ? simpleFetcher(investmentTrnsUrl) : null,
   )
-
-  // Set default display currency
-  useEffect(() => {
-    if (currencies.length === 0 || displayCurrency) return
-
-    if (preferences?.baseCurrencyCode) {
-      const preferred = currencies.find(
-        (c) => c.code === preferences.baseCurrencyCode,
-      )
-      if (preferred) {
-        setDisplayCurrency(preferred)
-        return
-      }
-    }
-
-    // Default to USD or first currency
-    const usd = currencies.find((c) => c.code === "USD")
-    setDisplayCurrency(usd || currencies[0])
-  }, [currencies, displayCurrency, preferences?.baseCurrencyCode])
-
-  // Fetch FX rates for portfolio base currencies
-  // Note: portfolio.marketValue is stored in the portfolio's BASE currency
-  useEffect(() => {
-    if (!displayCurrency || portfolios.length === 0) return
-
-    const uniqueCurrencies = [...new Set(portfolios.map((p) => p.base.code))]
-    const pairs = uniqueCurrencies
-      .filter((code) => code !== displayCurrency.code)
-      .map((code) => ({ from: code, to: displayCurrency.code }))
-
-    if (pairs.length === 0) {
-      // All portfolios are in display currency
-      const rates: Record<string, number> = {}
-      uniqueCurrencies.forEach((code) => {
-        rates[code] = 1
-      })
-      setFxRates(rates)
-      return
-    }
-
-    fetch("/api/fx", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ rateDate: "today", pairs }),
-    })
-      .then((res) => res.json())
-      .then((fxResponse: FxResponse) => {
-        const rates: Record<string, number> = {}
-        rates[displayCurrency.code] = 1
-
-        Object.entries(fxResponse.data?.rates || {}).forEach(
-          ([key, rateData]) => {
-            const [from] = key.split(":")
-            rates[from] = rateData.rate
-          },
-        )
-        setFxRates(rates)
-      })
-      .catch(console.error)
-  }, [displayCurrency, portfolios])
-
-  const fxReady = Object.keys(fxRates).length > 0
 
   // Handle sorting
   const handleSort = (key: string): void => {

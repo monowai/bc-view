@@ -3,7 +3,7 @@ import useSwr from "swr"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import type { User } from "@auth0/nextjs-auth0/types"
 import { useTranslation } from "next-i18next"
-import { Portfolio, Currency, FxResponse } from "types/beancounter"
+import { Portfolio, Currency } from "types/beancounter"
 import Link from "next/link"
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
@@ -14,8 +14,8 @@ import { rootLoader } from "@components/ui/PageLoader"
 import { FormatValue } from "@components/ui/MoneyUtils"
 import { QuickTooltip } from "@components/ui/Tooltip"
 import PortfolioCorporateActionsPopup from "@components/features/portfolios/PortfolioCorporateActionsPopup"
-import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import ManagedPortfolios from "@components/features/portfolios/ManagedPortfolios"
+import { useFxRates } from "@hooks/useFxRates"
 import ShareInviteDialog from "@components/features/portfolios/ShareInviteDialog"
 import PortfolioActions from "@components/features/portfolios/PortfolioActions"
 import PortfolioImportDialog from "@components/features/portfolios/PortfolioImportDialog"
@@ -32,7 +32,6 @@ export default withPageAuthRequired(function Portfolios({
 }): React.ReactElement {
   const { t, ready } = useTranslation("common")
   const router = useRouter()
-  const { preferences } = useUserPreferences()
   const { data, mutate, error } = useSwr(
     portfoliosKey,
     simpleFetcher(portfoliosKey),
@@ -76,9 +75,6 @@ export default withPageAuthRequired(function Portfolios({
 
   // Currency display state
   const [currencies, setCurrencies] = useState<Currency[]>([])
-  const [displayCurrency, setDisplayCurrency] = useState<Currency | null>(null)
-  const [fxRates, setFxRates] = useState<Record<string, number>>({})
-  const [fxRatesReady, setFxRatesReady] = useState(false)
 
   // Fetch available currencies
   useEffect(() => {
@@ -92,73 +88,17 @@ export default withPageAuthRequired(function Portfolios({
       .catch(console.error)
   }, [])
 
-  // Set default display currency from user's preferred base currency
-  useEffect(() => {
-    if (currencies.length === 0 || displayCurrency) return
-
-    // Use user's preferred base currency if available
-    if (preferences?.baseCurrencyCode) {
-      const preferredCurrency = currencies.find(
-        (c) => c.code === preferences.baseCurrencyCode,
-      )
-      if (preferredCurrency) {
-        setDisplayCurrency(preferredCurrency)
-        return
-      }
-    }
-
-    // Fall back to USD or first currency
-    const usd = currencies.find((c) => c.code === "USD")
-    setDisplayCurrency(usd || currencies[0])
-  }, [currencies, displayCurrency, preferences?.baseCurrencyCode])
-
-  // Fetch FX rates for portfolio base currencies
-  // Note: portfolio.marketValue is stored in the portfolio's BASE currency
-  useEffect(() => {
-    const portfolioList = data?.data
-    if (!displayCurrency || !portfolioList || portfolioList.length === 0) return
-
-    setFxRatesReady(false)
-
-    const uniqueCurrencies: string[] = [
-      ...new Set<string>(portfolioList.map((p: Portfolio) => p.base.code)),
-    ]
-    const pairs = uniqueCurrencies
-      .filter((code) => code !== displayCurrency.code)
-      .map((code) => ({ from: code, to: displayCurrency.code }))
-
-    if (pairs.length === 0) {
-      // All portfolios are in display currency
-      const rates: Record<string, number> = {}
-      uniqueCurrencies.forEach((code) => {
-        rates[code] = 1
-      })
-      setFxRates(rates)
-      setFxRatesReady(true)
-      return
-    }
-
-    fetch("/api/fx", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ rateDate: "today", pairs }),
-    })
-      .then((res) => res.json())
-      .then((fxResponse: FxResponse) => {
-        const rates: Record<string, number> = {}
-        rates[displayCurrency.code] = 1
-
-        Object.entries(fxResponse.data?.rates || {}).forEach(
-          ([key, rateData]) => {
-            const [from] = key.split(":")
-            rates[from] = rateData.rate
-          },
-        )
-        setFxRates(rates)
-        setFxRatesReady(true)
-      })
-      .catch(console.error)
-  }, [displayCurrency, data?.data])
+  // FX rates for converting portfolio values to display currency
+  const sourceCurrencyCodes = useMemo(
+    () => (data?.data || []).map((p: Portfolio) => p.base.code),
+    [data?.data],
+  )
+  const {
+    displayCurrency,
+    setDisplayCurrency,
+    fxRates,
+    fxReady: fxRatesReady,
+  } = useFxRates(currencies, sourceCurrencyCodes)
 
   const handleCorporateActionsClose = useCallback(() => {
     setCorporateActionsPortfolio(null)
