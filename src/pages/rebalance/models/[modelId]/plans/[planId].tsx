@@ -13,6 +13,7 @@ import ModelWeightsEditor from "@components/features/rebalance/models/ModelWeigh
 import ImportHoldingsDialog from "@components/features/rebalance/models/ImportHoldingsDialog"
 import { PlanAssetDto, AssetWeightWithDetails } from "types/rebalance"
 import { escapeCSV, downloadCsv } from "@lib/csvExport"
+import ConfirmDialog from "@components/ui/ConfirmDialog"
 
 function PlanDetailPage(): React.ReactElement {
   const { t } = useTranslation("common")
@@ -36,6 +37,8 @@ function PlanDetailPage(): React.ReactElement {
     useState(false)
   const [weights, setWeights] = useState<AssetWeightWithDetails[]>([])
   const [hasChanges, setHasChanges] = useState(false)
+  const [showApproveConfirm, setShowApproveConfirm] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const importDropdownRef = useRef<HTMLDivElement>(null)
   const csvInputRef = useRef<HTMLInputElement>(null)
 
@@ -114,16 +117,7 @@ function PlanDetailPage(): React.ReactElement {
   }
 
   const handleApprove = async (): Promise<void> => {
-    if (
-      !confirm(
-        t(
-          "rebalance.plans.approveConfirm",
-          "Approve this plan? This will lock the allocations.",
-        ),
-      )
-    ) {
-      return
-    }
+    setShowApproveConfirm(false)
 
     // Save any pending changes first
     if (hasChanges) {
@@ -147,12 +141,7 @@ function PlanDetailPage(): React.ReactElement {
   }
 
   const handleDelete = async (): Promise<void> => {
-    if (
-      !confirm(t("rebalance.plans.deleteConfirm", "Delete this draft plan?"))
-    ) {
-      return
-    }
-
+    setShowDeleteConfirm(false)
     setDeleting(true)
     try {
       const response = await fetch(
@@ -594,7 +583,7 @@ function PlanDetailPage(): React.ReactElement {
               </button>
             )}
             <button
-              onClick={handleApprove}
+              onClick={() => setShowApproveConfirm(true)}
               disabled={approving || weights.length === 0}
               className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors flex items-center disabled:opacity-50"
             >
@@ -606,7 +595,7 @@ function PlanDetailPage(): React.ReactElement {
               {t("rebalance.plans.approve", "Approve Plan")}
             </button>
             <button
-              onClick={handleDelete}
+              onClick={() => setShowDeleteConfirm(true)}
               disabled={deleting}
               className="bg-red-100 text-red-700 px-4 py-2 rounded hover:bg-red-200 transition-colors flex items-center disabled:opacity-50"
             >
@@ -806,6 +795,34 @@ function PlanDetailPage(): React.ReactElement {
         onClose={() => setShowImportHoldingsDialog(false)}
         onImport={handleImportHoldings}
       />
+      {showApproveConfirm && (
+        <ConfirmDialog
+          title={t("rebalance.plans.approveTitle", "Approve Plan")}
+          message={t(
+            "rebalance.plans.approveConfirm",
+            "Approve this plan? This will lock the allocations.",
+          )}
+          confirmLabel={t("rebalance.plans.approve", "Approve")}
+          cancelLabel={t("cancel", "Cancel")}
+          variant="blue"
+          onConfirm={handleApprove}
+          onCancel={() => setShowApproveConfirm(false)}
+        />
+      )}
+      {showDeleteConfirm && (
+        <ConfirmDialog
+          title={t("rebalance.plans.deleteTitle", "Delete Plan")}
+          message={t(
+            "rebalance.plans.deleteConfirm",
+            "Delete this draft plan?",
+          )}
+          confirmLabel={t("delete", "Delete")}
+          cancelLabel={t("cancel", "Cancel")}
+          variant="red"
+          onConfirm={handleDelete}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
+      )}
     </div>
   )
 }

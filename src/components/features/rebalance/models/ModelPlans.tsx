@@ -5,6 +5,7 @@ import { useModelPlans } from "../hooks/useModelPlans"
 import { PlanDto } from "types/rebalance"
 import StatusBadge from "../common/StatusBadge"
 import { formatDate } from "@utils/formatters"
+import ConfirmDialog from "@components/ui/ConfirmDialog"
 
 interface ModelPlansProps {
   modelId: string
@@ -16,20 +17,14 @@ const ModelPlans: React.FC<ModelPlansProps> = ({ modelId }) => {
   const { plans, isLoading, error, mutate } = useModelPlans(modelId)
   const [creating, setCreating] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [deletePlanId, setDeletePlanId] = useState<string | null>(null)
 
-  const handleDeletePlan = async (
-    e: React.MouseEvent,
-    planId: string,
-  ): Promise<void> => {
-    e.stopPropagation()
-    if (!confirm(t("rebalance.plans.confirmDelete", "Delete this plan?"))) {
-      return
-    }
-
-    setDeletingId(planId)
+  const handleDeleteConfirm = async (): Promise<void> => {
+    if (!deletePlanId) return
+    setDeletingId(deletePlanId)
     try {
       const response = await fetch(
-        `/api/rebalance/models/${modelId}/plans/${planId}`,
+        `/api/rebalance/models/${modelId}/plans/${deletePlanId}`,
         { method: "DELETE" },
       )
       if (response.ok || response.status === 204) {
@@ -39,6 +34,7 @@ const ModelPlans: React.FC<ModelPlansProps> = ({ modelId }) => {
       console.error("Failed to delete plan:", err)
     } finally {
       setDeletingId(null)
+      setDeletePlanId(null)
     }
   }
 
@@ -170,7 +166,10 @@ const ModelPlans: React.FC<ModelPlansProps> = ({ modelId }) => {
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-right">
                     <button
-                      onClick={(e) => handleDeletePlan(e, plan.id)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setDeletePlanId(plan.id)
+                      }}
                       disabled={deletingId === plan.id}
                       className="text-gray-400 hover:text-red-600 p-1 mr-2 disabled:opacity-50"
                       title={t("delete", "Delete")}
@@ -188,6 +187,20 @@ const ModelPlans: React.FC<ModelPlansProps> = ({ modelId }) => {
             </tbody>
           </table>
         </div>
+      )}
+      {deletePlanId && (
+        <ConfirmDialog
+          title={t("rebalance.plans.deleteTitle", "Delete Plan")}
+          message={t(
+            "rebalance.plans.confirmDelete",
+            "Delete this plan?",
+          )}
+          confirmLabel={t("delete", "Delete")}
+          cancelLabel={t("cancel", "Cancel")}
+          variant="red"
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setDeletePlanId(null)}
+        />
       )}
     </div>
   )

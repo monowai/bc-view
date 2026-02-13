@@ -11,6 +11,7 @@ import PlanItemsTable from "@components/features/rebalance/plans/PlanItemsTable"
 import ExecutionDialog from "@components/features/rebalance/execution/ExecutionDialog"
 import { TableSkeletonLoader } from "@components/ui/SkeletonLoader"
 import { FormatValue } from "@components/ui/MoneyUtils"
+import ConfirmDialog from "@components/ui/ConfirmDialog"
 
 function PlanDetailPage(): React.ReactElement {
   const { t } = useTranslation("common")
@@ -21,6 +22,7 @@ function PlanDetailPage(): React.ReactElement {
   const [showExecutionDialog, setShowExecutionDialog] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [isCancelling, setIsCancelling] = useState(false)
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false)
 
   const handleRefresh = async (): Promise<void> => {
     setIsRefreshing(true)
@@ -34,12 +36,8 @@ function PlanDetailPage(): React.ReactElement {
     }
   }
 
-  const handleCancel = async (): Promise<void> => {
-    if (
-      !window.confirm(t("rebalance.plans.cancelConfirm", "Cancel this plan?"))
-    ) {
-      return
-    }
+  const handleCancelConfirm = async (): Promise<void> => {
+    setShowCancelConfirm(false)
     setIsCancelling(true)
     try {
       await fetch(`/api/rebalance/plans/${id}/cancel`, { method: "POST" })
@@ -117,7 +115,7 @@ function PlanDetailPage(): React.ReactElement {
           )}
           {canCancel && (
             <button
-              onClick={handleCancel}
+              onClick={() => setShowCancelConfirm(true)}
               disabled={isCancelling}
               className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors flex items-center disabled:bg-red-400"
             >
@@ -196,6 +194,20 @@ function PlanDetailPage(): React.ReactElement {
             setShowExecutionDialog(false)
             mutate()
           }}
+        />
+      )}
+      {showCancelConfirm && (
+        <ConfirmDialog
+          title={t("rebalance.plans.cancelTitle", "Cancel Plan")}
+          message={t(
+            "rebalance.plans.cancelConfirm",
+            "Cancel this plan?",
+          )}
+          confirmLabel={t("rebalance.plans.cancel", "Cancel Plan")}
+          cancelLabel={t("cancel", "Cancel")}
+          variant="red"
+          onConfirm={handleCancelConfirm}
+          onCancel={() => setShowCancelConfirm(false)}
         />
       )}
     </div>

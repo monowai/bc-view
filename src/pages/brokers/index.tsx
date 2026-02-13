@@ -12,6 +12,7 @@ import { useRouter } from "next/router"
 import { rootLoader } from "@components/ui/PageLoader"
 import Dialog from "@components/ui/Dialog"
 import Alert from "@components/ui/Alert"
+import ConfirmDialog from "@components/ui/ConfirmDialog"
 
 const brokersKey = "/api/brokers?includeAccounts=true"
 const accountAssetsKey = "/api/assets?category=ACCOUNT"
@@ -44,6 +45,8 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
   const [targetBrokerId, setTargetBrokerId] = useState<string>("")
   const [isTransferring, setIsTransferring] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [deletingBroker, setDeletingBroker] = useState<BrokerWithAccounts | null>(null)
+  const [transferSuccess, setTransferSuccess] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<"details" | "settlement">(
     "details",
   )
@@ -140,44 +143,39 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
   }, [formData, editingBroker, mutate, handleCancel])
 
   const handleDelete = useCallback(
-    async (broker: BrokerWithAccounts) => {
+    (broker: BrokerWithAccounts) => {
       setDeleteError(null)
-
-      if (
-        !window.confirm(
-          t("brokers.delete.confirm", { name: broker.name }) ||
-            `Delete broker "${broker.name}"?`,
-        )
-      ) {
-        return
-      }
-
-      try {
-        const response = await fetch(`/api/brokers/${broker.id}`, {
-          method: "DELETE",
-        })
-
-        if (response.ok) {
-          await mutate()
-        } else {
-          const errorData = await response.json()
-          const errorMessage =
-            errorData?.message || errorData?.error || "Failed to delete broker"
-          // If error mentions transactions, offer to transfer
-          if (errorMessage.toLowerCase().includes("transaction")) {
-            setTransferringBroker(broker)
-            setDeleteError(errorMessage)
-          } else {
-            setDeleteError(errorMessage)
-          }
-        }
-      } catch (err) {
-        console.error("Failed to delete broker:", err)
-        setDeleteError("Failed to delete broker")
-      }
+      setDeletingBroker(broker)
     },
-    [mutate, t],
+    [],
   )
+
+  const handleDeleteConfirm = useCallback(async () => {
+    if (!deletingBroker) return
+    setDeletingBroker(null)
+    try {
+      const response = await fetch(`/api/brokers/${deletingBroker.id}`, {
+        method: "DELETE",
+      })
+
+      if (response.ok) {
+        await mutate()
+      } else {
+        const errorData = await response.json()
+        const errorMessage =
+          errorData?.message || errorData?.error || "Failed to delete broker"
+        if (errorMessage.toLowerCase().includes("transaction")) {
+          setTransferringBroker(deletingBroker)
+          setDeleteError(errorMessage)
+        } else {
+          setDeleteError(errorMessage)
+        }
+      }
+    } catch (err) {
+      console.error("Failed to delete broker:", err)
+      setDeleteError("Failed to delete broker")
+    }
+  }, [deletingBroker, mutate])
 
   const handleTransfer = useCallback(async () => {
     if (!transferringBroker || !targetBrokerId) return
@@ -195,19 +193,20 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
         setTransferringBroker(null)
         setTargetBrokerId("")
         setDeleteError(null)
-        alert(
+        setTransferSuccess(
           t("brokers.transfer.success", {
             count: result.transferred,
             defaultValue: `Successfully transferred ${result.transferred} transaction(s)`,
           }),
         )
+        setTimeout(() => setTransferSuccess(null), 3000)
       } else {
         const errorData = await response.json()
-        alert(errorData?.message || "Failed to transfer transactions")
+        setDeleteError(errorData?.message || "Failed to transfer transactions")
       }
     } catch (err) {
       console.error("Failed to transfer:", err)
-      alert("Failed to transfer transactions")
+      setDeleteError("Failed to transfer transactions")
     } finally {
       setIsTransferring(false)
     }
@@ -231,6 +230,11 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {transferSuccess && (
+        <div className="px-4 pt-4">
+          <Alert variant="success">{transferSuccess}</Alert>
+        </div>
+      )}
       {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="px-4 py-4">
@@ -630,6 +634,22 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
             </select>
           </div>
         </Dialog>
+      )}
+
+      {/* Delete Confirmation */}
+      {deletingBroker && (
+        <ConfirmDialog
+          title={t("brokers.delete.title", "Delete Broker")}
+          message={
+            t("brokers.delete.confirm", { name: deletingBroker.name }) ||
+            `Delete broker "${deletingBroker.name}"?`
+          }
+          confirmLabel={t("delete", "Delete")}
+          cancelLabel={t("cancel", "Cancel")}
+          variant="red"
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setDeletingBroker(null)}
+        />
       )}
     </div>
   )

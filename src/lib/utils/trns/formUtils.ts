@@ -1,6 +1,6 @@
 import { Portfolio } from "types/beancounter"
 import { convert } from "@lib/trns/tradeUtils"
-import { useEffect } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { postData } from "@components/ui/DropZone"
 
 export const copyToClipboard = async (text: string): Promise<boolean> => {
@@ -29,10 +29,10 @@ export const onSubmit = async (
   errors: any,
   data: any,
   setTradeModalOpen: (open: boolean) => void,
-): Promise<void> => {
+): Promise<string | null> => {
   if (Object.keys(errors).length > 0) {
     console.log("Validation errors:", errors)
-    return
+    return null
   }
   try {
     const row = convert(data)
@@ -40,36 +40,34 @@ export const onSubmit = async (
     const response = await postData(portfolio, false, row.split(","))
     if (response.ok) {
       setTradeModalOpen(false)
-    } else {
-      const errorData = await response.json().catch(() => ({}))
-      console.error("Transaction failed:", response.status, errorData)
-      alert(
-        `Failed to submit transaction: ${errorData.error || response.statusText}`,
-      )
+      return null
     }
+    const errorData = await response.json().catch(() => ({}))
+    console.error("Transaction failed:", response.status, errorData)
+    return `Failed to submit transaction: ${errorData.error || response.statusText}`
   } catch (error) {
     console.error("Transaction submission error:", error)
-    alert(
-      `Failed to submit transaction: ${error instanceof Error ? error.message : "Unknown error"}`,
-    )
+    return `Failed to submit transaction: ${error instanceof Error ? error.message : "Unknown error"}`
   }
+}
+
+export interface EscapeHandlerResult {
+  showEscapeConfirm: boolean
+  onEscapeConfirm: () => void
+  onEscapeCancel: () => void
 }
 
 export const useEscapeHandler = (
   isDirty: boolean,
   setModalOpen: (open: boolean) => void,
-): void => {
+): EscapeHandlerResult => {
+  const [showEscapeConfirm, setShowEscapeConfirm] = useState(false)
+
   useEffect((): (() => void) => {
     const handleEscape = (event: KeyboardEvent): void => {
       if (event.key === "Escape") {
         if (isDirty) {
-          if (
-            window.confirm(
-              "You have unsaved changes. Do you really want to close?",
-            )
-          ) {
-            setModalOpen(false)
-          }
+          setShowEscapeConfirm(true)
         } else {
           setModalOpen(false)
         }
@@ -81,6 +79,17 @@ export const useEscapeHandler = (
       document.removeEventListener("keydown", handleEscape)
     }
   }, [isDirty, setModalOpen])
+
+  const onEscapeConfirm = useCallback(() => {
+    setShowEscapeConfirm(false)
+    setModalOpen(false)
+  }, [setModalOpen])
+
+  const onEscapeCancel = useCallback(() => {
+    setShowEscapeConfirm(false)
+  }, [])
+
+  return { showEscapeConfirm, onEscapeConfirm, onEscapeCancel }
 }
 
 export default useEscapeHandler

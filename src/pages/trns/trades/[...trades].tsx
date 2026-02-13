@@ -13,6 +13,7 @@ import {
 } from "@utils/api/fetchHelper"
 import { useTranslation } from "next-i18next"
 import { Transaction } from "types/beancounter"
+import ConfirmDialog from "@components/ui/ConfirmDialog"
 import { rootLoader } from "@components/ui/PageLoader"
 import { errorOut } from "@components/errors/ErrorOut"
 import useSwr, { mutate } from "swr"
@@ -24,6 +25,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
   const { t } = useTranslation("common")
   const router = useRouter()
   const [editModalOpen, setEditModalOpen] = useState(true)
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   // Extract query params - safe to access even before router is ready (will be undefined)
   const tradesParam = router.query.trades as string[] | undefined
@@ -174,8 +176,8 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
       router.back()
     }
 
-    const handleDelete = async (): Promise<void> => {
-      if (!confirm(t("trn.delete"))) return
+    const handleDeleteConfirm = async (): Promise<void> => {
+      setShowDeleteConfirm(false)
       try {
         const response = await fetch(`/api/trns/trades/${transaction.id}`, {
           method: "DELETE",
@@ -197,29 +199,42 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
     const isFxType =
       transaction.trnType === "FX" || transaction.trnType.startsWith("FX_")
 
-    return editModalOpen ? (
-      isFxType ? (
-        <FxEditModal
-          trn={transaction}
-          onClose={handleClose}
-          onDelete={handleDelete}
-        />
-      ) : (
-        <TradeInputForm
-          portfolio={transaction.portfolio}
-          modalOpen={editModalOpen}
-          setModalOpen={(open) => {
-            if (!open) handleClose()
-          }}
-          editMode={{
-            transaction,
-            onClose: handleClose,
-            onDelete: handleDelete,
-          }}
-        />
-      )
-    ) : (
-      <></>
+    return (
+      <>
+        {editModalOpen ? (
+          isFxType ? (
+            <FxEditModal
+              trn={transaction}
+              onClose={handleClose}
+              onDelete={() => setShowDeleteConfirm(true)}
+            />
+          ) : (
+            <TradeInputForm
+              portfolio={transaction.portfolio}
+              modalOpen={editModalOpen}
+              setModalOpen={(open) => {
+                if (!open) handleClose()
+              }}
+              editMode={{
+                transaction,
+                onClose: handleClose,
+                onDelete: () => setShowDeleteConfirm(true),
+              }}
+            />
+          )
+        ) : null}
+        {showDeleteConfirm && (
+          <ConfirmDialog
+            title={t("trn.deleteTitle", "Delete Transaction")}
+            message={t("trn.delete", "Delete this transaction?")}
+            confirmLabel={t("delete", "Delete")}
+            cancelLabel={t("cancel", "Cancel")}
+            variant="red"
+            onConfirm={handleDeleteConfirm}
+            onCancel={() => setShowDeleteConfirm(false)}
+          />
+        )}
+      </>
     )
   }
 

@@ -15,6 +15,7 @@ import {
   useEscapeHandler,
   copyToClipboard,
 } from "@lib/trns/formUtils"
+import ConfirmDialog from "@components/ui/ConfirmDialog"
 import { convert } from "@lib/trns/tradeUtils"
 import TradeTypeController from "@components/features/transactions/TradeTypeController"
 import { GetServerSideProps } from "next"
@@ -148,6 +149,7 @@ const CashInputForm: React.FC<{
   }, [modalOpen])
 
   const [selectedMarket, setSelectedMarket] = useState("CASH")
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const handleCopy = async (): Promise<void> => {
     const data = buildCashCopyData(getValues(), selectedMarket)
@@ -186,7 +188,8 @@ const CashInputForm: React.FC<{
   const asset = watch("asset")
   const cashCurrency = watch("cashCurrency")
 
-  useEscapeHandler(isDirty, setModalOpen)
+  const { showEscapeConfirm, onEscapeConfirm, onEscapeCancel } =
+    useEscapeHandler(isDirty, setModalOpen)
 
   // Combine currency options with account options (must be before FX rate logic)
   const combinedOptions = useMemo(
@@ -438,8 +441,9 @@ const CashInputForm: React.FC<{
             </header>
 
             <form
-              onSubmit={handleSubmit((data) =>
-                onSubmit(portfolio, errors, data, (open) => {
+              onSubmit={handleSubmit(async (data) => {
+                setSubmitError(null)
+                const err = await onSubmit(portfolio, errors, data, (open) => {
                   setModalOpen(open)
                   if (!open) {
                     setTimeout(() => {
@@ -447,10 +451,14 @@ const CashInputForm: React.FC<{
                       mutate("/api/holdings/aggregated?asAt=today")
                     }, 1500)
                   }
-                }),
-              )}
+                })
+                if (err) setSubmitError(err)
+              })}
               className="flex-1 overflow-y-auto py-4 space-y-4"
             >
+              {submitError && (
+                <Alert>{submitError}</Alert>
+              )}
               {/* Type, Status, Date */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -794,8 +802,9 @@ const CashInputForm: React.FC<{
                 type="submit"
                 form="cash-form"
                 className="px-5 py-2.5 rounded-lg text-white text-sm font-medium bg-blue-600 hover:bg-blue-700 active:bg-blue-800 transition-colors"
-                onClick={handleSubmit((data) =>
-                  onSubmit(portfolio, errors, data, (open) => {
+                onClick={handleSubmit(async (data) => {
+                  setSubmitError(null)
+                  const err = await onSubmit(portfolio, errors, data, (open) => {
                     setModalOpen(open)
                     if (!open) {
                       setTimeout(() => {
@@ -803,14 +812,26 @@ const CashInputForm: React.FC<{
                         mutate("/api/holdings/aggregated?asAt=today")
                       }, 1500)
                     }
-                  }),
-                )}
+                  })
+                  if (err) setSubmitError(err)
+                })}
               >
                 {t("submit", "Submit")}
               </button>
             </div>
           </div>
         </div>
+      )}
+      {showEscapeConfirm && (
+        <ConfirmDialog
+          title="Unsaved Changes"
+          message="You have unsaved changes. Do you really want to close?"
+          confirmLabel="Close"
+          cancelLabel="Cancel"
+          variant="amber"
+          onConfirm={onEscapeConfirm}
+          onCancel={onEscapeCancel}
+        />
       )}
     </>
   )

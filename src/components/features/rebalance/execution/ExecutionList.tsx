@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useState } from "react"
 import { useTranslation } from "next-i18next"
 import { useRouter } from "next/router"
 import { useExecutions } from "../hooks/useExecutions"
@@ -6,11 +6,13 @@ import { TableSkeletonLoader } from "@components/ui/SkeletonLoader"
 import StatusBadge from "../common/StatusBadge"
 import { FormatValue } from "@components/ui/MoneyUtils"
 import { formatDate } from "@utils/formatters"
+import ConfirmDialog from "@components/ui/ConfirmDialog"
 
 const ExecutionList: React.FC = () => {
   const { t } = useTranslation("common")
   const router = useRouter()
   const { executions, isLoading, error } = useExecutions()
+  const [deleteExecutionId, setDeleteExecutionId] = useState<string | null>(null)
 
   if (isLoading) {
     return <TableSkeletonLoader rows={3} />
@@ -45,23 +47,13 @@ const ExecutionList: React.FC = () => {
     router.push(`/rebalance/execute?executionId=${executionId}`)
   }
 
-  const handleDelete = async (
-    e: React.MouseEvent,
-    executionId: string,
-  ): Promise<void> => {
-    e.stopPropagation()
-    if (
-      !confirm(
-        t("rebalance.executions.confirmDelete", "Delete this execution?"),
-      )
-    ) {
-      return
-    }
-
+  const handleDeleteConfirm = async (): Promise<void> => {
+    if (!deleteExecutionId) return
     try {
-      const response = await fetch(`/api/rebalance/executions/${executionId}`, {
-        method: "DELETE",
-      })
+      const response = await fetch(
+        `/api/rebalance/executions/${deleteExecutionId}`,
+        { method: "DELETE" },
+      )
       if (response.ok) {
         window.location.reload()
       }
@@ -131,7 +123,10 @@ const ExecutionList: React.FC = () => {
               <td className="px-4 py-3">
                 {execution.status === "DRAFT" && (
                   <button
-                    onClick={(e) => handleDelete(e, execution.id)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setDeleteExecutionId(execution.id)
+                    }}
                     className="text-gray-400 hover:text-red-600 p-1"
                     title={t("delete", "Delete")}
                   >
@@ -143,6 +138,23 @@ const ExecutionList: React.FC = () => {
           ))}
         </tbody>
       </table>
+      {deleteExecutionId && (
+        <ConfirmDialog
+          title={t("rebalance.executions.deleteTitle", "Delete Execution")}
+          message={t(
+            "rebalance.executions.confirmDelete",
+            "Delete this execution?",
+          )}
+          confirmLabel={t("delete", "Delete")}
+          cancelLabel={t("cancel", "Cancel")}
+          variant="red"
+          onConfirm={async () => {
+            await handleDeleteConfirm()
+            setDeleteExecutionId(null)
+          }}
+          onCancel={() => setDeleteExecutionId(null)}
+        />
+      )}
     </div>
   )
 }

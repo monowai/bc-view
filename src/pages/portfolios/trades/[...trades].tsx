@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useState } from "react"
 import { NumericFormat } from "react-number-format"
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
@@ -12,9 +12,11 @@ import { rootLoader } from "@components/ui/PageLoader"
 import { errorOut } from "@components/errors/ErrorOut"
 import useSwr from "swr"
 import { deleteTrn } from "@lib/trns/apiHelper"
+import ConfirmDialog from "@components/ui/ConfirmDialog"
 
 export default withPageAuthRequired(function Events(): React.ReactElement {
   const { t } = useTranslation("common")
+  const [deleteTrnId, setDeleteTrnId] = useState<string | null>(null)
 
   const router = useRouter()
   const portfolioId = router.query.trades ? router.query.trades[0] : "undefined"
@@ -161,7 +163,7 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                       className="fa fa-edit"
                     ></Link>
                     <a
-                      onClick={() => deleteTrn(trn.id, t("trn.delete"))}
+                      onClick={() => setDeleteTrnId(trn.id)}
                       className="simple-padding fa fa-trash-can"
                     ></a>
                   </td>
@@ -171,6 +173,20 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
           </table>
         </div>
       </div>
+      {deleteTrnId && (
+        <ConfirmDialog
+          title={t("trn.deleteTitle", "Delete Transaction")}
+          message={t("trn.delete", "Delete this transaction?")}
+          confirmLabel={t("delete", "Delete")}
+          cancelLabel={t("cancel", "Cancel")}
+          variant="red"
+          onConfirm={async () => {
+            await deleteTrn(deleteTrnId)
+            setDeleteTrnId(null)
+          }}
+          onCancel={() => setDeleteTrnId(null)}
+        />
+      )}
     </div>
   )
 })

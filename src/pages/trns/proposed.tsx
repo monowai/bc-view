@@ -15,6 +15,7 @@ import { stripOwnerPrefix } from "@lib/assets/assetUtils"
 import DateInput from "@components/ui/DateInput"
 import DecimalInput from "@components/ui/DecimalInput"
 import Alert from "@components/ui/Alert"
+import ConfirmDialog from "@components/ui/ConfirmDialog"
 import { getToday, getSessionValue, setSessionValue } from "@lib/sessionStorage"
 
 // Session storage keys for filter preferences
@@ -46,6 +47,11 @@ export default function ProposedTransactions(): React.JSX.Element {
   const [typeFilter, setTypeFilter] = useState<string>("ALL")
   const [isSettling, setIsSettling] = useState(false)
   const [aggregateView, setAggregateView] = useState(false)
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
+  const [editTarget, setEditTarget] = useState<{
+    portfolioId: string
+    trnId: string
+  } | null>(null)
   const [sessionInitialized, setSessionInitialized] = useState(false)
 
   // Initialize filter states from session storage on mount
@@ -431,8 +437,10 @@ export default function ProposedTransactions(): React.JSX.Element {
     return agg.transactions.some((t) => t.status === "PROPOSED")
   }
 
-  const handleDelete = async (id: string): Promise<void> => {
-    if (!confirm("Delete this proposed transaction?")) return
+  const handleDeleteConfirm = async (): Promise<void> => {
+    if (!deleteTargetId) return
+    const id = deleteTargetId
+    setDeleteTargetId(null)
 
     try {
       const response = await fetch(`/api/trns/${id}`, {
@@ -549,16 +557,8 @@ export default function ProposedTransactions(): React.JSX.Element {
 
   const handleEdit = (portfolioId: string, trnId: string): void => {
     if (hasAnyUnsavedChanges()) {
-      if (
-        !confirm(
-          t(
-            "trn.proposed.unsavedChanges",
-            "You have unsaved changes. Opening the editor will lose these changes. Continue?",
-          ),
-        )
-      ) {
-        return
-      }
+      setEditTarget({ portfolioId, trnId })
+      return
     }
     router.push(`/trns/trades/edit/${portfolioId}/${trnId}`)
   }
@@ -923,7 +923,7 @@ export default function ProposedTransactions(): React.JSX.Element {
                             <i className="fas fa-edit"></i>
                           </button>
                           <button
-                            onClick={() => handleDelete(trn.id)}
+                            onClick={() => setDeleteTargetId(trn.id)}
                             className="text-red-500 hover:text-red-700 p-1"
                             title="Delete transaction"
                           >
@@ -1219,6 +1219,38 @@ export default function ProposedTransactions(): React.JSX.Element {
           </>
         )}
       </div>
+      {deleteTargetId && (
+        <ConfirmDialog
+          title={t("trn.proposed.deleteTitle", "Delete Transaction")}
+          message={t(
+            "trn.proposed.deleteConfirm",
+            "Delete this proposed transaction?",
+          )}
+          confirmLabel={t("delete", "Delete")}
+          cancelLabel={t("cancel", "Cancel")}
+          variant="red"
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setDeleteTargetId(null)}
+        />
+      )}
+      {editTarget && (
+        <ConfirmDialog
+          title={t("trn.proposed.unsavedTitle", "Unsaved Changes")}
+          message={t(
+            "trn.proposed.unsavedChanges",
+            "You have unsaved changes. Opening the editor will lose these changes. Continue?",
+          )}
+          confirmLabel={t("continue", "Continue")}
+          cancelLabel={t("cancel", "Cancel")}
+          variant="amber"
+          onConfirm={() => {
+            const { portfolioId, trnId } = editTarget
+            setEditTarget(null)
+            router.push(`/trns/trades/edit/${portfolioId}/${trnId}`)
+          }}
+          onCancel={() => setEditTarget(null)}
+        />
+      )}
     </>
   )
 }

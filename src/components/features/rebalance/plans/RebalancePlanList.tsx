@@ -6,27 +6,23 @@ import { TableSkeletonLoader } from "@components/ui/SkeletonLoader"
 import StatusBadge from "../common/StatusBadge"
 import { FormatValue } from "@components/ui/MoneyUtils"
 import { formatDate } from "@utils/formatters"
+import ConfirmDialog from "@components/ui/ConfirmDialog"
 
 const RebalancePlanList: React.FC = () => {
   const { t } = useTranslation("common")
   const router = useRouter()
   const { plans, isLoading, error, deletePlan } = usePlans()
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [deletePlanId, setDeletePlanId] = useState<string | null>(null)
 
-  const handleDelete = async (
-    e: React.MouseEvent,
-    planId: string,
-  ): Promise<void> => {
-    e.stopPropagation()
-    if (!confirm(t("rebalance.plans.confirmDelete", "Delete this plan?"))) {
-      return
-    }
-
-    setDeletingId(planId)
+  const handleDeleteConfirm = async (): Promise<void> => {
+    if (!deletePlanId) return
+    setDeletingId(deletePlanId)
     try {
-      await deletePlan(planId)
+      await deletePlan(deletePlanId)
     } finally {
       setDeletingId(null)
+      setDeletePlanId(null)
     }
   }
 
@@ -123,7 +119,10 @@ const RebalancePlanList: React.FC = () => {
               </td>
               <td className="px-4 py-3">
                 <button
-                  onClick={(e) => handleDelete(e, plan.id)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setDeletePlanId(plan.id)
+                  }}
                   disabled={deletingId === plan.id}
                   className="text-gray-400 hover:text-red-600 p-1 disabled:opacity-50"
                   title={t("delete", "Delete")}
@@ -139,6 +138,20 @@ const RebalancePlanList: React.FC = () => {
           ))}
         </tbody>
       </table>
+      {deletePlanId && (
+        <ConfirmDialog
+          title={t("rebalance.plans.deleteTitle", "Delete Plan")}
+          message={t(
+            "rebalance.plans.confirmDelete",
+            "Delete this plan?",
+          )}
+          confirmLabel={t("delete", "Delete")}
+          cancelLabel={t("cancel", "Cancel")}
+          variant="red"
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setDeletePlanId(null)}
+        />
+      )}
     </div>
   )
 }
