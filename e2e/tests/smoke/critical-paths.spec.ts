@@ -8,7 +8,7 @@ import { createTestHelpers, PAGES } from "../../fixtures/test-data"
 test.describe("Critical User Journeys @smoke", () => {
   test("should complete new user onboarding flow", async ({ page }) => {
     await page.goto(PAGES.home)
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
 
     // User should see welcome message
     await expect(page.locator("h1")).toContainText("Welcome")
@@ -24,7 +24,7 @@ test.describe("Critical User Journeys @smoke", () => {
   test("should create portfolio and view holdings", async ({ page }) => {
     // Navigate first to load auth cookies into page context
     await page.goto(PAGES.home)
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
 
     const helpers = createTestHelpers(page)
 
@@ -34,7 +34,7 @@ test.describe("Critical User Journeys @smoke", () => {
 
       // View the portfolio (uses ID in URL)
       await page.goto(PAGES.portfolio(portfolio.id))
-      await page.waitForLoadState("networkidle")
+      await page.waitForLoadState("domcontentloaded")
 
       // Should show portfolio edit form with code pre-filled
       const codeInput = page.locator('input[name="code"]')
@@ -42,7 +42,7 @@ test.describe("Critical User Journeys @smoke", () => {
 
       // Navigate to holdings
       await page.goto(PAGES.holdings(portfolio.code))
-      await page.waitForLoadState("networkidle")
+      await page.waitForLoadState("domcontentloaded")
 
       // Page should load without errors
       await expect(page.locator("body")).toBeVisible()
@@ -60,7 +60,7 @@ test.describe("Critical User Journeys @smoke", () => {
 
   test("should navigate to wealth overview", async ({ page }) => {
     await page.goto(PAGES.wealth)
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
 
     // Should show wealth page
     await expect(page.locator("body")).toBeVisible()
@@ -71,7 +71,7 @@ test.describe("Critical User Journeys @smoke", () => {
 
   test("should navigate to independence planning", async ({ page }) => {
     await page.goto(PAGES.independence)
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
 
     // Should show independence page
     await expect(page.locator("body")).toBeVisible()
@@ -82,7 +82,7 @@ test.describe("Critical User Journeys @smoke", () => {
 
   test("should navigate to rebalance models", async ({ page }) => {
     await page.goto(PAGES.rebalance)
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
 
     // Should show rebalance page
     await expect(page.locator("body")).toBeVisible()
@@ -93,7 +93,7 @@ test.describe("Critical User Journeys @smoke", () => {
 
   test("should display portfolio list correctly", async ({ page }) => {
     await page.goto(PAGES.portfolios)
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
 
     // Should show portfolios page
     await expect(page.locator("body")).toBeVisible()
@@ -110,7 +110,7 @@ test.describe("Critical User Journeys @smoke", () => {
     await page.setViewportSize({ width: 375, height: 667 })
 
     await page.goto(PAGES.home)
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
 
     // Page should be visible and not broken
     await expect(page.locator("body")).toBeVisible()
@@ -130,7 +130,7 @@ test.describe("Critical User Journeys @smoke", () => {
   test("should handle navigation errors gracefully", async ({ page }) => {
     // Navigate to a non-existent page
     await page.goto("/non-existent-page-12345")
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
 
     // Should show 404 or redirect to home, not crash
     const is404 = page.locator(':text("404"), :text("Not Found")')
@@ -147,7 +147,7 @@ test.describe("Critical User Journeys @smoke", () => {
 
   test("should display user preferences correctly", async ({ page }) => {
     await page.goto("/settings")
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
 
     // Should show settings page or redirect - page loads without crashing
     await expect(page.locator("body")).toBeVisible()
@@ -160,7 +160,7 @@ test.describe("Critical User Journeys @smoke", () => {
     await page.goto(PAGES.portfolios)
     await page.goto(PAGES.home)
 
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
 
     // Should end up on a valid page without errors
     await expect(page.locator("body")).toBeVisible()

@@ -122,11 +122,11 @@ const SettlementAccountSelect: React.FC<SettlementAccountSelectProps> = ({
         (a) => getAssetCurrency(a) !== tradeCurrency,
       )
 
-      // Combine all recommended options
+      // Combine all recommended options — bank accounts first, then cash balances
       const recommendedOptions: SettlementAccountOption[] = [
-        ...toCashAssetOptions(recommendedCashAssets),
         ...toSettlementAccountOptions(recommendedBankAccounts),
         ...toSettlementAccountOptions(recommendedAccounts),
+        ...toCashAssetOptions(recommendedCashAssets),
       ]
 
       if (recommendedOptions.length > 0) {

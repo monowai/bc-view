@@ -5,11 +5,14 @@ import { Portfolio, QuickSellData, BrokerWithAccounts } from "types/beancounter"
 import { ModelDto } from "types/rebalance"
 import {
   calculateTradeAmount,
+  calculateCashAmount,
   hasCashImpact,
   isExpenseType,
   isIncomeType,
   isSimpleAmountType,
   deriveDefaultMarket,
+  getTradeColorScheme,
+  getQtyPriceTint,
 } from "@lib/trns/tradeUtils"
 import { useTranslation } from "next-i18next"
 import useSwr, { mutate } from "swr"
@@ -28,9 +31,9 @@ import TradeTypeController from "@components/features/transactions/TradeTypeCont
 import SettlementAccountSelect from "@components/features/transactions/SettlementAccountSelect"
 import BrokerSelectionDialog from "@components/features/transactions/BrokerSelectionDialog"
 import TradeFormHeader from "@components/features/transactions/TradeFormHeader"
-import TradeFormTabs from "@components/features/transactions/TradeFormTabs"
 import AssetSearch from "@components/features/assets/AssetSearch"
 import { AssetOption } from "types/beancounter"
+import { NumericFormat } from "react-number-format"
 import { useEscapeHandler, copyToClipboard } from "@lib/trns/formUtils"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 import MathInput from "@components/ui/MathInput"
@@ -97,7 +100,9 @@ const TradeInputForm: React.FC<{
   const [targetWeight, setTargetWeight] = useState<string>("")
   const [tradeValue, setTradeValue] = useState<string>("")
   const [isFetchingPrice, setIsFetchingPrice] = useState(false)
-  const [activeTab, setActiveTab] = useState<"trade" | "invest">("trade")
+  const [activeTab, setActiveTab] = useState<"trade" | "invest" | "settlement">(
+    "trade",
+  )
   const dateInputRef = useRef<HTMLInputElement>(null)
 
   // Edit mode state
@@ -121,10 +126,9 @@ const TradeInputForm: React.FC<{
   const modelInitializedRef = useRef(false)
   const initialModelIdRef = useRef<string | undefined>(transaction?.modelId)
 
-  // Track whether the user has manually overridden computed amounts.
+  // Track whether the user has manually overridden computed trade amount.
   // When set, the auto-recalculation useEffect is skipped.
   const tradeAmountOverriddenRef = useRef(false)
-  const cashAmountOverriddenRef = useRef(false)
 
   // Fetch portfolios for portfolio move (edit mode)
   const { data: portfoliosData } = useSwr(
@@ -248,11 +252,13 @@ const TradeInputForm: React.FC<{
       setTargetWeight("")
       setTradeValue("")
       setSubmitError(null)
+      setActiveTab("trade")
     } else if (modalOpen && initialValues) {
       // Quick sell mode: populate from initialValues
       reset(buildQuickSellValues(initialValues, defaultValues))
       setTargetWeight("")
       setTradeValue("")
+      setActiveTab("trade")
     } else if (modalOpen && !initialValues && !isEditMode) {
       // Create mode: reset to defaults, using portfolio-appropriate market
       reset(
@@ -264,6 +270,7 @@ const TradeInputForm: React.FC<{
       )
       setTargetWeight("")
       setTradeValue("")
+      setActiveTab("trade")
     }
   }, [
     modalOpen,
@@ -298,7 +305,7 @@ const TradeInputForm: React.FC<{
     ccyKey,
     simpleFetcher(ccyKey),
   )
-  const { data: cashAssetsData } = useSwr(null, optionalFetcher(cashKey))
+  const { data: cashAssetsData } = useSwr(cashKey, optionalFetcher(cashKey))
 
   const quantity = watch("quantity")
   const price = watch("price")
@@ -383,9 +390,10 @@ const TradeInputForm: React.FC<{
     }
 
     const market = option.market || watch("market")
+    const assetCode = option.symbol || option.value
     // Skip price fetching for private assets - they don't have external market data
-    if (market && option.value && market !== "PRIVATE" && market !== "CASH") {
-      const fetchedPrice = await fetchAssetPrice(market, option.value)
+    if (market && assetCode && market !== "PRIVATE" && market !== "CASH") {
+      const fetchedPrice = await fetchAssetPrice(market, assetCode)
       if (fetchedPrice !== null) {
         setValue("price", fetchedPrice)
       }
@@ -471,8 +479,13 @@ const TradeInputForm: React.FC<{
   }, [allCashBalances, currentTradeCurrency])
 
   const defaultCashAsset = useMemo(
-    () => buildDefaultCashAsset(filteredCashAssets, currentTradeCurrency),
-    [filteredCashAssets, currentTradeCurrency],
+    () =>
+      buildDefaultCashAsset(
+        filteredCashAssets,
+        currentTradeCurrency,
+        allBankAccounts,
+      ),
+    [filteredCashAssets, currentTradeCurrency, allBankAccounts],
   )
 
   // Cash assets for dropdown - all currency balances are already included
@@ -529,6 +542,24 @@ const TradeInputForm: React.FC<{
     setValue,
   ])
 
+  const cashAmountField = watch("cashAmount")
+  const market = watch("market")
+
+  // Derived cash amount for settlement tab display
+  const displayCashAmount = useMemo(() => {
+    if (cashAmountField) return cashAmountField
+    return calculateCashAmount({
+      type,
+      market,
+      quantity,
+      price,
+      tradeAmount: watch("tradeAmount") || 0,
+      cashAmount: 0,
+      fees,
+      tax,
+    } as any)
+  }, [type, market, quantity, price, cashAmountField, fees, tax, watch])
+
   if (marketsLoading || tradeAccountsLoading || ccyLoading)
     return rootLoader(t("loading"))
 
@@ -569,7 +600,7 @@ const TradeInputForm: React.FC<{
             onClick={() => setModalOpen(false)}
           ></div>
           <div
-            className="bg-white sm:rounded-xl shadow-2xl w-full sm:max-w-lg sm:mx-4 p-4 sm:p-5 z-50 text-sm flex flex-col max-h-[95vh] sm:max-h-[90vh] rounded-t-xl"
+            className="bg-white sm:rounded-xl shadow-2xl w-full sm:max-w-lg sm:mx-4 p-4 sm:p-5 z-50 text-sm flex flex-col max-h-[95vh] sm:max-h-[90vh] rounded-t-xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <TradeFormHeader
@@ -579,15 +610,6 @@ const TradeInputForm: React.FC<{
               editMarketCode={editMarketCode}
               asset={asset}
               portfolio={portfolio}
-              type={type}
-              isExpense={isExpense}
-              isSimpleAmount={isSimpleAmount}
-              cashImpact={cashImpact}
-              quantity={quantity}
-              price={price}
-              tradeAmount={tradeAmount}
-              tradeCurrency={tradeCurrency}
-              weightInfo={weightInfo}
               onClose={() =>
                 isEditMode ? editMode?.onClose() : setModalOpen(false)
               }
@@ -597,6 +619,61 @@ const TradeInputForm: React.FC<{
               control={control}
               t={t}
             />
+
+            {/* Tab Bar */}
+            {(() => {
+              const needsPrice = !isSimpleAmount && (!price || price <= 0)
+              return (
+                <div className="flex border-b border-gray-200 shrink-0">
+                  <button
+                    type="button"
+                    className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                      activeTab === "trade"
+                        ? "border-b-2 border-blue-500 text-blue-600"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                    onClick={() => setActiveTab("trade")}
+                  >
+                    {t("trn.tab.trade", "Trade")}
+                  </button>
+                  {!isSimpleAmount && !isEditMode && (
+                    <button
+                      type="button"
+                      disabled={needsPrice}
+                      className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                        needsPrice
+                          ? "text-gray-300 cursor-not-allowed"
+                          : activeTab === "invest"
+                            ? "border-b-2 border-purple-500 text-purple-600"
+                            : "text-gray-500 hover:text-gray-700"
+                      }`}
+                      onClick={() => {
+                        setActiveTab("invest")
+                        if (!tradeValue && tradeAmount) {
+                          setTradeValue(String(Math.abs(tradeAmount)))
+                        }
+                      }}
+                    >
+                      {t("trn.tab.invest", "Invest")}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    disabled={needsPrice}
+                    className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                      needsPrice
+                        ? "text-gray-300 cursor-not-allowed"
+                        : activeTab === "settlement"
+                          ? "border-b-2 border-blue-500 text-blue-600"
+                          : "text-gray-500 hover:text-gray-700"
+                    }`}
+                    onClick={() => setActiveTab("settlement")}
+                  >
+                    {t("trn.tab.settlement", "Settlement")}
+                  </button>
+                </div>
+              )
+            })()}
 
             {/* Scrollable form content */}
             <form
@@ -645,414 +722,646 @@ const TradeInputForm: React.FC<{
                   })
                 }
               })}
-              className="flex-1 overflow-y-auto py-4 space-y-4"
+              className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden py-4 space-y-4"
             >
-              {/* Type and Date */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className={labelClass}>{t("trn.type")}</label>
-                  <TradeTypeController
-                    name="type"
-                    control={control}
-                    options={TradeTypeValues.map((value) => ({
-                      value,
-                      label: value,
-                    }))}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>{t("trn.tradeDate")}</label>
-                  <Controller
-                    name="tradeDate"
-                    control={control}
-                    render={({ field }) => (
-                      <DateInput
-                        ref={dateInputRef}
-                        value={field.value}
-                        onChange={field.onChange}
-                        className={inputClass}
+              {/* === Trade Tab === */}
+              {activeTab === "trade" && (
+                <div className="space-y-4">
+                  {/* Type and Date */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className={labelClass}>{t("trn.type")}</label>
+                      <TradeTypeController
+                        name="type"
+                        control={control}
+                        options={TradeTypeValues.map((value) => ({
+                          value,
+                          label: value,
+                        }))}
                       />
-                    )}
-                  />
-                </div>
-              </div>
-
-              {/* Market and Asset */}
-              {isEditMode ? (
-                // Edit mode: show read-only asset info
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className={labelClass}>{t("trn.asset.code")}</label>
-                    <input
-                      type="text"
-                      value={editAssetCode}
-                      disabled
-                      className={`${inputClass} bg-gray-100 cursor-not-allowed text-xs`}
-                    />
-                  </div>
-                  <div>
-                    <label className={labelClass}>{t("trn.market.code")}</label>
-                    <input
-                      type="text"
-                      value={editMarketCode}
-                      disabled
-                      className={`${inputClass} bg-gray-100 cursor-not-allowed text-xs`}
-                    />
-                  </div>
-                </div>
-              ) : (
-                // Create mode: editable market and asset
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className={labelClass}>{t("trn.market.code")}</label>
-                    <Controller
-                      name="market"
-                      control={control}
-                      render={({ field }) => (
-                        <select {...field} className={inputClass}>
-                          {marketOptions.map(
-                            (option: { value: string; label: string }) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ),
-                          )}
-                        </select>
-                      )}
-                    />
-                  </div>
-                  <div>
-                    <label className={labelClass}>
-                      {isFetchingPrice
-                        ? `${t("trn.asset.code")} ...`
-                        : t("trn.asset.code")}
-                    </label>
-                    <AssetSearch
-                      name="asset"
-                      control={control}
-                      market={watch("market")}
-                      defaultValue={initialValues?.asset}
-                      onSelect={handleAssetSelect}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Portfolio Move (edit mode only) */}
-              {isEditMode && portfolios.length > 0 && (
-                <div>
-                  <label className={labelClass}>{t("portfolio")}</label>
-                  <select
-                    value={selectedPortfolioId}
-                    onChange={(e) => setSelectedPortfolioId(e.target.value)}
-                    className={`${inputClass} text-xs ${portfolioChanged ? "border-amber-500 bg-amber-50" : ""}`}
-                  >
-                    {portfolios.map((p: Portfolio) => (
-                      <option key={p.id} value={p.id}>
-                        {p.code} - {p.name}
-                      </option>
-                    ))}
-                  </select>
-                  {portfolioChanged && (
-                    <p className="text-xs text-amber-600 mt-0.5">
-                      {t(
-                        "trn.portfolio.changed",
-                        "Will move to this portfolio",
-                      )}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {/* Amount - shown for EXPENSE/INCOME types */}
-              {isSimpleAmount && (
-                <div>
-                  <label className={labelClass}>
-                    {isIncome
-                      ? t("trn.income.amount", "Income Amount")
-                      : t("trn.expense.amount", "Expense Amount")}
-                  </label>
-                  <Controller
-                    name="tradeAmount"
-                    control={control}
-                    render={({ field }) => (
-                      <MathInput
-                        value={field.value}
-                        onChange={field.onChange}
-                        className={`${inputClass} text-lg font-medium`}
-                        placeholder={
-                          isIncome
-                            ? t("trn.income.placeholder", "Enter income amount")
-                            : t(
-                                "trn.expense.placeholder",
-                                "Enter expense amount",
-                              )
-                        }
-                      />
-                    )}
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    {isIncome
-                      ? t(
-                          "trn.income.hint",
-                          "This amount will be credited to the settlement account",
-                        )
-                      : t(
-                          "trn.expense.hint",
-                          "This amount will be debited from the settlement account",
+                    </div>
+                    <div>
+                      <label className={labelClass}>
+                        {t("trn.tradeDate")}
+                      </label>
+                      <Controller
+                        name="tradeDate"
+                        control={control}
+                        render={({ field }) => (
+                          <DateInput
+                            ref={dateInputRef}
+                            value={field.value}
+                            onChange={field.onChange}
+                            className={inputClass}
+                          />
                         )}
-                  </p>
-                </div>
-              )}
-
-              {/* Fees - shown for EXPENSE/INCOME types */}
-              {isSimpleAmount && (
-                <div>
-                  <label className={labelClass}>
-                    {t("trn.amount.charges")}
-                  </label>
-                  <Controller
-                    name="fees"
-                    control={control}
-                    render={({ field }) => (
-                      <MathInput
-                        value={field.value}
-                        onChange={field.onChange}
-                        className={inputClass}
                       />
-                    )}
-                  />
-                </div>
-              )}
+                    </div>
+                  </div>
 
-              {/* Quantity, Price, Fees - hidden for EXPENSE/INCOME types */}
-              {!isSimpleAmount && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className={labelClass}>
-                      {actualPositionQuantity > 0
-                        ? `${t("quantity")} (${actualPositionQuantity.toLocaleString()})`
-                        : t("quantity")}
-                    </label>
-                    <Controller
-                      name="quantity"
-                      control={control}
-                      render={({ field }) => (
-                        <MathInput
-                          value={field.value}
-                          onChange={field.onChange}
-                          className={inputClass}
+                  {/* Market and Asset */}
+                  {isEditMode ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className={labelClass}>
+                          {t("trn.asset.code")}
+                        </label>
+                        <input
+                          type="text"
+                          value={editAssetCode}
+                          disabled
+                          className={`${inputClass} bg-gray-100 cursor-not-allowed text-xs`}
                         />
-                      )}
-                    />
-                  </div>
-                  <div>
-                    <label className={labelClass}>{t("trn.price")}</label>
-                    <Controller
-                      name="price"
-                      control={control}
-                      render={({ field }) => (
-                        <MathInput
-                          value={field.value}
-                          onChange={field.onChange}
-                          step="0.01"
-                          className={inputClass}
+                      </div>
+                      <div>
+                        <label className={labelClass}>
+                          {t("trn.market.code")}
+                        </label>
+                        <input
+                          type="text"
+                          value={editMarketCode}
+                          disabled
+                          className={`${inputClass} bg-gray-100 cursor-not-allowed text-xs`}
                         />
-                      )}
-                    />
-                  </div>
-                  <div className="col-span-2 sm:col-span-1">
-                    <label className={labelClass}>
-                      {t("trn.amount.charges")}
-                    </label>
-                    <Controller
-                      name="fees"
-                      control={control}
-                      render={({ field }) => (
-                        <MathInput
-                          value={field.value}
-                          onChange={field.onChange}
-                          className={inputClass}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className={labelClass}>
+                          {t("trn.market.code")}
+                        </label>
+                        <Controller
+                          name="market"
+                          control={control}
+                          render={({ field }) => (
+                            <select {...field} className={inputClass}>
+                              {marketOptions.map(
+                                (option: {
+                                  value: string
+                                  label: string
+                                }) => (
+                                  <option
+                                    key={option.value}
+                                    value={option.value}
+                                  >
+                                    {option.label}
+                                  </option>
+                                ),
+                              )}
+                            </select>
+                          )}
                         />
-                      )}
-                    />
-                  </div>
-                </div>
-              )}
+                      </div>
+                      <div>
+                        <label className={labelClass}>
+                          {isFetchingPrice
+                            ? `${t("trn.asset.code")} ...`
+                            : t("trn.asset.code")}
+                        </label>
+                        <AssetSearch
+                          name="asset"
+                          inputId="asset-search"
+                          control={control}
+                          market={watch("market")}
+                          defaultValue={initialValues?.asset}
+                          onSelect={handleAssetSelect}
+                        />
+                      </div>
+                    </div>
+                  )}
 
-              {/* Broker - select before settlement account (hidden for EXPENSE/INCOME) */}
-              {!isSimpleAmount && (
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className={labelClass}>
-                      {t("trn.broker", "Broker")}
-                    </label>
-                    <a
-                      href="/brokers"
-                      target="_blank"
-                      className="text-xs text-blue-500 hover:text-blue-700"
-                    >
-                      {t("brokers.manage", "Manage")}
-                    </a>
-                  </div>
-                  <Controller
-                    name="brokerId"
-                    control={control}
-                    render={({ field }) => (
+                  {/* Portfolio Move (edit mode only) */}
+                  {isEditMode && portfolios.length > 0 && (
+                    <div>
+                      <label className={labelClass}>{t("portfolio")}</label>
                       <select
-                        className={inputClass}
-                        value={field.value || ""}
-                        onChange={(e) => field.onChange(e.target.value)}
+                        value={selectedPortfolioId}
+                        onChange={(e) =>
+                          setSelectedPortfolioId(e.target.value)
+                        }
+                        className={`${inputClass} text-xs ${portfolioChanged ? "border-amber-500 bg-amber-50" : ""}`}
                       >
-                        <option value="">
-                          {t("trn.broker.none", "-- No broker --")}
-                        </option>
-                        {brokers.map((broker) => (
-                          <option key={broker.id} value={broker.id}>
-                            {broker.name}
-                            {broker.accountNumber
-                              ? ` (${broker.accountNumber})`
-                              : ""}
+                        {portfolios.map((p: Portfolio) => (
+                          <option key={p.id} value={p.id}>
+                            {p.code} - {p.name}
                           </option>
                         ))}
                       </select>
-                    )}
-                  />
-                </div>
-              )}
+                      {portfolioChanged && (
+                        <p className="text-xs text-amber-600 mt-0.5">
+                          {t(
+                            "trn.portfolio.changed",
+                            "Will move to this portfolio",
+                          )}
+                        </p>
+                      )}
+                    </div>
+                  )}
 
-              {/* Settlement Account */}
-              <div>
-                <label className={labelClass}>
-                  {isIncome
-                    ? t("trn.income.creditAccount", "Credit To Account")
-                    : isExpense
-                      ? t("trn.expense.debitAccount", "Debit From Account")
-                      : t("trn.settlement.account")}
-                </label>
-                <SettlementAccountSelect
-                  name="settlementAccount"
-                  control={control}
-                  accounts={
-                    isIncome || isExpense ? [] : (allTradeAccounts as any[])
-                  }
-                  bankAccounts={allBankAccounts as any[]}
-                  cashAssets={
-                    isIncome || isExpense
-                      ? (filteredCashAssets as any[])
-                      : (cashAssetsForDropdown as any[])
-                  }
-                  trnType={type?.value || "BUY"}
-                  tradeCurrency={currentTradeCurrency}
-                  defaultValue={defaultCashAsset}
-                />
-              </div>
+                  {/* Amount - shown for EXPENSE/INCOME types */}
+                  {isSimpleAmount && (
+                    <div>
+                      <label className={labelClass}>
+                        {isIncome
+                          ? t("trn.income.amount", "Income Amount")
+                          : t("trn.expense.amount", "Expense Amount")}
+                      </label>
+                      <Controller
+                        name="tradeAmount"
+                        control={control}
+                        render={({ field }) => (
+                          <MathInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            className={`${inputClass} text-lg font-medium`}
+                            placeholder={
+                              isIncome
+                                ? t(
+                                    "trn.income.placeholder",
+                                    "Enter income amount",
+                                  )
+                                : t(
+                                    "trn.expense.placeholder",
+                                    "Enter expense amount",
+                                  )
+                            }
+                          />
+                        )}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        {isIncome
+                          ? t(
+                              "trn.income.hint",
+                              "This amount will be credited to the settlement account",
+                            )
+                          : t(
+                              "trn.expense.hint",
+                              "This amount will be debited from the settlement account",
+                            )}
+                      </p>
+                    </div>
+                  )}
 
-              {/* Model Selection (edit mode only) */}
-              {isEditMode && models.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className={labelClass}>
-                      {t("trn.model", "Strategy/Model")}
-                    </label>
-                    {suggestedModelId &&
-                      suggestedModelId !== selectedModelId && (
-                        <button
-                          type="button"
-                          onClick={() => setSelectedModelId(suggestedModelId)}
+                  {/* Fees - shown for EXPENSE/INCOME types */}
+                  {isSimpleAmount && (
+                    <div>
+                      <label className={labelClass}>
+                        {t("trn.amount.charges")}
+                      </label>
+                      <Controller
+                        name="fees"
+                        control={control}
+                        render={({ field }) => (
+                          <MathInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            className={inputClass}
+                          />
+                        )}
+                      />
+                    </div>
+                  )}
+
+                  {/* Quantity, Price, Fees - hidden for EXPENSE/INCOME types */}
+                  {!isSimpleAmount && (
+                    <div
+                      className={`rounded-lg p-3 ${getQtyPriceTint(type?.value)}`}
+                    >
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        <div>
+                          <label className={labelClass}>
+                            {actualPositionQuantity > 0
+                              ? `${t("quantity")} (${actualPositionQuantity.toLocaleString()})`
+                              : t("quantity")}
+                          </label>
+                          <Controller
+                            name="quantity"
+                            control={control}
+                            render={({ field }) => (
+                              <MathInput
+                                value={field.value}
+                                onChange={field.onChange}
+                                className={inputClass}
+                              />
+                            )}
+                          />
+                        </div>
+                        <div>
+                          <label className={labelClass}>
+                            {t("trn.price")}
+                          </label>
+                          <Controller
+                            name="price"
+                            control={control}
+                            render={({ field }) => (
+                              <MathInput
+                                value={field.value}
+                                onChange={field.onChange}
+                                step="0.01"
+                                className={inputClass}
+                              />
+                            )}
+                          />
+                        </div>
+                        <div className="col-span-2 sm:col-span-1">
+                          <label className={labelClass}>
+                            {t("trn.amount.charges")}
+                          </label>
+                          <Controller
+                            name="fees"
+                            control={control}
+                            render={({ field }) => (
+                              <MathInput
+                                value={field.value}
+                                onChange={field.onChange}
+                                className={inputClass}
+                              />
+                            )}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Broker - hidden for EXPENSE/INCOME */}
+                  {!isSimpleAmount && (
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className={labelClass}>
+                          {t("trn.broker", "Broker")}
+                        </label>
+                        <a
+                          href="/brokers"
+                          target="_blank"
                           className="text-xs text-blue-500 hover:text-blue-700"
                         >
-                          {t("trn.model.useSuggested", "Use suggested")}
-                        </button>
-                      )}
-                  </div>
-                  <select
-                    className={`${inputClass} ${suggestedModelId && selectedModelId === suggestedModelId ? "border-purple-300 bg-purple-50" : ""}`}
-                    value={selectedModelId || ""}
-                    onChange={(e) =>
-                      setSelectedModelId(e.target.value || undefined)
-                    }
-                  >
-                    <option value="">
-                      {t("trn.model.none", "-- No model --")}
-                    </option>
-                    {/* Show suggested model first if available */}
-                    {suggestedModelId && (
-                      <optgroup label={t("trn.model.suggested", "Suggested")}>
-                        {models
-                          .filter((m) => m.id === suggestedModelId)
-                          .map((model) => (
-                            <option
-                              key={`suggested-${model.id}`}
-                              value={model.id}
-                            >
-                              {model.name} (suggested)
+                          {t("brokers.manage", "Manage")}
+                        </a>
+                      </div>
+                      <Controller
+                        name="brokerId"
+                        control={control}
+                        render={({ field }) => (
+                          <select
+                            className={inputClass}
+                            value={field.value || ""}
+                            onChange={(e) => field.onChange(e.target.value)}
+                          >
+                            <option value="">
+                              {t("trn.broker.none", "-- No broker --")}
                             </option>
-                          ))}
-                      </optgroup>
-                    )}
-                    <optgroup label={t("trn.model.all", "All Models")}>
-                      {models
-                        .filter((m) => m.id !== suggestedModelId)
-                        .map((model) => (
-                          <option key={model.id} value={model.id}>
-                            {model.name}
-                          </option>
-                        ))}
-                    </optgroup>
-                  </select>
-                  {suggestedModelId && (
-                    <p className="text-xs text-purple-600 mt-0.5">
-                      {t(
-                        "trn.model.deduced",
-                        "Model suggested based on transaction origin",
-                      )}
-                    </p>
+                            {brokers.map((broker) => (
+                              <option key={broker.id} value={broker.id}>
+                                {broker.name}
+                                {broker.accountNumber
+                                  ? ` (${broker.accountNumber})`
+                                  : ""}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      />
+                    </div>
+                  )}
+
+                  {/* Comment for EXPENSE/INCOME types */}
+                  {isSimpleAmount && (
+                    <div>
+                      <label className={labelClass}>
+                        {isExpense
+                          ? t(
+                              "trn.expense.description",
+                              "Expense Description",
+                            )
+                          : t(
+                              "trn.income.description",
+                              "Income Description",
+                            )}
+                      </label>
+                      <Controller
+                        name="comment"
+                        control={control}
+                        render={({ field }) => (
+                          <input
+                            {...field}
+                            type="text"
+                            className={inputClass}
+                            value={field.value || ""}
+                            placeholder={
+                              isExpense
+                                ? t(
+                                    "trn.expense.descPlaceholder",
+                                    "e.g., Property rates, Insurance, Maintenance",
+                                  )
+                                : t(
+                                    "trn.income.descPlaceholder",
+                                    "e.g., Rental income, Dividend",
+                                  )
+                            }
+                          />
+                        )}
+                      />
+                    </div>
                   )}
                 </div>
               )}
 
-              <TradeFormTabs
-                isExpense={isExpense}
-                isSimpleAmount={isSimpleAmount}
-                isEditMode={isEditMode}
-                activeTab={activeTab}
-                setActiveTab={setActiveTab}
-                control={control}
-                inputClass={inputClass}
-                labelClass={labelClass}
-                price={price}
-                tradeValue={tradeValue}
-                handleTradeValueChange={handleTradeValueChange}
-                currentPositionWeight={currentPositionWeight}
-                targetWeight={targetWeight}
-                handleTargetWeightChange={handleTargetWeightChange}
-                onTradeAmountOverride={() => {
-                  tradeAmountOverriddenRef.current = true
-                }}
-                onCashAmountOverride={(value) => {
-                  cashAmountOverriddenRef.current = true
-                  // When cashAmount is cleared, recalculate tradeAmount from qty × price
-                  if (!value || value === 0) {
-                    const { quantity, price, tax, fees, type } = getValues()
-                    const newTradeAmount = calculateTradeAmount(
-                      quantity,
-                      price,
-                      tax,
-                      fees,
-                      type.value,
-                    )
-                    setValue(
-                      "tradeAmount",
-                      parseFloat(newTradeAmount.toFixed(2)),
-                    )
-                    tradeAmountOverriddenRef.current = false
-                  }
-                }}
-                t={t}
-              />
+              {/* === Invest Tab === */}
+              {activeTab === "invest" &&
+                !isSimpleAmount &&
+                !isEditMode && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className={labelClass}>
+                        {t("trn.invest.value", "Invest Value")}
+                      </label>
+                      <p className="text-xs text-gray-500 mb-1">
+                        {t(
+                          "trn.invest.description",
+                          "Enter amount to invest, quantity will be calculated",
+                        )}
+                      </p>
+                      <div className="relative">
+                        <MathInput
+                          value={
+                            tradeValue ? parseFloat(tradeValue) : 0
+                          }
+                          onChange={(value) =>
+                            handleTradeValueChange(String(value))
+                          }
+                          placeholder={
+                            price > 0
+                              ? t(
+                                  "trn.invest.placeholder",
+                                  "Enter amount to invest",
+                                )
+                              : t(
+                                  "trn.invest.needPrice",
+                                  "Set price first",
+                                )
+                          }
+                          disabled={!price || price <= 0}
+                          className={`${inputClass} disabled:bg-gray-100`}
+                        />
+                        {price > 0 && tradeValue && (
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500">
+                            ={" "}
+                            {Math.floor(
+                              parseFloat(tradeValue) / price,
+                            )}{" "}
+                            shares
+                          </span>
+                        )}
+                      </div>
+                    </div>
 
-              {/* Error Display */}
+                    {currentPositionWeight !== null ? (
+                      <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                        <label className="block text-xs font-medium text-purple-800 mb-2">
+                          {t("trn.targetWeight", "Target Weight")}
+                        </label>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs text-purple-700">
+                            {t("rebalance.currentWeight")}:{" "}
+                            <strong>
+                              {currentPositionWeight.toFixed(2)}%
+                            </strong>
+                          </span>
+                          <span className="text-purple-400">
+                            &rarr;
+                          </span>
+                          <MathInput
+                            value={
+                              targetWeight
+                                ? parseFloat(targetWeight)
+                                : 0
+                            }
+                            onChange={(value) => {
+                              if (value >= 0) {
+                                handleTargetWeightChange(
+                                  String(value),
+                                )
+                              }
+                            }}
+                            placeholder={currentPositionWeight.toFixed(
+                              1,
+                            )}
+                            className="w-20 px-2 py-2 border border-purple-300 rounded text-sm"
+                          />
+                          <span className="text-purple-600 text-sm">
+                            %
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center">
+                        <p className="text-xs text-gray-500">
+                          {t(
+                            "trn.invest.noPosition",
+                            "Target weight is available when trading existing positions",
+                          )}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+              {/* === Settlement Tab === */}
+              {activeTab === "settlement" && (
+                <div className="space-y-4">
+                  {/* Settlement Account */}
+                  <div>
+                    <label className={labelClass}>
+                      {isIncome
+                        ? t(
+                            "trn.income.creditAccount",
+                            "Credit To Account",
+                          )
+                        : isExpense
+                          ? t(
+                              "trn.expense.debitAccount",
+                              "Debit From Account",
+                            )
+                          : t("trn.settlement.account")}
+                    </label>
+                    <SettlementAccountSelect
+                      name="settlementAccount"
+                      control={control}
+                      accounts={
+                        isIncome || isExpense
+                          ? []
+                          : (allTradeAccounts as any[])
+                      }
+                      bankAccounts={allBankAccounts as any[]}
+                      cashAssets={
+                        isIncome || isExpense
+                          ? (filteredCashAssets as any[])
+                          : (cashAssetsForDropdown as any[])
+                      }
+                      trnType={type?.value || "BUY"}
+                      tradeCurrency={currentTradeCurrency}
+                      defaultValue={defaultCashAsset}
+                    />
+                  </div>
+
+                  {/* Tax */}
+                  <div>
+                    <label className={labelClass}>
+                      {t("trn.amount.tax")}
+                    </label>
+                    <Controller
+                      name="tax"
+                      control={control}
+                      render={({ field }) => (
+                        <MathInput
+                          value={field.value}
+                          onChange={field.onChange}
+                          className={inputClass}
+                        />
+                      )}
+                    />
+                  </div>
+
+                  {/* Trade Amount (read-only display) */}
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-xs text-gray-500">
+                      {t("trn.amount.trade")}
+                    </span>
+                    <span className="tabular-nums text-sm text-gray-900">
+                      <NumericFormat
+                        value={tradeAmount}
+                        displayType="text"
+                        thousandSeparator
+                        decimalScale={2}
+                        fixedDecimalScale
+                      />
+                    </span>
+                  </div>
+
+                  {/* Cash Amount (read-only display) — hidden when no cash impact */}
+                  {cashImpact && (
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                      <span className="text-xs text-gray-500">
+                        {t("trn.amount.cash")}
+                      </span>
+                      <span className="tabular-nums text-sm text-gray-900">
+                        <NumericFormat
+                          value={displayCashAmount}
+                          displayType="text"
+                          thousandSeparator
+                          decimalScale={2}
+                          fixedDecimalScale
+                        />
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Comment (non-simple types) */}
+                  {!isSimpleAmount && (
+                    <div>
+                      <label className={labelClass}>
+                        {t("trn.comments", "Comments")}
+                      </label>
+                      <Controller
+                        name="comment"
+                        control={control}
+                        render={({ field }) => (
+                          <input
+                            {...field}
+                            type="text"
+                            className={inputClass}
+                            value={field.value || ""}
+                          />
+                        )}
+                      />
+                    </div>
+                  )}
+
+                  {/* Model Selection (edit mode only) */}
+                  {isEditMode && models.length > 0 && (
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className={labelClass}>
+                          {t("trn.model", "Strategy/Model")}
+                        </label>
+                        {suggestedModelId &&
+                          suggestedModelId !== selectedModelId && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setSelectedModelId(suggestedModelId)
+                              }
+                              className="text-xs text-blue-500 hover:text-blue-700"
+                            >
+                              {t(
+                                "trn.model.useSuggested",
+                                "Use suggested",
+                              )}
+                            </button>
+                          )}
+                      </div>
+                      <select
+                        className={`${inputClass} ${suggestedModelId && selectedModelId === suggestedModelId ? "border-purple-300 bg-purple-50" : ""}`}
+                        value={selectedModelId || ""}
+                        onChange={(e) =>
+                          setSelectedModelId(
+                            e.target.value || undefined,
+                          )
+                        }
+                      >
+                        <option value="">
+                          {t("trn.model.none", "-- No model --")}
+                        </option>
+                        {suggestedModelId && (
+                          <optgroup
+                            label={t(
+                              "trn.model.suggested",
+                              "Suggested",
+                            )}
+                          >
+                            {models
+                              .filter(
+                                (m) => m.id === suggestedModelId,
+                              )
+                              .map((model) => (
+                                <option
+                                  key={`suggested-${model.id}`}
+                                  value={model.id}
+                                >
+                                  {model.name} (suggested)
+                                </option>
+                              ))}
+                          </optgroup>
+                        )}
+                        <optgroup
+                          label={t("trn.model.all", "All Models")}
+                        >
+                          {models
+                            .filter(
+                              (m) => m.id !== suggestedModelId,
+                            )
+                            .map((model) => (
+                              <option key={model.id} value={model.id}>
+                                {model.name}
+                              </option>
+                            ))}
+                        </optgroup>
+                      </select>
+                      {suggestedModelId && (
+                        <p className="text-xs text-purple-600 mt-0.5">
+                          {t(
+                            "trn.model.deduced",
+                            "Model suggested based on transaction origin",
+                          )}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Error Display (visible on all tabs) */}
               {Object.keys(errors).length > 0 && (
                 <div className="text-red-500 text-xs bg-red-50 p-2 rounded">
                   {Object.values(errors)
@@ -1062,12 +1371,50 @@ const TradeInputForm: React.FC<{
               )}
             </form>
 
-            {/* Error Display */}
+            {/* Submit Error Display */}
             {submitError && (
               <div className="text-red-500 text-xs bg-red-50 p-2 rounded mx-3 mb-2">
                 {submitError}
               </div>
             )}
+
+            {/* Trade Summary Strip */}
+            {(() => {
+              const colors = getTradeColorScheme(type?.value)
+              return (
+                <div
+                  className={`shrink-0 rounded-lg px-3 py-2 flex items-center justify-center gap-3 text-sm ${colors.bg} border ${colors.border}`}
+                >
+                  <span
+                    className={`text-[10px] font-semibold uppercase tracking-wider ${colors.text}`}
+                  >
+                    {type?.value || "BUY"}
+                  </span>
+                  <span className="font-semibold text-gray-900 tabular-nums">
+                    <NumericFormat
+                      value={tradeAmount}
+                      displayType="text"
+                      thousandSeparator
+                      decimalScale={2}
+                      fixedDecimalScale
+                    />
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {tradeCurrency?.value}
+                  </span>
+                  {!cashImpact && (
+                    <span className="text-xs text-gray-400 italic">
+                      {t("trn.noCashImpact", "No cash impact")}
+                    </span>
+                  )}
+                  {weightInfo && !isSimpleAmount && (
+                    <span className="text-xs text-blue-600 font-medium">
+                      {weightInfo.value.toFixed(2)}%
+                    </span>
+                  )}
+                </div>
+              )
+            })()}
 
             {/* Footer */}
             <div className="shrink-0 pt-3 border-t border-gray-100 flex justify-end gap-3">

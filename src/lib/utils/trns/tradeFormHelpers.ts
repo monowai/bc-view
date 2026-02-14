@@ -286,7 +286,7 @@ export const buildAllCashBalances = (
     const existing = existingByCurrency.get(code)
     if (existing) return existing
     return {
-      id: "",
+      id: `cash:${code}`,
       code,
       name: code,
       market: { code: "CASH" },
@@ -302,13 +302,26 @@ export const buildAllCashBalances = (
 }
 
 /**
- * Build default cash asset settlement option from filtered cash assets.
- * Returns the first matching asset or a synthetic fallback.
+ * Build default settlement option for a trade currency.
+ * Prefers a matching bank account over a generic cash balance.
  */
 export const buildDefaultCashAsset = (
   filteredCashAssets: AssetLike[],
   tradeCurrency: string,
+  bankAccounts: AssetLike[] = [],
 ): SettlementAccountOption => {
+  // Prefer a bank account matching the trade currency
+  const matchingBank = bankAccounts.find(
+    (a) => getAssetCurrency(a) === tradeCurrency,
+  )
+  if (matchingBank) {
+    return {
+      value: matchingBank.id,
+      label: `${matchingBank.name || matchingBank.code} (${tradeCurrency})`,
+      currency: tradeCurrency,
+      market: "PRIVATE",
+    }
+  }
   const cashAsset = filteredCashAssets[0]
   if (cashAsset) {
     return {
@@ -319,7 +332,7 @@ export const buildDefaultCashAsset = (
     }
   }
   return {
-    value: "",
+    value: `cash:${tradeCurrency}`,
     label: `${tradeCurrency} Balance`,
     currency: tradeCurrency,
     market: "CASH",

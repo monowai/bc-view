@@ -18,6 +18,7 @@ import {
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 import { convert } from "@lib/trns/tradeUtils"
 import TradeTypeController from "@components/features/transactions/TradeTypeController"
+import TradeStatusToggle from "@components/ui/TradeStatusToggle"
 import { GetServerSideProps } from "next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import DateInput from "@components/ui/DateInput"
@@ -57,7 +58,7 @@ const TradeTypeValues = [
   "FX",
 ] as const
 
-const StatusValues = ["SETTLED", "PROPOSED"] as const
+
 
 const defaultValues = {
   type: { value: "DEPOSIT", label: "DEPOSIT" },
@@ -479,22 +480,16 @@ const CashInputForm: React.FC<{
                     name="status"
                     control={control}
                     render={({ field }) => (
-                      <select
-                        className={inputClass}
-                        value={field.value.value}
-                        onChange={(e) => {
-                          field.onChange({
-                            value: e.target.value,
-                            label: e.target.value,
-                          })
-                        }}
-                      >
-                        {StatusValues.map((status) => (
-                          <option key={status} value={status}>
-                            {status}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="mt-2">
+                        <TradeStatusToggle
+                          isSettled={field.value.value === "SETTLED"}
+                          onChange={(isSettled) => {
+                            const newStatus = isSettled ? "SETTLED" : "PROPOSED"
+                            field.onChange({ value: newStatus, label: newStatus })
+                          }}
+                          size="sm"
+                        />
+                      </div>
                     )}
                   />
                 </div>

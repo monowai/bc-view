@@ -40,7 +40,7 @@ async function ensureAppDomain(page: Page): Promise<void> {
   // If page is on about:blank or different domain, navigate to home
   if (!url || url === "about:blank" || !url.includes("localhost:3000")) {
     await page.goto("/")
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
   }
 }
 

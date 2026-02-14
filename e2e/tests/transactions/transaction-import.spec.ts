@@ -12,7 +12,7 @@ test.describe("Transaction Import", () => {
 
       // Navigate to portfolio or transactions page
       await page.goto(PAGES.portfolio(portfolio.code))
-      await page.waitForLoadState("networkidle")
+      await page.waitForLoadState("domcontentloaded")
 
       // Find import button/link
       const importButton = page
@@ -43,7 +43,7 @@ test.describe("Transaction Import", () => {
       portfolio = await helpers.createPortfolio()
 
       await page.goto(PAGES.portfolio(portfolio.code))
-      await page.waitForLoadState("networkidle")
+      await page.waitForLoadState("domcontentloaded")
 
       // Find import button
       const importButton = page
@@ -118,7 +118,7 @@ test.describe("Transaction Import", () => {
       portfolio = await helpers.createPortfolio()
 
       await page.goto(PAGES.portfolio(portfolio.code))
-      await page.waitForLoadState("networkidle")
+      await page.waitForLoadState("domcontentloaded")
 
       const importButton = page
         .locator('button:has-text("Import"), a:has-text("Import")')
@@ -163,7 +163,7 @@ test.describe("Transaction Import", () => {
       portfolio = await helpers.createPortfolio()
 
       await page.goto(PAGES.portfolio(portfolio.code))
-      await page.waitForLoadState("networkidle")
+      await page.waitForLoadState("domcontentloaded")
 
       const importButton = page
         .locator('button:has-text("Import"), a:has-text("Import")')
@@ -193,7 +193,7 @@ test.describe("Transaction Import", () => {
       portfolio = await helpers.createPortfolio()
 
       await page.goto(PAGES.portfolio(portfolio.code))
-      await page.waitForLoadState("networkidle")
+      await page.waitForLoadState("domcontentloaded")
 
       const importButton = page
         .locator('button:has-text("Import"), a:has-text("Import")')

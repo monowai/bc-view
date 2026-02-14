@@ -7,7 +7,7 @@ test.describe("Registration Flow", () => {
     await page.goto(PAGES.home)
 
     // Wait for registration to complete (RegistrationContext makes /api/register call)
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
 
     // User should see welcome message after successful registration
     await expect(page.locator("h1")).toContainText("Welcome", {
@@ -45,12 +45,12 @@ test.describe("Registration Flow", () => {
   }) => {
     // First load - triggers registration
     await page.goto(PAGES.home)
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
     await expect(page.locator("h1")).toContainText("Welcome")
 
     // Navigate to another page
     await page.goto(PAGES.wealth)
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
 
     // Should not redirect to login
     await expect(page).not.toHaveURL(/auth0\.com/)
@@ -64,7 +64,7 @@ test.describe("Registration Flow", () => {
     page,
   }) => {
     await page.goto(PAGES.home)
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
 
     // Verify all three main sections are visible (use h2 headings)
     await expect(page.locator("h2").filter({ hasText: "Wealth" })).toBeVisible()
@@ -78,7 +78,7 @@ test.describe("Registration Flow", () => {
     page,
   }) => {
     await page.goto(PAGES.home)
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
 
     // Test navigation to protected routes
     const protectedRoutes = [
@@ -89,7 +89,7 @@ test.describe("Registration Flow", () => {
 
     for (const route of protectedRoutes) {
       await page.goto(route.url)
-      await page.waitForLoadState("networkidle")
+      await page.waitForLoadState("domcontentloaded")
 
       // Should not redirect to Auth0
       await expect(page).not.toHaveURL(/auth0\.com/)
