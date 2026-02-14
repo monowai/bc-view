@@ -501,7 +501,7 @@ describe("tradeFormHelpers", () => {
       const currencies = ["NZD"]
       const result = buildAllCashBalances(existing, currencies, "NZD")
       expect(result[0]).toEqual({
-        id: "",
+        id: "cash:NZD",
         code: "NZD",
         name: "NZD",
         market: { code: "CASH" },
@@ -533,7 +533,7 @@ describe("tradeFormHelpers", () => {
     test("returns synthetic fallback when no match", () => {
       const result = buildDefaultCashAsset([], "GBP")
       expect(result).toEqual({
-        value: "",
+        value: "cash:GBP",
         label: "GBP Balance",
         currency: "GBP",
         market: "CASH",

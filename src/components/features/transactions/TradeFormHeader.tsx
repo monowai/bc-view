@@ -1,8 +1,6 @@
 import React from "react"
 import { Controller, Control } from "react-hook-form"
-import { NumericFormat } from "react-number-format"
 import TradeStatusToggle from "@components/ui/TradeStatusToggle"
-import { WeightInfo } from "@lib/trns/tradeFormHelpers"
 import { stripOwnerPrefix } from "@lib/assets/assetUtils"
 import { Portfolio } from "types/beancounter"
 
@@ -13,15 +11,6 @@ interface TradeFormHeaderProps {
   editMarketCode: string
   asset: string
   portfolio: Portfolio
-  type: { value: string }
-  isExpense: boolean
-  isSimpleAmount: boolean
-  cashImpact: boolean
-  quantity: number
-  price: number
-  tradeAmount: number
-  tradeCurrency: { value: string }
-  weightInfo: WeightInfo | null
   onClose: () => void
   onDelete?: () => void
   handleCopy: () => void
@@ -37,15 +26,6 @@ const TradeFormHeader: React.FC<TradeFormHeaderProps> = ({
   editMarketCode,
   asset,
   portfolio,
-  type,
-  isExpense,
-  isSimpleAmount,
-  cashImpact,
-  quantity,
-  price,
-  tradeAmount,
-  tradeCurrency,
-  weightInfo,
   onClose,
   onDelete,
   handleCopy,
@@ -131,101 +111,6 @@ const TradeFormHeader: React.FC<TradeFormHeaderProps> = ({
         )}
       />
     </div>
-
-    {/* Trade Value Summary */}
-    <div
-      className={`rounded-lg p-3 flex items-center justify-center gap-4 ${
-        type?.value === "SELL" || isExpense
-          ? "bg-red-50 border border-red-100"
-          : type?.value === "ADD" || type?.value === "REDUCE"
-            ? "bg-blue-50 border border-blue-100"
-            : "bg-emerald-50 border border-emerald-100"
-      }`}
-    >
-      <div className="text-center">
-        <div
-          className={`text-[10px] font-semibold uppercase tracking-wider ${
-            type?.value === "SELL" || isExpense
-              ? "text-red-500"
-              : type?.value === "ADD" || type?.value === "REDUCE"
-                ? "text-blue-500"
-                : "text-emerald-600"
-          }`}
-        >
-          {type?.value || "BUY"}
-        </div>
-        {isSimpleAmount ? (
-          <>
-            <div className="font-bold text-lg text-gray-900">
-              <NumericFormat
-                value={tradeAmount || 0}
-                displayType="text"
-                thousandSeparator
-                decimalScale={2}
-                fixedDecimalScale
-              />
-            </div>
-            <div className="text-xs text-gray-500">{tradeCurrency?.value}</div>
-          </>
-        ) : (
-          <>
-            <div className="font-bold text-lg text-gray-900">
-              <NumericFormat
-                value={quantity || 0}
-                displayType="text"
-                thousandSeparator
-                decimalScale={2}
-              />
-              {!cashImpact && (
-                <span className="text-gray-400 text-sm ml-1">
-                  {t("trn.units", "units")}
-                </span>
-              )}
-            </div>
-            {cashImpact && (
-              <div className="text-xs text-gray-500">
-                @ {price?.toFixed(2)} {tradeCurrency?.value}
-              </div>
-            )}
-          </>
-        )}
-      </div>
-      {cashImpact && tradeAmount > 0 && !isSimpleAmount && (
-        <>
-          <div className="text-gray-300">
-            <i className="fas fa-arrow-right text-xs"></i>
-          </div>
-          <div className="text-center">
-            <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-              {t("trn.amount.trade")}
-            </div>
-            <div className="font-bold text-lg text-gray-900">
-              <NumericFormat
-                value={tradeAmount}
-                displayType="text"
-                thousandSeparator
-                decimalScale={2}
-                fixedDecimalScale
-              />
-            </div>
-            <div className="text-xs text-gray-500">{tradeCurrency?.value}</div>
-          </div>
-        </>
-      )}
-    </div>
-
-    {/* Weight info */}
-    {weightInfo && !isSimpleAmount && (
-      <div className="mt-2 text-center text-xs font-medium text-blue-600">
-        {weightInfo.label}: {weightInfo.value.toFixed(2)}%
-        {weightInfo.tradeWeight !== undefined && (
-          <span className="text-gray-400 ml-2">
-            ({type.value === "SELL" ? "-" : "+"}
-            {weightInfo.tradeWeight.toFixed(2)}%)
-          </span>
-        )}
-      </div>
-    )}
   </header>
 )
 

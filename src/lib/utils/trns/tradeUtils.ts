@@ -300,6 +300,64 @@ export const isIncomeType = (tradeType: string): boolean =>
 export const isSimpleAmountType = (tradeType: string): boolean =>
   tradeType === "EXPENSE" || tradeType === "INCOME"
 
+/** Returns true if the trade type adds to a position (BUY, ADD, DIVI, INCOME) */
+export const isBuySide = (tradeType: string): boolean =>
+  ["BUY", "ADD", "DIVI", "INCOME"].includes(tradeType)
+
+/** Returns true if the trade type removes from a position (SELL, REDUCE, EXPENSE) */
+export const isSellSide = (tradeType: string): boolean =>
+  ["SELL", "REDUCE", "EXPENSE"].includes(tradeType)
+
+/** Returns true if the trade type is a non-cash position adjustment (ADD, REDUCE) */
+export const isPositionAdjustment = (tradeType: string): boolean =>
+  tradeType === "ADD" || tradeType === "REDUCE"
+
+/**
+ * UI color scheme for a trade type.
+ * Encapsulates all trade-type → color mapping in one place.
+ */
+export interface TradeColorScheme {
+  bg: string
+  border: string
+  text: string
+}
+
+export const getTradeColorScheme = (tradeType: string): TradeColorScheme => {
+  if (isPositionAdjustment(tradeType)) {
+    return {
+      bg: "bg-blue-50",
+      border: "border-blue-100",
+      text: "text-blue-500",
+    }
+  }
+  if (isSellSide(tradeType)) {
+    return {
+      bg: "bg-red-50",
+      border: "border-red-100",
+      text: "text-red-500",
+    }
+  }
+  return {
+    bg: "bg-emerald-50",
+    border: "border-emerald-100",
+    text: "text-emerald-600",
+  }
+}
+
+/**
+ * Qty/Price input panel tint — lighter variant for the trade form input area.
+ * Only used for non-simple types (BUY/SELL/ADD/REDUCE).
+ */
+export const getQtyPriceTint = (tradeType: string): string => {
+  if (isBuySide(tradeType)) {
+    return "bg-emerald-50/50 border border-emerald-100"
+  }
+  if (isSellSide(tradeType)) {
+    return "bg-red-50/50 border border-red-100"
+  }
+  return ""
+}
+
 /**
  * Extract the currency code from an asset object.
  * CASH market assets use their code as the currency.

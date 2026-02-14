@@ -10,6 +10,11 @@ import {
   getTradeRow,
   hasCashImpact,
   isExpenseType,
+  isBuySide,
+  isSellSide,
+  isPositionAdjustment,
+  getTradeColorScheme,
+  getQtyPriceTint,
   getAssetCurrency,
   deriveDefaultMarket,
 } from "./tradeUtils"
@@ -705,6 +710,102 @@ describe("TradeUtils", () => {
 
     test("ignores fallback when a market matches", () => {
       expect(deriveDefaultMarket("NZD", markets, "ASX")).toBe("NZX")
+    })
+  })
+
+  describe("isBuySide", () => {
+    test.each(["BUY", "ADD", "DIVI", "INCOME"])("%s is buy side", (type) => {
+      expect(isBuySide(type)).toBe(true)
+    })
+
+    test.each(["SELL", "REDUCE", "EXPENSE", "SPLIT"])(
+      "%s is not buy side",
+      (type) => {
+        expect(isBuySide(type)).toBe(false)
+      },
+    )
+  })
+
+  describe("isSellSide", () => {
+    test.each(["SELL", "REDUCE", "EXPENSE"])("%s is sell side", (type) => {
+      expect(isSellSide(type)).toBe(true)
+    })
+
+    test.each(["BUY", "ADD", "DIVI", "INCOME", "SPLIT"])(
+      "%s is not sell side",
+      (type) => {
+        expect(isSellSide(type)).toBe(false)
+      },
+    )
+  })
+
+  describe("isPositionAdjustment", () => {
+    test.each(["ADD", "REDUCE"])("%s is a position adjustment", (type) => {
+      expect(isPositionAdjustment(type)).toBe(true)
+    })
+
+    test.each(["BUY", "SELL", "EXPENSE", "INCOME", "DIVI", "SPLIT"])(
+      "%s is not a position adjustment",
+      (type) => {
+        expect(isPositionAdjustment(type)).toBe(false)
+      },
+    )
+  })
+
+  describe("getTradeColorScheme", () => {
+    test("returns emerald for BUY", () => {
+      const scheme = getTradeColorScheme("BUY")
+      expect(scheme.bg).toContain("emerald")
+      expect(scheme.text).toContain("emerald")
+    })
+
+    test("returns red for SELL", () => {
+      const scheme = getTradeColorScheme("SELL")
+      expect(scheme.bg).toContain("red")
+      expect(scheme.text).toContain("red")
+    })
+
+    test("returns red for EXPENSE", () => {
+      const scheme = getTradeColorScheme("EXPENSE")
+      expect(scheme.bg).toContain("red")
+    })
+
+    test("returns blue for ADD (position adjustment)", () => {
+      const scheme = getTradeColorScheme("ADD")
+      expect(scheme.bg).toContain("blue")
+      expect(scheme.text).toContain("blue")
+    })
+
+    test("returns blue for REDUCE (position adjustment)", () => {
+      const scheme = getTradeColorScheme("REDUCE")
+      expect(scheme.bg).toContain("blue")
+    })
+
+    test("returns emerald for DIVI", () => {
+      const scheme = getTradeColorScheme("DIVI")
+      expect(scheme.bg).toContain("emerald")
+    })
+  })
+
+  describe("getQtyPriceTint", () => {
+    test("returns emerald tint for BUY", () => {
+      expect(getQtyPriceTint("BUY")).toContain("emerald")
+    })
+
+    test("returns red tint for SELL", () => {
+      expect(getQtyPriceTint("SELL")).toContain("red")
+    })
+
+    test("returns emerald tint for ADD (buy side)", () => {
+      expect(getQtyPriceTint("ADD")).toContain("emerald")
+    })
+
+    test("returns red tint for REDUCE (sell side)", () => {
+      expect(getQtyPriceTint("REDUCE")).toContain("red")
+    })
+
+    test("returns empty string for unknown type", () => {
+      expect(getQtyPriceTint("SPLIT")).toBe("")
     })
   })
 

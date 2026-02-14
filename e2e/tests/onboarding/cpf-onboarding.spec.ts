@@ -19,7 +19,7 @@ test.describe("CPF Onboarding Flow", () => {
 
     await test.step("Clean up existing data for a fresh start", async () => {
       await page.goto("/")
-      await page.waitForLoadState("networkidle")
+      await page.waitForLoadState("domcontentloaded")
 
       // Delete all independence plans
       const plans = await page.evaluate(async () => {
@@ -70,7 +70,7 @@ test.describe("CPF Onboarding Flow", () => {
 
     await test.step("Navigate to onboarding", async () => {
       await page.goto("/onboarding")
-      await page.waitForLoadState("networkidle")
+      await page.waitForLoadState("domcontentloaded")
       // Should see the welcome step
       await expect(page.getByText("Welcome to Beancounter")).toBeVisible({
         timeout: 15_000,
@@ -98,36 +98,42 @@ test.describe("CPF Onboarding Flow", () => {
       await page.getByRole("button", { name: /skip for now/i }).click()
     })
 
-    await test.step("Step 5 - Review: complete setup", async () => {
+    await test.step("Step 5 - Review: continue", async () => {
+      const continueBtn = page.getByRole("button", { name: "Continue" })
+      await expect(continueBtn).toBeVisible({ timeout: 5_000 })
+      await continueBtn.click()
+    })
+
+    await test.step("Step 6 - Independence: complete setup", async () => {
       const completeBtn = page.getByRole("button", {
         name: /complete setup/i,
       })
       await expect(completeBtn).toBeVisible({ timeout: 5_000 })
       await completeBtn.click()
-      // Wait for creation to finish and step 6 to appear
+      // Wait for creation to finish and step 7 to appear
       await expect(page.getByRole("button", { name: /done/i })).toBeVisible({
         timeout: 30_000,
       })
     })
 
-    await test.step("Step 6 - Complete: click Done", async () => {
+    await test.step("Step 7 - Complete: click Done", async () => {
       await page.getByRole("button", { name: /done/i }).click()
       // Should navigate to home page
       await page.waitForURL("/", { timeout: 10_000 })
-      await page.waitForLoadState("networkidle")
+      await page.waitForLoadState("domcontentloaded")
     })
 
     // ─── Phase 2: Independence Wizard - Create CPF Asset ──────────
 
     await test.step("Navigate to Independence wizard", async () => {
       await page.goto("/independence")
-      await page.waitForLoadState("networkidle")
+      await page.waitForLoadState("domcontentloaded")
       // Click "Create Your First Plan" or "Create Plan"
       const createLink = page.getByRole("link", { name: /create.*plan/i })
       await expect(createLink.first()).toBeVisible({ timeout: 10_000 })
       await createLink.first().click()
       await page.waitForURL(/\/independence\/wizard/, { timeout: 10_000 })
-      await page.waitForLoadState("networkidle")
+      await page.waitForLoadState("domcontentloaded")
     })
 
     await test.step("Independence Step 1 - Personal Info", async () => {
@@ -257,7 +263,7 @@ test.describe("CPF Onboarding Flow", () => {
       // Open holdings in a new tab to bypass SWR in-memory cache
       const newPage = await page.context().newPage()
       await newPage.goto("/holdings/SGD")
-      await newPage.waitForLoadState("networkidle")
+      await newPage.waitForLoadState("domcontentloaded")
 
       // Verify holdings loaded with the correct total and currency is SGD
       await expect(newPage.getByText("110,000.00").first()).toBeVisible({

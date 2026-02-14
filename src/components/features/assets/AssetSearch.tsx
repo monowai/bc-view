@@ -18,6 +18,7 @@ interface AssetSearchProps {
   isClearable?: boolean
   filterResults?: (results: AssetOption[]) => AssetOption[]
   noResultsHref?: string
+  inputId?: string
 }
 
 function toOption(result: AssetSearchResult): AssetOption {
@@ -59,12 +60,14 @@ export default function AssetSearch({
   isClearable = true,
   filterResults,
   noResultsHref,
+  inputId,
 }: AssetSearchProps): React.ReactElement {
   const { t } = useTranslation("common")
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
   const [inputText, setInputText] = useState("")
   const isControlled = value !== undefined
   const [internalValue, setInternalValue] = useState<AssetOption | null>(null)
+  const lastSelectedRef = useRef<AssetOption | null>(null)
   const displayValue = isControlled ? value : internalValue
 
   const isSpecificMarket = market !== undefined && market !== ""
@@ -122,6 +125,7 @@ export default function AssetSearch({
   const handleChange = useCallback(
     (selected: AssetOption | null): void => {
       setInputText("")
+      lastSelectedRef.current = selected
       if (!isControlled) setInternalValue(selected)
       onSelect(selected)
     },
@@ -164,6 +168,7 @@ export default function AssetSearch({
   )
 
   const sharedProps = {
+    inputId,
     placeholder: placeholder || t("trn.asset.search.placeholder"),
     noOptionsMessage,
     loadingMessage: () => t("trn.asset.search.loading", "Searching..."),
@@ -199,15 +204,17 @@ export default function AssetSearch({
             {...field}
             onChange={(selected: AssetOption | null) => {
               handleChange(selected)
-              field.onChange(selected?.value || "")
+              field.onChange(selected?.symbol || selected?.value || "")
             }}
             value={
               field.value
-                ? {
-                    value: field.value,
-                    label: stripOwnerPrefix(field.value),
-                    symbol: field.value,
-                  }
+                ? lastSelectedRef.current?.symbol === field.value
+                  ? lastSelectedRef.current
+                  : {
+                      value: field.value,
+                      label: stripOwnerPrefix(field.value),
+                      symbol: field.value,
+                    }
                 : defaultValue
                   ? {
                       value: defaultValue,

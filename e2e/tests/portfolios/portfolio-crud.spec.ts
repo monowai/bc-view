@@ -10,7 +10,7 @@ test.describe("Portfolio Management", () => {
     await page.goto(PAGES.portfolios)
 
     // Wait for page to load
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
 
     // Should show portfolios page content
     await expect(page.locator("body")).toBeVisible()
@@ -34,10 +34,10 @@ test.describe("Portfolio Management", () => {
     try {
       // Navigate to home first to ensure auth context is loaded
       await page.goto(PAGES.home)
-      await page.waitForLoadState("networkidle")
+      await page.waitForLoadState("domcontentloaded")
 
       await page.goto(PAGES.newPortfolio)
-      await page.waitForLoadState("networkidle")
+      await page.waitForLoadState("domcontentloaded")
 
       // Fill in portfolio details
       await page.fill('input[name="code"]', testId)
@@ -80,7 +80,7 @@ test.describe("Portfolio Management", () => {
       await page.goto(PAGES.portfolio(portfolio.code))
 
       // Wait for page load
-      await page.waitForLoadState("networkidle")
+      await page.waitForLoadState("domcontentloaded")
 
       // Find edit button/link
       const editButton = page
@@ -140,10 +140,10 @@ test.describe("Portfolio Management", () => {
   test("should show validation errors for invalid input", async ({ page }) => {
     // Navigate to home first to ensure auth context
     await page.goto(PAGES.home)
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
 
     await page.goto(PAGES.newPortfolio)
-    await page.waitForLoadState("networkidle")
+    await page.waitForLoadState("domcontentloaded")
 
     // Type an invalid code (too long) and blur to trigger onChange validation
     const codeInput = page.locator('input[name="code"]')
