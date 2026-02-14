@@ -56,7 +56,7 @@ export default function IndependenceMetrics({
             <i
               className={`fas fa-chevron-${collapsed ? "right" : "down"} text-gray-400 mr-2 w-4`}
             ></i>
-            <i className="fas fa-chart-line text-white mr-2"></i>
+            <i className="fas fa-chart-line text-blue-600 mr-2"></i>
             Independence Metrics
             {projectionLoading && (
               <span className="ml-2 inline-flex items-center">
@@ -255,7 +255,7 @@ export default function IndependenceMetrics({
             {(projectionLoading || projectionData) && (
               <div className="bg-linear-to-br from-purple-50 to-violet-50 rounded-lg p-4">
                 <p className="text-sm text-gray-600 mb-1">
-                  <i className="fas fa-home text-white mr-1"></i>
+                  <i className="fas fa-home text-purple-600 mr-1"></i>
                   Property Sale Age
                 </p>
                 {projectionLoading && !projectionData ? (
