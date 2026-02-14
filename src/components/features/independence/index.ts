@@ -37,6 +37,9 @@ export { default as SaveScenarioDialog } from "./SaveScenarioDialog"
 export { default as EditPlanDetailsModal } from "./EditPlanDetailsModal"
 export { default as IncomeBreakdownTable } from "./IncomeBreakdownTable"
 export { default as MonteCarloTab } from "./MonteCarloTab"
+export { default as DetailsTabContent } from "./DetailsTabContent"
+export { default as AssetsTabContent } from "./AssetsTabContent"
+export { default as TimelineTabContent } from "./TimelineTabContent"
 
 // Monte Carlo Hook
 export { useMonteCarloSimulation } from "./useMonteCarloSimulation"
