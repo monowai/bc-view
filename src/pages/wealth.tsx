@@ -4,6 +4,7 @@ import { useTranslation } from "next-i18next"
 import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { GetServerSideProps } from "next"
 import Head from "next/head"
+import Link from "next/link"
 import useSwr from "swr"
 import {
   portfoliosKey,
@@ -154,6 +155,78 @@ function WealthDashboard(): React.ReactElement {
 
   if (portfolioLoading || !ready || !fxReady) {
     return rootLoader(t("loading"))
+  }
+
+  if (portfolios.length === 0) {
+    return (
+      <>
+        <Head>
+          <title>Net Worth | Holdsworth</title>
+        </Head>
+        <div className="min-h-screen bg-linear-to-br from-slate-50 to-blue-50 py-6">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            {/* Hero banner */}
+            <div className="bg-linear-to-r from-blue-600 to-blue-700 rounded-2xl p-8 text-center text-white shadow-lg mb-8">
+              <h1 className="text-3xl font-bold mb-2">Net Worth</h1>
+              <p className="text-blue-100">
+                {t(
+                  "wealth.empty.subtitle",
+                  "Add a portfolio to see your net worth across brokers, assets, and currencies",
+                )}
+              </p>
+            </div>
+
+            {/* Setup prompt cards */}
+            <div className="max-w-2xl mx-auto">
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
+                <h2 className="text-xl font-bold text-gray-900 mb-2 text-center">
+                  {t("home.getStarted", "Let's Get You Started")}
+                </h2>
+                <p className="text-gray-600 mb-6 text-center">
+                  {t("portfolios.empty.title", "No portfolios yet")}
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Link
+                    href="/onboarding"
+                    className="border border-gray-200 rounded-xl p-5 text-center hover:border-blue-300 hover:shadow-md transition-all"
+                  >
+                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <i className="fas fa-rocket text-xl text-blue-500"></i>
+                    </div>
+                    <h3 className="font-semibold text-gray-900 mb-1">
+                      {t("home.startSetup", "Start Setup")}
+                    </h3>
+                    <p className="text-gray-500 text-sm">
+                      {t(
+                        "portfolios.guided",
+                        "Guided setup for bank accounts, property, and pensions",
+                      )}
+                    </p>
+                  </Link>
+                  <Link
+                    href="/portfolios/__NEW__"
+                    className="border border-gray-200 rounded-xl p-5 text-center hover:border-green-300 hover:shadow-md transition-all"
+                  >
+                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <i className="fas fa-plus text-xl text-green-500"></i>
+                    </div>
+                    <h3 className="font-semibold text-gray-900 mb-1">
+                      {t("portfolio.create")}
+                    </h3>
+                    <p className="text-gray-500 text-sm">
+                      {t(
+                        "portfolios.direct",
+                        "Create a portfolio directly with full control",
+                      )}
+                    </p>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
+    )
   }
 
   return (
