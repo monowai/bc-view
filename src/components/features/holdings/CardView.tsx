@@ -167,9 +167,10 @@ const PositionCard: React.FC<PositionCardProps> = ({
   // Simple display name - show code for stocks, name for cash
   const displayName = isCash(asset) ? asset.name : stripOwnerPrefix(asset.code)
 
-  // Truncate long names
-  const truncatedName =
-    asset.name.length > 30 ? asset.name.substring(0, 30) + "..." : asset.name
+  // Show the asset name as subtitle when it exists and differs from the code
+  const name = asset.name || ""
+  const hasDistinctName = name.length > 0 && name !== asset.code
+  const truncatedName = name.length > 30 ? name.substring(0, 30) + "..." : name
 
   // Use div with onClick when we have interactive menu, otherwise use Link
   if (hasMenu) {
@@ -184,7 +185,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
             <h3 className="font-semibold text-gray-900 text-lg">
               {displayName}
             </h3>
-            {!isCash(asset) && (
+            {hasDistinctName && (
               <p className="text-sm text-gray-500 truncate">{truncatedName}</p>
             )}
           </div>
@@ -279,7 +280,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
       <div className="flex justify-between items-start mb-3">
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-gray-900 text-lg">{displayName}</h3>
-          {!isCash(asset) && (
+          {hasDistinctName && (
             <p className="text-sm text-gray-500 truncate">{truncatedName}</p>
           )}
         </div>
