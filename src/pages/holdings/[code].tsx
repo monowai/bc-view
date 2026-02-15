@@ -47,10 +47,14 @@ import SetPriceDialog from "@components/features/holdings/SetPriceDialog"
 import SetBalanceDialog from "@components/features/holdings/SetBalanceDialog"
 import CashTransferDialog from "@components/features/holdings/CashTransferDialog"
 import CostAdjustDialog from "@components/features/holdings/CostAdjustDialog"
-import CashInputForm from "@pages/trns/cash"
+import CashInputForm from "@components/features/transactions/CashInputForm"
 import TrnDropZone from "@components/ui/DropZone"
 import IncomeView from "@components/features/holdings/IncomeView"
 import ShareInviteDialog from "@components/features/portfolios/ShareInviteDialog"
+import CreateModelFromHoldingsDialog from "@components/features/rebalance/models/CreateModelFromHoldingsDialog"
+import SelectPlanDialog from "@components/features/rebalance/execution/SelectPlanDialog"
+import InvestCashDialog from "@components/features/rebalance/execution/InvestCashDialog"
+import { ModelDto, PlanDto } from "types/rebalance"
 
 function HoldingsPage(): React.ReactElement {
   const router = useRouter()
@@ -107,6 +111,11 @@ function HoldingsPage(): React.ReactElement {
 
   // Share dialog state
   const [showShareDialog, setShowShareDialog] = useState(false)
+
+  // Rebalance dialog state (managed at page level to avoid cross-feature imports in HoldingActions)
+  const [selectPlanModalOpen, setSelectPlanModalOpen] = useState(false)
+  const [createModelModalOpen, setCreateModelModalOpen] = useState(false)
+  const [investCashModalOpen, setInvestCashModalOpen] = useState(false)
 
   // Fetch portfolios for cash transfer dialog
   const { data: portfoliosData } = useSwr(
@@ -403,6 +412,8 @@ function HoldingsPage(): React.ReactElement {
         allocationData={allocationData}
         holdings={holdings}
         onShare={() => setShowShareDialog(true)}
+        onSelectPlan={() => setSelectPlanModalOpen(true)}
+        onInvestCash={() => setInvestCashModalOpen(true)}
       />
 
       {viewMode === "summary" ? (
@@ -610,6 +621,48 @@ function HoldingsPage(): React.ReactElement {
           initialAsset={cashTransactionAsset}
         />
       )}
+      {/* Rebalance Dialogs (managed at page level for feature isolation) */}
+      <SelectPlanDialog
+        modalOpen={selectPlanModalOpen}
+        portfolioId={holdingResults.portfolio.id}
+        onClose={() => setSelectPlanModalOpen(false)}
+        onSelectPlan={(
+          model: ModelDto,
+          plan: PlanDto,
+          filterByModel: boolean,
+        ) => {
+          setSelectPlanModalOpen(false)
+          const source = encodeURIComponent(router.asPath)
+          router.push(
+            `/rebalance/execute?planId=${plan.id}&modelId=${model.id}&portfolios=${holdingResults.portfolio.id}&source=${source}&filterByModel=${filterByModel}`,
+          )
+        }}
+        onCreateNew={() => {
+          setSelectPlanModalOpen(false)
+          setCreateModelModalOpen(true)
+        }}
+      />
+      {createModelModalOpen && holdings && (
+        <CreateModelFromHoldingsDialog
+          modalOpen={createModelModalOpen}
+          holdings={holdings}
+          portfolioCode={holdingResults.portfolio.code}
+          onClose={() => setCreateModelModalOpen(false)}
+          onSuccess={(model) => {
+            setCreateModelModalOpen(false)
+            router.push(`/rebalance/models/${model.id}`)
+          }}
+        />
+      )}
+      <InvestCashDialog
+        modalOpen={investCashModalOpen}
+        portfolioId={holdingResults.portfolio.id}
+        onClose={() => setInvestCashModalOpen(false)}
+        onSuccess={() => {
+          setInvestCashModalOpen(false)
+          router.replace(router.asPath)
+        }}
+      />
       {showShareDialog && portfoliosData?.data && (
         <ShareInviteDialog
           portfolios={portfoliosData.data}

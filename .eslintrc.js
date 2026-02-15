@@ -34,4 +34,23 @@ module.exports = {
     ],
     "@typescript-eslint/no-explicit-any": "off",
   },
+  overrides: [
+    {
+      files: ["src/components/features/**/*.{ts,tsx}"],
+      rules: {
+        "no-restricted-imports": [
+          "error",
+          {
+            patterns: [
+              {
+                group: ["@pages/*"],
+                message:
+                  "Feature components must not import from pages. Move the shared code into a component or utility module.",
+              },
+            ],
+          },
+        ],
+      },
+    },
+  ],
 }

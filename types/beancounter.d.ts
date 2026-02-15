@@ -1,4 +1,4 @@
-import { ValueIn } from "@components/features/holdings/GroupByOptions"
+import { ValueInOption as ValueIn } from "./constants"
 
 export type TrnType =
   | "BUY"

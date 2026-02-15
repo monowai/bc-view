@@ -1,15 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import { useRouter } from "next/router"
-import TradeInputForm from "@pages/trns/trade"
-import CashInputForm from "@pages/trns/cash"
+import TradeInputForm from "@components/features/transactions/TradeInputForm"
+import CashInputForm from "@components/features/transactions/CashInputForm"
 import CopyPopup from "@components/ui/CopyPopup"
-import CreateModelFromHoldingsDialog from "@components/features/rebalance/models/CreateModelFromHoldingsDialog"
-import SelectPlanDialog from "@components/features/rebalance/execution/SelectPlanDialog"
-import InvestCashDialog from "@components/features/rebalance/execution/InvestCashDialog"
 import { HoldingContract, Holdings, QuickSellData } from "types/beancounter"
 import { ViewMode } from "./ViewToggle"
 import { AllocationSlice } from "@lib/allocation/aggregateHoldings"
-import { ModelDto, PlanDto } from "types/rebalance"
 import { useIsAdmin } from "@hooks/useIsAdmin"
 import {
   GroupBy,
@@ -115,6 +111,10 @@ interface HoldingActionsProps {
   hideGroupBy?: boolean
   /** Callback to open share dialog for this portfolio */
   onShare?: () => void
+  /** Callback to open the select plan dialog for rebalancing */
+  onSelectPlan?: () => void
+  /** Callback to open the invest cash dialog */
+  onInvestCash?: () => void
 }
 
 /** View mode icon component */
@@ -310,6 +310,8 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
   holdings,
   hideGroupBy = false,
   onShare,
+  onSelectPlan,
+  onInvestCash,
 }) => {
   const router = useRouter()
   const { isAdmin } = useIsAdmin()
@@ -338,9 +340,6 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
   }, [router.query.action]) // eslint-disable-line react-hooks/exhaustive-deps
   const [copyModalOpen, setCopyModalOpen] = useState(false)
   const [summaryCopyModalOpen, setSummaryCopyModalOpen] = useState(false)
-  const [selectPlanModalOpen, setSelectPlanModalOpen] = useState(false)
-  const [createModelModalOpen, setCreateModelModalOpen] = useState(false)
-  const [investCashModalOpen, setInvestCashModalOpen] = useState(false)
   const [selectedSummaryColumns, setSelectedSummaryColumns] = useState<
     SummaryColumn[]
   >(DEFAULT_SUMMARY_COLUMNS)
@@ -497,7 +496,7 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
       {
         label: "Invest Cash",
         icon: "fa-chart-pie",
-        onClick: () => setInvestCashModalOpen(true),
+        onClick: () => onInvestCash?.(),
       },
     ]
     // Add "Rebalance Model" for admins only (feature in development)
@@ -505,11 +504,11 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
       items.unshift({
         label: "Rebalance Model",
         icon: "fa-balance-scale",
-        onClick: () => setSelectPlanModalOpen(true),
+        onClick: () => onSelectPlan?.(),
       })
     }
     return items
-  }, [isAdmin])
+  }, [isAdmin, onInvestCash, onSelectPlan])
 
   return (
     <>
@@ -677,50 +676,6 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
           </div>
         </div>
       )}
-      {/* Select Plan Dialog for Rebalancing */}
-      <SelectPlanDialog
-        modalOpen={selectPlanModalOpen}
-        portfolioId={holdingResults.portfolio.id}
-        onClose={() => setSelectPlanModalOpen(false)}
-        onSelectPlan={(
-          model: ModelDto,
-          plan: PlanDto,
-          filterByModel: boolean,
-        ) => {
-          setSelectPlanModalOpen(false)
-          const source = encodeURIComponent(router.asPath)
-          router.push(
-            `/rebalance/execute?planId=${plan.id}&modelId=${model.id}&portfolios=${holdingResults.portfolio.id}&source=${source}&filterByModel=${filterByModel}`,
-          )
-        }}
-        onCreateNew={() => {
-          setSelectPlanModalOpen(false)
-          setCreateModelModalOpen(true)
-        }}
-      />
-      {/* Create Model from Holdings Dialog */}
-      {createModelModalOpen && holdings && (
-        <CreateModelFromHoldingsDialog
-          modalOpen={createModelModalOpen}
-          holdings={holdings}
-          portfolioCode={holdingResults.portfolio.code}
-          onClose={() => setCreateModelModalOpen(false)}
-          onSuccess={(model) => {
-            setCreateModelModalOpen(false)
-            router.push(`/rebalance/models/${model.id}`)
-          }}
-        />
-      )}
-      {/* Invest Cash Dialog */}
-      <InvestCashDialog
-        modalOpen={investCashModalOpen}
-        portfolioId={holdingResults.portfolio.id}
-        onClose={() => setInvestCashModalOpen(false)}
-        onSuccess={() => {
-          setInvestCashModalOpen(false)
-          router.replace(router.asPath)
-        }}
-      />
     </>
   )
 }

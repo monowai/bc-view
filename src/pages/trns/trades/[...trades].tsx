@@ -19,7 +19,7 @@ import { errorOut } from "@components/errors/ErrorOut"
 import useSwr, { mutate } from "swr"
 import { getDisplayCode } from "@lib/assets/assetUtils"
 import FxEditModal from "@components/features/transactions/FxEditModal"
-import TradeInputForm from "@pages/trns/trade"
+import TradeInputForm from "@components/features/transactions/TradeInputForm"
 
 export default withPageAuthRequired(function Trades(): React.ReactElement {
   const { t } = useTranslation("common")
