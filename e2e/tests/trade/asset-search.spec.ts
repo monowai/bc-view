@@ -1,9 +1,14 @@
 import { test, expect } from "@playwright/test"
-import { createTestHelpers, PAGES } from "../../fixtures/test-data"
+import {
+  createTestHelpers,
+  PAGES,
+  waitForHoldings,
+} from "../../fixtures/test-data"
 
 test.describe("Asset Search in Trade Entry", () => {
-  // Backend sync between bc-data and bc-position may cause transient failures
-  test.describe.configure({ retries: 1 })
+  // waitForHoldings polls bc-position until the portfolio is visible,
+  // eliminating the bc-data/bc-position sync race condition
+  test.describe.configure({ retries: 0 })
 
   // Trade button is hidden on mobile portrait (mobile-portrait:hidden)
   test.beforeEach(({ page }) => {
@@ -22,6 +27,8 @@ test.describe("Asset Search in Trade Entry", () => {
     page: import("@playwright/test").Page,
     portfolioCode: string,
   ): Promise<void> {
+    // Wait for bc-position to resolve the portfolio before navigating
+    await waitForHoldings(page, portfolioCode)
     await page.goto(PAGES.holdings(portfolioCode))
     await page.waitForLoadState("domcontentloaded")
     // Wait for the holdings page to load (Trade button appears when page is ready)

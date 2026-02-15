@@ -161,6 +161,34 @@ export function createTestHelpers(page: Page): TestHelpers {
   }
 }
 
+/**
+ * Poll the holdings API until bc-position can resolve the portfolio.
+ * This addresses a race condition where bc-data has committed the portfolio
+ * but bc-position hasn't yet seen it.
+ */
+export async function waitForHoldings(
+  page: Page,
+  portfolioCode: string,
+  { maxAttempts = 10, intervalMs = 500 } = {},
+): Promise<void> {
+  await ensureAppDomain(page)
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const ok = await page.evaluate(async (code) => {
+      const response = await fetch(`/api/holdings/${code}`)
+      return response.ok
+    }, portfolioCode)
+
+    if (ok) return
+
+    if (attempt < maxAttempts) {
+      await page.waitForTimeout(intervalMs)
+    }
+  }
+  // Don't throw — let the test proceed and fail with a meaningful UI error
+  // if the backend is still not ready after all attempts
+}
+
 // Sample portfolio data for tests
 export const SAMPLE_PORTFOLIOS = {
   growth: {
