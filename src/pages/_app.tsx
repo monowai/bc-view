@@ -7,7 +7,6 @@ import { Auth0Provider } from "@auth0/nextjs-auth0/client"
 import "@styles/globals.css"
 import "@fortawesome/fontawesome-free/css/all.min.css"
 import GitInfo from "@components/ui/GitInfo"
-import { useRouter } from "next/router"
 import { RegistrationProvider } from "@contexts/RegistrationContext"
 import { UserPreferencesProvider } from "@contexts/UserPreferencesContext"
 import { PrivacyModeProvider } from "@hooks/usePrivacyMode"
@@ -32,40 +31,27 @@ const jetbrainsMono = JetBrains_Mono({
 interface AppContentProps {
   Component: AppProps["Component"]
   pageProps: AppProps["pageProps"]
-  alwaysVisible: boolean
 }
 
-const AppContent: React.FC<AppContentProps> = ({
-  Component,
-  pageProps,
-  alwaysVisible,
-}) => {
+const AppContent: React.FC<AppContentProps> = ({ Component, pageProps }) => {
   return (
     <div className={`${dmSans.variable} ${jetbrainsMono.variable} font-sans`}>
       <div className="pt-2 px-2 pb-2 sm:pt-3 sm:px-3 sm:pb-3 md:px-4 md:pb-4 bg-gray-100">
         <Header />
         <Component {...pageProps} />
       </div>
-      <GitInfo alwaysVisible={alwaysVisible} />
+      <GitInfo />
     </div>
   )
 }
 
 const App: React.FC<AppProps> = ({ Component, pageProps }) => {
-  const router = useRouter()
-  const alwaysVisible =
-    router.pathname === "/" || router.pathname === "/portfolios"
-
   return (
     <Auth0Provider>
       <RegistrationProvider>
         <UserPreferencesProvider>
           <PrivacyModeProvider>
-            <AppContent
-              Component={Component}
-              pageProps={pageProps}
-              alwaysVisible={alwaysVisible}
-            />
+            <AppContent Component={Component} pageProps={pageProps} />
           </PrivacyModeProvider>
         </UserPreferencesProvider>
       </RegistrationProvider>
