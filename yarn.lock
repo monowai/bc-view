@@ -565,7 +565,7 @@
   dependencies:
     "@standard-schema/utils" "^0.3.0"
 
-"@hookstate/core@^4.0.1":
+"@hookstate/core@^4.0.2":
   version "4.0.2"
   resolved "https://registry.yarnpkg.com/@hookstate/core/-/core-4.0.2.tgz#3065d22c8cbc96373fe6870f00882beea3bd68e1"
   integrity sha512-DTyb4fKk8GCwKFCVoF/2v1qnvs9rEB2Rc9ZH5eh1LRNemUVnC41Vuy6d8UGqQSA0PIUk3DRPzlOA0QQKONpSmQ==
