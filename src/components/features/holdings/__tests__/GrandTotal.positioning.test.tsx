@@ -71,8 +71,9 @@ describe("GrandTotal Column Positioning Tests", () => {
       // IRR should be visible on mobile (mobile: true in header) - now at position 5 (swapped with weight)
       expect(dataCells[5]).not.toHaveClass("hidden") // HEADER_INDICES.IRR
 
-      // weight should be visible on mobile (mobile: true in header) - now at position 9 (swapped with irr)
-      expect(dataCells[9]).not.toHaveClass("hidden") // HEADER_INDICES.WEIGHT
+      // weight should be hidden on mobile portrait, visible on landscape+ (mobile: false in header) - now at position 9 (swapped with irr)
+      expect(dataCells[9]).toHaveClass("hidden") // HEADER_INDICES.WEIGHT
+      expect(dataCells[9]).toHaveClass("sm:table-cell")
 
       // alpha should be hidden on mobile (mobile: false, medium: false in header) - at position 10
       expect(dataCells[10]).toHaveClass("hidden", "xl:table-cell") // HEADER_INDICES.ALPHA

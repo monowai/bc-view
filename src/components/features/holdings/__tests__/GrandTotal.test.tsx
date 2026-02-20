@@ -172,7 +172,7 @@ describe("GrandTotal Component", () => {
       })
     })
 
-    it("shows change, marketValue, weight, and irr on mobile", () => {
+    it("shows change, marketValue, and irr on mobile; weight hidden on portrait", () => {
       renderGrandTotal()
 
       const table = screen.getByRole("rowgroup")
@@ -214,8 +214,9 @@ describe("GrandTotal Component", () => {
       expect(dataCells[5]).not.toHaveClass("hidden")
       expect(dataCells[5]).toHaveTextContent("-") // IRR hidden, shows dash with tooltip
 
-      // weight should be visible on mobile (mobile: true) - weight is now at data[9] (swapped with irr)
-      expect(dataCells[9]).not.toHaveClass("hidden")
+      // weight should be hidden on mobile portrait, visible on landscape+ (mobile: false) - weight is now at data[9] (swapped with irr)
+      expect(dataCells[9]).toHaveClass("hidden")
+      expect(dataCells[9]).toHaveClass("sm:table-cell")
       expect(dataCells[9]).toHaveTextContent("100.00%")
 
       // alpha should be hidden on mobile (mobile: false, medium: false in header) - alpha is at data[10]
@@ -254,9 +255,10 @@ describe("GrandTotal Component", () => {
         GRANDTOTAL_LAYOUT.DATA_CELLS_SLICE_START,
       )
 
-      // Weight should be at position 9 (data[9]) and visible on mobile (mobile: true in header)
+      // Weight should be at position 9 (data[9]) and hidden on mobile portrait, visible on landscape+ (mobile: false in header)
       const weightCell = dataCells[9]
-      expect(weightCell).not.toHaveClass("hidden")
+      expect(weightCell).toHaveClass("hidden")
+      expect(weightCell).toHaveClass("sm:table-cell")
 
       // totalGain should be at position 11 (data[11]) and hidden on mobile portrait, visible on landscape+ (mobile: false)
       const totalGainCell = dataCells[11]

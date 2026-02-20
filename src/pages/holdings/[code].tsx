@@ -439,7 +439,7 @@ function HoldingsPage(): React.ReactElement {
             viewMode={viewMode}
             onViewModeChange={setViewMode}
           />
-          <div>
+          <div className="overflow-x-auto">
             <table className="w-full bg-white">
               {(() => {
                 let cumulativeCount = 0
