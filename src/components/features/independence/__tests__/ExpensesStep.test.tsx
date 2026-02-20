@@ -61,6 +61,7 @@ const TestWrapper: React.FC<{ children: React.ReactNode }> = () => {
             control={methods.control}
             errors={methods.formState.errors}
             setValue={methods.setValue}
+            getValues={methods.getValues}
           />
         </form>
       </FormProvider>

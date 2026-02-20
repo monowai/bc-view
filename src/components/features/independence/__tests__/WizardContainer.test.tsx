@@ -60,6 +60,7 @@ const TestWrapper: React.FC<TestWrapperProps> = ({ onGetValues }) => {
           control={methods.control}
           errors={methods.formState.errors}
           setValue={methods.setValue}
+          getValues={methods.getValues}
         />
       </form>
     </FormProvider>

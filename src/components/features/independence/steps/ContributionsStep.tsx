@@ -5,6 +5,7 @@ import {
   FieldErrors,
   useFieldArray,
   useWatch,
+  UseFormGetValues,
 } from "react-hook-form"
 import useSwr from "swr"
 import { usePrivateAssetConfigs } from "@lib/assets/usePrivateAssetConfigs"
@@ -29,11 +30,13 @@ interface AssetsResponse {
 interface ContributionsStepProps {
   control: Control<WizardFormData>
   errors: FieldErrors<WizardFormData>
+  getValues: UseFormGetValues<WizardFormData>
 }
 
 export default function ContributionsStep({
   control,
   errors,
+  getValues,
 }: ContributionsStepProps): React.ReactElement {
   const { fields, replace } = useFieldArray({
     control,
@@ -91,30 +94,32 @@ export default function ContributionsStep({
 
   // Initialize contributions with pension assets when data loads
   // Only initialize for NEW plans or when there are no contributions yet
-  // Uses monthlyContribution from asset config as the default value (set during onboarding)
+  // Uses getValues() instead of useWatch to avoid race condition where useWatch returns []
+  // on first render before defaultValues have propagated through the subscription mechanism
   useEffect(() => {
     if (
       pensionAssets.length > 0 &&
       !hasInitialized.current &&
-      contributions.length === 0 &&
       assetLookup.size > 0
     ) {
-      const initialContributions: ContributionFormEntry[] = pensionAssets.map(
-        (asset) => {
-          const assetInfo = assetLookup.get(asset.assetId)
-          return {
-            assetId: asset.assetId,
-            assetName: assetInfo?.name || asset.assetId,
-            // Use the monthlyContribution from asset config as default (from onboarding)
-            monthlyAmount: asset.monthlyContribution || 0,
-            contributionType: "PENSION" as const,
-          }
-        },
-      )
-      replace(initialContributions)
       hasInitialized.current = true
+      if ((getValues("contributions") || []).length === 0) {
+        const initialContributions: ContributionFormEntry[] = pensionAssets.map(
+          (asset) => {
+            const assetInfo = assetLookup.get(asset.assetId)
+            return {
+              assetId: asset.assetId,
+              assetName: assetInfo?.name || asset.assetId,
+              // Use the monthlyContribution from asset config as default (from onboarding)
+              monthlyAmount: asset.monthlyContribution || 0,
+              contributionType: "PENSION" as const,
+            }
+          },
+        )
+        replace(initialContributions)
+      }
     }
-  }, [pensionAssets, replace, contributions.length, assetLookup])
+  }, [pensionAssets, replace, getValues, assetLookup])
 
   // Sync contributions when pension assets change (e.g., new pension asset added)
   useEffect(() => {

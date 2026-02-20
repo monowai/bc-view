@@ -5,6 +5,10 @@ import { test, expect } from "@playwright/test"
  * with sub-account balances via the Independence wizard, and verify
  * the asset appears in Holdings.
  *
+ * Also verifies that editing the plan preserves working expenses and
+ * retirement expenses on first load (regression for useWatch race condition
+ * where SWR-cached categories caused values to display as 0).
+ *
  * Cleans up existing portfolios/plans before running so onboarding
  * starts fresh. No cleanup is performed afterwards so the result
  * can be reviewed.
@@ -145,7 +149,20 @@ test.describe("CPF Onboarding Flow", () => {
       await page.getByRole("button", { name: "Next", exact: true }).click()
     })
 
-    await test.step("Independence Step 2 - Working Expenses: skip", async () => {
+    await test.step("Independence Step 2 - Working Expenses: enter values", async () => {
+      // Wait for system categories to load (expense inputs appear)
+      const expenseInputs = page.locator(
+        'input[type="number"][min="0"][step="50"]',
+      )
+      await expect(expenseInputs.first()).toBeVisible({ timeout: 10_000 })
+
+      // Fill first two categories with known values
+      await expenseInputs.nth(0).fill("500")
+      await expenseInputs.nth(1).fill("300")
+
+      // Verify total updates to $800
+      await expect(page.getByText("$800")).toBeVisible({ timeout: 5_000 })
+
       await page.getByRole("button", { name: "Next", exact: true }).click()
     })
 
@@ -229,7 +246,7 @@ test.describe("CPF Onboarding Flow", () => {
       await page.getByRole("button", { name: "Next", exact: true }).click()
     })
 
-    await test.step("Independence Steps 5-7: advance through", async () => {
+    await test.step("Independence Steps 5-6: advance through", async () => {
       // Step 5 - Assumptions
       await page.waitForTimeout(500)
       await page.getByRole("button", { name: "Next", exact: true }).click()
@@ -237,9 +254,21 @@ test.describe("CPF Onboarding Flow", () => {
       // Step 6 - Income
       await page.waitForTimeout(500)
       await page.getByRole("button", { name: "Next", exact: true }).click()
+    })
 
-      // Step 7 - Expenses
-      await page.waitForTimeout(500)
+    await test.step("Independence Step 7 - Retirement Expenses: enter values", async () => {
+      // Wait for system categories to load
+      const expenseInputs = page.locator(
+        'input[type="number"][min="0"][step="50"]',
+      )
+      await expect(expenseInputs.first()).toBeVisible({ timeout: 10_000 })
+
+      // Fill first category with known value
+      await expenseInputs.nth(0).fill("2000")
+
+      // Verify total updates
+      await expect(page.getByText("$2,000")).toBeVisible({ timeout: 5_000 })
+
       await page.getByRole("button", { name: "Next", exact: true }).click()
     })
 
@@ -282,6 +311,63 @@ test.describe("CPF Onboarding Flow", () => {
       })
 
       await newPage.close()
+    })
+
+    // ─── Phase 4: Edit plan and verify expense values preserved ──
+
+    await test.step("Edit plan — verify working expenses preserved on first load", async () => {
+      // Extract plan ID from current URL (/independence/plans/{planId})
+      const planId = page.url().split("/").pop()
+      expect(planId).toBeTruthy()
+
+      // Navigate to edit wizard (fresh page load to simulate real edit flow)
+      await page.goto(`/independence/wizard/${planId}`)
+      await page.waitForLoadState("domcontentloaded")
+
+      // Wait for the edit wizard to fully load (plan data fetched via SWR)
+      await expect(
+        page.getByRole("heading", { name: /edit independence plan/i }),
+      ).toBeVisible({ timeout: 15_000 })
+
+      // In edit mode, step indicators are clickable buttons
+      // Navigate to Step 2 (Working Expenses) — 0-indexed: nth(1)
+      const stepButtons = page.locator(
+        'nav[aria-label="Progress"] li [role="button"]',
+      )
+      await stepButtons.nth(1).click()
+
+      // Wait for expense category inputs to appear
+      const workExpInputs = page.locator(
+        'input[type="number"][min="0"][step="50"]',
+      )
+      await expect(workExpInputs.first()).toBeVisible({ timeout: 10_000 })
+
+      // Verify the values entered during creation are preserved (not zero!)
+      await expect(workExpInputs.nth(0)).toHaveValue("500")
+      await expect(workExpInputs.nth(1)).toHaveValue("300")
+
+      // Verify total reflects the saved values
+      await expect(page.getByText("$800")).toBeVisible({ timeout: 5_000 })
+    })
+
+    await test.step("Edit plan — verify retirement expenses preserved on first load", async () => {
+      // Navigate to Step 7 (Retirement Expenses) — 0-indexed: nth(6)
+      const stepButtons = page.locator(
+        'nav[aria-label="Progress"] li [role="button"]',
+      )
+      await stepButtons.nth(6).click()
+
+      // Wait for expense category inputs to appear
+      const retExpInputs = page.locator(
+        'input[type="number"][min="0"][step="50"]',
+      )
+      await expect(retExpInputs.first()).toBeVisible({ timeout: 10_000 })
+
+      // Verify the retirement expense value entered during creation is preserved
+      await expect(retExpInputs.nth(0)).toHaveValue("2000")
+
+      // Verify total
+      await expect(page.getByText("$2,000")).toBeVisible({ timeout: 5_000 })
     })
   })
 })

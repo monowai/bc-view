@@ -6,6 +6,7 @@ import {
   useFieldArray,
   useWatch,
   UseFormSetValue,
+  UseFormGetValues,
 } from "react-hook-form"
 import useSwr from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
@@ -18,6 +19,7 @@ interface ExpensesStepProps {
   control: Control<WizardFormData>
   errors: FieldErrors<WizardFormData>
   setValue: UseFormSetValue<WizardFormData>
+  getValues: UseFormGetValues<WizardFormData>
 }
 
 const categoriesKey = "/api/independence/categories"
@@ -26,6 +28,7 @@ export default function ExpensesStep({
   control,
   errors,
   setValue,
+  getValues,
 }: ExpensesStepProps): React.ReactElement {
   const { fields, append, remove } = useFieldArray({
     control,
@@ -48,23 +51,21 @@ export default function ExpensesStep({
 
   // Initialize expenses with all system categories when data loads
   // Only do this for NEW plans that have no expenses yet
-  // Important: Check expenses.length instead of fields.length to avoid race condition
-  // where useFieldArray hasn't synced with form state yet on first render
+  // Uses getValues() instead of useWatch to avoid race condition where useWatch returns []
+  // on first render before defaultValues have propagated through the subscription mechanism
   useEffect(() => {
-    if (
-      systemCategories.length > 0 &&
-      !hasInitialized.current &&
-      expenses.length === 0
-    ) {
-      const initialExpenses = systemCategories.map((cat) => ({
-        categoryLabelId: cat.id,
-        categoryName: cat.name,
-        monthlyAmount: 0,
-      }))
-      setValue("expenses", initialExpenses)
+    if (systemCategories.length > 0 && !hasInitialized.current) {
       hasInitialized.current = true
+      if ((getValues("expenses") || []).length === 0) {
+        const initialExpenses = systemCategories.map((cat) => ({
+          categoryLabelId: cat.id,
+          categoryName: cat.name,
+          monthlyAmount: 0,
+        }))
+        setValue("expenses", initialExpenses)
+      }
     }
-  }, [systemCategories, setValue, expenses.length])
+  }, [systemCategories, setValue, getValues])
 
   const totalMonthlyExpenses = expenses.reduce(
     (sum, expense) => sum + (expense?.monthlyAmount || 0),
