@@ -51,7 +51,10 @@ function formatLastUpdated(lastUpdated: string | undefined): string {
 }
 
 // Safe gain-on-day percentage: returns formatted string or null if previous value is zero
-function gainOnDayPercent(gainOnDay: number, marketValue: number): string | null {
+function gainOnDayPercent(
+  gainOnDay: number,
+  marketValue: number,
+): string | null {
   const previousValue = marketValue - gainOnDay
   if (previousValue === 0) return null
   return ((gainOnDay / previousValue) * 100).toFixed(2)
@@ -381,7 +384,11 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                               : "text-red-600"
                           }`}
                         >
-                          {gainOnDayPercent(portfolio.gainOnDay, portfolio.marketValue) ?? "0.00"}%
+                          {gainOnDayPercent(
+                            portfolio.gainOnDay,
+                            portfolio.marketValue,
+                          ) ?? "0.00"}
+                          %
                         </span>
                       </QuickTooltip>
                     )}
@@ -478,9 +485,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                 >
                   <span
                     className={`text-sm font-semibold tabular-nums ${
-                      totalGainOnDay >= 0
-                        ? "text-emerald-200"
-                        : "text-red-200"
+                      totalGainOnDay >= 0 ? "text-emerald-200" : "text-red-200"
                     }`}
                   >
                     {(
@@ -594,9 +599,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                     <input
                       type="checkbox"
                       checked={selectedPortfolios.has(portfolio.code)}
-                      onChange={() =>
-                        togglePortfolioSelection(portfolio.code)
-                      }
+                      onChange={() => togglePortfolioSelection(portfolio.code)}
                       onClick={(e) => e.stopPropagation()}
                       className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
                     />
@@ -631,7 +634,11 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                               : "text-red-600"
                           }`}
                         >
-                          {gainOnDayPercent(portfolio.gainOnDay, portfolio.marketValue) ?? "0.00"}%
+                          {gainOnDayPercent(
+                            portfolio.gainOnDay,
+                            portfolio.marketValue,
+                          ) ?? "0.00"}
+                          %
                         </span>
                       </QuickTooltip>
                     ) : (
@@ -712,10 +719,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                           })
                         }}
                         className="text-slate-400 hover:text-red-600 transition-colors"
-                        title={t(
-                          "portfolio.delete.title",
-                          "Delete Portfolio",
-                        )}
+                        title={t("portfolio.delete.title", "Delete Portfolio")}
                       >
                         <i className="far fa-trash-alt text-lg"></i>
                       </button>
@@ -750,7 +754,9 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                             : "text-red-200"
                         }`}
                       >
-                        {gainOnDayPercent(totalGainOnDay, totalMarketValue) ?? "0.00"}%
+                        {gainOnDayPercent(totalGainOnDay, totalMarketValue) ??
+                          "0.00"}
+                        %
                       </span>
                     </QuickTooltip>
                   ) : (

@@ -64,8 +64,9 @@ export default function AggregatedTransactionsTable({
                 }
                 ref={(el) => {
                   if (el) {
-                    const withProposed =
-                      aggregatedTransactions.filter(hasAggregatedProposed)
+                    const withProposed = aggregatedTransactions.filter(
+                      hasAggregatedProposed,
+                    )
                     const allSelected = withProposed.every((agg) =>
                       isAggregatedSelected(agg, selectedIds),
                     )
@@ -78,10 +79,7 @@ export default function AggregatedTransactionsTable({
                 onChange={(e) => {
                   aggregatedTransactions.forEach((agg) => {
                     if (hasAggregatedProposed(agg)) {
-                      onSelectAggregated(
-                        agg.aggregateKey,
-                        e.target.checked,
-                      )
+                      onSelectAggregated(agg.aggregateKey, e.target.checked)
                     }
                   })
                 }}
@@ -152,14 +150,13 @@ export default function AggregatedTransactionsTable({
                       checked={isAggregatedSelected(agg, selectedIds)}
                       ref={(el) => {
                         if (el)
-                          el.indeterminate =
-                            isAggregatedPartiallySelected(agg, selectedIds)
+                          el.indeterminate = isAggregatedPartiallySelected(
+                            agg,
+                            selectedIds,
+                          )
                       }}
                       onChange={(e) =>
-                        onSelectAggregated(
-                          agg.aggregateKey,
-                          e.target.checked,
-                        )
+                        onSelectAggregated(agg.aggregateKey, e.target.checked)
                       }
                       disabled={!hasAggregatedProposed(agg)}
                       className="rounded border-gray-300 text-green-600 focus:ring-green-500 disabled:opacity-50"
@@ -202,12 +199,7 @@ export default function AggregatedTransactionsTable({
                   <td className="px-2 py-1.5 whitespace-nowrap text-right">
                     <DecimalInput
                       value={agg.editedPrice}
-                      onChange={(v) =>
-                        onPriceChange(
-                          agg.aggregateKey,
-                          v,
-                        )
-                      }
+                      onChange={(v) => onPriceChange(agg.aggregateKey, v)}
                       className="w-20 px-1 py-0.5 text-right border border-gray-300 rounded text-xs font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
                       title="Editing price updates all underlying transactions"
                     />
@@ -240,10 +232,7 @@ export default function AggregatedTransactionsTable({
                       type="date"
                       value={agg.editedTradeDate || getToday()}
                       onChange={(e) =>
-                        onTradeDateChange(
-                          agg.aggregateKey,
-                          e.target.value,
-                        )
+                        onTradeDateChange(agg.aggregateKey, e.target.value)
                       }
                       className="px-1 py-0.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                       title="Changing date updates all underlying transactions"

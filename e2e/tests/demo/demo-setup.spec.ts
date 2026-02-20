@@ -253,8 +253,9 @@ test.describe("Demo User Setup", () => {
       expect(portfolioMap["IBUS"]).toBeTruthy()
 
       // Store for subsequent steps
-      ;(test.info() as unknown as { portfolioMap: Record<string, string> }).portfolioMap =
-        portfolioMap
+      ;(
+        test.info() as unknown as { portfolioMap: Record<string, string> }
+      ).portfolioMap = portfolioMap
     })
 
     await test.step("Import SG positions via API", async () => {

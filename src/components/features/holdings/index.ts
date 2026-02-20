@@ -20,6 +20,11 @@ export { default as CashTransferDialog } from "./CashTransferDialog"
 export { default as CostAdjustDialog } from "./CostAdjustDialog"
 
 // Types and utilities
-export { GroupBy, ValueIn, useGroupOptions, toAllocationGroupBy } from "./GroupByOptions"
+export {
+  GroupBy,
+  ValueIn,
+  useGroupOptions,
+  toAllocationGroupBy,
+} from "./GroupByOptions"
 export type { ViewMode } from "./ViewToggle"
 export type { CorporateActionsData, SectorWeightingsData } from "./Rows"

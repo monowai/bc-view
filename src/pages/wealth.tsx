@@ -135,7 +135,12 @@ function WealthDashboard(): React.ReactElement {
   }
 
   // Calculate wealth summary
-  const summary = useWealthSummary(portfolios, fxRates, sortConfig, holdingsData)
+  const summary = useWealthSummary(
+    portfolios,
+    fxRates,
+    sortConfig,
+    holdingsData,
+  )
 
   // Calculate asset breakdown from holdings
   // Only calculate when holdings have finished loading
@@ -290,7 +295,6 @@ function WealthDashboard(): React.ReactElement {
           onSuccess={() => setShowShareDialog(false)}
         />
       )}
-
     </>
   )
 }

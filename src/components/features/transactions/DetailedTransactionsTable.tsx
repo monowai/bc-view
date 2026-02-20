@@ -97,9 +97,7 @@ export default function DetailedTransactionsTable({
                 <input
                   type="checkbox"
                   checked={selectedIds.has(trn.id)}
-                  onChange={(e) =>
-                    onSelectOne(trn.id, e.target.checked)
-                  }
+                  onChange={(e) => onSelectOne(trn.id, e.target.checked)}
                   disabled={trn.status !== "PROPOSED"}
                   className="rounded border-gray-300 text-green-600 focus:ring-green-500 disabled:opacity-50"
                   title={
@@ -112,9 +110,7 @@ export default function DetailedTransactionsTable({
               <td className="px-2 py-1.5 whitespace-nowrap">
                 <select
                   value={trn.editedBrokerId || ""}
-                  onChange={(e) =>
-                    onBrokerChange(trn.id, e.target.value)
-                  }
+                  onChange={(e) => onBrokerChange(trn.id, e.target.value)}
                   className="px-1 py-0.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 max-w-25"
                 >
                   <option value="">--</option>
@@ -126,9 +122,7 @@ export default function DetailedTransactionsTable({
                 </select>
               </td>
               <td className="px-2 py-1.5 whitespace-nowrap">
-                <span className="text-gray-600">
-                  {trn.portfolio.code}
-                </span>
+                <span className="text-gray-600">{trn.portfolio.code}</span>
               </td>
               <td className="px-2 py-1.5 whitespace-nowrap">
                 <span
@@ -185,16 +179,16 @@ export default function DetailedTransactionsTable({
                     )
                   }
                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  title={trn.editedStatus === "SETTLED" ? "Settled" : "Proposed"}
+                  title={
+                    trn.editedStatus === "SETTLED" ? "Settled" : "Proposed"
+                  }
                 />
               </td>
               <td className="px-2 py-1.5 whitespace-nowrap">
                 <input
                   type="date"
                   value={trn.editedTradeDate || trn.tradeDate}
-                  onChange={(e) =>
-                    onTradeDateChange(trn.id, e.target.value)
-                  }
+                  onChange={(e) => onTradeDateChange(trn.id, e.target.value)}
                   className="px-1 py-0.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </td>

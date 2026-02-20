@@ -12,7 +12,9 @@ const ExecutionList: React.FC = () => {
   const { t } = useTranslation("common")
   const router = useRouter()
   const { executions, isLoading, error } = useExecutions()
-  const [deleteExecutionId, setDeleteExecutionId] = useState<string | null>(null)
+  const [deleteExecutionId, setDeleteExecutionId] = useState<string | null>(
+    null,
+  )
 
   if (isLoading) {
     return <TableSkeletonLoader rows={3} />

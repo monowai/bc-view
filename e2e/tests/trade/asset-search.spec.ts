@@ -32,9 +32,9 @@ test.describe("Asset Search in Trade Entry", () => {
     await page.goto(PAGES.holdings(portfolioCode))
     await page.waitForLoadState("domcontentloaded")
     // Wait for the holdings page to load (Trade button appears when page is ready)
-    await expect(
-      page.locator("button:has-text('Trade')").first(),
-    ).toBeVisible({ timeout: 15000 })
+    await expect(page.locator("button:has-text('Trade')").first()).toBeVisible({
+      timeout: 15000,
+    })
   }
 
   /**

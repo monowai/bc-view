@@ -36,25 +36,19 @@ export default function DetailsTabContent({
 
   // Use in-memory state (scenarioOverrides) with plan as fallback
   // Apply what-if expensesPercent adjustment (e.g., Frugal = 90%)
-  const baseExpenses =
-    scenarioOverrides.monthlyExpenses ?? plan.monthlyExpenses
+  const baseExpenses = scenarioOverrides.monthlyExpenses ?? plan.monthlyExpenses
   const effectiveExpenses = Math.round(
     baseExpenses * (combinedAdjustments.expensesPercent / 100),
   )
   const effectivePension =
     scenarioOverrides.pensionMonthly ?? plan.pensionMonthly ?? 0
   const effectiveSocialSecurity =
-    scenarioOverrides.socialSecurityMonthly ??
-    plan.socialSecurityMonthly ??
-    0
+    scenarioOverrides.socialSecurityMonthly ?? plan.socialSecurityMonthly ?? 0
   const effectiveOtherIncome =
-    scenarioOverrides.otherIncomeMonthly ??
-    plan.otherIncomeMonthly ??
-    0
+    scenarioOverrides.otherIncomeMonthly ?? plan.otherIncomeMonthly ?? 0
   const effectiveInflation =
     scenarioOverrides.inflationRate ?? plan.inflationRate
-  const effectiveTarget =
-    scenarioOverrides.targetBalance ?? plan.targetBalance
+  const effectiveTarget = scenarioOverrides.targetBalance ?? plan.targetBalance
   const effectiveEquityReturn =
     scenarioOverrides.equityReturnRate ?? plan.equityReturnRate
   const effectiveCashReturn =
@@ -65,10 +59,8 @@ export default function DetailsTabContent({
   // Display values - always use backend planInputs (already FX-converted)
   const planInputs = projection?.planInputs
   const detailsCurrency = projection?.currency || planCurrency
-  const displayExpenses =
-    planInputs?.monthlyExpenses ?? effectiveExpenses
-  const displayPension =
-    planInputs?.pensionMonthly ?? effectivePension
+  const displayExpenses = planInputs?.monthlyExpenses ?? effectiveExpenses
+  const displayPension = planInputs?.pensionMonthly ?? effectivePension
   const displaySocialSecurity =
     planInputs?.socialSecurityMonthly ?? effectiveSocialSecurity
   const displayOtherIncome =
@@ -77,8 +69,7 @@ export default function DetailsTabContent({
     planInputs?.rentalIncomeMonthly ??
     rentalIncome?.totalMonthlyInPlanCurrency ??
     0
-  const displayTarget =
-    planInputs?.targetBalance ?? effectiveTarget ?? 0
+  const displayTarget = planInputs?.targetBalance ?? effectiveTarget ?? 0
   const displayNetMonthlyNeed = Math.max(
     0,
     displayExpenses -
@@ -120,9 +111,7 @@ export default function DetailsTabContent({
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-500">
-              {t("retire.pension")}
-            </span>
+            <span className="text-gray-500">{t("retire.pension")}</span>
             <span
               className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
             >
@@ -144,9 +133,7 @@ export default function DetailsTabContent({
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-500">
-              {t("retire.otherIncome")}
-            </span>
+            <span className="text-gray-500">{t("retire.otherIncome")}</span>
             <span
               className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
             >
@@ -189,9 +176,7 @@ export default function DetailsTabContent({
           <hr />
           <div className="flex justify-between">
             <InfoTooltip text={t("retire.inflation.tooltip")}>
-              <span className="text-gray-500">
-                {t("retire.inflation")}
-              </span>
+              <span className="text-gray-500">{t("retire.inflation")}</span>
             </InfoTooltip>
             <span className="font-medium">
               {(effectiveInflation * 100).toFixed(1)}%
@@ -263,9 +248,7 @@ export default function DetailsTabContent({
                   }`}
                 >
                   {hideValues ? (
-                    <span className="text-gray-400">
-                      {HIDDEN_VALUE}
-                    </span>
+                    <span className="text-gray-400">{HIDDEN_VALUE}</span>
                   ) : projection.expenseAdjustment >= 0 ? (
                     <>
                       <i className="fas fa-arrow-up mr-1"></i>
@@ -284,8 +267,7 @@ export default function DetailsTabContent({
                       {Math.round(
                         projection.expenseAdjustment,
                       ).toLocaleString()}
-                      /mo (
-                      {projection.expenseAdjustmentPercent.toFixed(1)}
+                      /mo ({projection.expenseAdjustmentPercent.toFixed(1)}
                       %)
                     </>
                   )}
@@ -313,8 +295,7 @@ export default function DetailsTabContent({
                     </div>
                     {projection.liquidationAge != null && (
                       <div className="text-sm text-gray-500">
-                        Property disposal from age{" "}
-                        {projection.liquidationAge}
+                        Property disposal from age {projection.liquidationAge}
                       </div>
                     )}
                     {projection.adjustmentWithLiquidation != null &&
@@ -334,7 +315,9 @@ export default function DetailsTabContent({
                                   projection.adjustmentWithLiquidation,
                                 ).toLocaleString()}
                                 /mo (+
-                                {projection.adjustmentPercentWithLiquidation.toFixed(1)}
+                                {projection.adjustmentPercentWithLiquidation.toFixed(
+                                  1,
+                                )}
                                 %)
                               </>
                             ) : (
@@ -344,7 +327,9 @@ export default function DetailsTabContent({
                                   projection.adjustmentWithLiquidation,
                                 ).toLocaleString()}
                                 /mo (
-                                {projection.adjustmentPercentWithLiquidation.toFixed(1)}
+                                {projection.adjustmentPercentWithLiquidation.toFixed(
+                                  1,
+                                )}
                                 %)
                               </>
                             ))}
@@ -357,64 +342,62 @@ export default function DetailsTabContent({
         </div>
       )}
       {/* Income Reducing Your FI Target */}
-      {projection?.fiMetrics &&
-        projection.fiMetrics.totalMonthlyIncome > 0 && (
-          <div className="col-span-1 lg:col-span-2 bg-white rounded-xl shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              <i className="fas fa-coins text-green-500 mr-2"></i>
-              Income Reducing Your FI Target
-            </h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Your FI Number is based on <strong>net</strong>{" "}
-              expenses - what you need from investments after
-              accounting for other income sources.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <div className="text-sm text-gray-500 mb-1">
-                  Monthly Income Sources
-                </div>
-                <div className="text-xl font-bold text-green-600">
-                  {hideValues ? (
-                    HIDDEN_VALUE
-                  ) : (
-                    <>
-                      {effectiveCurrency}
-                      {Math.round(
-                        projection.fiMetrics.totalMonthlyIncome,
-                      ).toLocaleString()}
-                      /mo
-                    </>
-                  )}
-                </div>
-                <div className="text-xs text-gray-500 mt-1">
-                  Pension + Benefits + Rental + Other
-                </div>
+      {projection?.fiMetrics && projection.fiMetrics.totalMonthlyIncome > 0 && (
+        <div className="col-span-1 lg:col-span-2 bg-white rounded-xl shadow-md p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <i className="fas fa-coins text-green-500 mr-2"></i>
+            Income Reducing Your FI Target
+          </h3>
+          <p className="text-sm text-gray-600 mb-4">
+            Your FI Number is based on <strong>net</strong> expenses - what you
+            need from investments after accounting for other income sources.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-4 bg-gray-50 rounded-lg">
+              <div className="text-sm text-gray-500 mb-1">
+                Monthly Income Sources
               </div>
-              <div className="p-4 bg-independence-50 rounded-lg">
-                <div className="text-sm text-gray-500 mb-1">
-                  Net Monthly Need from Investments
-                </div>
-                <div className="text-xl font-bold text-independence-600">
-                  {hideValues ? (
-                    HIDDEN_VALUE
-                  ) : (
-                    <>
-                      {effectiveCurrency}
-                      {Math.round(
-                        projection.fiMetrics.netMonthlyExpenses,
-                      ).toLocaleString()}
-                      /mo
-                    </>
-                  )}
-                </div>
-                <div className="text-xs text-gray-500 mt-1">
-                  This determines your FI Number
-                </div>
+              <div className="text-xl font-bold text-green-600">
+                {hideValues ? (
+                  HIDDEN_VALUE
+                ) : (
+                  <>
+                    {effectiveCurrency}
+                    {Math.round(
+                      projection.fiMetrics.totalMonthlyIncome,
+                    ).toLocaleString()}
+                    /mo
+                  </>
+                )}
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                Pension + Benefits + Rental + Other
+              </div>
+            </div>
+            <div className="p-4 bg-independence-50 rounded-lg">
+              <div className="text-sm text-gray-500 mb-1">
+                Net Monthly Need from Investments
+              </div>
+              <div className="text-xl font-bold text-independence-600">
+                {hideValues ? (
+                  HIDDEN_VALUE
+                ) : (
+                  <>
+                    {effectiveCurrency}
+                    {Math.round(
+                      projection.fiMetrics.netMonthlyExpenses,
+                    ).toLocaleString()}
+                    /mo
+                  </>
+                )}
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                This determines your FI Number
               </div>
             </div>
           </div>
-        )}
+        </div>
+      )}
     </div>
   )
 }

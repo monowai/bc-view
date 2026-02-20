@@ -191,10 +191,7 @@ const ModelPlans: React.FC<ModelPlansProps> = ({ modelId }) => {
       {deletePlanId && (
         <ConfirmDialog
           title={t("rebalance.plans.deleteTitle", "Delete Plan")}
-          message={t(
-            "rebalance.plans.confirmDelete",
-            "Delete this plan?",
-          )}
+          message={t("rebalance.plans.confirmDelete", "Delete this plan?")}
           confirmLabel={t("delete", "Delete")}
           cancelLabel={t("cancel", "Cancel")}
           variant="red"

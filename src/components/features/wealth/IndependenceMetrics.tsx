@@ -86,8 +86,7 @@ export default function IndependenceMetrics({
                   (primaryPlan.workingIncomeMonthly ?? 0) -
                   (primaryPlan.workingExpensesMonthly ?? 0)
                 const target = Math.round(
-                  surplus *
-                    (primaryPlan.investmentAllocationPercent ?? 0.8),
+                  surplus * (primaryPlan.investmentAllocationPercent ?? 0.8),
                 )
                 const actual = Math.round(
                   monthlyInvestmentData?.totalInvested ?? 0,
@@ -167,9 +166,8 @@ export default function IndependenceMetrics({
                         </span>
                       ) : (
                         <span className="text-3xl font-bold text-green-600">
-                          {projectionData?.fiMetrics?.fiProgress?.toFixed(
-                            1,
-                          ) ?? "0"}
+                          {projectionData?.fiMetrics?.fiProgress?.toFixed(1) ??
+                            "0"}
                           %
                         </span>
                       )}
@@ -187,8 +185,7 @@ export default function IndependenceMetrics({
                     <p className="text-xs text-gray-500 mt-2">
                       {hideValues
                         ? ""
-                        : projectionData?.fiMetrics
-                              ?.isFinanciallyIndependent
+                        : projectionData?.fiMetrics?.isFinanciallyIndependent
                           ? "Financially Independent!"
                           : "Progress toward FI Number"}
                     </p>
@@ -218,17 +215,12 @@ export default function IndependenceMetrics({
                         <span className="text-2xl font-bold text-green-600">
                           FI Achieved!
                         </span>
-                      ) : projectionData?.fiMetrics?.realYearsToFi !=
-                        null ? (
+                      ) : projectionData?.fiMetrics?.realYearsToFi != null ? (
                         <>
                           <span className="text-3xl font-bold text-orange-600">
-                            {Math.round(
-                              projectionData.fiMetrics.realYearsToFi,
-                            )}
+                            {Math.round(projectionData.fiMetrics.realYearsToFi)}
                           </span>
-                          <span className="text-sm text-gray-500">
-                            years
-                          </span>
+                          <span className="text-sm text-gray-500">years</span>
                         </>
                       ) : (
                         <span className="text-2xl font-bold text-gray-400">
@@ -239,8 +231,7 @@ export default function IndependenceMetrics({
                     <p className="text-xs text-gray-500 mt-2">
                       {hideValues
                         ? ""
-                        : projectionData?.fiMetrics
-                              ?.isFinanciallyIndependent
+                        : projectionData?.fiMetrics?.isFinanciallyIndependent
                           ? "You've reached financial independence!"
                           : projectionData?.fiAchievementAge
                             ? `FI at age ${projectionData.fiAchievementAge}`

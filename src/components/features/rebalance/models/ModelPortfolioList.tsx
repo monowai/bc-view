@@ -259,10 +259,7 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
       {deleteModelId && (
         <ConfirmDialog
           title={t("rebalance.models.deleteTitle", "Delete Model")}
-          message={t(
-            "rebalance.models.deleteConfirm",
-            "Delete this model?",
-          )}
+          message={t("rebalance.models.deleteConfirm", "Delete this model?")}
           confirmLabel={t("delete", "Delete")}
           cancelLabel={t("cancel", "Cancel")}
           variant="red"
