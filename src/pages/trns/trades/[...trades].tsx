@@ -25,7 +25,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
   const { t } = useTranslation("common")
   const router = useRouter()
   const [editModalOpen, setEditModalOpen] = useState(true)
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   // Extract query params - safe to access even before router is ready (will be undefined)
   const tradesParam = router.query.trades as string[] | undefined

@@ -15,9 +15,7 @@ import {
   FxResponse,
   Position,
 } from "types/beancounter"
-import {
-  transformToAllocationSlices,
-} from "@lib/allocation/aggregateHoldings"
+import { transformToAllocationSlices } from "@lib/allocation/aggregateHoldings"
 import { ValueIn } from "@components/features/holdings/GroupByOptions"
 import {
   WhatIfAdjustments,

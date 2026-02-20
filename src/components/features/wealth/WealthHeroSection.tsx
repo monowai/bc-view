@@ -142,9 +142,7 @@ const WealthHeroSection: React.FC<WealthHeroSectionProps> = ({
           title="Strategy"
         >
           <i className="fas fa-chess text-sm text-emerald-300"></i>
-          <span className="text-xs font-medium hidden sm:inline">
-            Strategy
-          </span>
+          <span className="text-xs font-medium hidden sm:inline">Strategy</span>
         </Link>
         <Link
           href="/independence"

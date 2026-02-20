@@ -45,7 +45,8 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
   const [targetBrokerId, setTargetBrokerId] = useState<string>("")
   const [isTransferring, setIsTransferring] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
-  const [deletingBroker, setDeletingBroker] = useState<BrokerWithAccounts | null>(null)
+  const [deletingBroker, setDeletingBroker] =
+    useState<BrokerWithAccounts | null>(null)
   const [transferSuccess, setTransferSuccess] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<"details" | "settlement">(
     "details",
@@ -142,13 +143,10 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
     }
   }, [formData, editingBroker, mutate, handleCancel])
 
-  const handleDelete = useCallback(
-    (broker: BrokerWithAccounts) => {
-      setDeleteError(null)
-      setDeletingBroker(broker)
-    },
-    [],
-  )
+  const handleDelete = useCallback((broker: BrokerWithAccounts) => {
+    setDeleteError(null)
+    setDeletingBroker(broker)
+  }, [])
 
   const handleDeleteConfirm = useCallback(async () => {
     if (!deletingBroker) return

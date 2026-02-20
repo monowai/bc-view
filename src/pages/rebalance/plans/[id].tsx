@@ -199,10 +199,7 @@ function PlanDetailPage(): React.ReactElement {
       {showCancelConfirm && (
         <ConfirmDialog
           title={t("rebalance.plans.cancelTitle", "Cancel Plan")}
-          message={t(
-            "rebalance.plans.cancelConfirm",
-            "Cancel this plan?",
-          )}
+          message={t("rebalance.plans.cancelConfirm", "Cancel this plan?")}
           confirmLabel={t("rebalance.plans.cancel", "Cancel Plan")}
           cancelLabel={t("cancel", "Cancel")}
           variant="red"

@@ -128,12 +128,15 @@ const TradeInputForm: React.FC<{
   // When set, the auto-recalculation useEffect is skipped.
   const tradeAmountOverriddenRef = useRef(false)
 
-  // Fetch portfolios for portfolio move (edit mode)
+  // Fetch portfolios for portfolio selection
   const { data: portfoliosData } = useSwr(
-    isEditMode ? "/api/portfolios" : null,
+    "/api/portfolios",
     simpleFetcher("/api/portfolios"),
   )
-  const portfolios: Portfolio[] = portfoliosData?.data || []
+  const portfolios: Portfolio[] = useMemo(
+    () => portfoliosData?.data || [],
+    [portfoliosData?.data],
+  )
 
   // Fetch models for model selection (edit mode only)
   const { data: modelsData } = useSwr(
@@ -181,9 +184,14 @@ const TradeInputForm: React.FC<{
     }
   }, [isEditMode, transaction])
 
-  // Check if portfolio changed (edit mode)
-  const portfolioChanged =
-    isEditMode && selectedPortfolioId !== transaction?.portfolio.id
+  // Resolve the effective portfolio from the dropdown selection
+  const effectivePortfolio = useMemo(
+    () => portfolios.find((p) => p.id === selectedPortfolioId) || portfolio,
+    [portfolios, selectedPortfolioId, portfolio],
+  )
+
+  // Check if portfolio changed from initial
+  const portfolioChanged = selectedPortfolioId !== (transaction?.portfolio.id || portfolio.id)
 
   // Check if model changed from initial value (edit mode)
   const modelChanged =
@@ -353,10 +361,12 @@ const TradeInputForm: React.FC<{
   const fetchAssetPrice = async (
     market: string,
     assetCode: string,
+    asAt?: string,
   ): Promise<number | null> => {
     setIsFetchingPrice(true)
     try {
-      const response = await fetch(`/api/prices/${market}/${assetCode}`)
+      const qs = asAt ? `?asAt=${encodeURIComponent(asAt)}` : ""
+      const response = await fetch(`/api/prices/${market}/${assetCode}${qs}`)
       if (!response.ok) {
         return null
       }
@@ -391,7 +401,10 @@ const TradeInputForm: React.FC<{
     const assetCode = option.symbol || option.value
     // Skip price fetching for private assets - they don't have external market data
     if (market && assetCode && market !== "PRIVATE" && market !== "CASH") {
-      const fetchedPrice = await fetchAssetPrice(market, assetCode)
+      const tradeDate = watch("tradeDate")
+      const today = new Date().toISOString().split("T")[0]
+      const asAt = tradeDate && tradeDate < today ? tradeDate : undefined
+      const fetchedPrice = await fetchAssetPrice(market, assetCode, asAt)
       if (fetchedPrice !== null) {
         setValue("price", fetchedPrice)
       }
@@ -701,7 +714,7 @@ const TradeInputForm: React.FC<{
                 } else if (data.type.value === "EXPENSE") {
                   await submitExpense({
                     data: data as any,
-                    portfolio,
+                    portfolio: effectivePortfolio,
                     mutate,
                     setModalOpen,
                     setSubmitError,
@@ -710,7 +723,7 @@ const TradeInputForm: React.FC<{
                 } else if (data.type.value === "INCOME") {
                   await submitIncome({
                     data: data as any,
-                    portfolio,
+                    portfolio: effectivePortfolio,
                     mutate,
                     setModalOpen,
                     setSubmitError,
@@ -719,7 +732,7 @@ const TradeInputForm: React.FC<{
                 } else {
                   await submitCreateMode({
                     data: data as any,
-                    portfolio,
+                    portfolio: effectivePortfolio,
                     errors,
                     setModalOpen,
                     setSubmitError,
@@ -746,9 +759,7 @@ const TradeInputForm: React.FC<{
                       />
                     </div>
                     <div>
-                      <label className={labelClass}>
-                        {t("trn.tradeDate")}
-                      </label>
+                      <label className={labelClass}>{t("trn.tradeDate")}</label>
                       <Controller
                         name="tradeDate"
                         control={control}
@@ -802,10 +813,7 @@ const TradeInputForm: React.FC<{
                           render={({ field }) => (
                             <select {...field} className={inputClass}>
                               {marketOptions.map(
-                                (option: {
-                                  value: string
-                                  label: string
-                                }) => (
+                                (option: { value: string; label: string }) => (
                                   <option
                                     key={option.value}
                                     value={option.value}
@@ -836,15 +844,13 @@ const TradeInputForm: React.FC<{
                     </div>
                   )}
 
-                  {/* Portfolio Move (edit mode only) */}
-                  {isEditMode && portfolios.length > 0 && (
+                  {/* Portfolio Selection */}
+                  {portfolios.length > 0 && (
                     <div>
                       <label className={labelClass}>{t("portfolio")}</label>
                       <select
                         value={selectedPortfolioId}
-                        onChange={(e) =>
-                          setSelectedPortfolioId(e.target.value)
-                        }
+                        onChange={(e) => setSelectedPortfolioId(e.target.value)}
                         className={`${inputClass} text-xs ${portfolioChanged ? "border-amber-500 bg-amber-50" : ""}`}
                       >
                         {portfolios.map((p: Portfolio) => (
@@ -855,10 +861,15 @@ const TradeInputForm: React.FC<{
                       </select>
                       {portfolioChanged && (
                         <p className="text-xs text-amber-600 mt-0.5">
-                          {t(
-                            "trn.portfolio.changed",
-                            "Will move to this portfolio",
-                          )}
+                          {isEditMode
+                            ? t(
+                                "trn.portfolio.changed",
+                                "Will move to this portfolio",
+                              )
+                            : t(
+                                "trn.portfolio.different",
+                                "Different from current portfolio",
+                              )}
                         </p>
                       )}
                     </div>
@@ -953,9 +964,7 @@ const TradeInputForm: React.FC<{
                           />
                         </div>
                         <div>
-                          <label className={labelClass}>
-                            {t("trn.price")}
-                          </label>
+                          <label className={labelClass}>{t("trn.price")}</label>
                           <Controller
                             name="price"
                             control={control}
@@ -1035,14 +1044,8 @@ const TradeInputForm: React.FC<{
                     <div>
                       <label className={labelClass}>
                         {isExpense
-                          ? t(
-                              "trn.expense.description",
-                              "Expense Description",
-                            )
-                          : t(
-                              "trn.income.description",
-                              "Income Description",
-                            )}
+                          ? t("trn.expense.description", "Expense Description")
+                          : t("trn.income.description", "Income Description")}
                       </label>
                       <Controller
                         name="comment"
@@ -1073,104 +1076,97 @@ const TradeInputForm: React.FC<{
               )}
 
               {/* === Invest Tab === */}
-              {activeTab === "invest" &&
-                !isSimpleAmount &&
-                !isEditMode && (
-                  <div className="space-y-4">
-                    <div>
-                      <label className={labelClass}>
-                        {t("trn.invest.value", "Invest Value")}
+              {activeTab === "invest" && !isSimpleAmount && !isEditMode && (
+                <div className="space-y-4">
+                  <div>
+                    <label className={labelClass}>
+                      {t("trn.invest.value", "Invest Value")}
+                    </label>
+                    <p className="text-xs text-gray-500 mb-1">
+                      {t(
+                        "trn.invest.description",
+                        "Enter amount to invest, quantity will be calculated",
+                      )}
+                    </p>
+                    <div className="relative">
+                      <MathInput
+                        value={tradeValue ? parseFloat(tradeValue) : 0}
+                        onChange={(value) =>
+                          handleTradeValueChange(String(value))
+                        }
+                        placeholder={
+                          price > 0
+                            ? t(
+                                "trn.invest.placeholder",
+                                "Enter amount to invest",
+                              )
+                            : t("trn.invest.needPrice", "Set price first")
+                        }
+                        disabled={!price || price <= 0}
+                        className={`${inputClass} disabled:bg-gray-100`}
+                      />
+                      {price > 0 && tradeValue && (
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500">
+                          = {Math.floor(parseFloat(tradeValue) / price)} shares
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {currentPositionWeight !== null ? (
+                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                      <label className="block text-xs font-medium text-purple-800 mb-2">
+                        {t("trn.targetWeight", "Target Weight")}
                       </label>
-                      <p className="text-xs text-gray-500 mb-1">
-                        {t(
-                          "trn.invest.description",
-                          "Enter amount to invest, quantity will be calculated",
-                        )}
-                      </p>
-                      <div className="relative">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs text-purple-700">
+                          {t("rebalance.currentWeight")}:{" "}
+                          <strong>{currentPositionWeight.toFixed(2)}%</strong>
+                        </span>
+                        <span className="text-purple-400">&rarr;</span>
                         <MathInput
-                          value={
-                            tradeValue ? parseFloat(tradeValue) : 0
-                          }
-                          onChange={(value) =>
-                            handleTradeValueChange(String(value))
-                          }
-                          placeholder={
-                            price > 0
-                              ? t(
-                                  "trn.invest.placeholder",
-                                  "Enter amount to invest",
-                                )
-                              : t(
-                                  "trn.invest.needPrice",
-                                  "Set price first",
-                                )
-                          }
-                          disabled={!price || price <= 0}
-                          className={`${inputClass} disabled:bg-gray-100`}
+                          value={targetWeight ? parseFloat(targetWeight) : 0}
+                          onChange={(value) => {
+                            if (value >= 0) {
+                              handleTargetWeightChange(String(value))
+                            }
+                          }}
+                          placeholder={currentPositionWeight.toFixed(1)}
+                          className="w-20 px-2 py-2 border border-purple-300 rounded text-sm"
                         />
-                        {price > 0 && tradeValue && (
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500">
-                            ={" "}
-                            {Math.floor(
-                              parseFloat(tradeValue) / price,
-                            )}{" "}
-                            shares
-                          </span>
-                        )}
+                        <span className="text-purple-600 text-sm">%</span>
                       </div>
                     </div>
+                  ) : (
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center">
+                      <p className="text-xs text-gray-500">
+                        {t(
+                          "trn.invest.noPosition",
+                          "Target weight is available when trading existing positions",
+                        )}
+                      </p>
+                    </div>
+                  )}
 
-                    {currentPositionWeight !== null ? (
-                      <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
-                        <label className="block text-xs font-medium text-purple-800 mb-2">
-                          {t("trn.targetWeight", "Target Weight")}
-                        </label>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs text-purple-700">
-                            {t("rebalance.currentWeight")}:{" "}
-                            <strong>
-                              {currentPositionWeight.toFixed(2)}%
-                            </strong>
-                          </span>
-                          <span className="text-purple-400">
-                            &rarr;
-                          </span>
-                          <MathInput
-                            value={
-                              targetWeight
-                                ? parseFloat(targetWeight)
-                                : 0
-                            }
-                            onChange={(value) => {
-                              if (value >= 0) {
-                                handleTargetWeightChange(
-                                  String(value),
-                                )
-                              }
-                            }}
-                            placeholder={currentPositionWeight.toFixed(
-                              1,
-                            )}
-                            className="w-20 px-2 py-2 border border-purple-300 rounded text-sm"
-                          />
-                          <span className="text-purple-600 text-sm">
-                            %
-                          </span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center">
-                        <p className="text-xs text-gray-500">
-                          {t(
-                            "trn.invest.noPosition",
-                            "Target weight is available when trading existing positions",
-                          )}
-                        </p>
-                      </div>
-                    )}
+                  {/* Charges */}
+                  <div>
+                    <label className={labelClass}>
+                      {t("trn.amount.charges")}
+                    </label>
+                    <Controller
+                      name="fees"
+                      control={control}
+                      render={({ field }) => (
+                        <MathInput
+                          value={field.value}
+                          onChange={field.onChange}
+                          className={inputClass}
+                        />
+                      )}
+                    />
                   </div>
-                )}
+                </div>
+              )}
 
               {/* === Settlement Tab === */}
               {activeTab === "settlement" && (
@@ -1179,24 +1175,16 @@ const TradeInputForm: React.FC<{
                   <div>
                     <label className={labelClass}>
                       {isIncome
-                        ? t(
-                            "trn.income.creditAccount",
-                            "Credit To Account",
-                          )
+                        ? t("trn.income.creditAccount", "Credit To Account")
                         : isExpense
-                          ? t(
-                              "trn.expense.debitAccount",
-                              "Debit From Account",
-                            )
+                          ? t("trn.expense.debitAccount", "Debit From Account")
                           : t("trn.settlement.account")}
                     </label>
                     <SettlementAccountSelect
                       name="settlementAccount"
                       control={control}
                       accounts={
-                        isIncome || isExpense
-                          ? []
-                          : (allTradeAccounts as any[])
+                        isIncome || isExpense ? [] : (allTradeAccounts as any[])
                       }
                       bankAccounts={allBankAccounts as any[]}
                       cashAssets={
@@ -1210,11 +1198,29 @@ const TradeInputForm: React.FC<{
                     />
                   </div>
 
+                  {/* Charges — hidden for EXPENSE/INCOME (they have fees on Trade tab) */}
+                  {!isSimpleAmount && (
+                    <div>
+                      <label className={labelClass}>
+                        {t("trn.amount.charges")}
+                      </label>
+                      <Controller
+                        name="fees"
+                        control={control}
+                        render={({ field }) => (
+                          <MathInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            className={inputClass}
+                          />
+                        )}
+                      />
+                    </div>
+                  )}
+
                   {/* Tax */}
                   <div>
-                    <label className={labelClass}>
-                      {t("trn.amount.tax")}
-                    </label>
+                    <label className={labelClass}>{t("trn.amount.tax")}</label>
                     <Controller
                       name="tax"
                       control={control}
@@ -1299,10 +1305,7 @@ const TradeInputForm: React.FC<{
                               }
                               className="text-xs text-blue-500 hover:text-blue-700"
                             >
-                              {t(
-                                "trn.model.useSuggested",
-                                "Use suggested",
-                              )}
+                              {t("trn.model.useSuggested", "Use suggested")}
                             </button>
                           )}
                       </div>
@@ -1310,9 +1313,7 @@ const TradeInputForm: React.FC<{
                         className={`${inputClass} ${suggestedModelId && selectedModelId === suggestedModelId ? "border-purple-300 bg-purple-50" : ""}`}
                         value={selectedModelId || ""}
                         onChange={(e) =>
-                          setSelectedModelId(
-                            e.target.value || undefined,
-                          )
+                          setSelectedModelId(e.target.value || undefined)
                         }
                       >
                         <option value="">
@@ -1320,15 +1321,10 @@ const TradeInputForm: React.FC<{
                         </option>
                         {suggestedModelId && (
                           <optgroup
-                            label={t(
-                              "trn.model.suggested",
-                              "Suggested",
-                            )}
+                            label={t("trn.model.suggested", "Suggested")}
                           >
                             {models
-                              .filter(
-                                (m) => m.id === suggestedModelId,
-                              )
+                              .filter((m) => m.id === suggestedModelId)
                               .map((model) => (
                                 <option
                                   key={`suggested-${model.id}`}
@@ -1339,13 +1335,9 @@ const TradeInputForm: React.FC<{
                               ))}
                           </optgroup>
                         )}
-                        <optgroup
-                          label={t("trn.model.all", "All Models")}
-                        >
+                        <optgroup label={t("trn.model.all", "All Models")}>
                           {models
-                            .filter(
-                              (m) => m.id !== suggestedModelId,
-                            )
+                            .filter((m) => m.id !== suggestedModelId)
                             .map((model) => (
                               <option key={model.id} value={model.id}>
                                 {model.name}

@@ -64,39 +64,36 @@ export default function TimelineTabContent({
 
   // Determine if what-if changes are active
   const hasActiveWhatIf =
-    hasScenarioChanges(combinedAdjustments) ||
-    baselineProjection !== null
+    hasScenarioChanges(combinedAdjustments) || baselineProjection !== null
 
   // Combine accumulation and drawdown for chart
   const fullJourneyData = useMemo(() => {
     if (!projection) return []
 
-    const accumulationData = (
-      projection.accumulationProjections || []
-    ).map((year) => ({
-      age: year.age,
-      endingBalance: year.endingBalance,
-      accumulationBalance: year.endingBalance,
-      retirementBalance: null as number | null,
-      totalWealth: year.totalWealth,
-      contribution: year.contribution,
-      investmentGrowth: year.investmentGrowth,
-      phase: "accumulation" as const,
-    }))
-
-    const retirementData = projection.yearlyProjections.map(
-      (year, index) => ({
+    const accumulationData = (projection.accumulationProjections || []).map(
+      (year) => ({
         age: year.age,
         endingBalance: year.endingBalance,
-        accumulationBalance:
-          index === 0 ? year.endingBalance : (null as number | null),
-        retirementBalance: year.endingBalance,
+        accumulationBalance: year.endingBalance,
+        retirementBalance: null as number | null,
         totalWealth: year.totalWealth,
-        withdrawals: year.withdrawals,
-        investment: year.investment,
-        phase: "retirement" as const,
+        contribution: year.contribution,
+        investmentGrowth: year.investmentGrowth,
+        phase: "accumulation" as const,
       }),
     )
+
+    const retirementData = projection.yearlyProjections.map((year, index) => ({
+      age: year.age,
+      endingBalance: year.endingBalance,
+      accumulationBalance:
+        index === 0 ? year.endingBalance : (null as number | null),
+      retirementBalance: year.endingBalance,
+      totalWealth: year.totalWealth,
+      withdrawals: year.withdrawals,
+      investment: year.investment,
+      phase: "retirement" as const,
+    }))
 
     return [...accumulationData, ...retirementData]
   }, [projection])
@@ -136,18 +133,12 @@ export default function TimelineTabContent({
     }))
   }, [chartDataWithFirePath, baselineProjection, hasActiveWhatIf])
 
-  if (
-    !projection ||
-    projection.yearlyProjections.length === 0
-  ) {
+  if (!projection || projection.yearlyProjections.length === 0) {
     return (
       <div className="bg-white rounded-xl shadow-md p-6">
         <div className="text-center py-12 text-gray-500">
           {isCalculating ? (
-            <Spinner
-              label={t("retire.assets.calculating")}
-              size="lg"
-            />
+            <Spinner label={t("retire.assets.calculating")} size="lg" />
           ) : (
             <>
               <i className="fas fa-chart-line text-4xl mb-3 text-gray-300"></i>
@@ -204,10 +195,7 @@ export default function TimelineTabContent({
               }
               margin={{ top: 10, right: 30, left: 20, bottom: 20 }}
             >
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="#e5e7eb"
-              />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
               <XAxis
                 dataKey="age"
                 label={{
@@ -242,16 +230,10 @@ export default function TimelineTabContent({
                   ) {
                     ticks.push(age)
                   }
-                  if (
-                    retirementAge &&
-                    !ticks.includes(retirementAge)
-                  ) {
+                  if (retirementAge && !ticks.includes(retirementAge)) {
                     ticks.push(retirementAge)
                   }
-                  if (
-                    fiAchievementAge &&
-                    !ticks.includes(fiAchievementAge)
-                  ) {
+                  if (fiAchievementAge && !ticks.includes(fiAchievementAge)) {
                     ticks.push(fiAchievementAge)
                   }
                   return ticks.sort((a, b) => a - b)
@@ -259,9 +241,7 @@ export default function TimelineTabContent({
               />
               <YAxis
                 tickFormatter={(value) =>
-                  hideValues
-                    ? "****"
-                    : `$${(value / 1000).toFixed(0)}k`
+                  hideValues ? "****" : `$${(value / 1000).toFixed(0)}k`
                 }
                 tick={{ fontSize: 12 }}
               />
@@ -270,16 +250,13 @@ export default function TimelineTabContent({
                   const formatted = hideValues
                     ? HIDDEN_VALUE
                     : `$${Number(value || 0).toLocaleString()}`
-                  if (name === "totalWealth")
-                    return [formatted, "Total Wealth"]
+                  if (name === "totalWealth") return [formatted, "Total Wealth"]
                   if (name === "accumulationBalance")
                     return [formatted, "Working Years"]
                   if (name === "retirementBalance")
                     return [formatted, "Independence Years"]
-                  if (name === "fireBalance")
-                    return [formatted, "FIRE Path"]
-                  if (name === "baselineBalance")
-                    return [formatted, "Baseline"]
+                  if (name === "fireBalance") return [formatted, "FIRE Path"]
+                  if (name === "baselineBalance") return [formatted, "Baseline"]
                   return [formatted, name]
                 }}
                 labelFormatter={(label) => `Age ${label}`}
@@ -301,39 +278,33 @@ export default function TimelineTabContent({
                             : value
                 }
               />
-              <ReferenceLine
-                y={0}
-                stroke="#ef4444"
-                strokeWidth={2}
-              />
+              <ReferenceLine y={0} stroke="#ef4444" strokeWidth={2} />
               {/* Independence years shaded area - show in traditional view */}
-              {timelineViewMode === "traditional" &&
-                retirementAge && (
-                  <ReferenceArea
-                    x1={retirementAge}
-                    x2={lifeExpectancy}
-                    fill="#f97316"
-                    fillOpacity={0.15}
-                    stroke="#f97316"
-                    strokeOpacity={0.3}
-                  />
-                )}
+              {timelineViewMode === "traditional" && retirementAge && (
+                <ReferenceArea
+                  x1={retirementAge}
+                  x2={lifeExpectancy}
+                  fill="#f97316"
+                  fillOpacity={0.15}
+                  stroke="#f97316"
+                  strokeOpacity={0.3}
+                />
+              )}
               {/* Retirement age transition line - show in traditional view */}
-              {timelineViewMode === "traditional" &&
-                retirementAge && (
-                  <ReferenceLine
-                    x={retirementAge}
-                    stroke="#f97316"
-                    strokeDasharray="5 5"
-                    strokeWidth={2}
-                    label={{
-                      value: `Independence (${retirementAge})`,
-                      position: "top",
-                      fill: "#f97316",
-                      fontSize: 11,
-                    }}
-                  />
-                )}
+              {timelineViewMode === "traditional" && retirementAge && (
+                <ReferenceLine
+                  x={retirementAge}
+                  stroke="#f97316"
+                  strokeDasharray="5 5"
+                  strokeWidth={2}
+                  label={{
+                    value: `Independence (${retirementAge})`,
+                    position: "top",
+                    fill: "#f97316",
+                    fontSize: 11,
+                  }}
+                />
+              )}
               {/* FI achievement age line - show in FIRE view */}
               {timelineViewMode === "fire" && fiAchievementAge && (
                 <ReferenceLine
@@ -425,18 +396,13 @@ export default function TimelineTabContent({
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
-              data={projection.yearlyProjections.map(
-                (y) => ({
-                  ...y,
-                  negWithdrawals: -y.withdrawals,
-                }),
-              )}
+              data={projection.yearlyProjections.map((y) => ({
+                ...y,
+                negWithdrawals: -y.withdrawals,
+              }))}
               margin={{ top: 10, right: 30, left: 20, bottom: 20 }}
             >
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="#e5e7eb"
-              />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
               <XAxis
                 dataKey="age"
                 label={{
@@ -448,9 +414,7 @@ export default function TimelineTabContent({
               />
               <YAxis
                 tickFormatter={(value) =>
-                  hideValues
-                    ? "****"
-                    : `$${(value / 1000).toFixed(0)}k`
+                  hideValues ? "****" : `$${(value / 1000).toFixed(0)}k`
                 }
                 tick={{ fontSize: 12 }}
               />
@@ -464,15 +428,9 @@ export default function TimelineTabContent({
                   }
                   const absVal = Math.abs(Number(value || 0))
                   if (name === "negWithdrawals") {
-                    return [
-                      `-$${absVal.toLocaleString()}`,
-                      "Withdrawals",
-                    ]
+                    return [`-$${absVal.toLocaleString()}`, "Withdrawals"]
                   }
-                  return [
-                    `+$${absVal.toLocaleString()}`,
-                    "Investment Returns",
-                  ]
+                  return [`+$${absVal.toLocaleString()}`, "Investment Returns"]
                 }}
                 labelFormatter={(label) => `Age ${label}`}
               />

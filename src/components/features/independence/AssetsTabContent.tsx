@@ -73,46 +73,28 @@ export default function AssetsTabContent({
       {/* FI Metrics */}
       {fireDataReady && projection?.fiMetrics && (
         <FiMetrics
-          monthlyExpenses={
-            projection.fiMetrics.netMonthlyExpenses
-          }
+          monthlyExpenses={projection.fiMetrics.netMonthlyExpenses}
           liquidAssets={projection.liquidAssets}
           currency={effectiveCurrency}
           workingIncomeMonthly={
             projection.planInputs?.workingIncomeMonthly ?? 0
           }
-          monthlyInvestment={
-            projection.planInputs?.monthlyContribution ?? 0
-          }
+          monthlyInvestment={projection.planInputs?.monthlyContribution ?? 0}
           expectedReturnRate={blendedReturnRate}
           currentAge={currentAge}
           retirementAge={retirementAge}
           backendFiNumber={projection.fiMetrics.fiNumber}
           backendFiProgress={projection.fiMetrics.fiProgress}
-          backendNetMonthlyExpenses={
-            projection.fiMetrics.netMonthlyExpenses
-          }
-          backendCoastFiNumber={
-            projection.fiMetrics.coastFiNumber
-          }
-          backendCoastFiProgress={
-            projection.fiMetrics.coastFiProgress
-          }
+          backendNetMonthlyExpenses={projection.fiMetrics.netMonthlyExpenses}
+          backendCoastFiNumber={projection.fiMetrics.coastFiNumber}
+          backendCoastFiProgress={projection.fiMetrics.coastFiProgress}
           backendIsCoastFire={projection.fiMetrics.isCoastFire}
-          backendRealYearsToFi={
-            projection.fiMetrics.realYearsToFi
-          }
-          backendRealReturnBelowSwr={
-            projection.fiMetrics.realReturnBelowSwr
-          }
+          backendRealYearsToFi={projection.fiMetrics.realYearsToFi}
+          backendRealReturnBelowSwr={projection.fiMetrics.realReturnBelowSwr}
           inflationRate={effectivePlanValues?.inflationRate ?? 0.025}
-          equityReturnRate={
-            effectivePlanValues?.equityReturnRate ?? 0.08
-          }
+          equityReturnRate={effectivePlanValues?.equityReturnRate ?? 0.08}
           cashReturnRate={effectivePlanValues?.cashReturnRate ?? 0.03}
-          equityAllocation={
-            effectivePlanValues?.equityAllocation ?? 0.8
-          }
+          equityAllocation={effectivePlanValues?.equityAllocation ?? 0.8}
           cashAllocation={effectivePlanValues?.cashAllocation ?? 0.2}
         />
       )}
@@ -139,18 +121,13 @@ export default function AssetsTabContent({
 
         {!holdingsLoaded && !usingManualAssets ? (
           <div className="text-center py-8 text-gray-500">
-            <Spinner
-              label={t("retire.assets.loadingHoldings")}
-              size="lg"
-            />
+            <Spinner label={t("retire.assets.loadingHoldings")} size="lg" />
           </div>
         ) : categorySlices.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <i className="fas fa-folder-open text-4xl mb-3 text-gray-300"></i>
             <p>{t("retire.assets.noHoldings")}</p>
-            <p className="text-sm mt-2">
-              {t("retire.assets.noHoldings.hint")}
-            </p>
+            <p className="text-sm mt-2">{t("retire.assets.noHoldings.hint")}</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -158,8 +135,7 @@ export default function AssetsTabContent({
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-2">
                 <p className="text-sm text-blue-800">
                   <i className="fas fa-info-circle mr-2"></i>
-                  Using manually entered asset values from plan
-                  settings.
+                  Using manually entered asset values from plan settings.
                 </p>
               </div>
             ) : (
@@ -172,14 +148,10 @@ export default function AssetsTabContent({
               {categorySlices
                 .filter(
                   (slice) =>
-                    !DEFAULT_NON_SPENDABLE_CATEGORIES.includes(
-                      slice.key,
-                    ),
+                    !DEFAULT_NON_SPENDABLE_CATEGORIES.includes(slice.key),
                 )
                 .map((slice) => {
-                  const isSpendable = spendableCategories.includes(
-                    slice.key,
-                  )
+                  const isSpendable = spendableCategories.includes(slice.key)
                   return (
                     <div
                       key={slice.key}
@@ -203,9 +175,7 @@ export default function AssetsTabContent({
                           />
                           <span
                             className={
-                              isSpendable
-                                ? "text-gray-900"
-                                : "text-gray-500"
+                              isSpendable ? "text-gray-900" : "text-gray-500"
                             }
                           >
                             {slice.label}
@@ -245,9 +215,7 @@ export default function AssetsTabContent({
                           className="w-3 h-3 rounded-full"
                           style={{ backgroundColor: slice.color }}
                         />
-                        <span className="text-gray-700">
-                          {slice.label}
-                        </span>
+                        <span className="text-gray-700">{slice.label}</span>
                         <span className="text-xs text-amber-600 bg-amber-100 px-2 py-0.5 rounded">
                           Non-spendable
                         </span>
@@ -285,9 +253,7 @@ export default function AssetsTabContent({
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="text-xs text-gray-500">
-                            Current
-                          </div>
+                          <div className="text-xs text-gray-500">Current</div>
                           <div
                             className={`text-sm ${hideValues ? "text-gray-400" : "text-gray-600"}`}
                           >
@@ -352,15 +318,13 @@ export default function AssetsTabContent({
                     </span>
                   </div>
                   <p className="text-xs text-gray-400">
-                    FI uses spendable assets; illiquid assets add
-                    long-term security.
+                    FI uses spendable assets; illiquid assets add long-term
+                    security.
                   </p>
                 </>
               )}
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">
-                  Blended Return Rate
-                </span>
+                <span className="text-gray-500">Blended Return Rate</span>
                 <span className="font-medium text-blue-600">
                   {(blendedReturnRate * 100).toFixed(1)}%
                 </span>
@@ -384,9 +348,7 @@ export default function AssetsTabContent({
                 </span>
                 <span
                   className={
-                    hideValues
-                      ? "text-gray-400"
-                      : "text-independence-600"
+                    hideValues ? "text-gray-400" : "text-independence-600"
                   }
                 >
                   {hideValues
@@ -397,8 +359,7 @@ export default function AssetsTabContent({
                           ? projection.preRetirementAccumulation
                               .liquidAssetsAtRetirement -
                               excludedPensionFV * effectiveFxRate
-                          : (liquidAssets +
-                              includedPensionFvDifferential) *
+                          : (liquidAssets + includedPensionFvDifferential) *
                               effectiveFxRate,
                       ).toLocaleString()}`}
                 </span>

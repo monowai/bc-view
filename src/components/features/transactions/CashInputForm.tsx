@@ -56,8 +56,6 @@ const TradeTypeValues = [
   "FX",
 ] as const
 
-
-
 const defaultValues = {
   type: { value: "DEPOSIT", label: "DEPOSIT" },
   status: { value: "SETTLED", label: "SETTLED" },
@@ -463,9 +461,7 @@ const CashInputForm: React.FC<{
               })}
               className="flex-1 overflow-y-auto py-4 space-y-4"
             >
-              {submitError && (
-                <Alert>{submitError}</Alert>
-              )}
+              {submitError && <Alert>{submitError}</Alert>}
               {/* Type, Status, Date */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -491,7 +487,10 @@ const CashInputForm: React.FC<{
                           isSettled={field.value.value === "SETTLED"}
                           onChange={(isSettled) => {
                             const newStatus = isSettled ? "SETTLED" : "PROPOSED"
-                            field.onChange({ value: newStatus, label: newStatus })
+                            field.onChange({
+                              value: newStatus,
+                              label: newStatus,
+                            })
                           }}
                           size="sm"
                         />
