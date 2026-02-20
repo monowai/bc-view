@@ -514,7 +514,7 @@ export default function Rows({
                   </div>
                   {!isCash(asset) && asset.name && (
                     <div
-                      className="text-[10px] xl:text-xs text-slate-500 truncate max-w-[120px] sm:max-w-[180px] xl:max-w-none"
+                      className="text-[10px] xl:text-xs text-slate-500 truncate max-w-[100px] sm:max-w-[180px] xl:max-w-none"
                       title={asset.name}
                     >
                       {truncateText(asset.name, 18)}

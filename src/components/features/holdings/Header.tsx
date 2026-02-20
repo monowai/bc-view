@@ -121,7 +121,7 @@ export const headers = [
   {
     key: "weight",
     align: "right",
-    mobile: true, // Visible on mobile - important for portfolio balance view
+    mobile: false,
     medium: true,
     sortable: true,
     sortKey: "weight",

@@ -36,9 +36,11 @@ interface AppContentProps {
 const AppContent: React.FC<AppContentProps> = ({ Component, pageProps }) => {
   return (
     <div className={`${dmSans.variable} ${jetbrainsMono.variable} font-sans`}>
-      <div className="pt-2 px-2 pb-2 sm:pt-3 sm:px-3 sm:pb-3 md:px-4 md:pb-4 bg-gray-100">
+      <div className="bg-gray-100 min-h-screen">
         <Header />
-        <Component {...pageProps} />
+        <div className="px-2 pt-2 pb-2 sm:px-3 sm:pt-3 sm:pb-3 md:px-4 md:pb-4">
+          <Component {...pageProps} />
+        </div>
       </div>
       <GitInfo />
     </div>
