@@ -292,7 +292,7 @@ function AccountsPage(): React.ReactElement {
 
   return (
     <div className="p-4">
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
         <h1 className="text-2xl font-semibold">{t("accounts.title")}</h1>
         <AccountActions
           onImportClick={handleImportClick}
@@ -303,7 +303,7 @@ function AccountsPage(): React.ReactElement {
       {/* Tab Bar */}
       <div className="border-b border-gray-200 mb-6">
         <nav
-          className="-mb-px flex space-x-8 overflow-x-auto"
+          className="-mb-px flex space-x-4 sm:space-x-8 overflow-x-auto"
           aria-label="Tabs"
         >
           {tabs.map((tab) => (
