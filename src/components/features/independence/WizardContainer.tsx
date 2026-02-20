@@ -377,10 +377,17 @@ export default function WizardContainer({
             control={control}
             errors={errors}
             setValue={setValue}
+            getValues={getValues}
           />
         )
       case 3:
-        return <ContributionsStep control={control} errors={errors} />
+        return (
+          <ContributionsStep
+            control={control}
+            errors={errors}
+            getValues={getValues}
+          />
+        )
       case 4:
         return <AssetsStep control={control} setValue={setValue} />
       case 5:
@@ -395,7 +402,12 @@ export default function WizardContainer({
         return <IncomeSourcesStep control={control} errors={errors} />
       case 7:
         return (
-          <ExpensesStep control={control} errors={errors} setValue={setValue} />
+          <ExpensesStep
+            control={control}
+            errors={errors}
+            setValue={setValue}
+            getValues={getValues}
+          />
         )
       case 8:
         return <LifeEventsStep control={control} />

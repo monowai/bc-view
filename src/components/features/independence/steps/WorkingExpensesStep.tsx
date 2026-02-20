@@ -6,6 +6,7 @@ import {
   useFieldArray,
   useWatch,
   UseFormSetValue,
+  UseFormGetValues,
 } from "react-hook-form"
 import useSwr from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
@@ -18,6 +19,7 @@ interface WorkingExpensesStepProps {
   control: Control<WizardFormData>
   errors: FieldErrors<WizardFormData>
   setValue: UseFormSetValue<WizardFormData>
+  getValues: UseFormGetValues<WizardFormData>
 }
 
 const categoriesKey = "/api/independence/categories"
@@ -26,6 +28,7 @@ export default function WorkingExpensesStep({
   control,
   errors,
   setValue,
+  getValues,
 }: WorkingExpensesStepProps): React.ReactElement {
   const { fields, append, remove } = useFieldArray({
     control,
@@ -54,11 +57,15 @@ export default function WorkingExpensesStep({
 
   // Initialize expenses with all system categories when data loads
   // Merge system categories with any stored expenses to ensure all categories display
+  // Uses getValues() instead of useWatch to avoid race condition where useWatch returns []
+  // on first render before defaultValues have propagated through the subscription mechanism
   useEffect(() => {
     if (systemCategories.length > 0 && !hasInitialized.current) {
+      const currentExpenses = getValues("workingExpenses") || []
+
       // Build a map of existing expenses by categoryLabelId
       const existingExpenseMap = new Map(
-        workingExpenses.map((e) => [e.categoryLabelId, e]),
+        currentExpenses.map((e) => [e.categoryLabelId, e]),
       )
 
       // Create merged list: all system categories with stored values
@@ -69,14 +76,14 @@ export default function WorkingExpensesStep({
       }))
 
       // Add any custom categories that were stored
-      const customExpenses = workingExpenses.filter((e) =>
+      const customExpenses = currentExpenses.filter((e) =>
         e.categoryLabelId.startsWith("custom-"),
       )
 
       setValue("workingExpenses", [...mergedExpenses, ...customExpenses])
       hasInitialized.current = true
     }
-  }, [systemCategories, setValue, workingExpenses])
+  }, [systemCategories, setValue, getValues])
 
   // Update workingExpensesMonthly whenever workingExpenses changes
   // BUT only if user has made changes OR the computed total is greater than 0
