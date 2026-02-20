@@ -29,9 +29,9 @@ const AccountActions = ({
   }
 
   return (
-    <div className="flex space-x-2">
+    <div className="flex flex-wrap gap-2">
       <button
-        className="bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition-colors flex items-center"
+        className="bg-gray-500 text-white py-2 px-3 sm:px-4 text-sm rounded hover:bg-gray-600 transition-colors flex items-center"
         onClick={handleExport}
         disabled={isExporting}
       >
@@ -43,14 +43,14 @@ const AccountActions = ({
         {t("accounts.export")}
       </button>
       <button
-        className="bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition-colors flex items-center"
+        className="bg-gray-500 text-white py-2 px-3 sm:px-4 text-sm rounded hover:bg-gray-600 transition-colors flex items-center"
         onClick={onImportClick}
       >
         <i className="fas fa-upload mr-2"></i>
         {t("accounts.import")}
       </button>
       <button
-        className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition-colors"
+        className="bg-blue-500 text-white py-2 px-3 sm:px-4 text-sm rounded hover:bg-blue-600 transition-colors"
         onClick={() => {
           // Pass category if on a specific category tab (not "overview" or "all")
           const categoryParam =
