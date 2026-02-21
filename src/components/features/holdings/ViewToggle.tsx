@@ -1,6 +1,12 @@
 import React from "react"
 
-export type ViewMode = "summary" | "table" | "cards" | "heatmap" | "income"
+export type ViewMode =
+  | "summary"
+  | "table"
+  | "cards"
+  | "heatmap"
+  | "income"
+  | "chart"
 
 interface ViewToggleProps {
   viewMode: ViewMode
@@ -108,6 +114,30 @@ const ViewToggle: React.FC<ViewToggleProps> = ({
           />
         </svg>
         <span className="hidden sm:inline text-xs">Income</span>
+      </button>
+      <button
+        onClick={() => onViewModeChange("chart")}
+        className={`flex items-center space-x-1 px-2 py-1.5 text-sm font-medium rounded-md transition-colors ${
+          viewMode === "chart"
+            ? "bg-white text-gray-900 shadow-sm"
+            : "text-gray-600 hover:text-gray-900"
+        }`}
+        aria-label="Growth view"
+      >
+        <svg
+          className="w-3.5 h-3.5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+          />
+        </svg>
+        <span className="hidden sm:inline text-xs">Growth</span>
       </button>
       <button
         onClick={() => onViewModeChange("table")}

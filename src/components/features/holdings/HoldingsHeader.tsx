@@ -21,6 +21,9 @@ interface HoldingsHeaderProps {
 /**
  * Shared header component for holdings pages.
  * Renders the appropriate header layout based on screen size and view mode.
+ *
+ * In chart view, summary totals are hidden since the PerformanceChart
+ * displays its own metrics (TWR, portfolio value, investment gain).
  */
 const HoldingsHeader: React.FC<HoldingsHeaderProps> = ({
   portfolio,
@@ -35,6 +38,8 @@ const HoldingsHeader: React.FC<HoldingsHeaderProps> = ({
     currency: holdings.currency,
   }
 
+  const hideSummaryTotals = mobileOnly || viewMode === "chart"
+
   return (
     <div>
       <SummaryHeaderMobile
@@ -44,7 +49,7 @@ const HoldingsHeader: React.FC<HoldingsHeaderProps> = ({
         onViewModeChange={onViewModeChange}
         isAggregated={isAggregated}
       />
-      {!mobileOnly && (
+      {!hideSummaryTotals && (
         <>
           <SummaryRowMobile
             totals={holdings.totals}

@@ -24,6 +24,7 @@ import {
   VALUE_IN_OPTIONS,
   ValueInOption,
 } from "types/constants"
+import { useIsAdmin } from "@hooks/useIsAdmin"
 
 type SettingsTab = "profile" | "wealth" | "tax" | "account"
 
@@ -74,6 +75,7 @@ function SettingsPage(): React.ReactElement {
   const { t, ready } = useTranslation("common")
   const { user } = useUser()
   const { refetch: refetchPreferences } = useUserPreferences()
+  const { isAdmin } = useIsAdmin()
   const [activeTab, setActiveTab] = useState<SettingsTab>("profile")
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -99,6 +101,7 @@ function SettingsPage(): React.ReactElement {
   const [reportingCurrencyCode, setReportingCurrencyCode] =
     useState<string>("USD")
   const [showWeightedIrr, setShowWeightedIrr] = useState<boolean>(false)
+  const [enableTwr, setEnableTwr] = useState<boolean>(false)
   const [defaultMarket, setDefaultMarket] = useState<string>("US")
 
   // Fetch current preferences, currencies, and tax rates
@@ -135,6 +138,7 @@ function SettingsPage(): React.ReactElement {
                 meData.preferences.baseCurrencyCode,
             )
             setShowWeightedIrr(meData.preferences.showWeightedIrr ?? false)
+            setEnableTwr(meData.preferences.enableTwr ?? false)
             setDefaultMarket(meData.preferences.defaultMarket || "US")
           }
         }
@@ -184,6 +188,7 @@ function SettingsPage(): React.ReactElement {
         baseCurrencyCode,
         reportingCurrencyCode,
         showWeightedIrr,
+        enableTwr,
         defaultMarket,
       }
 
@@ -588,6 +593,38 @@ function SettingsPage(): React.ReactElement {
                 />
               </button>
             </div>
+
+            {/* Enable TWR — admin only */}
+            {isAdmin && (
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    {t("settings.enableTwr", "Wealth Performance Chart")}
+                  </label>
+                  <p className="text-sm text-gray-500">
+                    {t(
+                      "settings.enableTwr.description",
+                      "Show time-weighted return chart on the wealth page",
+                    )}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={enableTwr}
+                  onClick={() => setEnableTwr(!enableTwr)}
+                  className={`${
+                    enableTwr ? "bg-blue-600" : "bg-gray-200"
+                  } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
+                >
+                  <span
+                    className={`${
+                      enableTwr ? "translate-x-5" : "translate-x-0"
+                    } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
+                  />
+                </button>
+              </div>
+            )}
 
             {/* Save Button */}
             <div className="flex justify-end pt-4 border-t">

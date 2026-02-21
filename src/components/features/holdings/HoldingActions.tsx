@@ -203,6 +203,22 @@ const ViewModeIcon: React.FC<{ mode: string; className?: string }> = ({
           />
         </svg>
       )
+    case "chart":
+      return (
+        <svg
+          className={className}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+          />
+        </svg>
+      )
     default:
       return null
   }
@@ -294,6 +310,7 @@ const viewModes: { value: ViewMode; label: string }[] = [
   { value: "cards", label: "Cards" },
   { value: "heatmap", label: "Heatmap" },
   { value: "income", label: "Income" },
+  { value: "chart", label: "Growth" },
   { value: "table", label: "Table" },
 ]
 
