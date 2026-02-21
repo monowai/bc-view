@@ -191,7 +191,8 @@ const TradeInputForm: React.FC<{
   )
 
   // Check if portfolio changed from initial
-  const portfolioChanged = selectedPortfolioId !== (transaction?.portfolio.id || portfolio.id)
+  const portfolioChanged =
+    selectedPortfolioId !== (transaction?.portfolio.id || portfolio.id)
 
   // Check if model changed from initial value (edit mode)
   const modelChanged =

@@ -50,6 +50,7 @@ import CostAdjustDialog from "@components/features/holdings/CostAdjustDialog"
 import CashInputForm from "@components/features/transactions/CashInputForm"
 import TrnDropZone from "@components/ui/DropZone"
 import IncomeView from "@components/features/holdings/IncomeView"
+import PerformanceChart from "@components/features/holdings/PerformanceChart"
 import ShareInviteDialog from "@components/features/portfolios/ShareInviteDialog"
 import CreateModelFromHoldingsDialog from "@components/features/rebalance/models/CreateModelFromHoldingsDialog"
 import SelectPlanDialog from "@components/features/rebalance/execution/SelectPlanDialog"
@@ -537,6 +538,19 @@ function HoldingsPage(): React.ReactElement {
             onViewModeChange={setViewMode}
           />
           <IncomeView portfolio={holdingResults.portfolio} />
+        </div>
+      ) : viewMode === "chart" ? (
+        <div className="grid grid-cols-1 gap-3">
+          <HoldingsHeader
+            portfolio={holdingResults.portfolio}
+            holdings={holdings}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+          />
+          <PerformanceChart
+            portfolioCode={holdingResults.portfolio.code}
+            currencySymbol={holdingResults.portfolio.currency.symbol}
+          />
         </div>
       ) : null}
       {corporateActionsData && (

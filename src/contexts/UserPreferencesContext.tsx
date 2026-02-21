@@ -35,6 +35,7 @@ const defaultPreferences: UserPreferences = {
   baseCurrencyCode: "USD",
   reportingCurrencyCode: "USD",
   showWeightedIrr: true,
+  enableTwr: false,
   defaultMarket: "US",
 }
 

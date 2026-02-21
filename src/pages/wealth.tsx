@@ -27,7 +27,9 @@ import IndependenceMetrics from "@components/features/wealth/IndependenceMetrics
 import AssetAllocationCharts from "@components/features/wealth/AssetAllocationCharts"
 import PortfolioDetailsTable from "@components/features/wealth/PortfolioDetailsTable"
 import QuickActionCards from "@components/features/wealth/QuickActionCards"
+import WealthPerformanceChart from "@components/features/wealth/WealthPerformanceChart"
 import { useWealthSummary } from "@components/features/wealth/useWealthSummary"
+import { useUserPreferences } from "@contexts/UserPreferencesContext"
 
 type SortConfig = {
   key: string | null
@@ -36,6 +38,7 @@ type SortConfig = {
 
 function WealthDashboard(): React.ReactElement {
   const { t, ready } = useTranslation("common")
+  const { preferences } = useUserPreferences()
   const [sortConfig, setSortConfig] = useState<SortConfig>({
     key: "value",
     direction: "desc",
@@ -47,6 +50,7 @@ function WealthDashboard(): React.ReactElement {
   const [collapsedSections, setCollapsedSections] = useState<
     Record<string, boolean>
   >({
+    performance: true,
     independence: true,
     charts: true,
     portfolioDetails: true,
@@ -103,7 +107,10 @@ function WealthDashboard(): React.ReactElement {
 
   // FX rates for converting portfolio values to display currency
   const sourceCurrencyCodes = useMemo(
-    () => portfolios.map((p) => p.base.code),
+    () => [
+      ...portfolios.map((p) => p.base.code),
+      ...portfolios.map((p) => p.currency.code),
+    ],
     [portfolios],
   )
   const { displayCurrency, setDisplayCurrency, fxRates, fxReady } = useFxRates(
@@ -262,6 +269,17 @@ function WealthDashboard(): React.ReactElement {
               displayCurrency={displayCurrency}
               collapsed={collapsedSections.independence}
               onToggle={() => toggleSection("independence")}
+            />
+          )}
+
+          {/* Wealth Performance — after IndependenceMetrics, before Charts */}
+          {preferences?.enableTwr && (
+            <WealthPerformanceChart
+              portfolios={portfolios}
+              fxRates={fxRates}
+              displayCurrency={displayCurrency}
+              collapsed={collapsedSections.performance}
+              onToggle={() => toggleSection("performance")}
             />
           )}
 

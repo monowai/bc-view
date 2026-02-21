@@ -381,6 +381,7 @@ export interface UserPreferences {
   baseCurrencyCode: string // System base currency for cost tracking
   reportingCurrencyCode: string // Default currency for displaying values
   showWeightedIrr: boolean
+  enableTwr: boolean
   hideValues?: boolean // Privacy mode - hide monetary values and quantities
   defaultMarket?: string // Default market for asset search (e.g., "US", "NZX")
 }
@@ -393,6 +394,7 @@ export interface UserPreferencesRequest {
   baseCurrencyCode?: string
   reportingCurrencyCode?: string
   showWeightedIrr?: boolean
+  enableTwr?: boolean
   hideValues?: boolean
   defaultMarket?: string
 }
@@ -970,4 +972,23 @@ export interface ResourceShare {
 export interface PendingResourceSharesResponse {
   invites: ResourceShare[]
   requests: ResourceShare[]
+}
+
+// Performance / TWR types
+export interface PerformanceDataPoint {
+  date: string
+  growthOf1000: number
+  marketValue: number
+  netContributions: number
+  cumulativeReturn: number
+  cumulativeDividends: number
+}
+
+export interface PerformanceData {
+  currency: Currency
+  series: PerformanceDataPoint[]
+}
+
+export interface PerformanceResponse {
+  data: PerformanceData
 }
