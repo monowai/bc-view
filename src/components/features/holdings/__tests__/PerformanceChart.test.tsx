@@ -8,6 +8,16 @@ import { PerformanceResponse } from "types/beancounter"
 jest.mock("swr")
 const mockUseSwr = useSwr as jest.MockedFunction<typeof useSwr>
 
+// Mock the usePrivacyMode hook
+jest.mock("@hooks/usePrivacyMode", () => ({
+  usePrivacyMode: jest.fn(() => ({
+    hideValues: false,
+    toggleHideValues: jest.fn(),
+  })),
+}))
+
+const { usePrivacyMode } = jest.requireMock("@hooks/usePrivacyMode")
+
 // Mock recharts to avoid canvas/SVG issues in JSDOM
 jest.mock("recharts", () => ({
   AreaChart: ({ children }: { children: React.ReactNode }) => (
@@ -60,6 +70,10 @@ const mockPerformanceData: PerformanceResponse = {
 describe("PerformanceChart", () => {
   beforeEach(() => {
     mockUseSwr.mockReset()
+    usePrivacyMode.mockReturnValue({
+      hideValues: false,
+      toggleHideValues: jest.fn(),
+    })
   })
 
   it("renders loading state", () => {
@@ -118,9 +132,7 @@ describe("PerformanceChart", () => {
     render(<PerformanceChart portfolioCode="TEST" />)
 
     expect(screen.getByTestId("area-investmentGain")).toBeInTheDocument()
-    expect(
-      screen.queryByTestId("area-cumulativeDividends"),
-    ).not.toBeInTheDocument()
+    expect(screen.queryByTestId("area-windowDividends")).not.toBeInTheDocument()
   })
 
   it("switches to income chart when tab is clicked", () => {
@@ -134,7 +146,7 @@ describe("PerformanceChart", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "Income" }))
 
-    expect(screen.getByTestId("area-cumulativeDividends")).toBeInTheDocument()
+    expect(screen.getByTestId("area-windowDividends")).toBeInTheDocument()
     expect(screen.queryByTestId("area-investmentGain")).not.toBeInTheDocument()
   })
 
@@ -151,9 +163,7 @@ describe("PerformanceChart", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Investment Gain" }))
 
     expect(screen.getByTestId("area-investmentGain")).toBeInTheDocument()
-    expect(
-      screen.queryByTestId("area-cumulativeDividends"),
-    ).not.toBeInTheDocument()
+    expect(screen.queryByTestId("area-windowDividends")).not.toBeInTheDocument()
   })
 
   it("shows empty state for income when no dividends", () => {
@@ -227,7 +237,7 @@ describe("PerformanceChart", () => {
     render(<PerformanceChart portfolioCode="TEST" />)
 
     expect(
-      screen.getByText("incl. $1K dividends (1.8% yield)"),
+      screen.getByText("incl. $1K dividends (1.85% yield)"),
     ).toBeInTheDocument()
   })
 
@@ -281,6 +291,54 @@ describe("PerformanceChart", () => {
     expect(screen.getByText("$55K contributed")).toBeInTheDocument()
   })
 
+  describe("privacy mode", () => {
+    it("hides dollar amounts but shows percentages when privacy mode is enabled", () => {
+      usePrivacyMode.mockReturnValue({
+        hideValues: true,
+        toggleHideValues: jest.fn(),
+      })
+      mockUseSwr.mockReturnValue({
+        data: mockPerformanceData,
+        isLoading: false,
+        error: undefined,
+      } as ReturnType<typeof useSwr>)
+
+      render(<PerformanceChart portfolioCode="TEST" />)
+
+      // Percentages should still be visible
+      expect(screen.getByText("+15.00%")).toBeInTheDocument()
+
+      // Dollar amounts should be masked
+      expect(screen.queryByText("$65K")).not.toBeInTheDocument()
+      expect(screen.queryByText("+$10K")).not.toBeInTheDocument()
+
+      // Multiple elements should show masked values
+      const maskedElements = screen.getAllByText(/\*\*\*\*/)
+      expect(maskedElements.length).toBeGreaterThanOrEqual(2)
+
+      // Dividend info should mask dollar amount but keep yield percentage
+      expect(
+        screen.getByText(/incl\. \*\*\*\* dividends \(1\.85% yield\)/),
+      ).toBeInTheDocument()
+    })
+  })
+
+  describe("responsive layout", () => {
+    it("hides Portfolio Value column on mobile with hidden sm:block", () => {
+      mockUseSwr.mockReturnValue({
+        data: mockPerformanceData,
+        isLoading: false,
+        error: undefined,
+      } as ReturnType<typeof useSwr>)
+
+      render(<PerformanceChart portfolioCode="TEST" />)
+
+      const portfolioValueLabel = screen.getByText("Portfolio Value")
+      const portfolioValueColumn = portfolioValueLabel.parentElement
+      expect(portfolioValueColumn).toHaveClass("hidden", "sm:block")
+    })
+  })
+
   describe("data coverage banner", () => {
     it("shows info banner when firstTradeDate is after selected range start", () => {
       // Use a date that's only 2 months ago — well within the default 12-month window
@@ -319,45 +377,6 @@ describe("PerformanceChart", () => {
       expect(
         screen.queryByText(/Portfolio data starts/),
       ).not.toBeInTheDocument()
-    })
-  })
-
-  describe("IRR display", () => {
-    it("renders IRR metric when portfolioIrr is provided and non-zero", () => {
-      mockUseSwr.mockReturnValue({
-        data: mockPerformanceData,
-        isLoading: false,
-        error: undefined,
-      } as ReturnType<typeof useSwr>)
-
-      render(<PerformanceChart portfolioCode="TEST" portfolioIrr={15.2} />)
-
-      expect(screen.getByText("Your IRR")).toBeInTheDocument()
-      expect(screen.getByText("+15.20%")).toBeInTheDocument()
-    })
-
-    it("hides IRR metric when portfolioIrr is undefined", () => {
-      mockUseSwr.mockReturnValue({
-        data: mockPerformanceData,
-        isLoading: false,
-        error: undefined,
-      } as ReturnType<typeof useSwr>)
-
-      render(<PerformanceChart portfolioCode="TEST" />)
-
-      expect(screen.queryByText("Your IRR")).not.toBeInTheDocument()
-    })
-
-    it("hides IRR metric when portfolioIrr is zero", () => {
-      mockUseSwr.mockReturnValue({
-        data: mockPerformanceData,
-        isLoading: false,
-        error: undefined,
-      } as ReturnType<typeof useSwr>)
-
-      render(<PerformanceChart portfolioCode="TEST" portfolioIrr={0} />)
-
-      expect(screen.queryByText("Your IRR")).not.toBeInTheDocument()
     })
   })
 })
