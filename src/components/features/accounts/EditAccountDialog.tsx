@@ -36,6 +36,9 @@ interface AssetConfigState {
   policyType: PolicyType | undefined
   lockedUntilDate: string
   subAccounts: SubAccountRequest[]
+  // CPF LIFE settings
+  cpfLifePlan?: "STANDARD" | "BASIC" | "ESCALATING"
+  cpfPayoutStartAge?: number
   // For projection calculation (client-side only)
   currentAge: string
 }
@@ -318,6 +321,9 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                   liquid: sa.liquid,
                 }),
               ),
+              // CPF LIFE settings
+              cpfLifePlan: data.data.cpfLifePlan || undefined,
+              cpfPayoutStartAge: data.data.cpfPayoutStartAge || undefined,
               // Client-side only for projection calculation
               currentAge: "",
             })
@@ -464,6 +470,8 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
               policyType: config.policyType,
               lockedUntilDate: config.lockedUntilDate || null,
               subAccounts: config.subAccounts,
+              cpfLifePlan: config.cpfLifePlan || null,
+              cpfPayoutStartAge: config.cpfPayoutStartAge || null,
             })
           }
         }
@@ -954,6 +962,8 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                       policyType={config.policyType}
                       lockedUntilDate={config.lockedUntilDate}
                       subAccounts={config.subAccounts}
+                      cpfLifePlan={config.cpfLifePlan}
+                      cpfPayoutStartAge={config.cpfPayoutStartAge}
                       onPolicyTypeChange={(val) =>
                         setConfig({ ...config, policyType: val })
                       }
@@ -962,6 +972,12 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                       }
                       onSubAccountsChange={(accounts) =>
                         setConfig({ ...config, subAccounts: accounts })
+                      }
+                      onCpfLifePlanChange={(val) =>
+                        setConfig({ ...config, cpfLifePlan: val })
+                      }
+                      onCpfPayoutStartAgeChange={(val) =>
+                        setConfig({ ...config, cpfPayoutStartAge: val })
                       }
                     />
                   </div>

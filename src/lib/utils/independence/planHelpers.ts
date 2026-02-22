@@ -84,4 +84,6 @@ export interface PensionProjection {
   payoutAge: number
   currency: string
   category: string
+  cpfLifePlan?: "STANDARD" | "BASIC" | "ESCALATING"
+  monthlyPayout?: number
 }
