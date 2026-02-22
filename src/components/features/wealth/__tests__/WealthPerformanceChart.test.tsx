@@ -194,9 +194,7 @@ describe("WealthPerformanceChart", () => {
     // based on enableTwr, so this component never sees that prop.
     setHookReturn({ series: mockSeries, isLoading: false, error: undefined })
 
-    const { container } = render(
-      <>{false}</>,
-    )
+    const { container } = render(<>{false}</>)
 
     expect(container.textContent).toBe("")
   })
