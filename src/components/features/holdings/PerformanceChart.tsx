@@ -28,11 +28,13 @@ type ChartTab = "gain" | "income"
 interface PerformanceChartProps {
   portfolioCode: string
   currencySymbol?: string
+  portfolioIrr?: number
 }
 
 const PerformanceChart: React.FC<PerformanceChartProps> = ({
   portfolioCode,
   currencySymbol = "$",
+  portfolioIrr,
 }) => {
   const [months, setMonths] = useState(12)
   const [activeChart, setActiveChart] = useState<ChartTab>("gain")
@@ -44,8 +46,26 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
   )
 
   const series = useMemo(() => data?.data?.series || [], [data?.data?.series])
+  const firstTradeDate = data?.data?.firstTradeDate
   const currency = data?.data?.currency
   const sym = currency?.symbol || currencySymbol
+
+  // Determine if the selected range extends before the portfolio's first trade
+  const dataCoverageInfo = useMemo(() => {
+    if (!firstTradeDate) return null
+    const now = new Date()
+    const rangeStart = new Date(now)
+    rangeStart.setMonth(rangeStart.getMonth() - months)
+    const firstDate = new Date(firstTradeDate)
+    if (firstDate <= rangeStart) return null
+    // Calculate months of actual data
+    const diffMs = now.getTime() - firstDate.getTime()
+    const diffMonths = Math.round(diffMs / (1000 * 60 * 60 * 24 * 30.44))
+    return { firstTradeDate, months: diffMonths }
+  }, [firstTradeDate, months])
+
+  const showIrr = portfolioIrr !== undefined && portfolioIrr !== 0
+  const irrPositive = (portfolioIrr ?? 0) >= 0
 
   // Compute investment gain for each data point
   const gainSeries = useMemo(
@@ -177,9 +197,19 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
           </div>
         </div>
 
+        {/* Data coverage info banner */}
+        {dataCoverageInfo && (
+          <div className="px-4 py-1.5 bg-blue-50 border-b border-blue-100 text-xs text-blue-700">
+            Portfolio data starts {dataCoverageInfo.firstTradeDate} (
+            {dataCoverageInfo.months} months). Showing available history.
+          </div>
+        )}
+
         {/* Key metrics row */}
         {growthStats && gainStats && (
-          <div className="grid grid-cols-3 divide-x divide-gray-100 px-2 py-4">
+          <div
+            className={`grid ${showIrr ? "grid-cols-4" : "grid-cols-3"} divide-x divide-gray-100 px-2 py-4`}
+          >
             {/* TWR Return */}
             <div className="px-4">
               <div className="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-1">
@@ -231,6 +261,24 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
                     : "\u00A0"}
               </div>
             </div>
+
+            {/* Your IRR */}
+            {showIrr && (
+              <div className="px-4">
+                <div className="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-1">
+                  Your IRR
+                </div>
+                <div
+                  className={`text-2xl font-mono font-bold tracking-tight ${irrPositive ? "text-gain" : "text-loss"}`}
+                >
+                  {irrPositive ? "+" : ""}
+                  {(portfolioIrr ?? 0).toFixed(2)}%
+                </div>
+                <div className="text-xs text-gray-400 mt-0.5">
+                  Your personal return
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

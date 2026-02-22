@@ -280,4 +280,84 @@ describe("PerformanceChart", () => {
 
     expect(screen.getByText("$55K contributed")).toBeInTheDocument()
   })
+
+  describe("data coverage banner", () => {
+    it("shows info banner when firstTradeDate is after selected range start", () => {
+      // Use a date that's only 2 months ago — well within the default 12-month window
+      const now = new Date()
+      const recentDate = new Date(now)
+      recentDate.setMonth(recentDate.getMonth() - 2)
+      const firstTradeDate = recentDate.toISOString().slice(0, 10)
+
+      const dataWithFirstTrade: PerformanceResponse = {
+        data: {
+          ...mockPerformanceData.data,
+          firstTradeDate,
+        },
+      }
+      mockUseSwr.mockReturnValue({
+        data: dataWithFirstTrade,
+        isLoading: false,
+        error: undefined,
+      } as ReturnType<typeof useSwr>)
+
+      // Default is 12 months, firstTradeDate is only 2 months of data
+      render(<PerformanceChart portfolioCode="TEST" />)
+
+      expect(screen.getByText(/Portfolio data starts/)).toBeInTheDocument()
+    })
+
+    it("hides info banner when firstTradeDate is not provided", () => {
+      mockUseSwr.mockReturnValue({
+        data: mockPerformanceData,
+        isLoading: false,
+        error: undefined,
+      } as ReturnType<typeof useSwr>)
+
+      render(<PerformanceChart portfolioCode="TEST" />)
+
+      expect(
+        screen.queryByText(/Portfolio data starts/),
+      ).not.toBeInTheDocument()
+    })
+  })
+
+  describe("IRR display", () => {
+    it("renders IRR metric when portfolioIrr is provided and non-zero", () => {
+      mockUseSwr.mockReturnValue({
+        data: mockPerformanceData,
+        isLoading: false,
+        error: undefined,
+      } as ReturnType<typeof useSwr>)
+
+      render(<PerformanceChart portfolioCode="TEST" portfolioIrr={15.2} />)
+
+      expect(screen.getByText("Your IRR")).toBeInTheDocument()
+      expect(screen.getByText("+15.20%")).toBeInTheDocument()
+    })
+
+    it("hides IRR metric when portfolioIrr is undefined", () => {
+      mockUseSwr.mockReturnValue({
+        data: mockPerformanceData,
+        isLoading: false,
+        error: undefined,
+      } as ReturnType<typeof useSwr>)
+
+      render(<PerformanceChart portfolioCode="TEST" />)
+
+      expect(screen.queryByText("Your IRR")).not.toBeInTheDocument()
+    })
+
+    it("hides IRR metric when portfolioIrr is zero", () => {
+      mockUseSwr.mockReturnValue({
+        data: mockPerformanceData,
+        isLoading: false,
+        error: undefined,
+      } as ReturnType<typeof useSwr>)
+
+      render(<PerformanceChart portfolioCode="TEST" portfolioIrr={0} />)
+
+      expect(screen.queryByText("Your IRR")).not.toBeInTheDocument()
+    })
+  })
 })
