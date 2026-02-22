@@ -67,6 +67,12 @@ export default withPageAuthRequired(
     )
     const [lockedUntilDate, setLockedUntilDate] = useState("")
     const [subAccounts, setSubAccounts] = useState<SubAccountRequest[]>([])
+    const [cpfLifePlan, setCpfLifePlan] = useState<
+      "STANDARD" | "BASIC" | "ESCALATING" | undefined
+    >(undefined)
+    const [cpfPayoutStartAge, setCpfPayoutStartAge] = useState<
+      number | undefined
+    >(undefined)
 
     const {
       formState: { errors },
@@ -191,6 +197,12 @@ export default withPageAuthRequired(
                       configPayload.policyType = policyType
                       configPayload.lockedUntilDate = lockedUntilDate || null
                       configPayload.subAccounts = subAccounts
+                      if (cpfLifePlan) {
+                        configPayload.cpfLifePlan = cpfLifePlan
+                      }
+                      if (cpfPayoutStartAge != null) {
+                        configPayload.cpfPayoutStartAge = cpfPayoutStartAge
+                      }
                     }
 
                     await fetch(`/api/assets/config/${createdAsset.id}`, {
@@ -339,9 +351,13 @@ export default withPageAuthRequired(
                 policyType={policyType}
                 lockedUntilDate={lockedUntilDate}
                 subAccounts={subAccounts}
+                cpfLifePlan={cpfLifePlan}
+                cpfPayoutStartAge={cpfPayoutStartAge}
                 onPolicyTypeChange={setPolicyType}
                 onLockedUntilDateChange={setLockedUntilDate}
                 onSubAccountsChange={setSubAccounts}
+                onCpfLifePlanChange={setCpfLifePlan}
+                onCpfPayoutStartAgeChange={setCpfPayoutStartAge}
               />
 
               <p className="text-xs text-gray-500 mt-4">

@@ -42,22 +42,55 @@ const POLICY_TYPE_OPTIONS: { value: PolicyType; label: string }[] = [
   { value: "GENERIC", label: "Generic Composite" },
 ]
 
+type CpfLifePlan = "STANDARD" | "BASIC" | "ESCALATING"
+
+const CPF_LIFE_PLAN_OPTIONS: {
+  value: CpfLifePlan
+  label: string
+  description: string
+}[] = [
+  {
+    value: "STANDARD",
+    label: "Standard",
+    description: "Level monthly payouts for life",
+  },
+  {
+    value: "BASIC",
+    label: "Basic",
+    description:
+      "Higher bequest, lower payouts with longevity insurance from 90",
+  },
+  {
+    value: "ESCALATING",
+    label: "Escalating",
+    description: "Payouts grow 2%/year, starting ~20% lower",
+  },
+]
+
 export interface CompositeAssetEditorProps {
   policyType: PolicyType | undefined
   lockedUntilDate: string
   subAccounts: SubAccountRequest[]
+  cpfLifePlan?: CpfLifePlan
+  cpfPayoutStartAge?: number
   onPolicyTypeChange: (value: PolicyType | undefined) => void
   onLockedUntilDateChange: (value: string) => void
   onSubAccountsChange: (accounts: SubAccountRequest[]) => void
+  onCpfLifePlanChange?: (value: CpfLifePlan | undefined) => void
+  onCpfPayoutStartAgeChange?: (value: number | undefined) => void
 }
 
 export default function CompositeAssetEditor({
   policyType,
   lockedUntilDate,
   subAccounts,
+  cpfLifePlan,
+  cpfPayoutStartAge,
   onPolicyTypeChange,
   onLockedUntilDateChange,
   onSubAccountsChange,
+  onCpfLifePlanChange,
+  onCpfPayoutStartAgeChange,
 }: CompositeAssetEditorProps): React.ReactElement {
   const [newCode, setNewCode] = useState("")
 
@@ -164,6 +197,65 @@ export default function CompositeAssetEditor({
               </button>
             )}
           </div>
+
+          {/* CPF LIFE Settings */}
+          {policyType === "CPF" && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-3">
+              <h4 className="text-sm font-medium text-blue-800">
+                CPF LIFE Settings
+              </h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-blue-700 mb-1">
+                    CPF LIFE Plan
+                  </label>
+                  <select
+                    value={cpfLifePlan || ""}
+                    onChange={(e) => {
+                      const val = e.target.value as CpfLifePlan | ""
+                      onCpfLifePlanChange?.(val === "" ? undefined : val)
+                    }}
+                    className="w-full border-blue-300 rounded px-2 py-1.5 border text-sm focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Not set</option>
+                    {CPF_LIFE_PLAN_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                  {cpfLifePlan && (
+                    <p className="text-xs text-blue-600 mt-1">
+                      {
+                        CPF_LIFE_PLAN_OPTIONS.find(
+                          (o) => o.value === cpfLifePlan,
+                        )?.description
+                      }
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-blue-700 mb-1">
+                    Payout Start Age
+                  </label>
+                  <input
+                    type="number"
+                    min={65}
+                    max={70}
+                    value={cpfPayoutStartAge ?? 65}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value)
+                      onCpfPayoutStartAgeChange?.(isNaN(val) ? undefined : val)
+                    }}
+                    className="w-full border-blue-300 rounded px-2 py-1.5 border text-sm focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <p className="text-xs text-blue-600 mt-1">
+                    Between 65 and 70. Delaying increases payouts.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Sub-Accounts Table */}
           <div className="border border-gray-200 rounded-lg overflow-hidden">

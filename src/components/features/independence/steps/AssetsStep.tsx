@@ -109,6 +109,12 @@ export default function AssetsStep({
   )
   const [lockedUntilDate, setLockedUntilDate] = useState("")
   const [subAccounts, setSubAccounts] = useState<SubAccountRequest[]>([])
+  const [cpfLifePlan, setCpfLifePlan] = useState<
+    "STANDARD" | "BASIC" | "ESCALATING" | undefined
+  >(undefined)
+  const [cpfPayoutStartAge, setCpfPayoutStartAge] = useState<
+    number | undefined
+  >(undefined)
   // Simple asset balance (when no policyType)
   const [simpleBalance, setSimpleBalance] = useState<number>(0)
   // Income and planning fields
@@ -547,6 +553,8 @@ export default function AssetsStep({
           policyType,
           lockedUntilDate: lockedUntilDate || null,
           subAccounts,
+          cpfLifePlan: cpfLifePlan || null,
+          cpfPayoutStartAge: cpfPayoutStartAge || null,
         })
       }
 
@@ -619,22 +627,24 @@ export default function AssetsStep({
   }, [
     accountCode,
     accountName,
-    planCurrency,
     policyType,
-    lockedUntilDate,
     subAccounts,
     simpleBalance,
-    expectedReturnRate,
+    selectedBalancePortfolioId,
+    planCurrency,
+    contributionFrequency,
+    contributionAmount,
+    isPension,
     payoutAge,
     monthlyPayoutAmount,
-    contributionAmount,
-    contributionFrequency,
-    isPension,
     lumpSum,
-    selectedBalancePortfolioId,
+    expectedReturnRate,
     selectedPortfolioIds,
     setValue,
     resetCreateForm,
+    lockedUntilDate,
+    cpfLifePlan,
+    cpfPayoutStartAge,
   ])
 
   return (
@@ -1102,9 +1112,13 @@ export default function AssetsStep({
                 policyType={policyType}
                 lockedUntilDate={lockedUntilDate}
                 subAccounts={subAccounts}
+                cpfLifePlan={cpfLifePlan}
+                cpfPayoutStartAge={cpfPayoutStartAge}
                 onPolicyTypeChange={setPolicyType}
                 onLockedUntilDateChange={setLockedUntilDate}
                 onSubAccountsChange={setSubAccounts}
+                onCpfLifePlanChange={setCpfLifePlan}
+                onCpfPayoutStartAgeChange={setCpfPayoutStartAge}
               />
 
               {/* Simple Asset Balance (when no policy type selected) */}

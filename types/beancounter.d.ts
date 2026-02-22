@@ -696,6 +696,9 @@ export interface PrivateAssetConfig {
   policyType?: PolicyType
   lockedUntilDate?: string
   subAccounts?: SubAccount[]
+  // CPF LIFE settings
+  cpfLifePlan?: "STANDARD" | "BASIC" | "ESCALATING"
+  cpfPayoutStartAge?: number
   // Timestamps
   createdDate: string
   updatedDate: string
@@ -728,6 +731,9 @@ export interface PrivateAssetConfigRequest {
   policyType?: PolicyType
   lockedUntilDate?: string
   subAccounts?: SubAccountRequest[]
+  // CPF LIFE settings
+  cpfLifePlan?: "STANDARD" | "BASIC" | "ESCALATING"
+  cpfPayoutStartAge?: number
 }
 
 export interface PrivateAssetConfigResponse {
@@ -987,6 +993,7 @@ export interface PerformanceDataPoint {
 export interface PerformanceData {
   currency: Currency
   series: PerformanceDataPoint[]
+  firstTradeDate?: string // ISO date, null on cache hits
 }
 
 export interface PerformanceResponse {

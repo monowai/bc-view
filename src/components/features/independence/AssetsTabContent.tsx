@@ -249,8 +249,18 @@ export default function AssetsTabContent({
                             {proj.assetName}
                           </div>
                           <div className="text-xs text-purple-600 mt-1">
-                            Payout at age {proj.payoutAge}
+                            {proj.cpfLifePlan
+                              ? `CPF LIFE (${proj.cpfLifePlan.charAt(0) + proj.cpfLifePlan.slice(1).toLowerCase()}) from age ${proj.payoutAge}`
+                              : `Payout at age ${proj.payoutAge}`}
                           </div>
+                          {proj.monthlyPayout != null &&
+                            proj.monthlyPayout > 0 && (
+                              <div className="text-xs text-green-600 mt-0.5">
+                                {hideValues
+                                  ? HIDDEN_VALUE
+                                  : `${effectiveCurrency}${Math.round(proj.monthlyPayout * effectiveFxRate).toLocaleString()}/month`}
+                              </div>
+                            )}
                         </div>
                         <div className="text-right">
                           <div className="text-xs text-gray-500">Current</div>
