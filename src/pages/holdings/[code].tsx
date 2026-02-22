@@ -550,7 +550,6 @@ function HoldingsPage(): React.ReactElement {
           <PerformanceChart
             portfolioCode={holdingResults.portfolio.code}
             currencySymbol={holdingResults.portfolio.currency.symbol}
-            portfolioIrr={holdingResults.portfolio.irr}
           />
         </div>
       ) : null}

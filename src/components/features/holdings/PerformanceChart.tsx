@@ -22,22 +22,24 @@ import {
   formatAxisDate,
   formatTooltipDate,
 } from "@lib/chart/performanceConstants"
+import { usePrivacyMode } from "@hooks/usePrivacyMode"
 
 type ChartTab = "gain" | "income"
 
 interface PerformanceChartProps {
   portfolioCode: string
   currencySymbol?: string
-  portfolioIrr?: number
 }
+
+const HIDDEN = "****"
 
 const PerformanceChart: React.FC<PerformanceChartProps> = ({
   portfolioCode,
   currencySymbol = "$",
-  portfolioIrr,
 }) => {
   const [months, setMonths] = useState(12)
   const [activeChart, setActiveChart] = useState<ChartTab>("gain")
+  const { hideValues } = usePrivacyMode()
 
   const apiUrl = `/api/performance/${portfolioCode}?months=${months}`
   const { data, isLoading, error } = useSwr<PerformanceResponse>(
@@ -64,18 +66,16 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
     return { firstTradeDate, months: diffMonths }
   }, [firstTradeDate, months])
 
-  const showIrr = portfolioIrr !== undefined && portfolioIrr !== 0
-  const irrPositive = (portfolioIrr ?? 0) >= 0
-
-  // Compute investment gain for each data point
-  const gainSeries = useMemo(
-    () =>
-      series.map((point) => ({
-        ...point,
-        investmentGain: point.marketValue - point.netContributions,
-      })),
-    [series],
-  )
+  // Compute investment gain and in-window dividends for each data point
+  const gainSeries = useMemo(() => {
+    if (series.length === 0) return []
+    const baseDividends = series[0].cumulativeDividends
+    return series.map((point) => ({
+      ...point,
+      investmentGain: point.marketValue - point.netContributions,
+      windowDividends: point.cumulativeDividends - baseDividends,
+    }))
+  }, [series])
 
   // Stats for TWR / Growth of $1,000
   const growthStats = useMemo(() => {
@@ -88,27 +88,28 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
   }, [series])
 
   // Stats for Investment Gain and dividends
+  // Use in-window dividends (last - first) since cumulativeDividends is since inception
   const gainStats = useMemo(() => {
     if (series.length === 0) return null
+    const first = series[0]
     const last = series[series.length - 1]
     const gain = last.marketValue - last.netContributions
+    const windowDividends = last.cumulativeDividends - first.cumulativeDividends
     return {
       gain,
       marketValue: last.marketValue,
       contributed: last.netContributions,
-      cumulativeDividends: last.cumulativeDividends,
+      windowDividends,
     }
   }, [series])
 
-  const hasDividends = (gainStats?.cumulativeDividends ?? 0) > 0
+  const hasDividends = (gainStats?.windowDividends ?? 0) > 0
 
-  // Annualized dividend yield: (dividends / marketValue) * (12 / months)
+  // Annualized dividend yield: (windowDividends / marketValue) * (12 / months)
   const dividendYield = useMemo(() => {
     if (!hasDividends || !gainStats || gainStats.marketValue === 0) return null
     return (
-      (gainStats.cumulativeDividends / gainStats.marketValue) *
-      (12 / months) *
-      100
+      (gainStats.windowDividends / gainStats.marketValue) * (12 / months) * 100
     )
   }, [hasDividends, gainStats, months])
 
@@ -117,6 +118,9 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
     formatCompactShared(value, sym)
 
   const formatFull = (value: number): string => formatFullShared(value, sym)
+
+  const privateCompact = (value: number): string =>
+    hideValues ? HIDDEN : formatCompact(value)
 
   const isPositive = (growthStats?.returnPct ?? 0) >= 0
 
@@ -207,9 +211,7 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
 
         {/* Key metrics row */}
         {growthStats && gainStats && (
-          <div
-            className={`grid ${showIrr ? "grid-cols-4" : "grid-cols-3"} divide-x divide-gray-100 px-2 py-4`}
-          >
+          <div className="grid grid-cols-2 sm:grid-cols-3 divide-x divide-gray-100 px-2 py-4">
             {/* TWR Return */}
             <div className="px-4">
               <div className="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-1">
@@ -222,23 +224,24 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
                 {growthStats.returnPct.toFixed(2)}%
               </div>
               <div className="text-xs text-gray-400 font-mono mt-0.5">
-                {sym}1,000 &rarr; {sym}
-                {growthStats.current.toLocaleString(undefined, {
-                  maximumFractionDigits: 0,
-                })}
+                {sym}1,000 &rarr;{" "}
+                {hideValues
+                  ? HIDDEN
+                  : `${sym}${growthStats.current.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
               </div>
             </div>
 
-            {/* Portfolio Value */}
-            <div className="px-4">
+            {/* Portfolio Value — hidden on mobile */}
+            <div className="hidden sm:block px-4">
               <div className="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-1">
                 Portfolio Value
               </div>
               <div className="text-2xl font-mono font-bold tracking-tight text-gray-900">
-                {formatCompact(gainStats.marketValue)}
+                {privateCompact(gainStats.marketValue)}
               </div>
               <div className="text-xs text-gray-400 font-mono mt-0.5">
-                {formatCompact(gainStats.contributed)} contributed
+                {hideValues ? HIDDEN : formatCompact(gainStats.contributed)}{" "}
+                contributed
               </div>
             </div>
 
@@ -251,34 +254,16 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
                 className={`text-2xl font-mono font-bold tracking-tight ${gainStats.gain >= 0 ? "text-gain" : "text-loss"}`}
               >
                 {gainStats.gain >= 0 ? "+" : ""}
-                {formatCompact(gainStats.gain)}
+                {privateCompact(gainStats.gain)}
               </div>
               <div className="text-xs text-gray-400 font-mono mt-0.5">
-                {gainStats.cumulativeDividends > 0 && dividendYield
-                  ? `incl. ${formatCompact(gainStats.cumulativeDividends)} dividends (${dividendYield.toFixed(1)}% yield)`
+                {gainStats.windowDividends > 0 && dividendYield
+                  ? `incl. ${hideValues ? HIDDEN : formatCompact(gainStats.windowDividends)} dividends (${dividendYield.toFixed(2)}% yield)`
                   : gainStats.contributed !== 0
                     ? `${((gainStats.gain / Math.abs(gainStats.contributed)) * 100).toFixed(1)}% on cost`
                     : "\u00A0"}
               </div>
             </div>
-
-            {/* Your IRR */}
-            {showIrr && (
-              <div className="px-4">
-                <div className="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-1">
-                  Your IRR
-                </div>
-                <div
-                  className={`text-2xl font-mono font-bold tracking-tight ${irrPositive ? "text-gain" : "text-loss"}`}
-                >
-                  {irrPositive ? "+" : ""}
-                  {(portfolioIrr ?? 0).toFixed(2)}%
-                </div>
-                <div className="text-xs text-gray-400 mt-0.5">
-                  Your personal return
-                </div>
-              </div>
-            )}
           </div>
         )}
       </div>
@@ -362,7 +347,10 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
                   <Tooltip
                     contentStyle={tooltipStyle}
                     labelFormatter={(label) => formatTooltipDate(String(label))}
-                    formatter={(value) => [formatFull(Number(value)), "Gain"]}
+                    formatter={(value) => [
+                      hideValues ? HIDDEN : formatFull(Number(value)),
+                      "Gain",
+                    ]}
                   />
                   <ReferenceLine
                     y={0}
@@ -389,7 +377,7 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
               </ResponsiveContainer>
             ) : hasDividends ? (
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={series}>
+                <AreaChart data={gainSeries}>
                   <defs>
                     <linearGradient id="incomeFill" x1="0" y1="0" x2="0" y2="1">
                       <stop
@@ -425,13 +413,13 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
                     contentStyle={tooltipStyle}
                     labelFormatter={(label) => formatTooltipDate(String(label))}
                     formatter={(value) => [
-                      formatFull(Number(value)),
+                      hideValues ? HIDDEN : formatFull(Number(value)),
                       "Dividends",
                     ]}
                   />
                   <Area
                     type="monotone"
-                    dataKey="cumulativeDividends"
+                    dataKey="windowDividends"
                     stroke={CHART_COLORS.accent}
                     strokeWidth={2}
                     fill="url(#incomeFill)"
