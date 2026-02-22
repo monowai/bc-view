@@ -1,11 +1,16 @@
 import React from "react"
-import { render, screen, fireEvent } from "@testing-library/react"
+import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import PerformanceChart from "../PerformanceChart"
 import useSwr from "swr"
 import { PerformanceResponse } from "types/beancounter"
 
-jest.mock("swr")
+const mockMutate = jest.fn()
+jest.mock("swr", () => ({
+  __esModule: true,
+  default: jest.fn(),
+  useSWRConfig: () => ({ mutate: mockMutate }),
+}))
 const mockUseSwr = useSwr as jest.MockedFunction<typeof useSwr>
 
 // Mock the usePrivacyMode hook
@@ -16,7 +21,19 @@ jest.mock("@hooks/usePrivacyMode", () => ({
   })),
 }))
 
+// Mock the useUserPreferences hook
+jest.mock("@contexts/UserPreferencesContext", () => ({
+  useUserPreferences: jest.fn(() => ({
+    preferences: { enableTwr: false },
+    isLoading: false,
+    refetch: jest.fn(),
+  })),
+}))
+
 const { usePrivacyMode } = jest.requireMock("@hooks/usePrivacyMode")
+const { useUserPreferences } = jest.requireMock(
+  "@contexts/UserPreferencesContext",
+)
 
 // Mock recharts to avoid canvas/SVG issues in JSDOM
 jest.mock("recharts", () => ({
@@ -70,10 +87,21 @@ const mockPerformanceData: PerformanceResponse = {
 describe("PerformanceChart", () => {
   beforeEach(() => {
     mockUseSwr.mockReset()
+    mockMutate.mockReset()
     usePrivacyMode.mockReturnValue({
       hideValues: false,
       toggleHideValues: jest.fn(),
     })
+    useUserPreferences.mockReturnValue({
+      preferences: { enableTwr: false },
+      isLoading: false,
+      refetch: jest.fn(),
+    })
+    jest.spyOn(global, "fetch").mockResolvedValue({ ok: true } as Response)
+  })
+
+  afterEach(() => {
+    jest.restoreAllMocks()
   })
 
   it("renders loading state", () => {
@@ -135,7 +163,7 @@ describe("PerformanceChart", () => {
     expect(screen.queryByTestId("area-windowDividends")).not.toBeInTheDocument()
   })
 
-  it("switches to income chart when tab is clicked", () => {
+  it("switches to guide when tab is clicked", () => {
     mockUseSwr.mockReturnValue({
       data: mockPerformanceData,
       isLoading: false,
@@ -144,13 +172,13 @@ describe("PerformanceChart", () => {
 
     render(<PerformanceChart portfolioCode="TEST" />)
 
-    fireEvent.click(screen.getByRole("tab", { name: "Income" }))
+    fireEvent.click(screen.getByRole("tab", { name: "Guide" }))
 
-    expect(screen.getByTestId("area-windowDividends")).toBeInTheDocument()
+    expect(screen.getByTestId("performance-guide")).toBeInTheDocument()
     expect(screen.queryByTestId("area-investmentGain")).not.toBeInTheDocument()
   })
 
-  it("switches back to gain chart", () => {
+  it("switches back to gain chart from guide", () => {
     mockUseSwr.mockReturnValue({
       data: mockPerformanceData,
       isLoading: false,
@@ -159,36 +187,34 @@ describe("PerformanceChart", () => {
 
     render(<PerformanceChart portfolioCode="TEST" />)
 
-    fireEvent.click(screen.getByRole("tab", { name: "Income" }))
+    fireEvent.click(screen.getByRole("tab", { name: "Guide" }))
     fireEvent.click(screen.getByRole("tab", { name: "Investment Gain" }))
 
     expect(screen.getByTestId("area-investmentGain")).toBeInTheDocument()
-    expect(screen.queryByTestId("area-windowDividends")).not.toBeInTheDocument()
+    expect(screen.queryByTestId("performance-guide")).not.toBeInTheDocument()
   })
 
-  it("shows empty state for income when no dividends", () => {
-    const noDividendData: PerformanceResponse = {
-      data: {
-        ...mockPerformanceData.data,
-        series: mockPerformanceData.data.series.map((p) => ({
-          ...p,
-          cumulativeDividends: 0,
-        })),
-      },
-    }
+  it("shows educational content about TWR and XIRR in guide tab", () => {
     mockUseSwr.mockReturnValue({
-      data: noDividendData,
+      data: mockPerformanceData,
       isLoading: false,
       error: undefined,
     } as ReturnType<typeof useSwr>)
 
     render(<PerformanceChart portfolioCode="TEST" />)
 
-    fireEvent.click(screen.getByRole("tab", { name: "Income" }))
+    fireEvent.click(screen.getByRole("tab", { name: "Guide" }))
 
+    const guide = screen.getByTestId("performance-guide")
     expect(
-      screen.getByText("No dividend income recorded for this period"),
+      screen.getByText("TWR Return (Time-Weighted Return)"),
     ).toBeInTheDocument()
+    expect(
+      screen.getByText("XIRR (Personal Rate of Return)"),
+    ).toBeInTheDocument()
+    expect(screen.getByText("Contributions & Dividends")).toBeInTheDocument()
+    expect(guide.textContent).toContain("eliminates the effect of cash flow")
+    expect(guide.textContent).toContain("annualised return")
   })
 
   it("displays TWR percentage in stats header", () => {
@@ -336,6 +362,145 @@ describe("PerformanceChart", () => {
       const portfolioValueLabel = screen.getByText("Portfolio Value")
       const portfolioValueColumn = portfolioValueLabel.parentElement
       expect(portfolioValueColumn).toHaveClass("hidden", "sm:block")
+    })
+  })
+
+  describe("cache reset button", () => {
+    it("is hidden when enableTwr is false", () => {
+      mockUseSwr.mockReturnValue({
+        data: mockPerformanceData,
+        isLoading: false,
+        error: undefined,
+      } as ReturnType<typeof useSwr>)
+
+      render(<PerformanceChart portfolioCode="TEST" />)
+
+      expect(
+        screen.queryByLabelText("Reset performance cache"),
+      ).not.toBeInTheDocument()
+    })
+
+    it("is visible when enableTwr is true", () => {
+      useUserPreferences.mockReturnValue({
+        preferences: { enableTwr: true },
+        isLoading: false,
+        refetch: jest.fn(),
+      })
+      mockUseSwr.mockReturnValue({
+        data: mockPerformanceData,
+        isLoading: false,
+        error: undefined,
+      } as ReturnType<typeof useSwr>)
+
+      render(<PerformanceChart portfolioCode="TEST" />)
+
+      expect(
+        screen.getByLabelText("Reset performance cache"),
+      ).toBeInTheDocument()
+    })
+
+    it("calls DELETE API and triggers SWR mutate on click", async () => {
+      useUserPreferences.mockReturnValue({
+        preferences: { enableTwr: true },
+        isLoading: false,
+        refetch: jest.fn(),
+      })
+      mockUseSwr.mockReturnValue({
+        data: mockPerformanceData,
+        isLoading: false,
+        error: undefined,
+      } as ReturnType<typeof useSwr>)
+
+      render(<PerformanceChart portfolioCode="TEST" />)
+
+      fireEvent.click(screen.getByLabelText("Reset performance cache"))
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          "/api/performance/TEST/reset",
+          { method: "DELETE" },
+        )
+      })
+
+      await waitFor(() => {
+        expect(mockMutate).toHaveBeenCalledWith(
+          "/api/performance/TEST?months=12",
+        )
+      })
+    })
+  })
+
+  describe("backfill button", () => {
+    it("is hidden when enableTwr is false", () => {
+      mockUseSwr.mockReturnValue({
+        data: mockPerformanceData,
+        isLoading: false,
+        error: undefined,
+      } as ReturnType<typeof useSwr>)
+
+      render(<PerformanceChart portfolioCode="TEST" />)
+
+      expect(
+        screen.queryByLabelText("Load historical prices"),
+      ).not.toBeInTheDocument()
+    })
+
+    it("is visible when enableTwr is true", () => {
+      useUserPreferences.mockReturnValue({
+        preferences: { enableTwr: true },
+        isLoading: false,
+        refetch: jest.fn(),
+      })
+      mockUseSwr.mockReturnValue({
+        data: mockPerformanceData,
+        isLoading: false,
+        error: undefined,
+      } as ReturnType<typeof useSwr>)
+
+      render(<PerformanceChart portfolioCode="TEST" />)
+
+      expect(
+        screen.getByLabelText("Load historical prices"),
+      ).toBeInTheDocument()
+    })
+
+    it("calls POST API and triggers SWR mutate on click", async () => {
+      useUserPreferences.mockReturnValue({
+        preferences: { enableTwr: true },
+        isLoading: false,
+        refetch: jest.fn(),
+      })
+      mockUseSwr.mockReturnValue({
+        data: mockPerformanceData,
+        isLoading: false,
+        error: undefined,
+      } as ReturnType<typeof useSwr>)
+
+      jest.spyOn(global, "fetch").mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            status: "ok",
+            datesProcessed: 12,
+            assetsProcessed: 5,
+          }),
+      } as Response)
+
+      render(<PerformanceChart portfolioCode="TEST" />)
+
+      fireEvent.click(screen.getByLabelText("Load historical prices"))
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith("/api/prices/backfill/TEST", {
+          method: "POST",
+        })
+      })
+
+      await waitFor(() => {
+        expect(mockMutate).toHaveBeenCalledWith(
+          "/api/performance/TEST?months=12",
+        )
+      })
     })
   })
 

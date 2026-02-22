@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from "react"
-import useSwr from "swr"
+import React, { useState, useMemo, useCallback } from "react"
+import useSwr, { useSWRConfig } from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import { PerformanceResponse } from "types/beancounter"
 import {
@@ -23,8 +23,9 @@ import {
   formatTooltipDate,
 } from "@lib/chart/performanceConstants"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
+import { useUserPreferences } from "@contexts/UserPreferencesContext"
 
-type ChartTab = "gain" | "income"
+type ChartTab = "gain" | "guide"
 
 interface PerformanceChartProps {
   portfolioCode: string
@@ -39,13 +40,59 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
 }) => {
   const [months, setMonths] = useState(12)
   const [activeChart, setActiveChart] = useState<ChartTab>("gain")
+  const [resetState, setResetState] = useState<"idle" | "resetting" | "done">(
+    "idle",
+  )
+  const [backfillState, setBackfillState] = useState<
+    "idle" | "loading" | "done"
+  >("idle")
+  const [backfillSummary, setBackfillSummary] = useState("")
   const { hideValues } = usePrivacyMode()
+  const { preferences } = useUserPreferences()
+  const { mutate } = useSWRConfig()
 
   const apiUrl = `/api/performance/${portfolioCode}?months=${months}`
   const { data, isLoading, error } = useSwr<PerformanceResponse>(
     apiUrl,
     simpleFetcher(apiUrl),
   )
+
+  const handleResetCache = useCallback(async () => {
+    setResetState("resetting")
+    try {
+      await fetch(`/api/performance/${portfolioCode}/reset`, {
+        method: "DELETE",
+      })
+      await mutate(apiUrl)
+      setResetState("done")
+      setTimeout(() => setResetState("idle"), 1500)
+    } catch {
+      setResetState("idle")
+    }
+  }, [portfolioCode, apiUrl, mutate])
+
+  const handleBackfill = useCallback(async () => {
+    setBackfillState("loading")
+    try {
+      const res = await fetch(`/api/prices/backfill/${portfolioCode}`, {
+        method: "POST",
+      })
+      const result = await res.json()
+      await mutate(apiUrl)
+      setBackfillState("done")
+      if (result.status === "ok") {
+        setBackfillSummary(
+          `${result.datesProcessed} dates, ${result.assetsProcessed} assets`,
+        )
+      }
+      setTimeout(() => {
+        setBackfillState("idle")
+        setBackfillSummary("")
+      }, 3000)
+    } catch {
+      setBackfillState("idle")
+    }
+  }, [portfolioCode, apiUrl, mutate])
 
   const series = useMemo(() => data?.data?.series || [], [data?.data?.series])
   const firstTradeDate = data?.data?.firstTradeDate
@@ -183,7 +230,7 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
       {/* Time range + stats */}
       <div className="border-b border-gray-100">
         {/* Time range tabs */}
-        <div className="flex items-center px-4 py-2 border-b border-gray-100">
+        <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100">
           <div className="flex gap-1">
             {TIME_RANGES.map((range) => (
               <button
@@ -199,6 +246,121 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
               </button>
             ))}
           </div>
+          {preferences?.enableTwr && (
+            <div className="flex items-center gap-1">
+              {backfillSummary && (
+                <span className="text-[10px] text-gray-400 mr-1">
+                  {backfillSummary}
+                </span>
+              )}
+              <button
+                onClick={handleBackfill}
+                disabled={backfillState === "loading"}
+                title="Load historical prices"
+                aria-label="Load historical prices"
+                className="p-1.5 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-50"
+              >
+                {backfillState === "loading" ? (
+                  <svg
+                    className="w-3.5 h-3.5 animate-spin"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                  >
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      className="opacity-25"
+                    />
+                    <path
+                      d="M4 12a8 8 0 018-8"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                ) : backfillState === "done" ? (
+                  <svg
+                    className="w-3.5 h-3.5 text-gain"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    className="w-3.5 h-3.5"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path d="M3 12v3c0 1.657 3.134 3 7 3s7-1.343 7-3v-3c0 1.657-3.134 3-7 3s-7-1.343-7-3z" />
+                    <path d="M3 7v3c0 1.657 3.134 3 7 3s7-1.343 7-3V7c0 1.657-3.134 3-7 3S3 8.657 3 7z" />
+                    <path d="M17 5c0 1.657-3.134 3-7 3S3 6.657 3 5s3.134-3 7-3 7 1.343 7 3z" />
+                  </svg>
+                )}
+              </button>
+              <button
+                onClick={handleResetCache}
+                disabled={resetState === "resetting"}
+                title="Reset performance cache"
+                aria-label="Reset performance cache"
+                className="p-1.5 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-50"
+              >
+                {resetState === "resetting" ? (
+                  <svg
+                    className="w-3.5 h-3.5 animate-spin"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                  >
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      className="opacity-25"
+                    />
+                    <path
+                      d="M4 12a8 8 0 018-8"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                ) : resetState === "done" ? (
+                  <svg
+                    className="w-3.5 h-3.5 text-gain"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    className="w-3.5 h-3.5"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                )}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Data coverage info banner */}
@@ -292,25 +454,25 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
           </button>
           <button
             role="tab"
-            aria-selected={activeChart === "income"}
-            onClick={() => setActiveChart("income")}
+            aria-selected={activeChart === "guide"}
+            onClick={() => setActiveChart("guide")}
             className={`relative px-3 py-2.5 text-xs font-medium transition-colors ${
-              activeChart === "income"
+              activeChart === "guide"
                 ? "text-gray-900"
                 : "text-gray-400 hover:text-gray-600"
             }`}
           >
-            Income
-            {activeChart === "income" && (
+            Guide
+            {activeChart === "guide" && (
               <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-invest-600 rounded-full" />
             )}
           </button>
         </div>
 
-        {/* Chart area */}
+        {/* Chart / Guide area */}
         <div className="p-4">
-          <div className="h-72">
-            {activeChart === "gain" ? (
+          {activeChart === "gain" ? (
+            <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={gainSeries}>
                   <defs>
@@ -375,65 +537,72 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
                   />
                 </AreaChart>
               </ResponsiveContainer>
-            ) : hasDividends ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={gainSeries}>
-                  <defs>
-                    <linearGradient id="incomeFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop
-                        offset="0%"
-                        stopColor={CHART_COLORS.accent}
-                        stopOpacity={0.15}
-                      />
-                      <stop
-                        offset="100%"
-                        stopColor={CHART_COLORS.accent}
-                        stopOpacity={0}
-                      />
-                    </linearGradient>
-                  </defs>
-                  <XAxis
-                    dataKey="date"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={AXIS_TICK}
-                    tickFormatter={formatAxisDate}
-                    interval="preserveStartEnd"
-                    dy={4}
-                  />
-                  <YAxis
-                    domain={[0, "auto"]}
-                    axisLine={false}
-                    tickLine={false}
-                    tick={AXIS_TICK}
-                    tickFormatter={formatCompact}
-                    width={55}
-                  />
-                  <Tooltip
-                    contentStyle={tooltipStyle}
-                    labelFormatter={(label) => formatTooltipDate(String(label))}
-                    formatter={(value) => [
-                      hideValues ? HIDDEN : formatFull(Number(value)),
-                      "Dividends",
-                    ]}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="windowDividends"
-                    stroke={CHART_COLORS.accent}
-                    strokeWidth={2}
-                    fill="url(#incomeFill)"
-                    dot={false}
-                    activeDot={ACTIVE_DOT}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-full text-gray-400 text-sm">
-                No dividend income recorded for this period
+            </div>
+          ) : (
+            <div
+              className="grid gap-4 sm:grid-cols-2 text-xs text-gray-600 leading-relaxed"
+              data-testid="performance-guide"
+            >
+              <div>
+                <h4 className="font-semibold text-gray-800 mb-1">
+                  TWR Return (Time-Weighted Return)
+                </h4>
+                <p>
+                  Measures how well the portfolio&apos;s investments performed,
+                  independent of when you added or withdrew money. It eliminates
+                  the effect of cash flow timing, making it ideal for comparing
+                  your portfolio against benchmarks or other managers.
+                </p>
+                <p className="mt-1.5 text-gray-500">
+                  Growth of {sym}1,000 shows what a hypothetical {sym}1,000
+                  invested at the start of the period would be worth today.
+                </p>
               </div>
-            )}
-          </div>
+              <div>
+                <h4 className="font-semibold text-gray-800 mb-1">
+                  XIRR (Personal Rate of Return)
+                </h4>
+                <p>
+                  Shown per holding in the table as &ldquo;IRR&rdquo;, this is
+                  the annualised return that accounts for every deposit,
+                  withdrawal, and dividend you actually received. Unlike TWR, it
+                  reflects <em>your</em> experience&mdash;including the timing
+                  and size of your contributions.
+                </p>
+                <p className="mt-1.5 text-gray-500">
+                  A positive XIRR means your money grew faster than it would in
+                  a zero-interest account; a negative value means it shrank.
+                </p>
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-800 mb-1">
+                  Investment Gain
+                </h4>
+                <p>
+                  The difference between the current market value and your net
+                  contributions (total invested minus any withdrawals). This is
+                  the simple profit or loss in dollar terms.
+                </p>
+                <p className="mt-1.5 text-gray-500">
+                  The chart above plots this value over time so you can see how
+                  your gain has trended.
+                </p>
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-800 mb-1">
+                  Contributions &amp; Dividends
+                </h4>
+                <p>
+                  <strong>Net contributions</strong> are the total you&apos;ve
+                  put in minus anything you&apos;ve taken out.{" "}
+                  <strong>Dividends</strong> are cash payments from your
+                  holdings and are included in the gain calculation. The
+                  annualised yield shown is based on dividends received during
+                  the selected period.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
