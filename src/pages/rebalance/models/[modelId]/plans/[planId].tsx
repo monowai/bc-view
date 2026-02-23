@@ -1,8 +1,5 @@
 import React, { useState, useEffect, useRef } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
-import { GetServerSideProps } from "next"
-import { useTranslation } from "next-i18next"
 import { useRouter } from "next/router"
 import Link from "next/link"
 import { useModelPlan } from "@components/features/rebalance/hooks/useModelPlan"
@@ -16,7 +13,6 @@ import { escapeCSV, downloadCsv } from "@lib/csvExport"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 
 function PlanDetailPage(): React.ReactElement {
-  const { t } = useTranslation("common")
   const router = useRouter()
   const { modelId, planId } = router.query
 
@@ -480,7 +476,7 @@ function PlanDetailPage(): React.ReactElement {
     return (
       <div className="w-full py-4">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 max-w-2xl mx-auto">
-          {t("rebalance.plans.error", "Failed to load plan")}
+          {"Failed to load plan"}
         </div>
       </div>
     )
@@ -493,7 +489,7 @@ function PlanDetailPage(): React.ReactElement {
       {/* Breadcrumb */}
       <nav className="text-sm text-gray-500 mb-4 max-w-2xl mx-auto">
         <Link href="/rebalance/models" className="hover:text-invest-600">
-          {t("rebalance.models.title", "Model Portfolios")}
+          {"Model Portfolios"}
         </Link>
         <span className="mx-2">/</span>
         <Link
@@ -504,7 +500,7 @@ function PlanDetailPage(): React.ReactElement {
         </Link>
         <span className="mx-2">/</span>
         <span className="text-gray-900">
-          {t("rebalance.plans.plan", "Plan")} v{plan.version}
+          {"Plan"} v{plan.version}
         </span>
       </nav>
 
@@ -513,7 +509,7 @@ function PlanDetailPage(): React.ReactElement {
         <div className="flex items-start justify-between mb-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
-              {t("rebalance.plans.plan", "Plan")} v{plan.version}
+              {"Plan"} v{plan.version}
             </h1>
             {plan.description && (
               <p className="text-sm text-gray-600 mt-1">{plan.description}</p>
@@ -530,7 +526,7 @@ function PlanDetailPage(): React.ReactElement {
               ) : (
                 <i className="fas fa-copy mr-2"></i>
               )}
-              {t("rebalance.plans.createNewVersion", "New Version")}
+              {"New Version"}
             </button>
             <span
               className={`px-3 py-1.5 text-sm font-medium rounded ${
@@ -546,18 +542,14 @@ function PlanDetailPage(): React.ReactElement {
 
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <span className="text-gray-500">
-              {t("rebalance.plans.created", "Created")}:
-            </span>
+            <span className="text-gray-500">{"Created"}:</span>
             <span className="ml-2 text-gray-900">
               {formatDate(plan.createdAt)}
             </span>
           </div>
           {plan.approvedAt && (
             <div>
-              <span className="text-gray-500">
-                {t("rebalance.plans.approved", "Approved")}:
-              </span>
+              <span className="text-gray-500">{"Approved"}:</span>
               <span className="ml-2 text-gray-900">
                 {formatDate(plan.approvedAt)}
               </span>
@@ -579,7 +571,7 @@ function PlanDetailPage(): React.ReactElement {
                 ) : (
                   <i className="fas fa-save mr-2"></i>
                 )}
-                {t("save", "Save")}
+                {"Save"}
               </button>
             )}
             <button
@@ -592,7 +584,7 @@ function PlanDetailPage(): React.ReactElement {
               ) : (
                 <i className="fas fa-check mr-2"></i>
               )}
-              {t("rebalance.plans.approve", "Approve Plan")}
+              {"Approve Plan"}
             </button>
             <button
               onClick={() => setShowDeleteConfirm(true)}
@@ -604,7 +596,7 @@ function PlanDetailPage(): React.ReactElement {
               ) : (
                 <i className="fas fa-trash mr-2"></i>
               )}
-              {t("delete", "Delete")}
+              {"Delete"}
             </button>
           </div>
         )}
@@ -614,7 +606,7 @@ function PlanDetailPage(): React.ReactElement {
       <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6 max-w-2xl mx-auto">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-medium text-gray-900">
-            {t("rebalance.plans.allocations", "Target Allocations")}
+            {"Target Allocations"}
           </h2>
           <div className="flex gap-2">
             {/* Export button - available for both draft and approved plans */}
@@ -624,7 +616,7 @@ function PlanDetailPage(): React.ReactElement {
                 className="text-sm bg-gray-100 text-gray-700 px-3 py-1.5 rounded hover:bg-gray-200 transition-colors flex items-center"
               >
                 <i className="fas fa-download mr-1.5"></i>
-                {t("export", "Export")}
+                {"Export"}
               </button>
             )}
             {/* Import dropdown - only for draft plans */}
@@ -636,7 +628,7 @@ function PlanDetailPage(): React.ReactElement {
                     className="text-sm bg-gray-100 text-gray-700 px-3 py-1.5 rounded hover:bg-gray-200 transition-colors flex items-center"
                   >
                     <i className="fas fa-upload mr-1.5"></i>
-                    {t("import", "Import")}
+                    {"Import"}
                     <i className="fas fa-chevron-down ml-1.5 text-xs"></i>
                   </button>
                   {showImportDropdown && (
@@ -650,7 +642,7 @@ function PlanDetailPage(): React.ReactElement {
                           className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
                         >
                           <i className="fas fa-chart-pie mr-3 text-gray-400 w-4"></i>
-                          {t("rebalance.plans.importHoldings", "Holdings")}
+                          {"Holdings"}
                         </button>
                         <button
                           onClick={() => {
@@ -660,7 +652,7 @@ function PlanDetailPage(): React.ReactElement {
                           className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
                         >
                           <i className="fas fa-file-csv mr-3 text-gray-400 w-4"></i>
-                          {t("rebalance.plans.importCSV", "CSV")}
+                          {"CSV"}
                         </button>
                         {previousPlan && (
                           <button
@@ -670,13 +662,7 @@ function PlanDetailPage(): React.ReactElement {
                             className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
                           >
                             <i className="fas fa-copy mr-3 text-gray-400 w-4"></i>
-                            {t(
-                              "rebalance.plans.importLastPlan",
-                              "Plan v{{version}}",
-                              {
-                                version: previousPlan.version,
-                              },
-                            )}
+                            {`Plan v${previousPlan.version}`}
                           </button>
                         )}
                       </div>
@@ -707,7 +693,7 @@ function PlanDetailPage(): React.ReactElement {
           <>
             {plan.assets.length === 0 ? (
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center text-gray-500">
-                {t("rebalance.plans.noAssets", "No assets in this plan")}
+                {"No assets in this plan"}
               </div>
             ) : (
               <div className="border border-gray-200 rounded-lg overflow-hidden">
@@ -715,13 +701,13 @@ function PlanDetailPage(): React.ReactElement {
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {t("rebalance.plans.asset", "Asset")}
+                        {"Asset"}
                       </th>
                       <th className="px-3 sm:px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {t("rebalance.plans.weight", "Weight")}
+                        {"Weight"}
                       </th>
                       <th className="hidden sm:table-cell px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {t("rebalance.plans.price", "Price")}
+                        {"Price"}
                       </th>
                     </tr>
                   </thead>
@@ -769,7 +755,7 @@ function PlanDetailPage(): React.ReactElement {
                         <td className="px-3 sm:px-4 py-3">
                           <span className="font-medium text-gray-700">
                             <i className="fas fa-coins mr-2 text-gray-400"></i>
-                            {t("rebalance.plans.cash", "Cash")}
+                            {"Cash"}
                           </span>
                         </td>
                         <td className="px-3 sm:px-4 py-3 text-right text-gray-700">
@@ -797,13 +783,10 @@ function PlanDetailPage(): React.ReactElement {
       />
       {showApproveConfirm && (
         <ConfirmDialog
-          title={t("rebalance.plans.approveTitle", "Approve Plan")}
-          message={t(
-            "rebalance.plans.approveConfirm",
-            "Approve this plan? This will lock the allocations.",
-          )}
-          confirmLabel={t("rebalance.plans.approve", "Approve")}
-          cancelLabel={t("cancel", "Cancel")}
+          title={"Approve Plan"}
+          message={"Approve this plan? This will lock the allocations."}
+          confirmLabel={"Approve"}
+          cancelLabel={"Cancel"}
           variant="blue"
           onConfirm={handleApprove}
           onCancel={() => setShowApproveConfirm(false)}
@@ -811,13 +794,10 @@ function PlanDetailPage(): React.ReactElement {
       )}
       {showDeleteConfirm && (
         <ConfirmDialog
-          title={t("rebalance.plans.deleteTitle", "Delete Plan")}
-          message={t(
-            "rebalance.plans.deleteConfirm",
-            "Delete this draft plan?",
-          )}
-          confirmLabel={t("delete", "Delete")}
-          cancelLabel={t("cancel", "Cancel")}
+          title={"Delete Plan"}
+          message={"Delete this draft plan?"}
+          confirmLabel={"Delete"}
+          cancelLabel={"Cancel"}
           variant="red"
           onConfirm={handleDelete}
           onCancel={() => setShowDeleteConfirm(false)}
@@ -828,9 +808,3 @@ function PlanDetailPage(): React.ReactElement {
 }
 
 export default withPageAuthRequired(PlanDetailPage)
-
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
-  props: {
-    ...(await serverSideTranslations(locale as string, ["common"])),
-  },
-})

@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from "react"
 import useSwr from "swr"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
-import { useTranslation } from "next-i18next"
 import {
   Broker,
   BrokerHoldingsResponse,
@@ -9,8 +8,6 @@ import {
   HoldingContract,
   Position,
 } from "types/beancounter"
-import { GetServerSideProps } from "next"
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import { errorOut } from "@components/errors/ErrorOut"
 import { useRouter } from "next/router"
@@ -21,7 +18,6 @@ const brokersKey = "/api/brokers"
 
 export default withPageAuthRequired(
   function BrokerHoldings(): React.ReactElement {
-    const { t, ready } = useTranslation("common")
     const router = useRouter()
     const { brokerId } = router.query
     const [expandedAsset, setExpandedAsset] = useState<string | null>(null)
@@ -117,13 +113,13 @@ export default withPageAuthRequired(
 
     if (brokersError || positionsError || transactionsError) {
       return errorOut(
-        t("brokers.holdings.error", "Error loading broker holdings"),
+        "Error loading broker holdings",
         brokersError || positionsError || transactionsError,
       )
     }
 
-    if (!ready || !brokersData || (brokerId && !positionsData)) {
-      return rootLoader(t("loading"))
+    if (!brokersData || (brokerId && !positionsData)) {
+      return rootLoader("Loading...")
     }
 
     const brokers: Broker[] = brokersData.data || []
@@ -186,14 +182,9 @@ export default withPageAuthRequired(
                       ? "bg-green-500 border-green-500 text-white"
                       : "border-gray-300 hover:border-green-400"
                   }`}
-                  title={t(
-                    isReconciled
-                      ? "brokers.holdings.markUnreconciled"
-                      : "brokers.holdings.markReconciled",
-                    isReconciled
-                      ? "Mark as unreconciled"
-                      : "Mark as reconciled",
-                  )}
+                  title={
+                    isReconciled ? "Mark as unreconciled" : "Mark as reconciled"
+                  }
                 >
                   {isReconciled && <i className="fas fa-check text-xs"></i>}
                 </button>
@@ -226,10 +217,7 @@ export default withPageAuthRequired(
                       ? "text-red-600"
                       : "text-blue-600"
                 }`}
-                title={t(
-                  "brokers.holdings.clickToExpand",
-                  "Click to view transactions",
-                )}
+                title={"Click to view transactions"}
               >
                 {formatQuantity(holding.quantity)}
                 <i
@@ -268,19 +256,19 @@ export default withPageAuthRequired(
                         <thead className="bg-gray-100">
                           <tr>
                             <th className="px-4 py-1 text-left text-xs font-medium text-gray-500">
-                              {t("date", "Date")}
+                              {"Date"}
                             </th>
                             <th className="px-4 py-1 text-left text-xs font-medium text-gray-500">
-                              {t("type", "Type")}
+                              {"Type"}
                             </th>
                             <th className="px-4 py-1 text-right text-xs font-medium text-gray-500">
-                              {t("quantity", "Qty")}
+                              {"Qty"}
                             </th>
                             <th className="px-4 py-1 text-right text-xs font-medium text-gray-500">
-                              {t("price", "Price")}
+                              {"Price"}
                             </th>
                             <th className="px-4 py-1 text-right text-xs font-medium text-gray-500">
-                              {t("amount", "Amount")}
+                              {"Amount"}
                             </th>
                             <th className="px-4 py-1 w-10"></th>
                           </tr>
@@ -322,7 +310,7 @@ export default withPageAuthRequired(
                                 <Link
                                   href={`/trns/trades/${pg.portfolioCode}?trnId=${trn.id}`}
                                   className="text-gray-400 hover:text-blue-600"
-                                  title={t("edit", "Edit")}
+                                  title={"Edit"}
                                 >
                                   <i className="far fa-edit text-sm"></i>
                                 </Link>
@@ -365,14 +353,9 @@ export default withPageAuthRequired(
                       ? "bg-green-500 border-green-500 text-white"
                       : "border-gray-300 hover:border-green-400"
                   }`}
-                  title={t(
-                    isReconciled
-                      ? "brokers.holdings.markUnreconciled"
-                      : "brokers.holdings.markReconciled",
-                    isReconciled
-                      ? "Mark as unreconciled"
-                      : "Mark as reconciled",
-                  )}
+                  title={
+                    isReconciled ? "Mark as unreconciled" : "Mark as reconciled"
+                  }
                 >
                   {isReconciled && <i className="fas fa-check text-xs"></i>}
                 </button>
@@ -476,12 +459,12 @@ export default withPageAuthRequired(
                 <button
                   onClick={() => router.push("/brokers")}
                   className="text-gray-500 hover:text-gray-700 p-1 -ml-1"
-                  title={t("back", "Back")}
+                  title={"Back"}
                 >
                   <i className="fas fa-arrow-left text-lg"></i>
                 </button>
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-                  {t("brokers.holdings.title", "Broker Reconciliation")}
+                  {"Broker Reconciliation"}
                 </h1>
               </div>
             </div>
@@ -494,16 +477,14 @@ export default withPageAuthRequired(
             <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t("brokers.holdings.selectBroker", "Select Broker")}
+                  {"Select Broker"}
                 </label>
                 <select
                   value={brokerId as string}
                   onChange={(e) => handleBrokerChange(e.target.value)}
                   className="w-full sm:w-64 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                 >
-                  <option value="NO_BROKER">
-                    {t("brokers.holdings.noBroker", "No Broker (Unassigned)")}
-                  </option>
+                  <option value="NO_BROKER">{"No Broker (Unassigned)"}</option>
                   {brokers.map((broker) => (
                     <option key={broker.id} value={broker.id}>
                       {broker.name}
@@ -518,7 +499,7 @@ export default withPageAuthRequired(
                   onChange={(e) => setShowZeroQuantities(e.target.checked)}
                   className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
-                {t("brokers.holdings.showZero", "Show zero quantities")}
+                {"Show zero quantities"}
               </label>
             </div>
           </div>
@@ -534,25 +515,13 @@ export default withPageAuthRequired(
                 </div>
                 <h2 className="text-lg font-semibold text-gray-900 mb-2">
                   {brokerId === "NO_BROKER"
-                    ? t(
-                        "brokers.holdings.noUnassigned",
-                        "All transactions have brokers assigned",
-                      )
-                    : t(
-                        "brokers.holdings.empty",
-                        "No holdings for this broker",
-                      )}
+                    ? "All transactions have brokers assigned"
+                    : "No holdings for this broker"}
                 </h2>
                 <p className="text-gray-600">
                   {brokerId === "NO_BROKER"
-                    ? t(
-                        "brokers.holdings.noUnassignedDesc",
-                        "Great! All your buy/sell transactions have a broker assigned.",
-                      )
-                    : t(
-                        "brokers.holdings.emptyDesc",
-                        "This broker has no current positions.",
-                      )}
+                    ? "Great! All your buy/sell transactions have a broker assigned."
+                    : "This broker has no current positions."}
                 </p>
               </div>
             ) : holdings ? (
@@ -565,25 +534,14 @@ export default withPageAuthRequired(
                       </h2>
                       {reconciledAssets.size > 0 && (
                         <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
-                          {t("brokers.holdings.reconciled", {
-                            count: reconciledAssets.size,
-                            total: holdings.holdings.length,
-                            defaultValue: `${reconciledAssets.size}/${holdings.holdings.length} reconciled`,
-                          })}
+                          {`${reconciledAssets.size} reconciled`}
                         </span>
                       )}
                     </div>
                     <span className="text-sm text-gray-600">
                       {holdings.totalHoldings !== holdings.holdings.length
-                        ? t("brokers.holdings.positionsFiltered", {
-                            shown: holdings.holdings.length,
-                            total: holdings.totalHoldings,
-                            defaultValue: `${holdings.holdings.length} of ${holdings.totalHoldings} position(s)`,
-                          })
-                        : t("brokers.holdings.positions", {
-                            count: holdings.holdings.length,
-                            defaultValue: `${holdings.holdings.length} position(s)`,
-                          })}
+                        ? `${holdings.holdings.length} of ${holdings.totalHoldings} positions`
+                        : `${holdings.holdings.length} positions`}
                     </span>
                   </div>
                 </div>
@@ -594,10 +552,10 @@ export default withPageAuthRequired(
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          {t("asset", "Asset")}
+                          {"Asset"}
                         </th>
                         <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          {t("quantity", "Quantity")}
+                          {"Qty"}
                         </th>
                       </tr>
                     </thead>
@@ -621,7 +579,7 @@ export default withPageAuthRequired(
                 className="text-sm text-blue-600 hover:text-blue-800"
               >
                 <i className="fas fa-cog mr-1"></i>
-                {t("brokers.manage", "Manage Brokers")}
+                {"Manage"}
               </Link>
             </div>
           </div>
@@ -630,9 +588,3 @@ export default withPageAuthRequired(
     )
   },
 )
-
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
-  props: {
-    ...(await serverSideTranslations(locale as string, ["common"])),
-  },
-})

@@ -1,8 +1,5 @@
 import React, { useMemo, useState } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
-import { useTranslation } from "next-i18next"
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
-import { GetServerSideProps } from "next"
 import { rootLoader } from "@components/ui/PageLoader"
 import { errorOut } from "@components/errors/ErrorOut"
 import useSwr from "swr"
@@ -327,7 +324,6 @@ const RateChartModal: React.FC<RateChartModalProps> = ({
 }
 
 export default withPageAuthRequired(function FxMatrix(): React.ReactElement {
-  const { t, ready } = useTranslation("common")
   const { isAdmin } = useIsAdmin()
   const [compareMode, setCompareMode] = useState(false)
   const [selectedProvider, setSelectedProvider] = useState<string | undefined>(
@@ -408,17 +404,17 @@ export default withPageAuthRequired(function FxMatrix(): React.ReactElement {
   )
 
   // Loading states
-  if (!ready || ccyResponse.isLoading) {
-    return rootLoader(t("loading"))
+  if (ccyResponse.isLoading) {
+    return rootLoader("Loading...")
   }
 
   // Error handling
   if (ccyResponse.error) {
-    return errorOut(t("fx.error.currencies"), ccyResponse.error)
+    return errorOut("Error loading currencies", ccyResponse.error)
   }
 
   if (fxResponse.error && !compareMode) {
-    return errorOut(t("fx.error.rates"), fxResponse.error)
+    return errorOut("Error loading FX rates", fxResponse.error)
   }
 
   const currencies = ccyResponse.data?.data || []
@@ -500,15 +496,16 @@ export default withPageAuthRequired(function FxMatrix(): React.ReactElement {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">
-                {t("fx.title")}
+                {"FX Rates"}
               </h1>
               <p className="text-slate-500 text-sm mt-1">
                 {rateDate && !compareMode && (
                   <span>
-                    {t("fx.asOf")} {rateDate}
+                    {"As of"} {rateDate}
                   </span>
                 )}
-                {!rateDate && t("fx.description")}
+                {!rateDate &&
+                  "Cross rates between supported currencies. Rates are updated daily."}
               </p>
             </div>
 
@@ -625,7 +622,7 @@ export default withPageAuthRequired(function FxMatrix(): React.ReactElement {
         {isLoading && (
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="text-slate-500 mt-4">{t("fx.loading")}</p>
+            <p className="text-slate-500 mt-4">{"Loading rates..."}</p>
           </div>
         )}
 
@@ -828,7 +825,7 @@ export default withPageAuthRequired(function FxMatrix(): React.ReactElement {
                 <thead>
                   <tr className="bg-gradient-to-r from-slate-50 to-slate-100">
                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider border-b border-r border-slate-200 sticky left-0 bg-slate-50 z-10">
-                      {t("fx.from")} / {t("fx.to")}
+                      {"From"} / {"To"}
                     </th>
                     {currencies.map((ccy) => (
                       <th
@@ -941,7 +938,11 @@ export default withPageAuthRequired(function FxMatrix(): React.ReactElement {
 
         {/* Footer info */}
         <div className="mt-6 text-center text-sm text-slate-500">
-          <p>{t("fx.description")}</p>
+          <p>
+            {
+              "Cross rates between supported currencies. Rates are updated daily."
+            }
+          </p>
           {compareMode && (
             <p className="mt-2">
               Differences show which provider returns higher rates for each
@@ -952,10 +953,4 @@ export default withPageAuthRequired(function FxMatrix(): React.ReactElement {
       </div>
     </div>
   )
-})
-
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
-  props: {
-    ...(await serverSideTranslations(locale as string, ["common"])),
-  },
 })

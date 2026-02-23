@@ -1,5 +1,13 @@
 import React from "react"
-import { useTranslation } from "next-i18next"
+
+const REBALANCE_STATUS_LABELS: Record<string, string> = {
+  DRAFT: "Draft",
+  CALCULATING: "Calculating",
+  READY: "Ready",
+  EXECUTING: "Executing",
+  COMPLETED: "Completed",
+  CANCELLED: "Cancelled",
+}
 
 // Status color configurations for different status types
 export const STATUS_COLORS = {
@@ -35,11 +43,10 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({
   i18nPrefix,
   colorClass,
 }) => {
-  const { t } = useTranslation("common")
-
-  // Convert status to i18n key (lowercase, replace underscores with hyphens)
-  const statusKey = status.toLowerCase().replace(/_/g, "-")
-  const label = i18nPrefix ? t(`${i18nPrefix}.${statusKey}`, status) : status
+  // Look up the display label for the status
+  const label = i18nPrefix
+    ? (REBALANCE_STATUS_LABELS[status] ?? status)
+    : status
 
   // Get color from config or use default
   const resolvedColorClass =

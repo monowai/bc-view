@@ -1,5 +1,4 @@
 import React, { ReactElement, useState, useCallback } from "react"
-import { useTranslation } from "next-i18next"
 import { HideEmpty } from "@components/ui/HideEmpty"
 import { Portfolios } from "@components/features/portfolios/Portfolios"
 import { Portfolio } from "types/beancounter"
@@ -15,7 +14,6 @@ const HoldingMenu: React.FC<HoldingMenuOptions> = ({
   portfolio,
   showPortfolioSelector = true,
 }): ReactElement => {
-  const { t } = useTranslation("common")
   const [menuOpen, setMenuOpen] = useState(false)
 
   const closeMenu = useCallback(() => {
@@ -94,7 +92,7 @@ const HoldingMenu: React.FC<HoldingMenuOptions> = ({
           {showPortfolioSelector && (
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700">
-                {t("option.portfolio")}
+                {"Portfolio"}
               </label>
               <div className="mt-1 flex items-center">
                 <Portfolios {...portfolio} />
@@ -103,7 +101,7 @@ const HoldingMenu: React.FC<HoldingMenuOptions> = ({
           )}
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700">
-              {t("holdings.valueIn")}
+              {"Value In"}
             </label>
             <div className="mt-1">
               <ValueInOption portfolio={portfolio} onOptionSelect={closeMenu} />
@@ -111,7 +109,7 @@ const HoldingMenu: React.FC<HoldingMenuOptions> = ({
           </div>
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700">
-              {t("holdings.displayCurrency", "Display Currency")}
+              {"Display Currency"}
             </label>
             <div className="mt-1">
               <DisplayCurrencyOption
@@ -122,7 +120,7 @@ const HoldingMenu: React.FC<HoldingMenuOptions> = ({
           </div>
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700">
-              {t("holdings.openOnly")}
+              {"Open Only"}
             </label>
             <div className="mt-1">
               <HideEmpty />

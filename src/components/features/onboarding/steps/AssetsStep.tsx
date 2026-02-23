@@ -1,5 +1,4 @@
 import React, { useState } from "react"
-import { useTranslation } from "next-i18next"
 import { BankAccount, Property, Pension, Insurance } from "../OnboardingWizard"
 import MathInput from "@components/ui/MathInput"
 import { PolicyType, SubAccountRequest } from "types/beancounter"
@@ -32,7 +31,6 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
   onPensionsChange,
   onInsurancesChange,
 }) => {
-  const { t } = useTranslation("onboarding")
   const [selectedType, setSelectedType] = useState<AssetType>(null)
 
   // Form state for new entries
@@ -164,41 +162,33 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
       id: "bank" as AssetType,
       icon: "fa-university",
       color: "blue",
-      title: t("assets.type.bank", "Bank Account"),
-      description: t(
-        "assets.type.bank.desc",
+      title: "Bank Account",
+      description:
         "Track savings, checking, or fixed deposit accounts. Great for emergency funds and liquid savings.",
-      ),
     },
     {
       id: "pension" as AssetType,
       icon: "fa-piggy-bank",
       color: "purple",
-      title: t("assets.type.pension", "Pension Plan"),
-      description: t(
-        "assets.type.pension.desc",
+      title: "Pension Plan",
+      description:
         "Workplace pensions, 401k, or retirement funds. Set payout age and expected income for retirement planning.",
-      ),
     },
     {
       id: "insurance" as AssetType,
       icon: "fa-shield-alt",
       color: "teal",
-      title: t("assets.type.insurance", "Life Insurance"),
-      description: t(
-        "assets.type.insurance.desc",
+      title: "Life Insurance",
+      description:
         "Life insurance policies with cash value or payout amounts. Track for estate planning and financial independence.",
-      ),
     },
     {
       id: "property" as AssetType,
       icon: "fa-home",
       color: "green",
-      title: t("assets.type.property", "Property"),
-      description: t(
-        "assets.type.property.desc",
+      title: "Property",
+      description:
         "Add real estate like your home or investment properties. Track value appreciation over time.",
-      ),
     },
   ]
 
@@ -248,22 +238,19 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
   return (
     <div className="py-4">
       <h2 className="text-xl font-bold text-gray-900 mb-2">
-        {t("assets.title", "Add your assets")}
+        {"Add your accounts"}
       </h2>
 
       <p className="text-gray-600 mb-6">
-        {t(
-          "assets.description",
-          "Tell us about your assets to get a complete picture of your wealth. This step is optional.",
-        )}
+        {
+          "Tell us about your assets to get a complete picture of your wealth. This step is optional."
+        }
       </p>
 
       {/* Added Assets Summary */}
       {totalAssets > 0 && (
         <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-          <h3 className="font-medium text-gray-700 mb-3">
-            {t("assets.added", "Assets added")}
-          </h3>
+          <h3 className="font-medium text-gray-700 mb-3">{"Assets added"}</h3>
           <div className="space-y-2">
             {bankAccounts.map((account, index) => (
               <div
@@ -391,8 +378,8 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
         <div className="space-y-3">
           <h3 className="font-medium text-gray-700">
             {totalAssets > 0
-              ? t("assets.addAnother", "Add another asset")
-              : t("assets.chooseType", "Choose an asset type to add")}
+              ? "Add another asset"
+              : "Choose an asset type to add"}
           </h3>
           <div className="grid grid-cols-1 gap-3">
             {assetTypes.map((type) => (
@@ -424,14 +411,12 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
         <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
           <div className="flex items-center mb-4">
             <i className="fas fa-university text-blue-500 text-xl mr-3"></i>
-            <h3 className="font-medium text-gray-900">
-              {t("assets.form.bank.title", "Add Bank Account")}
-            </h3>
+            <h3 className="font-medium text-gray-900">{"Add Bank Account"}</h3>
           </div>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t("assets.form.name", "Account Name")}
+                {"Account Name"}
               </label>
               <input
                 type="text"
@@ -439,10 +424,7 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                 onChange={(e) =>
                   setNewAccount({ ...newAccount, name: e.target.value })
                 }
-                placeholder={t(
-                  "assets.form.bank.namePlaceholder",
-                  "e.g., Main Savings, Emergency Fund",
-                )}
+                placeholder={"e.g., Main Savings, Emergency Fund"}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 autoFocus
               />
@@ -450,7 +432,7 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("assets.form.currency", "Currency")}
+                  {"Currency"}
                 </label>
                 <select
                   value={newAccount.currency}
@@ -468,7 +450,7 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("assets.form.balance", "Current Balance")}
+                  {"Current Balance"}
                 </label>
                 <MathInput
                   value={newAccount.balance}
@@ -478,7 +460,7 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                       balance: value || undefined,
                     })
                   }
-                  placeholder={t("assets.form.optional", "Optional")}
+                  placeholder={"Optional"}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
               </div>
@@ -492,7 +474,7 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                 }}
                 className="px-4 py-2 text-gray-700 hover:text-gray-900"
               >
-                {t("cancel", "Cancel")}
+                {"Cancel"}
               </button>
               <button
                 type="button"
@@ -504,7 +486,7 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                     : "bg-gray-300 cursor-not-allowed"
                 }`}
               >
-                {t("assets.form.save", "Save Account")}
+                {"Save Account"}
               </button>
             </div>
           </div>
@@ -516,14 +498,12 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
         <div className="bg-green-50 rounded-lg p-4 border border-green-200">
           <div className="flex items-center mb-4">
             <i className="fas fa-home text-green-500 text-xl mr-3"></i>
-            <h3 className="font-medium text-gray-900">
-              {t("assets.form.property.title", "Add Property")}
-            </h3>
+            <h3 className="font-medium text-gray-900">{"Add Property"}</h3>
           </div>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t("assets.form.name", "Property Name")}
+                {"Property Name"}
               </label>
               <input
                 type="text"
@@ -531,10 +511,7 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                 onChange={(e) =>
                   setNewProperty({ ...newProperty, name: e.target.value })
                 }
-                placeholder={t(
-                  "assets.form.property.namePlaceholder",
-                  "e.g., Main Residence, Beach House",
-                )}
+                placeholder={"e.g., Main Residence, Beach House"}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 autoFocus
               />
@@ -542,7 +519,7 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("assets.form.property.purchaseDate", "Purchase Date")}
+                  {"Purchase Date"}
                 </label>
                 <input
                   type="date"
@@ -558,8 +535,7 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("assets.form.property.purchasePrice", "Purchase Price")} (
-                  {baseCurrency})
+                  {"Purchase Price"} ({baseCurrency})
                 </label>
                 <MathInput
                   value={newProperty.price}
@@ -576,8 +552,7 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t("assets.form.property.currentValue", "Current Value")} (
-                {baseCurrency})
+                {"Current Value"} ({baseCurrency})
               </label>
               <MathInput
                 value={newProperty.value}
@@ -587,17 +562,11 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                     value: value || undefined,
                   })
                 }
-                placeholder={t(
-                  "assets.form.property.sameAsPrice",
-                  "Same as purchase",
-                )}
+                placeholder={"Same as purchase"}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               />
               <p className="text-xs text-gray-500 mt-1">
-                {t(
-                  "assets.form.property.currentValueHint",
-                  "Leave blank if same as purchase price",
-                )}
+                {"Leave blank if same as purchase price"}
               </p>
             </div>
             <div className="flex justify-end gap-3 pt-2">
@@ -609,7 +578,7 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                 }}
                 className="px-4 py-2 text-gray-700 hover:text-gray-900"
               >
-                {t("cancel", "Cancel")}
+                {"Cancel"}
               </button>
               <button
                 type="button"
@@ -621,7 +590,7 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                     : "bg-gray-300 cursor-not-allowed"
                 }`}
               >
-                {t("assets.form.saveProperty", "Save Property")}
+                {"Save Property"}
               </button>
             </div>
           </div>
@@ -633,15 +602,13 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
         <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
           <div className="flex items-center mb-4">
             <i className="fas fa-piggy-bank text-purple-500 text-xl mr-3"></i>
-            <h3 className="font-medium text-gray-900">
-              {t("assets.form.pension.title", "Add Pension Plan")}
-            </h3>
+            <h3 className="font-medium text-gray-900">{"Add Pension Plan"}</h3>
           </div>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("assets.form.name", "Pension Name")}
+                  {"Pension Name"}
                 </label>
                 <input
                   type="text"
@@ -649,17 +616,14 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                   onChange={(e) =>
                     setNewPension({ ...newPension, name: e.target.value })
                   }
-                  placeholder={t(
-                    "assets.form.pension.namePlaceholder",
-                    "e.g., Company 401k, KiwiSaver",
-                  )}
+                  placeholder={"e.g., Company 401k, KiwiSaver"}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   autoFocus
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("assets.form.currency", "Currency")}
+                  {"Currency"}
                 </label>
                 <select
                   value={newPension.currency}
@@ -679,7 +643,7 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("assets.form.pension.balance", "Current Balance")}
+                  {"Current Balance"}
                 </label>
                 <MathInput
                   value={newPension.balance}
@@ -689,13 +653,13 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                       balance: value || undefined,
                     })
                   }
-                  placeholder={t("assets.form.optional", "Optional")}
+                  placeholder={"Optional"}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("assets.form.pension.returnRate", "Expected Return %")}
+                  {"Expected Return %"}
                 </label>
                 <input
                   type="number"
@@ -723,7 +687,7 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
             <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 <i className="fas fa-calendar-alt text-purple-500 mr-2"></i>
-                {t("assets.form.pension.contribution", "Monthly Contribution")}
+                {"Monthly Contribution"}
               </label>
               <div className="flex items-center">
                 <span className="text-gray-500 mr-2">
@@ -743,10 +707,7 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                 <span className="text-gray-500 ml-2">/month</span>
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                {t(
-                  "assets.form.pension.contributionHint",
-                  "Supports expressions: 12h/12 = 100, 1k*12 = 12000",
-                )}
+                {"Supports expressions: 12h/12 = 100, 1k*12 = 12000"}
               </p>
             </div>
 
@@ -788,17 +749,14 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                 htmlFor="pension-lump-sum"
                 className="ml-3 text-sm text-gray-700"
               >
-                {t(
-                  "assets.form.pension.lumpSum",
-                  "Pays out in full (lump sum) rather than monthly",
-                )}
+                {"Pays out in full (lump sum) rather than monthly"}
               </label>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("assets.form.pension.payoutAge", "Payout Age")}
+                  {"Payout Age"}
                 </label>
                 <input
                   type="number"
@@ -811,23 +769,17 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                         : undefined,
                     })
                   }
-                  placeholder={t(
-                    "assets.form.pension.payoutAgePlaceholder",
-                    "e.g., 65",
-                  )}
+                  placeholder={"e.g., 65"}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  {t(
-                    "assets.form.pension.payoutAgeHint",
-                    "Age when you can start withdrawing",
-                  )}
+                  {"Age when you can start withdrawing"}
                 </p>
               </div>
               {!newPension.lumpSum && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t("assets.form.pension.monthlyPayout", "Monthly Payout")}
+                    {"Monthly Payout"}
                   </label>
                   <MathInput
                     value={newPension.monthlyPayoutAmount}
@@ -837,14 +789,11 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                         monthlyPayoutAmount: value || undefined,
                       })
                     }
-                    placeholder={t("assets.form.optional", "Optional")}
+                    placeholder={"Optional"}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    {t(
-                      "assets.form.pension.monthlyPayoutHint",
-                      "Expected monthly income at payout age",
-                    )}
+                    {"Expected monthly income at payout age"}
                   </p>
                 </div>
               )}
@@ -858,7 +807,7 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                 }}
                 className="px-4 py-2 text-gray-700 hover:text-gray-900"
               >
-                {t("cancel", "Cancel")}
+                {"Cancel"}
               </button>
               <button
                 type="button"
@@ -870,7 +819,7 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                     : "bg-gray-300 cursor-not-allowed"
                 }`}
               >
-                {t("assets.form.savePension", "Save Pension")}
+                {"Save Pension"}
               </button>
             </div>
           </div>
@@ -883,14 +832,14 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
           <div className="flex items-center mb-4">
             <i className="fas fa-shield-alt text-teal-500 text-xl mr-3"></i>
             <h3 className="font-medium text-gray-900">
-              {t("assets.form.insurance.title", "Add Life Insurance")}
+              {"Add Life Insurance"}
             </h3>
           </div>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("assets.form.name", "Policy Name")}
+                  {"Policy Name"}
                 </label>
                 <input
                   type="text"
@@ -898,17 +847,14 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                   onChange={(e) =>
                     setNewInsurance({ ...newInsurance, name: e.target.value })
                   }
-                  placeholder={t(
-                    "assets.form.insurance.namePlaceholder",
-                    "e.g., Term Life, Whole Life",
-                  )}
+                  placeholder={"e.g., Term Life, Whole Life"}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   autoFocus
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("assets.form.currency", "Currency")}
+                  {"Currency"}
                 </label>
                 <select
                   value={newInsurance.currency}
@@ -931,10 +877,7 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t(
-                    "assets.form.insurance.currentValue",
-                    "Current Cash Value",
-                  )}
+                  {"Current Cash Value"}
                 </label>
                 <MathInput
                   value={newInsurance.currentValue}
@@ -944,19 +887,16 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                       currentValue: value || undefined,
                     })
                   }
-                  placeholder={t("assets.form.optional", "Optional")}
+                  placeholder={"Optional"}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  {t(
-                    "assets.form.insurance.currentValueHint",
-                    "Cash surrender value if applicable",
-                  )}
+                  {"Cash surrender value if applicable"}
                 </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("assets.form.insurance.returnRate", "Growth Rate %")}
+                  {"Growth Rate %"}
                 </label>
                 <input
                   type="number"
@@ -978,16 +918,13 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  {t(
-                    "assets.form.insurance.returnRateHint",
-                    "Used to project payout value at maturity",
-                  )}
+                  {"Used to project payout value at maturity"}
                 </p>
               </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t("assets.form.insurance.payoutAge", "Maturity Age")}
+                {"Maturity Age"}
               </label>
               <input
                 type="number"
@@ -1000,24 +937,18 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                       : undefined,
                   })
                 }
-                placeholder={t("assets.form.optional", "Optional")}
+                placeholder={"Optional"}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               />
               <p className="text-xs text-gray-500 mt-1">
-                {t(
-                  "assets.form.insurance.payoutAgeHint",
-                  "Age when policy matures and pays out",
-                )}
+                {"Age when policy matures and pays out"}
               </p>
             </div>
 
             {/* Payout Type Selection */}
             <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
               <label className="block text-sm font-medium text-gray-700 mb-3">
-                {t(
-                  "assets.form.insurance.payoutType",
-                  "How does this policy pay out?",
-                )}
+                {"How does this policy pay out?"}
               </label>
               <div className="flex gap-4">
                 <label className="flex items-center cursor-pointer">
@@ -1035,10 +966,7 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                     className="h-4 w-4 text-teal-600 border-gray-300 focus:ring-teal-500"
                   />
                   <span className="ml-2 text-sm text-gray-700">
-                    {t(
-                      "assets.form.insurance.lumpSumOption",
-                      "Lump sum at maturity",
-                    )}
+                    {"Lump sum at maturity"}
                   </span>
                 </label>
                 <label className="flex items-center cursor-pointer">
@@ -1055,23 +983,14 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                     className="h-4 w-4 text-teal-600 border-gray-300 focus:ring-teal-500"
                   />
                   <span className="ml-2 text-sm text-gray-700">
-                    {t(
-                      "assets.form.insurance.monthlyOption",
-                      "Monthly payments",
-                    )}
+                    {"Monthly payments"}
                   </span>
                 </label>
               </div>
               <p className="text-xs text-gray-500 mt-2">
                 {newInsurance.lumpSum
-                  ? t(
-                      "assets.form.insurance.lumpSumHint",
-                      "Payout will be calculated based on current value and growth rate at maturity age.",
-                    )
-                  : t(
-                      "assets.form.insurance.monthlyHint",
-                      "Enter the expected monthly payment amount below.",
-                    )}
+                  ? "Payout will be calculated based on current value and growth rate at maturity age."
+                  : "Enter the expected monthly payment amount below."}
               </p>
             </div>
 
@@ -1079,10 +998,7 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
             {!newInsurance.lumpSum && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t(
-                    "assets.form.insurance.monthlyPayout",
-                    "Monthly Payout Amount",
-                  )}
+                  {"Monthly Payout Amount"}
                 </label>
                 <MathInput
                   value={newInsurance.payoutAmount}
@@ -1092,14 +1008,11 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                       payoutAmount: value || undefined,
                     })
                   }
-                  placeholder={t("assets.form.optional", "Optional")}
+                  placeholder={"Optional"}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  {t(
-                    "assets.form.insurance.monthlyPayoutHint",
-                    "Expected monthly income from this policy",
-                  )}
+                  {"Expected monthly income from this policy"}
                 </p>
               </div>
             )}
@@ -1108,7 +1021,7 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
             <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 <i className="fas fa-calendar-alt text-teal-500 mr-2"></i>
-                {t("assets.form.insurance.contribution", "Monthly Premium")}
+                {"Monthly Premium"}
               </label>
               <div className="flex items-center">
                 <span className="text-gray-500 mr-2">
@@ -1128,10 +1041,7 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                 <span className="text-gray-500 ml-2">/month</span>
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                {t(
-                  "assets.form.insurance.contributionHint",
-                  "Supports expressions: 12h/12 = 100, 1k*12 = 12000",
-                )}
+                {"Supports expressions: 12h/12 = 100, 1k*12 = 12000"}
               </p>
             </div>
 
@@ -1144,7 +1054,7 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                 }}
                 className="px-4 py-2 text-gray-700 hover:text-gray-900"
               >
-                {t("cancel", "Cancel")}
+                {"Cancel"}
               </button>
               <button
                 type="button"
@@ -1156,7 +1066,7 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                     : "bg-gray-300 cursor-not-allowed"
                 }`}
               >
-                {t("assets.form.saveInsurance", "Save Insurance")}
+                {"Save Insurance"}
               </button>
             </div>
           </div>

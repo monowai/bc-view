@@ -1,5 +1,4 @@
 import React, { useState } from "react"
-import { useTranslation } from "next-i18next"
 import AssetWeightInput from "../common/AssetWeightInput"
 import WeightsSummary from "../common/WeightsSummary"
 import AddAssetToModelDialog from "./AddAssetToModelDialog"
@@ -22,7 +21,6 @@ const ModelWeightsEditor: React.FC<ModelWeightsEditorProps> = ({
   readOnly = false,
   showPrice = false,
 }) => {
-  const { t } = useTranslation("common")
   const [addAssetModalOpen, setAddAssetModalOpen] = useState(false)
 
   const totalWeight = weights.reduce((sum, w) => sum + w.weight, 0)
@@ -73,7 +71,7 @@ const ModelWeightsEditor: React.FC<ModelWeightsEditorProps> = ({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <label className="block text-sm font-medium text-gray-700">
-          {t("rebalance.models.weights", "Asset Weights")}
+          {"Target Weights"}
         </label>
         <div className="flex items-center gap-3">
           {!readOnly &&
@@ -84,7 +82,7 @@ const ModelWeightsEditor: React.FC<ModelWeightsEditorProps> = ({
                 onClick={handleNormalize}
                 className="text-sm text-blue-600 hover:text-blue-800"
               >
-                {t("rebalance.models.normalize", "Normalize to 100%")}
+                {"Normalize to 100%"}
               </button>
             )}
           {!readOnly && (
@@ -99,7 +97,7 @@ const ModelWeightsEditor: React.FC<ModelWeightsEditorProps> = ({
                   <i
                     className={`fas ${fetchingPrices ? "fa-spinner fa-spin" : "fa-sync-alt"} mr-1.5`}
                   ></i>
-                  {t("rebalance.plans.fetchPrices", "Fetch Prices")}
+                  {"Fetch Prices"}
                 </button>
               )}
               <button
@@ -108,7 +106,7 @@ const ModelWeightsEditor: React.FC<ModelWeightsEditorProps> = ({
                 className="text-sm bg-gray-100 text-gray-700 px-3 py-1.5 rounded hover:bg-gray-200 transition-colors flex items-center"
               >
                 <i className="fas fa-plus mr-1.5"></i>
-                {t("rebalance.models.addAsset", "Add Asset")}
+                {"Add Asset"}
               </button>
             </>
           )}
@@ -117,7 +115,7 @@ const ModelWeightsEditor: React.FC<ModelWeightsEditorProps> = ({
 
       {weights.length === 0 ? (
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center text-gray-500">
-          {t("rebalance.models.noWeights", "No assets added yet")}
+          {"No assets added yet"}
         </div>
       ) : (
         <div className="space-y-2">

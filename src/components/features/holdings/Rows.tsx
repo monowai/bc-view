@@ -28,7 +28,6 @@ import {
 import Link from "next/link"
 import { useRouter } from "next/router"
 import { AlphaProgress } from "@components/ui/ProgressBar"
-import { useTranslation } from "next-i18next"
 import { useDisplayCurrencyConversion } from "@lib/hooks/useDisplayCurrencyConversion"
 import { getCellClasses } from "@lib/holdings/cellClasses"
 
@@ -85,7 +84,6 @@ interface ActionsMenuProps {
   onCostAdjust?: (data: CostAdjustData) => void
   onRecordIncome?: (data: QuickSellData) => void
   onRecordExpense?: (data: QuickSellData) => void
-  t: any
 }
 
 const ActionsMenu: React.FC<ActionsMenuProps> = ({
@@ -106,7 +104,6 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
   onCostAdjust,
   onRecordIncome,
   onRecordExpense,
-  t,
 }) => {
   const [isOpen, setIsOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -128,13 +125,13 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
     <div className="relative" ref={menuRef}>
       <button
         type="button"
-        aria-label={`${t("actions.menu")} ${assetCode}`}
+        aria-label={`${"Actions"} ${assetCode}`}
         className="inline-flex items-center justify-center w-8 h-8 min-w-[44px] min-h-[44px] -m-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors duration-150"
         onClick={(e) => {
           e.stopPropagation()
           setIsOpen(!isOpen)
         }}
-        title={t("actions.menu")}
+        title={"Actions"}
       >
         <i className="fas fa-ellipsis-vertical text-sm"></i>
       </button>
@@ -158,7 +155,7 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
                 }}
               >
                 <i className="fas fa-money-bill-transfer text-red-500 w-4"></i>
-                {t("actions.quickSell")}
+                {"Quick Sell"}
               </button>
             )}
             {onCorporateActions && (
@@ -177,7 +174,7 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
                 }}
               >
                 <i className="fas fa-calendar-check text-blue-500 w-4"></i>
-                {t("corporate.view")}
+                {"Corporate Actions"}
               </button>
             )}
             {asset.market?.code === "PRIVATE" &&
@@ -193,7 +190,7 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
                   }}
                 >
                   <i className="fas fa-piggy-bank text-amber-500 w-4"></i>
-                  {t("balance.set")}
+                  {"Set Balance"}
                 </button>
               )}
             {onSetPrice &&
@@ -209,7 +206,7 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
                   }}
                 >
                   <i className="fas fa-tag text-green-500 w-4"></i>
-                  {t("price.set")}
+                  {"Set Price"}
                 </button>
               )}
             {onSectorWeightings && asset.assetCategory?.id === "ETF" && (
@@ -223,7 +220,7 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
                 }}
               >
                 <i className="fas fa-chart-pie text-purple-500 w-4"></i>
-                {t("sector.weightings.view")}
+                {"View Sectors"}
               </button>
             )}
             {onCostAdjust && (
@@ -242,7 +239,7 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
                 }}
               >
                 <i className="fas fa-scale-balanced text-orange-500 w-4"></i>
-                {t("costAdjust.menu")}
+                {"Adjust Cost"}
               </button>
             )}
             {onRecordIncome && (
@@ -264,7 +261,7 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
                 }}
               >
                 <i className="fas fa-arrow-down text-green-500 w-4"></i>
-                {t("actions.recordIncome", "Record Income")}
+                {"Record Income"}
               </button>
             )}
             {onRecordExpense && (
@@ -286,7 +283,7 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
                 }}
               >
                 <i className="fas fa-arrow-up text-red-500 w-4"></i>
-                {t("actions.recordExpense", "Record Expense")}
+                {"Record Expense"}
               </button>
             )}
           </div>
@@ -304,7 +301,6 @@ interface CashActionsMenuProps {
   onSetCashBalance?: (data: SetCashBalanceData) => void
   onCashTransfer?: (data: CashTransferData) => void
   onCashTransaction?: (assetCode: string) => void
-  t: (key: string) => string
 }
 
 const CashActionsMenu: React.FC<CashActionsMenuProps> = ({
@@ -314,7 +310,6 @@ const CashActionsMenu: React.FC<CashActionsMenuProps> = ({
   onSetCashBalance,
   onCashTransfer,
   onCashTransaction,
-  t,
 }) => {
   const [isOpen, setIsOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -336,13 +331,13 @@ const CashActionsMenu: React.FC<CashActionsMenuProps> = ({
     <div className="relative" ref={menuRef}>
       <button
         type="button"
-        aria-label={`${t("actions.menu")} ${assetCode}`}
+        aria-label={`${"Actions"} ${assetCode}`}
         className="inline-flex items-center justify-center w-8 h-8 min-w-[44px] min-h-[44px] -m-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors duration-150"
         onClick={(e) => {
           e.stopPropagation()
           setIsOpen(!isOpen)
         }}
-        title={t("actions.menu")}
+        title={"Actions"}
       >
         <i className="fas fa-ellipsis-vertical text-sm"></i>
       </button>
@@ -369,7 +364,7 @@ const CashActionsMenu: React.FC<CashActionsMenuProps> = ({
                 }}
               >
                 <i className="fas fa-balance-scale text-purple-500 w-4"></i>
-                {t("cash.setBalance")}
+                {"Set Balance"}
               </button>
             )}
             {onCashTransfer && (
@@ -394,7 +389,7 @@ const CashActionsMenu: React.FC<CashActionsMenuProps> = ({
                 }}
               >
                 <i className="fas fa-exchange-alt text-blue-500 w-4"></i>
-                {t("cash.transfer.title")}
+                {"Transfer Cash"}
               </button>
             )}
             {onCashTransaction && (
@@ -408,7 +403,7 @@ const CashActionsMenu: React.FC<CashActionsMenuProps> = ({
                 }}
               >
                 <i className="fas fa-dollar-sign text-green-500 w-4"></i>
-                {t("trade.cash.title")}
+                {"Cash Transaction"}
               </button>
             )}
           </div>
@@ -437,7 +432,6 @@ export default function Rows({
   onRecordIncome,
   onRecordExpense,
 }: RowsProps): React.ReactElement {
-  const { t } = useTranslation("common")
   const router = useRouter()
 
   // Source currency based on valueIn selection
@@ -500,7 +494,7 @@ export default function Rows({
                 ? router.push(`/trns/cash-ladder/${portfolio.id}/${asset.id}`)
                 : router.push(`/trns/trades/${portfolio.id}/${asset.id}`)
             }
-            title={t("actions.doubleClickToOpen")}
+            title={"Double-click to open"}
           >
             <td className="px-1 py-1.5 sm:px-2 md:px-3 text-ellipsis min-w-0">
               {/* Unified layout: code on top, name below for both mobile and desktop */}
@@ -561,7 +555,6 @@ export default function Rows({
                       }
                       onRecordIncome={onRecordIncome}
                       onRecordExpense={onRecordExpense}
-                      t={t}
                     />
                   </div>
                 ) : null}
@@ -575,7 +568,6 @@ export default function Rows({
                         onSetCashBalance={onSetCashBalance}
                         onCashTransfer={onCashTransfer}
                         onCashTransaction={onCashTransaction}
-                        t={t}
                       />
                     </div>
                   )}
@@ -762,7 +754,7 @@ export default function Rows({
                 }
                 title={
                   onWeightClick && !isCashRelated(asset)
-                    ? t("actions.rebalance")
+                    ? "Rebalance"
                     : undefined
                 }
               >

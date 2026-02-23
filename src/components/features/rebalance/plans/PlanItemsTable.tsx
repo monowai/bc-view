@@ -1,5 +1,4 @@
 import React from "react"
-import { useTranslation } from "next-i18next"
 import { PlanItemDto } from "types/rebalance"
 import { FormatValue } from "@components/ui/MoneyUtils"
 
@@ -30,14 +29,10 @@ const PlanItemsTable: React.FC<PlanItemsTableProps> = ({
   items,
   currencySymbol,
 }) => {
-  const { t } = useTranslation("common")
-
   if (items.length === 0) {
     return (
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
-        <p className="text-gray-600">
-          {t("rebalance.items.empty", "No items in this plan")}
-        </p>
+        <p className="text-gray-600">{"No items in this plan"}</p>
       </div>
     )
   }
@@ -49,31 +44,31 @@ const PlanItemsTable: React.FC<PlanItemsTableProps> = ({
           <thead className="bg-gray-100">
             <tr className="border-b border-gray-200">
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-700">
-                {t("rebalance.items.asset", "Asset")}
+                {"Asset"}
               </th>
               <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 hidden sm:table-cell">
-                {t("rebalance.items.currentQty", "Current Qty")}
+                {"Current Qty"}
               </th>
               <th className="px-4 py-3 text-right text-xs font-medium text-gray-700">
-                {t("rebalance.items.currentValue", "Current")}
+                {"Current"}
               </th>
               <th className="px-4 py-3 text-center text-xs font-medium text-gray-700">
-                {t("rebalance.items.currentWeight", "Curr %")}
+                {"Curr %"}
               </th>
               <th className="px-4 py-3 text-center text-xs font-medium text-gray-700">
-                {t("rebalance.items.targetWeight", "Target %")}
+                {"Target %"}
               </th>
               <th className="px-4 py-3 text-right text-xs font-medium text-gray-700">
-                {t("rebalance.items.targetValue", "Target")}
+                {"Target"}
               </th>
               <th className="px-4 py-3 text-center text-xs font-medium text-gray-700">
-                {t("rebalance.items.action", "Action")}
+                {"Action"}
               </th>
               <th className="px-4 py-3 text-right text-xs font-medium text-gray-700">
-                {t("rebalance.items.delta", "Delta")}
+                {"Delta"}
               </th>
               <th className="px-4 py-3 text-center text-xs font-medium text-gray-700">
-                {t("rebalance.items.status", "Status")}
+                {"Status"}
               </th>
             </tr>
           </thead>
@@ -143,17 +138,17 @@ const PlanItemsTable: React.FC<PlanItemsTableProps> = ({
                   {item.locked ? (
                     <span className="inline-flex items-center text-xs text-purple-600">
                       <i className="fas fa-lock mr-1"></i>
-                      {t("rebalance.items.locked", "Locked")}
+                      {"Locked"}
                     </span>
                   ) : item.excluded ? (
                     <span className="inline-flex items-center text-xs text-gray-500">
                       <i className="fas fa-ban mr-1"></i>
-                      {t("rebalance.items.excluded", "Excluded")}
+                      {"Excluded"}
                     </span>
                   ) : (
                     <span className="inline-flex items-center text-xs text-green-600">
                       <i className="fas fa-check mr-1"></i>
-                      {t("rebalance.items.eligible", "Eligible")}
+                      {"Eligible"}
                     </span>
                   )}
                 </td>

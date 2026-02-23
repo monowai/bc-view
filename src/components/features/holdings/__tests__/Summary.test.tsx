@@ -4,14 +4,6 @@ import "@testing-library/jest-dom"
 import SummaryHeader, { SummaryRow, SummaryRowMobile } from "../Summary"
 import { Portfolio, PortfolioSummary } from "types/beancounter"
 
-// Mock next-i18next
-jest.mock("next-i18next", () => ({
-  useTranslation: () => ({
-    t: (key: string) => key,
-    ready: true,
-  }),
-}))
-
 // Mock the holdingState hook
 jest.mock("@lib/holdings/holdingState", () => ({
   useHoldingState: () => ({
@@ -76,13 +68,13 @@ describe("Summary Mobile View Tests (TDD)", () => {
 
       // The Purchases column should not exist (removed entirely)
       const purchasesColumn = Array.from(columns || []).find((col) =>
-        col.textContent?.includes("summary.purchases"),
+        col.textContent?.includes("Purchases"),
       )
       expect(purchasesColumn).toBeUndefined()
 
       // The Income column should exist but be hidden on mobile, shown on tablet
       const incomeColumn = Array.from(columns || []).find((col) =>
-        col.textContent?.includes("summary.dividends"),
+        col.textContent?.includes("Income"),
       )
       expect(incomeColumn).toBeInTheDocument()
       expect(incomeColumn).toHaveClass("hidden")
@@ -104,10 +96,10 @@ describe("Summary Mobile View Tests (TDD)", () => {
         (col) => col.querySelector(".text-slate-500")?.textContent,
       )
 
-      expect(columnLabels[0]).toBe("summary.value")
-      expect(columnLabels[1]).toBe("summary.dividends")
-      expect(columnLabels[2]).toBe("summary.gain")
-      expect(columnLabels[3]).toBe("summary.irr")
+      expect(columnLabels[0]).toBe("Value")
+      expect(columnLabels[1]).toBe("Income")
+      expect(columnLabels[2]).toBe("Net Gain")
+      expect(columnLabels[3]).toBe("IRR")
     })
   })
 
@@ -134,13 +126,13 @@ describe("Summary Mobile View Tests (TDD)", () => {
 
       // Purchases should not exist
       const purchasesColumn = Array.from(columns || []).find((col) =>
-        col.textContent?.includes("summary.purchases"),
+        col.textContent?.includes("Purchases"),
       )
       expect(purchasesColumn).toBeUndefined()
 
       // Income should exist and be shown on tablet
       const incomeColumn = Array.from(columns || []).find((col) =>
-        col.textContent?.includes("summary.dividends"),
+        col.textContent?.includes("Income"),
       )
       expect(incomeColumn).toBeInTheDocument()
       expect(incomeColumn).toHaveClass("hidden")
@@ -162,10 +154,10 @@ describe("Summary Mobile View Tests (TDD)", () => {
         (col) => col.querySelector(".text-slate-500")?.textContent,
       )
 
-      expect(columnLabels[0]).toBe("summary.value")
-      expect(columnLabels[1]).toBe("summary.dividends")
-      expect(columnLabels[2]).toBe("summary.gain")
-      expect(columnLabels[3]).toBe("summary.irr")
+      expect(columnLabels[0]).toBe("Value")
+      expect(columnLabels[1]).toBe("Income")
+      expect(columnLabels[2]).toBe("Net Gain")
+      expect(columnLabels[3]).toBe("IRR")
     })
   })
 

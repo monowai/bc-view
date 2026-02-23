@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from "react"
-import { useTranslation } from "next-i18next"
 import { Asset, Portfolio, RebalanceData } from "types/beancounter"
 import MathInput from "@components/ui/MathInput"
 import Dialog from "@components/ui/Dialog"
@@ -28,7 +27,6 @@ const TargetWeightDialog: React.FC<TargetWeightDialogProps> = ({
   currentQuantity,
   currentPrice,
 }) => {
-  const { t } = useTranslation("common")
   const [targetWeight, setTargetWeight] = useState<number>(currentWeight)
 
   // Reset target weight when modal opens
@@ -87,17 +85,14 @@ const TargetWeightDialog: React.FC<TargetWeightDialogProps> = ({
 
   return (
     <Dialog
-      title={t("rebalance.title")}
+      title={"Rebalance Position"}
       onClose={onClose}
       footer={
         <>
-          <Dialog.CancelButton
-            onClick={onClose}
-            label={t("rebalance.cancel")}
-          />
+          <Dialog.CancelButton onClick={onClose} label={"Cancel"} />
           <Dialog.SubmitButton
             onClick={handleProceed}
-            label={t("rebalance.proceed")}
+            label={"Proceed"}
             disabled={calculation.shares === 0}
             variant={calculation.type === "BUY" ? "green" : "red"}
           />
@@ -120,7 +115,7 @@ const TargetWeightDialog: React.FC<TargetWeightDialogProps> = ({
       {/* Current Weight */}
       <div className="flex justify-between items-center">
         <span className="text-sm font-medium text-gray-700">
-          {t("rebalance.currentWeight")}
+          {"Current Weight"}
         </span>
         <span className="text-lg font-bold">{currentWeight.toFixed(2)}%</span>
       </div>
@@ -128,7 +123,7 @@ const TargetWeightDialog: React.FC<TargetWeightDialogProps> = ({
       {/* Target Weight Input */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          {t("rebalance.targetWeight")}
+          {"Target Weight"}
         </label>
         <div className="flex items-center gap-2">
           <MathInput
@@ -151,21 +146,17 @@ const TargetWeightDialog: React.FC<TargetWeightDialogProps> = ({
         }`}
       >
         <div className="flex justify-between items-center mb-2">
-          <span className="text-sm font-medium">{t("rebalance.action")}</span>
+          <span className="text-sm font-medium">{"Action"}</span>
           <span
             className={`font-bold ${
               calculation.type === "BUY" ? "text-green-600" : "text-red-600"
             }`}
           >
-            {calculation.type === "BUY"
-              ? t("rebalance.buy")
-              : t("rebalance.sell")}
+            {calculation.type === "BUY" ? "Buy" : "Sell"}
           </span>
         </div>
         <div className="flex justify-between items-center">
-          <span className="text-sm font-medium">
-            {t("rebalance.requiredShares")}
-          </span>
+          <span className="text-sm font-medium">{"Required Shares"}</span>
           <span className="text-2xl font-bold">{calculation.shares}</span>
         </div>
         {calculation.shares > 0 && (

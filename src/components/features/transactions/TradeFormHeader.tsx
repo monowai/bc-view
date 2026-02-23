@@ -16,7 +16,6 @@ interface TradeFormHeaderProps {
   handleCopy: () => void
   copyStatus: "idle" | "success" | "error"
   control: Control<any>
-  t: any
 }
 
 const TradeFormHeader: React.FC<TradeFormHeaderProps> = ({
@@ -31,14 +30,13 @@ const TradeFormHeader: React.FC<TradeFormHeaderProps> = ({
   handleCopy,
   copyStatus,
   control,
-  t,
 }) => (
   <header className="flex-shrink-0 pb-3 border-b border-gray-100">
     <div className="flex items-center justify-between mb-3">
       <button
         className="text-gray-400 hover:text-gray-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
         onClick={onClose}
-        title={t("cancel")}
+        title={"Cancel"}
       >
         <i className="fas fa-times"></i>
       </button>
@@ -49,7 +47,7 @@ const TradeFormHeader: React.FC<TradeFormHeaderProps> = ({
         <div className="font-semibold text-gray-900 truncate">
           {isEditMode
             ? editAssetCode
-            : stripOwnerPrefix(asset) || t("trade.market.title")}
+            : stripOwnerPrefix(asset) || "Market Trade"}
         </div>
         {isEditMode && editAssetName && (
           <div className="text-xs text-gray-500 truncate mt-0.5">
@@ -75,7 +73,7 @@ const TradeFormHeader: React.FC<TradeFormHeaderProps> = ({
                 : "text-gray-400 hover:text-green-600 hover:bg-green-50"
           }`}
           onClick={handleCopy}
-          title={t("copy")}
+          title={"Copy"}
         >
           <i
             className={`fas ${copyStatus === "success" ? "fa-check" : copyStatus === "error" ? "fa-times" : "fa-copy"} text-xs`}
@@ -86,7 +84,7 @@ const TradeFormHeader: React.FC<TradeFormHeaderProps> = ({
             type="button"
             className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
             onClick={onDelete}
-            title={t("delete")}
+            title={"Delete"}
           >
             <i className="fas fa-trash-can text-xs"></i>
           </button>

@@ -4,23 +4,6 @@ import "@testing-library/jest-dom"
 import CompleteStep from "../steps/CompleteStep"
 import { OffboardingResult } from "types/beancounter"
 
-// Mock next-i18next
-jest.mock("next-i18next", () => ({
-  useTranslation: () => ({
-    t: (key: string) => {
-      const translations: Record<string, string> = {
-        "complete.title": "Deletion Complete",
-        "complete.description": "The selected data has been removed.",
-        "complete.deleted": "deleted",
-        "complete.accountDeleted": "Your account has been deleted.",
-        "complete.logout": "Log Out",
-        "complete.returnHome": "Return Home",
-      }
-      return translations[key] || key
-    },
-  }),
-}))
-
 // Mock next/link
 jest.mock("next/link", () => {
   const MockLink = ({
@@ -60,7 +43,9 @@ describe("CompleteStep", () => {
 
     expect(screen.getByText("Log Out")).toBeInTheDocument()
     expect(
-      screen.getByText("Your account has been deleted."),
+      screen.getByText(
+        "Your account has been deleted. Please log out to complete the process.",
+      ),
     ).toBeInTheDocument()
   })
 

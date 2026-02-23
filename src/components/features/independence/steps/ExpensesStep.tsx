@@ -37,6 +37,11 @@ export default function ExpensesStep({
   const hasInitialized = useRef(false)
   const [showAddCustom, setShowAddCustom] = useState(false)
   const [customCategoryName, setCustomCategoryName] = useState("")
+  const [copyPercent, setCopyPercent] = useState(80)
+  const [showCopyBanner, setShowCopyBanner] = useState(true)
+  const [copyApplied, setCopyApplied] = useState(false)
+  const [showPercentPrompt, setShowPercentPrompt] = useState(false)
+  const [promptPercent, setPromptPercent] = useState(80)
 
   const { data: categoriesData } = useSwr<CategoryLabelsResponse>(
     categoriesKey,
@@ -48,6 +53,17 @@ export default function ExpensesStep({
     (c) => c.ownerId === "SYSTEM" || c.ownerId === "system",
   )
   const expenses = useWatch({ control, name: "expenses" }) || []
+
+  // Check if working expenses have non-zero values
+  const workingExpenses = getValues("workingExpenses") || []
+  const hasWorkingExpenses = workingExpenses.some(
+    (e) => (e?.monthlyAmount || 0) > 0,
+  )
+  const allRetirementExpensesZero = expenses.every(
+    (e) => (e?.monthlyAmount || 0) === 0,
+  )
+  const canCopyFromWorking =
+    hasWorkingExpenses && allRetirementExpensesZero && showCopyBanner
 
   // Initialize expenses with all system categories when data loads
   // Only do this for NEW plans that have no expenses yet
@@ -71,6 +87,37 @@ export default function ExpensesStep({
     (sum, expense) => sum + (expense?.monthlyAmount || 0),
     0,
   )
+
+  const applyCopyFromWorking = (percent: number): void => {
+    const working = getValues("workingExpenses") || []
+    const workingMap = new Map(
+      working
+        .filter((e) => (e?.monthlyAmount || 0) > 0)
+        .map((e) => [e.categoryLabelId, e.monthlyAmount]),
+    )
+
+    const currentExpenses = getValues("expenses") || []
+    const updated = currentExpenses.map((expense) => ({
+      ...expense,
+      monthlyAmount: workingMap.has(expense.categoryLabelId)
+        ? Math.round((workingMap.get(expense.categoryLabelId)! * percent) / 100)
+        : expense.monthlyAmount,
+    }))
+    setValue("expenses", updated)
+    setCopyPercent(percent)
+    setCopyApplied(true)
+    setTimeout(() => setCopyApplied(false), 3000)
+  }
+
+  const handleCopyFromWorking = (): void => {
+    applyCopyFromWorking(copyPercent)
+    setShowCopyBanner(false)
+  }
+
+  const handlePromptApply = (): void => {
+    applyCopyFromWorking(promptPercent)
+    setShowPercentPrompt(false)
+  }
 
   const handleAddCustomCategory = (): void => {
     if (customCategoryName.trim()) {
@@ -106,6 +153,46 @@ export default function ExpensesStep({
         <i className="fas fa-check-circle text-green-600 mt-0.5 mr-2"></i>
         <p className="text-sm text-green-700">{msg.skipHint}</p>
       </div>
+
+      {canCopyFromWorking && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <i className="fas fa-copy text-blue-600"></i>
+            <span className="text-sm font-medium text-blue-800">
+              Pre-fill from your working expenses?
+            </span>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={10}
+                max={100}
+                step={5}
+                value={copyPercent}
+                onChange={(e) => setCopyPercent(Number(e.target.value))}
+                aria-label="Copy percentage"
+                className="w-16 px-2 py-1 text-sm text-center border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              <span className="text-sm text-blue-700">%</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleCopyFromWorking}
+              className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Apply
+            </button>
+          </div>
+        </div>
+      )}
+
+      {copyApplied && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center">
+          <i className="fas fa-check text-green-600 mr-2"></i>
+          <span className="text-sm text-green-700">
+            Working expenses copied at {copyPercent}%
+          </span>
+        </div>
+      )}
 
       <div className="space-y-3">
         {fields.map((field, index) => {
@@ -246,10 +333,56 @@ export default function ExpensesStep({
               {msg.totalLabel}
             </span>
           </div>
-          <span className="text-xl font-bold text-independence-700">
-            ${totalMonthlyExpenses.toLocaleString()}
-          </span>
+          <div className="flex items-center gap-3">
+            {hasWorkingExpenses && (
+              <button
+                type="button"
+                onClick={() => setShowPercentPrompt(!showPercentPrompt)}
+                className="px-3 py-1 text-sm text-independence-700 border border-independence-300 rounded hover:bg-independence-100 transition-colors"
+              >
+                <i className="fas fa-copy mr-1"></i>
+                Copy from working
+              </button>
+            )}
+            <span className="text-xl font-bold text-independence-700">
+              ${totalMonthlyExpenses.toLocaleString()}
+            </span>
+          </div>
         </div>
+        {showPercentPrompt && (
+          <div className="mt-3 pt-3 border-t border-independence-200 flex flex-wrap items-center gap-3">
+            <span className="text-sm text-independence-700">
+              Apply working expenses at
+            </span>
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                min={10}
+                max={100}
+                step={5}
+                value={promptPercent}
+                onChange={(e) => setPromptPercent(Number(e.target.value))}
+                aria-label="Override percentage"
+                className="w-16 px-2 py-1 text-sm text-center border border-independence-300 rounded focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
+              />
+              <span className="text-sm text-independence-700">%</span>
+            </div>
+            <button
+              type="button"
+              onClick={handlePromptApply}
+              className="px-3 py-1 text-sm bg-independence-600 text-white rounded hover:bg-independence-700"
+            >
+              Apply
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowPercentPrompt(false)}
+              className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

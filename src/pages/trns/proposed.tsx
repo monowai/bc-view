@@ -1,7 +1,4 @@
 import React, { useEffect, useMemo, useState } from "react"
-import { GetServerSideProps } from "next"
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
-import { useTranslation } from "next-i18next"
 import { useRouter } from "next/router"
 import useSwr, { mutate } from "swr"
 import { fetcher, simpleFetcher } from "@utils/api/fetchHelper"
@@ -30,7 +27,6 @@ const getAssetDisplayCode = (asset: { code: string }): string => {
 }
 
 export default function ProposedTransactions(): React.JSX.Element {
-  const { t } = useTranslation("common")
   const { user, isLoading: userLoading } = useUser()
   const router = useRouter()
 
@@ -605,7 +601,7 @@ export default function ProposedTransactions(): React.JSX.Element {
   const anyChanges = transactions.some(hasChanges)
 
   if (userLoading) {
-    return rootLoader(t("loading"))
+    return rootLoader("Loading...")
   }
 
   return (
@@ -825,13 +821,10 @@ export default function ProposedTransactions(): React.JSX.Element {
       </div>
       {deleteTargetId && (
         <ConfirmDialog
-          title={t("trn.proposed.deleteTitle", "Delete Transaction")}
-          message={t(
-            "trn.proposed.deleteConfirm",
-            "Delete this proposed transaction?",
-          )}
-          confirmLabel={t("delete", "Delete")}
-          cancelLabel={t("cancel", "Cancel")}
+          title={"Delete Transaction"}
+          message={"Delete this proposed transaction?"}
+          confirmLabel={"Delete"}
+          cancelLabel={"Cancel"}
           variant="red"
           onConfirm={handleDeleteConfirm}
           onCancel={() => setDeleteTargetId(null)}
@@ -839,13 +832,12 @@ export default function ProposedTransactions(): React.JSX.Element {
       )}
       {editTarget && (
         <ConfirmDialog
-          title={t("trn.proposed.unsavedTitle", "Unsaved Changes")}
-          message={t(
-            "trn.proposed.unsavedChanges",
-            "You have unsaved changes. Opening the editor will lose these changes. Continue?",
-          )}
-          confirmLabel={t("continue", "Continue")}
-          cancelLabel={t("cancel", "Cancel")}
+          title={"Unsaved Changes"}
+          message={
+            "You have unsaved changes. Opening the editor will lose these changes. Continue?"
+          }
+          confirmLabel={"Continue"}
+          cancelLabel={"Cancel"}
           variant="amber"
           onConfirm={() => {
             const { portfolioId, trnId } = editTarget
@@ -858,9 +850,3 @@ export default function ProposedTransactions(): React.JSX.Element {
     </>
   )
 }
-
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
-  props: {
-    ...(await serverSideTranslations(locale ?? "en", ["common"])),
-  },
-})

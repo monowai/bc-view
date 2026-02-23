@@ -1,5 +1,4 @@
 import React, { useMemo } from "react"
-import { useTranslation } from "next-i18next"
 import { Asset } from "types/beancounter"
 import { CategoryOption, USER_ASSET_CATEGORIES } from "./accountTypes"
 import CategoryCard from "./CategoryCard"
@@ -15,8 +14,6 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
   categoryOptions,
   onSelectCategory,
 }) => {
-  const { t } = useTranslation("common")
-
   // Count assets per category
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {}
@@ -35,7 +32,11 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
   return (
     <div className="space-y-6">
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <p className="text-blue-800">{t("accounts.overview.description")}</p>
+        <p className="text-blue-800">
+          {
+            "Manage assets that are not traded on public exchanges. These include bank accounts, real estate, unlisted funds, and other private holdings."
+          }
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

@@ -10,9 +10,6 @@ import {
 import { ccyKey, portfolioKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { useRouter } from "next/router"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
-import { useTranslation } from "next-i18next"
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
-import { GetServerSideProps } from "next"
 import Link from "next/link"
 import { rootLoader } from "@components/ui/PageLoader"
 import { errorOut } from "@components/errors/ErrorOut"
@@ -67,7 +64,6 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
   }
 
   const router = useRouter()
-  const { t, ready } = useTranslation("common")
   const { preferences } = useUserPreferences()
   const [purgeTrn, setPurgeTrn] = useState(false)
   const {
@@ -117,13 +113,13 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
   ])
 
   if (ccyResponse.error) {
-    return errorOut(t("portfolio.error.retrieve"), ccyResponse.error)
+    return errorOut(`Error retrieving portfolio ${router.query.id}`, ccyResponse.error)
   }
   if (error) {
-    return errorOut(t("portfolio.error.retrieve"), error)
+    return errorOut(`Error retrieving portfolio ${router.query.id}`, error)
   }
-  if (!ready || !data || ccyResponse.isLoading) {
-    return rootLoader(t("loading"))
+  if (!data || ccyResponse.isLoading) {
+    return rootLoader("Loading...")
   }
   const portfolio: Portfolio = data.data
   const ccyOptions = currencyOptions(ccyResponse.data.data)
@@ -132,34 +128,34 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
     <div className="container mx-auto p-4">
       <form className="max-w-lg mx-auto bg-white p-6 rounded shadow-md">
         <label className="block text-gray-700 text-sm font-bold mb-2">
-          {t("portfolio.code")}
+          {"Code"}
         </label>
         <input
           {...register("code")}
           type="text"
           className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
           autoFocus={true}
-          placeholder={t("portfolio.code.hint")}
+          placeholder={"Unique short identifier"}
           defaultValue={portfolio.code}
         />
         <div className="text-red-500 text-xs italic">
           {errors?.code?.message}
         </div>
         <label className="block text-gray-700 text-sm font-bold mb-2">
-          {t("portfolio.name")}
+          {"Name"}
         </label>
         <input
           {...register("name", { required: true, maxLength: 100 })}
           className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
           type="text"
-          placeholder={t("portfolio.name.hint")}
+          placeholder={"Descriptive name"}
           defaultValue={portfolio.name}
         />
         <div className="text-red-500 text-xs italic">
           {errors?.name?.message}
         </div>
         <label className="block text-gray-700 text-sm font-bold mb-2">
-          {t("portfolio.currency.reporting")}
+          {"Portfolio Reporting Currency"}
         </label>
         <Controller
           name="currency"
@@ -181,7 +177,7 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
         />
 
         <label className="block text-gray-700 text-sm font-bold mb-2">
-          {t("portfolio.currency.base.label")}
+          {"Cost Currency"}
         </label>
         <Controller
           name="base"
@@ -214,11 +210,11 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
               }
             />
             <span className="ml-2 text-gray-700 text-sm font-bold">
-              {t("portfolio.active")}
+              {"Active"}
             </span>
           </label>
           <p className="text-gray-500 text-xs mt-1 ml-7">
-            {t("portfolio.active.hint")}
+            {"Inactive portfolios are hidden from lists and aggregations"}
           </p>
         </div>
         <div className="flex items-center justify-between mt-4">
@@ -231,7 +227,7 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
               handleSubmit(getValues() as PortfolioInput)
             }}
           >
-            {t("form.submit")}
+            {"Submit"}
           </button>
           <button
             className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
@@ -240,19 +236,17 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
               router.push("/portfolios").then()
             }}
           >
-            {t("form.cancel")}
+            {"Cancel"}
           </button>
           <button className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-            <Link href={`/holdings/${portfolio.code}`}>
-              {t("form.holdings")}
-            </Link>
+            <Link href={`/holdings/${portfolio.code}`}>{"Holdings"}</Link>
           </button>
         </div>
       </form>
       <div className="max-w-lg mx-auto mt-6">
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
           <p className="text-sm text-gray-500 mb-4">
-            {t("holdings.import.hint")}
+            {"Import transactions from a CSV file to add holdings"}
           </p>
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 inline-block cursor-pointer hover:border-gray-400 transition-colors">
             <i className="fas fa-file-csv text-4xl text-gray-400 mb-2"></i>
@@ -262,7 +256,7 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
               hideIcon={true}
             />
             <p className="text-sm text-gray-500 mt-2">
-              {t("holdings.import.select")}
+              {"Click or drop a CSV file here"}
             </p>
           </div>
           <label className="flex items-center justify-center mt-4">
@@ -273,17 +267,11 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
               onChange={() => setPurgeTrn(!purgeTrn)}
             />
             <span className="ml-2 text-sm text-gray-600">
-              {t("portfolio.delete.trns")}
+              {"Delete existing transactions"}
             </span>
           </label>
         </div>
       </div>
     </div>
   )
-})
-
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
-  props: {
-    ...(await serverSideTranslations(locale as string, ["common"])),
-  },
 })

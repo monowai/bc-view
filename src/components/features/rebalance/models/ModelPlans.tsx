@@ -1,5 +1,4 @@
 import React, { useState } from "react"
-import { useTranslation } from "next-i18next"
 import { useRouter } from "next/router"
 import { useModelPlans } from "../hooks/useModelPlans"
 import { PlanDto } from "types/rebalance"
@@ -12,7 +11,6 @@ interface ModelPlansProps {
 }
 
 const ModelPlans: React.FC<ModelPlansProps> = ({ modelId }) => {
-  const { t } = useTranslation("common")
   const router = useRouter()
   const { plans, isLoading, error, mutate } = useModelPlans(modelId)
   const [creating, setCreating] = useState(false)
@@ -69,7 +67,7 @@ const ModelPlans: React.FC<ModelPlansProps> = ({ modelId }) => {
   if (error) {
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-        {t("rebalance.plans.error", "Failed to load plans")}
+        {"Failed to load plan"}
       </div>
     )
   }
@@ -78,7 +76,7 @@ const ModelPlans: React.FC<ModelPlansProps> = ({ modelId }) => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-medium text-gray-900">
-          {t("rebalance.plans.title", "Plans")}
+          {"Rebalance Plans"}
         </h2>
         <button
           onClick={handleCreatePlan}
@@ -90,21 +88,16 @@ const ModelPlans: React.FC<ModelPlansProps> = ({ modelId }) => {
           ) : (
             <i className="fas fa-plus mr-2"></i>
           )}
-          {t("rebalance.plans.create", "Create Plan")}
+          {"Create Plan"}
         </button>
       </div>
 
       {plans.length === 0 ? (
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
           <i className="fas fa-clipboard-list text-gray-300 text-3xl mb-3"></i>
-          <p className="text-gray-600 mb-4">
-            {t("rebalance.plans.empty", "No plans yet")}
-          </p>
+          <p className="text-gray-600 mb-4">{"No rebalance plans yet"}</p>
           <p className="text-sm text-gray-500">
-            {t(
-              "rebalance.plans.emptyDesc",
-              "Create a plan to define target allocations for rebalancing.",
-            )}
+            {"Create a plan to define target allocations for rebalancing."}
           </p>
         </div>
       ) : (
@@ -113,19 +106,19 @@ const ModelPlans: React.FC<ModelPlansProps> = ({ modelId }) => {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t("rebalance.plans.version", "Version")}
+                  {"Version"}
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t("rebalance.plans.status", "Status")}
+                  {"Status"}
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t("rebalance.plans.created", "Created")}
+                  {"Created"}
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t("rebalance.plans.approved", "Approved")}
+                  {"Approved"}
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t("rebalance.plans.assets", "Assets")}
+                  {"Assets"}
                 </th>
                 <th className="px-4 py-3"></th>
               </tr>
@@ -172,7 +165,7 @@ const ModelPlans: React.FC<ModelPlansProps> = ({ modelId }) => {
                       }}
                       disabled={deletingId === plan.id}
                       className="text-gray-400 hover:text-red-600 p-1 mr-2 disabled:opacity-50"
-                      title={t("delete", "Delete")}
+                      title={"Delete"}
                     >
                       {deletingId === plan.id ? (
                         <i className="fas fa-spinner fa-spin"></i>
@@ -190,10 +183,10 @@ const ModelPlans: React.FC<ModelPlansProps> = ({ modelId }) => {
       )}
       {deletePlanId && (
         <ConfirmDialog
-          title={t("rebalance.plans.deleteTitle", "Delete Plan")}
-          message={t("rebalance.plans.confirmDelete", "Delete this plan?")}
-          confirmLabel={t("delete", "Delete")}
-          cancelLabel={t("cancel", "Cancel")}
+          title={"Delete Plan"}
+          message={"Delete this plan?"}
+          confirmLabel={"Delete"}
+          cancelLabel={"Cancel"}
           variant="red"
           onConfirm={handleDeleteConfirm}
           onCancel={() => setDeletePlanId(null)}

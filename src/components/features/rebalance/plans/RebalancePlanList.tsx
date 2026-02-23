@@ -1,5 +1,4 @@
 import React, { useState } from "react"
-import { useTranslation } from "next-i18next"
 import { useRouter } from "next/router"
 import { usePlans } from "../hooks/usePlans"
 import { TableSkeletonLoader } from "@components/ui/SkeletonLoader"
@@ -9,7 +8,6 @@ import { formatDate } from "@utils/formatters"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 
 const RebalancePlanList: React.FC = () => {
-  const { t } = useTranslation("common")
   const router = useRouter()
   const { plans, isLoading, error, deletePlan } = usePlans()
   const [deletingId, setDeletingId] = useState<string | null>(null)
@@ -33,7 +31,7 @@ const RebalancePlanList: React.FC = () => {
   if (error) {
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-        {t("rebalance.plans.error", "Failed to load rebalance plans")}
+        {"Failed to load plan"}
       </div>
     )
   }
@@ -42,14 +40,12 @@ const RebalancePlanList: React.FC = () => {
     return (
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
         <i className="fas fa-balance-scale text-4xl text-gray-400 mb-4"></i>
-        <p className="text-gray-600 mb-4">
-          {t("rebalance.plans.empty", "No rebalance plans yet")}
-        </p>
+        <p className="text-gray-600 mb-4">{"No rebalance plans yet"}</p>
         <button
           onClick={() => router.push("/rebalance/wizard")}
           className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
         >
-          {t("rebalance.plans.create", "Create Plan")}
+          {"Create Plan"}
         </button>
       </div>
     )
@@ -61,25 +57,25 @@ const RebalancePlanList: React.FC = () => {
         <thead className="bg-gray-100">
           <tr className="border-b border-gray-200">
             <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-              {t("rebalance.plans.name", "Plan Name")}
+              {"Plan Name"}
             </th>
             <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 hidden sm:table-cell">
-              {t("rebalance.plans.model", "Model")}
+              {"Model"}
             </th>
             <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
-              {t("rebalance.plans.portfolios", "Portfolios")}
+              {"Portfolios"}
             </th>
             <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 hidden md:table-cell">
-              {t("rebalance.plans.currentValue", "Current")}
+              {"Current Value"}
             </th>
             <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 hidden md:table-cell">
-              {t("rebalance.plans.targetValue", "Target")}
+              {"Target Value"}
             </th>
             <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
-              {t("rebalance.plans.status", "Status")}
+              {"Status"}
             </th>
             <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 hidden lg:table-cell">
-              {t("rebalance.plans.created", "Created")}
+              {"Created"}
             </th>
             <th className="px-4 py-3 w-12"></th>
           </tr>
@@ -125,7 +121,7 @@ const RebalancePlanList: React.FC = () => {
                   }}
                   disabled={deletingId === plan.id}
                   className="text-gray-400 hover:text-red-600 p-1 disabled:opacity-50"
-                  title={t("delete", "Delete")}
+                  title={"Delete"}
                 >
                   {deletingId === plan.id ? (
                     <i className="fas fa-spinner fa-spin"></i>
@@ -140,10 +136,10 @@ const RebalancePlanList: React.FC = () => {
       </table>
       {deletePlanId && (
         <ConfirmDialog
-          title={t("rebalance.plans.deleteTitle", "Delete Plan")}
-          message={t("rebalance.plans.confirmDelete", "Delete this plan?")}
-          confirmLabel={t("delete", "Delete")}
-          cancelLabel={t("cancel", "Cancel")}
+          title={"Delete Plan"}
+          message={"Delete this plan?"}
+          confirmLabel={"Delete"}
+          cancelLabel={"Cancel"}
           variant="red"
           onConfirm={handleDeleteConfirm}
           onCancel={() => setDeletePlanId(null)}

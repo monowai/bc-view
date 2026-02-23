@@ -52,5 +52,5 @@ export const TEST_VALUES = {
   IRR: "15.00", // 0.15 * 100 = 15.00
   WEIGHT: "100.00%", // 1.0 * 100 = 100.00%
   TOTAL_GAIN: "4,284.31",
-  VALUE_TITLE: "Value in PORTFOLIO",
+  VALUE_TITLE: "PORTFOLIO currency",
 } as const

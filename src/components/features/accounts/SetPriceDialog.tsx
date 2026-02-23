@@ -1,7 +1,15 @@
 import React, { useState } from "react"
-import { useTranslation } from "next-i18next"
 import { Asset } from "types/beancounter"
 import { stripOwnerPrefix, getAssetCurrency } from "@lib/assets/assetUtils"
+
+const CATEGORY_LABELS: Record<string, string> = {
+  PENSION: "Retirement Fund",
+  ACCOUNT: "Bank Account",
+  TRADE: "Trade Account",
+  RE: "Real Estate",
+  "MUTUAL FUND": "Mutual Fund",
+  POLICY: "Retirement Fund",
+}
 import Dialog from "@components/ui/Dialog"
 import Alert from "@components/ui/Alert"
 
@@ -16,7 +24,6 @@ const SetPriceDialog: React.FC<SetPriceDialogProps> = ({
   onClose,
   onSave,
 }) => {
-  const { t } = useTranslation(["common", "wealth"])
   const [date, setDate] = useState(new Date().toISOString().split("T")[0])
   const [price, setPrice] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -24,7 +31,7 @@ const SetPriceDialog: React.FC<SetPriceDialogProps> = ({
 
   const handleSave = async (): Promise<void> => {
     if (!price || parseFloat(price) <= 0) {
-      setError(t("wealth:error.invalidPrice"))
+      setError("Please enter a valid price greater than 0")
       return
     }
     setIsSubmitting(true)
@@ -32,9 +39,7 @@ const SetPriceDialog: React.FC<SetPriceDialogProps> = ({
     try {
       await onSave(asset.id, date, price)
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : t("wealth:error.setPriceFailed"),
-      )
+      setError(err instanceof Error ? err.message : "Failed to set price")
     } finally {
       setIsSubmitting(false)
     }
@@ -42,15 +47,15 @@ const SetPriceDialog: React.FC<SetPriceDialogProps> = ({
 
   return (
     <Dialog
-      title={t("price.set.title")}
+      title={"Set Asset Price"}
       onClose={onClose}
       footer={
         <>
-          <Dialog.CancelButton onClick={onClose} label={t("cancel")} />
+          <Dialog.CancelButton onClick={onClose} label={"Cancel"} />
           <Dialog.SubmitButton
             onClick={handleSave}
-            label={t("save")}
-            loadingLabel={t("saving")}
+            label={"Save"}
+            loadingLabel={"Saving..."}
             isSubmitting={isSubmitting}
           />
         </>
@@ -60,15 +65,15 @@ const SetPriceDialog: React.FC<SetPriceDialogProps> = ({
         <div className="font-semibold text-lg">{asset.name}</div>
         <div className="text-sm text-gray-600">
           {stripOwnerPrefix(asset.code)} -{" "}
-          {t(`category.${asset.assetCategory?.id}`, {
-            defaultValue: asset.assetCategory?.name || "-",
-          })}
+          {CATEGORY_LABELS[asset.assetCategory?.id || ""] ||
+            asset.assetCategory?.name ||
+            "-"}
         </div>
       </Alert>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          {t("price.date")}
+          {"Price Date"}
         </label>
         <input
           type="date"
@@ -80,7 +85,7 @@ const SetPriceDialog: React.FC<SetPriceDialogProps> = ({
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          {t("price.value")} ({getAssetCurrency(asset) || "USD"})
+          {"Price Value"} ({getAssetCurrency(asset) || "USD"})
         </label>
         <input
           type="number"
@@ -88,7 +93,7 @@ const SetPriceDialog: React.FC<SetPriceDialogProps> = ({
           min="0"
           value={price}
           onChange={(e) => setPrice(e.target.value)}
-          placeholder={t("price.value.hint")}
+          placeholder={"Current market value or valuation"}
           className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-green-500 focus:border-green-500"
         />
       </div>

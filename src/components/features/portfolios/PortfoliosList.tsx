@@ -1,5 +1,4 @@
 import React, { useMemo, useState, useCallback } from "react"
-import { useTranslation } from "next-i18next"
 import { useRouter } from "next/router"
 import Link from "next/link"
 import { Portfolio, Currency } from "types/beancounter"
@@ -134,7 +133,6 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
   onCorporateActions,
   onDelete,
 }) => {
-  const { t } = useTranslation("common")
   const router = useRouter()
 
   const [sortConfig, setSortConfig] = useState<SortConfig>({
@@ -195,10 +193,10 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
       <div className="min-h-screen bg-gray-50 px-4 py-8">
         <div className="max-w-2xl mx-auto">
           <h2 className="text-xl font-semibold text-gray-900 mb-6 text-center">
-            {t("portfolios.empty.title", "No portfolios yet")}
+            {"No portfolios yet"}
           </h2>
           <p className="text-gray-600 mb-8 text-center">
-            {t("error.portfolios.empty")}
+            {"You have no portfolios"}
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -210,13 +208,10 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                 <i className="fas fa-rocket text-xl text-wealth-500"></i>
               </div>
               <h3 className="font-semibold text-gray-900 mb-2">
-                {t("home.startSetup", "Start Setup")}
+                {"Start Setup"}
               </h3>
               <p className="text-gray-500 text-sm">
-                {t(
-                  "portfolios.guided",
-                  "Guided setup for bank accounts, property, and pensions",
-                )}
+                {"Guided setup for bank accounts, property, and pensions"}
               </p>
             </Link>
 
@@ -227,14 +222,9 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
               <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <i className="fas fa-plus text-xl text-green-500"></i>
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">
-                {t("portfolio.create")}
-              </h3>
+              <h3 className="font-semibold text-gray-900 mb-2">{"Add"}</h3>
               <p className="text-gray-500 text-sm">
-                {t(
-                  "portfolios.direct",
-                  "Create a portfolio directly with full control",
-                )}
+                {"Create a portfolio directly with full control"}
               </p>
             </Link>
           </div>
@@ -266,12 +256,12 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
               <button
                 onClick={() => router.push("/wealth")}
                 className="text-gray-500 hover:text-gray-700 p-1 -ml-1"
-                title={t("wealth.title", "Wealth")}
+                title={"Wealth"}
               >
                 <i className="fas fa-arrow-left text-lg"></i>
               </button>
               <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-                {t("portfolios.title", "Portfolios")}
+                {"Portfolios"}
               </h1>
               {currencies.length > 0 && displayCurrency && (
                 <select
@@ -283,7 +273,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                     if (selected) onCurrencyChange(selected)
                   }}
                   className="border border-gray-300 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
-                  title={t("portfolios.currency.display")}
+                  title={"Display Currency"}
                 >
                   {currencies.map((c) => (
                     <option key={c.code} value={c.code}>
@@ -302,14 +292,14 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
           {selectedPortfolios.size > 0 && (
             <div className="flex items-center space-x-2 pt-2 border-t border-gray-100">
               <span className="text-sm text-gray-600">
-                {selectedPortfolios.size} {t("selected")}
+                {selectedPortfolios.size} {"selected"}
               </span>
               <button
                 className="bg-amber-500 text-white py-1.5 px-3 rounded-lg hover:bg-amber-600 transition-colors flex items-center text-sm"
                 onClick={handleViewAggregated}
               >
                 <i className="fas fa-layer-group mr-1.5"></i>
-                {t("portfolios.viewHoldings", "Holdings")}
+                {"Holdings"}
               </button>
               <button
                 className="bg-indigo-500 text-white py-1.5 px-3 rounded-lg hover:bg-indigo-600 transition-colors flex items-center text-sm"
@@ -321,7 +311,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                 }}
               >
                 <i className="fas fa-balance-scale mr-1.5"></i>
-                {t("portfolios.rebalance", "Rebalance")}
+                {"Rebalance"}
               </button>
             </div>
           )}
@@ -430,21 +420,21 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                   <button
                     onClick={() => onShareClick(portfolio.id)}
                     className="text-blue-500 hover:text-blue-700 p-1"
-                    title={t("shares.share")}
+                    title={"Share"}
                   >
                     <i className="fas fa-share-alt"></i>
                   </button>
                   <button
                     onClick={() => onCorporateActions(portfolio)}
                     className="text-blue-500 hover:text-blue-700 p-1"
-                    title={t("corporate.portfolio.scan")}
+                    title={"Scan Corporate Actions"}
                   >
                     <i className="fas fa-calendar-check"></i>
                   </button>
                   <Link
                     href={`/portfolios/${portfolio.id}`}
                     className="text-blue-500 hover:text-blue-700 p-1"
-                    title={t("portfolio.edit", "Edit")}
+                    title={"Edit"}
                   >
                     <i className="far fa-edit"></i>
                   </Link>
@@ -456,7 +446,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                       })
                     }
                     className="text-red-500 hover:text-red-700 p-1"
-                    title={t("portfolio.delete.title", "Delete")}
+                    title={"Delete"}
                   >
                     <i className="far fa-trash-alt"></i>
                   </button>
@@ -470,7 +460,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
         <div className="bg-gradient-to-r from-wealth-500 to-wealth-600 rounded-xl shadow-sm p-4">
           <div className="flex justify-between items-center">
             <span className="font-semibold text-white/90">
-              {t("portfolios.total")}: {displayCurrency?.code}
+              {"Total"}: {displayCurrency?.code}
             </span>
             <div className="text-right">
               <span className="text-xl font-bold text-white tabular-nums">
@@ -513,7 +503,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                     checked={allSelected}
                     onChange={toggleAllSelection}
                     className="w-4 h-4 text-blue-500 rounded border-blue-300 bg-blue-400 focus:ring-white cursor-pointer"
-                    title={t("portfolios.selectAll", "Select all")}
+                    title={"Select all"}
                   />
                 </th>
                 <th
@@ -521,7 +511,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                   onClick={() => handleSort("code")}
                 >
                   <div className="flex items-center">
-                    {t("portfolio.code")}
+                    {"Code"}
                     {renderSortIcon("code")}
                   </div>
                 </th>
@@ -530,7 +520,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                   onClick={() => handleSort("name")}
                 >
                   <div className="flex items-center">
-                    {t("portfolio.name")}
+                    {"Name"}
                     {renderSortIcon("name")}
                   </div>
                 </th>
@@ -539,7 +529,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                   onClick={() => handleSort("marketValue")}
                 >
                   <div className="flex items-center justify-end">
-                    {t("portfolio.marketvalue")}
+                    {"Market Value"}
                     {renderSortIcon("marketValue")}
                   </div>
                 </th>
@@ -548,7 +538,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                   onClick={() => handleSort("gainOnDayPercent")}
                 >
                   <div className="flex items-center justify-end">
-                    {t("portfolio.gainOnDayPercent", "Day %")}
+                    {"Day %"}
                     {renderSortIcon("gainOnDayPercent")}
                   </div>
                 </th>
@@ -557,7 +547,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                   onClick={() => handleSort("irr")}
                 >
                   <div className="flex items-center justify-end">
-                    {t("portfolio.irr")}
+                    {"IRR"}
                     {renderSortIcon("irr")}
                   </div>
                 </th>
@@ -566,12 +556,12 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                   onClick={() => handleSort("valuedAt")}
                 >
                   <div className="flex items-center justify-center">
-                    {t("portfolio.valuedAt", "Valued")}
+                    {"Valued"}
                     {renderSortIcon("valuedAt")}
                   </div>
                 </th>
                 <th className="px-4 py-3 text-center text-sm font-semibold w-32">
-                  {t("portfolio.actions")}
+                  {"Actions"}
                 </th>
               </tr>
             </thead>
@@ -688,7 +678,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                           onShareClick(portfolio.id)
                         }}
                         className="text-slate-400 hover:text-blue-600 transition-colors"
-                        title={t("shares.share")}
+                        title={"Share"}
                       >
                         <i className="fas fa-share-alt text-lg"></i>
                       </button>
@@ -698,14 +688,14 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                           onCorporateActions(portfolio)
                         }}
                         className="text-slate-400 hover:text-blue-600 transition-colors"
-                        title={t("corporate.portfolio.scan")}
+                        title={"Scan Corporate Actions"}
                       >
                         <i className="fas fa-calendar-check text-lg"></i>
                       </button>
                       <Link
                         href={`/portfolios/${portfolio.id}`}
                         className="text-slate-400 hover:text-blue-600 transition-colors"
-                        title={t("portfolio.edit", "Edit Portfolio")}
+                        title={"Edit Portfolio"}
                         onClick={(e) => e.stopPropagation()}
                       >
                         <i className="far fa-edit text-lg"></i>
@@ -719,7 +709,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                           })
                         }}
                         className="text-slate-400 hover:text-red-600 transition-colors"
-                        title={t("portfolio.delete.title", "Delete Portfolio")}
+                        title={"Delete Portfolio"}
                       >
                         <i className="far fa-trash-alt text-lg"></i>
                       </button>
@@ -734,7 +724,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                   colSpan={3}
                   className="px-4 py-3 text-right text-sm font-semibold text-white/90"
                 >
-                  {t("portfolios.total")}: {displayCurrency?.code}
+                  {"Total"}: {displayCurrency?.code}
                 </td>
                 <td className="px-4 py-3 text-right text-sm font-bold text-white tabular-nums">
                   {displayCurrency?.symbol === "?"

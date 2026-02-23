@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react"
-import { useTranslation } from "next-i18next"
 import { useRouter } from "next/router"
 import useSwr from "swr"
 import { useUser } from "@auth0/nextjs-auth0/client"
@@ -80,7 +79,6 @@ function generateAssetCode(name: string): string {
 }
 
 const OnboardingWizard: React.FC = () => {
-  const { t } = useTranslation("onboarding")
   const router = useRouter()
   const { markOnboardingComplete } = useRegistration()
   const { user } = useUser()
@@ -147,15 +145,15 @@ const OnboardingWizard: React.FC = () => {
   // Steps configuration
   const steps = useMemo(
     () => [
-      { id: 1, label: t("steps.welcome", "Welcome") },
-      { id: 2, label: t("steps.currency", "Currency") },
-      { id: 3, label: t("steps.portfolio", "Portfolio") },
-      { id: 4, label: t("steps.assets", "Assets") },
-      { id: 5, label: t("steps.review", "Review") },
-      { id: 6, label: t("steps.independence", "Independence") },
-      { id: 7, label: t("steps.complete", "Complete") },
+      { id: 1, label: "Welcome" },
+      { id: 2, label: "Currency" },
+      { id: 3, label: "Portfolio" },
+      { id: 4, label: "Assets" },
+      { id: 5, label: "Review" },
+      { id: 6, label: "Independence" },
+      { id: 7, label: "Complete" },
     ],
-    [t],
+    [],
   )
 
   // Remove handlers for Review step
@@ -740,7 +738,7 @@ const OnboardingWizard: React.FC = () => {
               onClick={handleBack}
               className="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300 transition-colors"
             >
-              {t("back", "Back")}
+              {"Back"}
             </button>
           )}
         </div>
@@ -752,7 +750,7 @@ const OnboardingWizard: React.FC = () => {
               onClick={handleSkip}
               className="px-4 py-2 text-gray-500 hover:text-gray-700 transition-colors"
             >
-              {t("skipForNow", "Skip for now")}
+              {"Skip for now"}
             </button>
           )}
 
@@ -767,7 +765,7 @@ const OnboardingWizard: React.FC = () => {
                   : "bg-gray-400 cursor-not-allowed"
               }`}
             >
-              {t("continue", "Continue")}
+              {"Continue"}
             </button>
           )}
 
@@ -785,10 +783,10 @@ const OnboardingWizard: React.FC = () => {
               {isSubmitting ? (
                 <span className="flex items-center">
                   <i className="fas fa-spinner fa-spin mr-2"></i>
-                  {t("creating", "Creating...")}
+                  {"Creating..."}
                 </span>
               ) : (
-                t("completeSetup", "Complete Setup")
+                "Complete Setup"
               )}
             </button>
           )}
@@ -799,7 +797,7 @@ const OnboardingWizard: React.FC = () => {
               onClick={handleFinish}
               className="px-4 py-2 rounded text-white bg-blue-500 hover:bg-blue-600 transition-colors"
             >
-              {t("done", "Done")}
+              {"Done"}
             </button>
           )}
         </div>

@@ -1,5 +1,4 @@
 import React from "react"
-import { useTranslation } from "next-i18next"
 import { useGroupOptions } from "@components/features/holdings/GroupByOptions"
 import { useHoldingState } from "@lib/holdings/holdingState"
 
@@ -18,7 +17,6 @@ export const GroupByControls: React.FC<GroupByControlsProps> = ({
   hideLabel = false,
   compact = false,
 }) => {
-  const { t } = useTranslation("common")
   const holdingState = useHoldingState()
   const groupOptions = useGroupOptions()
 
@@ -27,7 +25,7 @@ export const GroupByControls: React.FC<GroupByControlsProps> = ({
       <div className="flex items-center space-x-2">
         {!hideLabel && (
           <span className="text-sm font-medium text-gray-700">
-            {t("holdings.groupBy")}:
+            {"Group By"}:
           </span>
         )}
         <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">

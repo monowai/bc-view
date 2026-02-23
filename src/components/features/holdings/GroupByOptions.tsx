@@ -1,8 +1,6 @@
 import React, { ReactElement, useCallback } from "react"
 import { useHoldingState } from "@lib/holdings/holdingState"
 import { GroupOption, GroupOptions } from "types/app"
-import { useTranslation } from "next-i18next"
-import { rootLoader } from "@components/ui/PageLoader"
 import { GroupingMode } from "@lib/allocation/aggregateHoldings"
 import {
   GROUP_BY_OPTIONS,
@@ -40,29 +38,28 @@ export function toAllocationGroupBy(
 }
 
 export function useGroupOptions(): GroupOptions {
-  const { t } = useTranslation("common")
   return {
     values: [
       {
         value: GROUP_BY_OPTIONS.ASSET_CLASS,
-        label: t("by.class"),
+        label: "Asset Class",
       },
       {
         value: GROUP_BY_OPTIONS.SECTOR,
-        label: t("by.sector"),
+        label: "Sector",
       },
       {
         value: GROUP_BY_OPTIONS.MARKET_CURRENCY,
-        label: t("by.currency"),
+        label: "Currency",
       },
       {
         value: GROUP_BY_OPTIONS.MARKET,
-        label: t("by.market"),
+        label: "Market",
       },
     ],
     groupDefault: {
       value: GROUP_BY_OPTIONS.ASSET_CLASS,
-      label: t("by.class"),
+      label: "Asset Class",
     },
   }
 }
@@ -76,8 +73,6 @@ const GroupByOptions: React.FC<GroupByOptionsProps> = ({
 }): ReactElement => {
   const holdingState = useHoldingState()
   const groupOptions = useGroupOptions()
-  const { t, ready } = useTranslation("common")
-
   const handleSelectChange = useCallback(
     (selectedOption: GroupOption) => {
       holdingState.setGroupBy(selectedOption)
@@ -85,10 +80,6 @@ const GroupByOptions: React.FC<GroupByOptionsProps> = ({
     },
     [holdingState, onOptionSelect],
   )
-
-  if (!ready) {
-    return rootLoader(t("loading"))
-  }
 
   return (
     <ul className="menu-list">

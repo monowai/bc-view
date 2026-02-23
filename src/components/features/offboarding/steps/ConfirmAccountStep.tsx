@@ -1,6 +1,4 @@
 import React from "react"
-import { useTranslation } from "next-i18next"
-
 interface ConfirmAccountStepProps {
   deleteAccount: boolean
   setDeleteAccount: (value: boolean) => void
@@ -18,14 +16,16 @@ export default function ConfirmAccountStep({
   isDeleting,
   hasSelections,
 }: ConfirmAccountStepProps): React.ReactElement {
-  const { t } = useTranslation("offboarding")
-
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <h2 className="text-xl font-semibold text-gray-900 mb-4">
-        {t("account.title")}
+        {"Delete Account"}
       </h2>
-      <p className="text-gray-600 mb-6">{t("account.description")}</p>
+      <p className="text-gray-600 mb-6">
+        {
+          "Optionally, you can delete your entire Beancounter account. This will remove all your data and log you out."
+        }
+      </p>
 
       <div className="border border-gray-200 rounded-lg p-4 mb-6">
         <label className="flex items-start cursor-pointer">
@@ -37,10 +37,12 @@ export default function ConfirmAccountStep({
           />
           <div className="ml-3">
             <span className="font-medium text-gray-900">
-              {t("account.checkbox")}
+              {"Delete my entire account"}
             </span>
             <p className="text-sm text-gray-500 mt-1">
-              {t("account.checkboxDescription")}
+              {
+                "This will delete all your data including portfolios, assets, plans, models, preferences, and your user account."
+              }
             </p>
           </div>
         </label>
@@ -52,10 +54,12 @@ export default function ConfirmAccountStep({
             <i className="fas fa-exclamation-circle text-red-500 mr-3 mt-1"></i>
             <div>
               <p className="text-red-700 font-medium">
-                {t("account.warningTitle")}
+                {"Complete account deletion"}
               </p>
               <p className="text-red-600 text-sm mt-1">
-                {t("account.warningDescription")}
+                {
+                  "Your account will be permanently deleted. You will be logged out and will need to register again to use Beancounter."
+                }
               </p>
             </div>
           </div>
@@ -66,7 +70,11 @@ export default function ConfirmAccountStep({
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
           <div className="flex items-center">
             <i className="fas fa-info-circle text-yellow-500 mr-3"></i>
-            <p className="text-yellow-700">{t("account.noSelections")}</p>
+            <p className="text-yellow-700">
+              {
+                "Please select at least one item to delete, or delete your entire account."
+              }
+            </p>
           </div>
         </div>
       )}
@@ -77,7 +85,7 @@ export default function ConfirmAccountStep({
           disabled={isDeleting}
           className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
         >
-          {t("back")}
+          {"Back"}
         </button>
         <button
           onClick={onDelete}
@@ -87,12 +95,12 @@ export default function ConfirmAccountStep({
           {isDeleting ? (
             <>
               <i className="fas fa-spinner fa-spin mr-2"></i>
-              {t("deleting")}
+              {"Deleting..."}
             </>
           ) : (
             <>
               <i className="fas fa-trash-alt mr-2"></i>
-              {t("deleteSelected")}
+              {"Delete Selected"}
             </>
           )}
         </button>

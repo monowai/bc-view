@@ -1,5 +1,4 @@
 import React from "react"
-import { useTranslation } from "next-i18next"
 import {
   BankAccount,
   Property,
@@ -30,8 +29,6 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
   onRemovePension,
   onRemoveInsurance,
 }) => {
-  const { t } = useTranslation("onboarding")
-
   const hasAssets =
     bankAccounts.length > 0 ||
     properties.length > 0 ||
@@ -55,13 +52,12 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
     <div className="space-y-6">
       <div className="text-center mb-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-2">
-          {t("review.title", "Review Your Setup")}
+          {"Review Your Setup"}
         </h2>
         <p className="text-gray-600">
-          {t(
-            "review.description",
-            "Please review the assets below. You can remove any items before completing setup.",
-          )}
+          {
+            "Please review the assets below. You can remove any items before completing setup."
+          }
         </p>
       </div>
 
@@ -69,10 +65,9 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
         <div className="text-center py-8 text-gray-500">
           <i className="fas fa-inbox text-4xl mb-4"></i>
           <p>
-            {t(
-              "review.noAssets",
-              "No assets to create. You can go back to add some or continue with just the portfolio.",
-            )}
+            {
+              "No assets to create. You can go back to add some or continue with just the portfolio."
+            }
           </p>
         </div>
       ) : (
@@ -82,20 +77,20 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
             <div>
               <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
                 <i className="fas fa-university text-blue-500 mr-2"></i>
-                {t("review.bankAccounts", "Bank Accounts")}
+                {"Bank Accounts"}
               </h3>
               <div className="bg-gray-50 rounded-lg overflow-hidden">
                 <table className="min-w-full">
                   <thead className="bg-gray-100">
                     <tr>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                        {t("review.name", "Name")}
+                        {"Name"}
                       </th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                        {t("review.currency", "Currency")}
+                        {"Currency"}
                       </th>
                       <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                        {t("review.balance", "Balance")}
+                        {"Balance"}
                       </th>
                       <th className="px-4 py-2 w-10"></th>
                     </tr>
@@ -117,7 +112,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
                             type="button"
                             onClick={() => onRemoveBankAccount(index)}
                             className="text-red-500 hover:text-red-700"
-                            title={t("review.remove", "Remove")}
+                            title={"Remove"}
                           >
                             <i className="fas fa-trash-alt"></i>
                           </button>
@@ -135,20 +130,20 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
             <div>
               <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
                 <i className="fas fa-home text-green-500 mr-2"></i>
-                {t("review.properties", "Properties")}
+                {"Properties"}
               </h3>
               <div className="bg-gray-50 rounded-lg overflow-hidden">
                 <table className="min-w-full">
                   <thead className="bg-gray-100">
                     <tr>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                        {t("review.name", "Name")}
+                        {"Name"}
                       </th>
                       <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                        {t("review.purchasePrice", "Purchase Price")}
+                        {"Purchase Price"}
                       </th>
                       <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                        {t("review.currentValue", "Current Value")}
+                        {"Current Value"}
                       </th>
                       <th className="px-4 py-2 w-10"></th>
                     </tr>
@@ -173,7 +168,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
                             type="button"
                             onClick={() => onRemoveProperty(index)}
                             className="text-red-500 hover:text-red-700"
-                            title={t("review.remove", "Remove")}
+                            title={"Remove"}
                           >
                             <i className="fas fa-trash-alt"></i>
                           </button>
@@ -191,23 +186,23 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
             <div>
               <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
                 <i className="fas fa-piggy-bank text-purple-500 mr-2"></i>
-                {t("review.pensions", "Pension Plans")}
+                {"Pension Plans"}
               </h3>
               <div className="bg-gray-50 rounded-lg overflow-hidden">
                 <table className="min-w-full">
                   <thead className="bg-gray-100">
                     <tr>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                        {t("review.name", "Name")}
+                        {"Name"}
                       </th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                        {t("review.currency", "Currency")}
+                        {"Currency"}
                       </th>
                       <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                        {t("review.balance", "Balance")}
+                        {"Balance"}
                       </th>
                       <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                        {t("review.payoutAge", "Payout Age")}
+                        {"Payout Age"}
                       </th>
                       <th className="px-4 py-2 w-10"></th>
                     </tr>
@@ -242,7 +237,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
                             type="button"
                             onClick={() => onRemovePension(index)}
                             className="text-red-500 hover:text-red-700"
-                            title={t("review.remove", "Remove")}
+                            title={"Remove"}
                           >
                             <i className="fas fa-trash-alt"></i>
                           </button>
@@ -260,23 +255,23 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
             <div>
               <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
                 <i className="fas fa-shield-alt text-teal-500 mr-2"></i>
-                {t("review.insurances", "Life Insurance")}
+                {"Life Insurance"}
               </h3>
               <div className="bg-gray-50 rounded-lg overflow-hidden">
                 <table className="min-w-full">
                   <thead className="bg-gray-100">
                     <tr>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                        {t("review.name", "Name")}
+                        {"Name"}
                       </th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                        {t("review.currency", "Currency")}
+                        {"Currency"}
                       </th>
                       <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                        {t("review.cashValue", "Cash Value")}
+                        {"Cash Value"}
                       </th>
                       <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                        {t("review.payout", "Payout")}
+                        {"Payout"}
                       </th>
                       <th className="px-4 py-2 w-10"></th>
                     </tr>
@@ -317,7 +312,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
                             type="button"
                             onClick={() => onRemoveInsurance(index)}
                             className="text-red-500 hover:text-red-700"
-                            title={t("review.remove", "Remove")}
+                            title={"Remove"}
                           >
                             <i className="fas fa-trash-alt"></i>
                           </button>
@@ -335,10 +330,9 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
       <div className="mt-6 p-4 bg-blue-50 rounded-lg">
         <p className="text-sm text-blue-800">
           <i className="fas fa-info-circle mr-2"></i>
-          {t(
-            "review.info",
-            "Click 'Continue' to proceed with your setup. You can still make changes in the next step.",
-          )}
+          {
+            "Click 'Continue' to proceed with your setup. You can still make changes in the next step."
+          }
         </p>
       </div>
     </div>

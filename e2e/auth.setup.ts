@@ -24,6 +24,14 @@ setup("authenticate via Auth0", async ({ page }) => {
   await page.fill('input[name="password"]', password)
   await page.click('button[type="submit"]')
 
+  // Handle Auth0 consent/authorize screen if it appears
+  const acceptButton = page.locator('button:has-text("Accept")')
+  try {
+    await acceptButton.click({ timeout: 5000 })
+  } catch {
+    // Consent screen didn't appear — already redirected
+  }
+
   // Wait for redirect back to app
   await page.waitForURL(/localhost:3000|kauri\.monowai\.com/)
 

@@ -3,9 +3,6 @@ import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useUser } from "@auth0/nextjs-auth0/client"
 import Image from "next/image"
 import Link from "next/link"
-import { useTranslation } from "next-i18next"
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
-import { GetServerSideProps } from "next"
 import { rootLoader } from "@components/ui/PageLoader"
 import Alert from "@components/ui/Alert"
 import Spinner from "@components/ui/Spinner"
@@ -44,6 +41,21 @@ const COUNTRY_OPTIONS = [
   { code: "US", name: "United States" },
 ]
 
+const SETTINGS_LABELS: Record<string, string> = {
+  "settings.holdingsView.summary": "Summary",
+  "settings.holdingsView.cards": "Cards",
+  "settings.holdingsView.heatmap": "Heatmap",
+  "settings.holdingsView.table": "Table",
+  "settings.holdingsView.allocation": "Allocation",
+  "settings.valueIn.portfolio": "Portfolio Currency",
+  "settings.valueIn.base": "Base Currency",
+  "settings.valueIn.trade": "Trade Currency",
+  "settings.groupBy.class": "Asset Class",
+  "settings.groupBy.sector": "Sector",
+  "settings.groupBy.currency": "Currency",
+  "settings.groupBy.market": "Market",
+}
+
 const HOLDINGS_VIEW_UI_OPTIONS: { value: HoldingsView; labelKey: string }[] = [
   { value: "SUMMARY", labelKey: "settings.holdingsView.summary" },
   { value: "CARDS", labelKey: "settings.holdingsView.cards" },
@@ -72,7 +84,6 @@ const GROUP_BY_UI_OPTIONS: { value: GroupByApiValue; labelKey: string }[] = [
 ]
 
 function SettingsPage(): React.ReactElement {
-  const { t, ready } = useTranslation("common")
   const { user } = useUser()
   const { refetch: refetchPreferences } = useUserPreferences()
   const { isAdmin } = useIsAdmin()
@@ -165,14 +176,14 @@ function SettingsPage(): React.ReactElement {
         }
       } catch (err) {
         console.error("Failed to fetch settings:", err)
-        setError(t("settings.error.load"))
+        setError("Failed to load settings")
       } finally {
         setIsLoading(false)
       }
     }
 
     fetchData()
-  }, [t])
+  }, [])
 
   const handleSave = async (): Promise<void> => {
     setIsSaving(true)
@@ -200,15 +211,15 @@ function SettingsPage(): React.ReactElement {
 
       if (response.ok) {
         await refetchPreferences()
-        setSuccess(t("settings.success.saved"))
+        setSuccess("Settings saved successfully")
         setTimeout(() => setSuccess(null), 3000)
       } else {
         const errorData = await response.json().catch(() => ({}))
-        setError(errorData.message || t("settings.error.save"))
+        setError(errorData.message || "Failed to save settings")
       }
     } catch (err) {
       console.error("Failed to save settings:", err)
-      setError(t("settings.error.save"))
+      setError("Failed to save settings")
     } finally {
       setIsSaving(false)
     }
@@ -219,7 +230,7 @@ function SettingsPage(): React.ReactElement {
 
     const rate = parseFloat(newTaxRate) / 100
     if (isNaN(rate) || rate < 0 || rate > 1) {
-      setError(t("settings.taxRates.error.invalidRate"))
+      setError("Rate must be between 0 and 100%")
       return
     }
 
@@ -248,19 +259,19 @@ function SettingsPage(): React.ReactElement {
         })
         setNewTaxCountry("")
         setNewTaxRate("")
-        setSuccess(t("settings.taxRates.saved"))
+        setSuccess("Tax rate saved")
         setTimeout(() => setSuccess(null), 3000)
       } else {
         const errorData = await response.json().catch(() => ({}))
-        setError(errorData.message || t("settings.taxRates.error.save"))
+        setError(errorData.message || "Failed to save tax rate")
       }
     } catch (err) {
       console.error("Failed to save tax rate:", err)
-      setError(t("settings.taxRates.error.save"))
+      setError("Failed to save tax rate")
     } finally {
       setTaxRateSaving(false)
     }
-  }, [newTaxCountry, newTaxRate, t])
+  }, [newTaxCountry, newTaxRate])
 
   const handleDeleteTaxRate = useCallback(
     async (countryCode: string): Promise<void> => {
@@ -273,17 +284,17 @@ function SettingsPage(): React.ReactElement {
           setTaxRates((prev) =>
             prev.filter((r) => r.countryCode !== countryCode),
           )
-          setSuccess(t("settings.taxRates.deleted"))
+          setSuccess("Tax rate deleted")
           setTimeout(() => setSuccess(null), 3000)
         } else {
-          setError(t("settings.taxRates.error.delete"))
+          setError("Failed to delete tax rate")
         }
       } catch (err) {
         console.error("Failed to delete tax rate:", err)
-        setError(t("settings.taxRates.error.delete"))
+        setError("Failed to delete tax rate")
       }
     },
-    [t],
+    [],
   )
 
   const getCountryName = useCallback((code: string): string => {
@@ -295,15 +306,13 @@ function SettingsPage(): React.ReactElement {
     (c) => !taxRates.some((r) => r.countryCode === c.code),
   )
 
-  if (!ready || isLoading) {
-    return rootLoader(t("loading"))
+  if (isLoading) {
+    return rootLoader("Loading...")
   }
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-3xl">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">
-        {t("settings.title")}
-      </h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">{"Settings"}</h1>
 
       {/* Tab Navigation */}
       <div className="border-b border-gray-200 mb-6">
@@ -359,18 +368,18 @@ function SettingsPage(): React.ReactElement {
                 htmlFor="preferredName"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                {t("settings.preferredName")}
+                {"Preferred Name"}
               </label>
               <input
                 id="preferredName"
                 type="text"
                 value={preferredName}
                 onChange={(e) => setPreferredName(e.target.value)}
-                placeholder={t("settings.preferredName.placeholder")}
+                placeholder={"Enter your preferred name"}
                 className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-500 focus:border-blue-500"
               />
               <p className="mt-1 text-sm text-gray-500">
-                {t("settings.preferredName.description")}
+                {"How you'd like to be greeted in the app"}
               </p>
             </div>
 
@@ -412,7 +421,7 @@ function SettingsPage(): React.ReactElement {
                 disabled={isSaving}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
               >
-                {isSaving ? t("settings.saving") : t("settings.save")}
+                {isSaving ? "Saving..." : "Save Settings"}
               </button>
             </div>
           </div>
@@ -429,7 +438,7 @@ function SettingsPage(): React.ReactElement {
                 htmlFor="holdingsView"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                {t("settings.defaultHoldingsView")}
+                {"Default Holdings View"}
               </label>
               <select
                 id="holdingsView"
@@ -441,7 +450,7 @@ function SettingsPage(): React.ReactElement {
               >
                 {HOLDINGS_VIEW_UI_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
-                    {t(option.labelKey)}
+                    {SETTINGS_LABELS[option.labelKey] ?? option.labelKey}
                   </option>
                 ))}
               </select>
@@ -453,7 +462,7 @@ function SettingsPage(): React.ReactElement {
                 htmlFor="valueIn"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                {t("settings.defaultValueIn")}
+                {"Default Value Currency"}
               </label>
               <select
                 id="valueIn"
@@ -465,7 +474,7 @@ function SettingsPage(): React.ReactElement {
               >
                 {VALUE_IN_UI_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
-                    {t(option.labelKey)}
+                    {SETTINGS_LABELS[option.labelKey] ?? option.labelKey}
                   </option>
                 ))}
               </select>
@@ -477,7 +486,7 @@ function SettingsPage(): React.ReactElement {
                 htmlFor="groupBy"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                {t("settings.defaultGroupBy")}
+                {"Default Grouping"}
               </label>
               <select
                 id="groupBy"
@@ -489,7 +498,7 @@ function SettingsPage(): React.ReactElement {
               >
                 {GROUP_BY_UI_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
-                    {t(option.labelKey)}
+                    {SETTINGS_LABELS[option.labelKey] ?? option.labelKey}
                   </option>
                 ))}
               </select>
@@ -501,7 +510,7 @@ function SettingsPage(): React.ReactElement {
                 htmlFor="defaultMarket"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                {t("settings.defaultMarket", "Default Market")}
+                {"Default Market"}
               </label>
               <select
                 id="defaultMarket"
@@ -516,10 +525,9 @@ function SettingsPage(): React.ReactElement {
                 ))}
               </select>
               <p className="mt-1 text-sm text-gray-500">
-                {t(
-                  "settings.defaultMarket.description",
-                  "Used as the default market when searching for assets and entering trades",
-                )}
+                {
+                  "Used as the default market when searching for assets and entering trades"
+                }
               </p>
             </div>
 
@@ -529,7 +537,7 @@ function SettingsPage(): React.ReactElement {
                 htmlFor="baseCurrency"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                {t("settings.baseCurrency")}
+                {"System Base Currency"}
               </label>
               <select
                 id="baseCurrency"
@@ -551,7 +559,7 @@ function SettingsPage(): React.ReactElement {
                 htmlFor="reportingCurrency"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                {t("settings.reportingCurrency")}
+                {"Reporting Currency"}
               </label>
               <select
                 id="reportingCurrency"
@@ -571,10 +579,10 @@ function SettingsPage(): React.ReactElement {
             <div className="flex items-center justify-between">
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  {t("settings.showWeightedIrr")}
+                  {"Show Weighted IRR"}
                 </label>
                 <p className="text-sm text-gray-500">
-                  {t("settings.showWeightedIrr.description")}
+                  {"Display market-value weighted IRR in group subtotals"}
                 </p>
               </div>
               <button
@@ -599,13 +607,10 @@ function SettingsPage(): React.ReactElement {
               <div className="flex items-center justify-between">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    {t("settings.enableTwr", "Wealth Performance Chart")}
+                    {"Wealth Performance Chart"}
                   </label>
                   <p className="text-sm text-gray-500">
-                    {t(
-                      "settings.enableTwr.description",
-                      "Show time-weighted return chart on the wealth page",
-                    )}
+                    {"Show time-weighted return chart on the wealth page"}
                   </p>
                 </div>
                 <button
@@ -633,7 +638,7 @@ function SettingsPage(): React.ReactElement {
                 disabled={isSaving}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
               >
-                {isSaving ? t("settings.saving") : t("settings.save")}
+                {isSaving ? "Saving..." : "Save Settings"}
               </button>
             </div>
           </div>
@@ -644,10 +649,10 @@ function SettingsPage(): React.ReactElement {
       {activeTab === "tax" && (
         <div className="bg-white rounded-lg shadow-md p-6">
           <h3 className="text-lg font-medium text-gray-900 mb-2">
-            {t("settings.taxRates.title")}
+            {"Income Tax Rates"}
           </h3>
           <p className="text-sm text-gray-500 mb-4">
-            {t("settings.taxRates.description")}
+            {"Configure tax rates by country for rental income calculations"}
           </p>
 
           <div className="space-y-4">
@@ -674,7 +679,7 @@ function SettingsPage(): React.ReactElement {
                       <button
                         onClick={() => handleDeleteTaxRate(rate.countryCode)}
                         className="text-red-600 hover:text-red-800"
-                        title={t("delete")}
+                        title={"Delete"}
                       >
                         <i className="fas fa-trash"></i>
                       </button>
@@ -688,16 +693,14 @@ function SettingsPage(): React.ReactElement {
             <div className="flex items-end gap-3 pt-4 border-t">
               <div className="flex-1">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("settings.taxRates.country")}
+                  {"Country"}
                 </label>
                 <select
                   value={newTaxCountry}
                   onChange={(e) => setNewTaxCountry(e.target.value)}
                   className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-500 focus:border-blue-500"
                 >
-                  <option value="">
-                    {t("settings.taxRates.selectCountry")}
-                  </option>
+                  <option value="">{"Select country..."}</option>
                   {availableCountries.map((country) => (
                     <option key={country.code} value={country.code}>
                       {country.code} - {country.name}
@@ -713,7 +716,7 @@ function SettingsPage(): React.ReactElement {
               </div>
               <div className="w-32">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("settings.taxRates.rate")}
+                  {"Rate (%)"}
                 </label>
                 <input
                   type="number"
@@ -731,13 +734,15 @@ function SettingsPage(): React.ReactElement {
                 disabled={!newTaxCountry || !newTaxRate || taxRateSaving}
                 className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
               >
-                {taxRateSaving ? <Spinner /> : t("settings.taxRates.add")}
+                {taxRateSaving ? <Spinner /> : "Add"}
               </button>
             </div>
 
             {taxRates.length === 0 && (
               <p className="text-sm text-gray-500 italic">
-                {t("settings.taxRates.empty")}
+                {
+                  "No tax rates configured. Add a rate to deduct income tax from rental properties."
+                }
               </p>
             )}
           </div>
@@ -778,9 +783,3 @@ function SettingsPage(): React.ReactElement {
 }
 
 export default withPageAuthRequired(SettingsPage)
-
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
-  props: {
-    ...(await serverSideTranslations(locale as string, ["common"])),
-  },
-})

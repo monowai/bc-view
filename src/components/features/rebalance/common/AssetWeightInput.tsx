@@ -1,5 +1,4 @@
 import React, { useState } from "react"
-import { useTranslation } from "next-i18next"
 import MathInput from "@components/ui/MathInput"
 
 interface AssetWeightInputProps {
@@ -33,7 +32,6 @@ const AssetWeightInput: React.FC<AssetWeightInputProps> = ({
   readOnly = false,
   showPrice = false,
 }) => {
-  const { t } = useTranslation("common")
   const [showRationale, setShowRationale] = useState(!!rationale)
 
   return (
@@ -53,7 +51,7 @@ const AssetWeightInput: React.FC<AssetWeightInputProps> = ({
             <>
               <MathInput
                 value={capturedPrice ?? 0}
-                placeholder={t("rebalance.plans.price", "Price")}
+                placeholder={"Price"}
                 onChange={(value) => {
                   onPriceChange?.(value > 0 ? value : undefined)
                 }}
@@ -85,7 +83,7 @@ const AssetWeightInput: React.FC<AssetWeightInputProps> = ({
                   ? "text-blue-600 hover:text-blue-800"
                   : "text-gray-400 hover:text-gray-600"
               }`}
-              title={t("rebalance.plans.rationale", "Investment rationale")}
+              title={"Investment rationale"}
             >
               <i className="fas fa-comment-alt"></i>
             </button>
@@ -95,7 +93,7 @@ const AssetWeightInput: React.FC<AssetWeightInputProps> = ({
               type="button"
               onClick={() => setShowRationale(!showRationale)}
               className="p-1 text-blue-600 hover:text-blue-800 transition-colors"
-              title={t("rebalance.plans.rationale", "Investment rationale")}
+              title={"Investment rationale"}
             >
               <i className="fas fa-comment-alt"></i>
             </button>
@@ -105,7 +103,7 @@ const AssetWeightInput: React.FC<AssetWeightInputProps> = ({
               type="button"
               onClick={onRemove}
               className="p-1 text-red-500 hover:text-red-700 transition-colors"
-              title={t("remove", "Remove")}
+              title={"Remove"}
             >
               <i className="fas fa-times"></i>
             </button>
@@ -120,10 +118,7 @@ const AssetWeightInput: React.FC<AssetWeightInputProps> = ({
             <textarea
               value={rationale || ""}
               onChange={(e) => onRationaleChange?.(e.target.value)}
-              placeholder={t(
-                "rebalance.plans.rationalePlaceholder",
-                "Why include this asset? (optional)",
-              )}
+              placeholder={"Why include this asset? (optional)"}
               rows={2}
               className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 resize-none"
             />

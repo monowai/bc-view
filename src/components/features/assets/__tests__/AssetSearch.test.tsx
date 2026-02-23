@@ -4,14 +4,6 @@ import userEvent from "@testing-library/user-event"
 import AssetSearch from "../AssetSearch"
 import { AssetOption } from "types/beancounter"
 
-// Mock next-i18next
-jest.mock("next-i18next", () => ({
-  useTranslation: () => ({
-    t: (key: string) => key,
-    ready: true,
-  }),
-}))
-
 // Helper to flush debounce timers and async work
 const flushAsync = async (): Promise<void> => {
   await act(() => {
@@ -39,7 +31,7 @@ describe("AssetSearch", () => {
 
   it("renders with placeholder text", () => {
     render(<AssetSearch onSelect={mockOnSelect} />)
-    expect(screen.getByText("trn.asset.search.placeholder")).toBeInTheDocument()
+    expect(screen.getByText("Search for asset...")).toBeInTheDocument()
   })
 
   describe("specific market search", () => {
@@ -139,9 +131,7 @@ describe("AssetSearch", () => {
       await flushAsync()
 
       await waitFor(() => {
-        expect(
-          screen.getByText("trn.asset.search.noResults"),
-        ).toBeInTheDocument()
+        expect(screen.getByText("No assets found")).toBeInTheDocument()
       })
     })
 
@@ -163,7 +153,7 @@ describe("AssetSearch", () => {
 
       await waitFor(() => {
         expect(
-          screen.getByText("trn.asset.search.noResultsCreate"),
+          screen.getByText("No results found. Create a private asset?"),
         ).toBeInTheDocument()
       })
     })

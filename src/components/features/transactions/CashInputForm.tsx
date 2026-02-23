@@ -5,7 +5,6 @@ import * as yup from "yup"
 import { FxResponse, Portfolio } from "types/beancounter"
 import { SelectInstance } from "react-select"
 import { calculateTradeAmount } from "@lib/trns/tradeUtils"
-import { useTranslation } from "next-i18next"
 import useSwr, { mutate } from "swr"
 import { ccyKey, holdingKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { rootLoader } from "@components/ui/PageLoader"
@@ -175,9 +174,6 @@ const CashInputForm: React.FC<{
       console.log("Failed to fetch accounts:", accountsError)
     }
   }, [accountsData, accountsError])
-
-  const { t } = useTranslation("common")
-
   const tax = watch("tax")
   const fees = watch("fees")
   const type = watch("type")
@@ -302,7 +298,7 @@ const CashInputForm: React.FC<{
     "block text-xs font-medium text-gray-500 uppercase tracking-wide"
 
   // Only wait for currencies - accounts are optional enhancement
-  if (ccyLoading) return rootLoader(t("loading"))
+  if (ccyLoading) return rootLoader("Loading...")
 
   return (
     <>
@@ -322,15 +318,13 @@ const CashInputForm: React.FC<{
                 <button
                   className="text-gray-400 hover:text-gray-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
                   onClick={handleClose}
-                  title={t("cancel")}
+                  title={"Cancel"}
                 >
                   <i className="fas fa-times"></i>
                 </button>
                 <div className="text-center flex-1 px-3">
                   <div className="font-semibold text-gray-900">
-                    {type.value === "FX"
-                      ? t("trade.fx.title", "FX Trade")
-                      : t("trade.cash.title")}
+                    {type.value === "FX" ? "FX Trade" : "Cash Transaction"}
                   </div>
                   <div className="text-xs text-gray-400 mt-0.5">
                     {portfolio.code} - {portfolio.name}
@@ -346,7 +340,7 @@ const CashInputForm: React.FC<{
                         : "text-gray-400 hover:text-green-600 hover:bg-green-50"
                   }`}
                   onClick={handleCopy}
-                  title={t("copy")}
+                  title={"Copy"}
                 >
                   <i
                     className={`fas ${copyStatus === "success" ? "fa-check" : copyStatus === "error" ? "fa-times" : "fa-copy"} text-xs`}
@@ -465,7 +459,7 @@ const CashInputForm: React.FC<{
               {/* Type, Status, Date */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className={labelClass}>{t("trn.type")}</label>
+                  <label className={labelClass}>{"Type"}</label>
                   <TradeTypeController
                     ref={typeSelectRef}
                     name="type"
@@ -477,7 +471,7 @@ const CashInputForm: React.FC<{
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>{t("trn.status")}</label>
+                  <label className={labelClass}>{"Status"}</label>
                   <Controller
                     name="status"
                     control={control}
@@ -503,7 +497,7 @@ const CashInputForm: React.FC<{
               {/* Date - for non-FX */}
               {type.value !== "FX" && (
                 <div>
-                  <label className={labelClass}>{t("trn.tradeDate")}</label>
+                  <label className={labelClass}>{"Trade Date"}</label>
                   <Controller
                     name="tradeDate"
                     control={control}
@@ -522,9 +516,7 @@ const CashInputForm: React.FC<{
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className={labelClass}>
-                    {type.value === "FX"
-                      ? t("trn.fx.sellCurrency", "Sell Currency")
-                      : t("trade.cash.account")}
+                    {type.value === "FX" ? "Sell Currency" : "Account"}
                   </label>
                   <Controller
                     name="asset"
@@ -586,9 +578,7 @@ const CashInputForm: React.FC<{
                 </div>
                 <div>
                   <label className={labelClass}>
-                    {type.value === "FX"
-                      ? t("trn.fx.sellAmount", "Sell Amount")
-                      : t("trn.amount.trade")}
+                    {type.value === "FX" ? "Sell Amount" : "Amount"}
                   </label>
                   <Controller
                     name="quantity"
@@ -613,9 +603,7 @@ const CashInputForm: React.FC<{
                 <>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className={labelClass}>
-                        {t("trn.fx.buyCurrency", "Buy Currency")}
-                      </label>
+                      <label className={labelClass}>{"Buy Currency"}</label>
                       <Controller
                         name="cashCurrency"
                         control={control}
@@ -697,9 +685,7 @@ const CashInputForm: React.FC<{
                       />
                     </div>
                     <div>
-                      <label className={labelClass}>
-                        {t("trn.fx.buyAmount", "Buy Amount")}
-                      </label>
+                      <label className={labelClass}>{"Buy Amount"}</label>
                       <Controller
                         name="cashAmount"
                         control={control}
@@ -714,7 +700,7 @@ const CashInputForm: React.FC<{
                     </div>
                   </div>
                   <div>
-                    <label className={labelClass}>{t("trn.tradeDate")}</label>
+                    <label className={labelClass}>{"Trade Date"}</label>
                     <Controller
                       name="tradeDate"
                       control={control}
@@ -733,9 +719,7 @@ const CashInputForm: React.FC<{
               {/* Fees, Tax, Comments */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className={labelClass}>
-                    {t("trn.amount.charges")}
-                  </label>
+                  <label className={labelClass}>{"Fees"}</label>
                   <Controller
                     name="fees"
                     control={control}
@@ -749,7 +733,7 @@ const CashInputForm: React.FC<{
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>{t("trn.amount.tax")}</label>
+                  <label className={labelClass}>{"Tax"}</label>
                   <Controller
                     name="tax"
                     control={control}
@@ -765,7 +749,7 @@ const CashInputForm: React.FC<{
               </div>
 
               <div>
-                <label className={labelClass}>{t("trn.comments")}</label>
+                <label className={labelClass}>{"Comments"}</label>
                 <Controller
                   name="comment"
                   control={control}
@@ -796,14 +780,14 @@ const CashInputForm: React.FC<{
                 className="px-5 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
                 onClick={handleClose}
               >
-                {t("cancel")}
+                {"Cancel"}
               </button>
               <button
                 type="submit"
                 form="cash-form"
                 className="px-5 py-2.5 rounded-lg text-white text-sm font-medium bg-blue-600 hover:bg-blue-700 active:bg-blue-800 transition-colors"
               >
-                {t("submit", "Submit")}
+                {"Submit"}
               </button>
             </div>
           </div>

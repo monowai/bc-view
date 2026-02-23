@@ -7,7 +7,6 @@ interface BrokerSelectionDialogProps {
   quantity: number
   onSelect: (brokerId: string, maxQty: number) => void
   onSkip: () => void
-  t: any
 }
 
 const BrokerSelectionDialog: React.FC<BrokerSelectionDialogProps> = ({
@@ -16,7 +15,6 @@ const BrokerSelectionDialog: React.FC<BrokerSelectionDialogProps> = ({
   quantity,
   onSelect,
   onSkip,
-  t,
 }) => (
   <div className="fixed inset-0 z-[60] flex items-center justify-center">
     <div className="fixed inset-0 bg-black opacity-50" onClick={onSkip}></div>
@@ -24,14 +22,11 @@ const BrokerSelectionDialog: React.FC<BrokerSelectionDialogProps> = ({
       className="bg-white rounded-lg shadow-lg w-full max-w-md mx-4 p-6 z-[60]"
       onClick={(e) => e.stopPropagation()}
     >
-      <h3 className="text-lg font-semibold mb-2">
-        {t("trn.broker.select", "Select Broker")}
-      </h3>
+      <h3 className="text-lg font-semibold mb-2">{"Select Broker"}</h3>
       <p className="text-sm text-gray-600 mb-4">
-        {t(
-          "trn.broker.multipleHeld",
-          "This position is held across multiple brokers. Select which broker to sell from:",
-        )}
+        {
+          "This position is held across multiple brokers. Select which broker to sell from:"
+        }
       </p>
       <div className="space-y-2">
         {Object.entries(held).map(([brokerName, qty]) => {
@@ -47,7 +42,7 @@ const BrokerSelectionDialog: React.FC<BrokerSelectionDialogProps> = ({
             >
               <span className="font-medium">{brokerName}</span>
               <span className="text-gray-500">
-                {qty.toLocaleString()} {t("trn.shares", "shares")}
+                {qty.toLocaleString()} {"shares"}
               </span>
             </button>
           )
@@ -58,7 +53,7 @@ const BrokerSelectionDialog: React.FC<BrokerSelectionDialogProps> = ({
         className="w-full mt-4 p-2 text-gray-500 hover:text-gray-700 text-sm"
         onClick={onSkip}
       >
-        {t("trn.broker.skipSelection", "Skip - sell without specifying broker")}
+        {"Skip - sell without specifying broker"}
       </button>
     </div>
   </div>

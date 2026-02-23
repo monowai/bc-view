@@ -1,5 +1,4 @@
 import React from "react"
-import { useTranslation } from "next-i18next"
 import { CATEGORY_ICONS } from "./accountTypes"
 
 interface CategoryCardProps {
@@ -15,9 +14,20 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
   count,
   onSelect,
 }) => {
-  const { t } = useTranslation("common")
   const icon = CATEGORY_ICONS[categoryId] || "fa-folder"
-  const description = t(`category.${categoryId}.desc`)
+  const CATEGORY_DESCRIPTIONS: Record<string, string> = {
+    ACCOUNT:
+      "Track savings, current, and fixed deposit accounts. Bank accounts always have a value of 1 per unit of currency.",
+    TRADE:
+      "Trading or brokerage accounts used for settling security transactions. Link these to portfolios for automatic cash settlement.",
+    RE: "Real estate properties and land. Set periodic valuations to track property appreciation over time.",
+    "MUTUAL FUND":
+      "Unlisted mutual funds and unit trusts. Set prices manually as these don't have market data feeds.",
+    POLICY:
+      "Defined contribution scheme or Investment Linked Insurance that contains sub-accounts.",
+    PENSION: "Retirement Fund",
+  }
+  const description = CATEGORY_DESCRIPTIONS[categoryId] || ""
 
   return (
     <div

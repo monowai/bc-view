@@ -1,11 +1,8 @@
 import React, { useState } from "react"
 import { NumericFormat } from "react-number-format"
-import { GetServerSideProps } from "next"
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useRouter } from "next/router"
 import { assetKey, simpleFetcher, tradeKey } from "@utils/api/fetchHelper"
-import { useTranslation } from "next-i18next"
 import Link from "next/link"
 import { Transaction } from "types/beancounter"
 import { rootLoader } from "@components/ui/PageLoader"
@@ -15,7 +12,6 @@ import { deleteTrn } from "@lib/trns/apiHelper"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 
 export default withPageAuthRequired(function Events(): React.ReactElement {
-  const { t } = useTranslation("common")
   const [deleteTrnId, setDeleteTrnId] = useState<string | null>(null)
 
   const router = useRouter()
@@ -27,17 +23,17 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
     simpleFetcher(tradeKey(portfolioId, assetId)),
   )
   if (trades.error) {
-    return errorOut(t("trades.error.retrieve"), trades.error)
+    return errorOut("Error retrieving trades", trades.error)
   }
   if (asset.error) {
-    return errorOut(t("assets.error.retrieve"), asset.error)
+    return errorOut("Error retrieving asset information", asset.error)
   }
   if (asset.isLoading || trades.isLoading) {
-    return rootLoader(t("loading"))
+    return rootLoader("Loading...")
   }
   const trnResults = trades.data.data
   if (!trnResults || trnResults.length === 0) {
-    return <div id="root">{t("trn.noTransactions")}</div>
+    return <div id="root">{"No transactions found"}</div>
   }
   return (
     <div>
@@ -53,19 +49,19 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
           <table className={"table is-striped is-hoverable"}>
             <thead>
               <tr>
-                <th>{t("trn.type")}</th>
-                <th>{t("trn.currency")}</th>
-                <th>{t("trn.tradeDate")}</th>
-                <th align={"right"}>{t("quantity")}</th>
-                <th align={"right"}>{t("trn.price")}</th>
-                <th align={"right"}>{t("trn.amount.trade")}</th>
-                <th align={"right"}>{t("trn.rate.tb")}</th>
-                <th align={"right"}>{t("trn.rate.tc")}</th>
-                <th align={"right"}>{t("trn.rate.tp")}</th>
-                <th align={"right"}>{t("trn.amount.cash")}</th>
-                <th align={"right"}>{t("trn.amount.tax")}</th>
-                <th align={"right"}>{t("trn.amount.charges")}</th>
-                <th align={"right"}>{t("trn.action")}</th>
+                <th>{"Type"}</th>
+                <th>{"Currency"}</th>
+                <th>{"Trade Date"}</th>
+                <th align={"right"}>{"Qty"}</th>
+                <th align={"right"}>{"Price"}</th>
+                <th align={"right"}>{"Amount"}</th>
+                <th align={"right"}>{"T/B Rate"}</th>
+                <th align={"right"}>{"T/C Rate"}</th>
+                <th align={"right"}>{"T/P Rate"}</th>
+                <th align={"right"}>{"Cash"}</th>
+                <th align={"right"}>{"Tax"}</th>
+                <th align={"right"}>{"Fees"}</th>
+                <th align={"right"}>{"Action"}</th>
               </tr>
             </thead>
             <tbody>
@@ -175,10 +171,10 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
       </div>
       {deleteTrnId && (
         <ConfirmDialog
-          title={t("trn.deleteTitle", "Delete Transaction")}
-          message={t("trn.delete", "Delete this transaction?")}
-          confirmLabel={t("delete", "Delete")}
-          cancelLabel={t("cancel", "Cancel")}
+          title={"Delete Transaction"}
+          message={"Permanently delete this transaction?"}
+          confirmLabel={"Delete"}
+          cancelLabel={"Cancel"}
           variant="red"
           onConfirm={async () => {
             await deleteTrn(deleteTrnId)
@@ -189,10 +185,4 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
       )}
     </div>
   )
-})
-
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
-  props: {
-    ...(await serverSideTranslations(locale as string, ["common"])),
-  },
 })

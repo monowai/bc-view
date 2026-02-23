@@ -1,8 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
-import { useTranslation } from "next-i18next"
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
-import { GetServerSideProps } from "next"
 import Head from "next/head"
 import Link from "next/link"
 import { useRouter } from "next/router"
@@ -55,7 +52,6 @@ interface PortfoliosResponse {
 }
 
 function PlanView(): React.ReactElement {
-  const { t } = useTranslation("common")
   const router = useRouter()
   const { id } = router.query
   const { hideValues } = usePrivacyMode()
@@ -743,14 +739,11 @@ function PlanView(): React.ReactElement {
         router.push("/independence")
       } else {
         const errorData = await response.json().catch(() => ({}))
-        setTransferError(
-          errorData.message ||
-            t("client.transfer.failed", "Failed to transfer plan"),
-        )
+        setTransferError(errorData.message || "Failed to transfer plan")
       }
     } catch (err) {
       console.error("Failed to transfer plan:", err)
-      setTransferError(t("client.transfer.failed", "Failed to transfer plan"))
+      setTransferError("Failed to transfer plan")
     } finally {
       setIsTransferring(false)
     }
@@ -894,8 +887,7 @@ function PlanView(): React.ReactElement {
               <div className="flex items-center gap-2">
                 <i className="fas fa-user-tie text-blue-600"></i>
                 <span className="text-sm text-blue-800">
-                  {t("client.managingFor", "Managing for client")}:{" "}
-                  {plan.clientId}
+                  {"Managing for client"}: {plan.clientId}
                 </span>
               </div>
               <button
@@ -903,9 +895,7 @@ function PlanView(): React.ReactElement {
                 disabled={isTransferring}
                 className="text-sm px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
               >
-                {isTransferring
-                  ? t("transferring", "Transferring...")
-                  : t("client.transfer", "Transfer to Client")}
+                {isTransferring ? "Transferring..." : "Transfer to Client"}
               </button>
             </div>
           )}
@@ -1148,9 +1138,3 @@ function PlanView(): React.ReactElement {
 }
 
 export default withPageAuthRequired(PlanView)
-
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
-  props: {
-    ...(await serverSideTranslations(locale as string, ["common"])),
-  },
-})

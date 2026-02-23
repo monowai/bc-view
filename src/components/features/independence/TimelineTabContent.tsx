@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from "react"
-import { useTranslation } from "next-i18next"
 import {
   ComposedChart,
   Line,
@@ -47,8 +46,6 @@ export default function TimelineTabContent({
   effectiveCurrency,
   onLiquidationThresholdChange,
 }: TimelineTabContentProps): React.ReactElement {
-  const { t } = useTranslation("common")
-
   // Timeline view mode - "traditional" shows work-to-retire path, "fire" shows FIRE path
   const [timelineViewMode, setTimelineViewMode] = useState<
     "traditional" | "fire"
@@ -138,11 +135,11 @@ export default function TimelineTabContent({
       <div className="bg-white rounded-xl shadow-md p-6">
         <div className="text-center py-12 text-gray-500">
           {isCalculating ? (
-            <Spinner label={t("retire.assets.calculating")} size="lg" />
+            <Spinner label={"Calculating projection..."} size="lg" />
           ) : (
             <>
               <i className="fas fa-chart-line text-4xl mb-3 text-gray-300"></i>
-              <p>{t("retire.timeline.noData")}</p>
+              <p>{"No projection data available"}</p>
             </>
           )}
         </div>

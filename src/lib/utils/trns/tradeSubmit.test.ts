@@ -69,7 +69,6 @@ describe("tradeSubmit", () => {
       mutate: jest.fn().mockResolvedValue(undefined),
       setSubmitError: jest.fn(),
       setIsSubmitting: jest.fn(),
-      t: (key: string): string => key,
       ...overrides,
     })
 
@@ -141,7 +140,9 @@ describe("tradeSubmit", () => {
 
       await submitEditMode(params)
 
-      expect(params.setSubmitError).toHaveBeenCalledWith("trn.error.update")
+      expect(params.setSubmitError).toHaveBeenCalledWith(
+        "Failed to update transaction",
+      )
     })
   })
 

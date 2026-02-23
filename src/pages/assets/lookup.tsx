@@ -1,12 +1,8 @@
 import React, { useState } from "react"
-import { GetServerSideProps } from "next"
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useRouter } from "next/router"
-import { useTranslation } from "next-i18next"
 import useSWR from "swr"
 import { marketsKey, simpleFetcher } from "@utils/api/fetchHelper"
-import { rootLoader } from "@components/ui/PageLoader"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { AssetOption, Market, Portfolio, Position } from "types/beancounter"
 import { ModelsContainingAssetResponse } from "types/rebalance"
@@ -19,7 +15,6 @@ interface AssetPosition {
 }
 
 function AssetLookupPage(): React.ReactElement {
-  const { t, ready } = useTranslation("common")
   const router = useRouter()
   const { preferences } = useUserPreferences()
 
@@ -91,27 +86,20 @@ function AssetLookupPage(): React.ReactElement {
     return `${(value * 100).toFixed(2)}%`
   }
 
-  if (!ready) return rootLoader(t("loading"))
-
   return (
     <div className="container mx-auto px-4 py-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">
-          {t("assets.lookup.title", "Asset Lookup")}
-        </h1>
+        <h1 className="text-2xl font-bold text-gray-900">{"Asset Lookup"}</h1>
         <p className="text-sm text-gray-500 mt-1">
-          {t(
-            "assets.lookup.description",
-            "Search for an asset to see which portfolios hold it",
-          )}
+          {"Search for an asset to see which portfolios hold it"}
         </p>
       </div>
 
       {/* Search Box */}
       <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-4 mb-6">
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          {t("assets.lookup.search", "Search Asset")}
+          {"Search Asset"}
         </label>
         <div className="flex gap-3">
           <select
@@ -122,9 +110,7 @@ function AssetLookupPage(): React.ReactElement {
             }}
             className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
-            <option value="">
-              {t("assets.lookup.allMarkets", "All Markets")}
-            </option>
+            <option value="">{"All Markets"}</option>
             {(marketsData?.data || []).map((market) => (
               <option key={market.code} value={market.code}>
                 {market.code} — {market.name}
@@ -139,10 +125,7 @@ function AssetLookupPage(): React.ReactElement {
               value={selectedAsset}
               onSelect={handleAssetSelect}
               noResultsHref="/assets/account"
-              placeholder={t(
-                "assets.lookup.searchPlaceholder",
-                "Type symbol, name, or MARKET:SYMBOL...",
-              )}
+              placeholder={"Type asset symbol or name..."}
             />
           </div>
         </div>
@@ -179,43 +162,38 @@ function AssetLookupPage(): React.ReactElement {
           <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
             <h3 className="text-sm font-medium text-gray-700">
               <i className="fas fa-briefcase mr-2 text-gray-400"></i>
-              {t("assets.lookup.portfolios", "Portfolios Holding This Asset")}
+              {"Portfolios Holding This Asset"}
             </h3>
           </div>
 
           {loadingPositions ? (
             <div className="p-8 text-center text-gray-500">
               <i className="fas fa-spinner fa-spin mr-2"></i>
-              {t("loading", "Loading...")}
+              {"Loading..."}
             </div>
           ) : positions.length === 0 ? (
             <div className="p-8 text-center text-gray-500">
               <i className="fas fa-folder-open text-3xl mb-2 text-gray-300"></i>
-              <p>
-                {t(
-                  "assets.lookup.notHeld",
-                  "This asset is not held in any portfolio",
-                )}
-              </p>
+              <p>{"This asset is not held in any portfolio"}</p>
             </div>
           ) : (
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t("portfolio", "Portfolio")}
+                    {"Portfolio"}
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t("quantity", "Quantity")}
+                    {"Qty"}
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
-                    {t("cost", "Cost")}
+                    {"Cost"}
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t("value", "Value")}
+                    {"Value"}
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
-                    {t("gain", "Gain")}
+                    {"Gain"}
                   </th>
                 </tr>
               </thead>
@@ -241,10 +219,7 @@ function AssetLookupPage(): React.ReactElement {
                           selectedAsset.assetId || selectedAsset.value,
                         )
                       }
-                      title={t(
-                        "actions.doubleClickToEdit",
-                        "Double-click to view transactions",
-                      )}
+                      title={"Double-click to edit"}
                     >
                       <td className="px-4 py-3">
                         <div className="font-medium text-gray-900">
@@ -302,10 +277,7 @@ function AssetLookupPage(): React.ReactElement {
           {positions.length > 0 && (
             <div className="px-4 py-2 bg-gray-50 border-t border-gray-200 text-xs text-gray-500">
               <i className="fas fa-info-circle mr-1"></i>
-              {t(
-                "assets.lookup.doubleClickHint",
-                "Double-click a row to view and edit transactions",
-              )}
+              {"Double-click a row to view and edit transactions"}
             </div>
           )}
         </div>
@@ -317,37 +289,32 @@ function AssetLookupPage(): React.ReactElement {
           <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
             <h3 className="text-sm font-medium text-gray-700">
               <i className="fas fa-sitemap mr-2 text-gray-400"></i>
-              {t("assets.lookup.models", "Models With Active Plans")}
+              {"Models With Active Plans"}
             </h3>
           </div>
 
           {loadingModels ? (
             <div className="p-8 text-center text-gray-500">
               <i className="fas fa-spinner fa-spin mr-2"></i>
-              {t("loading", "Loading...")}
+              {"Loading..."}
             </div>
           ) : models.length === 0 ? (
             <div className="p-8 text-center text-gray-500">
               <i className="fas fa-sitemap text-3xl mb-2 text-gray-300"></i>
-              <p>
-                {t(
-                  "assets.lookup.notInModels",
-                  "This asset is not in any active model plans",
-                )}
-              </p>
+              <p>{"This asset is not in any active model plans"}</p>
             </div>
           ) : (
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t("model", "Model")}
+                    {"Model"}
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t("version", "Version")}
+                    {"Version"}
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t("targetWeight", "Target Weight")}
+                    {"Target Weight"}
                   </th>
                 </tr>
               </thead>
@@ -361,10 +328,7 @@ function AssetLookupPage(): React.ReactElement {
                         `/rebalance/models/${model.modelId}/plans/${model.planId}`,
                       )
                     }
-                    title={t(
-                      "actions.doubleClickToView",
-                      "Double-click to view plan",
-                    )}
+                    title={"Double-click to view plan"}
                   >
                     <td className="px-4 py-3">
                       <div className="font-medium text-gray-900">
@@ -391,10 +355,7 @@ function AssetLookupPage(): React.ReactElement {
           {models.length > 0 && (
             <div className="px-4 py-2 bg-gray-50 border-t border-gray-200 text-xs text-gray-500">
               <i className="fas fa-info-circle mr-1"></i>
-              {t(
-                "assets.lookup.doubleClickPlanHint",
-                "Double-click a row to view the model plan",
-              )}
+              {"Double-click a row to view the model plan"}
             </div>
           )}
         </div>
@@ -402,11 +363,4 @@ function AssetLookupPage(): React.ReactElement {
     </div>
   )
 }
-
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
-  props: {
-    ...(await serverSideTranslations(locale ?? "en", ["common"])),
-  },
-})
-
 export default withPageAuthRequired(AssetLookupPage)

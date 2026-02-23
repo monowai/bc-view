@@ -9,16 +9,6 @@ module.exports = {
   setupFilesAfterEnv: ["./jest.setup.js"],
 }
 
-jest.mock("react-i18next", () => ({
-  useTranslation: () => ({
-    ready: true,
-    t: (key) => key,
-    i18n: {
-      changeLanguage: jest.fn(),
-    },
-  }),
-}))
-
 jest.mock("next/router", () => ({
   useRouter() {
     return {

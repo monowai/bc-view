@@ -1,7 +1,6 @@
 import React, { useCallback, useRef, useState } from "react"
 import { Controller, Control } from "react-hook-form"
 import AsyncSelect from "react-select/async"
-import { useTranslation } from "next-i18next"
 import { AssetOption, AssetSearchResult } from "types/beancounter"
 import { stripOwnerPrefix } from "@lib/assets/assetUtils"
 import { parseSearchInput } from "./parseSearchInput"
@@ -62,7 +61,6 @@ export default function AssetSearch({
   noResultsHref,
   inputId,
 }: AssetSearchProps): React.ReactElement {
-  const { t } = useTranslation("common")
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
   const [inputText, setInputText] = useState("")
   const isControlled = value !== undefined
@@ -146,32 +144,25 @@ export default function AssetSearch({
       if (knownMarkets) {
         const parsed = parseSearchInput(inputValue, knownMarkets)
         if (!parsed.validMarket) {
-          return t(
-            "assets.lookup.unknownMarket",
-            `Market "{{market}}" is not supported`,
-            { market: parsed.market },
-          )
+          return `Market "${parsed.market}" is not supported`
         }
       }
       if (inputValue.length < 2) {
-        return t("trn.asset.search.minChars", "Type at least 2 characters")
+        return "Type at least 2 characters"
       }
       if (noResultsHref) {
-        return t(
-          "trn.asset.search.noResultsCreate",
-          "No results found. Create a private asset?",
-        )
+        return "No results found. Create a private asset?"
       }
-      return t("trn.asset.search.noResults", "No assets found")
+      return "No assets found"
     },
-    [knownMarkets, noResultsHref, t],
+    [knownMarkets, noResultsHref],
   )
 
   const sharedProps = {
     inputId,
-    placeholder: placeholder || t("trn.asset.search.placeholder"),
+    placeholder: placeholder || "Search for asset...",
     noOptionsMessage,
-    loadingMessage: () => t("trn.asset.search.loading", "Searching..."),
+    loadingMessage: () => "Searching...",
     onChange: handleChange,
     isClearable,
     inputValue: inputText,

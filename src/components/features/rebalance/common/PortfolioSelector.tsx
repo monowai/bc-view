@@ -1,5 +1,4 @@
 import React, { useState } from "react"
-import { useTranslation } from "next-i18next"
 import useSwr from "swr"
 import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { PortfolioResponses, Portfolio } from "types/beancounter"
@@ -17,7 +16,6 @@ const PortfolioSelector: React.FC<PortfolioSelectorProps> = ({
   loading = false,
   multiSelect = true,
 }) => {
-  const { t } = useTranslation("common")
   const [selectedCodes, setSelectedCodes] = useState<string[]>([])
 
   const { data, isLoading, error } = useSwr<PortfolioResponses>(
@@ -58,7 +56,7 @@ const PortfolioSelector: React.FC<PortfolioSelectorProps> = ({
   if (error) {
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-        {t("portfolios.error", "Failed to load portfolios")}
+        {"Failed to load portfolios"}
       </div>
     )
   }
@@ -66,9 +64,7 @@ const PortfolioSelector: React.FC<PortfolioSelectorProps> = ({
   if (portfolios.length === 0) {
     return (
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
-        <p className="text-gray-600">
-          {t("portfolios.empty", "No portfolios found")}
-        </p>
+        <p className="text-gray-600">{"No portfolios found"}</p>
       </div>
     )
   }
@@ -83,14 +79,10 @@ const PortfolioSelector: React.FC<PortfolioSelectorProps> = ({
             className="text-sm text-blue-600 hover:text-blue-800"
           >
             {selectedCodes.length === portfolios.length
-              ? t("deselectAll", "Deselect All")
-              : t("selectAll", "Select All")}
+              ? "Deselect All"
+              : "Select All"}
           </button>
-          <span className="text-sm text-gray-500">
-            {t("selected", "{{count}} selected", {
-              count: selectedCodes.length,
-            })}
-          </span>
+          <span className="text-sm text-gray-500">{selectedCodes.length} {"selected"}</span>
         </div>
       )}
 
@@ -128,7 +120,7 @@ const PortfolioSelector: React.FC<PortfolioSelectorProps> = ({
           disabled={loading}
           className="px-4 py-2 text-gray-700 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
         >
-          {t("cancel", "Cancel")}
+          {"Cancel"}
         </button>
         <button
           type="button"
@@ -141,7 +133,7 @@ const PortfolioSelector: React.FC<PortfolioSelectorProps> = ({
           }`}
         >
           {loading && <i className="fas fa-spinner fa-spin"></i>}
-          {t("rebalance.models.useWeights", "Use Weights")}
+          {"Use Weights"}
         </button>
       </div>
     </div>

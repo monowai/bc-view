@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from "react"
-import { useTranslation } from "next-i18next"
 import { useRouter } from "next/router"
 import Dialog from "@components/ui/Dialog"
 import WeightsSummary from "../common/WeightsSummary"
@@ -18,7 +17,6 @@ interface CreateModelFromHoldingsDialogProps {
 const CreateModelFromHoldingsDialog: React.FC<
   CreateModelFromHoldingsDialogProps
 > = ({ modalOpen, onClose, holdings, portfolioCode, onSuccess }) => {
-  const { t } = useTranslation("common")
   const router = useRouter()
 
   // Calculate initial weights from holdings
@@ -153,23 +151,17 @@ const CreateModelFromHoldingsDialog: React.FC<
 
   return (
     <Dialog
-      title={t(
-        "rebalance.models.createFromHoldings",
-        "Create Model from Holdings",
-      )}
+      title={"Create Model from Holdings"}
       onClose={onClose}
       maxWidth="2xl"
       scrollable={true}
       footer={
         <>
-          <Dialog.CancelButton
-            onClick={onClose}
-            label={t("cancel", "Cancel")}
-          />
+          <Dialog.CancelButton onClick={onClose} label={"Cancel"} />
           <Dialog.SubmitButton
             onClick={handleSubmit}
-            label={t("rebalance.models.create", "Create Model")}
-            loadingLabel={t("creating", "Creating...")}
+            label={"Create Model"}
+            loadingLabel={"Creating..."}
             isSubmitting={isSubmitting}
             disabled={!isValid}
             variant="blue"
@@ -185,7 +177,7 @@ const CreateModelFromHoldingsDialog: React.FC<
             htmlFor="modelName"
             className="block text-sm font-medium text-gray-700 mb-1"
           >
-            {t("rebalance.models.name", "Model Name")} *
+            {"Model Name"} *
           </label>
           <input
             id="modelName"
@@ -202,7 +194,7 @@ const CreateModelFromHoldingsDialog: React.FC<
             htmlFor="modelObjective"
             className="block text-sm font-medium text-gray-700 mb-1"
           >
-            {t("rebalance.models.objective", "Investment Objective")}
+            {"Investment Objective"}
           </label>
           <input
             id="modelObjective"
@@ -210,10 +202,7 @@ const CreateModelFromHoldingsDialog: React.FC<
             value={objective}
             onChange={(e) => setObjective(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-            placeholder={t(
-              "rebalance.models.objectivePlaceholder",
-              "e.g., Long-term growth",
-            )}
+            placeholder={"e.g., Long-term growth"}
           />
         </div>
 
@@ -222,7 +211,7 @@ const CreateModelFromHoldingsDialog: React.FC<
             htmlFor="modelDescription"
             className="block text-sm font-medium text-gray-700 mb-1"
           >
-            {t("rebalance.models.description", "Description")}
+            {"Description"}
           </label>
           <input
             id="modelDescription"
@@ -230,10 +219,7 @@ const CreateModelFromHoldingsDialog: React.FC<
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-            placeholder={t(
-              "rebalance.models.descriptionPlaceholder",
-              "Optional description",
-            )}
+            placeholder={"Optional description"}
           />
         </div>
 
@@ -243,17 +229,16 @@ const CreateModelFromHoldingsDialog: React.FC<
           <div className="flex items-center gap-2 text-blue-700">
             <i className="fas fa-info-circle"></i>
             <span className="text-sm">
-              {t(
-                "rebalance.models.fromHoldingsInfo",
-                "This will create a Model and a Draft Plan with weights from your holdings.",
-              )}
+              {
+                "This will create a Model and a Draft Plan with weights from your holdings."
+              }
             </span>
           </div>
         </div>
 
         <div className="flex items-center justify-between">
           <label className="block text-sm font-medium text-gray-700">
-            {t("rebalance.plans.allocations", "Target Allocations")}
+            {"Target Allocations"}
           </label>
           {weights.length > 0 && Math.abs(totalWeight - 100) > 0.01 && (
             <button
@@ -261,17 +246,14 @@ const CreateModelFromHoldingsDialog: React.FC<
               onClick={handleNormalize}
               className="text-sm text-blue-600 hover:text-blue-800"
             >
-              {t("rebalance.models.normalize", "Normalize to 100%")}
+              {"Normalize to 100%"}
             </button>
           )}
         </div>
 
         {weights.length === 0 ? (
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center text-gray-500">
-            {t(
-              "rebalance.models.noEligibleAssets",
-              "No eligible assets found in holdings",
-            )}
+            {"No eligible assets found in holdings"}
           </div>
         ) : (
           <div className="space-y-2 max-h-64 overflow-y-auto">

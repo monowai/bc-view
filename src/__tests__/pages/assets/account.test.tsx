@@ -48,17 +48,17 @@ describe("Create Account Page", () => {
   it("renders the account form with all fields", () => {
     render(<CreateAccount />)
 
-    expect(screen.getByText("account.create")).toBeInTheDocument()
-    expect(screen.getByText("account.code")).toBeInTheDocument()
-    expect(screen.getByText("account.name")).toBeInTheDocument()
-    expect(screen.getByText("account.currency")).toBeInTheDocument()
+    expect(screen.getByText("Add Asset")).toBeInTheDocument()
+    expect(screen.getByText("Asset Code")).toBeInTheDocument()
+    expect(screen.getByText("Asset Name")).toBeInTheDocument()
+    expect(screen.getByText("Currency")).toBeInTheDocument()
   })
 
   it("renders submit and cancel buttons", () => {
     render(<CreateAccount />)
 
-    expect(screen.getByText("form.submit")).toBeInTheDocument()
-    expect(screen.getByText("form.cancel")).toBeInTheDocument()
+    expect(screen.getByText("Submit")).toBeInTheDocument()
+    expect(screen.getByText("Cancel")).toBeInTheDocument()
   })
 
   it("shows loading state while currencies are loading", () => {
@@ -71,6 +71,6 @@ describe("Create Account Page", () => {
 
     render(<CreateAccount />)
 
-    expect(screen.getByText("loading")).toBeInTheDocument()
+    expect(screen.getByText("Loading...")).toBeInTheDocument()
   })
 })

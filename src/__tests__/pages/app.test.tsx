@@ -64,7 +64,7 @@ describe("<Home />", () => {
 
     // Use waitFor for elements that will appear due to async operations
     await waitFor(() => {
-      expect(screen.getByText("home.welcome")).toBeInTheDocument()
+      expect(screen.getByText("Welcome!")).toBeInTheDocument()
     })
 
     // Check for the three domain cards on the landing page

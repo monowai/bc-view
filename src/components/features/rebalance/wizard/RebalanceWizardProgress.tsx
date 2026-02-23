@@ -1,6 +1,4 @@
 import React from "react"
-import { useTranslation } from "next-i18next"
-
 interface Step {
   id: number
   label: string
@@ -15,16 +13,11 @@ const RebalanceWizardProgress: React.FC<RebalanceWizardProgressProps> = ({
   currentStep,
   steps,
 }) => {
-  const { t } = useTranslation("common")
-
   return (
     <div className="mb-8">
       {/* Mobile view - simple text */}
       <div className="sm:hidden text-center text-gray-600">
-        {t("rebalance.wizard.stepOf", "Step {{current}} of {{total}}", {
-          current: currentStep,
-          total: steps.length,
-        })}
+        {`Step ${currentStep} of ${steps.length}`}
         <div className="font-medium text-gray-900 mt-1">
           {steps[currentStep - 1]?.label}
         </div>

@@ -1,10 +1,7 @@
 import React, { useState, useCallback } from "react"
 import useSwr from "swr"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
-import { useTranslation } from "next-i18next"
 import { BrokerInput, BrokerWithAccounts, Asset } from "types/beancounter"
-import { GetServerSideProps } from "next"
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import { getAssetCurrency } from "@lib/assets/assetUtils"
 import { errorOut } from "@components/errors/ErrorOut"
@@ -21,7 +18,6 @@ const accountAssetsKey = "/api/assets?category=ACCOUNT"
 const SETTLEMENT_CURRENCIES = ["SGD", "USD", "NZD", "AUD", "GBP", "EUR"]
 
 export default withPageAuthRequired(function Brokers(): React.ReactElement {
-  const { t, ready } = useTranslation("common")
   const router = useRouter()
   const { data, mutate, error } = useSwr(brokersKey, simpleFetcher(brokersKey))
   const { data: accountsData } = useSwr(
@@ -186,17 +182,12 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
       )
 
       if (response.ok) {
-        const result = await response.json()
+        await response.json()
         await mutate()
         setTransferringBroker(null)
         setTargetBrokerId("")
         setDeleteError(null)
-        setTransferSuccess(
-          t("brokers.transfer.success", {
-            count: result.transferred,
-            defaultValue: `Successfully transferred ${result.transferred} transaction(s)`,
-          }),
-        )
+        setTransferSuccess(`Transactions transferred successfully`)
         setTimeout(() => setTransferSuccess(null), 3000)
       } else {
         const errorData = await response.json()
@@ -208,7 +199,7 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
     } finally {
       setIsTransferring(false)
     }
-  }, [transferringBroker, targetBrokerId, mutate, t])
+  }, [transferringBroker, targetBrokerId, mutate])
 
   const handleCancelTransfer = useCallback(() => {
     setTransferringBroker(null)
@@ -217,11 +208,11 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
   }, [])
 
   if (error) {
-    return errorOut(t("brokers.error.retrieve", "Error loading brokers"), error)
+    return errorOut("Error loading brokers", error)
   }
 
-  if (!ready || !data) {
-    return rootLoader(t("loading"))
+  if (!data) {
+    return rootLoader("Loading...")
   }
 
   const brokers: BrokerWithAccounts[] = data.data || []
@@ -241,34 +232,30 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
               <button
                 onClick={() => router.back()}
                 className="text-gray-500 hover:text-gray-700 p-1 -ml-1"
-                title={t("back", "Back")}
+                title={"Back"}
               >
                 <i className="fas fa-arrow-left text-lg"></i>
               </button>
               <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-                {t("brokers.title", "Brokers")}
+                {"Brokers"}
               </h1>
             </div>
             <div className="flex space-x-2">
               <button
                 className="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition-colors flex items-center shadow-sm"
                 onClick={() => router.push("/brokers/NO_BROKER/holdings")}
-                title={t("brokers.reconcile", "Reconcile Holdings")}
+                title={"Reconcile Holdings"}
               >
                 <i className="fas fa-balance-scale mr-2"></i>
-                <span className="hidden sm:inline">
-                  {t("brokers.reconcile", "Reconcile")}
-                </span>
+                <span className="hidden sm:inline">{"Reconcile Holdings"}</span>
               </button>
               <button
                 className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors flex items-center shadow-sm"
                 onClick={handleCreate}
               >
                 <i className="fas fa-plus mr-2"></i>
-                <span className="hidden sm:inline">
-                  {t("brokers.create", "Add Broker")}
-                </span>
-                <span className="sm:hidden">{t("new", "New")}</span>
+                <span className="hidden sm:inline">{"Add Broker"}</span>
+                <span className="sm:hidden">{"New"}</span>
               </button>
             </div>
           </div>
@@ -289,9 +276,7 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
             {/* Header */}
             <header className="flex justify-between items-center border-b p-4">
               <h2 className="text-xl font-semibold">
-                {editingBroker
-                  ? t("brokers.edit", "Edit Broker")
-                  : t("brokers.create", "Add Broker")}
+                {editingBroker ? "Edit Broker" : "Add Broker"}
               </h2>
               <button
                 className="text-gray-500 hover:text-gray-700 text-2xl p-2"
@@ -312,7 +297,7 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
                 }`}
                 onClick={() => setActiveTab("details")}
               >
-                {t("brokers.tab.details", "Details")}
+                {"Details"}
               </button>
               <button
                 type="button"
@@ -323,7 +308,7 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
                 }`}
                 onClick={() => setActiveTab("settlement")}
               >
-                {t("brokers.tab.settlement", "Settlement")}
+                {"Settlement"}
               </button>
             </div>
 
@@ -333,7 +318,7 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t("brokers.name", "Name")} *
+                      {"Name"} *
                     </label>
                     <input
                       type="text"
@@ -342,17 +327,14 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
                         setFormData({ ...formData, name: e.target.value })
                       }
                       className="w-full border border-gray-300 rounded-lg px-3 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder={t(
-                        "brokers.name.hint",
-                        "e.g., Interactive Brokers",
-                      )}
+                      placeholder={"e.g., Interactive Brokers"}
                       autoFocus
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t("brokers.accountNumber", "Account Number")}
+                      {"Account Number"}
                     </label>
                     <input
                       type="text"
@@ -364,13 +346,13 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
                         })
                       }
                       className="w-full border border-gray-300 rounded-lg px-3 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder={t("brokers.accountNumber.hint", "Optional")}
+                      placeholder={"Optional"}
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t("brokers.notes", "Notes")}
+                      {"Notes"}
                     </label>
                     <textarea
                       value={formData.notes || ""}
@@ -379,7 +361,7 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
                       }
                       className="w-full border border-gray-300 rounded-lg px-3 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       rows={3}
-                      placeholder={t("brokers.notes.hint", "Optional notes")}
+                      placeholder={"Optional notes"}
                     />
                   </div>
                 </div>
@@ -388,18 +370,14 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
               {activeTab === "settlement" && (
                 <div>
                   <p className="text-sm text-gray-500 mb-4">
-                    {t(
-                      "brokers.settlementAccounts.hint",
-                      "Map currencies to default bank accounts for this broker",
-                    )}
+                    {"Map currencies to default bank accounts for this broker"}
                   </p>
                   {accountAssets.length === 0 ? (
                     <p className="text-sm text-amber-600 bg-amber-50 p-3 rounded-lg">
                       <i className="fas fa-info-circle mr-2"></i>
-                      {t(
-                        "brokers.settlementAccounts.noAccounts",
-                        "No bank accounts found. Create bank accounts in Assets first.",
-                      )}
+                      {
+                        "No bank accounts found. Create bank accounts in Assets first."
+                      }
                     </p>
                   ) : (
                     <div className="space-y-3">
@@ -431,12 +409,7 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
                               }
                               className="w-full border border-gray-300 rounded-lg px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                             >
-                              <option value="">
-                                {t(
-                                  "brokers.settlementAccounts.default",
-                                  "Default",
-                                )}
-                              </option>
+                              <option value="">{"Default"}</option>
                               {selectedAccount && (
                                 <option
                                   key={selectedAccount.id}
@@ -467,7 +440,7 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
                 className="px-6 py-3 rounded-lg transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 font-medium"
                 onClick={handleCancel}
               >
-                {t("cancel", "Cancel")}
+                {"Cancel"}
               </button>
               <button
                 type="button"
@@ -482,10 +455,10 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
                 {isSaving ? (
                   <span className="flex items-center">
                     <i className="fas fa-spinner fa-spin mr-2"></i>
-                    {t("saving", "Saving...")}
+                    {"Saving..."}
                   </span>
                 ) : (
-                  t("save", "Save")
+                  "Save"
                 )}
               </button>
             </div>
@@ -501,20 +474,19 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
               <i className="fas fa-building text-2xl text-gray-400"></i>
             </div>
             <h2 className="text-lg font-semibold text-gray-900 mb-2">
-              {t("brokers.empty.title", "No brokers yet")}
+              {"No brokers yet"}
             </h2>
             <p className="text-gray-600 mb-6">
-              {t(
-                "brokers.empty.description",
-                "Add brokers/custodians to track where your investments are held.",
-              )}
+              {
+                "Add brokers/custodians to track where your investments are held."
+              }
             </p>
             <button
               onClick={handleCreate}
               className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors"
             >
               <i className="fas fa-plus mr-2"></i>
-              {t("brokers.create", "Add Broker")}
+              {"Add Broker"}
             </button>
           </div>
         ) : (
@@ -549,21 +521,21 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
                     <button
                       onClick={() => handleEdit(broker)}
                       className="text-gray-400 hover:text-blue-600 p-2 transition-colors"
-                      title={t("edit", "Edit")}
+                      title={"Edit"}
                     >
                       <i className="far fa-edit"></i>
                     </button>
                     <button
                       onClick={() => setTransferringBroker(broker)}
                       className="text-gray-400 hover:text-orange-600 p-2 transition-colors"
-                      title={t("brokers.transfer", "Transfer Transactions")}
+                      title={"Transfer Transactions"}
                     >
                       <i className="fas fa-exchange-alt"></i>
                     </button>
                     <button
                       onClick={() => handleDelete(broker)}
                       className="text-gray-400 hover:text-red-600 p-2 transition-colors"
-                      title={t("delete", "Delete")}
+                      title={"Delete"}
                     >
                       <i className="far fa-trash-alt"></i>
                     </button>
@@ -578,21 +550,18 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
       {/* Transfer Dialog */}
       {transferringBroker && (
         <Dialog
-          title={t("brokers.transfer.title", "Transfer Transactions")}
+          title={"Transfer Transactions"}
           onClose={handleCancelTransfer}
           footer={
             <>
               <Dialog.CancelButton
                 onClick={handleCancelTransfer}
-                label={t("cancel", "Cancel")}
+                label={"Cancel"}
               />
               <Dialog.SubmitButton
                 onClick={handleTransfer}
-                label={t("brokers.transfer.confirm", "Transfer")}
-                loadingLabel={t(
-                  "brokers.transfer.transferring",
-                  "Transferring...",
-                )}
+                label={"Transfer"}
+                loadingLabel={"Transferring..."}
                 isSubmitting={isTransferring}
                 disabled={!targetBrokerId}
                 variant="amber"
@@ -603,25 +572,19 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
           {deleteError && <Alert>{deleteError}</Alert>}
 
           <p className="text-gray-600">
-            {t(
-              "brokers.transfer.description",
-              'Transfer all transactions from "{{name}}" to another broker:',
-              { name: transferringBroker.name },
-            )}
+            {`Transfer all transactions from "${transferringBroker.name}" to another broker:`}
           </p>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("brokers.transfer.target", "Transfer to")}
+              {"Transfer to"}
             </label>
             <select
               value={targetBrokerId}
               onChange={(e) => setTargetBrokerId(e.target.value)}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
             >
-              <option value="">
-                {t("brokers.transfer.selectBroker", "Select a broker...")}
-              </option>
+              <option value="">{"Select a broker..."}</option>
               {brokers
                 .filter((b) => b.id !== transferringBroker.id)
                 .map((broker) => (
@@ -637,13 +600,13 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
       {/* Delete Confirmation */}
       {deletingBroker && (
         <ConfirmDialog
-          title={t("brokers.delete.title", "Delete Broker")}
+          title={"Delete Broker"}
           message={
-            t("brokers.delete.confirm", { name: deletingBroker.name }) ||
+            `Delete broker ${name} and all associated data?` ||
             `Delete broker "${deletingBroker.name}"?`
           }
-          confirmLabel={t("delete", "Delete")}
-          cancelLabel={t("cancel", "Cancel")}
+          confirmLabel={"Delete"}
+          cancelLabel={"Cancel"}
           variant="red"
           onConfirm={handleDeleteConfirm}
           onCancel={() => setDeletingBroker(null)}
@@ -651,10 +614,4 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
       )}
     </div>
   )
-})
-
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
-  props: {
-    ...(await serverSideTranslations(locale as string, ["common"])),
-  },
 })

@@ -1,10 +1,7 @@
 import React from "react"
 import { NumericFormat } from "react-number-format"
-import { GetServerSideProps } from "next"
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useRouter } from "next/router"
-import { useTranslation } from "next-i18next"
 import { Transaction } from "types/beancounter"
 import useSwr from "swr"
 import { errorOut } from "@components/errors/ErrorOut"
@@ -13,8 +10,6 @@ import { rootLoader } from "@components/ui/PageLoader"
 
 export default withPageAuthRequired(function Events(): React.ReactElement {
   const router = useRouter()
-  const { t } = useTranslation("common")
-
   // Extract query params - safe to access even before router is ready (will be undefined)
   const eventsParam = router.query.events as string[] | undefined
   const portfolioId = eventsParam ? eventsParam[0] : undefined
@@ -36,19 +31,19 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
 
   // Wait for router to be ready (query params available) during client-side navigation
   if (!router.isReady) {
-    return rootLoader(t("loading"))
+    return rootLoader("Loading...")
   }
   if (events.error) {
-    return errorOut(t("events.error.retrieve"), events.error)
+    return errorOut("Error retrieving events for the asset", events.error)
   }
   if (asset.error) {
-    return errorOut(t("assets.error.retrieve"), asset.error)
+    return errorOut("Error retrieving asset information", asset.error)
   }
   if (asset.isLoading) {
-    return rootLoader(t("loading"))
+    return rootLoader("Loading...")
   }
   if (events.isLoading) {
-    return rootLoader(t("loading"))
+    return rootLoader("Loading...")
   }
   const trnResults = events.data.data
   const hasEvents = trnResults && trnResults.length > 0
@@ -64,7 +59,7 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
               className="flex items-center text-gray-600 hover:text-gray-900"
             >
               <i className="fa fa-arrow-left mr-2"></i>
-              <span className="hidden sm:inline">{t("back")}</span>
+              <span className="hidden sm:inline">{"Back"}</span>
             </button>
             <div className="flex-1 text-lg font-semibold text-center truncate">
               {asset.data.data.name}
@@ -87,7 +82,7 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                 router.replace(`/trns/trades/${portfolioId}/${assetId}`)
               }
             >
-              {t("trades")}
+              {"Trades"}
             </button>
             <button
               className="px-4 py-2 font-medium border-b-2 border-blue-500 text-blue-600"
@@ -95,7 +90,7 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                 router.replace(`/trns/events/${portfolioId}/${assetId}`)
               }
             >
-              {t("events")}
+              {"Events"}
             </button>
           </div>
         </div>
@@ -104,13 +99,13 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
       <div className="container mx-auto px-4 py-4">
         {!hasEvents ? (
           <div className="text-center py-8">
-            <p className="text-gray-500 mb-4">{t("trn.noTransactions")}</p>
+            <p className="text-gray-500 mb-4">{"No transactions found"}</p>
             <button
               onClick={() => router.back()}
               className="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 transition-colors"
             >
               <i className="fa fa-arrow-left mr-2"></i>
-              {t("back")}
+              {"Back"}
             </button>
           </div>
         ) : (
@@ -126,7 +121,7 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                       `/trns/trades/edit/${trn.portfolio.id}/${trn.id}`,
                     )
                   }
-                  title={t("actions.doubleClickToEdit")}
+                  title={"Double-click to edit"}
                 >
                   <div className="flex justify-between items-start">
                     <div>
@@ -156,9 +151,7 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>
-                      <span className="text-gray-500">
-                        {t("event.amount")}:
-                      </span>
+                      <span className="text-gray-500">{"Amount"}:</span>
                       <span className="ml-1 font-medium">
                         <NumericFormat
                           value={trn.tradeAmount}
@@ -171,7 +164,7 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                     </div>
                     <div>
                       <span className="text-gray-500">
-                        {t("event.quantity")}:
+                        {"Affected Quantity"}:
                       </span>
                       <span className="ml-1 font-medium">
                         <NumericFormat
@@ -183,7 +176,7 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                       </span>
                     </div>
                     <div>
-                      <span className="text-gray-500">{t("event.price")}:</span>
+                      <span className="text-gray-500">{"Per Unit"}:</span>
                       <span className="ml-1 font-medium">
                         <NumericFormat
                           value={trn.price}
@@ -194,9 +187,7 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                       </span>
                     </div>
                     <div>
-                      <span className="text-gray-500">
-                        {t("trn.amount.tax")}:
-                      </span>
+                      <span className="text-gray-500">{"Tax"}:</span>
                       <span className="ml-1 font-medium">
                         <NumericFormat
                           value={trn.tax}
@@ -217,31 +208,31 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      {t("trn.type")}
+                      {"Type"}
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      {t("trn.currency")}
+                      {"Currency"}
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      {t("trn.tradeDate")}
+                      {"Trade Date"}
                     </th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                      {t("event.amount")}
+                      {"Amount"}
                     </th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                      {t("trn.amount.tax")}
+                      {"Tax"}
                     </th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                      {t("event.quantity")}
+                      {"Affected Quantity"}
                     </th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                      {t("event.price")}
+                      {"Per Unit"}
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      {t("trn.settlement.account")}
+                      {"Settlement Account"}
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      {t("trn.status")}
+                      {"Status"}
                     </th>
                   </tr>
                 </thead>
@@ -255,7 +246,7 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                           `/trns/trades/edit/${trn.portfolio.id}/${trn.id}`,
                         )
                       }
-                      title={t("actions.doubleClickToEdit")}
+                      title={"Double-click to edit"}
                     >
                       <td className="px-4 py-3 whitespace-nowrap">
                         {trn.trnType}
@@ -335,10 +326,4 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
       </div>
     </div>
   )
-})
-
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
-  props: {
-    ...(await serverSideTranslations(locale as string, ["common"])),
-  },
 })

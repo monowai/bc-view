@@ -1,5 +1,4 @@
 import React, { useEffect } from "react"
-import { useTranslation } from "next-i18next"
 import useSwr from "swr"
 import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { PortfolioResponses } from "types/beancounter"
@@ -17,7 +16,6 @@ const SelectPortfoliosStep: React.FC<SelectPortfoliosStepProps> = ({
   onChange,
   preselectedIds,
 }) => {
-  const { t } = useTranslation("common")
   const { data, error, isLoading } = useSwr<PortfolioResponses>(
     portfoliosKey,
     simpleFetcher(portfoliosKey),
@@ -59,7 +57,7 @@ const SelectPortfoliosStep: React.FC<SelectPortfoliosStepProps> = ({
   if (error) {
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-        {t("portfolios.error.retrieve", "Failed to load portfolios")}
+        {"Error retrieving portfolios"}
       </div>
     )
   }
@@ -69,9 +67,7 @@ const SelectPortfoliosStep: React.FC<SelectPortfoliosStepProps> = ({
   if (portfolios.length === 0) {
     return (
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
-        <p className="text-gray-600">
-          {t("error.portfolios.empty", "No portfolios found")}
-        </p>
+        <p className="text-gray-600">{"You have no portfolios"}</p>
       </div>
     )
   }
@@ -80,13 +76,10 @@ const SelectPortfoliosStep: React.FC<SelectPortfoliosStepProps> = ({
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-medium text-gray-900">
-          {t("rebalance.wizard.selectPortfolios", "Select Portfolios")}
+          {"Select Portfolios"}
         </h3>
         <p className="text-sm text-gray-600 mt-1">
-          {t(
-            "rebalance.wizard.selectPortfoliosDesc",
-            "Choose which portfolios to include in this rebalance plan.",
-          )}
+          {"Choose which portfolios to include in this rebalance plan."}
         </p>
       </div>
 
@@ -97,14 +90,14 @@ const SelectPortfoliosStep: React.FC<SelectPortfoliosStepProps> = ({
           onClick={handleSelectAll}
           className="text-blue-600 hover:text-blue-800"
         >
-          {t("selectAll", "Select All")}
+          {"Select All"}
         </button>
         <button
           type="button"
           onClick={handleSelectNone}
           className="text-blue-600 hover:text-blue-800"
         >
-          {t("selectNone", "Select None")}
+          {"Select None"}
         </button>
       </div>
 
@@ -115,16 +108,16 @@ const SelectPortfoliosStep: React.FC<SelectPortfoliosStepProps> = ({
             <tr>
               <th className="px-4 py-3 w-10"></th>
               <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                {t("portfolio.code", "Code")}
+                {"Code"}
               </th>
               <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                {t("portfolio.name", "Name")}
+                {"Name"}
               </th>
               <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">
-                {t("portfolio.marketvalue", "Market Value")}
+                {"Market Value"}
               </th>
               <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
-                {t("portfolio.currency.report", "Currency")}
+                {"Report"}
               </th>
             </tr>
           </thead>
@@ -167,11 +160,7 @@ const SelectPortfoliosStep: React.FC<SelectPortfoliosStepProps> = ({
 
       {/* Selection summary */}
       <div className="text-sm text-gray-600">
-        {t(
-          "rebalance.wizard.selectedPortfolios",
-          "{{count}} portfolio(s) selected",
-          { count: selectedPortfolioIds.length },
-        )}
+        {`${selectedPortfolioIds.length} portfolio(s) selected`}
       </div>
     </div>
   )

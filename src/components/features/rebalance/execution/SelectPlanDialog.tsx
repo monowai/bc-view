@@ -1,5 +1,4 @@
 import React, { useState } from "react"
-import { useTranslation } from "next-i18next"
 import useSWR from "swr"
 import Dialog from "@components/ui/Dialog"
 import { simpleFetcher } from "@utils/api/fetchHelper"
@@ -19,7 +18,6 @@ const SelectPlanDialog: React.FC<SelectPlanDialogProps> = ({
   onSelectPlan,
   onCreateNew,
 }) => {
-  const { t } = useTranslation("common")
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null)
   const [loadingPlan, setLoadingPlan] = useState(false)
   const [filterByModel, setFilterByModel] = useState(false)
@@ -64,19 +62,16 @@ const SelectPlanDialog: React.FC<SelectPlanDialogProps> = ({
 
   return (
     <Dialog
-      title={t("rebalance.selectPlan.title", "Select Rebalance Plan")}
+      title={"Select Rebalance Plan"}
       onClose={onClose}
       maxWidth="lg"
       scrollable={true}
-      footer={
-        <Dialog.CancelButton onClick={onClose} label={t("cancel", "Cancel")} />
-      }
+      footer={<Dialog.CancelButton onClick={onClose} label={"Cancel"} />}
     >
       <p className="text-sm text-gray-600 mb-4">
-        {t(
-          "rebalance.selectPlan.description",
-          "Choose an approved model plan to rebalance against, or create a new model from your current holdings.",
-        )}
+        {
+          "Choose an approved model plan to rebalance against, or create a new model from your current holdings."
+        }
       </p>
 
       {/* Model Positions Filter Toggle */}
@@ -90,18 +85,12 @@ const SelectPlanDialog: React.FC<SelectPlanDialogProps> = ({
           />
           <div className="flex-1">
             <div className="font-medium text-gray-900 text-sm">
-              {t("rebalance.filterByModel.label", "Model positions only")}
+              {"Model positions only"}
             </div>
             <div className="text-xs text-gray-500 mt-0.5">
               {filterByModel
-                ? t(
-                    "rebalance.filterByModel.enabledDesc",
-                    "Only positions from transactions tagged with this model will be considered. Use this when rebalancing an existing model allocation.",
-                  )
-                : t(
-                    "rebalance.filterByModel.disabledDesc",
-                    "All portfolio positions will be considered. Use this when applying a model to a portfolio for the first time.",
-                  )}
+                ? "Only positions from transactions tagged with this model will be considered. Use this when rebalancing an existing model allocation."
+                : "All portfolio positions will be considered. Use this when applying a model to a portfolio for the first time."}
             </div>
           </div>
         </label>
@@ -110,17 +99,16 @@ const SelectPlanDialog: React.FC<SelectPlanDialogProps> = ({
       {loadingModels ? (
         <div className="py-8 text-center text-gray-500">
           <i className="fas fa-spinner fa-spin mr-2"></i>
-          {t("loading", "Loading...")}
+          {"Loading..."}
         </div>
       ) : modelsWithApprovedPlans.length === 0 ? (
         <div className="py-8 text-center">
           <div className="text-gray-500 mb-4">
             <i className="fas fa-folder-open text-4xl mb-2"></i>
             <p>
-              {t(
-                "rebalance.selectPlan.noPlans",
-                "No approved plans found. Create a model and approve a plan first.",
-              )}
+              {
+                "No approved plans found. Create a model and approve a plan first."
+              }
             </p>
           </div>
         </div>
@@ -177,13 +165,10 @@ const SelectPlanDialog: React.FC<SelectPlanDialogProps> = ({
             <i className="fas fa-plus text-blue-500 mr-3"></i>
             <div>
               <div className="font-medium text-gray-900">
-                {t("rebalance.selectPlan.createNew", "Create New Model")}
+                {"Create New Model"}
               </div>
               <div className="text-sm text-gray-500">
-                {t(
-                  "rebalance.selectPlan.createNewDesc",
-                  "Create a model from your current holdings",
-                )}
+                {"Create a model from your current holdings"}
               </div>
             </div>
           </div>

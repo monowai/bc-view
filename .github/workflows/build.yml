@@ -185,7 +185,6 @@ jobs:
           path: |
             .next/
             public/
-            next-i18next.config.js
             package.json
             yarn.lock
           retention-days: 1

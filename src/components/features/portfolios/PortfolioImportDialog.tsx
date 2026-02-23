@@ -1,5 +1,4 @@
 import React, { useState, useRef } from "react"
-import { useTranslation } from "next-i18next"
 import Dialog from "@components/ui/Dialog"
 import Alert from "@components/ui/Alert"
 
@@ -12,7 +11,6 @@ const PortfolioImportDialog: React.FC<PortfolioImportDialogProps> = ({
   onClose,
   onComplete,
 }) => {
-  const { t } = useTranslation(["common", "wealth"])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isImporting, setIsImporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -32,7 +30,7 @@ const PortfolioImportDialog: React.FC<PortfolioImportDialogProps> = ({
 
   const handleImport = async (): Promise<void> => {
     if (!selectedFile) {
-      setError(t("wealth:error.selectFile"))
+      setError("Please select a file")
       return
     }
 
@@ -49,7 +47,7 @@ const PortfolioImportDialog: React.FC<PortfolioImportDialogProps> = ({
 
       if (!response.ok) {
         const errorData = await response.json()
-        setError(errorData.error || t("wealth:error.importFailed"))
+        setError(errorData.error || "Import failed")
         return
       }
 
@@ -57,9 +55,7 @@ const PortfolioImportDialog: React.FC<PortfolioImportDialogProps> = ({
       const count = result.data ? result.data.length : 0
       setImportResult({ count })
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : t("wealth:error.importFailed"),
-      )
+      setError(err instanceof Error ? err.message : "Import failed")
     } finally {
       setIsImporting(false)
     }
@@ -71,16 +67,16 @@ const PortfolioImportDialog: React.FC<PortfolioImportDialogProps> = ({
 
   return (
     <Dialog
-      title={t("portfolios.import.title")}
+      title={"Import Portfolios"}
       onClose={onClose}
       footer={
         !importResult ? (
           <>
-            <Dialog.CancelButton onClick={onClose} label={t("cancel")} />
+            <Dialog.CancelButton onClick={onClose} label={"Cancel"} />
             <Dialog.SubmitButton
               onClick={handleImport}
-              label={t("portfolios.import")}
-              loadingLabel={t("portfolios.importing")}
+              label={"Import"}
+              loadingLabel={"Importing..."}
               isSubmitting={isImporting}
               disabled={!selectedFile}
               variant="blue"
@@ -92,14 +88,18 @@ const PortfolioImportDialog: React.FC<PortfolioImportDialogProps> = ({
             className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
             onClick={handleDone}
           >
-            {t("done")}
+            {"Done"}
           </button>
         )
       }
     >
       {!importResult ? (
         <>
-          <p className="text-sm text-gray-600">{t("portfolios.import.hint")}</p>
+          <p className="text-sm text-gray-600">
+            {
+              "Import portfolios from a CSV file. The file should have columns: Code, Name, Currency, Base."
+            }
+          </p>
 
           <div
             className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-gray-400 transition-colors"
@@ -127,7 +127,7 @@ const PortfolioImportDialog: React.FC<PortfolioImportDialogProps> = ({
               </p>
             ) : (
               <p className="text-sm text-gray-500">
-                {t("portfolios.import.select")}
+                {"Click or drop a CSV file here"}
               </p>
             )}
           </div>
@@ -138,7 +138,7 @@ const PortfolioImportDialog: React.FC<PortfolioImportDialogProps> = ({
         <Alert variant="success" className="p-4 text-center">
           <i className="fas fa-check-circle text-green-500 text-3xl mb-2"></i>
           <p className="text-green-700 font-medium">
-            {t("portfolios.import.success", { count: importResult.count })}
+            {`Successfully imported ${importResult.count} portfolio(s)`}
           </p>
         </Alert>
       )}

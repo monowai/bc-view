@@ -1,8 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
-import { GetServerSideProps } from "next"
-import { useTranslation } from "next-i18next"
 import { useRouter } from "next/router"
 import Link from "next/link"
 import useSwr from "swr"
@@ -18,7 +15,6 @@ import { Asset, AssetResponse, Broker } from "types/beancounter"
 import { getAssetCurrency } from "@lib/assets/assetUtils"
 
 function ExecuteRebalancePage(): React.ReactElement {
-  const { t } = useTranslation("common")
   const router = useRouter()
   const {
     planId,
@@ -556,7 +552,7 @@ function ExecuteRebalancePage(): React.ReactElement {
     return (
       <div className="w-full py-4">
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-yellow-700 max-w-4xl mx-auto">
-          {t("rebalance.execute.noData", "No execution data available")}
+          {"No execution data available"}
         </div>
       </div>
     )
@@ -567,14 +563,10 @@ function ExecuteRebalancePage(): React.ReactElement {
       {/* Breadcrumb */}
       <nav className="text-sm text-gray-500 mb-4">
         <Link href={sourceUrl} className="hover:text-invest-600">
-          {isAggregated
-            ? t("holdings.aggregated", "Aggregated Holdings")
-            : t("holdings.title", "Holdings")}
+          {isAggregated ? "Aggregated Holdings" : "Holdings"}
         </Link>
         <span className="mx-2">/</span>
-        <span className="text-gray-900">
-          {t("rebalance.execute.title", "Rebalance")}
-        </span>
+        <span className="text-gray-900">{"Rebalance"}</span>
       </nav>
 
       {/* Header */}
@@ -582,18 +574,14 @@ function ExecuteRebalancePage(): React.ReactElement {
         <div className="flex items-start justify-between mb-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
-              {t("rebalance.execute.title", "Rebalance Portfolio")}
+              {"Rebalance Portfolio"}
             </h1>
             <p className="text-sm text-gray-600 mt-1">
-              {t("rebalance.execute.usingPlan", "Using plan")}:{" "}
-              {execution.modelName} v{execution.planVersion}
+              {"Using plan"}: {execution.modelName} v{execution.planVersion}
               {execution.filterByModel && (
                 <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
                   <i className="fas fa-filter mr-1"></i>
-                  {t(
-                    "rebalance.execute.modelPositionsOnly",
-                    "Model positions only",
-                  )}
+                  {"Model positions only"}
                 </span>
               )}
             </p>
@@ -645,18 +633,17 @@ function ExecuteRebalancePage(): React.ReactElement {
               <div className="flex items-start justify-between">
                 <div>
                   <h2 className="text-lg font-medium text-gray-900">
-                    {t("rebalance.execute.executionPlan", "Execution Plan")}
+                    {"Execution Plan"}
                   </h2>
                   <p className="text-sm text-gray-500">
-                    {t(
-                      "rebalance.execute.editTargets",
-                      "Edit target % to adjust allocations. Exclude positions to maintain their current weight.",
-                    )}
+                    {
+                      "Edit target % to adjust allocations. Exclude positions to maintain their current weight."
+                    }
                   </p>
                   {/* Allocation Method Toggle */}
                   <div className="flex items-center gap-3 mt-2">
                     <span className="text-xs text-gray-500">
-                      {t("rebalance.execute.allocationMethod", "Allocation:")}
+                      {"Allocation:"}
                     </span>
                     <div
                       className="inline-flex rounded-md shadow-sm"
@@ -731,25 +718,25 @@ function ExecuteRebalancePage(): React.ReactElement {
                       </span>
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      {t("rebalance.execute.asset", "Asset")}
+                      {"Asset"}
                     </th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                      {t("rebalance.execute.current", "Current")}
+                      {"Current"}
                     </th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                      {t("rebalance.execute.target", "Target")}
+                      {"Target"}
                     </th>
                     <th
                       className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase"
                       title="Return-adjusted target accounting for price movements since model creation"
                     >
-                      {t("rebalance.execute.adjusted", "Adjusted")}
+                      {"Adjusted"}
                     </th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                       %
                     </th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                      {t("rebalance.execute.quantity", "Quantity")}
+                      {"Quantity"}
                     </th>
                   </tr>
                 </thead>
@@ -938,7 +925,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                   <tr>
                     <td className="px-2 py-3"></td>
                     <td className="px-4 py-3 font-semibold text-gray-900">
-                      {t("total", "Total")}
+                      {"Total"}
                     </td>
                     <td className="px-4 py-3"></td>
                     <td className="px-4 py-3 text-right font-semibold text-gray-700">
@@ -982,7 +969,7 @@ function ExecuteRebalancePage(): React.ReactElement {
               onClick={() => router.back()}
               className="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300 transition-colors"
             >
-              {t("cancel", "Cancel")}
+              {"Cancel"}
             </button>
             <button
               onClick={() => {
@@ -999,8 +986,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                   : "bg-gray-400 cursor-not-allowed"
               }`}
             >
-              {t("next", "Next")}:{" "}
-              {t("rebalance.execute.reviewTransactions", "Review Transactions")}
+              {"Next"}: {"Review Transactions"}
             </button>
           </div>
         </>
@@ -1010,17 +996,10 @@ function ExecuteRebalancePage(): React.ReactElement {
           <div className="bg-white shadow-sm border border-gray-200 rounded-lg mb-6 overflow-hidden">
             <div className="p-4 border-b bg-gray-50">
               <h2 className="text-lg font-medium text-gray-900">
-                {t(
-                  "rebalance.execute.proposedTransactions",
-                  "Proposed Transactions",
-                )}
+                {"Proposed Transactions"}
               </h2>
               <p className="text-sm text-gray-500">
-                {activeItems.length}{" "}
-                {t(
-                  "rebalance.execute.transactionsToCreate",
-                  "transactions to create",
-                )}
+                {activeItems.length} {"transactions to create"}
               </p>
             </div>
             <div className="overflow-x-auto">
@@ -1028,16 +1007,16 @@ function ExecuteRebalancePage(): React.ReactElement {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      {t("rebalance.execute.asset", "Asset")}
+                      {"Asset"}
                     </th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                      {t("rebalance.execute.quantity", "Quantity")}
+                      {"Quantity"}
                     </th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                      {t("rebalance.execute.price", "Price")}
+                      {"Price"}
                     </th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                      {t("rebalance.execute.value", "Value")}
+                      {"Value"}
                     </th>
                   </tr>
                 </thead>
@@ -1092,7 +1071,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                 <tfoot className="bg-gray-100 border-t-2 border-gray-300">
                   <tr>
                     <td className="px-4 py-3 font-semibold text-gray-900">
-                      {t("total", "Total")}
+                      {"Total"}
                     </td>
                     <td className="px-4 py-3"></td>
                     <td className="px-4 py-3"></td>
@@ -1143,21 +1122,18 @@ function ExecuteRebalancePage(): React.ReactElement {
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-md font-medium text-gray-900">
-                    {t("trn.broker", "Broker")}
+                    {"Broker"}
                   </h3>
                   <a
                     href="/brokers"
                     target="_blank"
                     className="text-xs text-invest-600 hover:text-invest-700"
                   >
-                    {t("brokers.manage", "Manage")}
+                    {"Manage"}
                   </a>
                 </div>
                 <p className="text-sm text-gray-500 mb-4">
-                  {t(
-                    "rebalance.execute.brokerDescription",
-                    "Select the broker for all proposed transactions",
-                  )}
+                  {"Select the broker for all proposed transactions"}
                 </p>
                 <select
                   value={selectedBrokerId || ""}
@@ -1166,9 +1142,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-invest-500 focus:border-invest-500"
                 >
-                  <option value="">
-                    {t("trn.broker.none", "-- No broker --")}
-                  </option>
+                  <option value="">{"-- No broker --"}</option>
                   {brokers.map((broker) => (
                     <option key={broker.id} value={broker.id}>
                       {broker.name}
@@ -1182,16 +1156,12 @@ function ExecuteRebalancePage(): React.ReactElement {
               {settlementAccounts.length > 0 && (
                 <div>
                   <h3 className="text-md font-medium text-gray-900 mb-3">
-                    {t(
-                      "rebalance.execute.settlementAccount",
-                      "Settlement Account",
-                    )}
+                    {"Settlement Account"}
                   </h3>
                   <p className="text-sm text-gray-500 mb-4">
-                    {t(
-                      "rebalance.execute.settlementAccountDescription",
-                      "Select the brokerage account to debit/credit for these transactions",
-                    )}
+                    {
+                      "Select the brokerage account to debit/credit for these transactions"
+                    }
                   </p>
                   <select
                     value={selectedSettlementAccount || ""}
@@ -1201,10 +1171,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-invest-500 focus:border-invest-500"
                   >
                     <option value="">
-                      {t(
-                        "rebalance.execute.noSettlement",
-                        "No settlement account (use default)",
-                      )}
+                      {"No settlement account (use default)"}
                     </option>
                     {settlementAccounts.map((account) => (
                       <option key={account.id} value={account.id}>
@@ -1224,7 +1191,7 @@ function ExecuteRebalancePage(): React.ReactElement {
               onClick={() => setStep("configure")}
               className="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300 transition-colors"
             >
-              {t("back", "Back")}
+              {"Back"}
             </button>
             <button
               onClick={handleCommit}
@@ -1238,9 +1205,7 @@ function ExecuteRebalancePage(): React.ReactElement {
               <i
                 className={`fas ${committing ? "fa-spinner fa-spin" : "fa-check"} mr-2`}
               ></i>
-              {committing
-                ? t("rebalance.execute.executing", "Executing...")
-                : t("rebalance.execute.execute", "Execute Transactions")}
+              {committing ? "Executing..." : "Execute Transactions"}
             </button>
           </div>
         </>
@@ -1250,9 +1215,3 @@ function ExecuteRebalancePage(): React.ReactElement {
 }
 
 export default withPageAuthRequired(ExecuteRebalancePage)
-
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
-  props: {
-    ...(await serverSideTranslations(locale as string, ["common"])),
-  },
-})

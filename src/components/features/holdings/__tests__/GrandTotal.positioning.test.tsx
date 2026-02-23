@@ -108,7 +108,7 @@ describe("GrandTotal Column Positioning Tests", () => {
       expect(cells).toHaveLength(14)
 
       // First cell should be ValueTitle
-      expect(cells![0]).toHaveTextContent("Value in PORTFOLIO")
+      expect(cells![0]).toHaveTextContent("PORTFOLIO currency")
 
       // Second cell should be empty spacer with colSpan=1 (skips Price column)
       expect(cells![1]).toHaveAttribute("colSpan", "1")

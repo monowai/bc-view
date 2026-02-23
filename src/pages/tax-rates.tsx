@@ -1,8 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
-import { useTranslation } from "next-i18next"
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
-import { GetServerSideProps } from "next"
 import { rootLoader } from "@components/ui/PageLoader"
 import Alert from "@components/ui/Alert"
 import { TaxRate } from "types/beancounter"
@@ -17,7 +14,6 @@ const COUNTRY_OPTIONS = [
 ]
 
 function TaxRatesPage(): React.ReactElement {
-  const { t, ready } = useTranslation("common")
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -40,14 +36,14 @@ function TaxRatesPage(): React.ReactElement {
         }
       } catch (err) {
         console.error("Failed to fetch tax rates:", err)
-        setError(t("taxRates.error.load", "Failed to load tax rates"))
+        setError("Failed to load tax rates")
       } finally {
         setIsLoading(false)
       }
     }
 
     fetchData()
-  }, [t])
+  }, [])
 
   // Add or update a tax rate
   const handleAddTaxRate = useCallback(async (): Promise<void> => {
@@ -55,9 +51,7 @@ function TaxRatesPage(): React.ReactElement {
 
     const rate = parseFloat(newTaxRate) / 100 // Convert percentage to decimal
     if (isNaN(rate) || rate < 0 || rate > 1) {
-      setError(
-        t("taxRates.error.invalidRate", "Rate must be between 0 and 100%"),
-      )
+      setError("Rate must be between 0 and 100%")
       return
     }
 
@@ -90,22 +84,19 @@ function TaxRatesPage(): React.ReactElement {
         })
         setNewTaxCountry("")
         setNewTaxRate("")
-        setSuccess(t("taxRates.saved", "Tax rate saved"))
+        setSuccess("Tax rate saved")
         setTimeout(() => setSuccess(null), 3000)
       } else {
         const errorData = await response.json().catch(() => ({}))
-        setError(
-          errorData.message ||
-            t("taxRates.error.save", "Failed to save tax rate"),
-        )
+        setError(errorData.message || "Failed to save tax rate")
       }
     } catch (err) {
       console.error("Failed to save tax rate:", err)
-      setError(t("taxRates.error.save", "Failed to save tax rate"))
+      setError("Failed to save tax rate")
     } finally {
       setTaxRateSaving(false)
     }
-  }, [newTaxCountry, newTaxRate, t])
+  }, [newTaxCountry, newTaxRate])
 
   // Delete a tax rate
   const handleDeleteTaxRate = useCallback(
@@ -119,17 +110,17 @@ function TaxRatesPage(): React.ReactElement {
           setTaxRates((prev) =>
             prev.filter((r) => r.countryCode !== countryCode),
           )
-          setSuccess(t("taxRates.deleted", "Tax rate deleted"))
+          setSuccess("Tax rate deleted")
           setTimeout(() => setSuccess(null), 3000)
         } else {
-          setError(t("taxRates.error.delete", "Failed to delete tax rate"))
+          setError("Failed to delete tax rate")
         }
       } catch (err) {
         console.error("Failed to delete tax rate:", err)
-        setError(t("taxRates.error.delete", "Failed to delete tax rate"))
+        setError("Failed to delete tax rate")
       }
     },
-    [t],
+    [],
   )
 
   // Get country name from code
@@ -143,8 +134,8 @@ function TaxRatesPage(): React.ReactElement {
     (c) => !taxRates.some((r) => r.countryCode === c.code),
   )
 
-  if (!ready || isLoading) {
-    return rootLoader(t("loading"))
+  if (isLoading) {
+    return rootLoader("Loading...")
   }
 
   return (
@@ -156,13 +147,10 @@ function TaxRatesPage(): React.ReactElement {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
-              {t("taxRates.title", "Income Tax Rates")}
+              {"Income Tax Rates"}
             </h1>
             <p className="text-sm text-gray-500">
-              {t(
-                "taxRates.subtitle",
-                "Configure tax rates by country for rental income calculations",
-              )}
+              {"Configure tax rates by country for rental income calculations"}
             </p>
           </div>
         </div>
@@ -174,14 +162,11 @@ function TaxRatesPage(): React.ReactElement {
               <div className="flex">
                 <i className="fas fa-info-circle text-blue-500 mt-0.5 mr-3"></i>
                 <div className="text-sm text-blue-800">
-                  <p className="font-medium mb-1">
-                    {t("taxRates.info.title", "How tax rates work")}
-                  </p>
+                  <p className="font-medium mb-1">{"How tax rates work"}</p>
                   <p>
-                    {t(
-                      "taxRates.info.description",
-                      "Tax rates are applied to rental income from Real Estate properties when 'Deduct Income Tax' is enabled. Each property specifies its tax country, and the rate you configure here will be used to calculate net income after tax.",
-                    )}
+                    {
+                      "Tax rates are applied to rental income from Real Estate properties when 'Deduct Income Tax' is enabled. Each property specifies its tax country, and the rate you configure here will be used to calculate net income after tax."
+                    }
                   </p>
                 </div>
               </div>
@@ -191,7 +176,7 @@ function TaxRatesPage(): React.ReactElement {
             {taxRates.length > 0 && (
               <div className="space-y-2">
                 <h3 className="text-sm font-medium text-gray-700 mb-3">
-                  {t("taxRates.configured", "Configured Rates")}
+                  {"Configured Rates"}
                 </h3>
                 {taxRates.map((rate) => (
                   <div
@@ -207,10 +192,7 @@ function TaxRatesPage(): React.ReactElement {
                           {getCountryName(rate.countryCode)}
                         </span>
                         <p className="text-sm text-gray-500">
-                          {t(
-                            "taxRates.appliedTo",
-                            "Applied to properties in this jurisdiction",
-                          )}
+                          {"Applied to properties in this jurisdiction"}
                         </p>
                       </div>
                     </div>
@@ -221,7 +203,7 @@ function TaxRatesPage(): React.ReactElement {
                       <button
                         onClick={() => handleDeleteTaxRate(rate.countryCode)}
                         className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
-                        title={t("delete")}
+                        title={"Delete"}
                       >
                         <svg
                           className="w-5 h-5"
@@ -246,21 +228,19 @@ function TaxRatesPage(): React.ReactElement {
             {/* Add New Tax Rate */}
             <div className="border-t pt-6">
               <h3 className="text-sm font-medium text-gray-700 mb-3">
-                {t("taxRates.addNew", "Add Tax Rate")}
+                {"Add Tax Rate"}
               </h3>
               <div className="flex items-end gap-3">
                 <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t("taxRates.country", "Country")}
+                    {"Country"}
                   </label>
                   <select
                     value={newTaxCountry}
                     onChange={(e) => setNewTaxCountry(e.target.value)}
                     className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-500 focus:border-blue-500"
                   >
-                    <option value="">
-                      {t("taxRates.selectCountry", "Select country...")}
-                    </option>
+                    <option value="">{"Select country..."}</option>
                     {availableCountries.map((country) => (
                       <option key={country.code} value={country.code}>
                         {country.code} - {country.name}
@@ -268,9 +248,7 @@ function TaxRatesPage(): React.ReactElement {
                     ))}
                     {/* Allow updating existing rates */}
                     {taxRates.length > 0 && (
-                      <optgroup
-                        label={t("taxRates.updateExisting", "Update existing")}
-                      >
+                      <optgroup label={"Update existing"}>
                         {taxRates.map((rate) => (
                           <option
                             key={rate.countryCode}
@@ -286,7 +264,7 @@ function TaxRatesPage(): React.ReactElement {
                 </div>
                 <div className="w-32">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t("taxRates.rate", "Rate (%)")}
+                    {"Rate (%)"}
                   </label>
                   <input
                     type="number"
@@ -327,7 +305,7 @@ function TaxRatesPage(): React.ReactElement {
                   ) : (
                     <>
                       <i className="fas fa-plus mr-2"></i>
-                      {t("taxRates.add", "Add")}
+                      {"Add"}
                     </>
                   )}
                 </button>
@@ -337,14 +315,11 @@ function TaxRatesPage(): React.ReactElement {
             {taxRates.length === 0 && (
               <div className="text-center py-8 text-gray-500">
                 <i className="fas fa-percent text-4xl text-gray-300 mb-3"></i>
-                <p className="font-medium">
-                  {t("taxRates.empty.title", "No tax rates configured")}
-                </p>
+                <p className="font-medium">{"No tax rates configured"}</p>
                 <p className="text-sm">
-                  {t(
-                    "taxRates.empty.description",
-                    "Add a tax rate to deduct income tax from rental properties.",
-                  )}
+                  {
+                    "Add a tax rate to deduct income tax from rental properties."
+                  }
                 </p>
               </div>
             )}
@@ -360,9 +335,3 @@ function TaxRatesPage(): React.ReactElement {
 }
 
 export default withPageAuthRequired(TaxRatesPage)
-
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
-  props: {
-    ...(await serverSideTranslations(locale as string, ["common"])),
-  },
-})

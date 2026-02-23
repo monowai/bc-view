@@ -1,6 +1,5 @@
 import React from "react"
 import type { AppProps } from "next/app"
-import { appWithTranslation } from "next-i18next"
 import Header from "@components/layout/Header"
 import { Auth0Provider } from "@auth0/nextjs-auth0/client"
 //import "@styles/bc.sass"
@@ -61,4 +60,4 @@ const App: React.FC<AppProps> = ({ Component, pageProps }) => {
   )
 }
 
-export default appWithTranslation(App)
+export default App

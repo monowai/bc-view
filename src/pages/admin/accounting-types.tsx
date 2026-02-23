@@ -1,8 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
-import { useTranslation } from "next-i18next"
-import { GetServerSideProps } from "next"
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { rootLoader } from "@components/ui/PageLoader"
 import Dialog from "@components/ui/Dialog"
 import Alert from "@components/ui/Alert"
@@ -27,7 +24,6 @@ const defaultFormData: FormData = {
 
 export default withPageAuthRequired(
   function AccountingTypesAdmin(): React.ReactElement {
-    const { t, ready } = useTranslation("common")
     const { isAdmin, isLoading: isAdminLoading } = useIsAdmin()
     const [accountingTypes, setAccountingTypes] = useState<AccountingType[]>([])
     const [currencies, setCurrencies] = useState<Currency[]>([])
@@ -211,8 +207,8 @@ export default withPageAuthRequired(
       setFormData((prev) => ({ ...prev, [field]: value }))
     }
 
-    if (!ready || isAdminLoading) {
-      return rootLoader(t("loading"))
+    if (isAdminLoading) {
+      return rootLoader("Loading...")
     }
 
     if (!isAdmin) {
@@ -221,19 +217,16 @@ export default withPageAuthRequired(
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
             <i className="fas fa-lock text-4xl text-red-400 mb-4"></i>
             <h1 className="text-xl font-semibold text-red-700 mb-2">
-              {t("admin.accessDenied.title", "Access Denied")}
+              {"Access Denied"}
             </h1>
             <p className="text-red-600">
-              {t(
-                "admin.accessDenied.message",
-                "You do not have permission to access the admin area.",
-              )}
+              {"You do not have permission to access the admin area."}
             </p>
             <Link
               href="/portfolios"
               className="inline-block mt-4 px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
             >
-              {t("admin.accessDenied.goBack", "Return to Portfolios")}
+              {"Return to Portfolios"}
             </Link>
           </div>
         </div>
@@ -245,13 +238,12 @@ export default withPageAuthRequired(
         <div className="mb-6 flex justify-between items-start">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
-              {t("admin.accountingTypes.title", "Accounting Types")}
+              {"Accounting Types"}
             </h1>
             <p className="text-gray-600 mt-1">
-              {t(
-                "admin.accountingTypes.description",
-                "Manage board lots, settlement days, and category-currency mappings",
-              )}
+              {
+                "Manage board lots, settlement days, and category-currency mappings"
+              }
             </p>
           </div>
           {!isCreating && !editingId && (
@@ -260,7 +252,7 @@ export default withPageAuthRequired(
               className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
             >
               <i className="fas fa-plus mr-2"></i>
-              {t("admin.accountingTypes.create", "New Type")}
+              {"New Type"}
             </button>
           )}
         </div>
@@ -277,12 +269,7 @@ export default withPageAuthRequired(
         {(isCreating || editingId) && (
           <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              {isCreating
-                ? t(
-                    "admin.accountingTypes.createTitle",
-                    "Create Accounting Type",
-                  )
-                : t("admin.accountingTypes.editTitle", "Edit Accounting Type")}
+              {isCreating ? "Create Accounting Type" : "Edit Accounting Type"}
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -290,7 +277,7 @@ export default withPageAuthRequired(
                 <>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t("admin.accountingTypes.category", "Category")}
+                      {"Category"}
                     </label>
                     <input
                       type="text"
@@ -303,7 +290,7 @@ export default withPageAuthRequired(
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t("admin.accountingTypes.currency", "Currency")}
+                      {"Currency"}
                     </label>
                     <select
                       value={formData.currency}
@@ -324,17 +311,14 @@ export default withPageAuthRequired(
               {editingId && (
                 <div className="md:col-span-2">
                   <p className="text-sm text-gray-500">
-                    {t(
-                      "admin.accountingTypes.editHint",
-                      "Category and currency cannot be changed after creation.",
-                    )}
+                    {"Category and currency cannot be changed after creation."}
                   </p>
                 </div>
               )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("admin.accountingTypes.boardLot", "Board Lot")}
+                  {"Board Lot"}
                 </label>
                 <input
                   type="number"
@@ -352,7 +336,7 @@ export default withPageAuthRequired(
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t("admin.accountingTypes.settlementDays", "Settlement Days")}
+                  {"Settlement Days"}
                 </label>
                 <input
                   type="number"
@@ -375,7 +359,7 @@ export default withPageAuthRequired(
                 disabled={isSaving}
                 className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
               >
-                {t("cancel")}
+                {"Cancel"}
               </button>
               <button
                 onClick={handleSave}
@@ -392,7 +376,7 @@ export default withPageAuthRequired(
                     : "bg-blue-500 hover:bg-blue-600"
                 }`}
               >
-                {isSaving ? <Spinner label={t("saving")} /> : t("save")}
+                {isSaving ? <Spinner label={"Saving..."} /> : "Save"}
               </button>
             </div>
           </div>
@@ -401,39 +385,31 @@ export default withPageAuthRequired(
         <div className="bg-white rounded-lg border border-gray-200">
           {isLoading ? (
             <div className="p-8 text-center text-gray-500">
-              <Spinner label={t("loading")} size="lg" />
+              <Spinner label={"Loading..."} size="lg" />
             </div>
           ) : accountingTypes.length === 0 ? (
             <div className="p-8 text-center text-gray-500">
               <i className="fas fa-receipt text-4xl mb-3"></i>
-              <p>
-                {t(
-                  "admin.accountingTypes.empty",
-                  "No accounting types defined yet",
-                )}
-              </p>
+              <p>{"No accounting types defined yet"}</p>
             </div>
           ) : (
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="text-left px-4 py-3 text-sm font-medium text-gray-700">
-                    {t("admin.accountingTypes.col.category", "Category")}
+                    {"Category"}
                   </th>
                   <th className="text-left px-4 py-3 text-sm font-medium text-gray-700">
-                    {t("admin.accountingTypes.col.currency", "Currency")}
+                    {"Currency"}
                   </th>
                   <th className="text-center px-4 py-3 text-sm font-medium text-gray-700">
-                    {t("admin.accountingTypes.col.boardLot", "Board Lot")}
+                    {"Board Lot"}
                   </th>
                   <th className="text-center px-4 py-3 text-sm font-medium text-gray-700">
-                    {t(
-                      "admin.accountingTypes.col.settlementDays",
-                      "Settlement Days",
-                    )}
+                    {"Settlement Days"}
                   </th>
                   <th className="text-right px-4 py-3 text-sm font-medium text-gray-700">
-                    {t("admin.accountingTypes.col.actions", "Actions")}
+                    {"Actions"}
                   </th>
                 </tr>
               </thead>
@@ -456,14 +432,14 @@ export default withPageAuthRequired(
                       <button
                         onClick={() => handleEdit(at)}
                         className="text-blue-600 hover:text-blue-800 mr-3"
-                        title={t("edit")}
+                        title={"Edit"}
                       >
                         <i className="fas fa-edit"></i>
                       </button>
                       <button
                         onClick={() => setDeleteConfirm(at)}
                         className="text-red-600 hover:text-red-800"
-                        title={t("delete")}
+                        title={"Delete"}
                       >
                         <i className="fas fa-trash"></i>
                       </button>
@@ -477,21 +453,18 @@ export default withPageAuthRequired(
 
         {deleteConfirm && (
           <Dialog
-            title={t(
-              "admin.accountingTypes.deleteConfirm.title",
-              "Delete Accounting Type?",
-            )}
+            title={"Delete Accounting Type?"}
             onClose={() => setDeleteConfirm(null)}
             footer={
               <>
                 <Dialog.CancelButton
                   onClick={() => setDeleteConfirm(null)}
-                  label={t("cancel")}
+                  label={"Cancel"}
                 />
                 <Dialog.SubmitButton
                   onClick={handleDelete}
-                  label={t("delete", "Delete")}
-                  loadingLabel={t("deleting", "Deleting...")}
+                  label={"Delete"}
+                  loadingLabel={"Deleting..."}
                   isSubmitting={isDeleting}
                   variant="red"
                 />
@@ -499,10 +472,7 @@ export default withPageAuthRequired(
             }
           >
             <p className="text-gray-600">
-              {t(
-                "admin.accountingTypes.deleteConfirm.message",
-                `Are you sure you want to delete "${deleteConfirm.category} (${deleteConfirm.currency.code})"? This will fail if assets reference it.`,
-              )}
+              {`Are you sure you want to delete "${deleteConfirm.category} (${deleteConfirm.currency.code})"? This will fail if assets reference it.`}
             </p>
           </Dialog>
         )}
@@ -510,9 +480,3 @@ export default withPageAuthRequired(
     )
   },
 )
-
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
-  props: {
-    ...(await serverSideTranslations(locale as string, ["common"])),
-  },
-})

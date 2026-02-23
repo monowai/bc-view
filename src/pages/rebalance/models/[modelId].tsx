@@ -1,8 +1,5 @@
 import React, { useState } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
-import { GetServerSideProps } from "next"
-import { useTranslation } from "next-i18next"
 import { useRouter } from "next/router"
 import Link from "next/link"
 import ModelPortfolioForm from "@components/features/rebalance/models/ModelPortfolioForm"
@@ -11,7 +8,6 @@ import { useModel } from "@components/features/rebalance/hooks/useModel"
 import { TableSkeletonLoader } from "@components/ui/SkeletonLoader"
 
 function ModelDetailPage(): React.ReactElement {
-  const { t } = useTranslation("common")
   const router = useRouter()
   const { modelId } = router.query
 
@@ -33,7 +29,7 @@ function ModelDetailPage(): React.ReactElement {
     return (
       <div className="w-full py-4">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-          {t("rebalance.models.error", "Failed to load model")}
+          {"Failed to load model"}
         </div>
       </div>
     )
@@ -44,13 +40,11 @@ function ModelDetailPage(): React.ReactElement {
       {/* Breadcrumb */}
       <nav className="text-sm text-gray-500 mb-4 max-w-2xl mx-auto">
         <Link href="/rebalance/models" className="hover:text-invest-600">
-          {t("rebalance.models.title", "Model Portfolios")}
+          {"Model Portfolios"}
         </Link>
         <span className="mx-2">/</span>
         <span className="text-gray-900">
-          {isNew
-            ? t("rebalance.models.create", "Create Model")
-            : model?.name || "..."}
+          {isNew ? "Create Model" : model?.name || "..."}
         </span>
       </nav>
 
@@ -60,7 +54,7 @@ function ModelDetailPage(): React.ReactElement {
           /* New Model - Show full form */
           <div className="p-6">
             <h1 className="text-xl font-bold text-gray-900 mb-4">
-              {t("rebalance.models.create", "Create Model")}
+              {"Create Model"}
             </h1>
             <ModelPortfolioForm
               onSuccess={() => router.push("/rebalance/models")}
@@ -71,14 +65,14 @@ function ModelDetailPage(): React.ReactElement {
           <div className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-medium text-gray-900">
-                {t("rebalance.models.editDetails", "Edit Model Details")}
+                {"Edit Model Details"}
               </h2>
               <button
                 onClick={() => setIsEditing(false)}
                 className="text-sm text-gray-500 hover:text-gray-700"
               >
                 <i className="fas fa-times mr-1"></i>
-                {t("cancel", "Cancel")}
+                {"Cancel"}
               </button>
             </div>
             <ModelPortfolioForm
@@ -124,7 +118,7 @@ function ModelDetailPage(): React.ReactElement {
                 className="ml-4 text-sm text-invest-600 hover:text-invest-700 flex items-center"
               >
                 <i className="fas fa-edit mr-1"></i>
-                {t("edit", "Edit")}
+                {"Edit"}
               </button>
             </div>
           </div>
@@ -142,9 +136,3 @@ function ModelDetailPage(): React.ReactElement {
 }
 
 export default withPageAuthRequired(ModelDetailPage)
-
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
-  props: {
-    ...(await serverSideTranslations(locale as string, ["common"])),
-  },
-})

@@ -1,8 +1,5 @@
 import React, { useState, useCallback, useMemo } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
-import { GetServerSideProps } from "next"
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
-import { useTranslation } from "next-i18next"
 import useSwr, { mutate } from "swr"
 import { simpleFetcher, ccyKey, categoriesKey } from "@utils/api/fetchHelper"
 import { rootLoader } from "@components/ui/PageLoader"
@@ -31,8 +28,16 @@ import {
   USER_ASSET_CATEGORIES,
 } from "@components/features/accounts/accountTypes"
 
+const categoryLabels: Record<string, string> = {
+  PENSION: "Retirement Fund",
+  ACCOUNT: "Bank Account",
+  TRADE: "Trade Account",
+  RE: "Real Estate",
+  "MUTUAL FUND": "Mutual Fund",
+  POLICY: "Retirement Fund",
+}
+
 function AccountsPage(): React.ReactElement {
-  const { t, ready } = useTranslation("common")
   const [activeTab, setActiveTab] = useState<TabType>("overview")
   const {
     data: accountsData,
@@ -265,27 +270,21 @@ function AccountsPage(): React.ReactElement {
   // Tab definitions
   const tabs = useMemo(
     (): { id: TabType; label: string }[] => [
-      { id: "overview", label: t("accounts.overview") },
-      { id: "all", label: t("accounts.all") },
+      { id: "overview", label: "Overview" },
+      { id: "all", label: "All" },
       ...categoryOptions.map((cat) => ({ id: cat.value, label: cat.label })),
     ],
-    [categoryOptions, t],
+    [categoryOptions],
   )
 
-  if (
-    !ready ||
-    isLoading ||
-    ccyLoading ||
-    categoriesLoading ||
-    sectorsLoading
-  ) {
-    return rootLoader(t("loading"))
+  if (isLoading || ccyLoading || categoriesLoading || sectorsLoading) {
+    return rootLoader("Loading...")
   }
 
   if (error) {
     return (
       <div className="p-4">
-        <Alert className="p-4">{t("accounts.error.load")}</Alert>
+        <Alert className="p-4">{"Error loading custom assets"}</Alert>
       </div>
     )
   }
@@ -293,7 +292,7 @@ function AccountsPage(): React.ReactElement {
   return (
     <div className="p-4">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
-        <h1 className="text-2xl font-semibold">{t("accounts.title")}</h1>
+        <h1 className="text-2xl font-semibold">{"Custom Assets"}</h1>
         <AccountActions
           onImportClick={handleImportClick}
           activeTab={activeTab}
@@ -353,10 +352,8 @@ function AccountsPage(): React.ReactElement {
           onSetBalance={handleSetBalance}
           emptyMessage={
             activeTab === "all"
-              ? t("accounts.empty")
-              : t("accounts.tab.empty", {
-                  category: t(`category.${activeTab}`),
-                })
+              ? "You have no custom assets. Click Add Asset to create one."
+              : `No ${categoryLabels[activeTab] || activeTab} assets yet.`
           }
         />
       )}
@@ -421,9 +418,3 @@ function AccountsPage(): React.ReactElement {
 }
 
 export default withPageAuthRequired(AccountsPage)
-
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
-  props: {
-    ...(await serverSideTranslations(locale as string, ["common", "wealth"])),
-  },
-})

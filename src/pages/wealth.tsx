@@ -1,8 +1,5 @@
 import React, { useMemo, useState } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
-import { useTranslation } from "next-i18next"
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
-import { GetServerSideProps } from "next"
 import Head from "next/head"
 import Link from "next/link"
 import useSwr from "swr"
@@ -37,7 +34,6 @@ type SortConfig = {
 }
 
 function WealthDashboard(): React.ReactElement {
-  const { t, ready } = useTranslation("common")
   const { preferences } = useUserPreferences()
   const [sortConfig, setSortConfig] = useState<SortConfig>({
     key: "value",
@@ -162,11 +158,11 @@ function WealthDashboard(): React.ReactElement {
     })
 
   if (portfolioError) {
-    return errorOut(t("portfolios.error.retrieve"), portfolioError)
+    return errorOut("Error retrieving portfolios", portfolioError)
   }
 
-  if (portfolioLoading || !ready || !fxReady) {
-    return rootLoader(t("loading"))
+  if (portfolioLoading || !fxReady) {
+    return rootLoader("Loading...")
   }
 
   if (portfolios.length === 0) {
@@ -181,10 +177,9 @@ function WealthDashboard(): React.ReactElement {
             <div className="bg-linear-to-r from-blue-600 to-blue-700 rounded-2xl p-8 text-center text-white shadow-lg mb-8">
               <h1 className="text-3xl font-bold mb-2">Net Worth</h1>
               <p className="text-blue-100">
-                {t(
-                  "wealth.empty.subtitle",
-                  "Add a portfolio to see your net worth across brokers, assets, and currencies",
-                )}
+                {
+                  "Add a portfolio to see your net worth across brokers, assets, and currencies"
+                }
               </p>
             </div>
 
@@ -192,10 +187,10 @@ function WealthDashboard(): React.ReactElement {
             <div className="max-w-2xl mx-auto">
               <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
                 <h2 className="text-xl font-bold text-gray-900 mb-2 text-center">
-                  {t("home.getStarted", "Let's Get You Started")}
+                  {"Let's Get You Started"}
                 </h2>
                 <p className="text-gray-600 mb-6 text-center">
-                  {t("portfolios.empty.title", "No portfolios yet")}
+                  {"No portfolios yet"}
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Link
@@ -206,13 +201,10 @@ function WealthDashboard(): React.ReactElement {
                       <i className="fas fa-rocket text-xl text-blue-500"></i>
                     </div>
                     <h3 className="font-semibold text-gray-900 mb-1">
-                      {t("home.startSetup", "Start Setup")}
+                      {"Start Setup"}
                     </h3>
                     <p className="text-gray-500 text-sm">
-                      {t(
-                        "portfolios.guided",
-                        "Guided setup for bank accounts, property, and pensions",
-                      )}
+                      {"Guided setup for bank accounts, property, and pensions"}
                     </p>
                   </Link>
                   <Link
@@ -223,13 +215,10 @@ function WealthDashboard(): React.ReactElement {
                       <i className="fas fa-plus text-xl text-green-500"></i>
                     </div>
                     <h3 className="font-semibold text-gray-900 mb-1">
-                      {t("portfolio.create")}
+                      {"Add"}
                     </h3>
                     <p className="text-gray-500 text-sm">
-                      {t(
-                        "portfolios.direct",
-                        "Create a portfolio directly with full control",
-                      )}
+                      {"Create a portfolio directly with full control"}
                     </p>
                   </Link>
                 </div>
@@ -318,9 +307,3 @@ function WealthDashboard(): React.ReactElement {
 }
 
 export default withPageAuthRequired(WealthDashboard)
-
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
-  props: {
-    ...(await serverSideTranslations(locale as string, ["common"])),
-  },
-})

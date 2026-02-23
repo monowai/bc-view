@@ -1,8 +1,5 @@
 import React, { useEffect } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
-import { GetServerSideProps } from "next"
-import { useTranslation } from "next-i18next"
 import { useRouter } from "next/router"
 import useSwr from "swr"
 import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
@@ -11,7 +8,6 @@ import OnboardingWizard from "@components/features/onboarding/OnboardingWizard"
 import { useRegistration } from "@contexts/RegistrationContext"
 
 function OnboardingPage(): React.ReactElement {
-  const { t } = useTranslation("onboarding")
   const router = useRouter()
   const { isOnboardingComplete, isRegistered } = useRegistration()
 
@@ -37,12 +33,8 @@ function OnboardingPage(): React.ReactElement {
     <div className="w-full py-8 px-4">
       {/* Header */}
       <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold text-gray-900">
-          {t("title", "Account Setup")}
-        </h1>
-        <p className="text-gray-600 mt-2">
-          {t("subtitle", "Let's get your account ready")}
-        </p>
+        <h1 className="text-3xl font-bold text-gray-900">{"Account Setup"}</h1>
+        <p className="text-gray-600 mt-2">{"Let's get your account ready"}</p>
       </div>
 
       {/* Wizard */}
@@ -52,12 +44,3 @@ function OnboardingPage(): React.ReactElement {
 }
 
 export default withPageAuthRequired(OnboardingPage)
-
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
-  props: {
-    ...(await serverSideTranslations(locale as string, [
-      "common",
-      "onboarding",
-    ])),
-  },
-})

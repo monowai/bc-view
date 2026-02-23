@@ -1,6 +1,5 @@
 import React, { ReactElement } from "react"
 import { GroupKey } from "types/beancounter"
-import { useTranslation } from "next-i18next"
 import { useHoldingState } from "@lib/holdings/holdingState"
 import { getSortIcon } from "@lib/sortIcon"
 
@@ -148,6 +147,22 @@ export const headers = [
 // Show column headers every N positions
 const HEADER_INTERVAL = 6
 
+const HEADER_LABELS: Record<string, string> = {
+  "asset.price": "Price",
+  "asset.change": "Change",
+  "gain.onday": "Change",
+  quantity: "Qty",
+  cost: "Cost",
+  "summary.value": "Value",
+  irr: "IRR",
+  "summary.dividends": "Income",
+  "gain.unrealised": "Unrealised",
+  "gain.realised": "Realised",
+  weight: "Weight",
+  alpha: "Alpha",
+  gain: "Gain",
+}
+
 export default function Header({
   groupKey,
   sortConfig,
@@ -155,7 +170,6 @@ export default function Header({
   cumulativePositionCount = 0,
   isFirstGroup = false,
 }: HeaderProps): ReactElement {
-  const { t } = useTranslation("common")
   const holdingState = useHoldingState()
   const isCostApproximate = holdingState.isCostApproximate
 
@@ -234,13 +248,15 @@ export default function Header({
                         : "justify-start"
                   }`}
                 >
-                  {t(header.key)}
+                  {HEADER_LABELS[header.key] ?? header.key}
                   {"costRelated" in header &&
                     header.costRelated &&
                     isCostApproximate && (
                       <span
                         className="ml-1 text-amber-500 text-xs"
-                        title={t("displayCurrency.approximate")}
+                        title={
+                          "Values shown in display currency - Cost/Gains are approximate"
+                        }
                       >
                         ⚠
                       </span>

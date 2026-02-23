@@ -5,20 +5,6 @@ import Rows from "../Rows"
 import { Position, Portfolio, HoldingGroup } from "types/beancounter"
 import { ValueIn } from "@components/features/holdings/GroupByOptions"
 
-// Mock next-i18next
-jest.mock("next-i18next", () => ({
-  useTranslation: (): { t: (key: string) => string } => ({
-    t: (key: string): string => {
-      const translations: Record<string, string> = {
-        "actions.menu": "Actions",
-        "actions.quickSell": "Quick Sell",
-        "corporate.view": "View Corporate Actions",
-      }
-      return translations[key] || key
-    },
-  }),
-}))
-
 // Mock Next.js Link component
 jest.mock("next/link", () => {
   return function Link({

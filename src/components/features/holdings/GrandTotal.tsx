@@ -1,7 +1,6 @@
 import { HoldingsInCurrency } from "types/beancounter"
 import React, { ReactElement } from "react"
 import { FormatValue, ResponsiveFormatValue } from "@components/ui/MoneyUtils"
-import { useTranslation } from "next-i18next"
 import { headers, HEADER_INDICES } from "./Header"
 import { GRANDTOTAL_LAYOUT } from "./constants"
 
@@ -10,8 +9,6 @@ export default function GrandTotal({
   holdings,
   valueIn,
 }: HoldingsInCurrency): ReactElement {
-  const { t, ready } = useTranslation("common")
-  if (!ready) return <tbody />
   if (!holdings.viewTotals) return <tbody />
 
   // GrandTotal data: skips first column (Price), maps to headers[1-12]
@@ -49,7 +46,7 @@ export default function GrandTotal({
         className="holding-footer text-sm bg-blue-50 text-blue-600 border-b border-blue-100"
       >
         <td className="px-0.5 py-1.5 sm:px-1 md:px-2 xl:px-3 text-sm font-semibold text-left text-blue-900 bg-blue-100/80">
-          <div>{t("holdings.valueTitle", { valueIn })}</div>
+          <div>{`${valueIn} currency`}</div>
         </td>
         {/* Skip Price column - hidden on mobile portrait, visible on landscape (640px+) */}
         <td colSpan={1} className="hidden sm:table-cell bg-blue-100/60" />
@@ -178,7 +175,9 @@ export default function GrandTotal({
                 <span className="group relative cursor-help text-blue-400">
                   -
                   <span className="invisible group-hover:visible absolute right-0 bottom-full mb-1 z-10 w-48 p-2 bg-slate-800 text-white text-xs rounded shadow-lg">
-                    {t(item.tooltip)}
+                    {item.tooltip === "irr.subtotal.hidden"
+                      ? "IRR not computed for subtotals. See portfolio summary for overall IRR."
+                      : item.tooltip}
                   </span>
                 </span>
               ) : typeof item.value === "string" ? (

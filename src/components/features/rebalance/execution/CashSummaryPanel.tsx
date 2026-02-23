@@ -1,6 +1,4 @@
 import React from "react"
-import { useTranslation } from "next-i18next"
-
 interface CashSummaryPanelProps {
   currentMarketValue: number
   currentCash: number
@@ -18,8 +16,6 @@ const CashSummaryPanel: React.FC<CashSummaryPanelProps> = ({
   cashForPurchases,
   currency,
 }) => {
-  const { t } = useTranslation("common")
-
   const formatCurrency = (value: number): string => {
     return new Intl.NumberFormat(undefined, {
       style: "decimal",
@@ -40,14 +36,12 @@ const CashSummaryPanel: React.FC<CashSummaryPanelProps> = ({
 
   return (
     <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-      <h3 className="text-sm font-medium text-gray-700 mb-3">
-        {t("rebalance.execute.summary", "Summary")}
-      </h3>
+      <h3 className="text-sm font-medium text-gray-700 mb-3">{"Summary"}</h3>
       <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
         {/* Left column - Market Value */}
         <div className="flex justify-between">
           <span className="text-gray-700 font-medium">
-            {t("rebalance.execute.currentMarketValue", "Current Market Value")}:
+            {"Current Market Value"}:
           </span>
           <span className="font-bold text-gray-900">
             {formatCurrency(currentMarketValue)} {currency}
@@ -56,9 +50,7 @@ const CashSummaryPanel: React.FC<CashSummaryPanelProps> = ({
 
         {/* Right column - Current Cash */}
         <div className="flex justify-between">
-          <span className="text-gray-500">
-            {t("rebalance.execute.currentCash", "Current Cash")}:
-          </span>
+          <span className="text-gray-500">{"Current Cash"}:</span>
           <span className="text-gray-900 font-medium">
             {formatCurrency(currentCash)} {currency}
           </span>
@@ -66,9 +58,7 @@ const CashSummaryPanel: React.FC<CashSummaryPanelProps> = ({
 
         {/* From Sales */}
         <div className="flex justify-between">
-          <span className="text-gray-500">
-            {t("rebalance.execute.cashFromSales", "From Sales")}:
-          </span>
+          <span className="text-gray-500">{"From Sales"}:</span>
           <span className="text-green-600 font-medium">
             +{formatCurrency(cashFromSales)} {currency}
           </span>
@@ -76,9 +66,7 @@ const CashSummaryPanel: React.FC<CashSummaryPanelProps> = ({
 
         {/* Target Cash */}
         <div className="flex justify-between">
-          <span className="text-gray-500">
-            {t("rebalance.execute.targetCash", "Target Cash")}:
-          </span>
+          <span className="text-gray-500">{"Target Cash"}:</span>
           <span className="text-blue-600 font-medium">
             {formatCurrency(targetCash)} {currency}
           </span>
@@ -86,9 +74,7 @@ const CashSummaryPanel: React.FC<CashSummaryPanelProps> = ({
 
         {/* For Purchases */}
         <div className="flex justify-between">
-          <span className="text-gray-500">
-            {t("rebalance.execute.cashForPurchases", "For Purchases")}:
-          </span>
+          <span className="text-gray-500">{"For Purchases"}:</span>
           <span className="text-red-600 font-medium">
             -{formatCurrency(cashForPurchases)} {currency}
           </span>
@@ -96,9 +82,7 @@ const CashSummaryPanel: React.FC<CashSummaryPanelProps> = ({
 
         {/* Net Impact */}
         <div className="flex justify-between">
-          <span className="text-gray-700 font-medium">
-            {t("rebalance.execute.netImpact", "Net Impact")}:
-          </span>
+          <span className="text-gray-700 font-medium">{"Net Impact"}:</span>
           <span className={`font-bold ${netImpactColor}`}>
             {netImpact >= 0 ? "+" : ""}
             {formatCurrency(netImpact)} {currency}
@@ -109,11 +93,7 @@ const CashSummaryPanel: React.FC<CashSummaryPanelProps> = ({
         <div className="col-span-2 border-t border-gray-200 pt-2 mt-1 space-y-2">
           <div className="flex justify-between">
             <span className="text-gray-700 font-medium">
-              {t(
-                "rebalance.execute.projectedMarketValue",
-                "Projected Market Value",
-              )}
-              :
+              {"Projected Market Value"}:
             </span>
             <span className="font-bold text-gray-900">
               {formatCurrency(currentMarketValue)} {currency}
@@ -121,7 +101,7 @@ const CashSummaryPanel: React.FC<CashSummaryPanelProps> = ({
           </div>
           <div className="flex justify-between">
             <span className="text-gray-700 font-medium">
-              {t("rebalance.execute.projectedCash", "Projected Cash")}:
+              {"Projected Cash"}:
             </span>
             <span className="font-bold text-blue-600">
               {formatCurrency(projectedCash)} {currency}

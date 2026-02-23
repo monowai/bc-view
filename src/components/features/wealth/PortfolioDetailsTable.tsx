@@ -1,6 +1,5 @@
 import React from "react"
 import Link from "next/link"
-import { useTranslation } from "next-i18next"
 import { useRouter } from "next/router"
 import { Currency } from "types/beancounter"
 import { FormatValue } from "@components/ui/MoneyUtils"
@@ -24,7 +23,6 @@ const PortfolioDetailsTable: React.FC<PortfolioDetailsTableProps> = ({
   collapsed,
   onToggle,
 }) => {
-  const { t } = useTranslation("common")
   const router = useRouter()
 
   return (
@@ -48,7 +46,7 @@ const PortfolioDetailsTable: React.FC<PortfolioDetailsTableProps> = ({
           {summary.portfolioBreakdown.length === 0 ? (
             <div className="p-8">
               <p className="text-gray-600 mb-6 text-center">
-                {t("portfolios.empty.title", "No portfolios yet")}
+                {"No portfolios yet"}
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-xl mx-auto">
                 {/* Guided Setup */}
@@ -60,11 +58,9 @@ const PortfolioDetailsTable: React.FC<PortfolioDetailsTableProps> = ({
                     <i className="fas fa-rocket text-blue-500"></i>
                   </div>
                   <h4 className="font-medium text-gray-900 mb-1">
-                    {t("home.startSetup", "Start Setup")}
+                    {"Start Setup"}
                   </h4>
-                  <p className="text-gray-500 text-xs">
-                    {t("portfolios.guided", "Guided setup")}
-                  </p>
+                  <p className="text-gray-500 text-xs">{"Guided setup"}</p>
                 </Link>
                 {/* Direct Add */}
                 <Link
@@ -74,12 +70,8 @@ const PortfolioDetailsTable: React.FC<PortfolioDetailsTableProps> = ({
                   <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
                     <i className="fas fa-plus text-green-500"></i>
                   </div>
-                  <h4 className="font-medium text-gray-900 mb-1">
-                    {t("portfolio.create")}
-                  </h4>
-                  <p className="text-gray-500 text-xs">
-                    {t("portfolios.direct", "Direct control")}
-                  </p>
+                  <h4 className="font-medium text-gray-900 mb-1">{"Add"}</h4>
+                  <p className="text-gray-500 text-xs">{"Direct control"}</p>
                 </Link>
               </div>
             </div>

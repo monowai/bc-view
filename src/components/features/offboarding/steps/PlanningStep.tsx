@@ -1,6 +1,4 @@
 import React from "react"
-import { useTranslation } from "next-i18next"
-
 interface PlanningStepProps {
   planCount: number
   modelCount: number
@@ -22,15 +20,18 @@ export default function PlanningStep({
   onBack,
   onNext,
 }: PlanningStepProps): React.ReactElement {
-  const { t } = useTranslation("offboarding")
   const hasData = planCount > 0 || modelCount > 0
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <h2 className="text-xl font-semibold text-gray-900 mb-4">
-        {t("planning.title")}
+        {"Delete Planning Data"}
       </h2>
-      <p className="text-gray-600 mb-6">{t("planning.description")}</p>
+      <p className="text-gray-600 mb-6">
+        {
+          "Your planning data includes retirement plans and model portfolios for rebalancing."
+        }
+      </p>
 
       {hasData ? (
         <div className="space-y-4 mb-6">
@@ -47,11 +48,13 @@ export default function PlanningStep({
                   <div className="flex items-center">
                     <i className="fas fa-chart-line text-purple-500 mr-2"></i>
                     <span className="font-medium text-gray-900">
-                      {t("planning.plansCheckbox", { count: planCount })}
+                      {`Delete all ${planCount} retirement plans`}
                     </span>
                   </div>
                   <p className="text-sm text-gray-500 mt-1">
-                    {t("planning.plansDescription")}
+                    {
+                      "This will delete your independence plans and their expense breakdowns."
+                    }
                   </p>
                 </div>
               </label>
@@ -71,11 +74,13 @@ export default function PlanningStep({
                   <div className="flex items-center">
                     <i className="fas fa-balance-scale text-indigo-500 mr-2"></i>
                     <span className="font-medium text-gray-900">
-                      {t("planning.modelsCheckbox", { count: modelCount })}
+                      {`Delete all ${modelCount} model portfolios`}
                     </span>
                   </div>
                   <p className="text-sm text-gray-500 mt-1">
-                    {t("planning.modelsDescription")}
+                    {
+                      "This will delete your rebalancing models and their allocation plans."
+                    }
                   </p>
                 </div>
               </label>
@@ -86,7 +91,11 @@ export default function PlanningStep({
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
           <div className="flex items-center">
             <i className="fas fa-info-circle text-gray-400 mr-3"></i>
-            <p className="text-gray-600">{t("planning.noData")}</p>
+            <p className="text-gray-600">
+              {
+                "You don't have any retirement plans or model portfolios to delete."
+              }
+            </p>
           </div>
         </div>
       )}
@@ -97,10 +106,12 @@ export default function PlanningStep({
             <i className="fas fa-exclamation-circle text-red-500 mr-3 mt-1"></i>
             <div>
               <p className="text-red-700 font-medium">
-                {t("planning.warningTitle")}
+                {"This action is irreversible"}
               </p>
               <p className="text-red-600 text-sm mt-1">
-                {t("planning.warningDescription")}
+                {
+                  "Your retirement plans and rebalancing models will be permanently deleted."
+                }
               </p>
             </div>
           </div>
@@ -112,13 +123,13 @@ export default function PlanningStep({
           onClick={onBack}
           className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
         >
-          {t("back")}
+          {"Back"}
         </button>
         <button
           onClick={onNext}
           className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
         >
-          {t("continue")}
+          {"Continue"}
         </button>
       </div>
     </div>

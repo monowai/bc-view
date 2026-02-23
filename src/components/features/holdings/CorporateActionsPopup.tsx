@@ -1,7 +1,6 @@
 import React, { useState } from "react"
 import { NumericFormat } from "react-number-format"
 import useSwr from "swr"
-import { useTranslation } from "next-i18next"
 import { CorporateEvent, Asset, Transaction } from "types/beancounter"
 import {
   corporateEventsKey,
@@ -40,7 +39,6 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
   modalOpen,
   onClose,
 }) => {
-  const { t } = useTranslation("common")
   const today = new Date().toISOString().split("T")[0]
 
   // Helper to validate date string
@@ -211,7 +209,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
 
       if (!response.ok) {
         const errorData = await response.json()
-        setProcessError(errorData.message || t("corporate.error.process"))
+        setProcessError(errorData.message || "Failed to process event")
         return
       }
 
@@ -224,7 +222,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
       setTimeout(() => setProcessSuccess(null), 5000)
     } catch (err) {
       setProcessError(
-        err instanceof Error ? err.message : t("corporate.error.process"),
+        err instanceof Error ? err.message : "Failed to process event",
       )
     } finally {
       setProcessingEventId(null)
@@ -304,9 +302,9 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
   const getEventTypeLabel = (trnType: string): string => {
     switch (trnType) {
       case "DIVI":
-        return t("corporate.type.dividend")
+        return "Dividend"
       case "SPLIT":
-        return t("corporate.type.split")
+        return "Split"
       default:
         return trnType
     }
@@ -325,7 +323,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
 
   return (
     <Dialog
-      title={`${t("corporate.title")} - ${asset.code}`}
+      title={`${"Corporate Actions"} - ${asset.code}`}
       onClose={onClose}
       maxWidth="xl"
       scrollable
@@ -338,11 +336,11 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
               disabled={isLoadingEvents || isBackfilling}
             >
               {isLoadingEvents ? (
-                <Spinner label={t("corporate.loading")} />
+                <Spinner label={"Loading..."} />
               ) : (
                 <>
                   <i className="fas fa-download mr-2"></i>
-                  {t("corporate.loadEvents")}
+                  {"Load Events"}
                 </>
               )}
             </button>
@@ -352,27 +350,29 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
               disabled={
                 isBackfilling || isLoadingEvents || missingEvents.length === 0
               }
-              title={t("corporate.backfill.hint")}
+              title={
+                "Process all missing events that are ready (effective pay date has passed)"
+              }
             >
               {isBackfilling ? (
                 <Spinner
                   label={
                     backfillProgress
                       ? `${backfillProgress.current}/${backfillProgress.total}`
-                      : t("corporate.loading")
+                      : "Loading..."
                   }
                 />
               ) : (
                 <>
                   <i className="fas fa-forward mr-2"></i>
-                  {t("corporate.backfill")} ({missingEvents.length})
+                  {"Backfill"} ({missingEvents.length})
                 </>
               )}
             </button>
             {loadSuccess && (
               <span className="text-green-600 text-sm">
                 <i className="fas fa-check mr-1"></i>
-                {t("corporate.loadSuccess")}
+                {"Events loaded"}
               </span>
             )}
             {loadError && (
@@ -388,19 +388,19 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
               </span>
             )}
           </div>
-          <Dialog.CancelButton onClick={onClose} label={t("cancel")} />
+          <Dialog.CancelButton onClick={onClose} label={"Cancel"} />
         </>
       }
     >
       <div className="flex items-center gap-2 text-sm text-gray-600">
-        <span>{t("corporate.from", "From")}:</span>
+        <span>{"From"}:</span>
         <DateInput
           value={fromDate}
           onChange={setFromDate}
           max={toDate}
           className="text-sm border rounded px-2 py-1 w-36"
         />
-        <span>{t("corporate.to", "To")}:</span>
+        <span>{"To"}:</span>
         <DateInput
           value={toDate}
           onChange={setToDate}
@@ -412,25 +412,27 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
 
       <Alert variant="info">
         <i className="fas fa-info-circle mr-2"></i>
-        {t("corporate.info")}
+        {
+          "These are the corporate events we know about. Click the play button to dispatch a transaction to your portfolio. The effective date can be edited before processing."
+        }
       </Alert>
 
       <div className="overflow-y-auto flex-1">
         {isLoading && (
           <div className="flex items-center justify-center py-8">
-            <Spinner label={t("loading")} />
+            <Spinner label={"Loading..."} />
           </div>
         )}
 
         {error && (
           <div className="text-red-500 py-4">
-            {t("corporate.error.retrieve")}
+            {"Error retrieving corporate actions"}
           </div>
         )}
 
         {!isLoading && !error && events.length === 0 && (
           <div className="text-gray-500 py-8 text-center">
-            {t("corporate.noEvents")}
+            {"No corporate actions found for this period"}
           </div>
         )}
 
@@ -440,32 +442,30 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
               <tr>
                 <th
                   className="px-2 py-2 text-center"
-                  title={t("corporate.reconciled.hint")}
+                  title={
+                    "Reconciliation status - shows if a matching transaction exists in your portfolio"
+                  }
                 >
                   <i className="fas fa-check-circle text-gray-400"></i>
                 </th>
-                <th className="px-4 py-2 text-left">{t("corporate.type")}</th>
-                <th className="px-4 py-2 text-left">
-                  {t("corporate.recordDate")}
-                </th>
+                <th className="px-4 py-2 text-left">{"Type"}</th>
+                <th className="px-4 py-2 text-left">{"Record Date"}</th>
                 <th
                   className="px-4 py-2 text-left"
-                  title={t("corporate.effectiveDate.hint")}
+                  title={"Calculated as record date + 18 days"}
                 >
-                  {t("corporate.effectiveDate")}
+                  {"Effective Date"}
                   <i className="fas fa-info-circle ml-1 text-xs text-gray-400"></i>
                 </th>
                 <th
                   className="px-4 py-2 text-left"
-                  title={t("corporate.trnDate.hint")}
+                  title={"Transaction date in your portfolio"}
                 >
-                  {t("corporate.trnDate")}
+                  {"Trn Date"}
                 </th>
-                <th className="px-4 py-2 text-right">{t("corporate.rate")}</th>
-                <th className="px-4 py-2 text-right">{t("corporate.split")}</th>
-                <th className="px-4 py-2 text-center">
-                  {t("corporate.actions")}
-                </th>
+                <th className="px-4 py-2 text-right">{"Rate"}</th>
+                <th className="px-4 py-2 text-right">{"Split Ratio"}</th>
+                <th className="px-4 py-2 text-center">{"Actions"}</th>
               </tr>
             </thead>
             <tbody>
@@ -487,12 +487,12 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
                       {reconciled ? (
                         <i
                           className="fas fa-check-circle text-green-500"
-                          title={t("corporate.reconciled")}
+                          title={"Transaction exists in portfolio"}
                         ></i>
                       ) : (
                         <i
                           className="fas fa-circle text-gray-300"
-                          title={t("corporate.notReconciled")}
+                          title={"No matching transaction in portfolio"}
                         ></i>
                       )}
                     </td>
@@ -512,7 +512,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
                             ? "text-green-600"
                             : "text-orange-500"
                         }
-                        title={t("corporate.effectiveDate.hint")}
+                        title={"Calculated as record date + 18 days"}
                       >
                         {effectiveDate}
                         {!canProcessEvent(event, toDate) && (
@@ -538,7 +538,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
                               setOverridePayDate(matchingTrn.tradeDate)
                             }}
                             className="text-left text-green-600 hover:underline"
-                            title={t("corporate.trnDate.clickToEdit")}
+                            title={"Click to edit transaction date"}
                           >
                             {matchingTrn.tradeDate}
                             <i className="fas fa-pencil-alt ml-1 text-xs opacity-50"></i>
@@ -547,7 +547,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
                           <button
                             onClick={() => handleEditPayDate(event)}
                             className="text-left text-gray-500 hover:text-blue-600 hover:underline"
-                            title={t("corporate.trnDate.clickToSet")}
+                            title={"Click to set transaction date"}
                           >
                             <i className="fas fa-pencil-alt text-xs"></i>
                           </button>
@@ -593,7 +593,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
                               overridePayDate > toDate
                             }
                             className="text-green-500 hover:text-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                            title={t("corporate.saveAndProcess")}
+                            title={"Create transaction with this date"}
                           >
                             {processingEventId === event.id ? (
                               <i className="fas fa-spinner fa-spin"></i>
@@ -605,7 +605,7 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
                             onClick={handleCancelEdit}
                             disabled={processingEventId === event.id}
                             className="text-gray-500 hover:text-gray-700 disabled:opacity-50"
-                            title={t("cancel")}
+                            title={"Cancel"}
                           >
                             <i className="fas fa-times"></i>
                           </button>
@@ -625,8 +625,8 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
                             }`}
                             title={
                               canProcessEvent(event, toDate)
-                                ? t("corporate.process")
-                                : t("corporate.payDate.pending")
+                                ? "Process event to create transaction"
+                                : "Pay date in future - click to edit"
                             }
                           >
                             {processingEventId === event.id ? (
@@ -634,21 +634,17 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
                             ) : processSuccess === event.id ? (
                               <span
                                 className="flex items-center text-green-500"
-                                title={t("corporate.transactionCreated.hint", {
-                                  date: processedPayDates[event.id],
-                                })}
+                                title={`Transaction sent to bc-data with pay date: ${processedPayDates[event.id]}`}
                               >
                                 <i className="fas fa-check mr-1"></i>
                                 <span className="text-xs">
-                                  {t("corporate.transactionCreated")}
+                                  {"Transaction dispatched"}
                                 </span>
                               </span>
                             ) : processedPayDates[event.id] ? (
                               <span
                                 className="flex items-center text-gray-400"
-                                title={t("corporate.transactionCreated.hint", {
-                                  date: processedPayDates[event.id],
-                                })}
+                                title={`Transaction sent to bc-data with pay date: ${processedPayDates[event.id]}`}
                               >
                                 <i className="fas fa-check mr-1"></i>
                                 <span className="text-xs">

@@ -1,6 +1,4 @@
 import React from "react"
-import { useTranslation } from "next-i18next"
-
 interface TradeStatusToggleProps {
   isSettled: boolean
   onChange: (isSettled: boolean) => void
@@ -18,8 +16,6 @@ const TradeStatusToggle: React.FC<TradeStatusToggleProps> = ({
   disabled = false,
   size = "md",
 }) => {
-  const { t } = useTranslation("common")
-
   const toggleSize = size === "sm" ? "w-10 h-5" : "w-12 h-6"
   const dotSize = size === "sm" ? "w-4 h-4" : "w-5 h-5"
   const dotTranslate = size === "sm" ? "translate-x-5" : "translate-x-6"
@@ -30,7 +26,7 @@ const TradeStatusToggle: React.FC<TradeStatusToggleProps> = ({
       <span
         className={`${textSize} font-medium ${!isSettled ? "text-amber-600" : "text-gray-400"}`}
       >
-        {t("trn.status.proposed", "Proposed")}
+        {"Proposed"}
       </span>
       <button
         type="button"
@@ -55,7 +51,7 @@ const TradeStatusToggle: React.FC<TradeStatusToggleProps> = ({
       <span
         className={`${textSize} font-medium ${isSettled ? "text-green-600" : "text-gray-400"}`}
       >
-        {t("trn.status.settled", "Settled")}
+        {"Settled"}
       </span>
     </div>
   )

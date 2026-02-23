@@ -14,7 +14,6 @@ import {
   getTradeColorScheme,
   getQtyPriceTint,
 } from "@lib/trns/tradeUtils"
-import { useTranslation } from "next-i18next"
 import useSwr, { mutate } from "swr"
 import {
   marketsKey,
@@ -90,8 +89,6 @@ const TradeInputForm: React.FC<{
     resolver: yupResolver(schema),
     defaultValues,
   })
-
-  const { t } = useTranslation("common")
   const [copyStatus, setCopyStatus] = useState<"idle" | "success" | "error">(
     "idle",
   )
@@ -580,7 +577,7 @@ const TradeInputForm: React.FC<{
   }, [type, market, quantity, price, cashAmountField, fees, tax, watch])
 
   if (marketsLoading || tradeAccountsLoading || ccyLoading)
-    return rootLoader(t("loading"))
+    return rootLoader("Loading...")
 
   // Get market options
   const marketOptions =
@@ -608,7 +605,6 @@ const TradeInputForm: React.FC<{
             setShowBrokerSelectionDialog(false)
           }}
           onSkip={() => setShowBrokerSelectionDialog(false)}
-          t={t}
         />
       )}
 
@@ -636,7 +632,6 @@ const TradeInputForm: React.FC<{
               handleCopy={handleCopy}
               copyStatus={copyStatus}
               control={control}
-              t={t}
             />
 
             {/* Tab Bar */}
@@ -653,7 +648,7 @@ const TradeInputForm: React.FC<{
                     }`}
                     onClick={() => setActiveTab("trade")}
                   >
-                    {t("trn.tab.trade", "Trade")}
+                    {"Trade"}
                   </button>
                   {!isSimpleAmount && !isEditMode && (
                     <button
@@ -673,7 +668,7 @@ const TradeInputForm: React.FC<{
                         }
                       }}
                     >
-                      {t("trn.tab.invest", "Invest")}
+                      {"Invest"}
                     </button>
                   )}
                   <button
@@ -688,7 +683,7 @@ const TradeInputForm: React.FC<{
                     }`}
                     onClick={() => setActiveTab("settlement")}
                   >
-                    {t("trn.tab.settlement", "Settlement")}
+                    {"Settlement"}
                   </button>
                 </div>
               )
@@ -710,7 +705,6 @@ const TradeInputForm: React.FC<{
                     mutate,
                     setSubmitError,
                     setIsSubmitting,
-                    t,
                   })
                 } else if (data.type.value === "EXPENSE") {
                   await submitExpense({
@@ -749,7 +743,7 @@ const TradeInputForm: React.FC<{
                   {/* Type and Date */}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className={labelClass}>{t("trn.type")}</label>
+                      <label className={labelClass}>{"Type"}</label>
                       <TradeTypeController
                         name="type"
                         control={control}
@@ -760,7 +754,7 @@ const TradeInputForm: React.FC<{
                       />
                     </div>
                     <div>
-                      <label className={labelClass}>{t("trn.tradeDate")}</label>
+                      <label className={labelClass}>{"Trade Date"}</label>
                       <Controller
                         name="tradeDate"
                         control={control}
@@ -780,9 +774,7 @@ const TradeInputForm: React.FC<{
                   {isEditMode ? (
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className={labelClass}>
-                          {t("trn.asset.code")}
-                        </label>
+                        <label className={labelClass}>{"Asset"}</label>
                         <input
                           type="text"
                           value={editAssetCode}
@@ -791,9 +783,7 @@ const TradeInputForm: React.FC<{
                         />
                       </div>
                       <div>
-                        <label className={labelClass}>
-                          {t("trn.market.code")}
-                        </label>
+                        <label className={labelClass}>{"Market"}</label>
                         <input
                           type="text"
                           value={editMarketCode}
@@ -805,9 +795,7 @@ const TradeInputForm: React.FC<{
                   ) : (
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className={labelClass}>
-                          {t("trn.market.code")}
-                        </label>
+                        <label className={labelClass}>{"Market"}</label>
                         <Controller
                           name="market"
                           control={control}
@@ -829,9 +817,7 @@ const TradeInputForm: React.FC<{
                       </div>
                       <div>
                         <label className={labelClass}>
-                          {isFetchingPrice
-                            ? `${t("trn.asset.code")} ...`
-                            : t("trn.asset.code")}
+                          {isFetchingPrice ? `${"Asset"} ...` : "Asset"}
                         </label>
                         <AssetSearch
                           name="asset"
@@ -848,7 +834,7 @@ const TradeInputForm: React.FC<{
                   {/* Portfolio Selection */}
                   {portfolios.length > 0 && (
                     <div>
-                      <label className={labelClass}>{t("portfolio")}</label>
+                      <label className={labelClass}>{"Portfolio"}</label>
                       <select
                         value={selectedPortfolioId}
                         onChange={(e) => setSelectedPortfolioId(e.target.value)}
@@ -863,14 +849,8 @@ const TradeInputForm: React.FC<{
                       {portfolioChanged && (
                         <p className="text-xs text-amber-600 mt-0.5">
                           {isEditMode
-                            ? t(
-                                "trn.portfolio.changed",
-                                "Will move to this portfolio",
-                              )
-                            : t(
-                                "trn.portfolio.different",
-                                "Different from current portfolio",
-                              )}
+                            ? "Will move to this portfolio"
+                            : "Different from current portfolio"}
                         </p>
                       )}
                     </div>
@@ -880,9 +860,7 @@ const TradeInputForm: React.FC<{
                   {isSimpleAmount && (
                     <div>
                       <label className={labelClass}>
-                        {isIncome
-                          ? t("trn.income.amount", "Income Amount")
-                          : t("trn.expense.amount", "Expense Amount")}
+                        {isIncome ? "Income Amount" : "Expense Amount"}
                       </label>
                       <Controller
                         name="tradeAmount"
@@ -894,28 +872,16 @@ const TradeInputForm: React.FC<{
                             className={`${inputClass} text-lg font-medium`}
                             placeholder={
                               isIncome
-                                ? t(
-                                    "trn.income.placeholder",
-                                    "Enter income amount",
-                                  )
-                                : t(
-                                    "trn.expense.placeholder",
-                                    "Enter expense amount",
-                                  )
+                                ? "Enter income amount"
+                                : "Enter expense amount"
                             }
                           />
                         )}
                       />
                       <p className="text-xs text-gray-500 mt-1">
                         {isIncome
-                          ? t(
-                              "trn.income.hint",
-                              "This amount will be credited to the settlement account",
-                            )
-                          : t(
-                              "trn.expense.hint",
-                              "This amount will be debited from the settlement account",
-                            )}
+                          ? "This amount will be credited to the settlement account"
+                          : "This amount will be debited from the settlement account"}
                       </p>
                     </div>
                   )}
@@ -923,9 +889,7 @@ const TradeInputForm: React.FC<{
                   {/* Fees - shown for EXPENSE/INCOME types */}
                   {isSimpleAmount && (
                     <div>
-                      <label className={labelClass}>
-                        {t("trn.amount.charges")}
-                      </label>
+                      <label className={labelClass}>{"Fees"}</label>
                       <Controller
                         name="fees"
                         control={control}
@@ -949,8 +913,8 @@ const TradeInputForm: React.FC<{
                         <div>
                           <label className={labelClass}>
                             {actualPositionQuantity > 0
-                              ? `${t("quantity")} (${actualPositionQuantity.toLocaleString()})`
-                              : t("quantity")}
+                              ? `${"Qty"} (${actualPositionQuantity.toLocaleString()})`
+                              : "Qty"}
                           </label>
                           <Controller
                             name="quantity"
@@ -965,7 +929,7 @@ const TradeInputForm: React.FC<{
                           />
                         </div>
                         <div>
-                          <label className={labelClass}>{t("trn.price")}</label>
+                          <label className={labelClass}>{"Price"}</label>
                           <Controller
                             name="price"
                             control={control}
@@ -980,9 +944,7 @@ const TradeInputForm: React.FC<{
                           />
                         </div>
                         <div className="col-span-2 sm:col-span-1">
-                          <label className={labelClass}>
-                            {t("trn.amount.charges")}
-                          </label>
+                          <label className={labelClass}>{"Fees"}</label>
                           <Controller
                             name="fees"
                             control={control}
@@ -1003,15 +965,13 @@ const TradeInputForm: React.FC<{
                   {!isSimpleAmount && (
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <label className={labelClass}>
-                          {t("trn.broker", "Broker")}
-                        </label>
+                        <label className={labelClass}>{"Broker"}</label>
                         <a
                           href="/brokers"
                           target="_blank"
                           className="text-xs text-blue-500 hover:text-blue-700"
                         >
-                          {t("brokers.manage", "Manage")}
+                          {"Manage"}
                         </a>
                       </div>
                       <Controller
@@ -1023,9 +983,7 @@ const TradeInputForm: React.FC<{
                             value={field.value || ""}
                             onChange={(e) => field.onChange(e.target.value)}
                           >
-                            <option value="">
-                              {t("trn.broker.none", "-- No broker --")}
-                            </option>
+                            <option value="">{"-- No broker --"}</option>
                             {brokers.map((broker) => (
                               <option key={broker.id} value={broker.id}>
                                 {broker.name}
@@ -1045,8 +1003,8 @@ const TradeInputForm: React.FC<{
                     <div>
                       <label className={labelClass}>
                         {isExpense
-                          ? t("trn.expense.description", "Expense Description")
-                          : t("trn.income.description", "Income Description")}
+                          ? "Expense Description"
+                          : "Income Description"}
                       </label>
                       <Controller
                         name="comment"
@@ -1059,14 +1017,8 @@ const TradeInputForm: React.FC<{
                             value={field.value || ""}
                             placeholder={
                               isExpense
-                                ? t(
-                                    "trn.expense.descPlaceholder",
-                                    "e.g., Property rates, Insurance, Maintenance",
-                                  )
-                                : t(
-                                    "trn.income.descPlaceholder",
-                                    "e.g., Rental income, Dividend",
-                                  )
+                                ? "e.g., Property rates, Insurance, Maintenance"
+                                : "e.g., Rental income, Dividend"
                             }
                           />
                         )}
@@ -1080,14 +1032,9 @@ const TradeInputForm: React.FC<{
               {activeTab === "invest" && !isSimpleAmount && !isEditMode && (
                 <div className="space-y-4">
                   <div>
-                    <label className={labelClass}>
-                      {t("trn.invest.value", "Invest Value")}
-                    </label>
+                    <label className={labelClass}>{"Invest Value"}</label>
                     <p className="text-xs text-gray-500 mb-1">
-                      {t(
-                        "trn.invest.description",
-                        "Enter amount to invest, quantity will be calculated",
-                      )}
+                      {"Enter amount to invest, quantity will be calculated"}
                     </p>
                     <div className="relative">
                       <MathInput
@@ -1097,11 +1044,8 @@ const TradeInputForm: React.FC<{
                         }
                         placeholder={
                           price > 0
-                            ? t(
-                                "trn.invest.placeholder",
-                                "Enter amount to invest",
-                              )
-                            : t("trn.invest.needPrice", "Set price first")
+                            ? "Enter amount to invest"
+                            : "Set price first"
                         }
                         disabled={!price || price <= 0}
                         className={`${inputClass} disabled:bg-gray-100`}
@@ -1117,11 +1061,11 @@ const TradeInputForm: React.FC<{
                   {currentPositionWeight !== null ? (
                     <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
                       <label className="block text-xs font-medium text-purple-800 mb-2">
-                        {t("trn.targetWeight", "Target Weight")}
+                        {"Target Weight"}
                       </label>
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-xs text-purple-700">
-                          {t("rebalance.currentWeight")}:{" "}
+                          {"Current Weight"}:{" "}
                           <strong>{currentPositionWeight.toFixed(2)}%</strong>
                         </span>
                         <span className="text-purple-400">&rarr;</span>
@@ -1141,19 +1085,16 @@ const TradeInputForm: React.FC<{
                   ) : (
                     <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center">
                       <p className="text-xs text-gray-500">
-                        {t(
-                          "trn.invest.noPosition",
-                          "Target weight is available when trading existing positions",
-                        )}
+                        {
+                          "Target weight is available when trading existing positions"
+                        }
                       </p>
                     </div>
                   )}
 
                   {/* Charges */}
                   <div>
-                    <label className={labelClass}>
-                      {t("trn.amount.charges")}
-                    </label>
+                    <label className={labelClass}>{"Fees"}</label>
                     <Controller
                       name="fees"
                       control={control}
@@ -1176,10 +1117,10 @@ const TradeInputForm: React.FC<{
                   <div>
                     <label className={labelClass}>
                       {isIncome
-                        ? t("trn.income.creditAccount", "Credit To Account")
+                        ? "Credit To Account"
                         : isExpense
-                          ? t("trn.expense.debitAccount", "Debit From Account")
-                          : t("trn.settlement.account")}
+                          ? "Debit From Account"
+                          : "Settlement Account"}
                     </label>
                     <SettlementAccountSelect
                       name="settlementAccount"
@@ -1202,9 +1143,7 @@ const TradeInputForm: React.FC<{
                   {/* Charges — hidden for EXPENSE/INCOME (they have fees on Trade tab) */}
                   {!isSimpleAmount && (
                     <div>
-                      <label className={labelClass}>
-                        {t("trn.amount.charges")}
-                      </label>
+                      <label className={labelClass}>{"Fees"}</label>
                       <Controller
                         name="fees"
                         control={control}
@@ -1221,7 +1160,7 @@ const TradeInputForm: React.FC<{
 
                   {/* Tax */}
                   <div>
-                    <label className={labelClass}>{t("trn.amount.tax")}</label>
+                    <label className={labelClass}>{"Tax"}</label>
                     <Controller
                       name="tax"
                       control={control}
@@ -1237,9 +1176,7 @@ const TradeInputForm: React.FC<{
 
                   {/* Trade Amount (read-only display) */}
                   <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="text-xs text-gray-500">
-                      {t("trn.amount.trade")}
-                    </span>
+                    <span className="text-xs text-gray-500">{"Amount"}</span>
                     <span className="tabular-nums text-sm text-gray-900">
                       <NumericFormat
                         value={tradeAmount}
@@ -1254,9 +1191,7 @@ const TradeInputForm: React.FC<{
                   {/* Cash Amount (read-only display) — hidden when no cash impact */}
                   {cashImpact && (
                     <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                      <span className="text-xs text-gray-500">
-                        {t("trn.amount.cash")}
-                      </span>
+                      <span className="text-xs text-gray-500">{"Cash"}</span>
                       <span className="tabular-nums text-sm text-gray-900">
                         <NumericFormat
                           value={displayCashAmount}
@@ -1272,9 +1207,7 @@ const TradeInputForm: React.FC<{
                   {/* Comment (non-simple types) */}
                   {!isSimpleAmount && (
                     <div>
-                      <label className={labelClass}>
-                        {t("trn.comments", "Comments")}
-                      </label>
+                      <label className={labelClass}>{"Comments"}</label>
                       <Controller
                         name="comment"
                         control={control}
@@ -1294,9 +1227,7 @@ const TradeInputForm: React.FC<{
                   {isEditMode && models.length > 0 && (
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <label className={labelClass}>
-                          {t("trn.model", "Strategy/Model")}
-                        </label>
+                        <label className={labelClass}>{"Strategy/Model"}</label>
                         {suggestedModelId &&
                           suggestedModelId !== selectedModelId && (
                             <button
@@ -1306,7 +1237,7 @@ const TradeInputForm: React.FC<{
                               }
                               className="text-xs text-blue-500 hover:text-blue-700"
                             >
-                              {t("trn.model.useSuggested", "Use suggested")}
+                              {"Use suggested"}
                             </button>
                           )}
                       </div>
@@ -1317,13 +1248,9 @@ const TradeInputForm: React.FC<{
                           setSelectedModelId(e.target.value || undefined)
                         }
                       >
-                        <option value="">
-                          {t("trn.model.none", "-- No model --")}
-                        </option>
+                        <option value="">{"-- No model --"}</option>
                         {suggestedModelId && (
-                          <optgroup
-                            label={t("trn.model.suggested", "Suggested")}
-                          >
+                          <optgroup label={"Suggested"}>
                             {models
                               .filter((m) => m.id === suggestedModelId)
                               .map((model) => (
@@ -1336,7 +1263,7 @@ const TradeInputForm: React.FC<{
                               ))}
                           </optgroup>
                         )}
-                        <optgroup label={t("trn.model.all", "All Models")}>
+                        <optgroup label={"All Models"}>
                           {models
                             .filter((m) => m.id !== suggestedModelId)
                             .map((model) => (
@@ -1348,10 +1275,7 @@ const TradeInputForm: React.FC<{
                       </select>
                       {suggestedModelId && (
                         <p className="text-xs text-purple-600 mt-0.5">
-                          {t(
-                            "trn.model.deduced",
-                            "Model suggested based on transaction origin",
-                          )}
+                          {"Model suggested based on transaction origin"}
                         </p>
                       )}
                     </div>
@@ -1402,7 +1326,7 @@ const TradeInputForm: React.FC<{
                   </span>
                   {!cashImpact && (
                     <span className="text-xs text-gray-400 italic">
-                      {t("trn.noCashImpact", "No cash impact")}
+                      {"No cash impact"}
                     </span>
                   )}
                   {weightInfo && !isSimpleAmount && (
@@ -1423,7 +1347,7 @@ const TradeInputForm: React.FC<{
                   isEditMode ? editMode?.onClose() : setModalOpen(false)
                 }
               >
-                {t("cancel")}
+                {"Cancel"}
               </button>
               <button
                 type="submit"
@@ -1441,11 +1365,7 @@ const TradeInputForm: React.FC<{
                     : "bg-blue-600 hover:bg-blue-700 active:bg-blue-800"
                 }`}
               >
-                {isEditMode
-                  ? isSubmitting
-                    ? t("saving")
-                    : t("save")
-                  : t("submit", "Submit")}
+                {isEditMode ? (isSubmitting ? "Saving..." : "Save") : "Submit"}
               </button>
             </div>
           </div>

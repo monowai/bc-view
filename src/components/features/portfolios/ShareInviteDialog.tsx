@@ -1,5 +1,4 @@
 import React, { useState } from "react"
-import { useTranslation } from "next-i18next"
 import Dialog from "@components/ui/Dialog"
 import { Portfolio, ShareAccessLevel } from "types/beancounter"
 
@@ -16,7 +15,6 @@ export default function ShareInviteDialog({
   onClose,
   onSuccess,
 }: ShareInviteDialogProps): React.ReactElement {
-  const { t } = useTranslation("common")
   const [email, setEmail] = useState("")
   const [selectedPortfolioIds, setSelectedPortfolioIds] = useState<Set<string>>(
     preSelectedPortfolioId ? new Set([preSelectedPortfolioId]) : new Set(),
@@ -43,11 +41,11 @@ export default function ShareInviteDialog({
     setSuccess(null)
 
     if (!email.trim()) {
-      setError(t("shares.invite.error"))
+      setError("Please enter an email address")
       return
     }
     if (selectedPortfolioIds.size === 0) {
-      setError(t("shares.invite.error"))
+      setError("Please select at least one portfolio")
       return
     }
 
@@ -64,15 +62,15 @@ export default function ShareInviteDialog({
       })
       if (!response.ok) {
         const data = await response.json().catch(() => ({}))
-        setError(data.error || t("shares.invite.error"))
+        setError(data.error || "Failed to send invitation")
         return
       }
-      setSuccess(t("shares.invite.success"))
+      setSuccess("Invitation sent successfully")
       setTimeout(() => {
         onSuccess()
       }, 1500)
     } catch {
-      setError(t("shares.invite.error"))
+      setError("Failed to send invitation")
     } finally {
       setIsSubmitting(false)
     }
@@ -82,17 +80,17 @@ export default function ShareInviteDialog({
 
   return (
     <Dialog
-      title={t("shares.invite.title")}
+      title={"Share Portfolios"}
       onClose={onClose}
       maxWidth="md"
       scrollable
       footer={
         <>
-          <Dialog.CancelButton onClick={onClose} label={t("cancel")} />
+          <Dialog.CancelButton onClick={onClose} label={"Cancel"} />
           <Dialog.SubmitButton
             onClick={handleSubmit}
-            label={t("shares.invite.submit")}
-            loadingLabel={t("shares.invite.sending")}
+            label={"Send Invite"}
+            loadingLabel={"Sending..."}
             isSubmitting={isSubmitting}
             disabled={!canSubmit}
             variant="blue"
@@ -105,20 +103,20 @@ export default function ShareInviteDialog({
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          {t("shares.invite.email")}
+          {"Adviser Email"}
         </label>
         <input
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder={t("shares.invite.email.placeholder")}
+          placeholder={"Enter adviser's email address"}
           className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          {t("shares.invite.accessLevel")}
+          {"Access Level"}
         </label>
         <div className="flex space-x-4">
           <label className="flex items-center space-x-2 cursor-pointer">
@@ -128,9 +126,7 @@ export default function ShareInviteDialog({
               onChange={() => setAccessLevel("VIEW")}
               className="text-blue-600"
             />
-            <span className="text-sm">
-              {t("shares.invite.accessLevel.view")}
-            </span>
+            <span className="text-sm">{"View Only"}</span>
           </label>
           <label className="flex items-center space-x-2 cursor-pointer">
             <input
@@ -139,16 +135,14 @@ export default function ShareInviteDialog({
               onChange={() => setAccessLevel("FULL")}
               className="text-blue-600"
             />
-            <span className="text-sm">
-              {t("shares.invite.accessLevel.full")}
-            </span>
+            <span className="text-sm">{"Full Access"}</span>
           </label>
         </div>
       </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          {t("shares.invite.selectPortfolios")}
+          {"Select portfolios to share"}
         </label>
         <div className="space-y-2 max-h-60 overflow-y-auto">
           {portfolios.map((p) => (

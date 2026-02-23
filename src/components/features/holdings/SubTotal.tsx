@@ -1,7 +1,6 @@
 import React, { ReactElement } from "react"
 import { GroupedSubtotals } from "types/beancounter"
 import { FormatValue, ResponsiveFormatValue } from "@components/ui/MoneyUtils"
-import { useTranslation } from "next-i18next"
 import { getSubTotalCellClasses as getCellClasses } from "@lib/holdings/cellClasses"
 
 interface SubTotalProps extends GroupedSubtotals {
@@ -14,8 +13,6 @@ export default function SubTotal({
   valueIn,
   positionCount,
 }: SubTotalProps): ReactElement | null {
-  const { t } = useTranslation("common")
-
   // Skip subtotal when there's only 1 position - it would duplicate the row values
   if (positionCount <= 1) {
     return null
@@ -52,7 +49,9 @@ export default function SubTotal({
     <span key="irr" className="group relative cursor-help text-slate-400">
       -
       <span className="invisible group-hover:visible absolute right-0 bottom-full mb-1 z-10 w-48 p-2 bg-slate-800 text-white text-xs rounded shadow-lg">
-        {t("irr.subtotal.hidden")}
+        {
+          "IRR not computed for subtotals. See portfolio summary for overall IRR."
+        }
       </span>
     </span>, // irr - hidden in subtotals with tooltip
     <ResponsiveFormatValue

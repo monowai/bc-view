@@ -11,7 +11,6 @@ import { isCash, isCashRelated, stripOwnerPrefix } from "@lib/assets/assetUtils"
 import { useDisplayCurrencyConversion } from "@lib/hooks/useDisplayCurrencyConversion"
 import { compareByReportCategory, compareBySector } from "@lib/categoryMapping"
 import { GroupBy } from "@components/features/holdings/GroupByOptions"
-import { useTranslation } from "next-i18next"
 import { useRouter } from "next/router"
 import Link from "next/link"
 
@@ -50,8 +49,6 @@ const CardActionsMenu: React.FC<CardActionsMenuProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
-  const { t } = useTranslation("common")
-
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent): void => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -80,7 +77,7 @@ const CardActionsMenu: React.FC<CardActionsMenuProps> = ({
     <div className="relative" ref={menuRef}>
       <button
         type="button"
-        aria-label={`${t("actions.menu")} ${assetCode}`}
+        aria-label={`${"Actions"} ${assetCode}`}
         className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
         onClick={(e) => {
           e.preventDefault()
@@ -104,7 +101,7 @@ const CardActionsMenu: React.FC<CardActionsMenuProps> = ({
                 }}
               >
                 <i className="fas fa-arrow-down text-green-500 w-4"></i>
-                {t("actions.recordIncome", "Record Income")}
+                {"Record Income"}
               </button>
             )}
             {onRecordExpense && (
@@ -118,7 +115,7 @@ const CardActionsMenu: React.FC<CardActionsMenuProps> = ({
                 }}
               >
                 <i className="fas fa-arrow-up text-red-500 w-4"></i>
-                {t("actions.recordExpense", "Record Expense")}
+                {"Record Expense"}
               </button>
             )}
             <Link
@@ -127,7 +124,7 @@ const CardActionsMenu: React.FC<CardActionsMenuProps> = ({
               onClick={(e) => e.stopPropagation()}
             >
               <i className="fas fa-list text-blue-500 w-4"></i>
-              {t("actions.viewTrades", "View Trades")}
+              {"View Trades"}
             </Link>
           </div>
         </div>
