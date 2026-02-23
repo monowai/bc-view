@@ -5,7 +5,15 @@ import {
   PrivateAssetConfig,
   SubAccount,
 } from "types/beancounter"
-import { useTranslation } from "next-i18next"
+
+const CATEGORY_LABELS: Record<string, string> = {
+  PENSION: "Retirement Fund",
+  ACCOUNT: "Bank Account",
+  TRADE: "Trade Account",
+  RE: "Real Estate",
+  "MUTUAL FUND": "Mutual Fund",
+  POLICY: "Retirement Fund",
+}
 import useSwr from "swr"
 import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
 import MathInput from "@components/ui/MathInput"
@@ -39,7 +47,6 @@ export default function SetBalanceDialog({
   onClose,
   onComplete,
 }: SetBalanceDialogProps): React.ReactElement {
-  const { t } = useTranslation("common")
   const [date, setDate] = useState(new Date().toISOString().split("T")[0])
   const [targetBalance, setTargetBalance] = useState<number>(0)
   const [currentBalance, setCurrentBalance] = useState<number>(0)
@@ -159,7 +166,7 @@ export default function SetBalanceDialog({
 
     // For withdrawals, require cash account
     if (isWithdrawal && !cashAccountId) {
-      setError(t("balance.error.noCashAccount"))
+      setError("Please select a cash account for the withdrawal")
       return
     }
 
@@ -167,7 +174,7 @@ export default function SetBalanceDialog({
       (p) => p.id === selectedPortfolioId,
     )
     if (!portfolio) {
-      setError(t("balance.error.noPortfolio"))
+      setError("Please select a portfolio")
       return
     }
 
@@ -217,7 +224,7 @@ export default function SetBalanceDialog({
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         setError(
-          errorData.message || errorData.detail || t("balance.error.failed"),
+          errorData.message || errorData.detail || "Failed to set balance",
         )
         return
       }
@@ -241,7 +248,7 @@ export default function SetBalanceDialog({
 
       await onComplete()
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("balance.error.failed"))
+      setError(err instanceof Error ? err.message : "Failed to set balance")
     } finally {
       setIsSubmitting(false)
     }
@@ -255,23 +262,22 @@ export default function SetBalanceDialog({
     date,
     cashAccounts,
     onComplete,
-    t,
     hasSubAccounts,
     subAccountBalances,
   ])
 
   return (
     <Dialog
-      title={t("balance.set.title")}
+      title={"Set Account Balance"}
       onClose={onClose}
       scrollable
       footer={
         <>
-          <Dialog.CancelButton onClick={onClose} label={t("cancel")} />
+          <Dialog.CancelButton onClick={onClose} label={"Cancel"} />
           <Dialog.SubmitButton
             onClick={handleSave}
-            label={t("balance.set.confirm")}
-            loadingLabel={t("saving")}
+            label={"Set Balance"}
+            loadingLabel={"Saving..."}
             isSubmitting={isSubmitting}
             disabled={
               !transactionInfo ||
@@ -288,12 +294,12 @@ export default function SetBalanceDialog({
         <div className="font-semibold text-lg">{asset.name}</div>
         <div className="text-sm text-gray-600">
           {stripOwnerPrefix(asset.code)} -{" "}
-          {t(`category.${asset.assetCategory?.id}`) ||
+          {CATEGORY_LABELS[asset.assetCategory?.id || ""] ||
             asset.assetCategory?.name}
         </div>
         {!isLoadingBalance && (
           <div className="mt-2 text-sm">
-            <span className="text-gray-500">{t("balance.current")}:</span>{" "}
+            <span className="text-gray-500">{"Current Balance"}:</span>{" "}
             <span className="font-medium">
               {getAssetCurrency(asset)} {currentBalance.toLocaleString()}
             </span>
@@ -304,7 +310,7 @@ export default function SetBalanceDialog({
       {/* Date */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          {t("balance.date")}
+          {"Transaction Date"}
         </label>
         <DateInput
           value={date}
@@ -317,7 +323,7 @@ export default function SetBalanceDialog({
       {hasSubAccounts ? (
         <div className="space-y-3">
           <label className="block text-sm font-medium text-gray-700">
-            {t("balance.subAccounts")}
+            {"Sub-Account Balances"}
           </label>
           {configSubAccounts.map((sa) => (
             <div key={sa.code} className="flex items-center space-x-3">
@@ -339,7 +345,7 @@ export default function SetBalanceDialog({
           ))}
           <div className="flex justify-between items-center pt-2 border-t border-gray-200">
             <span className="text-sm font-medium text-gray-700">
-              {t("balance.target")}
+              {"Target Balance"}
             </span>
             <span className="text-sm font-medium">
               {getAssetCurrency(asset)} {targetBalance.toLocaleString()}
@@ -349,12 +355,12 @@ export default function SetBalanceDialog({
       ) : (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            {t("balance.target")} ({getAssetCurrency(asset) || "USD"})
+            {"Target Balance"} ({getAssetCurrency(asset) || "USD"})
           </label>
           <MathInput
             value={targetBalance}
             onChange={(value) => setTargetBalance(value)}
-            placeholder={t("balance.target.hint")}
+            placeholder={"Enter the balance you want to set"}
             className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-amber-500 focus:border-amber-500"
           />
         </div>
@@ -363,14 +369,14 @@ export default function SetBalanceDialog({
       {/* Portfolio Selection */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          {t("balance.portfolio")}
+          {"Portfolio"}
         </label>
         <select
           value={selectedPortfolioId}
           onChange={(e) => setSelectedPortfolioId(e.target.value)}
           className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-amber-500 focus:border-amber-500"
         >
-          <option value="">{t("balance.portfolio.hint")}</option>
+          <option value="">{"Select portfolio for transaction"}</option>
           {portfoliosData?.data?.map((portfolio) => (
             <option key={portfolio.id} value={portfolio.id}>
               {portfolio.code} - {portfolio.name}
@@ -383,14 +389,14 @@ export default function SetBalanceDialog({
       {isWithdrawal && (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            {t("balance.cashAccount")}
+            {"Credit To"}
           </label>
           <select
             value={cashAccountId}
             onChange={(e) => setCashAccountId(e.target.value)}
             className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-amber-500 focus:border-amber-500"
           >
-            <option value="">{t("balance.cashAccount.hint")}</option>
+            <option value="">{"Select cash account for withdrawal"}</option>
             {cashAccounts.map((account) => (
               <option key={account.id} value={account.id}>
                 {stripOwnerPrefix(account.code)} ({getAssetCurrency(account)})
@@ -398,7 +404,7 @@ export default function SetBalanceDialog({
             ))}
           </select>
           <p className="text-xs text-gray-500 mt-1">
-            {t("balance.cashAccount.description")}
+            {"Withdrawn funds will be deposited to this account"}
           </p>
         </div>
       )}
@@ -417,10 +423,7 @@ export default function SetBalanceDialog({
               className={`fas ${transactionInfo.type === "DEPOSIT" ? "fa-arrow-up" : "fa-arrow-down"} mr-2`}
             ></i>
             <span className="font-medium">
-              {transactionInfo.type === "DEPOSIT"
-                ? t("balance.deposit")
-                : t("balance.withdrawal")}
-              :
+              {transactionInfo.type === "DEPOSIT" ? "Deposit" : "Withdrawal"}:
             </span>
             <span className="ml-2">
               {getAssetCurrency(asset)}{" "}

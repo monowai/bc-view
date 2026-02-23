@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react"
 import { NumericFormat } from "react-number-format"
-import { GetServerSideProps } from "next"
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useRouter } from "next/router"
 import {
@@ -11,7 +9,6 @@ import {
   trnKey,
   holdingKey,
 } from "@utils/api/fetchHelper"
-import { useTranslation } from "next-i18next"
 import { Transaction } from "types/beancounter"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 import { rootLoader } from "@components/ui/PageLoader"
@@ -22,7 +19,6 @@ import FxEditModal from "@components/features/transactions/FxEditModal"
 import TradeInputForm from "@components/features/transactions/TradeInputForm"
 
 export default withPageAuthRequired(function Trades(): React.ReactElement {
-  const { t } = useTranslation("common")
   const router = useRouter()
   const [editModalOpen, setEditModalOpen] = useState(true)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -140,16 +136,16 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
 
   // Wait for router to be ready (query params available) during client-side navigation
   if (!router.isReady) {
-    return rootLoader(t("loading"))
+    return rootLoader("Loading...")
   }
 
   // Handle edit mode
   if (isEditMode) {
     if (singleTrn.error) {
-      return errorOut(t("trades.error.retrieve"), singleTrn.error)
+      return errorOut("Error retrieving trades", singleTrn.error)
     }
     if (singleTrn.isLoading) {
-      return rootLoader(t("loading"))
+      return rootLoader("Loading...")
     }
     // API returns an array, get the first transaction
     const transaction = Array.isArray(singleTrn.data?.data)
@@ -159,13 +155,13 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
     if (!transaction) {
       return (
         <div id="root" className="text-center py-8">
-          <p className="text-gray-500 mb-4">{t("trn.noTransactions")}</p>
+          <p className="text-gray-500 mb-4">{"No transactions found"}</p>
           <button
             onClick={() => router.back()}
             className="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 transition-colors"
           >
             <i className="fa fa-arrow-left mr-2"></i>
-            {t("back")}
+            {"Back"}
           </button>
         </div>
       )
@@ -225,10 +221,10 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
         ) : null}
         {showDeleteConfirm && (
           <ConfirmDialog
-            title={t("trn.deleteTitle", "Delete Transaction")}
-            message={t("trn.delete", "Delete this transaction?")}
-            confirmLabel={t("delete", "Delete")}
-            cancelLabel={t("cancel", "Cancel")}
+            title={"Delete Transaction"}
+            message={"Permanently delete this transaction?"}
+            confirmLabel={"Delete"}
+            cancelLabel={"Cancel"}
             variant="red"
             onConfirm={handleDeleteConfirm}
             onCancel={() => setShowDeleteConfirm(false)}
@@ -240,25 +236,25 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
 
   // List mode - check for errors and loading state
   if (trades.error) {
-    return errorOut(t("trades.error.retrieve"), trades.error)
+    return errorOut("Error retrieving trades", trades.error)
   }
   if (asset.error) {
-    return errorOut(t("assets.error.retrieve"), asset.error)
+    return errorOut("Error retrieving asset information", asset.error)
   }
   if (asset.isLoading || trades.isLoading) {
-    return rootLoader(t("loading"))
+    return rootLoader("Loading...")
   }
 
   if (!trnResults || trnResults.length === 0) {
     return (
       <div id="root" className="text-center py-8">
-        <p className="text-gray-500 mb-4">{t("trn.noTransactions")}</p>
+        <p className="text-gray-500 mb-4">{"No transactions found"}</p>
         <button
           onClick={() => router.back()}
           className="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 transition-colors"
         >
           <i className="fa fa-arrow-left mr-2"></i>
-          {t("back")}
+          {"Back"}
         </button>
       </div>
     )
@@ -274,7 +270,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
               className="flex items-center text-gray-600 hover:text-gray-900"
             >
               <i className="fa fa-arrow-left mr-2"></i>
-              <span className="hidden sm:inline">{t("back")}</span>
+              <span className="hidden sm:inline">{"Back"}</span>
             </button>
             <div className="flex-1 text-lg font-semibold text-center truncate">
               {asset.data.data.name}
@@ -297,7 +293,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                 router.replace(`/trns/trades/${portfolioId}/${assetId}`)
               }
             >
-              {t("trades")}
+              {"Trades"}
             </button>
             <button
               className="px-4 py-2 font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700"
@@ -305,7 +301,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                 router.replace(`/trns/events/${portfolioId}/${assetId}`)
               }
             >
-              {t("events")}
+              {"Events"}
             </button>
           </div>
         </div>
@@ -320,10 +316,10 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
               <div className="bg-indigo-50 border border-indigo-200 rounded-t-lg px-4 py-2 flex justify-between items-center">
                 <span className="font-medium text-indigo-900">
                   <i className="fas fa-building mr-2 text-indigo-400"></i>
-                  {group.broker?.name || t("trn.broker.none", "No Broker")}
+                  {group.broker?.name || "No Broker"}
                 </span>
                 <span className="text-sm text-indigo-600">
-                  {group.transactions.length} {t("trades", "trades")}
+                  {group.transactions.length} {"Trades"}
                 </span>
               </div>
               {/* Transactions */}
@@ -337,7 +333,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                         `/trns/trades/edit/${trn.portfolio.id}/${trn.id}`,
                       )
                     }
-                    title={t("actions.doubleClickToEdit")}
+                    title={"Double-click to edit"}
                   >
                     <div className="flex justify-between items-start">
                       <div>
@@ -399,9 +395,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                         trn.trnType !== "EXPENSE" && (
                           <>
                             <div>
-                              <span className="text-gray-500">
-                                {t("quantity")}:
-                              </span>
+                              <span className="text-gray-500">{"Qty"}:</span>
                               <span className="ml-1 font-medium">
                                 <NumericFormat
                                   value={trn.quantity}
@@ -412,9 +406,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                               </span>
                             </div>
                             <div>
-                              <span className="text-gray-500">
-                                {t("trn.price")}:
-                              </span>
+                              <span className="text-gray-500">{"Price"}:</span>
                               <span className="ml-1 font-medium">
                                 <NumericFormat
                                   value={trn.price}
@@ -427,9 +419,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                           </>
                         )}
                       <div>
-                        <span className="text-gray-500">
-                          {t("trn.amount.trade")}:
-                        </span>
+                        <span className="text-gray-500">{"Amount"}:</span>
                         <span className="ml-1 font-medium">
                           <NumericFormat
                             value={trn.tradeAmount}
@@ -441,9 +431,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                         </span>
                       </div>
                       <div>
-                        <span className="text-gray-500">
-                          {t("trn.amount.cash")}:
-                        </span>
+                        <span className="text-gray-500">{"Cash"}:</span>
                         <span className="ml-1 font-medium">
                           <NumericFormat
                             value={trn.cashAmount}
@@ -461,9 +449,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
               <div className="bg-indigo-50 border border-indigo-200 rounded-b-lg px-4 py-2">
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
-                    <span className="text-indigo-600">
-                      {t("trn.amount.trade")}:
-                    </span>
+                    <span className="text-indigo-600">{"Amount"}:</span>
                     <span className="ml-1 font-semibold text-indigo-900">
                       <NumericFormat
                         value={group.totals.tradeAmount}
@@ -475,9 +461,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                     </span>
                   </div>
                   <div>
-                    <span className="text-indigo-600">
-                      {t("trn.amount.cash")}:
-                    </span>
+                    <span className="text-indigo-600">{"Cash"}:</span>
                     <span className="ml-1 font-semibold text-indigo-900">
                       <NumericFormat
                         value={group.totals.cashAmount}
@@ -491,9 +475,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                   {(group.totals.fees > 0 || group.totals.tax > 0) && (
                     <>
                       <div>
-                        <span className="text-indigo-600">
-                          {t("trn.amount.charges")}:
-                        </span>
+                        <span className="text-indigo-600">{"Fees"}:</span>
                         <span className="ml-1 font-semibold text-indigo-900">
                           <NumericFormat
                             value={group.totals.fees}
@@ -504,9 +486,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                         </span>
                       </div>
                       <div>
-                        <span className="text-indigo-600">
-                          {t("trn.amount.tax")}:
-                        </span>
+                        <span className="text-indigo-600">{"Tax"}:</span>
                         <span className="ml-1 font-semibold text-indigo-900">
                           <NumericFormat
                             value={group.totals.tax}
@@ -535,10 +515,10 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
               <div className="bg-indigo-50 border-b border-indigo-200 px-4 py-3 flex justify-between items-center">
                 <span className="font-medium text-indigo-900">
                   <i className="fas fa-building mr-2 text-indigo-400"></i>
-                  {group.broker?.name || t("trn.broker.none", "No Broker")}
+                  {group.broker?.name || "No Broker"}
                 </span>
                 <span className="text-sm text-indigo-600">
-                  {group.transactions.length} {t("trades", "trades")}
+                  {group.transactions.length} {"Trades"}
                 </span>
               </div>
               {/* Table */}
@@ -547,43 +527,43 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        {t("trn.type")}
+                        {"Type"}
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        {t("asset", "Asset")}
+                        {"Asset"}
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        {t("trn.currency")}
+                        {"Currency"}
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        {t("trn.tradeDate")}
+                        {"Trade Date"}
                       </th>
                       <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                        {t("quantity")}
+                        {"Qty"}
                       </th>
                       <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                        {t("trn.price")}
+                        {"Price"}
                       </th>
                       <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                        {t("trn.amount.trade")}
+                        {"Amount"}
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        {t("trn.settlement.account")}
+                        {"Settlement Account"}
                       </th>
                       <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                        {t("trn.amount.cash")}
+                        {"Cash"}
                       </th>
                       <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                        {t("trn.amount.tax")}
+                        {"Tax"}
                       </th>
                       <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                        {t("trn.amount.charges")}
+                        {"Fees"}
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        {t("trn.status")}
+                        {"Status"}
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        {t("trn.comments", "Comments")}
+                        {"Comments"}
                       </th>
                     </tr>
                   </thead>
@@ -597,7 +577,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                             `/trns/trades/edit/${trn.portfolio.id}/${trn.id}`,
                           )
                         }
-                        title={t("actions.doubleClickToEdit")}
+                        title={"Double-click to edit"}
                       >
                         <td className="px-4 py-3 whitespace-nowrap">
                           {trn.trnType}
@@ -725,7 +705,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                   <tfoot className="bg-indigo-50 border-t-2 border-indigo-200">
                     <tr className="font-semibold text-indigo-900">
                       <td className="px-4 py-3" colSpan={4}>
-                        {t("total", "Total")}
+                        {"Total"}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <NumericFormat
@@ -786,10 +766,4 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
       </div>
     </div>
   )
-})
-
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
-  props: {
-    ...(await serverSideTranslations(locale as string, ["common"])),
-  },
 })

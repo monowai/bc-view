@@ -1,5 +1,4 @@
 import React, { useState } from "react"
-import { useTranslation } from "next-i18next"
 import { useRouter } from "next/router"
 import useSWR from "swr"
 import { ModelDto, CreateModelRequest } from "types/rebalance"
@@ -16,7 +15,6 @@ const ModelPortfolioForm: React.FC<ModelPortfolioFormProps> = ({
   model,
   onSuccess,
 }) => {
-  const { t } = useTranslation("common")
   const router = useRouter()
   const isEditing = !!model?.id
 
@@ -95,7 +93,7 @@ const ModelPortfolioForm: React.FC<ModelPortfolioFormProps> = ({
           htmlFor="name"
           className="block text-sm font-medium text-gray-700 mb-1"
         >
-          {t("rebalance.models.name", "Model Name")} *
+          {"Model Name"} *
         </label>
         <input
           id="name"
@@ -104,10 +102,7 @@ const ModelPortfolioForm: React.FC<ModelPortfolioFormProps> = ({
           onChange={(e) => setName(e.target.value)}
           required
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-          placeholder={t(
-            "rebalance.models.namePlaceholder",
-            "e.g., Conservative Growth",
-          )}
+          placeholder={"e.g., Conservative Growth"}
         />
       </div>
 
@@ -116,7 +111,7 @@ const ModelPortfolioForm: React.FC<ModelPortfolioFormProps> = ({
           htmlFor="objective"
           className="block text-sm font-medium text-gray-700 mb-1"
         >
-          {t("rebalance.models.objective", "Investment Objective")}
+          {"Investment Objective"}
         </label>
         <input
           id="objective"
@@ -124,10 +119,7 @@ const ModelPortfolioForm: React.FC<ModelPortfolioFormProps> = ({
           value={objective}
           onChange={(e) => setObjective(e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-          placeholder={t(
-            "rebalance.models.objectivePlaceholder",
-            "e.g., Long-term growth with moderate risk",
-          )}
+          placeholder={"e.g., Long-term growth with moderate risk"}
         />
       </div>
 
@@ -136,7 +128,7 @@ const ModelPortfolioForm: React.FC<ModelPortfolioFormProps> = ({
           htmlFor="description"
           className="block text-sm font-medium text-gray-700 mb-1"
         >
-          {t("rebalance.models.description", "Description")}
+          {"Description"}
         </label>
         <textarea
           id="description"
@@ -144,10 +136,7 @@ const ModelPortfolioForm: React.FC<ModelPortfolioFormProps> = ({
           onChange={(e) => setDescription(e.target.value)}
           rows={2}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-          placeholder={t(
-            "rebalance.models.descriptionPlaceholder",
-            "Optional description",
-          )}
+          placeholder={"Optional description"}
         />
       </div>
 
@@ -156,7 +145,7 @@ const ModelPortfolioForm: React.FC<ModelPortfolioFormProps> = ({
           htmlFor="baseCurrency"
           className="block text-sm font-medium text-gray-700 mb-1"
         >
-          {t("rebalance.models.currency", "Base Currency")}
+          {"Base Currency"}
         </label>
         <select
           id="baseCurrency"
@@ -166,7 +155,7 @@ const ModelPortfolioForm: React.FC<ModelPortfolioFormProps> = ({
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
         >
           {loadingCurrencies ? (
-            <option value="">{t("loading", "Loading...")}</option>
+            <option value="">{"Loading..."}</option>
           ) : (
             currencies.map((currency) => (
               <option key={currency.code} value={currency.code}>
@@ -187,7 +176,7 @@ const ModelPortfolioForm: React.FC<ModelPortfolioFormProps> = ({
           onClick={() => router.back()}
           className="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300 transition-colors"
         >
-          {t("cancel", "Cancel")}
+          {"Cancel"}
         </button>
         <button
           type="submit"
@@ -201,12 +190,12 @@ const ModelPortfolioForm: React.FC<ModelPortfolioFormProps> = ({
           {isSubmitting ? (
             <span className="flex items-center">
               <i className="fas fa-spinner fa-spin mr-2"></i>
-              {t("saving", "Saving...")}
+              {"Saving..."}
             </span>
           ) : isEditing ? (
-            t("save", "Save")
+            "Save"
           ) : (
-            t("create", "Create")
+            "Create"
           )}
         </button>
       </div>

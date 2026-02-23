@@ -106,9 +106,9 @@ describe("<HoldingOptions />", () => {
   it("renders correctly with provided portfolio", () => {
     render(<HoldingMenu portfolio={portfolio} />)
 
-    expect(screen.getByText("option.portfolio")).toBeInTheDocument()
+    expect(screen.getByText("Portfolio")).toBeInTheDocument()
     expect(screen.getByText("MockPortfolios")).toBeInTheDocument()
-    expect(screen.getByText("holdings.openOnly")).toBeInTheDocument()
+    expect(screen.getByText("Open Only")).toBeInTheDocument()
     expect(screen.getByText("MockHideEmpty")).toBeInTheDocument()
   })
 

@@ -1,7 +1,6 @@
 import React, { ReactElement, useCallback } from "react"
 import { Portfolio, PortfolioSummary } from "types/beancounter"
 import { FormatValue } from "@components/ui/MoneyUtils"
-import { useTranslation } from "next-i18next"
 import { Controller, useForm } from "react-hook-form"
 import { useHoldingState } from "@lib/holdings/holdingState"
 import Link from "next/link"
@@ -13,37 +12,60 @@ import { useRouter } from "next/router"
 export const headers = [
   {
     key: "summary.currency",
+    label: "Currency",
     align: "left" as const,
     mobile: false,
     medium: false,
   },
-  { key: "summary.value", align: "right" as const, mobile: true, medium: true },
+  {
+    key: "summary.value",
+    label: "Value",
+    align: "right" as const,
+    mobile: true,
+    medium: true,
+  },
   {
     key: "summary.purchases",
+    label: "Purchases",
     align: "right" as const,
     mobile: false,
     medium: true,
   },
   {
     key: "summary.sales",
+    label: "Sales",
     align: "right" as const,
     mobile: false,
     medium: true,
   },
   {
     key: "summary.cash",
+    label: "Cash on Hand",
     align: "right" as const,
     mobile: false,
     medium: false,
   },
   {
     key: "summary.dividends",
+    label: "Income",
     align: "right" as const,
     mobile: false,
     medium: false,
   },
-  { key: "summary.irr", align: "right" as const, mobile: true, medium: true },
-  { key: "summary.gain", align: "right" as const, mobile: true, medium: true },
+  {
+    key: "summary.irr",
+    label: "IRR",
+    align: "right" as const,
+    mobile: true,
+    medium: true,
+  },
+  {
+    key: "summary.gain",
+    label: "Net Gain",
+    align: "right" as const,
+    mobile: true,
+    medium: true,
+  },
 ]
 
 interface SummaryHeaderProps {
@@ -60,15 +82,12 @@ export function SummaryHeaderMobile({
   portfolio,
   isAggregated = false,
 }: SummaryHeaderProps): ReactElement {
-  const { t } = useTranslation("common")
   const { control, handleSubmit } = useForm()
   const holdingState = useHoldingState()
   const router = useRouter()
 
   // Display name: show "Aggregated" for aggregated views, otherwise portfolio name
-  const displayName = isAggregated
-    ? t("holdings.aggregated.title", "Aggregated")
-    : portfolio.name
+  const displayName = isAggregated ? "Aggregated" : portfolio.name
 
   const onSubmit = useCallback(
     (data: any): void => {
@@ -117,7 +136,7 @@ export function SummaryHeaderMobile({
                     })
                   }
                   className="inline-flex items-center justify-center w-8 h-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors duration-200"
-                  title={t("trade.title")}
+                  title={"Trade"}
                 >
                   <i className="fas fa-exchange-alt text-sm"></i>
                 </button>
@@ -179,15 +198,12 @@ export default function SummaryHeader({
   portfolioSummary,
   isAggregated = false,
 }: SummaryHeaderProps): ReactElement {
-  const { t } = useTranslation("common")
   const { control, handleSubmit } = useForm()
   const holdingState = useHoldingState()
   const displayCurrencyOption = holdingState.displayCurrency
 
   // Display name: show "Aggregated" for aggregated views, otherwise portfolio name
-  const displayName = isAggregated
-    ? t("holdings.aggregated.title", "Aggregated")
-    : portfolio.name
+  const displayName = isAggregated ? "Aggregated" : portfolio.name
 
   // Get currency display for header - use custom display currency if set
   const displayCurrency =
@@ -346,7 +362,7 @@ export default function SummaryHeader({
               key={header.key}
               className={`px-2 py-2.5 text-xs font-medium uppercase tracking-wide text-slate-500 text-${header.align} ${visibility}`}
             >
-              {t(header.key)}
+              {header.label}
             </th>
           )
         })}
@@ -406,7 +422,6 @@ export function SummaryRowMobile({
   totals,
   currency,
 }: PortfolioSummary): ReactElement {
-  const { t } = useTranslation("common")
   const holdingState = useHoldingState()
   const displayCurrencyOption = holdingState.displayCurrency
   const currencyTotals = totals !== undefined
@@ -448,7 +463,7 @@ export function SummaryRowMobile({
             {/* Market Value - Primary metric */}
             <div className="text-center">
               <div className="text-[10px] md:text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
-                {t("summary.value")}
+                {"Value"}
               </div>
               <div className="font-semibold text-lg md:text-2xl text-slate-800 tabular-nums">
                 {currencyTotals ? (
@@ -467,7 +482,7 @@ export function SummaryRowMobile({
             {/* Dividends - Hidden on mobile */}
             <div className="hidden md:block text-center">
               <div className="text-[10px] md:text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
-                {t("summary.dividends")}
+                {"Income"}
               </div>
               <div className="font-semibold text-lg md:text-2xl text-slate-700 tabular-nums">
                 {currencyTotals ? (
@@ -481,7 +496,7 @@ export function SummaryRowMobile({
             {/* Gain - Color coded */}
             <div className="text-center">
               <div className="text-[10px] md:text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
-                {t("summary.gain")}
+                {"Net Gain"}
               </div>
               <div
                 className={`font-semibold text-lg md:text-2xl tabular-nums ${gainColorClass}`}
@@ -497,7 +512,7 @@ export function SummaryRowMobile({
             {/* IRR - Color coded with background pill */}
             <div className="text-center">
               <div className="text-[10px] md:text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
-                {t("summary.irr")}
+                {"IRR"}
               </div>
               <div
                 className={`inline-flex items-center font-semibold text-lg md:text-2xl tabular-nums ${irrColorClass}`}

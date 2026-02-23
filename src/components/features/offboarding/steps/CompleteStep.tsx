@@ -1,5 +1,4 @@
 import React from "react"
-import { useTranslation } from "next-i18next"
 import { OffboardingResult } from "types/beancounter"
 import Link from "next/link"
 
@@ -12,8 +11,6 @@ export default function CompleteStep({
   results,
   accountDeleted,
 }: CompleteStepProps): React.ReactElement {
-  const { t } = useTranslation("offboarding")
-
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <div className="text-center mb-6">
@@ -21,9 +18,11 @@ export default function CompleteStep({
           <i className="fas fa-check text-2xl text-green-600"></i>
         </div>
         <h2 className="text-xl font-semibold text-gray-900">
-          {t("complete.title")}
+          {"Deletion Complete"}
         </h2>
-        <p className="text-gray-600 mt-2">{t("complete.description")}</p>
+        <p className="text-gray-600 mt-2">
+          {"The selected data has been successfully removed from Beancounter."}
+        </p>
       </div>
 
       <div className="space-y-4 mb-8">
@@ -41,7 +40,7 @@ export default function CompleteStep({
               <span className="font-medium capitalize">{result.type}</span>
             </div>
             <span className="text-gray-600">
-              {result.deletedCount} {t("complete.deleted")}
+              {result.deletedCount} {"deleted"}
             </span>
           </div>
         ))}
@@ -49,7 +48,11 @@ export default function CompleteStep({
 
       {accountDeleted ? (
         <div className="text-center">
-          <p className="text-gray-600 mb-4">{t("complete.accountDeleted")}</p>
+          <p className="text-gray-600 mb-4">
+            {
+              "Your account has been deleted. Please log out to complete the process."
+            }
+          </p>
           {/* Using <a> intentionally - /auth/logout requires full page navigation for Auth0 logout flow */}
           {}
           <a
@@ -57,7 +60,7 @@ export default function CompleteStep({
             className="inline-flex items-center px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
           >
             <i className="fas fa-sign-out-alt mr-2"></i>
-            {t("complete.logout")}
+            {"Log Out"}
           </a>
         </div>
       ) : (
@@ -67,7 +70,7 @@ export default function CompleteStep({
             className="inline-flex items-center px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
           >
             <i className="fas fa-home mr-2"></i>
-            {t("complete.returnHome")}
+            {"Return Home"}
           </Link>
         </div>
       )}

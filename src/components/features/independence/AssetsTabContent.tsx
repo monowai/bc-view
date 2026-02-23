@@ -1,5 +1,4 @@
 import React from "react"
-import { useTranslation } from "next-i18next"
 import { RetirementProjection } from "types/independence"
 import { AllocationSlice } from "@lib/allocation/aggregateHoldings"
 import { HIDDEN_VALUE, PensionProjection } from "@lib/independence/planHelpers"
@@ -65,7 +64,6 @@ export default function AssetsTabContent({
   excludedPensionFV,
   includedPensionFvDifferential,
 }: AssetsTabContentProps): React.ReactElement {
-  const { t } = useTranslation("common")
   const { hideValues } = usePrivacyMode()
 
   return (
@@ -102,7 +100,7 @@ export default function AssetsTabContent({
       <div className="bg-white rounded-xl shadow-md p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold text-gray-900">
-            {t("retire.assets.title")}
+            {"Assets by Category"}
           </h2>
           {!usingManualAssets && (
             <button
@@ -121,13 +119,15 @@ export default function AssetsTabContent({
 
         {!holdingsLoaded && !usingManualAssets ? (
           <div className="text-center py-8 text-gray-500">
-            <Spinner label={t("retire.assets.loadingHoldings")} size="lg" />
+            <Spinner label={"Loading holdings..."} size="lg" />
           </div>
         ) : categorySlices.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <i className="fas fa-folder-open text-4xl mb-3 text-gray-300"></i>
-            <p>{t("retire.assets.noHoldings")}</p>
-            <p className="text-sm mt-2">{t("retire.assets.noHoldings.hint")}</p>
+            <p>{"No holdings found"}</p>
+            <p className="text-sm mt-2">
+              {"Add positions to your portfolios to see asset categories."}
+            </p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -140,7 +140,9 @@ export default function AssetsTabContent({
               </div>
             ) : (
               <p className="text-sm text-gray-500">
-                {t("retire.assets.selectCategories")}
+                {
+                  "Select which asset categories can be spent after reaching independence:"
+                }
               </p>
             )}
             <div className="space-y-2">
@@ -292,9 +294,7 @@ export default function AssetsTabContent({
             {/* Summary totals */}
             <div className="border-t pt-4 space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">
-                  {t("retire.assets.totalAssets")}
-                </span>
+                <span className="text-gray-500">{"Total Assets"}</span>
                 <span
                   className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
                 >
@@ -305,7 +305,7 @@ export default function AssetsTabContent({
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">
-                  {t("retire.assets.spendable")}
+                  {"Spendable (Liquid) Assets"}
                 </span>
                 <span
                   className={`font-medium ${hideValues ? "text-gray-400" : "text-independence-600"}`}
@@ -318,9 +318,7 @@ export default function AssetsTabContent({
               {totalAssets > liquidAssets && (
                 <>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">
-                      {t("retire.assets.nonSpendable")}
-                    </span>
+                    <span className="text-gray-500">{"Non-Spendable"}</span>
                     <span className="font-medium text-gray-400">
                       {hideValues
                         ? HIDDEN_VALUE
@@ -344,7 +342,7 @@ export default function AssetsTabContent({
             <div className="border-t pt-4">
               <div className="flex justify-between font-medium text-lg">
                 <span>
-                  {t("retire.assets.spendableAtRetirement")}
+                  {"Spendable at Independence"}
                   {currentAge !== undefined && retirementAge && (
                     <span className="font-normal text-sm text-gray-500">
                       {" "}
@@ -378,7 +376,7 @@ export default function AssetsTabContent({
 
             {isCalculating && (
               <div className="mt-4 text-center text-gray-500">
-                <Spinner label={t("retire.assets.calculating")} />
+                <Spinner label={"Calculating projection..."} />
               </div>
             )}
           </div>

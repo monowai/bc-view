@@ -1,5 +1,4 @@
 import React, { useState } from "react"
-import { useTranslation } from "next-i18next"
 import { useRouter } from "next/router"
 import { ModelDto } from "types/rebalance"
 import { useModels } from "../hooks/useModels"
@@ -17,7 +16,6 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
   selectable = false,
   selectedId,
 }) => {
-  const { t } = useTranslation("common")
   const router = useRouter()
   const { models, isLoading, error, mutate } = useModels()
   const [deleteModelId, setDeleteModelId] = useState<string | null>(null)
@@ -66,7 +64,7 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
   if (error) {
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-        {t("rebalance.models.loadError", "Failed to load models")}
+        {"Failed to load models"}
       </div>
     )
   }
@@ -78,20 +76,17 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
           <i className="fas fa-balance-scale text-2xl text-invest-600"></i>
         </div>
         <h3 className="text-lg font-semibold text-gray-900 mb-1">
-          {t("rebalance.models.empty", "No investment models yet")}
+          {"No model portfolios yet"}
         </h3>
         <p className="text-sm text-gray-600 max-w-md mx-auto mb-4">
-          {t(
-            "rebalance.models.emptyDescription",
-            "Define target allocations for your investments",
-          )}
+          {"Define target allocations for your investments"}
         </p>
         <button
           onClick={() => router.push("/rebalance/models/__NEW__")}
           className="bg-invest-600 text-white px-4 py-2 rounded hover:bg-invest-700 transition-colors inline-flex items-center"
         >
           <i className="fas fa-plus mr-2"></i>
-          {t("rebalance.models.create", "Create Model")}
+          {"Create Model"}
         </button>
       </div>
     )
@@ -104,23 +99,23 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
           <tr className="border-b border-gray-200">
             {selectable && <th className="px-4 py-3 w-10"></th>}
             <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-              {t("rebalance.models.name", "Model Name")}
+              {"Model Name"}
             </th>
             <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 hidden sm:table-cell">
-              {t("rebalance.models.objective", "Objective")}
+              {"Objective"}
             </th>
             <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
-              {t("rebalance.models.plans", "Plans")}
+              {"Plans"}
             </th>
             <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
-              {t("rebalance.models.currentPlan", "Current Plan")}
+              {"Current Plan"}
             </th>
             <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
-              {t("rebalance.models.currency", "Currency")}
+              {"Base Currency"}
             </th>
             {!selectable && (
               <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
-                {t("actions", "Actions")}
+                {"Actions"}
               </th>
             )}
           </tr>
@@ -159,13 +154,10 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
                   {model.shared && (
                     <span
                       className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700"
-                      title={t(
-                        "rebalance.models.sharedReadOnly",
-                        "Public model (read-only)",
-                      )}
+                      title={"Public model (read-only)"}
                     >
                       <i className="fas fa-globe mr-1 text-[10px]"></i>
-                      {t("rebalance.models.public", "Public")}
+                      {"Public"}
                     </span>
                   )}
                 </div>
@@ -192,7 +184,7 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
                   </span>
                 ) : (
                   <span className="bg-gray-100 text-gray-500 px-2 py-1 rounded text-sm">
-                    {t("rebalance.models.noPlan", "None")}
+                    {"None"}
                   </span>
                 )}
               </td>
@@ -209,11 +201,7 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
                           handleTogglePublic(model)
                         }}
                         className={`transition-colors ${model.shared ? "text-blue-500 hover:text-blue-700" : "text-gray-400 hover:text-blue-600"}`}
-                        title={
-                          model.shared
-                            ? t("rebalance.models.makePrivate", "Make private")
-                            : t("rebalance.models.makePublic", "Make public")
-                        }
+                        title={model.shared ? "Make private" : "Make public"}
                       >
                         <i
                           className={
@@ -227,7 +215,7 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
                           router.push(`/rebalance/models/${model.id}`)
                         }}
                         className="text-invest-500 hover:text-invest-700 transition-colors"
-                        title={t("edit", "Edit")}
+                        title={"Edit"}
                       >
                         <i className="far fa-edit"></i>
                       </button>
@@ -237,7 +225,7 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
                           setDeleteModelId(model.id)
                         }}
                         className="text-red-500 hover:text-red-700 transition-colors"
-                        title={t("delete", "Delete")}
+                        title={"Delete"}
                       >
                         <i className="far fa-trash-alt"></i>
                       </button>
@@ -258,10 +246,10 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
 
       {deleteModelId && (
         <ConfirmDialog
-          title={t("rebalance.models.deleteTitle", "Delete Model")}
-          message={t("rebalance.models.deleteConfirm", "Delete this model?")}
-          confirmLabel={t("delete", "Delete")}
-          cancelLabel={t("cancel", "Cancel")}
+          title={"Delete Model"}
+          message={"Delete this model portfolio?"}
+          confirmLabel={"Delete"}
+          cancelLabel={"Cancel"}
           variant="red"
           onConfirm={handleDeleteConfirm}
           onCancel={() => setDeleteModelId(null)}

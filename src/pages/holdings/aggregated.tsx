@@ -5,9 +5,6 @@ import {
 } from "@components/ui/SkeletonLoader"
 import { useRouter } from "next/router"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
-import { GetServerSideProps } from "next"
-import { useTranslation } from "next-i18next"
 import useSwr from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import { errorOut } from "@components/errors/ErrorOut"
@@ -214,7 +211,6 @@ const viewModes: { value: ViewMode; label: string }[] = [
 
 function AggregatedHoldingsPage(): React.ReactElement {
   const router = useRouter()
-  const { t, ready } = useTranslation("common")
   const holdingState = useHoldingState()
   const groupOptions = useGroupOptions()
   // Get portfolio codes from URL query parameter
@@ -252,33 +248,19 @@ function AggregatedHoldingsPage(): React.ReactElement {
   // Determine the subtitle based on selected portfolios
   const subtitle = useMemo(() => {
     if (portfolioCodes.length === 0) {
-      return t(
-        "holdings.aggregated.all",
-        "Showing holdings across all portfolios",
-      )
+      return "Showing holdings across all portfolios"
     }
     if (portfolioCodes.length === 1) {
-      return t("holdings.aggregated.single", "Showing holdings for {{code}}", {
-        code: portfolioCodes[0],
-      })
+      return `Showing holdings for ${portfolioCodes[0]}`
     }
-    return t(
-      "holdings.aggregated.selected",
-      "Showing holdings for {{count}} portfolios",
-      {
-        count: portfolioCodes.length,
-      },
-    )
-  }, [portfolioCodes, t])
+    return `Showing holdings for ${portfolioCodes.length} portfolios`
+  }, [portfolioCodes])
 
-  if (error && ready) {
-    return errorOut(
-      t("holdings.error.aggregated", "Failed to load aggregated holdings"),
-      error,
-    )
+  if (error) {
+    return errorOut("Failed to load aggregated holdings", error)
   }
 
-  if (isLoading || !ready) {
+  if (isLoading) {
     return (
       <div className="space-y-4">
         <SummarySkeletonLoader />
@@ -291,9 +273,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
     return (
       <div className="w-full py-4">
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
-          <div className="text-gray-600">
-            {t("holdings.aggregated.empty", "No holdings found")}
-          </div>
+          <div className="text-gray-600">{"No holdings found"}</div>
         </div>
       </div>
     )
@@ -310,7 +290,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
       <div className="w-full py-4">
         <div className="mb-4">
           <h1 className="text-2xl font-bold text-gray-900">
-            {t("holdings.aggregated.title", "Aggregated Holdings")}
+            {"Aggregated Holdings"}
           </h1>
           <p className="text-sm text-gray-600 mt-1">{subtitle}</p>
         </div>
@@ -530,9 +510,3 @@ function AggregatedHoldingsPage(): React.ReactElement {
 }
 
 export default withPageAuthRequired(AggregatedHoldingsPage)
-
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
-  props: {
-    ...(await serverSideTranslations(locale as string, ["common"])),
-  },
-})

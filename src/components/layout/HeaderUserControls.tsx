@@ -3,7 +3,6 @@ import { useUser } from "@auth0/nextjs-auth0/client"
 import type { User } from "@auth0/nextjs-auth0/types"
 import Link from "next/link"
 import Image from "next/image"
-import { useTranslation } from "next-i18next"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { useIsAdmin } from "@hooks/useIsAdmin"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
@@ -28,7 +27,6 @@ function Avatar({
 
 export default function HeaderUserControls(): React.ReactElement {
   const { user, error, isLoading } = useUser()
-  const { t, ready } = useTranslation("common")
   const { preferences } = useUserPreferences()
   const { isAdmin } = useIsAdmin()
   const { hideValues, toggleHideValues } = usePrivacyMode()
@@ -62,13 +60,13 @@ export default function HeaderUserControls(): React.ReactElement {
   if (error)
     return (
       <div className="text-red-500 text-sm">
-        {t("auth.error")}: {error.message}
+        {"Error"}: {error.message}
       </div>
     )
   if (!user)
     return (
       <div>
-        <Link href="/auth/login">{t("user.login")}</Link>
+        <Link href="/auth/login">{"Login"}</Link>
       </div>
     )
 
@@ -94,7 +92,7 @@ export default function HeaderUserControls(): React.ReactElement {
           ></i>
         </button>
       </div>
-      {dropdownOpen && ready && (
+      {dropdownOpen && (
         <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50 text-gray-800 overflow-hidden py-1">
           <Link
             href="/settings"
@@ -102,7 +100,7 @@ export default function HeaderUserControls(): React.ReactElement {
             onClick={() => setDropdownOpen(false)}
           >
             <i className="fas fa-cog w-4 text-center text-xs text-gray-400"></i>
-            {t("settings.title")}
+            {"Settings"}
           </Link>
           <Link
             href="/brokers"
@@ -110,7 +108,7 @@ export default function HeaderUserControls(): React.ReactElement {
             onClick={() => setDropdownOpen(false)}
           >
             <i className="fas fa-building w-4 text-center text-xs text-gray-400"></i>
-            {t("brokers.title", "Brokers")}
+            {"Brokers"}
           </Link>
           {isAdmin && (
             <Link
@@ -119,7 +117,7 @@ export default function HeaderUserControls(): React.ReactElement {
               onClick={() => setDropdownOpen(false)}
             >
               <i className="fas fa-tools w-4 text-center text-xs text-gray-400"></i>
-              {t("admin.title")}
+              {"Admin"}
             </Link>
           )}
           <hr className="my-1 border-gray-100" />
@@ -128,7 +126,7 @@ export default function HeaderUserControls(): React.ReactElement {
             className="flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
           >
             <i className="fas fa-sign-out-alt w-4 text-center text-xs"></i>
-            {t("user.logout")}
+            {"Logout"}
           </Link>
         </div>
       )}

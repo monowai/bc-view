@@ -1,5 +1,4 @@
 import React from "react"
-import { useTranslation } from "next-i18next"
 import { GroupingMode } from "@lib/allocation/aggregateHoldings"
 import { ValueIn } from "@components/features/holdings/GroupByOptions"
 
@@ -18,27 +17,23 @@ export const AllocationControls: React.FC<AllocationControlsProps> = ({
   onValueInChange,
   hideValueIn = false,
 }) => {
-  const { t } = useTranslation("common")
-
   const groupOptions: { value: GroupingMode; label: string }[] = [
-    { value: "category", label: t("allocation.groupBy.category", "Category") },
-    { value: "sector", label: t("allocation.groupBy.sector", "Sector") },
-    { value: "asset", label: t("allocation.groupBy.asset", "Asset") },
-    { value: "market", label: t("allocation.groupBy.market", "Market") },
+    { value: "category", label: "Category" },
+    { value: "sector", label: "Sector" },
+    { value: "asset", label: "Asset" },
+    { value: "market", label: "Market" },
   ]
 
   const valueInOptions: { value: ValueIn; label: string }[] = [
-    { value: ValueIn.PORTFOLIO, label: t("valueIn.portfolio", "Portfolio") },
-    { value: ValueIn.BASE, label: t("valueIn.base", "Base") },
-    { value: ValueIn.TRADE, label: t("valueIn.trade", "Trade") },
+    { value: ValueIn.PORTFOLIO, label: "Portfolio" },
+    { value: ValueIn.BASE, label: "Base" },
+    { value: ValueIn.TRADE, label: "Trade" },
   ]
 
   return (
     <div className="flex flex-wrap gap-4 mb-6">
       <div className="flex items-center space-x-2">
-        <span className="text-sm font-medium text-gray-700">
-          {t("allocation.groupBy.label", "Group by")}:
-        </span>
+        <span className="text-sm font-medium text-gray-700">{"Group by"}:</span>
         <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
           {groupOptions.map((option) => (
             <button
@@ -59,7 +54,7 @@ export const AllocationControls: React.FC<AllocationControlsProps> = ({
       {!hideValueIn && (
         <div className="flex items-center space-x-2">
           <span className="text-sm font-medium text-gray-700">
-            {t("allocation.valueIn.label", "Value in")}:
+            {"Value in"}:
           </span>
           <select
             value={valueIn}

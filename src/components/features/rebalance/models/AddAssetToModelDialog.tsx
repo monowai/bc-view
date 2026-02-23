@@ -1,5 +1,4 @@
 import React, { useCallback, useState } from "react"
-import { useTranslation } from "next-i18next"
 import useSWR from "swr"
 import Dialog from "@components/ui/Dialog"
 import { AssetOption, Market } from "types/beancounter"
@@ -20,7 +19,6 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
   onAdd,
   existingAssetIds,
 }) => {
-  const { t } = useTranslation("common")
   const [selectedAsset, setSelectedAsset] = useState<AssetOption | null>(null)
   const [selectedMarket, setSelectedMarket] = useState<string>("LOCAL")
   const [weight, setWeight] = useState<number>(10)
@@ -56,12 +54,7 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
       const resolvedAsset = await resolveAsset(selectedAsset.symbol)
 
       if (!resolvedAsset?.id) {
-        setError(
-          t(
-            "rebalance.models.resolveError",
-            "Could not resolve asset. Please try again.",
-          ),
-        )
+        setError("Could not resolve asset. Please try again.")
         return
       }
 
@@ -129,19 +122,16 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
 
   return (
     <Dialog
-      title={t("rebalance.models.addAsset", "Add Asset")}
+      title={"Add Asset"}
       onClose={handleClose}
       maxWidth="md"
       footer={
         <>
-          <Dialog.CancelButton
-            onClick={handleClose}
-            label={t("cancel", "Cancel")}
-          />
+          <Dialog.CancelButton onClick={handleClose} label={"Cancel"} />
           <Dialog.SubmitButton
             onClick={handleAdd}
-            label={t("add", "Add")}
-            loadingLabel={t("adding", "Adding...")}
+            label={"Add"}
+            loadingLabel={"Adding..."}
             isSubmitting={isAdding}
             disabled={!selectedAsset || weight <= 0}
             variant="blue"
@@ -152,7 +142,7 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
       <Dialog.ErrorAlert message={error} />
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          {t("rebalance.models.searchAsset", "Search Asset")}
+          {"Search Asset"}
         </label>
         <div className="flex gap-2">
           <select
@@ -163,9 +153,7 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
             }}
             className="border border-gray-300 rounded-md px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
-            <option value="LOCAL">
-              {t("assets.lookup.allMarkets", "All Markets")}
-            </option>
+            <option value="LOCAL">{"All Markets"}</option>
             {(marketsData?.data || []).map((market) => (
               <option key={market.code} value={market.code}>
                 {market.code}
@@ -180,10 +168,7 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
               value={selectedAsset}
               onSelect={setSelectedAsset}
               filterResults={filterExisting}
-              placeholder={t(
-                "assets.lookup.searchPlaceholder",
-                "Type symbol, name, or MARKET:SYMBOL...",
-              )}
+              placeholder={"Type asset symbol or name..."}
             />
           </div>
         </div>
@@ -192,7 +177,7 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
       {selectedAsset && (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            {t("rebalance.models.targetWeight", "Target Weight (%)")}
+            {"Target Weight (%)"}
           </label>
           <div className="flex items-center gap-2">
             <input

@@ -1,6 +1,5 @@
 import React from "react"
 import Link from "next/link"
-import { useTranslation } from "next-i18next"
 import { Currency, Portfolio } from "types/beancounter"
 import { FormatValue } from "@components/ui/MoneyUtils"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
@@ -23,7 +22,6 @@ const WealthHeroSection: React.FC<WealthHeroSectionProps> = ({
   onCurrencyChange,
   onShareClick,
 }) => {
-  const { t } = useTranslation("common")
   const { hideValues } = usePrivacyMode()
 
   return (
@@ -158,11 +156,11 @@ const WealthHeroSection: React.FC<WealthHeroSectionProps> = ({
           <button
             onClick={onShareClick}
             className="text-white/70 hover:text-white hover:bg-white/15 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
-            title={t("shares.invite.title")}
+            title={"Share Portfolios"}
           >
             <i className="fas fa-share-alt text-sm"></i>
             <span className="text-xs font-medium hidden sm:inline">
-              {t("share")}
+              {"Share"}
             </span>
           </button>
         )}

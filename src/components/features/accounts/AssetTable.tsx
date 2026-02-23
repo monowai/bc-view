@@ -1,7 +1,15 @@
 import React from "react"
-import { useTranslation } from "next-i18next"
 import { Asset } from "types/beancounter"
 import { stripOwnerPrefix, getAssetCurrency } from "@lib/assets/assetUtils"
+
+const CATEGORY_LABELS: Record<string, string> = {
+  PENSION: "Retirement Fund",
+  ACCOUNT: "Bank Account",
+  TRADE: "Trade Account",
+  RE: "Real Estate",
+  "MUTUAL FUND": "Mutual Fund",
+  POLICY: "Retirement Fund",
+}
 
 interface AssetTableProps {
   accounts: Asset[]
@@ -22,13 +30,13 @@ const AssetTable: React.FC<AssetTableProps> = ({
   onSetBalance,
   emptyMessage,
 }) => {
-  const { t } = useTranslation("common")
-
   if (accounts.length === 0) {
     return (
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center text-gray-500">
-        <p>{emptyMessage || t("accounts.empty")}</p>
-        <p className="text-sm mt-2">{t("accounts.tab.empty.hint")}</p>
+        <p>
+          {emptyMessage || "You have no custom assets."}
+        </p>
+        <p className="text-sm mt-2">{"Click Add Asset to create one."}</p>
       </div>
     )
   }
@@ -41,7 +49,7 @@ const AssetTable: React.FC<AssetTableProps> = ({
           className="text-purple-600 hover:text-purple-900"
         >
           <i className="fas fa-balance-scale mr-1"></i>
-          {t("accounts.setBalances")}
+          {"Set Balances"}
         </button>
       ) : account.assetCategory?.id === "POLICY" ? (
         <button
@@ -49,7 +57,7 @@ const AssetTable: React.FC<AssetTableProps> = ({
           className="text-amber-600 hover:text-amber-900"
         >
           <i className="fas fa-piggy-bank mr-1"></i>
-          {t("balance.set")}
+          {"Set Balance"}
         </button>
       ) : (
         <button
@@ -57,7 +65,7 @@ const AssetTable: React.FC<AssetTableProps> = ({
           className="text-green-600 hover:text-green-900"
         >
           <i className="fas fa-dollar-sign mr-1"></i>
-          {t("price.set")}
+          {"Set Price"}
         </button>
       )}
       <button
@@ -65,14 +73,14 @@ const AssetTable: React.FC<AssetTableProps> = ({
         className="text-indigo-600 hover:text-indigo-900"
       >
         <i className="fas fa-edit mr-1"></i>
-        {t("edit")}
+        {"Edit"}
       </button>
       <button
         onClick={() => onDelete(account)}
         className="text-red-600 hover:text-red-900"
       >
         <i className="fas fa-trash mr-1"></i>
-        {t("delete")}
+        {"Delete"}
       </button>
     </>
   )
@@ -96,9 +104,9 @@ const AssetTable: React.FC<AssetTableProps> = ({
             </div>
             <div className="flex gap-2 mb-3">
               <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-                {t(`category.${account.assetCategory?.id}`, {
-                  defaultValue: account.assetCategory?.name || "-",
-                })}
+                {CATEGORY_LABELS[account.assetCategory?.id || ""] ||
+                  account.assetCategory?.name ||
+                  "-"}
               </span>
               <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
                 {getAssetCurrency(account) || "-"}
@@ -118,19 +126,19 @@ const AssetTable: React.FC<AssetTableProps> = ({
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t("accounts.code")}
+                  {"Code"}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t("accounts.name")}
+                  {"Name"}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t("accounts.category")}
+                  {"Type"}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t("accounts.currency")}
+                  {"Currency"}
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t("accounts.actions")}
+                  {"Actions"}
                 </th>
               </tr>
             </thead>
@@ -144,9 +152,9 @@ const AssetTable: React.FC<AssetTableProps> = ({
                     {account.name}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {t(`category.${account.assetCategory?.id}`, {
-                      defaultValue: account.assetCategory?.name || "-",
-                    })}
+                    {CATEGORY_LABELS[account.assetCategory?.id || ""] ||
+                      account.assetCategory?.name ||
+                      "-"}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {getAssetCurrency(account) || "-"}

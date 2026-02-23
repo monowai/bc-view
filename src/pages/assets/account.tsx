@@ -11,9 +11,6 @@ import {
 import { ccyKey, categoriesKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { useRouter } from "next/router"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
-import { useTranslation } from "next-i18next"
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
-import { GetServerSideProps } from "next"
 import { rootLoader } from "@components/ui/PageLoader"
 import { errorOut } from "@components/errors/ErrorOut"
 import useSwr from "swr"
@@ -55,7 +52,6 @@ interface AccountFormInput {
 export default withPageAuthRequired(
   function CreateAccount(): React.ReactElement {
     const router = useRouter()
-    const { t, ready } = useTranslation("common")
     const { preferences, isLoading: prefsLoading } = useUserPreferences()
 
     // Get category from query param (e.g., /assets/account?category=POLICY)
@@ -233,28 +229,27 @@ export default withPageAuthRequired(
       sectorsResponse.error
     ) {
       return errorOut(
-        t("account.error.create"),
+        "Error creating asset",
         ccyResponse.error || categoriesResponse.error || sectorsResponse.error,
       )
     }
     if (
-      !ready ||
       prefsLoading ||
       ccyResponse.isLoading ||
       categoriesResponse.isLoading ||
       sectorsResponse.isLoading
     ) {
-      return rootLoader(t("loading"))
+      return rootLoader("Loading...")
     }
 
     const ccyOptions = currencyOptions(ccyResponse.data.data)
 
     return (
       <div className="container mx-auto p-4">
-        <h1 className="text-2xl font-bold mb-4">{t("account.create")}</h1>
+        <h1 className="text-2xl font-bold mb-4">{"Add Asset"}</h1>
         <form className="max-w-lg mx-auto bg-white p-6 rounded shadow-md">
           <label className="block text-gray-700 text-sm font-bold mb-2">
-            {t("account.category")}
+            {"Asset Type"}
           </label>
           <Controller
             name="category"
@@ -264,7 +259,7 @@ export default withPageAuthRequired(
               <ReactSelect
                 {...field}
                 options={categoryOptions}
-                placeholder={t("account.category.hint")}
+                placeholder={"Select the type of asset"}
               />
             )}
           />
@@ -273,34 +268,36 @@ export default withPageAuthRequired(
           </div>
 
           <label className="block text-gray-700 text-sm font-bold mb-2 mt-4">
-            {t("account.code")}
+            {"Asset Code"}
           </label>
           <input
             {...register("code")}
             type="text"
             className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
             autoFocus={true}
-            placeholder={t("account.code.hint")}
+            placeholder={"Unique identifier (e.g., SAVINGS, MY-HOUSE)"}
           />
           <div className="text-red-500 text-xs italic">
             {errors?.code?.message}
           </div>
 
           <label className="block text-gray-700 text-sm font-bold mb-2 mt-4">
-            {t("account.name")}
+            {"Asset Name"}
           </label>
           <input
             {...register("name")}
             className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
             type="text"
-            placeholder={t("account.name.hint")}
+            placeholder={
+              "Descriptive name (e.g., My USD Savings, Main Residence)"
+            }
           />
           <div className="text-red-500 text-xs italic">
             {errors?.name?.message}
           </div>
 
           <label className="block text-gray-700 text-sm font-bold mb-2 mt-4">
-            {t("account.currency")}
+            {"Currency"}
           </label>
           <Controller
             name="currency"
@@ -310,7 +307,7 @@ export default withPageAuthRequired(
               <ReactSelect
                 {...field}
                 options={ccyOptions}
-                placeholder={t("portfolio.select.currency")}
+                placeholder={"Select a Currency"}
               />
             )}
           />
@@ -319,7 +316,7 @@ export default withPageAuthRequired(
           {watch("category")?.value === "MUTUAL FUND" && (
             <>
               <label className="block text-gray-700 text-sm font-bold mb-2 mt-4">
-                {t("account.sector", "Sector")}
+                {"Sector"}
               </label>
               <Controller
                 name="sector"
@@ -329,10 +326,7 @@ export default withPageAuthRequired(
                     {...field}
                     options={sectorOptions}
                     isClearable
-                    placeholder={t(
-                      "account.sector.hint",
-                      "Select sector (optional)",
-                    )}
+                    placeholder={"Select sector (optional)"}
                   />
                 )}
               />
@@ -344,7 +338,7 @@ export default withPageAuthRequired(
             <div className="mt-6 p-4 rounded-lg border bg-blue-50 border-blue-200">
               <h3 className="font-medium text-gray-900 mb-4 flex items-center">
                 <i className="fas fa-piggy-bank text-blue-500 mr-2"></i>
-                {t("policy.settings", "Retirement Fund Settings")}
+                {"Retirement Fund Settings"}
               </h3>
 
               <CompositeAssetEditor
@@ -377,7 +371,7 @@ export default withPageAuthRequired(
                 handleSubmit(getValues() as AccountFormInput)
               }}
             >
-              {t("form.submit")}
+              {"Submit"}
             </button>
             <button
               className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
@@ -386,7 +380,7 @@ export default withPageAuthRequired(
                 router.push("/accounts").then()
               }}
             >
-              {t("form.cancel")}
+              {"Cancel"}
             </button>
           </div>
         </form>
@@ -394,9 +388,3 @@ export default withPageAuthRequired(
     )
   },
 )
-
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
-  props: {
-    ...(await serverSideTranslations(locale as string, ["common"])),
-  },
-})

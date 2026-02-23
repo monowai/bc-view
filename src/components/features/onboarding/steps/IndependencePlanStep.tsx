@@ -1,6 +1,4 @@
 import React from "react"
-import { useTranslation } from "next-i18next"
-
 const currentYear = new Date().getFullYear()
 
 interface IndependencePlanStepProps {
@@ -26,8 +24,6 @@ const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
   onTargetRetirementAgeChange,
   baseCurrency,
 }) => {
-  const { t } = useTranslation("onboarding")
-
   return (
     <div className="space-y-6">
       <div className="text-center">
@@ -35,13 +31,12 @@ const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
           <i className="fas fa-chart-line"></i>
         </div>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          {t("independence.title", "Quick Independence Check")}
+          {"Quick Independence Check"}
         </h2>
         <p className="text-gray-600">
-          {t(
-            "independence.description",
-            "Want to see how your finances might look in retirement? Just three quick questions.",
-          )}
+          {
+            "Want to see how your finances might look in retirement? Just three quick questions."
+          }
         </p>
       </div>
 
@@ -57,7 +52,7 @@ const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
           }`}
         >
           <i className="fas fa-check mr-2"></i>
-          {t("independence.yesPlease", "Yes, let's do it")}
+          {"Yes, let's do it"}
         </button>
         <button
           type="button"
@@ -68,7 +63,7 @@ const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
               : "bg-gray-100 text-gray-600 hover:bg-gray-200"
           }`}
         >
-          {t("independence.skip", "Skip for now")}
+          {"Skip for now"}
         </button>
       </div>
 
@@ -79,7 +74,7 @@ const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
               htmlFor="independenceYearOfBirth"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              {t("independence.yearOfBirth", "Year of Birth")}
+              {"Year of Birth"}
             </label>
             <input
               id="independenceYearOfBirth"
@@ -91,9 +86,7 @@ const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
             />
             <p className="mt-1 text-sm text-gray-500">
-              {t("independence.currentAge", "Currently {{age}} years old", {
-                age: currentYear - yearOfBirth,
-              })}
+              {`Currently ${currentYear - yearOfBirth} years old`}
             </p>
           </div>
 
@@ -102,11 +95,7 @@ const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
               htmlFor="independenceMonthlyExpenses"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              {t(
-                "independence.monthlyExpenses",
-                "Estimated Monthly Expenses ({{currency}})",
-                { currency: baseCurrency },
-              )}
+              {`Estimated Monthly Expenses (${baseCurrency})`}
             </label>
             <div className="relative">
               <span className="absolute left-3 top-2.5 text-gray-500">$</span>
@@ -116,7 +105,7 @@ const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
                 value={monthlyExpenses || ""}
                 min={0}
                 step={100}
-                placeholder={t("independence.expensesPlaceholder", "e.g. 3000")}
+                placeholder={"e.g. 3000"}
                 onChange={(e) =>
                   onMonthlyExpensesChange(
                     e.target.value === "" ? 0 : Number(e.target.value),
@@ -132,7 +121,7 @@ const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
               htmlFor="independenceTargetAge"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              {t("independence.targetAge", "Target Independence Age")}
+              {"Target Independence Age"}
             </label>
             <input
               id="independenceTargetAge"
@@ -151,10 +140,9 @@ const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
             <div className="flex items-start">
               <i className="fas fa-info-circle text-independence-600 mt-0.5 mr-2"></i>
               <p className="text-sm text-independence-700">
-                {t(
-                  "independence.hint",
-                  'A plan called "My Independence Plan" will be created with sensible defaults. You can refine it anytime from the Independence page.',
-                )}
+                {
+                  'A plan called "My Independence Plan" will be created with sensible defaults. You can refine it anytime from the Independence page.'
+                }
               </p>
             </div>
           </div>
@@ -164,10 +152,9 @@ const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
       {!enabled && (
         <div className="text-center text-sm text-gray-500">
           <p>
-            {t(
-              "independence.skipHint",
-              "No worries! You can create an independence plan anytime from the menu.",
-            )}
+            {
+              "No worries! You can create an independence plan anytime from the menu."
+            }
           </p>
         </div>
       )}

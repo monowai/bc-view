@@ -2,7 +2,6 @@ import React, { useMemo } from "react"
 import { Controller, Control } from "react-hook-form"
 import Select from "react-select"
 import { Asset, Currency } from "types/beancounter"
-import { useTranslation } from "next-i18next"
 import { getDisplayCode, getAssetCurrency } from "@lib/assets/assetUtils"
 
 // Transaction types that do not impact cash positions
@@ -94,7 +93,6 @@ const SettlementAccountSelect: React.FC<SettlementAccountSelectProps> = ({
   bankAccountsLabel,
   cashAssetsLabel,
 }) => {
-  const { t } = useTranslation("common")
   const disabled = isNoCashImpact(trnType)
 
   // Helper to get currency from asset (uses imported getAssetCurrency)
@@ -131,7 +129,7 @@ const SettlementAccountSelect: React.FC<SettlementAccountSelectProps> = ({
 
       if (recommendedOptions.length > 0) {
         groups.push({
-          label: t("settlement.recommended", "Recommended"),
+          label: "Recommended",
           options: recommendedOptions,
         })
       }
@@ -139,8 +137,7 @@ const SettlementAccountSelect: React.FC<SettlementAccountSelectProps> = ({
       // Add other cash balances
       if (otherCashAssets.length > 0) {
         groups.push({
-          label:
-            cashAssetsLabel || t("settlement.otherBalances", "Other Balances"),
+          label: cashAssetsLabel || "Other Balances",
           options: toCashAssetOptions(otherCashAssets),
         })
       }
@@ -148,9 +145,7 @@ const SettlementAccountSelect: React.FC<SettlementAccountSelectProps> = ({
       // Add other bank accounts
       if (otherBankAccounts.length > 0) {
         groups.push({
-          label:
-            bankAccountsLabel ||
-            t("settlement.otherBankAccounts", "Other Bank Accounts"),
+          label: bankAccountsLabel || "Other Bank Accounts",
           options: toSettlementAccountOptions(otherBankAccounts),
         })
       }
@@ -158,8 +153,7 @@ const SettlementAccountSelect: React.FC<SettlementAccountSelectProps> = ({
       // Add other trade accounts
       if (otherAccounts.length > 0) {
         groups.push({
-          label:
-            accountsLabel || t("settlement.otherAccounts", "Other Accounts"),
+          label: accountsLabel || "Other Accounts",
           options: toSettlementAccountOptions(otherAccounts),
         })
       }
@@ -168,8 +162,7 @@ const SettlementAccountSelect: React.FC<SettlementAccountSelectProps> = ({
       // Add cash assets group first (generic balances like "USD Balance")
       if (cashAssets.length > 0) {
         groups.push({
-          label:
-            cashAssetsLabel || t("settlement.cashBalances", "Cash Balances"),
+          label: cashAssetsLabel || "Cash Balances",
           options: toCashAssetOptions(cashAssets),
         })
       }
@@ -177,7 +170,7 @@ const SettlementAccountSelect: React.FC<SettlementAccountSelectProps> = ({
       // Add currencies group (fallback if no cash assets)
       if (currencies.length > 0 && cashAssets.length === 0) {
         groups.push({
-          label: currenciesLabel || t("settlement.currencies", "Currencies"),
+          label: currenciesLabel || "Currencies",
           options: toCurrencyOptions(currencies),
         })
       }
@@ -185,8 +178,7 @@ const SettlementAccountSelect: React.FC<SettlementAccountSelectProps> = ({
       // Add bank accounts group (if provided)
       if (bankAccounts.length > 0) {
         groups.push({
-          label:
-            bankAccountsLabel || t("settlement.bankAccounts", "Bank Accounts"),
+          label: bankAccountsLabel || "Bank Accounts",
           options: toSettlementAccountOptions(bankAccounts),
         })
       }
@@ -194,7 +186,7 @@ const SettlementAccountSelect: React.FC<SettlementAccountSelectProps> = ({
       // Add trade accounts group
       if (accounts.length > 0) {
         groups.push({
-          label: accountsLabel || t("settlement.accounts", "Accounts"),
+          label: accountsLabel || "Accounts",
           options: toSettlementAccountOptions(accounts),
         })
       }
@@ -207,7 +199,6 @@ const SettlementAccountSelect: React.FC<SettlementAccountSelectProps> = ({
     cashAssets,
     currencies,
     tradeCurrency,
-    t,
     currenciesLabel,
     accountsLabel,
     bankAccountsLabel,
@@ -217,7 +208,7 @@ const SettlementAccountSelect: React.FC<SettlementAccountSelectProps> = ({
   // No Settlement option shown when disabled
   const noSettlementOption: SettlementAccountOption = {
     value: "",
-    label: t("trn.settlement.none"),
+    label: "No Settlement",
     currency: "",
   }
 
@@ -232,7 +223,7 @@ const SettlementAccountSelect: React.FC<SettlementAccountSelectProps> = ({
           options={disabled ? [noSettlementOption] : groupedOptions}
           value={disabled ? noSettlementOption : field.value}
           isDisabled={disabled}
-          placeholder={t("trn.settlement.select")}
+          placeholder={"Select account..."}
           menuPortalTarget={
             typeof document !== "undefined" ? document.body : null
           }

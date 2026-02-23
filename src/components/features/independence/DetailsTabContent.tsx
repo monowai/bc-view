@@ -1,5 +1,4 @@
 import React from "react"
-import { useTranslation } from "next-i18next"
 import InfoTooltip from "@components/ui/Tooltip"
 import { RetirementPlan, RetirementProjection } from "types/independence"
 import { HIDDEN_VALUE } from "@lib/independence/planHelpers"
@@ -31,7 +30,6 @@ export default function DetailsTabContent({
   planCurrency,
   onEditDetails,
 }: DetailsTabContentProps): React.ReactElement {
-  const { t } = useTranslation("common")
   const { hideValues } = usePrivacyMode()
 
   // Use in-memory state (scenarioOverrides) with plan as fallback
@@ -85,7 +83,7 @@ export default function DetailsTabContent({
       <div className="bg-white rounded-xl shadow-md p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold text-gray-900">
-            {t("retire.planDetails")}
+            {"Plan Details"}
           </h2>
           <button
             onClick={onEditDetails}
@@ -97,10 +95,12 @@ export default function DetailsTabContent({
         </div>
         <div className="space-y-3">
           <div className="flex justify-between">
-            <InfoTooltip text={t("retire.monthlyExpenses.tooltip")}>
-              <span className="text-gray-500">
-                {t("retire.monthlyExpenses")}
-              </span>
+            <InfoTooltip
+              text={
+                "Your total expected monthly spending after reaching independence, including housing, food, healthcare, and other regular costs."
+              }
+            >
+              <span className="text-gray-500">{"Monthly Expenses"}</span>
             </InfoTooltip>
             <span
               className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
@@ -111,7 +111,7 @@ export default function DetailsTabContent({
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-500">{t("retire.pension")}</span>
+            <span className="text-gray-500">{"Pension"}</span>
             <span
               className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
             >
@@ -121,9 +121,7 @@ export default function DetailsTabContent({
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-500">
-              {t("retire.governmentBenefits")}
-            </span>
+            <span className="text-gray-500">{"Government Benefits"}</span>
             <span
               className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
             >
@@ -133,7 +131,7 @@ export default function DetailsTabContent({
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-500">{t("retire.otherIncome")}</span>
+            <span className="text-gray-500">{"Other Income"}</span>
             <span
               className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
             >
@@ -160,10 +158,12 @@ export default function DetailsTabContent({
             </div>
           )}
           <div className="flex justify-between">
-            <InfoTooltip text={t("retire.netMonthlyNeed.tooltip")}>
-              <span className="text-gray-500">
-                {t("retire.netMonthlyNeed")}
-              </span>
+            <InfoTooltip
+              text={
+                "What you need from your savings each month after accounting for pension, government benefits, and other income sources."
+              }
+            >
+              <span className="text-gray-500">{"Net Monthly Need"}</span>
             </InfoTooltip>
             <span
               className={`font-medium ${hideValues ? "text-gray-400" : "text-independence-600"}`}
@@ -175,8 +175,12 @@ export default function DetailsTabContent({
           </div>
           <hr />
           <div className="flex justify-between">
-            <InfoTooltip text={t("retire.inflation.tooltip")}>
-              <span className="text-gray-500">{t("retire.inflation")}</span>
+            <InfoTooltip
+              text={
+                "Expected yearly increase in living costs. Your expenses will grow by this rate each year."
+              }
+            >
+              <span className="text-gray-500">{"Inflation"}</span>
             </InfoTooltip>
             <span className="font-medium">
               {(effectiveInflation * 100).toFixed(1)}%
@@ -192,10 +196,12 @@ export default function DetailsTabContent({
           </div>
           {effectiveTarget && effectiveTarget > 0 && (
             <div className="flex justify-between">
-              <InfoTooltip text={t("retire.targetBalance.tooltip")}>
-                <span className="text-gray-500">
-                  {t("retire.targetBalance")}
-                </span>
+              <InfoTooltip
+                text={
+                  "The amount you want to have left at the end of your planning period, for a legacy or safety buffer."
+                }
+              >
+                <span className="text-gray-500">{"Target Balance"}</span>
               </InfoTooltip>
               <span
                 className={`font-medium ${hideValues ? "text-gray-400" : ""}`}

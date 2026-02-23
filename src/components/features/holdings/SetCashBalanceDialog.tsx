@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from "react"
-import { useTranslation } from "next-i18next"
 import { Portfolio } from "types/beancounter"
 import { postData } from "@components/ui/DropZone"
 import {
@@ -31,7 +30,6 @@ const SetCashBalanceDialog: React.FC<SetCashBalanceDialogProps> = ({
   assetCode,
   assetName,
 }) => {
-  const { t } = useTranslation("common")
   const [targetBalance, setTargetBalance] = useState<string>("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -100,11 +98,11 @@ const SetCashBalanceDialog: React.FC<SetCashBalanceDialogProps> = ({
 
   return (
     <Dialog
-      title={t("cash.setBalance")}
+      title={"Set Balance"}
       onClose={onClose}
       footer={
         <>
-          <Dialog.CancelButton onClick={onClose} label={t("cancel")} />
+          <Dialog.CancelButton onClick={onClose} label={"Cancel"} />
           {submitSuccess ? (
             <button
               type="button"
@@ -113,14 +111,14 @@ const SetCashBalanceDialog: React.FC<SetCashBalanceDialogProps> = ({
             >
               <span className="flex items-center">
                 <i className="fas fa-check mr-2"></i>
-                {t("success")}
+                {"Success"}
               </span>
             </button>
           ) : (
             <Dialog.SubmitButton
               onClick={handleProceed}
-              label={t("cash.proceed")}
-              loadingLabel={t("submitting")}
+              label={"Proceed"}
+              loadingLabel={"Submitting..."}
               isSubmitting={isSubmitting}
               disabled={!hasValidTarget}
               variant={calculation.type === "DEPOSIT" ? "green" : "red"}
@@ -140,7 +138,7 @@ const SetCashBalanceDialog: React.FC<SetCashBalanceDialogProps> = ({
       {/* Current Balance */}
       <div className="flex justify-between items-center">
         <span className="text-sm font-medium text-gray-700">
-          {t("cash.currentBalance")}
+          {"Current Balance"}
         </span>
         <span className="text-lg font-bold">
           {currency}{" "}
@@ -154,7 +152,7 @@ const SetCashBalanceDialog: React.FC<SetCashBalanceDialogProps> = ({
       {/* Target Balance Input */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          {t("cash.targetBalance")}
+          {"Target Balance"}
         </label>
         <div className="flex items-center gap-2">
           <span className="text-gray-500">{currency}</span>
@@ -177,7 +175,7 @@ const SetCashBalanceDialog: React.FC<SetCashBalanceDialogProps> = ({
           }`}
         >
           <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium">{t("cash.action")}</span>
+            <span className="text-sm font-medium">{"Action"}</span>
             <span
               className={`font-bold ${
                 calculation.type === "DEPOSIT"
@@ -185,13 +183,11 @@ const SetCashBalanceDialog: React.FC<SetCashBalanceDialogProps> = ({
                   : "text-red-600"
               }`}
             >
-              {calculation.type === "DEPOSIT"
-                ? t("cash.deposit")
-                : t("cash.withdrawal")}
+              {calculation.type === "DEPOSIT" ? "Deposit" : "Withdraw"}
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm font-medium">{t("cash.amount")}</span>
+            <span className="text-sm font-medium">{"Amount"}</span>
             <span className="text-2xl font-bold">
               {currency}{" "}
               {calculation.amount.toLocaleString(undefined, {
@@ -203,7 +199,7 @@ const SetCashBalanceDialog: React.FC<SetCashBalanceDialogProps> = ({
           <div className="mt-3 pt-3 border-t border-gray-200">
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium text-gray-600">
-                {t("cash.newBalance")}
+                {"New Balance"}
               </span>
               <span className="text-lg font-semibold text-purple-600">
                 {currency}{" "}
@@ -222,7 +218,7 @@ const SetCashBalanceDialog: React.FC<SetCashBalanceDialogProps> = ({
         !isNaN(parseFloat(targetBalance)) &&
         calculation.amount === 0 && (
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center text-gray-500">
-            {t("cash.noChangeNeeded")}
+            {"No change needed"}
           </div>
         )}
 

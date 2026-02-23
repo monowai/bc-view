@@ -1,5 +1,4 @@
 import React from "react"
-import { useTranslation } from "next-i18next"
 import { TransactionStatus } from "types/rebalance"
 
 interface TransactionStatusSelectProps {
@@ -11,12 +10,10 @@ const TransactionStatusSelect: React.FC<TransactionStatusSelectProps> = ({
   value,
   onChange,
 }) => {
-  const { t } = useTranslation("common")
-
   return (
     <div className="space-y-3">
       <label className="block text-sm font-medium text-gray-700">
-        {t("rebalance.execution.transactionStatus", "Transaction Status")}
+        {"Transaction Status"}
       </label>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <button
@@ -30,15 +27,12 @@ const TransactionStatusSelect: React.FC<TransactionStatusSelectProps> = ({
         >
           <div className="flex items-center gap-2 mb-1">
             <i className="fas fa-clock text-yellow-500"></i>
-            <span className="font-medium">
-              {t("rebalance.execution.unsettled", "Unsettled")}
-            </span>
+            <span className="font-medium">{"Unsettled"}</span>
           </div>
           <p className="text-sm text-gray-600">
-            {t(
-              "rebalance.execution.unsettledDesc",
-              "Intent recorded - execute trades externally and mark as settled later",
-            )}
+            {
+              "Intent recorded - execute trades externally and mark as settled later"
+            }
           </p>
         </button>
         <button
@@ -52,15 +46,10 @@ const TransactionStatusSelect: React.FC<TransactionStatusSelectProps> = ({
         >
           <div className="flex items-center gap-2 mb-1">
             <i className="fas fa-check-circle text-green-500"></i>
-            <span className="font-medium">
-              {t("rebalance.execution.settled", "Settled")}
-            </span>
+            <span className="font-medium">{"Settled"}</span>
           </div>
           <p className="text-sm text-gray-600">
-            {t(
-              "rebalance.execution.settledDesc",
-              "Trades already executed - immediately affect holdings",
-            )}
+            {"Trades already executed - immediately affect holdings"}
           </p>
         </button>
       </div>

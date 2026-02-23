@@ -2,10 +2,7 @@ import React, { useState, useMemo, useCallback, useEffect } from "react"
 import useSwr from "swr"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import type { User } from "@auth0/nextjs-auth0/types"
-import { useTranslation } from "next-i18next"
 import { Portfolio, Currency } from "types/beancounter"
-import { GetServerSideProps } from "next"
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { errorOut } from "@components/errors/ErrorOut"
 import { useRouter } from "next/router"
@@ -23,7 +20,6 @@ export default withPageAuthRequired(function Portfolios({
 }: {
   user: User
 }): React.ReactElement {
-  const { t, ready } = useTranslation("common")
   const router = useRouter()
   const { data, mutate, error } = useSwr(
     portfoliosKey,
@@ -120,18 +116,18 @@ export default withPageAuthRequired(function Portfolios({
   }
 
   if (error) {
-    return errorOut(t("portfolios.error.retrieve"), error)
+    return errorOut("Error retrieving portfolios", error)
   }
 
   if (!user) {
-    return rootLoader(t("loading"))
+    return rootLoader("Loading...")
   }
 
   if (
     activeTab === "my" &&
-    (!data || !ready || (data.data.length > 0 && !fxRatesReady))
+    (!data || (data.data.length > 0 && !fxRatesReady))
   ) {
-    return rootLoader(t("loading"))
+    return rootLoader("Loading...")
   }
 
   return (
@@ -148,7 +144,7 @@ export default withPageAuthRequired(function Portfolios({
             onClick={() => setActiveTab("my")}
           >
             <i className="fas fa-briefcase mr-2"></i>
-            {t("shares.tab.my")}
+            {"My Portfolios"}
           </button>
           <button
             className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
@@ -159,7 +155,7 @@ export default withPageAuthRequired(function Portfolios({
             onClick={() => setActiveTab("managed")}
           >
             <i className="fas fa-users mr-2"></i>
-            {t("shares.tab.managed")}
+            {"Managed"}
           </button>
         </div>
       </div>
@@ -203,10 +199,10 @@ export default withPageAuthRequired(function Portfolios({
       )}
       {deleteTarget && (
         <ConfirmDialog
-          title={t("portfolio.delete.title", "Delete Portfolio")}
-          message={t("portfolio.delete", { code: deleteTarget.code })}
-          confirmLabel={t("delete", "Delete")}
-          cancelLabel={t("cancel", "Cancel")}
+          title={"Delete Portfolio"}
+          message={`Delete portfolio ${deleteTarget.code} and all associated transactions?`}
+          confirmLabel={"Delete"}
+          cancelLabel={"Cancel"}
           variant="red"
           onConfirm={deletePortfolioConfirm}
           onCancel={() => setDeleteTarget(null)}
@@ -214,10 +210,4 @@ export default withPageAuthRequired(function Portfolios({
       )}
     </>
   )
-})
-
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
-  props: {
-    ...(await serverSideTranslations(locale as string, ["common", "wealth"])),
-  },
 })

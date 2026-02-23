@@ -4,14 +4,6 @@ import "@testing-library/jest-dom"
 import HoldingMenu from "../HoldingMenu"
 import { Portfolio } from "types/beancounter"
 
-// Mock next-i18next
-jest.mock("next-i18next", () => ({
-  useTranslation: () => ({
-    t: (key: string) => key,
-    ready: true,
-  }),
-}))
-
 // Mock child components
 jest.mock("@components/ui/HideEmpty", () => ({
   HideEmpty: () => <div data-testid="hide-empty">HideEmpty</div>,
@@ -86,7 +78,7 @@ describe("HoldingMenu Visual Cues and Mobile Support (TDD)", () => {
     fireEvent.click(trigger)
 
     // Menu should be visible
-    expect(screen.getByText("option.portfolio")).toBeInTheDocument()
+    expect(screen.getByText("Portfolio")).toBeInTheDocument()
   })
 
   it("should render a close button inside the menu", () => {

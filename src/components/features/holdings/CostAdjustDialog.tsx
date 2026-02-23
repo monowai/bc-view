@@ -1,6 +1,14 @@
 import React, { useState, useMemo } from "react"
 import { Asset, Currency } from "types/beancounter"
-import { useTranslation } from "next-i18next"
+
+const CATEGORY_LABELS: Record<string, string> = {
+  PENSION: "Retirement Fund",
+  ACCOUNT: "Bank Account",
+  TRADE: "Trade Account",
+  RE: "Real Estate",
+  "MUTUAL FUND": "Mutual Fund",
+  POLICY: "Retirement Fund",
+}
 import MathInput from "@components/ui/MathInput"
 import DateInput from "@components/ui/DateInput"
 import Dialog from "@components/ui/Dialog"
@@ -28,7 +36,6 @@ export default function CostAdjustDialog({
   onClose,
   onSave,
 }: CostAdjustDialogProps): React.ReactElement {
-  const { t } = useTranslation("common")
   const [date, setDate] = useState(new Date().toISOString().split("T")[0])
   const [newCostBasis, setNewCostBasis] = useState<string>("")
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -46,7 +53,7 @@ export default function CostAdjustDialog({
 
   const handleSave = async (): Promise<void> => {
     if (!hasValidTarget) {
-      setError(t("costAdjust.error.noChange"))
+      setError("Please enter a different cost basis")
       return
     }
     setIsSubmitting(true)
@@ -55,7 +62,7 @@ export default function CostAdjustDialog({
       await onSave(asset.id, portfolioId, date, adjustmentAmount)
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : t("costAdjust.error.failed"),
+        err instanceof Error ? err.message : "Failed to create cost adjustment",
       )
     } finally {
       setIsSubmitting(false)
@@ -64,15 +71,15 @@ export default function CostAdjustDialog({
 
   return (
     <Dialog
-      title={t("costAdjust.title")}
+      title={"Adjust Cost Basis"}
       onClose={onClose}
       footer={
         <>
-          <Dialog.CancelButton onClick={onClose} label={t("cancel")} />
+          <Dialog.CancelButton onClick={onClose} label={"Cancel"} />
           <Dialog.SubmitButton
             onClick={handleSave}
-            label={t("save")}
-            loadingLabel={t("saving")}
+            label={"Save"}
+            loadingLabel={"Saving..."}
             isSubmitting={isSubmitting}
             disabled={!hasValidTarget || isSubmitting}
             variant="green"
@@ -84,16 +91,14 @@ export default function CostAdjustDialog({
         <div className="font-semibold text-lg">{asset.name}</div>
         <div className="text-sm text-gray-600">
           {stripOwnerPrefix(asset.code)} -{" "}
-          {t(`category.${asset.assetCategory?.id}`) ||
+          {CATEGORY_LABELS[asset.assetCategory?.id || ""] ||
             asset.assetCategory?.name}
         </div>
       </div>
 
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
         <div className="flex justify-between text-sm">
-          <span className="text-gray-600">
-            {t("costAdjust.currentCostBasis")}
-          </span>
+          <span className="text-gray-600">{"Current Cost Basis"}</span>
           <span className="font-medium">
             {currency.symbol}
             {currentCostBasis.toLocaleString(undefined, {
@@ -106,7 +111,7 @@ export default function CostAdjustDialog({
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          {t("costAdjust.date")}
+          {"Adjustment Date"}
         </label>
         <DateInput
           value={date}
@@ -117,7 +122,7 @@ export default function CostAdjustDialog({
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          {t("costAdjust.newCostBasis")} ({currency.code})
+          {"New Cost Basis"} ({currency.code})
         </label>
         <MathInput
           value={newCostBasis === "" ? "" : parseFloat(newCostBasis)}
@@ -136,7 +141,7 @@ export default function CostAdjustDialog({
           }`}
         >
           <div className="flex justify-between text-sm">
-            <span className="text-gray-600">{t("costAdjust.adjustment")}</span>
+            <span className="text-gray-600">{"Adjustment"}</span>
             <span
               className={`font-medium ${adjustmentAmount > 0 ? "text-green-600" : "text-orange-600"}`}
             >
@@ -150,7 +155,7 @@ export default function CostAdjustDialog({
           </div>
           {parseFloat(newCostBasis) < 0 && (
             <p className="text-xs text-red-600 mt-1">
-              {t("costAdjust.warning.negative")}
+              {"Warning: New cost basis will be negative"}
             </p>
           )}
         </div>
@@ -160,7 +165,7 @@ export default function CostAdjustDialog({
         !isNaN(parseFloat(newCostBasis)) &&
         !hasValidTarget && (
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center text-gray-500 text-sm">
-            {t("costAdjust.noChange")}
+            {"No change from current cost basis"}
           </div>
         )}
 

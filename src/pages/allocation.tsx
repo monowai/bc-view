@@ -2,9 +2,6 @@ import React, { useState, useMemo, useEffect } from "react"
 import { useRouter } from "next/router"
 import useSwr from "swr"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
-import { useTranslation } from "next-i18next"
-import { GetServerSideProps } from "next"
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import { errorOut } from "@components/errors/ErrorOut"
 import { rootLoader } from "@components/ui/PageLoader"
@@ -18,7 +15,6 @@ import AllocationChart from "@components/features/allocation/AllocationChart"
 import AllocationControls from "@components/features/allocation/AllocationControls"
 
 export default withPageAuthRequired(function Allocation(): React.ReactElement {
-  const { t, ready } = useTranslation("common")
   const router = useRouter()
 
   // Get portfolio codes from URL query parameter
@@ -113,39 +109,20 @@ export default withPageAuthRequired(function Allocation(): React.ReactElement {
   // Determine the subtitle based on selected portfolios
   const subtitle = useMemo(() => {
     if (portfolioCodes.length === 0) {
-      return t(
-        "allocation.description.all",
-        "Showing allocation across all portfolios",
-      )
+      return "Showing allocation across all portfolios"
     }
     if (portfolioCodes.length === 1) {
-      return t(
-        "allocation.description.single",
-        "Showing allocation for {{code}}",
-        {
-          code: portfolioCodes[0],
-        },
-      )
+      return `Showing allocation for ${portfolioCodes[0]}`
     }
-    return t(
-      "allocation.description.selected",
-      "Showing allocation for {{count}} portfolios: {{codes}}",
-      {
-        count: portfolioCodes.length,
-        codes: portfolioCodes.join(", "),
-      },
-    )
-  }, [portfolioCodes, t])
+    return `Showing allocation for ${portfolioCodes.length} portfolios: ${codes}`
+  }, [portfolioCodes, codes])
 
   if (error) {
-    return errorOut(
-      t("allocation.error.retrieve", "Failed to load allocation data"),
-      error,
-    )
+    return errorOut("Failed to load allocation data", error)
   }
 
-  if (!ready || isLoading) {
-    return rootLoader(t("loading"))
+  if (isLoading) {
+    return rootLoader("Loading...")
   }
 
   return (
@@ -153,7 +130,7 @@ export default withPageAuthRequired(function Allocation(): React.ReactElement {
       <div className="flex justify-between items-start mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            {t("allocation.title", "Asset Allocation")}
+            {"Asset Allocation"}
           </h1>
           <p className="text-sm text-gray-600 mt-1">{subtitle}</p>
         </div>
@@ -165,7 +142,7 @@ export default withPageAuthRequired(function Allocation(): React.ReactElement {
               if (selected) setDisplayCurrency(selected)
             }}
             className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            title={t("portfolios.currency.display")}
+            title={"Display Currency"}
           >
             {currencies.map((c) => (
               <option key={c.code} value={c.code}>
@@ -193,10 +170,4 @@ export default withPageAuthRequired(function Allocation(): React.ReactElement {
       </div>
     </div>
   )
-})
-
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
-  props: {
-    ...(await serverSideTranslations(locale as string, ["common"])),
-  },
 })

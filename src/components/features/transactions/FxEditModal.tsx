@@ -3,7 +3,6 @@ import { NumericFormat } from "react-number-format"
 import { Controller, useForm } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
 import * as yup from "yup"
-import { useTranslation } from "next-i18next"
 import { mutate } from "swr"
 import { Transaction, FxResponse } from "types/beancounter"
 import { stripOwnerPrefix } from "@lib/assets/assetUtils"
@@ -68,7 +67,6 @@ export default function FxEditModal({
   onClose,
   onDelete,
 }: FxEditModalProps): React.ReactElement {
-  const { t } = useTranslation("common")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [fxRate, setFxRate] = useState<number | null>(null)
@@ -240,7 +238,7 @@ export default function FxEditModal({
         method: "DELETE",
       })
       if (!deleteResponse.ok) {
-        setSubmitError(t("trn.error.delete"))
+        setSubmitError("Failed to delete transaction")
         return
       }
 
@@ -280,7 +278,7 @@ export default function FxEditModal({
       onClose()
     } catch (error) {
       console.error("Failed to update FX transaction:", error)
-      setSubmitError(t("trn.error.update"))
+      setSubmitError("Failed to update transaction")
     } finally {
       setIsSubmitting(false)
     }
@@ -302,14 +300,12 @@ export default function FxEditModal({
             <button
               className="text-gray-400 hover:text-gray-600 p-1"
               onClick={onClose}
-              title={t("cancel")}
+              title={"Cancel"}
             >
               <i className="fas fa-times"></i>
             </button>
             <div className="text-center flex-1 px-2">
-              <div className="font-semibold">
-                {t("trade.fx.title", "FX Trade")}
-              </div>
+              <div className="font-semibold">{"FX Trade"}</div>
               <div className="text-xs text-gray-500">{trn.tradeDate}</div>
             </div>
             <div className="flex gap-1">
@@ -317,7 +313,7 @@ export default function FxEditModal({
                 type="button"
                 className="text-green-600 hover:text-green-700 p-1"
                 onClick={handleCopy}
-                title={t("copy")}
+                title={"Copy"}
               >
                 <i className="fas fa-copy"></i>
               </button>
@@ -325,7 +321,7 @@ export default function FxEditModal({
                 type="button"
                 className="text-red-500 hover:text-red-600 p-1"
                 onClick={onDelete}
-                title={t("delete")}
+                title={"Delete"}
               >
                 <i className="fas fa-trash-can"></i>
               </button>
@@ -338,7 +334,7 @@ export default function FxEditModal({
               {/* Sell Side */}
               <div className="text-center flex-1">
                 <div className="text-xs text-red-600 font-medium uppercase mb-1">
-                  {t("trn.fx.sell", "Sell")}
+                  {"Sell"}
                 </div>
                 <div className="font-bold text-red-700">
                   <NumericFormat
@@ -374,7 +370,7 @@ export default function FxEditModal({
               {/* Buy Side */}
               <div className="text-center flex-1">
                 <div className="text-xs text-green-600 font-medium uppercase mb-1">
-                  {t("trn.fx.buy", "Buy")}
+                  {"Buy"}
                 </div>
                 <div className="font-bold text-green-700">
                   <NumericFormat
@@ -415,7 +411,7 @@ export default function FxEditModal({
           {/* Trade Date */}
           <div>
             <label className="block text-xs font-medium text-gray-600">
-              {t("trn.tradeDate")}
+              {"Trade Date"}
             </label>
             <Controller
               name="tradeDate"
@@ -433,9 +429,7 @@ export default function FxEditModal({
           {/* Sell Amount */}
           <div>
             <label className="block text-xs font-medium text-gray-600">
-              <span className="text-red-600">
-                {t("trn.fx.sellAmount", "Sell Amount")}
-              </span>
+              <span className="text-red-600">{"Sell Amount"}</span>
               <span className="text-gray-400 ml-1">({sellCurrency})</span>
             </label>
             <Controller
@@ -462,9 +456,7 @@ export default function FxEditModal({
           {/* Buy Amount */}
           <div>
             <label className="block text-xs font-medium text-gray-600">
-              <span className="text-green-600">
-                {t("trn.fx.buyAmount", "Buy Amount")}
-              </span>
+              <span className="text-green-600">{"Buy Amount"}</span>
               <span className="text-gray-400 ml-1">({buyCurrency})</span>
             </label>
             <Controller
@@ -486,7 +478,7 @@ export default function FxEditModal({
           {/* Fees */}
           <div>
             <label className="block text-xs font-medium text-gray-600">
-              {t("trn.amount.charges")}
+              {"Fees"}
             </label>
             <Controller
               name="fees"
@@ -504,7 +496,7 @@ export default function FxEditModal({
           {/* Comments */}
           <div>
             <label className="block text-xs font-medium text-gray-600">
-              {t("trn.comments", "Comments")}
+              {"Comments"}
             </label>
             <Controller
               name="comments"
@@ -524,7 +516,7 @@ export default function FxEditModal({
           {/* Status (read-only) */}
           <div>
             <label className="block text-xs font-medium text-gray-600">
-              {t("trn.status")}
+              {"Status"}
             </label>
             <div className={`${inputClass} bg-gray-100 flex items-center`}>
               <span
@@ -554,7 +546,7 @@ export default function FxEditModal({
             className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
             onClick={onClose}
           >
-            {t("cancel")}
+            {"Cancel"}
           </button>
           <button
             type="submit"
@@ -566,7 +558,7 @@ export default function FxEditModal({
                 : "bg-blue-500 hover:bg-blue-600"
             }`}
           >
-            {isSubmitting ? t("saving") : t("save")}
+            {isSubmitting ? "Saving..." : "Save"}
           </button>
         </div>
       </div>

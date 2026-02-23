@@ -1,6 +1,5 @@
 import React, { ReactElement, useCallback } from "react"
 import { useHoldingState } from "@lib/holdings/holdingState"
-import { useTranslation } from "next-i18next"
 import { rootLoader } from "@components/ui/PageLoader"
 import { Portfolio } from "types/beancounter"
 import { DisplayCurrencyMode } from "types/app"
@@ -16,7 +15,6 @@ const DisplayCurrencyOption: React.FC<DisplayCurrencyOptionProps> = ({
   onOptionSelect,
 }): ReactElement => {
   const holdingState = useHoldingState()
-  const { t, ready } = useTranslation("common")
   const { currencies, isLoading: currenciesLoading } = useCurrencies()
 
   const displayCurrency = holdingState.displayCurrency
@@ -36,8 +34,8 @@ const DisplayCurrencyOption: React.FC<DisplayCurrencyOptionProps> = ({
     [holdingState, onOptionSelect],
   )
 
-  if (!ready || currenciesLoading) {
-    return rootLoader(t("loading"))
+  if (currenciesLoading) {
+    return rootLoader("Loading...")
   }
 
   // Filter out Portfolio and Base currencies - those are available via Value In
@@ -53,14 +51,14 @@ const DisplayCurrencyOption: React.FC<DisplayCurrencyOptionProps> = ({
       <ul className="menu-list max-h-48 overflow-y-auto">
         {/* None option - clears custom display currency */}
         <li className="menu-item" onClick={handleClearDisplayCurrency}>
-          {t("displayCurrency.none", "None")}
+          {"None"}
           {!isCustomSelected && <span className="check-mark">&#10003;</span>}
         </li>
         {/* Separator */}
         <li className="border-t border-gray-200 my-1" />
         {/* Warning for custom currencies */}
         <li className="text-xs text-gray-500 px-2 py-1">
-          {t("displayCurrency.warning")} ⚠
+          {"Cost/Gains will be approximate"} ⚠
         </li>
         {availableCurrencies.map((currency) => (
           <li

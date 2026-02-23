@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react"
-import { useTranslation } from "next-i18next"
 import useSwr from "swr"
 import Dialog from "@components/ui/Dialog"
 import { Asset, Portfolio, Position } from "types/beancounter"
@@ -37,7 +36,6 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
   onClose,
   onComplete,
 }) => {
-  const { t } = useTranslation("common")
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [positions, setPositions] = useState<AssetPosition[]>([])
@@ -168,9 +166,7 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
         onComplete()
       }, 1500)
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : t("accounts.setBalances.error"),
-      )
+      setError(err instanceof Error ? err.message : "Failed to update balances")
     } finally {
       setIsSubmitting(false)
     }
@@ -210,9 +206,7 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
         onComplete()
       }, 1500)
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : t("accounts.setBalances.error"),
-      )
+      setError(err instanceof Error ? err.message : "Failed to update balances")
     } finally {
       setIsSubmitting(false)
     }
@@ -220,22 +214,22 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
 
   return (
     <Dialog
-      title={t("accounts.setBalances.title")}
+      title={"Set Account Balances"}
       onClose={onClose}
       maxWidth="2xl"
       scrollable={true}
       footer={
         <>
-          <Dialog.CancelButton onClick={onClose} label={t("cancel")} />
+          <Dialog.CancelButton onClick={onClose} label={"Cancel"} />
           {!submitSuccess && positions.length > 0 && (
             <Dialog.SubmitButton
               onClick={handleApply}
               label={
                 changesCount === 0
-                  ? t("accounts.setBalances.noChanges")
-                  : `${t("cash.proceed")} (${changesCount})`
+                  ? "No balance changes to apply."
+                  : `${"Proceed"} (${changesCount})`
               }
-              loadingLabel={t("accounts.setBalances.applying")}
+              loadingLabel={"Applying changes..."}
               isSubmitting={isSubmitting}
               disabled={changesCount === 0}
               variant="blue"
@@ -246,8 +240,8 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
             portfolios.length > 0 && (
               <Dialog.SubmitButton
                 onClick={handleAddToPortfolio}
-                label={t("accounts.setBalances.addToPortfolio")}
-                loadingLabel={t("accounts.setBalances.adding")}
+                label={"Add to Portfolio"}
+                loadingLabel={"Adding account..."}
                 isSubmitting={isSubmitting}
                 disabled={!canSubmitAddForm}
                 variant="blue"
@@ -265,14 +259,14 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
       </div>
 
       <p className="text-sm text-gray-600">
-        {t("accounts.setBalances.description")}
+        {"Set the balance for this account in each portfolio where it's held."}
       </p>
 
       {/* Loading State */}
       {isLoading && (
         <div className="flex items-center justify-center py-8">
           <i className="fas fa-spinner fa-spin text-2xl text-blue-500"></i>
-          <span className="ml-2 text-gray-600">{t("loading")}</span>
+          <span className="ml-2 text-gray-600">{"Loading..."}</span>
         </div>
       )}
 
@@ -283,16 +277,18 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
       {!isLoading && !error && positions.length === 0 && !submitSuccess && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-1">
-            {t("accounts.setBalances.addToPortfolio.title")}
+            {"Add Account to Portfolio"}
           </h3>
           <p className="text-sm text-gray-600 mb-4">
-            {t("accounts.setBalances.addToPortfolio.description")}
+            {
+              "This account is not held in any portfolio. Select a portfolio and enter the balance to start tracking it."
+            }
           </p>
 
           {portfolios.length === 0 ? (
             <div className="flex items-center justify-center py-4">
               <i className="fas fa-spinner fa-spin text-2xl text-blue-500"></i>
-              <span className="ml-2 text-gray-600">{t("loading")}</span>
+              <span className="ml-2 text-gray-600">{"Loading..."}</span>
             </div>
           ) : (
             <div className="space-y-4">
@@ -301,7 +297,7 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
                   htmlFor="portfolio-select"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  {t("accounts.setBalances.selectPortfolio")}
+                  {"Portfolio"}
                 </label>
                 <select
                   id="portfolio-select"
@@ -310,9 +306,7 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
                   className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-500 focus:border-blue-500"
                   disabled={isSubmitting}
                 >
-                  <option value="">
-                    {t("accounts.setBalances.selectPortfolio.placeholder")}
-                  </option>
+                  <option value="">{"Choose a portfolio..."}</option>
                   {portfolios.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name} ({p.code})
@@ -326,7 +320,7 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
                   htmlFor="balance-input"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  {t("accounts.setBalances.balance")} ({currency})
+                  {"Balance"} ({currency})
                 </label>
                 <MathInput
                   id="balance-input"
@@ -337,7 +331,9 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
                   disabled={isSubmitting}
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  {t("accounts.setBalances.balance.hint")}
+                  {
+                    "Positive values create a deposit, negative values create a withdrawal."
+                  }
                 </p>
               </div>
             </div>
@@ -352,16 +348,16 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  {t("accounts.setBalances.portfolio")}
+                  {"Portfolio"}
                 </th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                  {t("accounts.setBalances.current")}
+                  {"Current"}
                 </th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                  {t("accounts.setBalances.target")}
+                  {"Target"}
                 </th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                  {t("accounts.setBalances.change")}
+                  {"Change"}
                 </th>
               </tr>
             </thead>
@@ -429,7 +425,7 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
           <i className="fas fa-check-circle text-green-500 text-2xl mb-2"></i>
           <p className="text-green-700 font-medium">
-            {t("accounts.setBalances.success", { count: successCount })}
+            {`Successfully updated ${successCount} balance(s)`}
           </p>
         </div>
       )}

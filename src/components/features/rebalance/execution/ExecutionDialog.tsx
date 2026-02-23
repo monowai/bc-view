@@ -1,5 +1,4 @@
 import React, { useState } from "react"
-import { useTranslation } from "next-i18next"
 import Dialog from "@components/ui/Dialog"
 import TransactionStatusSelect from "./TransactionStatusSelect"
 import ExecutionResultsView from "./ExecutionResultsView"
@@ -22,7 +21,6 @@ const ExecutionDialog: React.FC<ExecutionDialogProps> = ({
   plan,
   onSuccess,
 }) => {
-  const { t } = useTranslation("common")
   const [transactionStatus, setTransactionStatus] =
     useState<TransactionStatus>("UNSETTLED")
   const [isExecuting, setIsExecuting] = useState(false)
@@ -77,7 +75,7 @@ const ExecutionDialog: React.FC<ExecutionDialogProps> = ({
 
   return (
     <Dialog
-      title={t("rebalance.execution.title", "Execute Plan")}
+      title={"Execute Plan"}
       onClose={handleClose}
       maxWidth="lg"
       scrollable={true}
@@ -85,19 +83,16 @@ const ExecutionDialog: React.FC<ExecutionDialogProps> = ({
         results ? (
           <Dialog.SubmitButton
             onClick={handleClose}
-            label={t("done", "Done")}
+            label={"Done"}
             variant="blue"
           />
         ) : (
           <>
-            <Dialog.CancelButton
-              onClick={handleClose}
-              label={t("cancel", "Cancel")}
-            />
+            <Dialog.CancelButton onClick={handleClose} label={"Cancel"} />
             <Dialog.SubmitButton
               onClick={handleExecute}
-              label={t("rebalance.execution.confirm", "Execute Plan")}
-              loadingLabel={t("rebalance.execution.executing", "Executing...")}
+              label={"Execute"}
+              loadingLabel={"Executing..."}
               isSubmitting={isExecuting}
               disabled={eligibleItems.length === 0}
               variant="green"
@@ -116,18 +111,10 @@ const ExecutionDialog: React.FC<ExecutionDialogProps> = ({
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="flex items-center gap-2 text-blue-700 mb-2">
               <i className="fas fa-info-circle"></i>
-              <span className="font-medium">
-                {t("rebalance.execution.summary", "Execution Summary")}
-              </span>
+              <span className="font-medium">{"Execution Summary"}</span>
             </div>
             <div className="text-sm space-y-1">
-              <p>
-                {t(
-                  "rebalance.execution.eligibleCount",
-                  "{{count}} items eligible for execution",
-                  { count: eligibleItems.length },
-                )}
-              </p>
+              <p>{`${eligibleItems.length} items eligible for execution`}</p>
               <div className="flex gap-4 mt-2">
                 <span className="text-green-600">
                   <i className="fas fa-plus mr-1"></i>
@@ -153,15 +140,12 @@ const ExecutionDialog: React.FC<ExecutionDialogProps> = ({
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-yellow-700">
               <div className="flex items-center gap-2">
                 <i className="fas fa-exclamation-triangle"></i>
-                <span className="font-medium">
-                  {t("rebalance.execution.settledWarning", "Warning")}
-                </span>
+                <span className="font-medium">{"Warning"}</span>
               </div>
               <p className="text-sm mt-1">
-                {t(
-                  "rebalance.execution.settledWarningDesc",
-                  "Settled transactions will immediately affect your holdings and valuations.",
-                )}
+                {
+                  "Settled transactions will immediately affect your holdings and valuations."
+                }
               </p>
             </div>
           )}

@@ -1,8 +1,5 @@
 import React, { useState } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
-import { GetServerSideProps } from "next"
-import { useTranslation } from "next-i18next"
 import { useRouter } from "next/router"
 import Link from "next/link"
 import { usePlan } from "@components/features/rebalance/hooks/usePlan"
@@ -14,7 +11,6 @@ import { FormatValue } from "@components/ui/MoneyUtils"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 
 function PlanDetailPage(): React.ReactElement {
-  const { t } = useTranslation("common")
   const router = useRouter()
   const { id } = router.query
 
@@ -61,7 +57,7 @@ function PlanDetailPage(): React.ReactElement {
     return (
       <div className="w-full py-4">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-          {t("rebalance.plans.error", "Failed to load plan")}
+          {"Failed to load plan"}
         </div>
       </div>
     )
@@ -80,7 +76,7 @@ function PlanDetailPage(): React.ReactElement {
       {/* Breadcrumb */}
       <nav className="text-sm text-gray-500 mb-4">
         <Link href="/rebalance" className="hover:text-invest-600">
-          {t("rebalance.title", "Rebalancing")}
+          {"Rebalance Position"}
         </Link>
         <span className="mx-2">/</span>
         <span className="text-gray-900">{plan.name}</span>
@@ -97,7 +93,7 @@ function PlanDetailPage(): React.ReactElement {
             />
           </div>
           <p className="text-sm text-gray-600 mt-1">
-            {t("rebalance.plans.model", "Model")}: {plan.modelPortfolioName}
+            {"Model"}: {plan.modelPortfolioName}
           </p>
         </div>
         <div className="flex gap-2">
@@ -110,7 +106,7 @@ function PlanDetailPage(): React.ReactElement {
               <i
                 className={`fas fa-sync-alt mr-2 ${isRefreshing ? "fa-spin" : ""}`}
               ></i>
-              {t("rebalance.plans.refresh", "Refresh")}
+              {"Refresh"}
             </button>
           )}
           {canCancel && (
@@ -120,7 +116,7 @@ function PlanDetailPage(): React.ReactElement {
               className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors flex items-center disabled:bg-red-400"
             >
               <i className="fas fa-times mr-2"></i>
-              {t("rebalance.plans.cancel", "Cancel")}
+              {"Cancel"}
             </button>
           )}
           {canExecute && (
@@ -129,7 +125,7 @@ function PlanDetailPage(): React.ReactElement {
               className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors flex items-center"
             >
               <i className="fas fa-play mr-2"></i>
-              {t("rebalance.plans.execute", "Execute")}
+              {"Execute"}
             </button>
           )}
         </div>
@@ -138,25 +134,19 @@ function PlanDetailPage(): React.ReactElement {
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <div className="text-sm text-gray-500">
-            {t("rebalance.plans.currentValue", "Current Value")}
-          </div>
+          <div className="text-sm text-gray-500">{"Current Value"}</div>
           <div className="text-xl font-bold">
             <FormatValue value={plan.totalCurrentValue} />
           </div>
         </div>
         <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <div className="text-sm text-gray-500">
-            {t("rebalance.plans.targetValue", "Target Value")}
-          </div>
+          <div className="text-sm text-gray-500">{"Target Value"}</div>
           <div className="text-xl font-bold">
             <FormatValue value={plan.totalTargetValue} />
           </div>
         </div>
         <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <div className="text-sm text-gray-500">
-            {t("rebalance.plans.cashDelta", "Cash Delta")}
-          </div>
+          <div className="text-sm text-gray-500">{"Cash Delta"}</div>
           <div
             className={`text-xl font-bold ${plan.cashDelta > 0 ? "text-green-600" : plan.cashDelta < 0 ? "text-red-600" : ""}`}
           >
@@ -165,13 +155,9 @@ function PlanDetailPage(): React.ReactElement {
           </div>
         </div>
         <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <div className="text-sm text-gray-500">
-            {t("rebalance.plans.scenario", "Scenario")}
-          </div>
+          <div className="text-sm text-gray-500">{"Scenario"}</div>
           <div className="text-xl font-bold">
-            {plan.scenario === "INVEST_CASH"
-              ? t("rebalance.scenario.investCash", "Invest Cash")
-              : t("rebalance.scenario.rebalance", "Rebalance")}
+            {plan.scenario === "INVEST_CASH" ? "Invest Cash" : "Rebalance"}
           </div>
         </div>
       </div>
@@ -179,7 +165,7 @@ function PlanDetailPage(): React.ReactElement {
       {/* Items Table */}
       <div className="mb-6">
         <h2 className="text-lg font-semibold text-gray-700 mb-3">
-          {t("rebalance.items.title", "Plan Items")}
+          {"Plan Items"}
         </h2>
         <PlanItemsTable items={plan.items} currencySymbol={plan.planCurrency} />
       </div>
@@ -198,10 +184,10 @@ function PlanDetailPage(): React.ReactElement {
       )}
       {showCancelConfirm && (
         <ConfirmDialog
-          title={t("rebalance.plans.cancelTitle", "Cancel Plan")}
-          message={t("rebalance.plans.cancelConfirm", "Cancel this plan?")}
-          confirmLabel={t("rebalance.plans.cancel", "Cancel Plan")}
-          cancelLabel={t("cancel", "Cancel")}
+          title={"Cancel Plan"}
+          message={"Cancel this plan?"}
+          confirmLabel={"Cancel"}
+          cancelLabel={"Cancel"}
           variant="red"
           onConfirm={handleCancelConfirm}
           onCancel={() => setShowCancelConfirm(false)}
@@ -212,9 +198,3 @@ function PlanDetailPage(): React.ReactElement {
 }
 
 export default withPageAuthRequired(PlanDetailPage)
-
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
-  props: {
-    ...(await serverSideTranslations(locale as string, ["common"])),
-  },
-})

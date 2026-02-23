@@ -1,7 +1,5 @@
 import React from "react"
 import Link from "next/link"
-import { useTranslation } from "next-i18next"
-
 interface CompleteStepProps {
   portfolioName: string
   bankAccountCount: number
@@ -20,8 +18,6 @@ const CompleteStep: React.FC<CompleteStepProps> = ({
   insuranceCount,
   independencePlanCreated,
 }) => {
-  const { t } = useTranslation("onboarding")
-
   return (
     <div className="text-center py-6">
       <div className="text-5xl mb-6 text-green-500">
@@ -29,14 +25,11 @@ const CompleteStep: React.FC<CompleteStepProps> = ({
       </div>
 
       <h2 className="text-2xl font-bold text-gray-900 mb-4">
-        {t("complete.title", "You're all set!")}
+        {"You're all set!"}
       </h2>
 
       <p className="text-gray-600 mb-6">
-        {t(
-          "complete.description",
-          "Your account has been set up successfully. Here's what was created:",
-        )}
+        {"Your account has been set up successfully. Here's what was created:"}
       </p>
 
       {/* Summary */}
@@ -45,60 +38,43 @@ const CompleteStep: React.FC<CompleteStepProps> = ({
           <li className="flex items-center text-gray-700">
             <i className="fas fa-folder text-blue-500 w-6"></i>
             <span>
-              {t("complete.portfolio", "Portfolio:")}{" "}
-              <strong>{portfolioName}</strong>
+              {"Portfolio:"} <strong>{portfolioName}</strong>
             </span>
           </li>
           {bankAccountCount > 0 && (
             <li className="flex items-center text-gray-700">
               <i className="fas fa-university text-blue-500 w-6"></i>
-              <span>
-                {t("complete.bankAccounts", "{{count}} bank account(s)", {
-                  count: bankAccountCount,
-                })}
-              </span>
+              <span>{`${bankAccountCount} bank account(s)`}</span>
             </li>
           )}
           {propertyCount > 0 && (
             <li className="flex items-center text-gray-700">
               <i className="fas fa-home text-green-500 w-6"></i>
-              <span>
-                {t("complete.properties", "{{count}} property(ies)", {
-                  count: propertyCount,
-                })}
-              </span>
+              <span>{`${propertyCount} property(ies)`}</span>
             </li>
           )}
           {pensionCount > 0 && (
             <li className="flex items-center text-gray-700">
               <i className="fas fa-piggy-bank text-purple-500 w-6"></i>
-              <span>
-                {t("complete.pensions", "{{count}} pension plan(s)", {
-                  count: pensionCount,
-                })}
-              </span>
+              <span>{`${pensionCount} pension plan(s)`}</span>
             </li>
           )}
           {insuranceCount > 0 && (
             <li className="flex items-center text-gray-700">
               <i className="fas fa-shield-alt text-teal-500 w-6"></i>
-              <span>
-                {t("complete.insurances", "{{count}} insurance policy(ies)", {
-                  count: insuranceCount,
-                })}
-              </span>
+              <span>{`${insuranceCount} insurance policy(ies)`}</span>
             </li>
           )}
           {independencePlanCreated && (
             <li className="flex items-center text-gray-700">
               <i className="fas fa-chart-line text-independence-500 w-6"></i>
               <span>
-                {t("complete.independencePlan", "Independence Plan created")}{" "}
+                {"Independence Plan created"}{" "}
                 <Link
                   href="/independence"
                   className="text-independence-600 hover:underline"
                 >
-                  {t("complete.viewPlan", "View plan")}
+                  {"View plan"}
                 </Link>
               </span>
             </li>

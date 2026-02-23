@@ -1,5 +1,4 @@
 import React, { useState } from "react"
-import { useTranslation } from "next-i18next"
 import { Currency } from "types/beancounter"
 
 interface CurrencyStepProps {
@@ -17,7 +16,6 @@ const CurrencyStep: React.FC<CurrencyStepProps> = ({
   onBaseCurrencyChange,
   onReportingCurrencyChange,
 }) => {
-  const { t } = useTranslation("onboarding")
   // Default to same currency for simplicity
   const [useSameCurrency, setUseSameCurrency] = useState(true)
 
@@ -39,31 +37,27 @@ const CurrencyStep: React.FC<CurrencyStepProps> = ({
   return (
     <div className="py-4">
       <h2 className="text-xl font-bold text-gray-900 mb-2">
-        {t("currency.title", "Select your currency")}
+        {"Set your currencies"}
       </h2>
 
       <p className="text-gray-600 mb-6">
-        {t(
-          "currency.description",
-          "Select the currency you primarily use. This will be used for tracking costs and displaying values.",
-        )}
+        {
+          "Select the currency you primarily use. This will be used for tracking costs and displaying values."
+        }
       </p>
 
       {/* Base Currency */}
       <div className="mb-6">
         <h3 className="font-medium text-gray-900 mb-2">
-          {t("currency.base", "Your Currency")}
+          {"System Base Currency"}
           {!baseCurrency && (
             <span className="ml-2 text-sm text-orange-600 font-normal">
-              {t("currency.pleaseSelect", "(please select)")}
+              {"(please select)"}
             </span>
           )}
         </h3>
         <p className="text-sm text-gray-500 mb-3">
-          {t(
-            "currency.baseDescription",
-            "Used for cost tracking and as the default for new portfolios.",
-          )}
+          {"Used for cost tracking and as the default for new portfolios."}
         </p>
         <div className="grid grid-cols-2 gap-3 max-w-md">
           {currencies.map((currency) => (
@@ -96,10 +90,7 @@ const CurrencyStep: React.FC<CurrencyStepProps> = ({
             className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
           />
           <span className="ml-2 text-gray-700">
-            {t(
-              "currency.useSame",
-              "Use the same currency for reporting values",
-            )}
+            {"Use the same currency for reporting values"}
           </span>
         </label>
       </div>
@@ -108,13 +99,10 @@ const CurrencyStep: React.FC<CurrencyStepProps> = ({
       {!useSameCurrency && (
         <div>
           <h3 className="font-medium text-gray-900 mb-2">
-            {t("currency.reporting", "Reporting Currency")}
+            {"Reporting Currency"}
           </h3>
           <p className="text-sm text-gray-500 mb-3">
-            {t(
-              "currency.reportingDescription",
-              "The currency used to display portfolio values and reports.",
-            )}
+            {"The currency used to display portfolio values and reports."}
           </p>
           <div className="grid grid-cols-2 gap-3 max-w-md">
             {currencies.map((currency) => (

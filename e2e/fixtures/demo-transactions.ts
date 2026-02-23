@@ -62,6 +62,22 @@ export const SG_POSITIONS: DemoPosition[] = [
   },
 ]
 
+/** Working expenses for independence plan (monthly SGD) */
+export const DEMO_WORKING_EXPENSES: Record<string, number> = {
+  Housing: 2500,
+  Transport: 500,
+  "Food & Dining": 800,
+  Utilities: 200,
+  Insurance: 300,
+  Healthcare: 150,
+  Education: 400,
+  Entertainment: 300,
+  "Personal Care": 250,
+}
+
+/** Income details for independence plan (monthly SGD) */
+export const DEMO_INCOME = { salary: 10000, tax: 1500, bonus: 2000 }
+
 /** US brokerage positions — mega-cap tech + index ETF */
 export const US_POSITIONS: DemoPosition[] = [
   {

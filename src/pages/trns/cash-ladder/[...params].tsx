@@ -1,11 +1,8 @@
 import React, { useCallback, useMemo } from "react"
 import { NumericFormat } from "react-number-format"
-import { GetServerSideProps } from "next"
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useRouter } from "next/router"
 import { assetKey, portfolioKey, simpleFetcher } from "@utils/api/fetchHelper"
-import { useTranslation } from "next-i18next"
 import { Asset, Portfolio, Transaction } from "types/beancounter"
 import { getAssetCurrency, stripOwnerPrefix } from "@lib/assets/assetUtils"
 import { rootLoader } from "@components/ui/PageLoader"
@@ -50,7 +47,6 @@ interface TrnWithBalance extends Transaction {
 }
 
 export default withPageAuthRequired(function CashLadder(): React.ReactElement {
-  const { t } = useTranslation("common")
   const router = useRouter()
 
   // Parse params: [portfolioId, cashAssetId]
@@ -175,18 +171,15 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
 
   // Loading states
   if (!router.isReady) {
-    return rootLoader(t("loading"))
+    return rootLoader("Loading...")
   }
 
   if (!portfolioId || !cashAssetId) {
-    return errorOut(
-      t("cash.ladder.error.params"),
-      new Error("Missing parameters"),
-    )
+    return errorOut("Missing parameters", new Error("Missing parameters"))
   }
 
   if (cashLadderData.error) {
-    return errorOut(t("cash.ladder.error.fetch"), cashLadderData.error)
+    return errorOut("Error loading cash ladder", cashLadderData.error)
   }
 
   if (
@@ -194,7 +187,7 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
     assetData.isLoading ||
     portfolioData.isLoading
   ) {
-    return rootLoader(t("loading"))
+    return rootLoader("Loading...")
   }
 
   const cashAsset = assetData.data?.data
@@ -217,7 +210,7 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
               className="flex items-center text-gray-600 hover:text-gray-900"
             >
               <i className="fa fa-arrow-left mr-2"></i>
-              <span className="hidden sm:inline">{t("back")}</span>
+              <span className="hidden sm:inline">{"Back"}</span>
             </button>
             <div className="flex-1 text-lg font-semibold text-center truncate">
               {assetName}
@@ -232,7 +225,7 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-xl font-semibold text-gray-800">
-            {t("cash.ladder.title") || "Cash Ladder"}
+            {"Cash Ladder"}
           </h1>
           <div className="text-gray-600">
             <span className="font-medium">{portfolio?.code}</span>
@@ -241,15 +234,13 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
 
         {transactionsWithBalance.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-gray-500 mb-4">
-              {t("trn.noTransactions") || "No transactions found"}
-            </p>
+            <p className="text-gray-500 mb-4">{"No transactions found"}</p>
             <button
               onClick={() => router.back()}
               className="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 transition-colors"
             >
               <i className="fa fa-arrow-left mr-2"></i>
-              {t("back")}
+              {"Back"}
             </button>
           </div>
         ) : (
@@ -261,7 +252,7 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
                   key={trn.id}
                   className="bg-white rounded-lg shadow p-4 space-y-2 cursor-pointer hover:shadow-md transition-shadow"
                   onDoubleClick={() => handleEditClick(trn)}
-                  title={t("actions.doubleClickToEdit")}
+                  title={"Double-click to edit"}
                 >
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
@@ -290,9 +281,7 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>
-                      <span className="text-gray-500">
-                        {t("trn.amount.cash") || "Amount"}:
-                      </span>
+                      <span className="text-gray-500">{"Cash"}:</span>
                       <span
                         className={`ml-1 font-medium ${trn.signedCashAmount < 0 ? "text-red-600" : "text-green-600"}`}
                       >
@@ -307,9 +296,7 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
                       </span>
                     </div>
                     <div>
-                      <span className="text-gray-500">
-                        {t("cash.ladder.balance") || "Balance"}:
-                      </span>
+                      <span className="text-gray-500">{"Balance"}:</span>
                       <span className="ml-1 font-bold">
                         <NumericFormat
                           value={trn.runningBalance}
@@ -331,28 +318,28 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      {t("trn.tradeDate") || "Date"}
+                      {"Trade Date"}
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      {t("trn.type") || "Type"}
+                      {"Type"}
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      {t("description") || "Description"}
+                      {"Description"}
                     </th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                      {t("trn.price") || "Price"}
+                      {"Price"}
                     </th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                      {t("trn.amount.cash") || "Amount"}
+                      {"Cash"}
                     </th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                      {t("cash.ladder.balance") || "Balance"}
+                      {"Balance"}
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      {t("trn.status") || "Status"}
+                      {"Status"}
                     </th>
                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                      {t("actions") || "Actions"}
+                      {"Actions"}
                     </th>
                   </tr>
                 </thead>
@@ -362,7 +349,7 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
                       key={trn.id}
                       className="hover:bg-gray-50 cursor-pointer"
                       onDoubleClick={() => handleEditClick(trn)}
-                      title={t("actions.doubleClickToEdit")}
+                      title={"Double-click to edit"}
                     >
                       <td className="px-4 py-3 whitespace-nowrap">
                         {trn.tradeDate}
@@ -440,7 +427,7 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
                           type="button"
                           onClick={(e) => copyRowToClipboard(trn, e)}
                           className="text-gray-400 hover:text-gray-600 p-1"
-                          title={t("copy") || "Copy"}
+                          title={"Copy"}
                         >
                           <i className="fas fa-copy"></i>
                         </button>
@@ -455,10 +442,4 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
       </div>
     </div>
   )
-})
-
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
-  props: {
-    ...(await serverSideTranslations(locale as string, ["common"])),
-  },
 })

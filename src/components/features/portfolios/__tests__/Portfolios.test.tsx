@@ -4,14 +4,6 @@ import "@testing-library/jest-dom"
 import { Portfolios } from "../Portfolios"
 import { Portfolio } from "types/beancounter"
 
-// Mock next-i18next
-jest.mock("next-i18next", () => ({
-  useTranslation: () => ({
-    t: (key: string) => key,
-    ready: true,
-  }),
-}))
-
 // Mock next/router
 const mockPush = jest.fn()
 jest.mock("next/router", () => ({

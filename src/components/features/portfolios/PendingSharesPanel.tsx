@@ -1,5 +1,4 @@
 import React, { useState } from "react"
-import { useTranslation } from "next-i18next"
 import { PendingSharesResponse, PortfolioShare } from "types/beancounter"
 
 interface PendingSharesPanelProps {
@@ -11,8 +10,6 @@ export default function PendingSharesPanel({
   pending,
   onAction,
 }: PendingSharesPanelProps): React.ReactElement | null {
-  const { t } = useTranslation("common")
-
   if (pending.invites.length === 0 && pending.requests.length === 0) {
     return null
   }
@@ -23,7 +20,7 @@ export default function PendingSharesPanel({
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
           <h3 className="text-sm font-semibold text-blue-800 mb-3">
             <i className="fas fa-envelope-open mr-2"></i>
-            {t("shares.pending.invites")}
+            {"Invitations for You"}
           </h3>
           <div className="space-y-2">
             {pending.invites.map((share) => (
@@ -42,7 +39,7 @@ export default function PendingSharesPanel({
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
           <h3 className="text-sm font-semibold text-amber-800 mb-3">
             <i className="fas fa-hand-paper mr-2"></i>
-            {t("shares.pending.requests")}
+            {"Requests for Your Portfolios"}
           </h3>
           <div className="space-y-2">
             {pending.requests.map((share) => (
@@ -71,7 +68,6 @@ function PendingShareRow({
   label,
   onAction,
 }: PendingShareRowProps): React.ReactElement {
-  const { t } = useTranslation("common")
   const [isLoading, setIsLoading] = useState(false)
 
   const handleAccept = async (): Promise<void> => {
@@ -108,11 +104,9 @@ function PendingShareRow({
           {share.portfolio?.name || "Portfolio"}
         </div>
         <div className="text-xs text-gray-500">
-          {t("shares.pending.from")}: {label}
+          {"From"}: {label}
           <span className="ml-2 text-gray-400">
-            {share.accessLevel === "VIEW"
-              ? t("shares.invite.accessLevel.view")
-              : t("shares.invite.accessLevel.full")}
+            {share.accessLevel === "VIEW" ? "View Only" : "Full Access"}
           </span>
         </div>
       </div>
@@ -122,14 +116,14 @@ function PendingShareRow({
           disabled={isLoading}
           className="bg-green-500 text-white text-xs px-3 py-1.5 rounded hover:bg-green-600 transition-colors disabled:opacity-50"
         >
-          {t("shares.pending.accept")}
+          {"Accept"}
         </button>
         <button
           onClick={handleDecline}
           disabled={isLoading}
           className="bg-gray-300 text-gray-700 text-xs px-3 py-1.5 rounded hover:bg-gray-400 transition-colors disabled:opacity-50"
         >
-          {t("shares.pending.decline")}
+          {"Decline"}
         </button>
       </div>
     </div>

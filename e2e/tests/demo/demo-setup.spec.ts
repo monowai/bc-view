@@ -3,6 +3,8 @@ import {
   SG_POSITIONS,
   US_POSITIONS,
   DemoPosition,
+  DEMO_WORKING_EXPENSES,
+  DEMO_INCOME,
 } from "../../fixtures/demo-transactions"
 
 /**
@@ -297,12 +299,45 @@ test.describe("Demo User Setup", () => {
       await page.getByRole("button", { name: "Next", exact: true }).click()
     })
 
-    await test.step("Independence Step 2 - Working Expenses: skip", async () => {
+    await test.step("Independence Step 2 - Working Expenses", async () => {
+      // Wait for expense category rows to load from API
+      const firstCategory = page.locator(".font-medium.text-gray-900").first()
+      await expect(firstCategory).toBeVisible({ timeout: 15_000 })
+
+      // Fill each expense category by finding the row and its input
+      for (const [category, amount] of Object.entries(DEMO_WORKING_EXPENSES)) {
+        const row = page.locator(".bg-gray-50").filter({ hasText: category })
+        const input = row.locator('input[type="number"]')
+        if ((await input.count()) > 0) {
+          await input.first().fill(String(amount))
+        }
+      }
+
+      // Verify total (sum = 5400)
+      await expect(page.getByText("$5,400")).toBeVisible({ timeout: 5_000 })
+
       await page.getByRole("button", { name: "Next", exact: true }).click()
     })
 
-    await test.step("Independence Step 3 - Contributions: skip", async () => {
-      await page.waitForTimeout(500)
+    await test.step("Independence Step 3 - Contributions/Income", async () => {
+      // Wait for employment income section
+      const salaryInput = page.locator("#workingIncomeMonthly")
+      await expect(salaryInput).toBeVisible({ timeout: 10_000 })
+
+      // Fill income fields (MathInput uses type="text", need fill + blur)
+      await salaryInput.fill(String(DEMO_INCOME.salary))
+      await salaryInput.press("Tab")
+
+      const taxInput = page.locator("#taxesMonthly")
+      await taxInput.fill(String(DEMO_INCOME.tax))
+      await taxInput.press("Tab")
+
+      const bonusInput = page.locator("#bonusMonthly")
+      await bonusInput.fill(String(DEMO_INCOME.bonus))
+      await bonusInput.press("Tab")
+
+      // Investment allocation defaults to 80% — leave as-is
+
       await page.getByRole("button", { name: "Next", exact: true }).click()
     })
 
@@ -371,17 +406,41 @@ test.describe("Demo User Setup", () => {
       await page.getByRole("button", { name: "Next", exact: true }).click()
     })
 
-    await test.step("Independence Steps 5-7: advance through", async () => {
-      // Step 5 - Assumptions
+    await test.step("Independence Step 5 - Assumptions: accept defaults", async () => {
       await page.waitForTimeout(500)
       await page.getByRole("button", { name: "Next", exact: true }).click()
+    })
 
-      // Step 6 - Income
-      await page.waitForTimeout(500)
+    await test.step("Independence Step 6 - Income Sources", async () => {
+      // Wait for income sources form
+      const otherInput = page.locator("#otherIncomeMonthly")
+      await expect(otherInput).toBeVisible({ timeout: 10_000 })
+
+      // Fill consulting income
+      await otherInput.fill("500")
+      await otherInput.press("Tab")
+
       await page.getByRole("button", { name: "Next", exact: true }).click()
+    })
 
-      // Step 7 - Expenses
-      await page.waitForTimeout(500)
+    await test.step("Independence Step 7 - Retirement Expenses: copy from working", async () => {
+      // Wait for the copy-from-working banner to appear
+      const copyBanner = page.getByText(/pre-fill from your working expenses/i)
+      await expect(copyBanner).toBeVisible({ timeout: 15_000 })
+
+      // Change percentage to 70%
+      const percentInput = page.getByLabel(/copy percentage/i)
+      await percentInput.fill("70")
+
+      // Click Apply
+      await page.getByRole("button", { name: /apply/i }).click()
+
+      // Verify banner is gone and expenses are populated
+      await expect(copyBanner).not.toBeVisible({ timeout: 5_000 })
+
+      // Verify total (5400 * 0.70 = 3780)
+      await expect(page.getByText("$3,780")).toBeVisible({ timeout: 5_000 })
+
       await page.getByRole("button", { name: "Next", exact: true }).click()
     })
 

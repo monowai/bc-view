@@ -1,5 +1,4 @@
 import React from "react"
-import { useTranslation } from "next-i18next"
 import { ExecutionResultDto, ItemExecutionResultDto } from "types/rebalance"
 
 interface ExecutionResultsViewProps {
@@ -26,8 +25,6 @@ const StatusIcon: React.FC<{ status: ItemExecutionResultDto["status"] }> = ({
 const ExecutionResultsView: React.FC<ExecutionResultsViewProps> = ({
   results,
 }) => {
-  const { t } = useTranslation("common")
-
   const hasExecuted = results.executedCount > 0
   const hasFailed = results.failedCount > 0
 
@@ -54,28 +51,13 @@ const ExecutionResultsView: React.FC<ExecutionResultsViewProps> = ({
           <div>
             <div className="font-medium">
               {hasFailed
-                ? t(
-                    "rebalance.execution.partial",
-                    "Partial execution completed",
-                  )
+                ? "Partial execution completed"
                 : hasExecuted
-                  ? t(
-                      "rebalance.execution.success",
-                      "Successfully executed {{count}} items",
-                      { count: results.executedCount },
-                    )
-                  : t("rebalance.execution.noItems", "No items were executed")}
+                  ? "Execution Complete"
+                  : "No items were executed"}
             </div>
             <div className="text-sm text-gray-600 mt-1">
-              {t(
-                "rebalance.execution.summary",
-                "Executed: {{executed}}, Skipped: {{skipped}}, Failed: {{failed}}",
-                {
-                  executed: results.executedCount,
-                  skipped: results.skippedCount,
-                  failed: results.failedCount,
-                },
-              )}
+              {`Executed: ${results.executedCount}, Skipped: ${results.skippedCount}, Failed: ${results.failedCount}`}
             </div>
           </div>
         </div>
@@ -88,13 +70,13 @@ const ExecutionResultsView: React.FC<ExecutionResultsViewProps> = ({
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-700">
-                  {t("rebalance.items.asset", "Asset")}
+                  {"Asset"}
                 </th>
                 <th className="px-4 py-2 text-center text-xs font-medium text-gray-700">
-                  {t("rebalance.execution.status", "Status")}
+                  {"Transaction Status"}
                 </th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-700">
-                  {t("rebalance.execution.message", "Message")}
+                  {"Message"}
                 </th>
               </tr>
             </thead>

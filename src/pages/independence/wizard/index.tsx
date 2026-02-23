@@ -1,7 +1,5 @@
 import React from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
-import { GetServerSideProps } from "next"
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import Head from "next/head"
 import Link from "next/link"
 import WizardContainer from "@components/features/independence/WizardContainer"
@@ -44,9 +42,3 @@ function RetirementWizard(): React.ReactElement {
 }
 
 export default withPageAuthRequired(RetirementWizard)
-
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
-  props: {
-    ...(await serverSideTranslations(locale ?? "en", ["common"])),
-  },
-})

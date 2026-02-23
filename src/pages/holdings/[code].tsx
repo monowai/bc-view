@@ -16,9 +16,6 @@ import {
 } from "@components/ui/SkeletonLoader"
 import { useRouter } from "next/router"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
-import { GetServerSideProps } from "next"
-import { useTranslation } from "next-i18next"
 import useSwr from "swr"
 import { holdingKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { errorOut } from "@components/errors/ErrorOut"
@@ -59,7 +56,6 @@ import { ModelDto, PlanDto } from "types/rebalance"
 
 function HoldingsPage(): React.ReactElement {
   const router = useRouter()
-  const { t, ready } = useTranslation("common")
   const holdingState = useHoldingState()
   const { data, error, isLoading } = useSwr(
     holdingKey(`${router.query.code}`, `${holdingState.asAt}`),
@@ -328,12 +324,9 @@ function HoldingsPage(): React.ReactElement {
     [router],
   )
 
-  if (error && ready) {
+  if (error) {
     console.error(error) // Log the error for debugging
-    return errorOut(
-      t("holdings.error.retrieve", { code: router.query.code }),
-      error,
-    )
+    return errorOut(`Error retrieving holdings ${router.query.code}`, error)
   }
   if (isLoading) {
     return (
@@ -368,10 +361,10 @@ function HoldingsPage(): React.ReactElement {
         />
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center mt-4">
           <p className="text-gray-600 mb-6">
-            {t("holdings.empty", { code: holdingResults.portfolio.code })}
+            {`No holdings for ${router.query.code}`}
           </p>
           <p className="text-sm text-gray-500 mb-4">
-            {t("holdings.import.hint")}
+            {"Import transactions from a CSV file to add holdings"}
           </p>
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 inline-block cursor-pointer hover:border-gray-400 transition-colors">
             <i className="fas fa-file-csv text-4xl text-gray-400 mb-2"></i>
@@ -381,7 +374,7 @@ function HoldingsPage(): React.ReactElement {
               hideIcon={true}
             />
             <p className="text-sm text-gray-500 mt-2">
-              {t("holdings.import.select")}
+              {"Click or drop a CSV file here"}
             </p>
           </div>
         </div>
@@ -690,9 +683,3 @@ function HoldingsPage(): React.ReactElement {
 }
 
 export default withPageAuthRequired(HoldingsPage)
-
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
-  props: {
-    ...(await serverSideTranslations(locale as string, ["common"])),
-  },
-})

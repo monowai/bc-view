@@ -57,16 +57,3 @@ export const mockHoldings = {
 }
 
 export const mockValueIn = ValueIn.PORTFOLIO
-
-// Shared mock implementation for next-i18next
-export const mockUseTranslation = (): {
-  t: (key: string, options?: any) => string
-  ready: boolean
-} => ({
-  t: (key: string, options?: any) => {
-    if (key === "holdings.valueTitle")
-      return `Value in ${options?.valueIn || "USD"}`
-    return key
-  },
-  ready: true,
-})

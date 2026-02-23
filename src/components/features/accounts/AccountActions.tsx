@@ -1,6 +1,5 @@
 import React, { useState } from "react"
 import { useRouter } from "next/router"
-import { useTranslation } from "next-i18next"
 import { TabType } from "./accountTypes"
 import { fetchAndDownloadCsv } from "@lib/csvExport"
 
@@ -14,7 +13,6 @@ const AccountActions = ({
   activeTab,
 }: AccountActionsProps): React.ReactElement => {
   const router = useRouter()
-  const { t } = useTranslation("common")
   const [isExporting, setIsExporting] = useState(false)
 
   const handleExport = async (): Promise<void> => {
@@ -40,14 +38,14 @@ const AccountActions = ({
         ) : (
           <i className="fas fa-download mr-2"></i>
         )}
-        {t("accounts.export")}
+        {"Export"}
       </button>
       <button
         className="bg-gray-500 text-white py-2 px-3 sm:px-4 text-sm rounded hover:bg-gray-600 transition-colors flex items-center"
         onClick={onImportClick}
       >
         <i className="fas fa-upload mr-2"></i>
-        {t("accounts.import")}
+        {"Import"}
       </button>
       <button
         className="bg-blue-500 text-white py-2 px-3 sm:px-4 text-sm rounded hover:bg-blue-600 transition-colors"
@@ -60,7 +58,7 @@ const AccountActions = ({
           router.push(`/assets/account${categoryParam}`)
         }}
       >
-        {t("account.create")}
+        {"Add Asset"}
       </button>
     </div>
   )

@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from "react"
-import { useTranslation } from "next-i18next"
 import Dialog from "@components/ui/Dialog"
 import { Portfolio, CashTransferData, Asset } from "types/beancounter"
 import MathInput from "@components/ui/MathInput"
@@ -33,7 +32,6 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
   sourceData,
   portfolios,
 }) => {
-  const { t } = useTranslation("common")
   const [step, setStep] = useState<WizardStep>("amounts")
   const [sentAmount, setSentAmount] = useState<string>("")
   const [receivedAmount, setReceivedAmount] = useState<string>("")
@@ -303,10 +301,10 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
   const stepFooter =
     step === "amounts" ? (
       <>
-        <Dialog.CancelButton onClick={onClose} label={t("cancel")} />
+        <Dialog.CancelButton onClick={onClose} label={"Cancel"} />
         <Dialog.SubmitButton
           onClick={() => setStep("target")}
-          label={t("next")}
+          label={"Next"}
           disabled={!isAmountsValid}
           variant="purple"
         />
@@ -319,14 +317,14 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
           onClick={() => setStep("amounts")}
           disabled={isSubmitting}
         >
-          &larr; {t("back")}
+          &larr; {"Back"}
         </button>
         <div className="flex space-x-2">
-          <Dialog.CancelButton onClick={onClose} label={t("cancel")} />
+          <Dialog.CancelButton onClick={onClose} label={"Cancel"} />
           <Dialog.SubmitButton
             onClick={handleTransfer}
-            label={submitSuccess ? t("success") : t("cash.transfer.confirm")}
-            loadingLabel={t("submitting")}
+            label={submitSuccess ? "Success" : "Transfer"}
+            loadingLabel={"Submitting..."}
             isSubmitting={isSubmitting}
             disabled={!isTargetValid || submitSuccess}
             variant={submitSuccess ? "green" : "purple"}
@@ -339,7 +337,7 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
     <Dialog
       title={
         <div>
-          <div>{t("cash.transfer.title")}</div>
+          <div>{"Transfer Cash"}</div>
           <div className="flex items-center gap-2 mt-1">
             <span
               className={`text-xs px-2 py-0.5 rounded ${step === "amounts" ? "bg-purple-500 text-white" : "bg-gray-200 text-gray-600"}`}
@@ -365,9 +363,7 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
         <div className="space-y-4">
           {/* Source Info */}
           <div className="bg-blue-50 rounded-lg p-3">
-            <div className="text-sm text-gray-600">
-              {t("cash.transfer.from")}
-            </div>
+            <div className="text-sm text-gray-600">{"From"}</div>
             <div className="font-semibold">{sourceData.assetName}</div>
             <div className="text-sm text-gray-500">
               {sourceData.portfolioCode} &bull; {sourceData.currency}{" "}
@@ -381,7 +377,7 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
           {/* Amount Sent */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("cash.transfer.amountSent")}
+              {"Amount Sent"}
             </label>
             <div className="flex items-center gap-2">
               <span className="text-gray-500">{sourceData.currency}</span>
@@ -394,7 +390,7 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
             </div>
             {parsedSentAmount > sourceData.currentBalance && (
               <p className="text-red-500 text-sm mt-1">
-                {t("cash.transfer.insufficientBalance")}
+                {"Amount exceeds available balance"}
               </p>
             )}
           </div>
@@ -402,7 +398,7 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
           {/* Amount Received */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("cash.transfer.amountReceived")}
+              {"Amount Received"}
             </label>
             <div className="flex items-center gap-2">
               <span className="text-gray-500">{sourceData.currency}</span>
@@ -415,7 +411,7 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
             </div>
             {parsedReceivedAmount > parsedSentAmount && (
               <p className="text-red-500 text-sm mt-1">
-                {t("cash.transfer.receivedExceedsSent")}
+                {"Received amount cannot exceed sent amount"}
               </p>
             )}
           </div>
@@ -424,9 +420,7 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
           {fee > 0 && (
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-amber-700">
-                  {t("cash.transfer.fee")}
-                </span>
+                <span className="text-sm text-amber-700">{"Transfer Fee"}</span>
                 <span className="font-semibold text-amber-700">
                   {sourceData.currency}{" "}
                   {fee.toLocaleString(undefined, {
@@ -446,7 +440,7 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
           {/* Target Portfolio */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("cash.transfer.toPortfolio")}
+              {"Target Portfolio"}
             </label>
             <select
               value={targetPortfolioId}
@@ -464,24 +458,19 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
           {/* Target Asset */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("cash.transfer.toAsset")}
+              {"Target Asset"}
             </label>
             <select
               value={targetAssetId}
               onChange={(e) => setTargetAssetId(e.target.value)}
               className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-purple-500 focus:border-purple-500"
             >
-              <option value="">{t("cash.transfer.selectAsset")}</option>
+              <option value="">{"Select target asset..."}</option>
               <option value={sourceData.assetId}>
-                {sourceData.assetName} ({t("cash.transfer.sameAsset")})
+                {sourceData.assetName} ({"same asset"})
               </option>
               {eligibleTargetAssets.currencies.length > 0 && (
-                <optgroup
-                  label={t(
-                    "cash.transfer.currencyBalances",
-                    "Currency Balances",
-                  )}
-                >
+                <optgroup label={"Currency Balances"}>
                   {eligibleTargetAssets.currencies.map((asset) => (
                     <option key={`ccy-${asset.code}`} value={asset.id}>
                       {asset.name}
@@ -490,9 +479,7 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
                 </optgroup>
               )}
               {eligibleTargetAssets.accounts.length > 0 && (
-                <optgroup
-                  label={t("cash.transfer.bankAccounts", "Bank Accounts")}
-                >
+                <optgroup label={"Bank Accounts"}>
                   {eligibleTargetAssets.accounts.map((asset) => (
                     <option key={asset.id} value={asset.id}>
                       {asset.name}
@@ -506,13 +493,13 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
           {/* Description (optional) */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("cash.transfer.description")} ({t("optional")})
+              {"Description"} ({"optional"})
             </label>
             <input
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder={t("cash.transfer.descriptionPlaceholder")}
+              placeholder={"Optional transfer note"}
               className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-purple-500 focus:border-purple-500"
             />
           </div>
@@ -521,21 +508,21 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
           {isTargetValid && (
             <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
               <div className="text-sm text-gray-600 mb-2">
-                {t("cash.transfer.summary")}
+                {"Transfer Summary"}
               </div>
               <div className="space-y-1 text-sm">
                 <div className="flex justify-between">
-                  <span>{t("cash.transfer.from")}:</span>
+                  <span>{"From"}:</span>
                   <span className="font-medium">{sourceData.assetName}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>{t("cash.transfer.to")}:</span>
+                  <span>{"To"}:</span>
                   <span className="font-medium">
                     {selectedAsset?.name} ({selectedPortfolio?.code})
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span>{t("cash.transfer.amountSent")}:</span>
+                  <span>{"Amount Sent"}:</span>
                   <span className="font-semibold">
                     {sourceData.currency}{" "}
                     {parsedSentAmount.toLocaleString(undefined, {
@@ -546,7 +533,7 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
                 </div>
                 {fee > 0 && (
                   <div className="flex justify-between text-amber-600">
-                    <span>{t("cash.transfer.fee")}:</span>
+                    <span>{"Transfer Fee"}:</span>
                     <span>
                       {sourceData.currency}{" "}
                       {fee.toLocaleString(undefined, {
@@ -557,7 +544,7 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
                   </div>
                 )}
                 <div className="flex justify-between">
-                  <span>{t("cash.transfer.amountReceived")}:</span>
+                  <span>{"Amount Received"}:</span>
                   <span className="font-semibold">
                     {sourceData.currency}{" "}
                     {parsedReceivedAmount.toLocaleString(undefined, {

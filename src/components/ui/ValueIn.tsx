@@ -1,8 +1,6 @@
 import React, { ReactElement, useCallback } from "react"
 import { useHoldingState } from "@lib/holdings/holdingState"
 import { ValuationOption, ValuationOptions } from "types/app"
-import { useTranslation } from "next-i18next"
-import { rootLoader } from "@components/ui/PageLoader"
 import { Portfolio } from "types/beancounter"
 import {
   VALUE_IN_OPTIONS,
@@ -14,16 +12,15 @@ export const ValueIn = VALUE_IN_OPTIONS
 export type ValueIn = ValueInOptionType
 
 export function useValuationOptions(): ValuationOptions {
-  const { t } = useTranslation("common")
   return {
     values: [
-      { value: VALUE_IN_OPTIONS.PORTFOLIO, label: t("in.portfolio") },
-      { value: VALUE_IN_OPTIONS.BASE, label: t("in.base") },
-      { value: VALUE_IN_OPTIONS.TRADE, label: t("in.trade") },
+      { value: VALUE_IN_OPTIONS.PORTFOLIO, label: "Portfolio" },
+      { value: VALUE_IN_OPTIONS.BASE, label: "Base" },
+      { value: VALUE_IN_OPTIONS.TRADE, label: "Trade" },
     ],
     valuationDefault: {
       value: VALUE_IN_OPTIONS.PORTFOLIO,
-      label: t("in.portfolio"),
+      label: "Portfolio",
     },
   }
 }
@@ -38,8 +35,6 @@ const ValueInOption: React.FC<ValueInOptionProps> = ({
   onOptionSelect,
 }): ReactElement => {
   const holdingState = useHoldingState()
-  const { t, ready } = useTranslation("common")
-
   const handleSelectChange = useCallback(
     (selectedOption: ValuationOption) => {
       holdingState.setValueIn(selectedOption)
@@ -48,21 +43,17 @@ const ValueInOption: React.FC<ValueInOptionProps> = ({
     [holdingState, onOptionSelect],
   )
 
-  if (!ready) {
-    return rootLoader(t("loading"))
-  }
-
   // Build options with currency codes
   const options: ValuationOption[] = [
     {
       value: ValueIn.PORTFOLIO,
-      label: `${t("in.portfolio")} (${portfolio.currency.code})`,
+      label: `${"Portfolio"} (${portfolio.currency.code})`,
     },
     {
       value: ValueIn.BASE,
-      label: `${t("in.base")} (${portfolio.base.code})`,
+      label: `${"Base"} (${portfolio.base.code})`,
     },
-    { value: ValueIn.TRADE, label: t("in.trade") },
+    { value: ValueIn.TRADE, label: "Trade" },
   ]
 
   return (

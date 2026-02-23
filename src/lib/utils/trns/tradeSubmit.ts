@@ -28,7 +28,6 @@ export interface SubmitEditModeParams {
   mutate: MutateFn
   setSubmitError: (error: string | null) => void
   setIsSubmitting: (submitting: boolean) => void
-  t: any
 }
 
 /**
@@ -48,7 +47,6 @@ export async function submitEditMode(
     mutate,
     setSubmitError,
     setIsSubmitting,
-    t,
   } = params
 
   setIsSubmitting(true)
@@ -80,11 +78,11 @@ export async function submitEditMode(
       editMode.onClose()
     } else {
       const errorData = await response.json()
-      setSubmitError(errorData.message || t("trn.error.update"))
+      setSubmitError(errorData.message || "Failed to update transaction")
     }
   } catch (error) {
     console.error("Failed to update transaction:", error)
-    setSubmitError(t("trn.error.update"))
+    setSubmitError("Failed to update transaction")
   } finally {
     setIsSubmitting(false)
   }

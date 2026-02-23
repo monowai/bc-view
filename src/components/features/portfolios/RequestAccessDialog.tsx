@@ -1,5 +1,4 @@
 import React, { useState } from "react"
-import { useTranslation } from "next-i18next"
 import Dialog from "@components/ui/Dialog"
 
 interface RequestAccessDialogProps {
@@ -11,7 +10,6 @@ export default function RequestAccessDialog({
   onClose,
   onSuccess,
 }: RequestAccessDialogProps): React.ReactElement {
-  const { t } = useTranslation("common")
   const [email, setEmail] = useState("")
   const [message, setMessage] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -23,7 +21,7 @@ export default function RequestAccessDialog({
     setSuccess(null)
 
     if (!email.trim()) {
-      setError(t("shares.request.error"))
+      setError("Email is required")
       return
     }
 
@@ -39,15 +37,15 @@ export default function RequestAccessDialog({
       })
       if (!response.ok) {
         const data = await response.json().catch(() => ({}))
-        setError(data.error || t("shares.request.error"))
+        setError(data.error || "Failed to send request")
         return
       }
-      setSuccess(t("shares.request.success"))
+      setSuccess("Access request sent successfully")
       setTimeout(() => {
         onSuccess()
       }, 1500)
     } catch {
-      setError(t("shares.request.error"))
+      setError("Failed to send request")
     } finally {
       setIsSubmitting(false)
     }
@@ -55,16 +53,16 @@ export default function RequestAccessDialog({
 
   return (
     <Dialog
-      title={t("shares.request.title")}
+      title={"Request Access"}
       onClose={onClose}
       maxWidth="md"
       footer={
         <>
-          <Dialog.CancelButton onClick={onClose} label={t("cancel")} />
+          <Dialog.CancelButton onClick={onClose} label={"Cancel"} />
           <Dialog.SubmitButton
             onClick={handleSubmit}
-            label={t("shares.request.submit")}
-            loadingLabel={t("shares.request.sending")}
+            label={"Send Request"}
+            loadingLabel={"Sending..."}
             isSubmitting={isSubmitting}
             disabled={!email.trim()}
             variant="blue"
@@ -77,25 +75,25 @@ export default function RequestAccessDialog({
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          {t("shares.request.email")}
+          {"Client Email"}
         </label>
         <input
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder={t("shares.request.email.placeholder")}
+          placeholder={"Enter client's email address"}
           className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          {t("shares.request.message")}
+          {"Message (optional)"}
         </label>
         <textarea
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder={t("shares.request.message.placeholder")}
+          placeholder={"Why are you requesting access?"}
           rows={3}
           className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
         />

@@ -1,13 +1,5 @@
 import "@testing-library/jest-dom"
 
-// Mock next-i18next
-jest.mock("next-i18next", () => ({
-  useTranslation: () => ({
-    t: (key: string) => key,
-    ready: true,
-  }),
-}))
-
 // Mock SWR mutate for cache invalidation tests
 const mockMutate = jest.fn()
 jest.mock("swr", () => {

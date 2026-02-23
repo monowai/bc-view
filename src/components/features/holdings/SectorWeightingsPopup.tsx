@@ -1,6 +1,5 @@
 import React, { useState } from "react"
 import useSwr from "swr"
-import { useTranslation } from "next-i18next"
 import { Asset, AssetHolding, SectorExposure } from "types/beancounter"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import Dialog from "@components/ui/Dialog"
@@ -50,7 +49,6 @@ const SectorWeightingsPopup: React.FC<SectorWeightingsPopupProps> = ({
   modalOpen,
   onClose,
 }) => {
-  const { t } = useTranslation("common")
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [refreshError, setRefreshError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<TabType>("sectors")
@@ -89,10 +87,7 @@ const SectorWeightingsPopup: React.FC<SectorWeightingsPopupProps> = ({
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        setRefreshError(
-          errorData.message ||
-            t("sector.weightings.refreshError", "Failed to load sector data"),
-        )
+        setRefreshError(errorData.message || "Failed to load sector data")
         return
       }
 
@@ -100,9 +95,7 @@ const SectorWeightingsPopup: React.FC<SectorWeightingsPopupProps> = ({
       await Promise.all([mutateExposures(), mutateHoldings()])
     } catch (err) {
       setRefreshError(
-        err instanceof Error
-          ? err.message
-          : t("sector.weightings.refreshError", "Failed to load sector data"),
+        err instanceof Error ? err.message : "Failed to load sector data",
       )
     } finally {
       setIsRefreshing(false)
@@ -138,7 +131,7 @@ const SectorWeightingsPopup: React.FC<SectorWeightingsPopupProps> = ({
     <Dialog
       title={
         <div>
-          <div>{t("sector.weightings.title", "ETF Details")}</div>
+          <div>{"Sector Weightings"}</div>
           <p className="text-sm text-gray-600 font-normal">{asset.name}</p>
         </div>
       }
@@ -150,7 +143,7 @@ const SectorWeightingsPopup: React.FC<SectorWeightingsPopupProps> = ({
           className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 transition-colors"
           onClick={onClose}
         >
-          {t("close", "Close")}
+          {"Close"}
         </button>
       }
     >
@@ -164,7 +157,7 @@ const SectorWeightingsPopup: React.FC<SectorWeightingsPopupProps> = ({
           }`}
           onClick={() => setActiveTab("sectors")}
         >
-          {t("sector.weightings.sectorsTab", "Sectors")}
+          {"Sectors"}
         </button>
         <button
           className={`px-4 py-2 text-sm font-medium ${
@@ -174,30 +167,27 @@ const SectorWeightingsPopup: React.FC<SectorWeightingsPopupProps> = ({
           }`}
           onClick={() => setActiveTab("holdings")}
         >
-          {t("sector.weightings.holdingsTab", "Top Holdings")}
+          {"Top Holdings"}
         </button>
       </div>
 
       <div className="overflow-y-auto flex-1">
         {isLoading && (
           <div className="flex items-center justify-center py-8">
-            <Spinner label={t("loading")} />
+            <Spinner label={"Loading..."} />
           </div>
         )}
 
         {error && (
           <div className="text-red-500 py-4">
-            {t("sector.weightings.error", "Failed to load data")}
+            {"Failed to load sector weightings"}
           </div>
         )}
 
         {!isLoading && !error && hasNoData && (
           <div className="py-8 text-center">
             <p className="text-gray-500 mb-4">
-              {t(
-                "sector.weightings.noData",
-                "No data available for this asset",
-              )}
+              {"No sector weightings available for this asset"}
             </p>
             <button
               onClick={handleRefresh}
@@ -205,11 +195,11 @@ const SectorWeightingsPopup: React.FC<SectorWeightingsPopupProps> = ({
               className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isRefreshing ? (
-                <Spinner label={t("sector.weightings.loading", "Loading...")} />
+                <Spinner label={"Loading..."} />
               ) : (
                 <>
                   <i className="fas fa-download mr-2"></i>
-                  {t("sector.weightings.load", "Load Data")}
+                  {"Load Sector Data"}
                 </>
               )}
             </button>
@@ -307,10 +297,7 @@ const SectorWeightingsPopup: React.FC<SectorWeightingsPopupProps> = ({
           exposures.length === 0 &&
           holdings.length > 0 && (
             <div className="py-8 text-center text-gray-500">
-              {t(
-                "sector.weightings.noSectors",
-                "No sector data available. Check the Top Holdings tab.",
-              )}
+              {"No sector data available. Check the Top Holdings tab."}
             </div>
           )}
 
@@ -320,10 +307,7 @@ const SectorWeightingsPopup: React.FC<SectorWeightingsPopupProps> = ({
           holdings.length === 0 &&
           exposures.length > 0 && (
             <div className="py-8 text-center text-gray-500">
-              {t(
-                "sector.weightings.noHoldings",
-                "No holdings data available. Check the Sectors tab.",
-              )}
+              {"No holdings data available. Check the Sectors tab."}
             </div>
           )}
       </div>
@@ -336,7 +320,7 @@ const SectorWeightingsPopup: React.FC<SectorWeightingsPopupProps> = ({
             holdings.length > 0 &&
             holdings[0].asOf)) && (
           <div className="mt-4 pt-4 border-t text-xs text-gray-400 text-center">
-            {t("sector.weightings.asOf", "Data as of")}:{" "}
+            {"Data as of"}:{" "}
             {activeTab === "sectors" ? exposures[0].asOf : holdings[0].asOf}
           </div>
         )}

@@ -1,8 +1,5 @@
 import React, { useState } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
-import { useTranslation } from "next-i18next"
-import { GetServerSideProps } from "next"
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { rootLoader } from "@components/ui/PageLoader"
 import { Asset, AssetOption, Currency, Market } from "types/beancounter"
 import { useIsAdmin } from "@hooks/useIsAdmin"
@@ -22,7 +19,6 @@ const EDITABLE_CATEGORIES = [
 ]
 
 export default withPageAuthRequired(function AssetAdmin(): React.ReactElement {
-  const { t, ready } = useTranslation("common")
   const { isAdmin, isLoading: isAdminLoading } = useIsAdmin()
 
   const { data: marketsData } = useSWR<{ data: Market[] }>(
@@ -50,8 +46,8 @@ export default withPageAuthRequired(function AssetAdmin(): React.ReactElement {
     text: string
   } | null>(null)
 
-  if (!ready || isAdminLoading) {
-    return rootLoader(t("loading"))
+  if (isAdminLoading) {
+    return rootLoader("Loading...")
   }
 
   if (!isAdmin) {
@@ -60,19 +56,16 @@ export default withPageAuthRequired(function AssetAdmin(): React.ReactElement {
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
           <i className="fas fa-lock text-4xl text-red-400 mb-4"></i>
           <h1 className="text-xl font-semibold text-red-700 mb-2">
-            {t("admin.accessDenied.title", "Access Denied")}
+            {"Access Denied"}
           </h1>
           <p className="text-red-600">
-            {t(
-              "admin.accessDenied.message",
-              "You do not have permission to access the admin area.",
-            )}
+            {"You do not have permission to access the admin area."}
           </p>
           <Link
             href="/admin"
             className="inline-block mt-4 px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
           >
-            {t("admin.accessDenied.goBack", "Return to Admin")}
+            {"Return to Admin"}
           </Link>
         </div>
       </div>
@@ -268,19 +261,16 @@ export default withPageAuthRequired(function AssetAdmin(): React.ReactElement {
           className="text-blue-600 hover:text-blue-800 text-sm"
         >
           <i className="fas fa-arrow-left mr-1"></i>
-          {t("admin.title", "Administration")}
+          {"Admin"}
         </Link>
       </div>
 
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">
-          {t("admin.assets.title", "Asset Administration")}
+          {"Asset Administration"}
         </h1>
         <p className="text-gray-600 mt-1">
-          {t(
-            "admin.assets.description",
-            "Search for any asset and manage its properties.",
-          )}
+          {"Search for any asset and manage its properties."}
         </p>
       </div>
 
@@ -288,16 +278,14 @@ export default withPageAuthRequired(function AssetAdmin(): React.ReactElement {
       <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
         <div className="flex items-center gap-4 mb-3">
           <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
-            {t("admin.assets.market", "Market")}
+            {"Market"}
           </label>
           <select
             value={selectedMarket}
             onChange={(e) => setSelectedMarket(e.target.value)}
             className="border-gray-300 rounded-md shadow-sm px-2 py-1 border text-sm"
           >
-            <option value="LOCAL">
-              {t("admin.assets.localSearch", "Local DB")}
-            </option>
+            <option value="LOCAL">{"Local DB"}</option>
             {knownMarkets.map((code) => (
               <option key={code} value={code}>
                 {code}
@@ -310,17 +298,14 @@ export default withPageAuthRequired(function AssetAdmin(): React.ReactElement {
           onSelect={(option) => {
             handleAssetSelect(option)
           }}
-          placeholder={t(
-            "admin.assets.searchPlaceholder",
-            "Search by code or name...",
-          )}
+          placeholder={"Search by code or name..."}
         />
       </div>
 
       {/* Loading */}
       {isLoading && (
         <div className="flex items-center justify-center py-8">
-          <Spinner label={t("loading")} size="lg" />
+          <Spinner label={"Loading..."} size="lg" />
         </div>
       )}
 
@@ -426,7 +411,7 @@ export default withPageAuthRequired(function AssetAdmin(): React.ReactElement {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t("admin.assets.editCode", "Code")}
+                      {"Code"}
                     </label>
                     <input
                       type="text"
@@ -439,7 +424,7 @@ export default withPageAuthRequired(function AssetAdmin(): React.ReactElement {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t("admin.assets.editName", "Name")}
+                      {"Name"}
                     </label>
                     <input
                       type="text"
@@ -450,7 +435,7 @@ export default withPageAuthRequired(function AssetAdmin(): React.ReactElement {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t("admin.assets.editCurrency", "Currency")}
+                      {"Currency"}
                     </label>
                     <select
                       value={editCurrency}
@@ -466,7 +451,7 @@ export default withPageAuthRequired(function AssetAdmin(): React.ReactElement {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t("admin.assets.editCategory", "Category")}
+                      {"Category"}
                     </label>
                     <select
                       value={editCategory}
@@ -482,7 +467,7 @@ export default withPageAuthRequired(function AssetAdmin(): React.ReactElement {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t("admin.assets.editReturnRate", "Expected Return (%)")}
+                      {"Expected Return (%)"}
                     </label>
                     <input
                       type="number"
@@ -506,7 +491,7 @@ export default withPageAuthRequired(function AssetAdmin(): React.ReactElement {
                     ) : (
                       <i className="fas fa-save mr-1"></i>
                     )}
-                    {t("save", "Save")}
+                    {"Save"}
                   </button>
                 </div>
               </div>
@@ -531,9 +516,7 @@ export default withPageAuthRequired(function AssetAdmin(): React.ReactElement {
                     className={`fas ${isActive ? "fa-ban" : "fa-check-circle"} mr-1`}
                   ></i>
                 )}
-                {isActive
-                  ? t("admin.assets.deactivate", "Deactivate")
-                  : t("admin.assets.activate", "Activate")}
+                {isActive ? "Deactivate" : "Activate"}
               </button>
               <button
                 type="button"
@@ -546,7 +529,7 @@ export default withPageAuthRequired(function AssetAdmin(): React.ReactElement {
                 ) : (
                   <i className="fas fa-sync-alt mr-1"></i>
                 )}
-                {t("admin.assets.enrich", "Re-enrich")}
+                {"Re-enrich"}
               </button>
             </div>
           </div>
@@ -554,10 +537,4 @@ export default withPageAuthRequired(function AssetAdmin(): React.ReactElement {
       )}
     </div>
   )
-})
-
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
-  props: {
-    ...(await serverSideTranslations(locale as string, ["common"])),
-  },
 })

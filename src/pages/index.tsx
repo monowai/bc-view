@@ -1,9 +1,6 @@
 import { useUser, withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import Link from "next/link"
 import React, { useEffect, useState } from "react"
-import { useTranslation } from "next-i18next"
-import { GetServerSideProps } from "next"
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import useSwr from "swr"
 import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
@@ -15,7 +12,6 @@ const capitalize = (str: string): string =>
 
 export default withPageAuthRequired(function Home(): React.ReactElement {
   const { user, error, isLoading } = useUser()
-  const { t } = useTranslation("common")
   const { preferences, isLoading: prefsLoading } = useUserPreferences()
   const [checkingOnboarding, setCheckingOnboarding] = useState(true)
 
@@ -81,8 +77,7 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-8">
           <div className="text-center">
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-              {t("home.welcome")}{" "}
-              <span className="text-gray-700">{displayName}</span>
+              {"Welcome!"} <span className="text-gray-700">{displayName}</span>
             </h1>
             <p className="text-gray-500 text-lg">
               Connecting goals, strategy, and assets — making progress visible
@@ -95,10 +90,10 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
           <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
             <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
               <h2 className="text-xl font-bold text-gray-900 mb-2 text-center">
-                {t("home.getStarted", "Let's Get You Started")}
+                {"Let's Get You Started"}
               </h2>
               <p className="text-gray-600 mb-6 text-center">
-                {t("portfolios.empty.title", "No portfolios yet")}
+                {"No portfolios yet"}
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Guided Setup - for novice users */}
@@ -110,13 +105,10 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
                     <i className="fas fa-rocket text-xl text-blue-500"></i>
                   </div>
                   <h3 className="font-semibold text-gray-900 mb-1">
-                    {t("home.startSetup", "Start Setup")}
+                    {"Start Setup"}
                   </h3>
                   <p className="text-gray-500 text-sm">
-                    {t(
-                      "portfolios.guided",
-                      "Guided setup for bank accounts, property, and pensions",
-                    )}
+                    {"Guided setup for bank accounts, property, and pensions"}
                   </p>
                 </Link>
                 {/* Direct Add - for professional users */}
@@ -127,14 +119,9 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
                   <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
                     <i className="fas fa-plus text-xl text-green-500"></i>
                   </div>
-                  <h3 className="font-semibold text-gray-900 mb-1">
-                    {t("portfolio.create")}
-                  </h3>
+                  <h3 className="font-semibold text-gray-900 mb-1">{"Add"}</h3>
                   <p className="text-gray-500 text-sm">
-                    {t(
-                      "portfolios.direct",
-                      "Create a portfolio directly with full control",
-                    )}
+                    {"Create a portfolio directly with full control"}
                   </p>
                 </Link>
               </div>
@@ -264,11 +251,5 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
       </div>
     )
   }
-  return <Link href={"/auth/login"}>{t("user.login")}</Link>
-})
-
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
-  props: {
-    ...(await serverSideTranslations(locale as string, ["common"])),
-  },
+  return <Link href={"/auth/login"}>{"Login"}</Link>
 })

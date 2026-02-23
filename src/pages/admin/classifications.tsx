@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
-import { useTranslation } from "next-i18next"
-import { GetServerSideProps } from "next"
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { rootLoader } from "@components/ui/PageLoader"
 import Dialog from "@components/ui/Dialog"
 import Alert from "@components/ui/Alert"
@@ -45,7 +42,6 @@ interface SelectedAsset {
 
 export default withPageAuthRequired(
   function Classifications(): React.ReactElement {
-    const { t, ready } = useTranslation("common")
     const { isAdmin, isLoading: isAdminLoading } = useIsAdmin()
 
     // Fetch available markets for MARKET:KEYWORD search syntax
@@ -351,8 +347,8 @@ export default withPageAuthRequired(
       }
     }
 
-    if (!ready || isAdminLoading) {
-      return rootLoader(t("loading"))
+    if (isAdminLoading) {
+      return rootLoader("Loading...")
     }
 
     if (!isAdmin) {
@@ -361,19 +357,16 @@ export default withPageAuthRequired(
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
             <i className="fas fa-lock text-4xl text-red-400 mb-4"></i>
             <h1 className="text-xl font-semibold text-red-700 mb-2">
-              {t("admin.accessDenied.title", "Access Denied")}
+              {"Access Denied"}
             </h1>
             <p className="text-red-600">
-              {t(
-                "admin.accessDenied.message",
-                "You do not have permission to access the admin area.",
-              )}
+              {"You do not have permission to access the admin area."}
             </p>
             <Link
               href="/portfolios"
               className="inline-block mt-4 px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
             >
-              {t("admin.accessDenied.goBack", "Return to Portfolios")}
+              {"Return to Portfolios"}
             </Link>
           </div>
         </div>
@@ -389,20 +382,17 @@ export default withPageAuthRequired(
       <div className="max-w-4xl mx-auto py-6 px-4">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">
-            {t("classifications.title", "Asset Classifications")}
+            {"Asset Classifications"}
           </h1>
           <p className="text-gray-600 mt-1">
-            {t(
-              "classifications.description",
-              "Assign sectors to assets for better portfolio grouping",
-            )}
+            {"Assign sectors to assets for better portfolio grouping"}
           </p>
         </div>
 
         {/* Search Section */}
         <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            {t("classifications.search", "Search Assets")}
+            {"Search Assets"}
           </h2>
 
           <div className="flex gap-3">
@@ -411,9 +401,7 @@ export default withPageAuthRequired(
               onChange={(e) => setSelectedMarket(e.target.value)}
               className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="LOCAL">
-                {t("assets.lookup.allMarkets", "All Markets")}
-              </option>
+              <option value="LOCAL">{"All Markets"}</option>
               {(marketsData?.data || []).map((market) => (
                 <option key={market.code} value={market.code}>
                   {market.code} — {market.name}
@@ -427,10 +415,7 @@ export default withPageAuthRequired(
                 knownMarkets={knownMarkets}
                 onSelect={handleSelectAsset}
                 noResultsHref="/assets/account"
-                placeholder={t(
-                  "classifications.search.placeholder",
-                  "Search by symbol or name...",
-                )}
+                placeholder={"Search by symbol or name (e.g., VOO, AAPL)..."}
               />
             </div>
           </div>
@@ -460,7 +445,7 @@ export default withPageAuthRequired(
               <button
                 onClick={handleClearSelection}
                 className="text-gray-400 hover:text-gray-600"
-                title={t("classifications.clear", "Clear selection")}
+                title={"Clear selection"}
               >
                 <i className="fas fa-times text-lg"></i>
               </button>
@@ -470,7 +455,7 @@ export default withPageAuthRequired(
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t("classifications.sector", "Select Sector")}
+                  {"Sector"}
                 </label>
 
                 {isLoadingSectors ? (
@@ -509,10 +494,7 @@ export default withPageAuthRequired(
                                       setSectorToDelete(sector)
                                     }}
                                     className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    title={t(
-                                      "classifications.deleteSector",
-                                      "Delete sector",
-                                    )}
+                                    title={"Delete sector"}
                                   >
                                     <i className="fas fa-times text-xs"></i>
                                   </button>
@@ -545,7 +527,7 @@ export default withPageAuthRequired(
                               : "border-gray-200 hover:border-gray-300 text-gray-700"
                           }`}
                         >
-                          {t("classifications.custom", "New")}
+                          {"Custom"}
                         </button>
 
                         {selectedSector === "custom" && (
@@ -553,10 +535,7 @@ export default withPageAuthRequired(
                             type="text"
                             value={customSector}
                             onChange={(e) => setCustomSector(e.target.value)}
-                            placeholder={t(
-                              "classifications.custom.placeholder",
-                              "Enter new sector name...",
-                            )}
+                            placeholder={"Enter custom sector..."}
                             className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                             autoFocus
                           />
@@ -593,7 +572,7 @@ export default withPageAuthRequired(
                       : "bg-blue-500 hover:bg-blue-600"
                   }`}
                 >
-                  {isSaving ? <Spinner label={t("saving")} /> : t("save")}
+                  {isSaving ? <Spinner label={"Saving..."} /> : "Save"}
                 </button>
               </div>
             </div>
@@ -604,32 +583,16 @@ export default withPageAuthRequired(
         {!selectedAsset && (
           <div className="bg-gray-50 rounded-lg border border-gray-200 p-6">
             <h3 className="text-sm font-medium text-gray-700 mb-2">
-              {t("classifications.help.title", "How it works")}
+              {"How it works"}
             </h3>
             <ul className="text-sm text-gray-600 space-y-1">
+              <li>{"Search for an asset by symbol or name"}</li>
+              <li>{"Select a predefined sector or enter a custom one"}</li>
+              <li>{"Save to update the asset's sector classification"}</li>
               <li>
-                {t(
-                  "classifications.help.search",
-                  "Search for an asset by symbol or name",
-                )}
-              </li>
-              <li>
-                {t(
-                  "classifications.help.select",
-                  "Select an existing sector or create a new one",
-                )}
-              </li>
-              <li>
-                {t(
-                  "classifications.help.save",
-                  "Save to update the asset's sector classification",
-                )}
-              </li>
-              <li>
-                {t(
-                  "classifications.help.view",
-                  "View your holdings by sector in the Summary or Allocation views",
-                )}
+                {
+                  "View your holdings by sector in the Summary or Allocation views"
+                }
               </li>
             </ul>
           </div>
@@ -638,18 +601,18 @@ export default withPageAuthRequired(
         {/* Delete Confirmation Dialog */}
         {sectorToDelete && (
           <Dialog
-            title={t("classifications.deleteConfirm.title", "Delete Sector?")}
+            title={"Delete Sector?"}
             onClose={() => setSectorToDelete(null)}
             footer={
               <>
                 <Dialog.CancelButton
                   onClick={() => setSectorToDelete(null)}
-                  label={t("cancel")}
+                  label={"Cancel"}
                 />
                 <Dialog.SubmitButton
                   onClick={handleDeleteSector}
-                  label={t("delete", "Delete")}
-                  loadingLabel={t("deleting", "Deleting...")}
+                  label={"Delete"}
+                  loadingLabel={"Deleting..."}
                   isSubmitting={isDeleting}
                   variant="red"
                 />
@@ -657,10 +620,7 @@ export default withPageAuthRequired(
             }
           >
             <p className="text-gray-600">
-              {t(
-                "classifications.deleteConfirm.message",
-                `Are you sure you want to delete "${sectorToDelete.name}"? Any assets using this sector will become unclassified.`,
-              )}
+              {`Are you sure you want to delete "${sectorToDelete.name}"? Any assets using this sector will become unclassified.`}
             </p>
           </Dialog>
         )}
@@ -668,9 +628,3 @@ export default withPageAuthRequired(
     )
   },
 )
-
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
-  props: {
-    ...(await serverSideTranslations(locale as string, ["common"])),
-  },
-})

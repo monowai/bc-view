@@ -56,7 +56,7 @@ describe("Portfolios Page", () => {
 
     // Wait for portfolio table to render (requires currencies + FX rates to load)
     await waitFor(() => {
-      expect(screen.getByText("portfolio.code")).toBeInTheDocument()
+      expect(screen.getByText("Code")).toBeInTheDocument()
     })
     // Page has both mobile and desktop layouts, so P123 appears twice
     expect(screen.getAllByText("P123").length).toBeGreaterThan(0)
@@ -86,6 +86,6 @@ describe("Portfolios Page", () => {
       expect(mockFetch).toHaveBeenCalled()
     })
 
-    expect(screen.getByText("error.portfolios.empty")).toBeInTheDocument()
+    expect(screen.getByText("You have no portfolios")).toBeInTheDocument()
   })
 })

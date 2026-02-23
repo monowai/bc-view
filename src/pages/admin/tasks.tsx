@@ -1,8 +1,5 @@
 import React, { useState } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
-import { useTranslation } from "next-i18next"
-import { GetServerSideProps } from "next"
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { rootLoader } from "@components/ui/PageLoader"
 import { useIsAdmin } from "@hooks/useIsAdmin"
 import Link from "next/link"
@@ -99,7 +96,6 @@ const SCHEDULED_TASKS: ScheduledTask[] = [
 
 export default withPageAuthRequired(
   function ScheduledTasksPage(): React.ReactElement {
-    const { t, ready } = useTranslation("common")
     const { isAdmin, isLoading } = useIsAdmin()
     const [runningTasks, setRunningTasks] = useState<Set<string>>(new Set())
     const [taskResults, setTaskResults] = useState<Record<string, TaskResult>>(
@@ -159,7 +155,7 @@ export default withPageAuthRequired(
             ...prev,
             [task.id]: {
               success: true,
-              message: t("admin.tasks.success", "Task completed successfully"),
+              message: "Task completed successfully",
               data,
             },
           }))
@@ -168,7 +164,7 @@ export default withPageAuthRequired(
             ...prev,
             [task.id]: {
               success: false,
-              message: data?.message || t("admin.tasks.failed", "Task failed"),
+              message: data?.message || "Task failed",
               data,
             },
           }))
@@ -179,9 +175,7 @@ export default withPageAuthRequired(
           [task.id]: {
             success: false,
             message:
-              error instanceof Error
-                ? error.message
-                : t("admin.tasks.error", "An error occurred"),
+              error instanceof Error ? error.message : "An error occurred",
           },
         }))
       } finally {
@@ -193,8 +187,8 @@ export default withPageAuthRequired(
       }
     }
 
-    if (!ready || isLoading) {
-      return rootLoader(t("loading"))
+    if (isLoading) {
+      return rootLoader("Loading...")
     }
 
     if (!isAdmin) {
@@ -203,19 +197,16 @@ export default withPageAuthRequired(
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
             <i className="fas fa-lock text-4xl text-red-400 mb-4"></i>
             <h1 className="text-xl font-semibold text-red-700 mb-2">
-              {t("admin.accessDenied.title", "Access Denied")}
+              {"Access Denied"}
             </h1>
             <p className="text-red-600">
-              {t(
-                "admin.accessDenied.message",
-                "You do not have permission to access the admin area.",
-              )}
+              {"You do not have permission to access the admin area."}
             </p>
             <Link
               href="/portfolios"
               className="inline-block mt-4 px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
             >
-              {t("admin.accessDenied.goBack", "Return to Portfolios")}
+              {"Return to Portfolios"}
             </Link>
           </div>
         </div>
@@ -242,19 +233,16 @@ export default withPageAuthRequired(
             className="text-blue-600 hover:text-blue-800 text-sm"
           >
             <i className="fas fa-arrow-left mr-2"></i>
-            {t("admin.backToAdmin", "Back to Admin")}
+            {"Back to Admin"}
           </Link>
         </div>
 
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900">
-            {t("admin.tasks.title", "Scheduled Tasks")}
+            {"Scheduled Tasks"}
           </h1>
           <p className="text-gray-600 mt-1">
-            {t(
-              "admin.tasks.description",
-              "Manually trigger background jobs that normally run on a schedule",
-            )}
+            {"Manually trigger background jobs that normally run on a schedule"}
           </p>
         </div>
 
@@ -265,10 +253,10 @@ export default withPageAuthRequired(
                 {service}
               </span>
               {service === "svc-data"
-                ? t("admin.tasks.dataService", "Market Data Service")
+                ? "Market Data Service"
                 : service === "svc-event"
-                  ? t("admin.tasks.eventService", "Corporate Events Service")
-                  : t("admin.tasks.positionService", "Position Service")}
+                  ? "Corporate Events Service"
+                  : "Position Service"}
             </h2>
 
             <div className="space-y-4">
@@ -311,12 +299,12 @@ export default withPageAuthRequired(
                         {isRunning ? (
                           <>
                             <i className="fas fa-spinner fa-spin mr-2"></i>
-                            {t("admin.tasks.running", "Running...")}
+                            {"Running..."}
                           </>
                         ) : (
                           <>
                             <i className="fas fa-play mr-2"></i>
-                            {t("admin.tasks.run", "Run")}
+                            {"Run"}
                           </>
                         )}
                       </button>
@@ -330,7 +318,7 @@ export default withPageAuthRequired(
                               htmlFor={`${task.id}-fromDate`}
                               className="text-sm text-gray-600"
                             >
-                              {t("admin.tasks.fromDate", "From:")}
+                              {"From:"}
                             </label>
                             <input
                               id={`${task.id}-fromDate`}
@@ -353,7 +341,7 @@ export default withPageAuthRequired(
                               htmlFor={`${task.id}-toDate`}
                               className="text-sm text-gray-600"
                             >
-                              {t("admin.tasks.toDate", "To:")}
+                              {"To:"}
                             </label>
                             <input
                               id={`${task.id}-toDate`}
@@ -414,9 +402,3 @@ export default withPageAuthRequired(
     )
   },
 )
-
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
-  props: {
-    ...(await serverSideTranslations(locale as string, ["common"])),
-  },
-})

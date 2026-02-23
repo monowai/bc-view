@@ -1,6 +1,5 @@
 import React, { useState } from "react"
 import useSwr from "swr"
-import { useTranslation } from "next-i18next"
 import { useRouter } from "next/router"
 import { PortfolioShare, PendingSharesResponse } from "types/beancounter"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
@@ -18,7 +17,6 @@ import PendingSharesPanel from "./PendingSharesPanel"
 import RequestAccessDialog from "./RequestAccessDialog"
 
 export default function ManagedPortfolios(): React.ReactElement {
-  const { t } = useTranslation("common")
   const router = useRouter()
   const [showRequestDialog, setShowRequestDialog] = useState(false)
 
@@ -47,11 +45,11 @@ export default function ManagedPortfolios(): React.ReactElement {
   }
 
   if (managedError || pendingError) {
-    return <div className="p-4 text-red-600">{t("shares.request.error")}</div>
+    return <div className="p-4 text-red-600">{"Failed to send request"}</div>
   }
 
   if (!managedResponse || !pending) {
-    return rootLoader(t("loading"))
+    return rootLoader("Loading...")
   }
 
   const managed = managedResponse.data
@@ -69,17 +67,19 @@ export default function ManagedPortfolios(): React.ReactElement {
             <i className="fas fa-users text-2xl text-gray-400"></i>
           </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            {t("shares.managed.empty")}
+            {"No managed portfolios yet"}
           </h3>
           <p className="text-gray-500 text-sm mb-6 max-w-md mx-auto">
-            {t("shares.managed.empty.hint")}
+            {
+              "Share your portfolios with an adviser or request access to client portfolios."
+            }
           </p>
           <button
             onClick={() => setShowRequestDialog(true)}
             className="bg-wealth-500 text-white px-4 py-2 rounded-lg hover:bg-wealth-600 transition-colors"
           >
             <i className="fas fa-hand-paper mr-2"></i>
-            {t("shares.request.title")}
+            {"Request Access"}
           </button>
         </div>
       )}
@@ -93,7 +93,7 @@ export default function ManagedPortfolios(): React.ReactElement {
               className="text-sm text-wealth-600 hover:text-wealth-700 font-medium"
             >
               <i className="fas fa-plus mr-1"></i>
-              {t("shares.request.title")}
+              {"Request Access"}
             </button>
           </div>
 
@@ -116,15 +116,15 @@ export default function ManagedPortfolios(): React.ReactElement {
                     </span>
                     <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
                       {share.accessLevel === "VIEW"
-                        ? t("shares.invite.accessLevel.view")
-                        : t("shares.invite.accessLevel.full")}
+                        ? "View Only"
+                        : "Full Access"}
                     </span>
                   </div>
                   <div className="text-gray-900 mt-1">
                     {share.portfolio?.name}
                   </div>
                   <div className="text-xs text-gray-500 mt-1">
-                    {t("shares.managed.owner")}:{" "}
+                    {"Owner"}:{" "}
                     {share.portfolio?.owner?.email
                       ? maskEmail(share.portfolio.owner.email)
                       : "Owner"}
@@ -133,7 +133,7 @@ export default function ManagedPortfolios(): React.ReactElement {
                 <div className="flex items-center space-x-2">
                   {share.acceptedAt && (
                     <span className="text-xs text-gray-400">
-                      {t("shares.managed.since")}{" "}
+                      {"Since"}{" "}
                       {new Date(share.acceptedAt).toLocaleDateString(
                         undefined,
                         { month: "short", day: "numeric" },
@@ -176,7 +176,6 @@ function RevokeButton({
   shareId: string
   onRevoked: () => void
 }): React.ReactElement {
-  const { t } = useTranslation("common")
   const [isLoading, setIsLoading] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
 
@@ -202,7 +201,7 @@ function RevokeButton({
         }}
         disabled={isLoading}
         className="text-gray-400 hover:text-red-500 transition-colors p-1"
-        title={t("shares.managed.revoke")}
+        title={"Revoke"}
       >
         <i
           className={`fas ${isLoading ? "fa-spinner fa-spin" : "fa-times-circle"}`}
@@ -210,13 +209,10 @@ function RevokeButton({
       </button>
       {showConfirm && (
         <ConfirmDialog
-          title={t("shares.managed.revoke", "Revoke Access")}
-          message={t(
-            "shares.managed.revoke.confirm",
-            "Are you sure you want to revoke this share?",
-          )}
-          confirmLabel={t("shares.managed.revoke", "Revoke")}
-          cancelLabel={t("cancel", "Cancel")}
+          title={"Revoke"}
+          message={"Revoke access to this portfolio?"}
+          confirmLabel={"Revoke"}
+          cancelLabel={"Cancel"}
           variant="red"
           onConfirm={handleRevoke}
           onCancel={() => setShowConfirm(false)}

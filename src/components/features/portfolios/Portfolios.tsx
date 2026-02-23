@@ -1,14 +1,11 @@
 import React, { ReactElement, useState, useEffect } from "react"
-import { useTranslation } from "next-i18next"
 import useSwr from "swr"
 import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { Portfolio } from "types/beancounter"
 import { useRouter } from "next/router"
-import { rootLoader } from "@components/ui/PageLoader"
 
 export function Portfolios(selectedPortfolio: Portfolio): ReactElement {
-  const { data } = useSwr(portfoliosKey, simpleFetcher(portfoliosKey))
-  const { t, ready } = useTranslation("common")
+  const { data, isLoading } = useSwr(portfoliosKey, simpleFetcher(portfoliosKey))
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const [selected, setSelected] = useState(selectedPortfolio)
@@ -17,10 +14,6 @@ export function Portfolios(selectedPortfolio: Portfolio): ReactElement {
   useEffect(() => {
     setSelected(selectedPortfolio)
   }, [selectedPortfolio])
-
-  if (!ready) {
-    return rootLoader(t("loading"))
-  }
 
   // Show the selected portfolio immediately, even if the list hasn't loaded yet
   const portfolios: Portfolio[] = data?.data || []
@@ -78,9 +71,13 @@ export function Portfolios(selectedPortfolio: Portfolio): ReactElement {
                   {portfolio.name}
                 </button>
               ))
+            ) : isLoading ? (
+              <div className="px-4 py-2 text-sm text-gray-500">
+                {"Loading..."}
+              </div>
             ) : (
               <div className="px-4 py-2 text-sm text-gray-500">
-                {t("loading")}
+                {"No portfolios"}
               </div>
             )}
           </div>

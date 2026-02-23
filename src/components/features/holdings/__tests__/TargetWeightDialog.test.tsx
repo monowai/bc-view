@@ -4,26 +4,6 @@ import "@testing-library/jest-dom"
 import TargetWeightDialog from "../TargetWeightDialog"
 import { Asset, Portfolio } from "types/beancounter"
 
-// Mock next-i18next
-jest.mock("next-i18next", () => ({
-  useTranslation: (): { t: (key: string) => string } => ({
-    t: (key: string): string => {
-      const translations: Record<string, string> = {
-        "rebalance.title": "Rebalance Position",
-        "rebalance.currentWeight": "Current Weight",
-        "rebalance.targetWeight": "Target Weight",
-        "rebalance.requiredShares": "Required Shares",
-        "rebalance.action": "Action",
-        "rebalance.buy": "Buy",
-        "rebalance.sell": "Sell",
-        "rebalance.proceed": "Proceed",
-        "rebalance.cancel": "Cancel",
-      }
-      return translations[key] || key
-    },
-  }),
-}))
-
 const mockPortfolio: Portfolio = {
   id: "test-portfolio-id",
   code: "TEST",

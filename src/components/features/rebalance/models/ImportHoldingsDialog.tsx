@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react"
-import { useTranslation } from "next-i18next"
 import useSWR from "swr"
 import Dialog from "@components/ui/Dialog"
 import { fetcher, portfoliosKey } from "@utils/api/fetchHelper"
@@ -31,7 +30,6 @@ const ImportHoldingsDialog: React.FC<ImportHoldingsDialogProps> = ({
   onClose,
   onImport,
 }) => {
-  const { t } = useTranslation("common")
   const [selectedPortfolioId, setSelectedPortfolioId] = useState<string>("")
   const [loadingWeights, setLoadingWeights] = useState(false)
   const [weights, setWeights] = useState<AssetWeightWithDetails[]>([])
@@ -121,19 +119,16 @@ const ImportHoldingsDialog: React.FC<ImportHoldingsDialogProps> = ({
 
   return (
     <Dialog
-      title={t("rebalance.plans.importFromHoldings", "Import from Holdings")}
+      title={"Import from Holdings"}
       onClose={onClose}
       maxWidth="2xl"
       scrollable={true}
       footer={
         <>
-          <Dialog.CancelButton
-            onClick={onClose}
-            label={t("cancel", "Cancel")}
-          />
+          <Dialog.CancelButton onClick={onClose} label={"Cancel"} />
           <Dialog.SubmitButton
             onClick={handleImport}
-            label={t("import", "Import")}
+            label={"Import"}
             disabled={weights.length === 0}
             variant="blue"
           />
@@ -143,16 +138,14 @@ const ImportHoldingsDialog: React.FC<ImportHoldingsDialogProps> = ({
       {/* Portfolio Selector */}
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          {t("rebalance.plans.selectPortfolio", "Select Portfolio")}
+          {"Select Portfolio"}
         </label>
         <select
           value={selectedPortfolioId}
           onChange={(e) => handlePortfolioSelect(e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
         >
-          <option value="">
-            {t("rebalance.plans.choosePortfolio", "Choose a portfolio...")}
-          </option>
+          <option value="">{"Choose a portfolio..."}</option>
           {portfolios.map((p) => (
             <option key={p.id} value={p.id}>
               {p.code} - {p.name}
@@ -166,7 +159,7 @@ const ImportHoldingsDialog: React.FC<ImportHoldingsDialogProps> = ({
       {loadingWeights && (
         <div className="flex items-center justify-center py-8">
           <i className="fas fa-spinner fa-spin text-gray-400 text-xl mr-2"></i>
-          <span className="text-gray-500">{t("loading", "Loading...")}</span>
+          <span className="text-gray-500">{"Loading..."}</span>
         </div>
       )}
 
@@ -176,17 +169,16 @@ const ImportHoldingsDialog: React.FC<ImportHoldingsDialogProps> = ({
             <div className="flex items-center gap-2 text-blue-700">
               <i className="fas fa-info-circle"></i>
               <span className="text-sm">
-                {t(
-                  "rebalance.plans.importHoldingsInfo",
-                  "Weights are calculated from current market values. Adjust as needed before importing.",
-                )}
+                {
+                  "Weights are calculated from current market values. Adjust as needed before importing."
+                }
               </span>
             </div>
           </div>
 
           <div className="flex items-center justify-between mb-2">
             <label className="block text-sm font-medium text-gray-700">
-              {t("rebalance.plans.allocations", "Target Allocations")}
+              {"Target Allocations"}
             </label>
             {weights.length > 0 && Math.abs(totalWeight - 100) > 0.01 && (
               <button
@@ -194,17 +186,14 @@ const ImportHoldingsDialog: React.FC<ImportHoldingsDialogProps> = ({
                 onClick={handleNormalize}
                 className="text-sm text-blue-600 hover:text-blue-800"
               >
-                {t("rebalance.models.normalize", "Normalize to 100%")}
+                {"Normalize to 100%"}
               </button>
             )}
           </div>
 
           {weights.length === 0 ? (
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center text-gray-500">
-              {t(
-                "rebalance.models.noEligibleAssets",
-                "No eligible assets found in holdings",
-              )}
+              {"No eligible assets found in holdings"}
             </div>
           ) : (
             <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -265,10 +254,7 @@ const ImportHoldingsDialog: React.FC<ImportHoldingsDialogProps> = ({
 
       {!selectedPortfolioId && !loadingWeights && (
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center text-gray-500">
-          {t(
-            "rebalance.plans.selectPortfolioPrompt",
-            "Select a portfolio to view its holdings",
-          )}
+          {"Select a portfolio to view its holdings"}
         </div>
       )}
     </Dialog>

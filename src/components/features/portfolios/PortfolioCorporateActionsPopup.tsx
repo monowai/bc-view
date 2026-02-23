@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react"
 import { NumericFormat } from "react-number-format"
 import useSwr from "swr"
-import { useTranslation } from "next-i18next"
 import { stripOwnerPrefix } from "@lib/assets/assetUtils"
 import {
   CorporateEvent,
@@ -41,7 +40,6 @@ interface AssetEvent {
 const PortfolioCorporateActionsPopup: React.FC<
   PortfolioCorporateActionsPopupProps
 > = ({ portfolio, modalOpen, onClose }) => {
-  const { t } = useTranslation("common")
   const today = new Date().toISOString().split("T")[0]
 
   const [isScanning, setIsScanning] = useState(false)
@@ -190,10 +188,10 @@ const PortfolioCorporateActionsPopup: React.FC<
       if (response.ok) {
         setProcessedEvents((prev) => new Set(prev).add(eventId))
       } else {
-        setProcessError(t("corporate.error.process"))
+        setProcessError("Failed to process event")
       }
     } catch {
-      setProcessError(t("corporate.error.process"))
+      setProcessError("Failed to process event")
     }
   }
 
@@ -204,9 +202,9 @@ const PortfolioCorporateActionsPopup: React.FC<
   const getEventTypeLabel = (trnType: string): string => {
     switch (trnType) {
       case "DIVI":
-        return t("corporate.type.dividend")
+        return "Dividend"
       case "SPLIT":
-        return t("corporate.type.split")
+        return "Split"
       default:
         return trnType
     }
@@ -229,7 +227,7 @@ const PortfolioCorporateActionsPopup: React.FC<
 
   return (
     <Dialog
-      title={`${t("corporate.portfolio.title")} - ${portfolio.code}`}
+      title={`${"Portfolio Corporate Actions"} - ${portfolio.code}`}
       onClose={onClose}
       maxWidth="xl"
       scrollable
@@ -241,20 +239,22 @@ const PortfolioCorporateActionsPopup: React.FC<
                 className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                 onClick={handleBackfillAll}
                 disabled={isBackfilling || unprocessedCount === 0}
-                title={t("corporate.backfill.hint")}
+                title={
+                  "Process all missing events that are ready (effective pay date has passed)"
+                }
               >
                 {isBackfilling ? (
                   <Spinner
                     label={
                       backfillProgress
                         ? `${backfillProgress.current}/${backfillProgress.total}`
-                        : t("corporate.loading")
+                        : "Loading..."
                     }
                   />
                 ) : (
                   <>
                     <i className="fas fa-forward mr-2"></i>
-                    {t("corporate.backfill")} ({unprocessedCount})
+                    {"Backfill"} ({unprocessedCount})
                   </>
                 )}
               </button>
@@ -266,19 +266,23 @@ const PortfolioCorporateActionsPopup: React.FC<
               </span>
             )}
           </div>
-          <Dialog.CancelButton onClick={onClose} label={t("cancel")} />
+          <Dialog.CancelButton onClick={onClose} label={"Cancel"} />
         </>
       }
     >
       <Alert variant="info">
         <i className="fas fa-info-circle mr-2"></i>
-        {t("corporate.portfolio.info")}
+        {
+          "Scan your portfolio to find corporate actions (dividends, splits) that may not have been recorded as transactions."
+        }
       </Alert>
 
       {!scanComplete && !isScanning && (
         <div className="flex flex-col items-center justify-center py-8">
           <p className="text-gray-600 mb-4">
-            {t("corporate.portfolio.scan.prompt")}
+            {
+              "Click the button below to scan all positions in this portfolio for missing corporate actions."
+            }
           </p>
           <button
             className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors flex items-center"
@@ -286,7 +290,7 @@ const PortfolioCorporateActionsPopup: React.FC<
             disabled={!holdingsData}
           >
             <i className="fas fa-search mr-2"></i>
-            {t("corporate.portfolio.scan")}
+            {"Scan Corporate Actions"}
           </button>
         </div>
       )}
@@ -295,7 +299,7 @@ const PortfolioCorporateActionsPopup: React.FC<
         <div className="flex flex-col items-center justify-center py-8">
           <Spinner size="lg" className="text-blue-500 mb-4" />
           <p className="text-gray-600">
-            {t("corporate.portfolio.scanning")}
+            {"Scanning positions for missing events..."}
             {scanProgress && (
               <span className="ml-2">
                 ({scanProgress.current}/{scanProgress.total})
@@ -310,36 +314,26 @@ const PortfolioCorporateActionsPopup: React.FC<
           {missingEvents.length === 0 ? (
             <div className="text-center py-8 text-green-600">
               <i className="fas fa-check-circle text-4xl mb-4 block"></i>
-              <p>{t("corporate.portfolio.noMissing")}</p>
+              <p>
+                {
+                  "All corporate actions have been recorded. No missing events found."
+                }
+              </p>
             </div>
           ) : (
             <>
               <div className="mb-4 text-sm text-gray-600">
-                {t("corporate.portfolio.found", {
-                  count: missingEvents.length,
-                })}
+                {`Found ${missingEvents.length} missing corporate action(s) that can be processed.`}
               </div>
               <table className="min-w-full bg-white">
                 <thead className="bg-gray-50 sticky top-0">
                   <tr>
-                    <th className="px-4 py-2 text-left">
-                      {t("trn.asset.code")}
-                    </th>
-                    <th className="px-4 py-2 text-left">
-                      {t("corporate.type")}
-                    </th>
-                    <th className="px-4 py-2 text-left">
-                      {t("corporate.recordDate")}
-                    </th>
-                    <th className="px-4 py-2 text-left">
-                      {t("corporate.effectiveDate")}
-                    </th>
-                    <th className="px-4 py-2 text-right">
-                      {t("corporate.rate")}
-                    </th>
-                    <th className="px-4 py-2 text-center">
-                      {t("corporate.actions")}
-                    </th>
+                    <th className="px-4 py-2 text-left">{"Asset"}</th>
+                    <th className="px-4 py-2 text-left">{"Type"}</th>
+                    <th className="px-4 py-2 text-left">{"Record Date"}</th>
+                    <th className="px-4 py-2 text-left">{"Effective Date"}</th>
+                    <th className="px-4 py-2 text-right">{"Rate"}</th>
+                    <th className="px-4 py-2 text-center">{"Actions"}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -394,13 +388,13 @@ const PortfolioCorporateActionsPopup: React.FC<
                           {isProcessed ? (
                             <span className="text-green-500">
                               <i className="fas fa-check mr-1"></i>
-                              {t("corporate.transactionCreated")}
+                              {"Transaction dispatched"}
                             </span>
                           ) : (
                             <button
                               onClick={() => handleProcessEvent(event.id)}
                               className="text-blue-500 hover:text-blue-700"
-                              title={t("corporate.process")}
+                              title={"Process event to create transaction"}
                             >
                               <i className="fas fa-play"></i>
                             </button>

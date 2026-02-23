@@ -1,5 +1,4 @@
 import React, { useState } from "react"
-import { useTranslation } from "next-i18next"
 import { useRouter } from "next/router"
 import { fetchAndDownloadCsv } from "@lib/csvExport"
 
@@ -13,7 +12,6 @@ const PortfolioActions = ({
   onShareClick,
 }: PortfolioActionsProps): React.ReactElement => {
   const router = useRouter()
-  const { t } = useTranslation("common")
   const [isExporting, setIsExporting] = useState(false)
 
   const handleExport = async (): Promise<void> => {
@@ -40,29 +38,29 @@ const PortfolioActions = ({
         ) : (
           <i className="fas fa-download mr-2"></i>
         )}
-        {t("portfolios.export")}
+        {"Export"}
       </button>
       <button
         className="hidden md:flex bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition-colors items-center"
         onClick={onImportClick}
       >
         <i className="fas fa-upload mr-2"></i>
-        {t("portfolios.import")}
+        {"Import"}
       </button>
       <button
         className="hidden md:flex bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition-colors items-center"
         onClick={onShareClick}
       >
         <i className="fas fa-share-alt mr-2"></i>
-        {t("shares.share")}
+        {"Share"}
       </button>
       <button
         className="bg-wealth-500 text-white py-2 px-4 rounded-lg hover:bg-wealth-600 transition-colors flex items-center shadow-sm"
         onClick={() => router.push(`/portfolios/__NEW__`)}
       >
         <i className="fas fa-plus mr-2"></i>
-        <span className="hidden sm:inline">{t("portfolio.create")}</span>
-        <span className="sm:hidden">{t("new")}</span>
+        <span className="hidden sm:inline">{"Add"}</span>
+        <span className="sm:hidden">{"New"}</span>
       </button>
     </div>
   )

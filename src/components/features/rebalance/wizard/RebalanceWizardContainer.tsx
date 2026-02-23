@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from "react"
-import { useTranslation } from "next-i18next"
 import { useRouter } from "next/router"
 import RebalanceWizardProgress from "./RebalanceWizardProgress"
 import SelectModelStep from "./steps/SelectModelStep"
@@ -19,7 +18,6 @@ interface RebalanceWizardContainerProps {
 const RebalanceWizardContainer: React.FC<RebalanceWizardContainerProps> = ({
   preselectedPortfolioIds,
 }) => {
-  const { t } = useTranslation("common")
   const router = useRouter()
 
   // Wizard state
@@ -37,12 +35,12 @@ const RebalanceWizardContainer: React.FC<RebalanceWizardContainerProps> = ({
   // Steps configuration
   const steps = useMemo(
     () => [
-      { id: 1, label: t("rebalance.wizard.step1", "Select Model") },
-      { id: 2, label: t("rebalance.wizard.step2", "Select Portfolios") },
-      { id: 3, label: t("rebalance.wizard.step3", "Configure") },
-      { id: 4, label: t("rebalance.wizard.step4", "Review") },
+      { id: 1, label: "Select Model" },
+      { id: 2, label: "Select Portfolios" },
+      { id: 3, label: "Configure" },
+      { id: 4, label: "Review" },
     ],
-    [t],
+    [],
   )
 
   // Validation
@@ -171,7 +169,7 @@ const RebalanceWizardContainer: React.FC<RebalanceWizardContainerProps> = ({
           onClick={currentStep === 1 ? () => router.back() : handleBack}
           className="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300 transition-colors"
         >
-          {currentStep === 1 ? t("cancel", "Cancel") : t("back", "Back")}
+          {currentStep === 1 ? "Cancel" : "Back"}
         </button>
         {currentStep < steps.length ? (
           <button
@@ -184,7 +182,7 @@ const RebalanceWizardContainer: React.FC<RebalanceWizardContainerProps> = ({
                 : "bg-gray-400 cursor-not-allowed"
             }`}
           >
-            {t("next", "Next")}
+            {"Next"}
           </button>
         ) : (
           <button
@@ -200,10 +198,10 @@ const RebalanceWizardContainer: React.FC<RebalanceWizardContainerProps> = ({
             {isSubmitting ? (
               <span className="flex items-center">
                 <i className="fas fa-spinner fa-spin mr-2"></i>
-                {t("creating", "Creating...")}
+                {"Creating..."}
               </span>
             ) : (
-              t("rebalance.plans.create", "Create Plan")
+              "Create Plan"
             )}
           </button>
         )}

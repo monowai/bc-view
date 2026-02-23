@@ -34,45 +34,6 @@ const mockData = {
   ] as CorporateEvent[],
 }
 
-// Mock next-i18next
-jest.mock("next-i18next", () => ({
-  useTranslation: () => ({
-    t: (key: string, params?: Record<string, string>) => {
-      const translations: Record<string, string> = {
-        loading: "Loading...",
-        cancel: "Cancel",
-        "corporate.title": "Corporate Actions",
-        "corporate.view": "View Corporate Actions",
-        "corporate.type": "Type",
-        "corporate.type.dividend": "Dividend",
-        "corporate.type.split": "Split",
-        "corporate.recordDate": "Record Date",
-        "corporate.payDate": "Pay Date",
-        "corporate.effectiveDate": "Effective Date",
-        "corporate.effectiveDate.hint": "Record date + 18 days for dividends",
-        "corporate.rate": "Rate",
-        "corporate.split": "Split Ratio",
-        "corporate.actions": "Actions",
-        "corporate.process": "Process",
-        "corporate.noEvents": "No corporate actions found for this period",
-        "corporate.error.retrieve": "Error retrieving corporate actions",
-        "corporate.error.process": "Error processing event",
-        "corporate.dateRange": `From ${params?.from || ""} to ${params?.to || ""}`,
-        "corporate.loadEvents": "Load Events",
-        "corporate.loading": "Loading...",
-        "corporate.loadSuccess": "Events loaded",
-        "corporate.info": "Corporate actions info",
-        "corporate.payDate.clickToEdit": "Click to edit pay date",
-        "corporate.payDate.pending": "Pay date pending",
-        "corporate.saveAndProcess": "Save and process",
-        "corporate.transactionCreated": "Created",
-        "corporate.transactionCreated.hint": `Transaction created for ${params?.date || ""}`,
-      }
-      return translations[key] || key
-    },
-  }),
-}))
-
 const mockAsset: Asset = {
   id: "asset-aapl",
   code: "NASDAQ.AAPL",

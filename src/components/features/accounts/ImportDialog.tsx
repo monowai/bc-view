@@ -1,5 +1,4 @@
 import React, { useState, useRef } from "react"
-import { useTranslation } from "next-i18next"
 import Dialog from "@components/ui/Dialog"
 import Alert from "@components/ui/Alert"
 
@@ -9,7 +8,6 @@ interface ImportDialogProps {
 }
 
 const ImportDialog: React.FC<ImportDialogProps> = ({ onClose, onComplete }) => {
-  const { t } = useTranslation(["common", "wealth"])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isImporting, setIsImporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -29,7 +27,7 @@ const ImportDialog: React.FC<ImportDialogProps> = ({ onClose, onComplete }) => {
 
   const handleImport = async (): Promise<void> => {
     if (!selectedFile) {
-      setError(t("wealth:error.selectFile"))
+      setError("Please select a file")
       return
     }
 
@@ -46,7 +44,7 @@ const ImportDialog: React.FC<ImportDialogProps> = ({ onClose, onComplete }) => {
 
       if (!response.ok) {
         const errorData = await response.json()
-        setError(errorData.error || t("wealth:error.importFailed"))
+        setError(errorData.error || "Import failed")
         return
       }
 
@@ -54,9 +52,7 @@ const ImportDialog: React.FC<ImportDialogProps> = ({ onClose, onComplete }) => {
       const count = result.data ? Object.keys(result.data).length : 0
       setImportResult({ count })
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : t("wealth:error.importFailed"),
-      )
+      setError(err instanceof Error ? err.message : "Import failed")
     } finally {
       setIsImporting(false)
     }
@@ -68,16 +64,16 @@ const ImportDialog: React.FC<ImportDialogProps> = ({ onClose, onComplete }) => {
 
   return (
     <Dialog
-      title={t("accounts.import.title")}
+      title={"Import Assets"}
       onClose={onClose}
       footer={
         !importResult ? (
           <>
-            <Dialog.CancelButton onClick={onClose} label={t("cancel")} />
+            <Dialog.CancelButton onClick={onClose} label={"Cancel"} />
             <Dialog.SubmitButton
               onClick={handleImport}
-              label={t("accounts.import")}
-              loadingLabel={t("accounts.importing")}
+              label={"Import"}
+              loadingLabel={"Importing..."}
               isSubmitting={isImporting}
               disabled={!selectedFile}
               variant="blue"
@@ -89,14 +85,18 @@ const ImportDialog: React.FC<ImportDialogProps> = ({ onClose, onComplete }) => {
             className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
             onClick={handleDone}
           >
-            {t("done")}
+            {"Done"}
           </button>
         )
       }
     >
       {!importResult ? (
         <>
-          <p className="text-sm text-gray-600">{t("accounts.import.hint")}</p>
+          <p className="text-sm text-gray-600">
+            {
+              "Import assets from a CSV file. The file should have columns: Code, Name, Category, Currency."
+            }
+          </p>
 
           <div
             className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-gray-400 transition-colors"
@@ -124,7 +124,7 @@ const ImportDialog: React.FC<ImportDialogProps> = ({ onClose, onComplete }) => {
               </p>
             ) : (
               <p className="text-sm text-gray-500">
-                {t("accounts.import.select")}
+                {"Click or drop a CSV file here"}
               </p>
             )}
           </div>
@@ -135,7 +135,7 @@ const ImportDialog: React.FC<ImportDialogProps> = ({ onClose, onComplete }) => {
         <Alert variant="success" className="p-4 text-center">
           <i className="fas fa-check-circle text-green-500 text-3xl mb-2"></i>
           <p className="text-green-700 font-medium">
-            {t("accounts.import.success", { count: importResult.count })}
+            {`Successfully imported ${importResult.count} asset(s)`}
           </p>
         </Alert>
       )}

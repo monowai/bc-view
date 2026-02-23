@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useCallback } from "react"
-import { useTranslation } from "next-i18next"
 import useSWR from "swr"
 import Dialog from "@components/ui/Dialog"
 import { simpleFetcher } from "@utils/api/fetchHelper"
@@ -40,8 +39,6 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
   onClose,
   onSuccess,
 }) => {
-  const { t } = useTranslation("common")
-
   // Step state
   const [step, setStep] = useState<"input" | "preview">("input")
 
@@ -269,14 +266,11 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
   const stepFooter =
     step === "input" ? (
       <>
-        <Dialog.CancelButton
-          onClick={handleClose}
-          label={t("cancel", "Cancel")}
-        />
+        <Dialog.CancelButton onClick={handleClose} label={"Cancel"} />
         <Dialog.SubmitButton
           onClick={handlePreview}
-          label={t("rebalance.investCash.preview", "Preview")}
-          loadingLabel={t("loading", "Loading...")}
+          label={"Preview"}
+          loadingLabel={"Loading..."}
           isSubmitting={loading}
           disabled={
             !selectedModel || !amount || parseShorthandAmount(amount) <= 0
@@ -286,11 +280,11 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
       </>
     ) : (
       <>
-        <Dialog.CancelButton onClick={handleBack} label={t("back", "Back")} />
+        <Dialog.CancelButton onClick={handleBack} label={"Back"} />
         <Dialog.SubmitButton
           onClick={handleCommit}
-          label={`${t("rebalance.investCash.createProposed", "Create Proposed")} (${formatCurrency(totalSpending)})`}
-          loadingLabel={t("creating", "Creating...")}
+          label={`${"Create Proposed"} (${formatCurrency(totalSpending)})`}
+          loadingLabel={"Creating..."}
           isSubmitting={committing}
           disabled={buyItems.length === 0}
           variant="green"
@@ -300,11 +294,7 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
 
   return (
     <Dialog
-      title={
-        step === "input"
-          ? t("rebalance.investCash.title", "Invest Cash")
-          : t("rebalance.investCash.preview", "Preview Transactions")
-      }
+      title={step === "input" ? "Invest Cash" : "Preview"}
       onClose={handleClose}
       maxWidth="2xl"
       scrollable={true}
@@ -316,7 +306,7 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("rebalance.investCash.amount", "Investment Amount")}
+              {"Investment Amount"}
             </label>
             <input
               type="text"
@@ -327,10 +317,7 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
             />
             <p className="mt-1 text-xs text-gray-500">
-              {t(
-                "rebalance.investCash.amountHint",
-                "Use h=100, k=1000, m=1000000 (e.g., 4k = 4,000)",
-              )}
+              {"Use h=100, k=1000, m=1000000 (e.g., 4k = 4,000)"}
               {amount && hasShorthandSuffix(amount) && (
                 <span className="ml-2 text-blue-600 font-medium">
                   = {parseShorthandAmount(amount).toLocaleString()}
@@ -341,22 +328,21 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              {t("rebalance.investCash.selectModel", "Select Model")}
+              {"Select Model"}
             </label>
 
             {loadingModels ? (
               <div className="py-4 text-center text-gray-500">
                 <i className="fas fa-spinner fa-spin mr-2"></i>
-                {t("loading", "Loading...")}
+                {"Loading..."}
               </div>
             ) : modelsWithApprovedPlans.length === 0 ? (
               <div className="py-4 text-center text-gray-500">
                 <i className="fas fa-folder-open text-2xl mb-2"></i>
                 <p className="text-sm">
-                  {t(
-                    "rebalance.investCash.noModels",
-                    "No approved models found. Create a model and approve a plan first.",
-                  )}
+                  {
+                    "No approved models found. Create a model and approve a plan first."
+                  }
                 </p>
               </div>
             ) : (
@@ -394,17 +380,17 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
                 <div className="bg-gray-50 px-3 py-2 border-b border-gray-200">
                   <h4 className="text-sm font-medium text-gray-700">
                     <i className="fas fa-chart-pie mr-2 text-gray-400"></i>
-                    {t("rebalance.investCash.planAssets", "Plan Allocations")}
+                    {"Plan Allocations"}
                   </h4>
                 </div>
                 {loadingPlan ? (
                   <div className="py-4 text-center text-gray-500 text-sm">
                     <i className="fas fa-spinner fa-spin mr-2"></i>
-                    {t("loading", "Loading...")}
+                    {"Loading..."}
                   </div>
                 ) : planAssets.length === 0 ? (
                   <div className="py-4 text-center text-gray-500 text-sm">
-                    {t("rebalance.investCash.noAssets", "No assets in plan")}
+                    {"No assets in plan"}
                   </div>
                 ) : (
                   <div className="max-h-48 overflow-y-auto">
@@ -412,10 +398,10 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
                       <thead className="bg-gray-50 sticky top-0">
                         <tr>
                           <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                            {t("asset", "Asset")}
+                            {"Asset"}
                           </th>
                           <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase w-20">
-                            {t("weight", "Weight")}
+                            {"Weight"}
                           </th>
                         </tr>
                       </thead>
@@ -451,7 +437,7 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
                             <td className="px-3 py-2">
                               <div className="font-medium text-blue-700 text-sm">
                                 <i className="fas fa-coins mr-1"></i>
-                                {t("cash", "Cash")}
+                                {"Cash"}
                               </div>
                             </td>
                             <td className="px-3 py-2 text-right text-sm text-blue-700">
@@ -474,16 +460,16 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                    {t("asset", "Asset")}
+                    {"Asset"}
                   </th>
                   <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase w-24">
-                    {t("quantity", "Qty")}
+                    {"Qty"}
                   </th>
                   <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase w-28">
-                    {t("price", "Price")}
+                    {"Price"}
                   </th>
                   <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase w-28">
-                    {t("value", "Value")}
+                    {"Value"}
                   </th>
                 </tr>
               </thead>
@@ -553,25 +539,19 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="grid grid-cols-3 gap-4 text-sm">
               <div>
-                <div className="text-gray-500">
-                  {t("rebalance.investCash.portfolioCash", "Portfolio Cash")}
-                </div>
+                <div className="text-gray-500">{"Portfolio Cash"}</div>
                 <div className="font-semibold">
                   {formatCurrency(portfolioCash)}
                 </div>
               </div>
               <div>
-                <div className="text-gray-500">
-                  {t("rebalance.investCash.spending", "Spending")}
-                </div>
+                <div className="text-gray-500">{"Spending"}</div>
                 <div className="font-semibold text-green-600">
                   {formatCurrency(totalSpending)}
                 </div>
               </div>
               <div>
-                <div className="text-gray-500">
-                  {t("rebalance.investCash.cashAfter", "Cash After")}
-                </div>
+                <div className="text-gray-500">{"Cash After"}</div>
                 <div
                   className={`font-semibold ${
                     cashAfter < 0
@@ -588,10 +568,9 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
             {cashAfter < 0 && (
               <div className="mt-2 text-xs text-amber-600">
                 <i className="fas fa-exclamation-triangle mr-1"></i>
-                {t(
-                  "rebalance.investCash.insufficientCash",
-                  "Warning: Insufficient cash. You may still create proposed transactions for review.",
-                )}
+                {
+                  "Warning: Insufficient cash. You may still create proposed transactions for review."
+                }
               </div>
             )}
           </div>
@@ -600,14 +579,14 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
               <label className="text-sm font-medium text-gray-700">
-                {t("trn.broker", "Broker")}
+                {"Broker"}
               </label>
               <a
                 href="/brokers"
                 target="_blank"
                 className="text-xs text-invest-600 hover:text-invest-700"
               >
-                {t("brokers.manage", "Manage")}
+                {"Manage"}
               </a>
             </div>
             <select
@@ -615,9 +594,7 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
               onChange={(e) => setSelectedBrokerId(e.target.value || undefined)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
             >
-              <option value="">
-                {t("trn.broker.none", "-- No broker --")}
-              </option>
+              <option value="">{"-- No broker --"}</option>
               {brokers.map((broker) => (
                 <option key={broker.id} value={broker.id}>
                   {broker.name}
@@ -630,10 +607,9 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
           <div className="text-sm text-gray-500 flex items-start gap-2">
             <i className="fas fa-info-circle mt-0.5"></i>
             <span>
-              {t(
-                "rebalance.investCash.proposedNote",
-                "Transactions will be created as PROPOSED. You can review and settle them from the transaction list.",
-              )}
+              {
+                "Transactions will be created as PROPOSED. You can review and settle them from the transaction list."
+              }
             </span>
           </div>
         </div>

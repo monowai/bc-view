@@ -1,8 +1,5 @@
 import React from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
-import { useTranslation } from "next-i18next"
-import { GetServerSideProps } from "next"
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { rootLoader } from "@components/ui/PageLoader"
 import { useIsAdmin } from "@hooks/useIsAdmin"
 import Link from "next/link"
@@ -121,7 +118,6 @@ function ServiceCard({
 }: {
   service: ServiceStatus
 }): React.ReactElement {
-  const { t } = useTranslation("common")
   const status = service.health?.status || "UNKNOWN"
   const gitInfo = service.info?.git
   const buildInfo = service.info?.build
@@ -146,17 +142,13 @@ function ServiceCard({
         {/* Version info */}
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div>
-            <span className="text-gray-500">
-              {t("admin.services.version", "Version")}:
-            </span>
+            <span className="text-gray-500">{"Version"}:</span>
             <span className="ml-2 font-mono text-gray-900">
               {buildInfo?.version || "-"}
             </span>
           </div>
           <div>
-            <span className="text-gray-500">
-              {t("admin.services.branch", "Branch")}:
-            </span>
+            <span className="text-gray-500">{"Branch"}:</span>
             <span className="ml-2 font-mono text-gray-900">
               {gitInfo?.branch || "-"}
             </span>
@@ -166,9 +158,7 @@ function ServiceCard({
         {/* Git info */}
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div>
-            <span className="text-gray-500">
-              {t("admin.services.commit", "Commit")}:
-            </span>
+            <span className="text-gray-500">{"Commit"}:</span>
             <span
               className="ml-2 font-mono text-gray-900 cursor-help"
               title={
@@ -181,9 +171,7 @@ function ServiceCard({
             </span>
           </div>
           <div>
-            <span className="text-gray-500">
-              {t("admin.services.built", "Built")}:
-            </span>
+            <span className="text-gray-500">{"Built"}:</span>
             <span className="ml-2 text-gray-900">
               {formatDate(gitInfo?.commit?.time || buildInfo?.time)}
             </span>
@@ -192,17 +180,13 @@ function ServiceCard({
 
         {/* Response time */}
         <div className="text-sm">
-          <span className="text-gray-500">
-            {t("admin.services.responseTime", "Response")}:
-          </span>
+          <span className="text-gray-500">{"Response"}:</span>
           <span className="ml-2 text-gray-900">{service.responseTimeMs}ms</span>
         </div>
 
         {/* URL */}
         <div className="text-sm">
-          <span className="text-gray-500">
-            {t("admin.services.url", "URL")}:
-          </span>
+          <span className="text-gray-500">{"URL"}:</span>
           <span className="ml-2 font-mono text-xs text-gray-600 break-all">
             {service.url}
           </span>
@@ -221,8 +205,7 @@ function ServiceCard({
           Object.keys(service.health.components).length > 0 && (
             <details className="mt-2">
               <summary className="text-sm text-gray-500 cursor-pointer hover:text-gray-700">
-                {t("admin.services.components", "Components")} (
-                {Object.keys(service.health.components).length})
+                {"Components"} ({Object.keys(service.health.components).length})
               </summary>
               <div className="mt-2 pl-4 space-y-1">
                 {Object.entries(service.health.components).map(
@@ -259,7 +242,6 @@ function ServiceCard({
 
 export default withPageAuthRequired(
   function ServicesPage(): React.ReactElement {
-    const { t, ready } = useTranslation("common")
     const { isAdmin, isLoading } = useIsAdmin()
 
     const {
@@ -273,8 +255,8 @@ export default withPageAuthRequired(
       { refreshInterval: 30000 }, // Refresh every 30 seconds
     )
 
-    if (!ready || isLoading) {
-      return rootLoader(t("loading"))
+    if (isLoading) {
+      return rootLoader("Loading...")
     }
 
     if (!isAdmin) {
@@ -283,19 +265,16 @@ export default withPageAuthRequired(
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
             <i className="fas fa-lock text-4xl text-red-400 mb-4"></i>
             <h1 className="text-xl font-semibold text-red-700 mb-2">
-              {t("admin.accessDenied.title", "Access Denied")}
+              {"Access Denied"}
             </h1>
             <p className="text-red-600">
-              {t(
-                "admin.accessDenied.message",
-                "You do not have permission to access the admin area.",
-              )}
+              {"You do not have permission to access the admin area."}
             </p>
             <Link
               href="/portfolios"
               className="inline-block mt-4 px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
             >
-              {t("admin.accessDenied.goBack", "Return to Portfolios")}
+              {"Return to Portfolios"}
             </Link>
           </div>
         </div>
@@ -318,14 +297,11 @@ export default withPageAuthRequired(
                 <i className="fas fa-arrow-left"></i>
               </Link>
               <h1 className="text-2xl font-bold text-gray-900">
-                {t("admin.services.title", "Service Status")}
+                {"Service Status"}
               </h1>
             </div>
             <p className="text-gray-600">
-              {t(
-                "admin.services.description",
-                "Monitor health and version of backend services",
-              )}
+              {"Monitor health and version of backend services"}
             </p>
           </div>
           <div className="flex items-center space-x-4">
@@ -339,8 +315,8 @@ export default withPageAuthRequired(
                 ></i>
                 <span className={allUp ? "text-green-700" : "text-yellow-700"}>
                   {allUp
-                    ? t("admin.services.allUp", "All services operational")
-                    : t("admin.services.someDown", "Some services degraded")}
+                    ? "All services operational"
+                    : "Some services degraded"}
                 </span>
               </div>
             )}
@@ -352,7 +328,7 @@ export default withPageAuthRequired(
               <i
                 className={`fas fa-sync-alt ${loadingServices ? "fa-spin" : ""}`}
               ></i>
-              <span>{t("admin.services.refresh", "Refresh")}</span>
+              <span>{"Refresh"}</span>
             </button>
           </div>
         </div>
@@ -362,7 +338,7 @@ export default withPageAuthRequired(
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
             <i className="fas fa-exclamation-triangle text-red-500 mr-2"></i>
             <span className="text-red-700">
-              {t("admin.services.fetchError", "Failed to fetch service status")}
+              {"Failed to fetch service status"}
             </span>
           </div>
         )}
@@ -394,8 +370,7 @@ export default withPageAuthRequired(
 
             {/* Last updated */}
             <div className="mt-4 text-sm text-gray-500 text-right">
-              {t("admin.services.lastUpdated", "Last updated")}:{" "}
-              {formatDate(data.timestamp)}
+              {"Last updated"}: {formatDate(data.timestamp)}
             </div>
           </>
         )}
@@ -403,9 +378,3 @@ export default withPageAuthRequired(
     )
   },
 )
-
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => ({
-  props: {
-    ...(await serverSideTranslations(locale as string, ["common"])),
-  },
-})
