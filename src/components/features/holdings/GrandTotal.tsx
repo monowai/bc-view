@@ -46,7 +46,7 @@ export default function GrandTotal({
         className="holding-footer text-sm bg-blue-50 text-blue-600 border-b border-blue-100"
       >
         <td className="px-0.5 py-1.5 sm:px-1 md:px-2 xl:px-3 text-sm font-semibold text-left text-blue-900 bg-blue-100/80">
-          <div>{`${valueIn} currency`}</div>
+          <div>{`Value in ${valueIn}`}</div>
         </td>
         {/* Skip Price column - hidden on mobile portrait, visible on landscape (640px+) */}
         <td colSpan={1} className="hidden sm:table-cell bg-blue-100/60" />

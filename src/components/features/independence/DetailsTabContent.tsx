@@ -157,6 +157,24 @@ export default function DetailsTabContent({
               </span>
             </div>
           )}
+          {planInputs?.definedContribution != null &&
+            planInputs.definedContribution > 0 && (
+              <div className="flex justify-between">
+                <InfoTooltip text="Mandatory defined contribution (e.g., CPF) deducted from your investment allocation. This is invested for you by the government scheme.">
+                  <span className="text-gray-500">
+                    <i className="fas fa-building text-xs mr-1"></i>
+                    Defined Contribution
+                  </span>
+                </InfoTooltip>
+                <span
+                  className={`font-medium ${hideValues ? "text-gray-400" : "text-teal-600"}`}
+                >
+                  {hideValues
+                    ? HIDDEN_VALUE
+                    : `-${detailsCurrency}${Math.round(planInputs.definedContribution).toLocaleString()}`}
+                </span>
+              </div>
+            )}
           <div className="flex justify-between">
             <InfoTooltip
               text={
@@ -243,6 +261,9 @@ export default function DetailsTabContent({
                 ending balance
               </div>
             )}
+            <div className="text-xs text-amber-600 bg-amber-50 rounded px-2 py-1">
+              Assumes steady returns with no market volatility. Use Stress Test for a range of outcomes.
+            </div>
             <hr />
             {projection.expenseAdjustment != null &&
               projection.expenseAdjustmentPercent != null && (

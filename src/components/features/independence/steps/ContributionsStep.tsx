@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from "react"
+import React, { useEffect, useMemo, useRef, useState } from "react"
 import {
   Control,
   Controller,
@@ -13,6 +13,7 @@ import { simpleFetcher } from "@utils/api/fetchHelper"
 import { WizardFormData, ContributionFormEntry } from "types/independence"
 import { Asset } from "types/beancounter"
 import { wizardMessages } from "@lib/independence/messages"
+import { useDefinedContribution } from "../useDefinedContribution"
 import {
   StepHeader,
   CurrencyInputWithPeriod,
@@ -31,12 +32,14 @@ interface ContributionsStepProps {
   control: Control<WizardFormData>
   errors: FieldErrors<WizardFormData>
   getValues: UseFormGetValues<WizardFormData>
+  isEditMode?: boolean
 }
 
 export default function ContributionsStep({
   control,
   errors,
   getValues,
+  isEditMode,
 }: ContributionsStepProps): React.ReactElement {
   const { fields, replace } = useFieldArray({
     control,
@@ -91,6 +94,18 @@ export default function ContributionsStep({
   const bonusMonthly = useWatch({ control, name: "bonusMonthly" }) || 0
   const investmentAllocationPercent =
     useWatch({ control, name: "investmentAllocationPercent" }) || 80
+  const yearOfBirth = useWatch({ control, name: "yearOfBirth" }) || 0
+
+  // Defined contribution (e.g., CPF) auto-calculation
+  const currentYear = new Date().getFullYear()
+  const currentAge = yearOfBirth > 0 ? currentYear - yearOfBirth : undefined
+  const { data: dcData } = useDefinedContribution(
+    workingIncomeMonthly,
+    currentAge,
+  )
+  const [useDC, setUseDC] = useState(true)
+  const dcAmount =
+    useDC && dcData?.hasDefinedContribution ? Math.round(dcData.employeeContribution) : 0
 
   // Initialize contributions with pension assets when data loads
   // Only initialize for NEW plans or when there are no contributions yet
@@ -189,6 +204,9 @@ export default function ContributionsStep({
     surplusAfterContributions * (investmentAllocationPercent / 100),
   )
 
+  // Investment target after DC deduction
+  const investmentTarget = Math.max(0, monthlyInvestment - dcAmount)
+
   // Summary items for display
   const summaryItems: SummaryItem[] = [
     {
@@ -237,14 +255,34 @@ export default function ContributionsStep({
       value: monthlyInvestment,
       format: "currency",
     },
+    ...(dcAmount > 0
+      ? [
+          {
+            icon: "fa-building",
+            label: "Defined Contribution",
+            value: -dcAmount,
+            format: "currency" as const,
+            valueClassName: "text-red-600",
+          },
+          {
+            icon: "fa-bullseye",
+            label: "Your Investment Target",
+            value: investmentTarget,
+            format: "currency" as const,
+            valueClassName: "text-green-600 font-bold",
+          },
+        ]
+      : []),
   ]
 
   const summaryDescription =
     surplusAfterContributions < 0
       ? "Your expenses and contributions exceed your net income. Consider adjusting your budget."
-      : grandTotal > 0
-        ? `After $${grandTotal.toLocaleString()} in pension contributions, you have $${surplusAfterContributions.toLocaleString()} available. Investing ${investmentAllocationPercent}% = $${monthlyInvestment.toLocaleString()}/month.`
-        : `Aim to invest ${investmentAllocationPercent}% of your $${monthlySurplus.toLocaleString()} surplus each month.`
+      : dcAmount > 0
+        ? `After pension contributions and $${dcAmount.toLocaleString()} defined contribution, your independent investment target is $${investmentTarget.toLocaleString()}/month.`
+        : grandTotal > 0
+          ? `After $${grandTotal.toLocaleString()} in pension contributions, you have $${surplusAfterContributions.toLocaleString()} available. Investing ${investmentAllocationPercent}% = $${monthlyInvestment.toLocaleString()}/month.`
+          : `Aim to invest ${investmentAllocationPercent}% of your $${monthlySurplus.toLocaleString()} surplus each month.`
 
   // Get display name for an asset
   const getAssetName = (assetId: string, fallback: string): string => {
@@ -274,10 +312,12 @@ export default function ContributionsStep({
         description="Enter your current income details and pension contributions."
       />
 
-      <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-start">
-        <i className="fas fa-check-circle text-green-600 mt-0.5 mr-2"></i>
-        <p className="text-sm text-green-700">{msg.skipHint}</p>
-      </div>
+      {(!isEditMode || workingIncomeMonthly === 0) && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-start">
+          <i className="fas fa-check-circle text-green-600 mt-0.5 mr-2"></i>
+          <p className="text-sm text-green-700">{msg.skipHint}</p>
+        </div>
+      )}
 
       {/* Income Section */}
       <div className="space-y-4">
@@ -316,6 +356,64 @@ export default function ContributionsStep({
           step={5}
         />
       </div>
+
+      {/* Defined Contribution Section */}
+      {dcData?.hasDefinedContribution && (
+        <div className="border-t border-gray-200 pt-6">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-medium text-gray-700">
+              Defined Contribution
+            </h3>
+            <button
+              type="button"
+              onClick={() => setUseDC(!useDC)}
+              className={`text-sm px-3 py-1 rounded-full border transition-colors ${
+                useDC
+                  ? "bg-teal-50 border-teal-300 text-teal-700"
+                  : "bg-gray-50 border-gray-300 text-gray-500"
+              }`}
+            >
+              {useDC ? "Using DC" : "Ignoring DC"}
+            </button>
+          </div>
+          <div
+            className={`p-4 rounded-lg border ${
+              useDC
+                ? "bg-teal-50 border-teal-200"
+                : "bg-gray-50 border-gray-200 opacity-60"
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <i className="fas fa-building text-teal-600 mr-3"></i>
+                <div>
+                  <span className="font-medium text-gray-900">
+                    Employee Contribution
+                  </span>
+                  <span className="ml-2 text-xs px-2 py-0.5 rounded bg-teal-100 text-teal-700">
+                    Auto-calculated
+                  </span>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {(dcData.employeeRate * 100).toFixed(1)}% of $
+                    {Math.round(dcData.cappedSalary).toLocaleString()} capped
+                    salary
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-xl font-bold text-teal-700">
+                  ${Math.round(dcData.employeeContribution).toLocaleString()}
+                </span>
+                <p className="text-xs text-gray-500">/month</p>
+              </div>
+            </div>
+          </div>
+          <p className="text-sm text-gray-500 mt-2">
+            This mandatory contribution is already invested for you. Your
+            independent investment target is reduced accordingly.
+          </p>
+        </div>
+      )}
 
       {/* Pension Contributions Section */}
       {pensionAssets.length > 0 && (

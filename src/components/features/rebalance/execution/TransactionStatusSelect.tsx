@@ -26,7 +26,7 @@ const TransactionStatusSelect: React.FC<TransactionStatusSelectProps> = ({
           }`}
         >
           <div className="flex items-center gap-2 mb-1">
-            <i className="fas fa-clock text-yellow-500"></i>
+            <i className="fas fa-clock text-yellow-500" aria-hidden="true"></i>
             <span className="font-medium">{"Unsettled"}</span>
           </div>
           <p className="text-sm text-gray-600">
@@ -45,7 +45,7 @@ const TransactionStatusSelect: React.FC<TransactionStatusSelectProps> = ({
           }`}
         >
           <div className="flex items-center gap-2 mb-1">
-            <i className="fas fa-check-circle text-green-500"></i>
+            <i className="fas fa-check-circle text-green-500" aria-hidden="true"></i>
             <span className="font-medium">{"Settled"}</span>
           </div>
           <p className="text-sm text-gray-600">

@@ -319,7 +319,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                   {group.broker?.name || "No Broker"}
                 </span>
                 <span className="text-sm text-indigo-600">
-                  {group.transactions.length} {"Trades"}
+                  {group.transactions.length}{" "}{group.transactions.length === 1 ? "Trade" : "Trades"}
                 </span>
               </div>
               {/* Transactions */}
@@ -518,7 +518,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                   {group.broker?.name || "No Broker"}
                 </span>
                 <span className="text-sm text-indigo-600">
-                  {group.transactions.length} {"Trades"}
+                  {group.transactions.length}{" "}{group.transactions.length === 1 ? "Trade" : "Trades"}
                 </span>
               </div>
               {/* Table */}
