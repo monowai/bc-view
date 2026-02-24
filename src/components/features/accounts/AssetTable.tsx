@@ -33,9 +33,7 @@ const AssetTable: React.FC<AssetTableProps> = ({
   if (accounts.length === 0) {
     return (
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center text-gray-500">
-        <p>
-          {emptyMessage || "You have no custom assets."}
-        </p>
+        <p>{emptyMessage || "You have no custom assets."}</p>
         <p className="text-sm mt-2">{"Click Add Asset to create one."}</p>
       </div>
     )

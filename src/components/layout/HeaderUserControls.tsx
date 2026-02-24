@@ -121,13 +121,13 @@ export default function HeaderUserControls(): React.ReactElement {
             </Link>
           )}
           <hr className="my-1 border-gray-100" />
-          <Link
+          <a
             href="/auth/logout"
             className="flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
           >
             <i className="fas fa-sign-out-alt w-4 text-center text-xs"></i>
             {"Logout"}
-          </Link>
+          </a>
         </div>
       )}
     </div>

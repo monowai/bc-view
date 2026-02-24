@@ -82,7 +82,9 @@ const PortfolioSelector: React.FC<PortfolioSelectorProps> = ({
               ? "Deselect All"
               : "Select All"}
           </button>
-          <span className="text-sm text-gray-500">{selectedCodes.length} {"selected"}</span>
+          <span className="text-sm text-gray-500">
+            {selectedCodes.length} {"selected"}
+          </span>
         </div>
       )}
 

@@ -29,7 +29,7 @@ function OffboardingPage(): React.ReactElement {
             </h1>
             <p className="text-gray-600 max-w-2xl mx-auto">
               {
-                "Select what you'd like to remove from Beancounter. This action cannot be undone."
+                "Choose what you'd like to remove from Beancounter. This action cannot be undone."
               }
             </p>
           </div>

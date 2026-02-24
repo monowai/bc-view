@@ -7,11 +7,13 @@ import { usePrivateAssetConfigs } from "@utils/assets/usePrivateAssetConfigs"
 interface IncomeSourcesStepProps {
   control: Control<WizardFormData>
   errors: FieldErrors<WizardFormData>
+  isEditMode?: boolean
 }
 
 export default function IncomeSourcesStep({
   control,
   errors,
+  isEditMode,
 }: IncomeSourcesStepProps): React.ReactElement {
   const pensionMonthly = useWatch({ control, name: "pensionMonthly" }) || 0
   const socialSecurityMonthly =
@@ -79,12 +81,17 @@ export default function IncomeSourcesStep({
         description="Tell us about your expected independence income sources. These amounts will offset your monthly expenses."
       />
 
-      <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-start">
-        <i className="fas fa-check-circle text-green-600 mt-0.5 mr-2"></i>
-        <p className="text-sm text-green-700">
-          You can configure income sources later — click Next to continue.
-        </p>
-      </div>
+      {(!isEditMode ||
+        (pensionMonthly === 0 &&
+          socialSecurityMonthly === 0 &&
+          otherIncomeMonthly === 0)) && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-start">
+          <i className="fas fa-check-circle text-green-600 mt-0.5 mr-2"></i>
+          <p className="text-sm text-green-700">
+            You can configure income sources later — click Next to continue.
+          </p>
+        </div>
+      )}
 
       {/* Property Rental Income (read-only) */}
       {!configsLoading && hasRentalIncome && (

@@ -105,6 +105,8 @@ interface UseUnifiedProjectionProps {
   scenarioOverrides?: ScenarioOverrides
   /** Optional rental income data (full mode only) */
   rentalIncome?: RentalIncomeData
+  /** Optional defined contribution amount override (full mode only) */
+  definedContribution?: number
 }
 
 interface UseUnifiedProjectionResult {
@@ -186,6 +188,7 @@ export function useUnifiedProjection({
   whatIfAdjustments = DEFAULT_WHAT_IF,
   scenarioOverrides = {},
   rentalIncome,
+  definedContribution,
 }: UseUnifiedProjectionProps): UseUnifiedProjectionResult {
   const [projection, setProjection] = useState<RetirementProjection | null>(
     null,
@@ -297,6 +300,11 @@ export function useUnifiedProjection({
         nonSpendableAssets: assets.nonSpendableAssets,
       }
 
+      // Add defined contribution override if provided
+      if (definedContribution != null) {
+        requestBody.definedContribution = definedContribution
+      }
+
       // Add rental income if provided
       if (rentalIncome?.totalMonthlyInPlanCurrency) {
         requestBody.rentalIncomeMonthly =
@@ -348,6 +356,7 @@ export function useUnifiedProjection({
     scenarioOverrides,
     whatIfAdjustments,
     displayCurrency,
+    definedContribution,
   ])
 
   // Auto-calculate when ready

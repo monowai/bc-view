@@ -5,7 +5,10 @@ import { Portfolio } from "types/beancounter"
 import { useRouter } from "next/router"
 
 export function Portfolios(selectedPortfolio: Portfolio): ReactElement {
-  const { data, isLoading } = useSwr(portfoliosKey, simpleFetcher(portfoliosKey))
+  const { data, isLoading } = useSwr(
+    portfoliosKey,
+    simpleFetcher(portfoliosKey),
+  )
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const [selected, setSelected] = useState(selectedPortfolio)

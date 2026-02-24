@@ -32,6 +32,8 @@ export default function ResourceShareInviteDialog({
   const [success, setSuccess] = useState<string | null>(null)
 
   const typeLabel = resourceType === "INDEPENDENCE_PLAN" ? "Plans" : "Models"
+  const typeLabelSingular =
+    resourceType === "INDEPENDENCE_PLAN" ? "plan" : "model"
 
   const toggleResource = (id: string): void => {
     setSelectedIds((prev) => {
@@ -54,7 +56,7 @@ export default function ResourceShareInviteDialog({
       return
     }
     if (selectedIds.size === 0) {
-      setError(`Please select at least one ${typeLabel.toLowerCase().slice(0, -1)}`)
+      setError(`Please select at least one ${typeLabelSingular}`)
       return
     }
 
