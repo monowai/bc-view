@@ -21,37 +21,17 @@ export default function IncomeSourcesStep({
   const otherIncomeMonthly =
     useWatch({ control, name: "otherIncomeMonthly" }) || 0
 
-  // Fetch rental income from RE assets
-  const { configs, isLoading: configsLoading } = usePrivateAssetConfigs()
+  // Fetch rental income from RE assets (net after expenses and income tax)
+  const {
+    configs,
+    isLoading: configsLoading,
+    getNetRentalByCurrency,
+  } = usePrivateAssetConfigs()
 
-  // Calculate net rental income (after all expenses) grouped by currency
   const rentalIncomeByCurrency = React.useMemo(() => {
-    if (!configs) return {}
-    return configs
-      .filter((c) => !c.isPrimaryResidence && c.monthlyRentalIncome > 0)
-      .reduce(
-        (acc, c) => {
-          const currency = c.rentalCurrency || "NZD"
-          // Management fee: use greater of fixed or percentage
-          const percentFee = c.monthlyRentalIncome * c.managementFeePercent
-          const effectiveMgmtFee = Math.max(c.monthlyManagementFee, percentFee)
-          // Convert annual amounts to monthly
-          const monthlyTax = (c.annualPropertyTax || 0) / 12
-          const monthlyInsurance = (c.annualInsurance || 0) / 12
-          // Total expenses
-          const totalExpenses =
-            effectiveMgmtFee +
-            (c.monthlyBodyCorporateFee || 0) +
-            monthlyTax +
-            monthlyInsurance +
-            (c.monthlyOtherExpenses || 0)
-          const netIncome = c.monthlyRentalIncome - totalExpenses
-          acc[currency] = (acc[currency] || 0) + netIncome
-          return acc
-        },
-        {} as Record<string, number>,
-      )
-  }, [configs])
+    if (!configs || configs.length === 0) return {}
+    return getNetRentalByCurrency()
+  }, [configs, getNetRentalByCurrency])
 
   const hasRentalIncome = Object.keys(rentalIncomeByCurrency).length > 0
 

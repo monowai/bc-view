@@ -42,6 +42,7 @@ describe("IncomeSourcesStep", () => {
       configs: [],
       isLoading: false,
       error: undefined,
+      getNetRentalByCurrency: () => ({}),
     })
   })
 
@@ -124,6 +125,7 @@ describe("IncomeSourcesStep", () => {
         configs: [],
         isLoading: false,
         error: undefined,
+        getNetRentalByCurrency: () => ({}),
       })
 
       render(
@@ -152,6 +154,7 @@ describe("IncomeSourcesStep", () => {
         ],
         isLoading: false,
         error: undefined,
+        getNetRentalByCurrency: () => ({}),
       })
 
       render(
@@ -196,6 +199,7 @@ describe("IncomeSourcesStep", () => {
         ],
         isLoading: false,
         error: undefined,
+        getNetRentalByCurrency: () => ({}),
       })
 
       render(
