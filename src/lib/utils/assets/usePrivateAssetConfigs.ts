@@ -5,6 +5,7 @@ import {
   PrivateAssetConfigRequest,
   PrivateAssetConfigResponse,
   PrivateAssetConfigsResponse,
+  TaxRatesResponse,
 } from "types/beancounter"
 
 interface UsePrivateAssetConfigsResult {
@@ -27,6 +28,7 @@ interface UsePrivateAssetConfigsResult {
 }
 
 const API_URL = "/api/assets/config"
+const TAX_RATES_URL = "/api/tax-rates"
 
 /**
  * Hook to fetch and manage private asset configurations.
@@ -41,6 +43,19 @@ export function usePrivateAssetConfigs(): UsePrivateAssetConfigsResult {
     API_URL,
     simpleFetcher(API_URL),
   )
+
+  // Fetch tax rates for income tax deduction on rental properties
+  const { data: taxRatesData } = useSWR<TaxRatesResponse>(
+    TAX_RATES_URL,
+    simpleFetcher(TAX_RATES_URL),
+  )
+
+  const taxRates: Record<string, number> = {}
+  if (taxRatesData?.data) {
+    taxRatesData.data.forEach((tr) => {
+      taxRates[tr.countryCode] = tr.rate || 0
+    })
+  }
 
   /**
    * Save (create or update) a private asset configuration.
@@ -114,12 +129,9 @@ export function usePrivateAssetConfigs(): UsePrivateAssetConfigsResult {
   }
 
   /**
-   * Calculate total monthly net rental income grouped by currency (before income tax).
-   * Net = gross - all expenses (management, body corp, property tax, insurance, other).
+   * Calculate total monthly net rental income grouped by currency (after income tax).
+   * Net = gross - all expenses - income tax (when deductIncomeTax=true).
    * Excludes primary residences.
-   *
-   * Note: Income tax deduction (when deductIncomeTax=true) is handled by svc-retire
-   * which has access to currency tax rates. This calculation is for display purposes.
    */
   const getNetRentalByCurrency = (): Record<string, number> => {
     if (!data?.data) return {}
@@ -133,16 +145,25 @@ export function usePrivateAssetConfigs(): UsePrivateAssetConfigsResult {
           const percentFee = c.monthlyRentalIncome * c.managementFeePercent
           const effectiveMgmtFee = Math.max(c.monthlyManagementFee, percentFee)
           // Convert annual amounts to monthly
-          const monthlyTax = (c.annualPropertyTax || 0) / 12
+          const monthlyPropertyTax = (c.annualPropertyTax || 0) / 12
           const monthlyInsurance = (c.annualInsurance || 0) / 12
           // Total all expenses
           const totalExpenses =
             effectiveMgmtFee +
             (c.monthlyBodyCorporateFee || 0) +
-            monthlyTax +
+            monthlyPropertyTax +
             monthlyInsurance +
             (c.monthlyOtherExpenses || 0)
-          const netIncome = c.monthlyRentalIncome - totalExpenses
+          const taxableIncome = Math.max(
+            0,
+            c.monthlyRentalIncome - totalExpenses,
+          )
+          // Deduct income tax when enabled and rate is available
+          const incomeTax =
+            c.deductIncomeTax && taxRates[c.countryCode]
+              ? taxableIncome * taxRates[c.countryCode]
+              : 0
+          const netIncome = taxableIncome - incomeTax
           acc[currency] = (acc[currency] || 0) + netIncome
           return acc
         },
@@ -189,7 +210,7 @@ export function usePrivateAssetConfigs(): UsePrivateAssetConfigsResult {
   const getCompositeLiquidTotal = (config: PrivateAssetConfig): number => {
     if (!config.subAccounts) return 0
     return config.subAccounts
-      .filter((sa) => sa.liquid !== false)
+      .filter((sa) => sa.liquid)
       .reduce((sum, sa) => sum + (sa.balance || 0), 0)
   }
 
