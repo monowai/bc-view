@@ -5,10 +5,12 @@ import { StepHeader } from "../form"
 
 interface LifeEventsStepProps {
   control: Control<WizardFormData>
+  isEditMode?: boolean
 }
 
 export default function LifeEventsStep({
   control,
+  isEditMode,
 }: LifeEventsStepProps): React.ReactElement {
   const lifeEvents = useWatch({ control, name: "lifeEvents" }) || []
 
@@ -45,12 +47,14 @@ export default function LifeEventsStep({
         description="Add one-off income or expenses at specific ages. These are significant financial events like inheritance, property sale, or major purchases."
       />
 
-      <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-start">
-        <i className="fas fa-check-circle text-green-600 mt-0.5 mr-2"></i>
-        <p className="text-sm text-green-700">
-          Life events are optional — click Save Plan to finish.
-        </p>
-      </div>
+      {(!isEditMode || lifeEvents.length === 0) && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-start">
+          <i className="fas fa-check-circle text-green-600 mt-0.5 mr-2"></i>
+          <p className="text-sm text-green-700">
+            Life events are optional — click Save Plan to finish.
+          </p>
+        </div>
+      )}
 
       {/* Add new event form */}
       <div className="bg-gray-50 rounded-lg p-4 space-y-4">

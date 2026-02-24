@@ -225,6 +225,8 @@ export interface ProjectionRequest {
   otherIncomeMonthly?: number
   /** Override target balance (default: use plan value) */
   targetBalance?: number
+  /** Override defined contribution amount. If non-null, used instead of auto-calculated. */
+  definedContribution?: number
 }
 
 /**
@@ -417,6 +419,8 @@ export interface PlanInputs {
   inflationRate: number
   /** Blended return rate as decimal */
   blendedReturnRate: number
+  /** Defined contribution deduction applied (e.g., CPF employee contribution) */
+  definedContribution?: number
 }
 
 export interface RetirementProjection {

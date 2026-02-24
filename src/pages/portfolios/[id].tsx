@@ -113,7 +113,7 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
   ])
 
   if (ccyResponse.error) {
-    return errorOut(`Error retrieving portfolio ${router.query.id}`, ccyResponse.error)
+    return errorOut("Error retrieving currency data", ccyResponse.error)
   }
   if (error) {
     return errorOut(`Error retrieving portfolio ${router.query.id}`, error)
@@ -238,9 +238,12 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
           >
             {"Cancel"}
           </button>
-          <button className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-            <Link href={`/holdings/${portfolio.code}`}>{"Holdings"}</Link>
-          </button>
+          <Link
+            href={`/holdings/${portfolio.code}`}
+            className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+          >
+            {"Holdings"}
+          </Link>
         </div>
       </form>
       <div className="max-w-lg mx-auto mt-6">

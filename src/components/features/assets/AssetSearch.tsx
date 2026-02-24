@@ -151,7 +151,14 @@ export default function AssetSearch({
         return "Type at least 2 characters"
       }
       if (noResultsHref) {
-        return "No results found. Create a private asset?"
+        return (
+          <span>
+            No results found.{" "}
+            <a href={noResultsHref} className="text-blue-600 hover:underline">
+              Create a private asset?
+            </a>
+          </span>
+        )
       }
       return "No assets found"
     },

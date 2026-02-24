@@ -45,6 +45,12 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
   if (events.isLoading) {
     return rootLoader("Loading...")
   }
+  if (!portfolioId || !assetId) {
+    return errorOut(
+      "Invalid URL: missing portfolio or asset parameters",
+      new Error("Missing URL parameters"),
+    )
+  }
   const trnResults = events.data.data
   const hasEvents = trnResults && trnResults.length > 0
 

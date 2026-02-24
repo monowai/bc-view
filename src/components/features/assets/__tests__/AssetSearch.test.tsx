@@ -152,9 +152,8 @@ describe("AssetSearch", () => {
       await flushAsync()
 
       await waitFor(() => {
-        expect(
-          screen.getByText("No results found. Create a private asset?"),
-        ).toBeInTheDocument()
+        expect(screen.getByText(/No results found/)).toBeInTheDocument()
+        expect(screen.getByText("Create a private asset?")).toBeInTheDocument()
       })
     })
   })

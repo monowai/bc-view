@@ -125,7 +125,7 @@ export default withPageAuthRequired(function Portfolios({
 
   if (
     activeTab === "my" &&
-    (!data || (data.data.length > 0 && !fxRatesReady))
+    (!data || ((data.data?.length ?? 0) > 0 && !fxRatesReady))
   ) {
     return rootLoader("Loading...")
   }

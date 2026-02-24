@@ -12,7 +12,7 @@ describe("GrandTotal Structure Validation", () => {
     expect(cells).toHaveLength(14) // 1 label + 1 spacer + 12 data cells
 
     // Validate first cell is the value title
-    expect(cells![0]).toHaveTextContent("PORTFOLIO currency")
+    expect(cells![0]).toHaveTextContent("Value in PORTFOLIO")
 
     // Validate second cell is empty spacer
     expect(cells![1]).toHaveTextContent("")

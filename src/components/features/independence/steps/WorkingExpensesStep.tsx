@@ -20,6 +20,7 @@ interface WorkingExpensesStepProps {
   errors: FieldErrors<WizardFormData>
   setValue: UseFormSetValue<WizardFormData>
   getValues: UseFormGetValues<WizardFormData>
+  isEditMode?: boolean
 }
 
 const categoriesKey = "/api/independence/categories"
@@ -29,6 +30,7 @@ export default function WorkingExpensesStep({
   errors,
   setValue,
   getValues,
+  isEditMode,
 }: WorkingExpensesStepProps): React.ReactElement {
   const { fields, append, remove } = useFieldArray({
     control,
@@ -135,10 +137,12 @@ export default function WorkingExpensesStep({
         <p className="text-sm text-gray-600">{msg.description}</p>
       </div>
 
-      <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-start">
-        <i className="fas fa-check-circle text-green-600 mt-0.5 mr-2"></i>
-        <p className="text-sm text-green-700">{msg.skipHint}</p>
-      </div>
+      {(!isEditMode || totalMonthlyExpenses === 0) && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-start">
+          <i className="fas fa-check-circle text-green-600 mt-0.5 mr-2"></i>
+          <p className="text-sm text-green-700">{msg.skipHint}</p>
+        </div>
+      )}
 
       <div className="space-y-3">
         {fields.map((field, index) => {

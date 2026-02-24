@@ -67,6 +67,7 @@ const LIQUID_CATEGORIES: ManualAssetCategory[] = [
 interface AssetsStepProps {
   control: Control<WizardFormData>
   setValue: UseFormSetValue<WizardFormData>
+  isEditMode?: boolean
 }
 
 interface PortfoliosResponse {
@@ -95,6 +96,7 @@ interface AssetWithoutBalance {
 export default function AssetsStep({
   control,
   setValue,
+  isEditMode,
 }: AssetsStepProps): React.ReactElement {
   const hasAutoSelected = useRef(false)
 
@@ -656,7 +658,7 @@ export default function AssetsStep({
         <p className="text-sm text-gray-600">{msg.description}</p>
       </div>
 
-      {portfoliosWithBalance.length > 0 && (
+      {portfoliosWithBalance.length > 0 && !isEditMode && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start">
           <i className="fas fa-check-circle text-green-600 mt-0.5 mr-3"></i>
           <div>

@@ -18,7 +18,7 @@ exports[`GrandTotal Snapshot Tests matches desktop snapshot: desktop-layout 1`] 
         class="px-0.5 py-1.5 sm:px-1 md:px-2 xl:px-3 text-sm font-semibold text-left text-blue-900 bg-blue-100/80"
       >
         <div>
-          PORTFOLIO currency
+          Value in PORTFOLIO
         </div>
       </td>
       <td
@@ -232,7 +232,7 @@ exports[`GrandTotal Snapshot Tests matches mobile snapshot: mobile-layout 1`] = 
         class="px-0.5 py-1.5 sm:px-1 md:px-2 xl:px-3 text-sm font-semibold text-left text-blue-900 bg-blue-100/80"
       >
         <div>
-          PORTFOLIO currency
+          Value in PORTFOLIO
         </div>
       </td>
       <td
@@ -446,7 +446,7 @@ exports[`GrandTotal Snapshot Tests matches tablet snapshot: tablet-layout 1`] = 
         class="px-0.5 py-1.5 sm:px-1 md:px-2 xl:px-3 text-sm font-semibold text-left text-blue-900 bg-blue-100/80"
       >
         <div>
-          PORTFOLIO currency
+          Value in PORTFOLIO
         </div>
       </td>
       <td

@@ -54,7 +54,6 @@ export default function CompleteStep({
             }
           </p>
           {/* Using <a> intentionally - /auth/logout requires full page navigation for Auth0 logout flow */}
-          {}
           <a
             href="/auth/logout"
             className="inline-flex items-center px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
