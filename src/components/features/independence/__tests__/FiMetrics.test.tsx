@@ -1,4 +1,4 @@
-import React from "react"
+import React from "react";
 import { render, screen } from "@testing-library/react"
 import FiMetrics from "../FiMetrics"
 
@@ -170,18 +170,20 @@ describe("FiMetrics", () => {
   })
 
   describe("Coast FIRE", () => {
+    const CURRENT_AGE = 35
+    const RETIREMENT_AGE = 65 // yearsToRetirement = 30
+
+    const coastProps = {
+      ...defaultProps,
+      currentAge: CURRENT_AGE,
+      retirementAge: RETIREMENT_AGE,
+      expectedReturnRate: 0.07,
+      backendCoastFiNumber: 197000,
+      backendCoastFiProgress: 50,
+    }
+
     it("calculates Coast FI Number correctly", () => {
-      const { container } = render(
-        <FiMetrics
-          {...defaultProps}
-          currentAge={35}
-          expectedReturnRate={0.07}
-          backendRealYearsToFi={30} // Required for Coast FI display
-          backendCoastFiNumber={197000}
-          backendCoastFiProgress={50}
-        />,
-      )
-      // Coast FI now uses backend values based on years to FI
+      const { container } = render(<FiMetrics {...coastProps} />)
       expect(screen.getByText("Coast FI Number")).toBeInTheDocument()
       expect(container.textContent).toContain("Coast FI Progress")
     })
@@ -189,12 +191,8 @@ describe("FiMetrics", () => {
     it("shows Coast FIRE achieved when assets exceed Coast FI Number", () => {
       render(
         <FiMetrics
-          {...defaultProps}
+          {...coastProps}
           liquidAssets={250000}
-          currentAge={35}
-          expectedReturnRate={0.07}
-          backendRealYearsToFi={30}
-          backendCoastFiNumber={197000}
           backendCoastFiProgress={127} // 250k/197k = ~127%
           backendIsCoastFire={true}
         />,
@@ -205,34 +203,41 @@ describe("FiMetrics", () => {
     it("does not show Coast FIRE when already fully FI", () => {
       render(
         <FiMetrics
-          {...defaultProps}
-          liquidAssets={2000000} // Above full FI Number
-          currentAge={35}
-          backendFiProgress={133} // Above 100%
+          {...coastProps}
+          liquidAssets={2000000} // Above full FI Number of 1,500,000
+          backendFiProgress={133}
         />,
       )
-      // Should show FI achieved, not Coast FIRE
       expect(screen.getByText("Financially Independent!")).toBeInTheDocument()
       expect(screen.queryByText("Coast FI Number")).not.toBeInTheDocument()
     })
 
-    it("does not show Coast FIRE when backendRealYearsToFi not provided", () => {
-      render(<FiMetrics {...defaultProps} currentAge={35} />)
+    it("does not show Coast FIRE when retirementAge not provided", () => {
+      render(
+        <FiMetrics {...defaultProps} currentAge={CURRENT_AGE} />,
+      )
       expect(screen.queryByText("Coast FI Number")).not.toBeInTheDocument()
     })
 
-    it("shows years to FI in Coast FI section", () => {
+    it("shows years to retirement in Coast FI section", () => {
+      const age = 40
+      const retireAt = 60
+      const yearsToRetire = retireAt - age // 20
       render(
         <FiMetrics
           {...defaultProps}
-          currentAge={40}
+          currentAge={age}
+          retirementAge={retireAt}
           expectedReturnRate={0.07}
-          backendRealYearsToFi={20}
           backendCoastFiNumber={400000}
           backendCoastFiProgress={25}
         />,
       )
-      expect(screen.getByText(/20yr to FI/)).toBeInTheDocument()
+      expect(
+        screen.getByText(
+          new RegExp(`${yearsToRetire}yr to retirement, age ${retireAt}`),
+        ),
+      ).toBeInTheDocument()
     })
   })
 
@@ -303,8 +308,8 @@ describe("FiMetrics", () => {
         <FiMetrics
           {...defaultProps}
           currentAge={35}
+          retirementAge={65}
           expectedReturnRate={0.07}
-          backendRealYearsToFi={30}
           backendCoastFiNumber={197000}
           backendCoastFiProgress={50}
         />,
@@ -340,8 +345,8 @@ describe("FiMetrics", () => {
           {...defaultProps}
           liquidAssets={250000}
           currentAge={35}
+          retirementAge={65}
           expectedReturnRate={0.07}
-          backendRealYearsToFi={30}
           backendCoastFiNumber={197000}
           backendCoastFiProgress={127}
           backendIsCoastFire={true}

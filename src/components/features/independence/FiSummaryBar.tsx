@@ -4,6 +4,7 @@ import PrivateCurrency, {
   PrivatePercentage,
   HIDDEN_VALUE,
 } from "@components/ui/PrivateCurrency"
+import Tooltip from "@components/ui/Tooltip"
 import {
   calculateFiProgress,
   calculateGapToFi,
@@ -47,10 +48,12 @@ interface FiSummaryBarProps {
   isCoastFire?: boolean
   /** Years to retirement (for Coast FIRE context) */
   yearsToRetirement?: number
+  /** Current age of the user */
+  currentAge?: number
+  /** Real years to FI at current savings rate */
+  realYearsToFi?: number
   /** Pre-calculated FI Progress from backend (overrides local calculation) */
   backendFiProgress?: number
-  /** Expense adjustment percentage (positive = room to increase, negative = need to cut) */
-  expenseAdjustmentPercent?: number
   /** Data quality warnings from backend */
   warnings?: ProjectionWarning[]
 }
@@ -66,8 +69,9 @@ export default function FiSummaryBar({
   currency,
   isCoastFire,
   yearsToRetirement,
+  currentAge,
+  realYearsToFi,
   backendFiProgress,
-  expenseAdjustmentPercent,
   warnings = [],
 }: FiSummaryBarProps): React.ReactElement {
   const { hideValues } = usePrivacyMode()
@@ -173,6 +177,33 @@ export default function FiSummaryBar({
           {/* Divider */}
           <div className="h-8 w-px bg-gray-200" />
 
+          {/* Liquid Assets with illiquid tooltip */}
+          <div className="flex flex-col">
+            <Tooltip
+              position="below"
+              text={
+                hideValues
+                  ? HIDDEN_VALUE
+                  : illiquidAssets > 0
+                    ? `Excludes illiquid assets of ${currency}${Math.round(illiquidAssets).toLocaleString()}`
+                    : "No illiquid assets"
+              }
+            >
+              <span className="text-xs text-gray-500 uppercase tracking-wide">
+                Liquid Assets
+              </span>
+            </Tooltip>
+            <PrivateCurrency
+              value={liquidAssets}
+              currency={currency}
+              hideValues={hideValues}
+              className="text-lg font-semibold text-gray-900"
+            />
+          </div>
+
+          {/* Divider */}
+          <div className="h-8 w-px bg-gray-200" />
+
           {/* Gap to FI - green if exceeded (negative), orange/red if deficit (positive) */}
           <div className="flex flex-col">
             <span className="text-xs text-gray-500 uppercase tracking-wide">
@@ -191,46 +222,6 @@ export default function FiSummaryBar({
             </span>
           </div>
 
-          {/* Divider */}
-          <div className="h-8 w-px bg-gray-200" />
-
-          {/* Assets breakdown */}
-          <div className="flex flex-col">
-            <span className="text-xs text-gray-500 uppercase tracking-wide">
-              Liquid Assets
-            </span>
-            <PrivateCurrency
-              value={liquidAssets}
-              currency={currency}
-              hideValues={hideValues}
-              className="text-lg font-semibold text-gray-900"
-            />
-          </div>
-
-          {illiquidAssets > 0 && (
-            <>
-              {/* Divider */}
-              <div className="h-8 w-px bg-gray-200" />
-
-              {/* Illiquid assets */}
-              <div className="flex flex-col">
-                <span className="text-xs text-gray-500 uppercase tracking-wide">
-                  Illiquid
-                </span>
-                <span className="text-sm text-gray-600">
-                  {hideValues ? (
-                    <span className="text-gray-400">{HIDDEN_VALUE}</span>
-                  ) : (
-                    <>
-                      +{currency}
-                      {Math.round(illiquidAssets).toLocaleString()}
-                    </>
-                  )}
-                </span>
-              </div>
-            </>
-          )}
-
           {/* Coast FIRE status */}
           {isCoastFire !== undefined && yearsToRetirement && !hideValues && (
             <>
@@ -238,13 +229,23 @@ export default function FiSummaryBar({
               <div className="h-8 w-px bg-gray-200" />
 
               <div className="flex flex-col">
-                <span className="text-xs text-gray-500 uppercase tracking-wide">
-                  Coast FIRE
-                </span>
+                <Tooltip position="below" text={
+                  isCoastFire
+                    ? "Your existing investments will grow to cover retirement expenses by your target age — even if you stop saving now. You only need to cover current living expenses."
+                    : "The age at which your current savings and investment rate will reach your FI Number. Once achieved, you could stop saving and your investments would still grow to cover retirement."
+                }>
+                  <span className="text-xs text-gray-500 uppercase tracking-wide">
+                    Coast FIRE
+                  </span>
+                </Tooltip>
                 {isCoastFire ? (
                   <span className="text-sm font-medium text-purple-600">
                     <i className="fas fa-anchor mr-1"></i>
                     Achieved
+                  </span>
+                ) : currentAge && realYearsToFi != null ? (
+                  <span className="text-sm text-gray-600">
+                    FI at age {currentAge + Math.round(realYearsToFi)}
                   </span>
                 ) : (
                   <span className="text-sm text-gray-600">
@@ -255,27 +256,6 @@ export default function FiSummaryBar({
             </>
           )}
 
-          {/* Spending Room */}
-          {expenseAdjustmentPercent != null && !hideValues && (
-            <>
-              <div className="h-8 w-px bg-gray-200" />
-              <div className="flex flex-col">
-                <span className="text-xs text-gray-500 uppercase tracking-wide">
-                  Spending Room
-                </span>
-                <span
-                  className={`text-lg font-semibold ${
-                    expenseAdjustmentPercent >= 0
-                      ? "text-green-600"
-                      : "text-red-600"
-                  }`}
-                >
-                  {expenseAdjustmentPercent >= 0 ? "+" : ""}
-                  {expenseAdjustmentPercent.toFixed(0)}%
-                </span>
-              </div>
-            </>
-          )}
         </div>
       </div>
     </div>

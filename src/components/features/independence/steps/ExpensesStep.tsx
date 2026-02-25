@@ -198,6 +198,66 @@ export default function ExpensesStep({
         </div>
       )}
 
+      <div className="bg-independence-50 border border-independence-200 rounded-lg p-4">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center">
+            <i className="fas fa-calculator text-independence-600 mr-3"></i>
+            <span className="font-medium text-independence-700">
+              {msg.totalLabel}
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            {hasWorkingExpenses && (
+              <button
+                type="button"
+                onClick={() => setShowPercentPrompt(!showPercentPrompt)}
+                className="px-3 py-1 text-sm text-independence-700 border border-independence-300 rounded hover:bg-independence-100 transition-colors"
+              >
+                <i className="fas fa-copy mr-1"></i>
+                Copy from working
+              </button>
+            )}
+            <span className="text-xl font-bold text-independence-700">
+              ${totalMonthlyExpenses.toLocaleString()}
+            </span>
+          </div>
+        </div>
+        {showPercentPrompt && (
+          <div className="mt-3 pt-3 border-t border-independence-200 flex flex-wrap items-center gap-3">
+            <span className="text-sm text-independence-700">
+              Apply working expenses at
+            </span>
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                min={10}
+                max={100}
+                step={5}
+                value={promptPercent}
+                onChange={(e) => setPromptPercent(Number(e.target.value))}
+                aria-label="Override percentage"
+                className="w-16 px-2 py-1 text-sm text-center border border-independence-300 rounded focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
+              />
+              <span className="text-sm text-independence-700">%</span>
+            </div>
+            <button
+              type="button"
+              onClick={handlePromptApply}
+              className="px-3 py-1 text-sm bg-independence-600 text-white rounded hover:bg-independence-700"
+            >
+              Apply
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowPercentPrompt(false)}
+              className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+      </div>
+
       <div className="space-y-3">
         {fields.map((field, index) => {
           const description = getCategoryDescription(field.categoryLabelId)
@@ -326,66 +386,6 @@ export default function ExpensesStep({
 
         {errors.expenses && !Array.isArray(errors.expenses) && (
           <p className="text-sm text-red-600">{errors.expenses.message}</p>
-        )}
-      </div>
-
-      <div className="bg-independence-50 border border-independence-200 rounded-lg p-4">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center">
-            <i className="fas fa-calculator text-independence-600 mr-3"></i>
-            <span className="font-medium text-independence-700">
-              {msg.totalLabel}
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
-            {hasWorkingExpenses && (
-              <button
-                type="button"
-                onClick={() => setShowPercentPrompt(!showPercentPrompt)}
-                className="px-3 py-1 text-sm text-independence-700 border border-independence-300 rounded hover:bg-independence-100 transition-colors"
-              >
-                <i className="fas fa-copy mr-1"></i>
-                Copy from working
-              </button>
-            )}
-            <span className="text-xl font-bold text-independence-700">
-              ${totalMonthlyExpenses.toLocaleString()}
-            </span>
-          </div>
-        </div>
-        {showPercentPrompt && (
-          <div className="mt-3 pt-3 border-t border-independence-200 flex flex-wrap items-center gap-3">
-            <span className="text-sm text-independence-700">
-              Apply working expenses at
-            </span>
-            <div className="flex items-center gap-1">
-              <input
-                type="number"
-                min={10}
-                max={100}
-                step={5}
-                value={promptPercent}
-                onChange={(e) => setPromptPercent(Number(e.target.value))}
-                aria-label="Override percentage"
-                className="w-16 px-2 py-1 text-sm text-center border border-independence-300 rounded focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
-              />
-              <span className="text-sm text-independence-700">%</span>
-            </div>
-            <button
-              type="button"
-              onClick={handlePromptApply}
-              className="px-3 py-1 text-sm bg-independence-600 text-white rounded hover:bg-independence-700"
-            >
-              Apply
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowPercentPrompt(false)}
-              className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
-            >
-              Cancel
-            </button>
-          </div>
         )}
       </div>
     </div>

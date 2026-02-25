@@ -960,10 +960,9 @@ function PlanView(): React.ReactElement {
               yearsToRetirement={
                 adjustedProjection.preRetirementAccumulation?.yearsToRetirement
               }
+              currentAge={currentAge}
+              realYearsToFi={adjustedProjection.fiMetrics!.realYearsToFi}
               backendFiProgress={adjustedProjection.fiMetrics!.fiProgress}
-              expenseAdjustmentPercent={
-                adjustedProjection.expenseAdjustmentPercent
-              }
               warnings={adjustedProjection.warnings}
             />
           ) : (
