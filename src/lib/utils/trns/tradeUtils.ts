@@ -184,8 +184,14 @@ export const convertToTradeImport = (data: TradeFormData): TradeImport => {
   const finalCashCurrency = settlementCurrency || cashCurrency || tradeCurrency
 
   // CashAccount is the asset ID for a specific settlement account (bank account, etc.)
-  // Empty string means use generic Cash Balance based on cashCurrency
-  const cashAccount = data.settlementAccount?.value || ""
+  // Empty string means use generic Cash Balance based on cashCurrency.
+  // For PRIVATE/TRADE market cash transactions without an explicit settlement account,
+  // settle to the same asset (the bank/trade account itself).
+  const cashAccount =
+    data.settlementAccount?.value ||
+    (data.market === "PRIVATE" || data.market === "TRADE"
+      ? stripOwnerPrefix(data.asset)
+      : "")
 
   const cashAmount = calculateCashAmount(data)
   const isExpense = data.type.value === "EXPENSE"
