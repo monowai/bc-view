@@ -163,7 +163,7 @@ export default function FiMetrics({
     <div className="bg-white rounded-xl shadow-md p-6">
       <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-4">
         FIRE Metrics
-        <InfoTooltip text="Financial Independence metrics based on the 4% safe withdrawal rate (25× expenses rule)">
+        <InfoTooltip text="Financial Independence, Retire Early. Metric based on a 4% safe withdrawal rate (25× expenses rule)">
           <span></span>
         </InfoTooltip>
       </h2>
@@ -303,11 +303,12 @@ export default function FiMetrics({
         {/* Coast FIRE */}
         {coastFiNumber !== null &&
           !isFi &&
-          backendRealYearsToFi &&
-          backendRealYearsToFi > 0 && (
+          retirementAge &&
+          yearsToRetirement &&
+          yearsToRetirement > 0 && (
             <div className="py-3 border-t border-gray-100">
               <div className="flex justify-between items-center mb-2">
-                <InfoTooltip text="Coast FIRE is the amount you need invested today so that compound growth alone (no more contributions) will reach your FI Number by your FI achievement date.">
+                <InfoTooltip text="Coast FIRE is the amount you need invested today so that compound growth alone (no more contributions) will reach your FI Number by your retirement age.">
                   <span className="text-gray-600 flex items-center gap-2">
                     <i className="fas fa-ship text-purple-500"></i>
                     Coast FI Number
@@ -323,10 +324,8 @@ export default function FiMetrics({
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-500">
-                  Coast FI Progress ({Math.round(backendRealYearsToFi)}yr to FI
-                  {currentAge &&
-                    `, age ${currentAge + Math.round(backendRealYearsToFi)}`}
-                  )
+                  Coast FI Progress ({yearsToRetirement}yr to retirement, age{" "}
+                  {retirementAge})
                 </span>
                 <span
                   className={`font-medium ${hideValues ? "text-gray-400" : isCoastFire ? "text-purple-600" : "text-gray-600"}`}
@@ -341,7 +340,7 @@ export default function FiMetrics({
                   You have {currency}
                   {Math.round(liquidAssets).toLocaleString()} of {currency}
                   {Math.round(coastFiNumber).toLocaleString()} needed to coast
-                  to FI by age {currentAge + Math.round(backendRealYearsToFi)}
+                  to FI by age {retirementAge}
                 </p>
               )}
               {isCoastFire && !hideValues && currentAge && (
@@ -352,8 +351,7 @@ export default function FiMetrics({
                   </div>
                   <p className="text-xs text-purple-600 mt-1">
                     You could stop contributing now and still reach FI by age{" "}
-                    {currentAge + Math.round(backendRealYearsToFi)} through
-                    investment growth alone.
+                    {retirementAge} through investment growth alone.
                   </p>
                 </div>
               )}

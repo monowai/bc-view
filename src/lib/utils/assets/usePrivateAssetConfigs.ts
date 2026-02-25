@@ -137,7 +137,7 @@ export function usePrivateAssetConfigs(): UsePrivateAssetConfigsResult {
     if (!data?.data) return {}
 
     return data.data
-      .filter((c) => !c.isPrimaryResidence)
+      .filter((c) => !c.isPrimaryResidence && c.monthlyRentalIncome > 0)
       .reduce(
         (acc, c) => {
           const currency = c.rentalCurrency || "NZD"
