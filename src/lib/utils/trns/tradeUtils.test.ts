@@ -846,4 +846,88 @@ describe("TradeUtils", () => {
       expect(result.asset).toBe("AAPL")
     })
   })
+
+  describe("private cash account settlement", () => {
+    test("INCOME on PRIVATE account settles to same account", () => {
+      const data: TradeFormData = {
+        type: { value: "INCOME", label: "INCOME" },
+        asset: "SGD-SAVINGS",
+        market: "PRIVATE",
+        tradeDate: "2025-01-15",
+        quantity: 150,
+        price: 1,
+        tradeAmount: 150,
+        tradeCurrency: { value: "SGD", label: "SGD" },
+        cashCurrency: { value: "SGD", label: "SGD" },
+        cashAmount: 150,
+        fees: 0,
+        tax: 0,
+        comments: "Interest",
+      }
+      const result = convertToTradeImport(data)
+      expect(result.cashAccount).toBe("SGD-SAVINGS")
+    })
+
+    test("DEPOSIT on PRIVATE account settles to same account", () => {
+      const data: TradeFormData = {
+        type: { value: "DEPOSIT", label: "DEPOSIT" },
+        asset: "SGD-SAVINGS",
+        market: "PRIVATE",
+        tradeDate: "2025-01-15",
+        quantity: 1000,
+        price: 1,
+        tradeCurrency: { value: "SGD", label: "SGD" },
+        cashCurrency: { value: "SGD", label: "SGD" },
+        cashAmount: 1000,
+        fees: 0,
+        tax: 0,
+        comments: undefined,
+      }
+      const result = convertToTradeImport(data)
+      expect(result.cashAccount).toBe("SGD-SAVINGS")
+    })
+
+    test("DEPOSIT on CASH market does not set cashAccount", () => {
+      const data: TradeFormData = {
+        type: { value: "DEPOSIT", label: "DEPOSIT" },
+        asset: "SGD",
+        market: "CASH",
+        tradeDate: "2025-01-15",
+        quantity: 1000,
+        price: 1,
+        tradeCurrency: { value: "SGD", label: "SGD" },
+        cashCurrency: { value: "SGD", label: "SGD" },
+        cashAmount: 1000,
+        fees: 0,
+        tax: 0,
+        comments: undefined,
+      }
+      const result = convertToTradeImport(data)
+      expect(result.cashAccount).toBe("")
+    })
+
+    test("explicit settlementAccount takes precedence over PRIVATE market", () => {
+      const data: TradeFormData = {
+        type: { value: "BUY", label: "BUY" },
+        asset: "AAPL",
+        market: "PRIVATE",
+        tradeDate: "2025-01-15",
+        quantity: 10,
+        price: 150,
+        tradeCurrency: { value: "USD", label: "USD" },
+        cashCurrency: { value: "USD", label: "USD" },
+        cashAmount: 1500,
+        fees: 0,
+        tax: 0,
+        comments: undefined,
+        settlementAccount: {
+          value: "MY-USD-ACCOUNT",
+          label: "My Account",
+          currency: "USD",
+        },
+      }
+      const result = convertToTradeImport(data)
+      expect(result.cashAccount).toBe("MY-USD-ACCOUNT")
+    })
+  })
 })

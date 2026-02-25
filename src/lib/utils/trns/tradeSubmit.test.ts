@@ -42,12 +42,16 @@ const mockPortfolio: Portfolio = {
 }
 
 describe("tradeSubmit", () => {
+  let consoleErrorSpy: jest.SpyInstance
+
   beforeEach(() => {
     jest.clearAllMocks()
     jest.useFakeTimers()
+    consoleErrorSpy = jest.spyOn(console, "error").mockImplementation()
   })
 
   afterEach(() => {
+    consoleErrorSpy.mockRestore()
     jest.useRealTimers()
   })
 
