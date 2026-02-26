@@ -10,6 +10,7 @@ import {
   RebalanceScenario,
   CreateRebalancePlanRequest,
 } from "types/rebalance"
+import { useDialogSubmit } from "@hooks/useDialogSubmit"
 
 interface RebalanceWizardContainerProps {
   preselectedPortfolioIds?: string[]
@@ -29,8 +30,11 @@ const RebalanceWizardContainer: React.FC<RebalanceWizardContainerProps> = ({
   const [scenario, setScenario] = useState<RebalanceScenario>("REBALANCE")
   const [cashDelta, setCashDelta] = useState(0)
   const [planName, setPlanName] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const {
+    isSubmitting,
+    submitError: error,
+    handleSubmit: dialogSubmit,
+  } = useDialogSubmit({ fallbackError: "Failed to create plan" })
 
   // Steps configuration
   const steps = useMemo(
@@ -80,10 +84,7 @@ const RebalanceWizardContainer: React.FC<RebalanceWizardContainerProps> = ({
       return
     }
 
-    setIsSubmitting(true)
-    setError(null)
-
-    try {
+    await dialogSubmit(async () => {
       const payload: CreateRebalancePlanRequest = {
         name: planName.trim(),
         modelPortfolioId: selectedModel.id,
@@ -101,19 +102,14 @@ const RebalanceWizardContainer: React.FC<RebalanceWizardContainerProps> = ({
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        setError(
+        throw new Error(
           errorData.detail || errorData.message || "Failed to create plan",
         )
-        return
       }
 
       const result = await response.json()
       await router.push(`/rebalance/plans/${result.data.id}`)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create plan")
-    } finally {
-      setIsSubmitting(false)
-    }
+    })
   }
 
   return (

@@ -1,6 +1,7 @@
 import React, { useState } from "react"
 import Dialog from "@components/ui/Dialog"
 import { Portfolio, ShareAccessLevel } from "types/beancounter"
+import { useDialogSubmit } from "@hooks/useDialogSubmit"
 
 interface ShareInviteDialogProps {
   portfolios: Portfolio[]
@@ -20,9 +21,17 @@ export default function ShareInviteDialog({
     preSelectedPortfolioId ? new Set([preSelectedPortfolioId]) : new Set(),
   )
   const [accessLevel, setAccessLevel] = useState<ShareAccessLevel>("VIEW")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
+  const {
+    isSubmitting,
+    submitError: error,
+    submitSuccess,
+    handleSubmit,
+    setError,
+  } = useDialogSubmit({
+    onSuccess,
+    autoCloseDelay: 1500,
+    fallbackError: "Failed to send invitation",
+  })
 
   const togglePortfolio = (id: string): void => {
     setSelectedPortfolioIds((prev) => {
@@ -36,10 +45,7 @@ export default function ShareInviteDialog({
     })
   }
 
-  const handleSubmit = async (): Promise<void> => {
-    setError(null)
-    setSuccess(null)
-
+  const onSubmit = async (): Promise<void> => {
     if (!email.trim()) {
       setError("Please enter an email address")
       return
@@ -49,8 +55,7 @@ export default function ShareInviteDialog({
       return
     }
 
-    setIsSubmitting(true)
-    try {
+    await handleSubmit(async () => {
       const response = await fetch("/api/shares/invite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -62,18 +67,9 @@ export default function ShareInviteDialog({
       })
       if (!response.ok) {
         const data = await response.json().catch(() => ({}))
-        setError(data.error || "Failed to send invitation")
-        return
+        throw new Error(data.error || "Failed to send invitation")
       }
-      setSuccess("Invitation sent successfully")
-      setTimeout(() => {
-        onSuccess()
-      }, 1500)
-    } catch {
-      setError("Failed to send invitation")
-    } finally {
-      setIsSubmitting(false)
-    }
+    })
   }
 
   const canSubmit = email.trim().length > 0 && selectedPortfolioIds.size > 0
@@ -88,7 +84,7 @@ export default function ShareInviteDialog({
         <>
           <Dialog.CancelButton onClick={onClose} label={"Cancel"} />
           <Dialog.SubmitButton
-            onClick={handleSubmit}
+            onClick={onSubmit}
             label={"Send Invite"}
             loadingLabel={"Sending..."}
             isSubmitting={isSubmitting}
@@ -99,7 +95,9 @@ export default function ShareInviteDialog({
       }
     >
       <Dialog.ErrorAlert message={error} />
-      <Dialog.SuccessAlert message={success} />
+      <Dialog.SuccessAlert
+        message={submitSuccess ? "Invitation sent successfully" : null}
+      />
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
