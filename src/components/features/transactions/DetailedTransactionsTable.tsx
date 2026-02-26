@@ -4,6 +4,7 @@ import { ProposedTransaction } from "types/proposed"
 import { calculateTradeAmount } from "@utils/trns/tradeUtils"
 import { stripOwnerPrefix } from "@lib/assets/assetUtils"
 import DecimalInput from "@components/ui/DecimalInput"
+import { theadBase, tbodyBase } from "@utils/tableStyles"
 
 interface DetailedTransactionsTableProps {
   transactions: ProposedTransaction[]
@@ -41,7 +42,7 @@ export default function DetailedTransactionsTable({
   return (
     <div className="overflow-x-auto bg-white rounded-lg shadow">
       <table className="min-w-full divide-y divide-gray-200 text-xs">
-        <thead className="bg-gray-50">
+        <thead className={theadBase}>
           <tr>
             <th className="px-2 py-2 text-center font-medium text-gray-500 uppercase w-10">
               <input
@@ -90,7 +91,7 @@ export default function DetailedTransactionsTable({
             </th>
           </tr>
         </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
+        <tbody className={`bg-white ${tbodyBase}`}>
           {transactions.map((trn) => (
             <tr key={trn.id} className="hover:bg-gray-50">
               <td className="px-2 py-1.5 whitespace-nowrap text-center">

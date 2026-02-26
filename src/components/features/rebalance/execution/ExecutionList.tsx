@@ -6,6 +6,7 @@ import StatusBadge from "../common/StatusBadge"
 import { FormatValue } from "@components/ui/MoneyUtils"
 import { formatDate } from "@utils/formatters"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
+import { tbodyBase, hiddenSm, hiddenMd, hiddenLg } from "@utils/tableStyles"
 
 const ExecutionList: React.FC = () => {
   const router = useRouter()
@@ -67,25 +68,25 @@ const ExecutionList: React.FC = () => {
             <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
               {"Execution"}
             </th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 hidden sm:table-cell">
+            <th className={`px-4 py-3 text-left text-sm font-medium text-gray-700 ${hiddenSm}`}>
               {"Model"}
             </th>
             <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
               {"Portfolios"}
             </th>
-            <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 hidden md:table-cell">
+            <th className={`px-4 py-3 text-right text-sm font-medium text-gray-700 ${hiddenMd}`}>
               {"Value"}
             </th>
             <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
               {"Status"}
             </th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 hidden lg:table-cell">
+            <th className={`px-4 py-3 text-left text-sm font-medium text-gray-700 ${hiddenLg}`}>
               {"Updated"}
             </th>
             <th className="px-4 py-3 w-12"></th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-200">
+        <tbody className={tbodyBase}>
           {executions.map((execution) => (
             <tr
               key={execution.id}
@@ -97,7 +98,7 @@ const ExecutionList: React.FC = () => {
                   {execution.name || `Plan v${execution.planVersion}`}
                 </span>
               </td>
-              <td className="px-4 py-3 text-gray-600 hidden sm:table-cell">
+              <td className={`px-4 py-3 text-gray-600 ${hiddenSm}`}>
                 {execution.modelName}
               </td>
               <td className="px-4 py-3 text-center">
@@ -105,7 +106,7 @@ const ExecutionList: React.FC = () => {
                   {execution.portfolioCount}
                 </span>
               </td>
-              <td className="px-4 py-3 text-right hidden md:table-cell">
+              <td className={`px-4 py-3 text-right ${hiddenMd}`}>
                 <FormatValue value={execution.snapshotTotalValue} />
               </td>
               <td className="px-4 py-3 text-center">
@@ -114,7 +115,7 @@ const ExecutionList: React.FC = () => {
                   i18nPrefix="rebalance.execution.status"
                 />
               </td>
-              <td className="px-4 py-3 text-gray-500 text-sm hidden lg:table-cell">
+              <td className={`px-4 py-3 text-gray-500 text-sm ${hiddenLg}`}>
                 {formatDate(execution.updatedAt)}
               </td>
               <td className="px-4 py-3">

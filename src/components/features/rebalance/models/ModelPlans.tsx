@@ -5,6 +5,7 @@ import { PlanDto } from "types/rebalance"
 import StatusBadge from "../common/StatusBadge"
 import { formatDate } from "@utils/formatters"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
+import { tableBase, theadBase, thBase, tbodyBase } from "@utils/tableStyles"
 
 interface ModelPlansProps {
   modelId: string
@@ -102,28 +103,28 @@ const ModelPlans: React.FC<ModelPlansProps> = ({ modelId }) => {
         </div>
       ) : (
         <div className="border border-gray-200 rounded-lg overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className={tableBase}>
+            <thead className={theadBase}>
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className={thBase}>
                   {"Version"}
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className={thBase}>
                   {"Status"}
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className={thBase}>
                   {"Created"}
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className={thBase}>
                   {"Approved"}
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className={thBase}>
                   {"Assets"}
                 </th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className={`bg-white ${tbodyBase}`}>
               {plans.map((plan: PlanDto) => (
                 <tr
                   key={plan.id}

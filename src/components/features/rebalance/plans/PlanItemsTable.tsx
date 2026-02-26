@@ -1,6 +1,12 @@
 import React from "react"
 import { PlanItemDto } from "types/rebalance"
 import { FormatValue } from "@components/ui/MoneyUtils"
+import {
+  tableContainer,
+  tbodyBase,
+  trHover,
+  hiddenSm,
+} from "@utils/tableStyles"
 
 interface PlanItemsTableProps {
   items: PlanItemDto[]
@@ -39,14 +45,14 @@ const PlanItemsTable: React.FC<PlanItemsTableProps> = ({
 
   return (
     <div className="bg-white shadow-sm border border-gray-200 rounded-lg overflow-hidden">
-      <div className="overflow-x-auto">
+      <div className={tableContainer}>
         <table className="min-w-full">
           <thead className="bg-gray-100">
             <tr className="border-b border-gray-200">
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-700">
                 {"Asset"}
               </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 hidden sm:table-cell">
+              <th className={`px-4 py-3 text-right text-xs font-medium text-gray-700 ${hiddenSm}`}>
                 {"Current Qty"}
               </th>
               <th className="px-4 py-3 text-right text-xs font-medium text-gray-700">
@@ -72,11 +78,11 @@ const PlanItemsTable: React.FC<PlanItemsTableProps> = ({
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className={tbodyBase}>
             {items.map((item) => (
               <tr
                 key={item.id}
-                className={`hover:bg-slate-50 transition-colors ${
+                className={`${trHover} ${
                   item.locked ? "bg-gray-50" : ""
                 } ${item.excluded ? "opacity-60" : ""}`}
               >
@@ -93,7 +99,7 @@ const PlanItemsTable: React.FC<PlanItemsTableProps> = ({
                     </div>
                   )}
                 </td>
-                <td className="px-4 py-3 text-right text-sm hidden sm:table-cell">
+                <td className={`px-4 py-3 text-right text-sm ${hiddenSm}`}>
                   <FormatValue value={item.currentQuantity} />
                 </td>
                 <td className="px-4 py-3 text-right text-sm">
