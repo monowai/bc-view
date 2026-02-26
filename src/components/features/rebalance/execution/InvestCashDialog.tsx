@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback } from "react"
 import useSWR from "swr"
 import Dialog from "@components/ui/Dialog"
+import Spinner from "@components/ui/Spinner"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import {
   parseShorthandAmount,
@@ -333,7 +334,7 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
 
             {loadingModels ? (
               <div className="py-4 text-center text-gray-500">
-                <i className="fas fa-spinner fa-spin mr-2"></i>
+                <Spinner className="mr-2" />
                 {"Loading..."}
               </div>
             ) : modelsWithApprovedPlans.length === 0 ? (
@@ -385,7 +386,7 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
                 </div>
                 {loadingPlan ? (
                   <div className="py-4 text-center text-gray-500 text-sm">
-                    <i className="fas fa-spinner fa-spin mr-2"></i>
+                    <Spinner className="mr-2" />
                     {"Loading..."}
                   </div>
                 ) : planAssets.length === 0 ? (

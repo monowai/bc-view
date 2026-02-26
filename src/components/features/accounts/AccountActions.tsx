@@ -2,6 +2,7 @@ import React, { useState } from "react"
 import { useRouter } from "next/router"
 import { TabType } from "./accountTypes"
 import { fetchAndDownloadCsv } from "@lib/csvExport"
+import Spinner from "@components/ui/Spinner"
 
 interface AccountActionsProps {
   onImportClick: () => void
@@ -34,7 +35,7 @@ const AccountActions = ({
         disabled={isExporting}
       >
         {isExporting ? (
-          <i className="fas fa-spinner fa-spin mr-2"></i>
+          <Spinner className="mr-2" />
         ) : (
           <i className="fas fa-download mr-2"></i>
         )}

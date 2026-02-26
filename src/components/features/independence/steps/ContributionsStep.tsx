@@ -13,6 +13,7 @@ import { simpleFetcher } from "@utils/api/fetchHelper"
 import { WizardFormData, ContributionFormEntry } from "types/independence"
 import { Asset } from "types/beancounter"
 import { wizardMessages } from "@lib/independence/messages"
+import Spinner from "@components/ui/Spinner"
 import { useDefinedContribution } from "../useDefinedContribution"
 import {
   StepHeader,
@@ -300,7 +301,7 @@ export default function ContributionsStep({
           description="Enter your current income details and pension contributions."
         />
         <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-          <i className="fas fa-spinner fa-spin text-4xl text-gray-400 mb-2"></i>
+          <Spinner size="4xl" className="text-gray-400 mb-2" />
           <p className="text-gray-500">Loading pension assets...</p>
         </div>
       </div>

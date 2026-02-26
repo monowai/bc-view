@@ -5,6 +5,7 @@ import { useRouter } from "next/router"
 import useSwr from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import Alert from "@components/ui/Alert"
+import Spinner from "@components/ui/Spinner"
 import WizardContainer from "@components/features/independence/WizardContainer"
 import { toPercent } from "@lib/independence/conversions"
 import {
@@ -78,7 +79,7 @@ function EditPlanWizard(): React.ReactElement {
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="container mx-auto px-4">
           <div className="text-center py-12">
-            <i className="fas fa-spinner fa-spin text-3xl text-independence-600"></i>
+            <Spinner size="3xl" className="text-independence-600" />
             <p className="mt-4 text-gray-500">Loading plan...</p>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import React, { useEffect } from "react"
+import Spinner from "@components/ui/Spinner"
 
 interface DialogProps {
   title: string | React.ReactNode
@@ -144,7 +145,7 @@ Dialog.SubmitButton = function SubmitButton({
     >
       {isSubmitting ? (
         <span className="flex items-center">
-          <i className="fas fa-spinner fa-spin mr-2"></i>
+          <Spinner className="mr-2" />
           {loadingLabel || label}
         </span>
       ) : (

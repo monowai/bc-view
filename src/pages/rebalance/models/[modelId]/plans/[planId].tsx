@@ -11,6 +11,7 @@ import ImportHoldingsDialog from "@components/features/rebalance/models/ImportHo
 import { PlanAssetDto, AssetWeightWithDetails } from "types/rebalance"
 import { escapeCSV, downloadCsv } from "@lib/csvExport"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
+import Spinner from "@components/ui/Spinner"
 
 function PlanDetailPage(): React.ReactElement {
   const router = useRouter()
@@ -522,7 +523,7 @@ function PlanDetailPage(): React.ReactElement {
               className="bg-invest-600 text-white px-3 py-1.5 rounded text-sm hover:bg-invest-700 transition-colors flex items-center disabled:opacity-50"
             >
               {creatingVersion ? (
-                <i className="fas fa-spinner fa-spin mr-2"></i>
+                <Spinner className="mr-2" />
               ) : (
                 <i className="fas fa-copy mr-2"></i>
               )}
@@ -567,7 +568,7 @@ function PlanDetailPage(): React.ReactElement {
                 className="bg-invest-600 text-white px-4 py-2 rounded hover:bg-invest-700 transition-colors flex items-center disabled:opacity-50"
               >
                 {saving ? (
-                  <i className="fas fa-spinner fa-spin mr-2"></i>
+                  <Spinner className="mr-2" />
                 ) : (
                   <i className="fas fa-save mr-2"></i>
                 )}
@@ -580,7 +581,7 @@ function PlanDetailPage(): React.ReactElement {
               className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors flex items-center disabled:opacity-50"
             >
               {approving ? (
-                <i className="fas fa-spinner fa-spin mr-2"></i>
+                <Spinner className="mr-2" />
               ) : (
                 <i className="fas fa-check mr-2"></i>
               )}
@@ -592,7 +593,7 @@ function PlanDetailPage(): React.ReactElement {
               className="bg-red-100 text-red-700 px-4 py-2 rounded hover:bg-red-200 transition-colors flex items-center disabled:opacity-50"
             >
               {deleting ? (
-                <i className="fas fa-spinner fa-spin mr-2"></i>
+                <Spinner className="mr-2" />
               ) : (
                 <i className="fas fa-trash mr-2"></i>
               )}

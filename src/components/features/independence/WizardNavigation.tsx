@@ -1,4 +1,5 @@
 import React from "react"
+import Spinner from "@components/ui/Spinner"
 
 interface WizardNavigationProps {
   currentStep: number
@@ -51,7 +52,7 @@ export default function WizardNavigation({
             disabled={isSubmitting}
             className="px-6 py-2 border border-independence-600 text-independence-600 rounded-lg hover:bg-independence-50 font-medium disabled:opacity-50 flex items-center"
           >
-            {isSubmitting && <i className="fas fa-spinner fa-spin mr-2"></i>}
+            {isSubmitting && <Spinner className="mr-2" />}
             Save
           </button>
         )}
@@ -61,9 +62,7 @@ export default function WizardNavigation({
           disabled={isSubmitting}
           className="px-6 py-2 bg-independence-600 text-white rounded-lg hover:bg-independence-700 font-medium disabled:opacity-50 flex items-center"
         >
-          {isSubmitting && isLastStep && (
-            <i className="fas fa-spinner fa-spin mr-2"></i>
-          )}
+          {isSubmitting && isLastStep && <Spinner className="mr-2" />}
           {isLastStep ? "Save Plan" : "Next"}
         </button>
       </div>

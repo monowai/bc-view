@@ -14,6 +14,7 @@ import CompleteStep from "./steps/CompleteStep"
 import IndependencePlanStep from "./steps/IndependencePlanStep"
 import { useRegistration } from "@contexts/RegistrationContext"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
+import Spinner from "@components/ui/Spinner"
 
 export interface BankAccount {
   name: string
@@ -782,7 +783,7 @@ const OnboardingWizard: React.FC = () => {
             >
               {isSubmitting ? (
                 <span className="flex items-center">
-                  <i className="fas fa-spinner fa-spin mr-2"></i>
+                  <Spinner className="mr-2" />
                   {"Creating..."}
                 </span>
               ) : (

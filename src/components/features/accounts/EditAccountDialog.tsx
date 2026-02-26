@@ -6,6 +6,7 @@ import MathInput from "@components/ui/MathInput"
 import CompositeAssetEditor from "@components/features/assets/CompositeAssetEditor"
 import { CategoryOption, SectorOption } from "./accountTypes"
 import Alert from "@components/ui/Alert"
+import Spinner from "@components/ui/Spinner"
 
 // Private Asset Config state interface
 interface AssetConfigState {
@@ -659,7 +660,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
           <div className="space-y-4">
             {configLoading ? (
               <div className="text-sm text-gray-500">
-                <i className="fas fa-spinner fa-spin mr-2"></i>
+                <Spinner className="mr-2" />
                 {"Loading..."}
               </div>
             ) : (
@@ -823,7 +824,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                           </p>
                         ) : projectionLoading ? (
                           <div className="flex items-center justify-center py-2">
-                            <i className="fas fa-spinner fa-spin text-green-600 mr-2"></i>
+                            <Spinner className="mr-2 text-green-600" />
                             <span className="text-green-600 text-sm">
                               {"Loading..."}
                             </span>
@@ -1302,7 +1303,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
             >
               {isSubmitting ? (
                 <span className="flex items-center">
-                  <i className="fas fa-spinner fa-spin mr-2"></i>
+                  <Spinner className="mr-2" />
                   {"Saving..."}
                 </span>
               ) : (

@@ -1,4 +1,5 @@
 import React from "react"
+import Spinner from "@components/ui/Spinner"
 import { OffboardingSummary } from "types/beancounter"
 
 interface SummaryStepProps {
@@ -19,7 +20,7 @@ export default function SummaryStep({
   if (loading) {
     return (
       <div className="text-center py-8">
-        <i className="fas fa-spinner fa-spin text-2xl text-gray-400"></i>
+        <Spinner size="2xl" className="text-gray-400" />
         <p className="mt-2 text-gray-500">{"Loading your data..."}</p>
       </div>
     )

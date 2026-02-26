@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react"
 import useSwr from "swr"
 import Dialog from "@components/ui/Dialog"
+import Spinner from "@components/ui/Spinner"
 import { Asset, Portfolio, Position } from "types/beancounter"
 import { postData } from "@components/ui/DropZone"
 import {
@@ -265,8 +266,7 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
       {/* Loading State */}
       {isLoading && (
         <div className="flex items-center justify-center py-8">
-          <i className="fas fa-spinner fa-spin text-2xl text-blue-500"></i>
-          <span className="ml-2 text-gray-600">{"Loading..."}</span>
+          <Spinner size="2xl" className="text-blue-500" label="Loading..." />
         </div>
       )}
 
@@ -287,8 +287,7 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
 
           {portfolios.length === 0 ? (
             <div className="flex items-center justify-center py-4">
-              <i className="fas fa-spinner fa-spin text-2xl text-blue-500"></i>
-              <span className="ml-2 text-gray-600">{"Loading..."}</span>
+              <Spinner size="2xl" className="text-blue-500" label="Loading..." />
             </div>
           ) : (
             <div className="space-y-4">

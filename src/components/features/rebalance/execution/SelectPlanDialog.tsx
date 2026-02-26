@@ -1,6 +1,7 @@
 import React, { useState } from "react"
 import useSWR from "swr"
 import Dialog from "@components/ui/Dialog"
+import Spinner from "@components/ui/Spinner"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import { ModelDto, PlanDto } from "types/rebalance"
 
@@ -98,7 +99,7 @@ const SelectPlanDialog: React.FC<SelectPlanDialogProps> = ({
 
       {loadingModels ? (
         <div className="py-8 text-center text-gray-500">
-          <i className="fas fa-spinner fa-spin mr-2"></i>
+          <Spinner className="mr-2" />
           {"Loading..."}
         </div>
       ) : modelsWithApprovedPlans.length === 0 ? (
@@ -146,7 +147,7 @@ const SelectPlanDialog: React.FC<SelectPlanDialogProps> = ({
                   </div>
                 </div>
                 {selectedModelId === model.id && loadingPlan ? (
-                  <i className="fas fa-spinner fa-spin text-blue-500 ml-2"></i>
+                  <Spinner className="text-blue-500 ml-2" />
                 ) : (
                   <i className="fas fa-chevron-right text-gray-400 ml-2"></i>
                 )}
