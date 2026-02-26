@@ -6,6 +6,7 @@ import StatusBadge from "../common/StatusBadge"
 import { FormatValue } from "@components/ui/MoneyUtils"
 import { formatDate } from "@utils/formatters"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
+import { tbodyBase, hiddenSm, hiddenMd, hiddenLg } from "@utils/tableStyles"
 
 const RebalancePlanList: React.FC = () => {
   const router = useRouter()
@@ -59,28 +60,28 @@ const RebalancePlanList: React.FC = () => {
             <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
               {"Plan Name"}
             </th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 hidden sm:table-cell">
+            <th className={`px-4 py-3 text-left text-sm font-medium text-gray-700 ${hiddenSm}`}>
               {"Model"}
             </th>
             <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
               {"Portfolios"}
             </th>
-            <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 hidden md:table-cell">
+            <th className={`px-4 py-3 text-right text-sm font-medium text-gray-700 ${hiddenMd}`}>
               {"Current Value"}
             </th>
-            <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 hidden md:table-cell">
+            <th className={`px-4 py-3 text-right text-sm font-medium text-gray-700 ${hiddenMd}`}>
               {"Target Value"}
             </th>
             <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
               {"Status"}
             </th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 hidden lg:table-cell">
+            <th className={`px-4 py-3 text-left text-sm font-medium text-gray-700 ${hiddenLg}`}>
               {"Created"}
             </th>
             <th className="px-4 py-3 w-12"></th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-200">
+        <tbody className={tbodyBase}>
           {plans.map((plan) => (
             <tr
               key={plan.id}
@@ -90,7 +91,7 @@ const RebalancePlanList: React.FC = () => {
               <td className="px-4 py-3">
                 <span className="font-medium text-blue-600">{plan.name}</span>
               </td>
-              <td className="px-4 py-3 text-gray-600 hidden sm:table-cell">
+              <td className={`px-4 py-3 text-gray-600 ${hiddenSm}`}>
                 {plan.modelPortfolioName}
               </td>
               <td className="px-4 py-3 text-center">
@@ -98,10 +99,10 @@ const RebalancePlanList: React.FC = () => {
                   {plan.portfolioCount}
                 </span>
               </td>
-              <td className="px-4 py-3 text-right hidden md:table-cell">
+              <td className={`px-4 py-3 text-right ${hiddenMd}`}>
                 <FormatValue value={plan.totalCurrentValue} />
               </td>
-              <td className="px-4 py-3 text-right hidden md:table-cell">
+              <td className={`px-4 py-3 text-right ${hiddenMd}`}>
                 <FormatValue value={plan.totalTargetValue} />
               </td>
               <td className="px-4 py-3 text-center">
@@ -110,7 +111,7 @@ const RebalancePlanList: React.FC = () => {
                   i18nPrefix="rebalance.plans.status"
                 />
               </td>
-              <td className="px-4 py-3 text-gray-500 text-sm hidden lg:table-cell">
+              <td className={`px-4 py-3 text-gray-500 text-sm ${hiddenLg}`}>
                 {formatDate(plan.createdAt)}
               </td>
               <td className="px-4 py-3">
