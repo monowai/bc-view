@@ -1,6 +1,6 @@
 import React from "react"
 import { render, screen } from "@testing-library/react"
-import Spinner from "../Spinner"
+import Spinner from "@components/ui/Spinner"
 
 describe("Spinner", () => {
   it("renders with default sm size", () => {
