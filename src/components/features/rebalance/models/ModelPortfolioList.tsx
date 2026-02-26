@@ -4,6 +4,7 @@ import { ModelDto } from "types/rebalance"
 import { useModels } from "../hooks/useModels"
 import { TableSkeletonLoader } from "@components/ui/SkeletonLoader"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
+import { tbodyBase, hiddenSm } from "@utils/tableStyles"
 
 interface ModelListProps {
   onSelect?: (model: ModelDto) => void
@@ -101,7 +102,7 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
             <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
               {"Model Name"}
             </th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 hidden sm:table-cell">
+            <th className={`px-4 py-3 text-left text-sm font-medium text-gray-700 ${hiddenSm}`}>
               {"Objective"}
             </th>
             <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
@@ -120,7 +121,7 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
             )}
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-200">
+        <tbody className={tbodyBase}>
           {models.map((model) => (
             <tr
               key={model.id}
@@ -167,7 +168,7 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
                   </p>
                 )}
               </td>
-              <td className="px-4 py-3 text-gray-600 hidden sm:table-cell">
+              <td className={`px-4 py-3 text-gray-600 ${hiddenSm}`}>
                 <span className="truncate max-w-xs block">
                   {model.objective || "-"}
                 </span>
