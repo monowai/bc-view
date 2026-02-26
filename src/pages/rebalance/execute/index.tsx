@@ -536,9 +536,10 @@ function ExecuteRebalancePage(): React.ReactElement {
               {"Cancel"}
             </button>
             <button
-              onClick={() => {
+              onClick={async () => {
                 if (states.hasChanges) {
-                  handlers.save().then(() => setStep("preview"))
+                  const success = await handlers.save()
+                  if (success) setStep("preview")
                 } else {
                   setStep("preview")
                 }

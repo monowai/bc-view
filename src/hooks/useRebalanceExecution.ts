@@ -54,7 +54,7 @@ export interface UseRebalanceExecutionResult {
   }
   handlers: {
     initialize: () => Promise<void>
-    save: () => Promise<void>
+    save: () => Promise<boolean>
     refresh: () => Promise<void>
     commit: () => Promise<{ portfolioId: string } | undefined>
     targetChange: (assetId: string, value: number) => void
@@ -228,8 +228,8 @@ export function useRebalanceExecution(
   ])
 
   // Save execution changes
-  const handleSave = useCallback(async () => {
-    if (!execution) return
+  const handleSave = useCallback(async (): Promise<boolean> => {
+    if (!execution) return false
 
     setSaving(true)
     try {
@@ -254,15 +254,17 @@ export function useRebalanceExecution(
 
       if (!response.ok) {
         setError(`Failed to save: ${response.status}`)
-        return
+        return false
       }
 
       const data = await response.json()
       setExecution(data.data)
       setHasChanges(false)
+      return true
     } catch (err) {
       console.error("Failed to save execution:", err)
       setError(err instanceof Error ? err.message : "Failed to save")
+      return false
     } finally {
       setSaving(false)
     }

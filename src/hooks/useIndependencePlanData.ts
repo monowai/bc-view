@@ -26,9 +26,12 @@ export interface UseIndependencePlanDataResult {
 export function useIndependencePlanData(
   id: string | string[] | undefined,
 ): UseIndependencePlanDataResult {
+  const normalizedId = Array.isArray(id) ? id[0] : id
+  const planKey = normalizedId ? `/api/independence/plans/${normalizedId}` : null
+
   const { data: planData, error: planError, mutate: mutatePlan } = useSwr<PlanResponse>(
-    id ? `/api/independence/plans/${id}` : null,
-    id ? simpleFetcher(`/api/independence/plans/${id}`) : null,
+    planKey,
+    planKey ? simpleFetcher(planKey) : null,
     {
       revalidateOnMount: true,
       revalidateIfStale: true,
@@ -37,23 +40,35 @@ export function useIndependencePlanData(
   )
 
   const isClientPlan = planData?.data?.clientId != null
+  const hasResolvedPlan = planData?.data != null
 
   // For client plans, fetch the client's managed portfolios instead of adviser's own
+  // Wait for plan to resolve before choosing endpoint
+  const portfoliosEndpoint = hasResolvedPlan
+    ? isClientPlan
+      ? "/api/shares/managed"
+      : portfoliosKey
+    : null
   const { data: portfoliosData } = useSwr<PortfoliosResponse>(
-    isClientPlan ? "/api/shares/managed" : portfoliosKey,
-    simpleFetcher(isClientPlan ? "/api/shares/managed" : portfoliosKey),
+    portfoliosEndpoint,
+    portfoliosEndpoint ? simpleFetcher(portfoliosEndpoint) : null,
   )
 
   // Fetch aggregated holdings to get category breakdown
   // For client plans, skip holdings fetch (adviser's token returns adviser's data)
+  // Wait for plan to resolve before deciding
+  const holdingsEndpoint =
+    hasResolvedPlan && !isClientPlan
+      ? "/api/holdings/aggregated?asAt=today"
+      : null
   const {
     data: holdingsResponse,
     isLoading: holdingsLoading,
     mutate: refreshHoldings,
     isValidating: isRefreshingHoldings,
   } = useSwr<{ data: HoldingContract }>(
-    isClientPlan ? null : "/api/holdings/aggregated?asAt=today",
-    isClientPlan ? null : simpleFetcher("/api/holdings/aggregated?asAt=today"),
+    holdingsEndpoint,
+    holdingsEndpoint ? simpleFetcher(holdingsEndpoint) : null,
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,

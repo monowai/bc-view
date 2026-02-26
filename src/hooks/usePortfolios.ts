@@ -50,7 +50,11 @@ export function usePortfolios(): UsePortfoliosResult {
 
   const deletePortfolio = useCallback(
     async (id: string): Promise<void> => {
-      await fetch(`/api/portfolios/${id}`, { method: "DELETE" })
+      const response = await fetch(`/api/portfolios/${id}`, { method: "DELETE" })
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData?.message || errorData?.error || "Failed to delete portfolio")
+      }
       await mutate()
     },
     [mutate],
