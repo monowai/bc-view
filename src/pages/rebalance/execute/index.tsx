@@ -1,18 +1,11 @@
-import React, { useState, useCallback, useMemo, useEffect } from "react"
+import React, { useState, useMemo, useEffect } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useRouter } from "next/router"
 import Link from "next/link"
-import useSwr from "swr"
-import { simpleFetcher } from "@utils/api/fetchHelper"
 import { TableSkeletonLoader } from "@components/ui/SkeletonLoader"
 import CashSummaryPanel from "@components/features/rebalance/execution/CashSummaryPanel"
-import {
-  ExecutionDto,
-  ExecutionItemDto,
-  ExecutionItemUpdate,
-} from "types/rebalance"
-import { Asset, AssetResponse, Broker } from "types/beancounter"
 import { getAssetCurrency } from "@lib/assets/assetUtils"
+import { useRebalanceExecution } from "@hooks/useRebalanceExecution"
 
 function ExecuteRebalancePage(): React.ReactElement {
   const router = useRouter()
@@ -33,484 +26,44 @@ function ExecuteRebalancePage(): React.ReactElement {
   const sourceUrl = source ? decodeURIComponent(source as string) : "/holdings"
   const isAggregated = sourceUrl.includes("aggregated")
 
-  // State
-  const [execution, setExecution] = useState<ExecutionDto | null>(null)
+  // Page-only UI state
   const [step, setStep] = useState<"configure" | "preview">("configure")
-  const [loading, setLoading] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [refreshing, setRefreshing] = useState(false)
-  const [committing, setCommitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [hasChanges, setHasChanges] = useState(false)
 
-  // Local state for pending changes (synced to server on save)
-  const [localOverrides, setLocalOverrides] = useState<
-    Record<string, number | undefined>
-  >({})
-  const [localExclusions, setLocalExclusions] = useState<
-    Record<string, boolean>
-  >({})
-
-  // Settlement account state
-  const [selectedSettlementAccount, setSelectedSettlementAccount] = useState<
-    string | undefined
-  >(undefined)
-
-  // Broker state
-  const [selectedBrokerId, setSelectedBrokerId] = useState<string | undefined>(
-    undefined,
-  )
-
-  // Fetch settlement accounts (ACCOUNT category assets)
-  const { data: accountsData } = useSwr<AssetResponse>(
-    "/api/assets?category=ACCOUNT",
-    simpleFetcher,
-  )
-
-  // Fetch brokers for dropdown
-  const { data: brokersData } = useSwr(
-    "/api/brokers",
-    simpleFetcher("/api/brokers"),
-  )
-  const brokers: Broker[] = brokersData?.data || []
-
-  // Convert accounts to array for the selector
-  const settlementAccounts = useMemo((): Asset[] => {
-    if (!accountsData?.data) return []
-    return Object.values(accountsData.data)
-  }, [accountsData])
-
-  // Create or load execution
-  const initializeExecution = useCallback(async () => {
-    if (executionId) {
-      // Load existing execution
-      setLoading(true)
-      setError(null)
-      try {
-        const response = await fetch(`/api/rebalance/executions/${executionId}`)
-        if (!response.ok) {
-          setError(`Failed to load execution: ${response.status}`)
-          return
-        }
-        const data = await response.json()
-        setExecution(data.data)
-        // Initialize local state from execution items
-        const overrides: Record<string, number | undefined> = {}
-        const exclusions: Record<string, boolean> = {}
-        data.data.items.forEach((item: ExecutionItemDto) => {
-          if (item.hasOverride) {
-            overrides[item.assetId] = item.effectiveTarget
-          }
-          if (item.excluded) {
-            exclusions[item.assetId] = true
-          }
-        })
-        setLocalOverrides(overrides)
-        setLocalExclusions(exclusions)
-      } catch (err) {
-        console.error("Failed to load execution:", err)
-        setError(
-          err instanceof Error ? err.message : "Failed to load execution",
-        )
-      } finally {
-        setLoading(false)
-      }
-    } else if (planId && portfolioIds.length > 0) {
-      // Create new execution
-      setLoading(true)
-      setError(null)
-      try {
-        const filterByModel = filterByModelParam === "true"
-        const response = await fetch("/api/rebalance/executions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            planId,
-            portfolioIds,
-            filterByModel,
-          }),
-        })
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}))
-          setError(
-            errorData.message ||
-              `Failed to create execution: ${response.status}`,
-          )
-          return
-        }
-        const data = await response.json()
-        setExecution(data.data)
-        // Default to return-adjusted targets for new executions
-        const adjustedOverrides: Record<string, number> = {}
-        data.data.items.forEach((item: ExecutionItemDto) => {
-          if (!item.isCash && item.returnAdjustedTarget != null) {
-            adjustedOverrides[item.assetId] = item.returnAdjustedTarget
-          }
-        })
-        setLocalOverrides(adjustedOverrides)
-        // Update URL to include executionId (for resuming later), preserve source
-        const sourceParam = source
-          ? `&source=${encodeURIComponent(source as string)}`
-          : ""
-        router.replace(
-          `/rebalance/execute?executionId=${data.data.id}${sourceParam}`,
-          undefined,
-          { shallow: true },
-        )
-      } catch (err) {
-        console.error("Failed to create execution:", err)
-        setError(
-          err instanceof Error ? err.message : "Failed to create execution",
-        )
-      } finally {
-        setLoading(false)
-      }
-    }
-  }, [executionId, planId, portfolioIds, router, source, filterByModelParam])
-
-  // Initialize on mount
-  useEffect(() => {
-    if (
-      !execution &&
-      !loading &&
-      (executionId || (planId && portfolioIds.length > 0))
-    ) {
-      initializeExecution()
-    }
-  }, [
+  // Hook handles all data fetching, state, and operations
+  const {
     execution,
-    loading,
-    executionId,
-    planId,
-    portfolioIds.length,
-    initializeExecution,
-  ])
+    displayItems,
+    activeItems,
+    cashSummary,
+    settlementAccounts,
+    brokers,
+    selectedSettlementAccount,
+    setSelectedSettlementAccount,
+    selectedBrokerId,
+    setSelectedBrokerId,
+    states,
+    handlers,
+    createdExecutionId,
+  } = useRebalanceExecution({
+    executionId: executionId as string | undefined,
+    planId: planId as string | undefined,
+    portfolioIds,
+    filterByModel: filterByModelParam === "true",
+  })
 
-  // Save execution changes
-  const handleSave = useCallback(async () => {
-    if (!execution) return
-
-    setSaving(true)
-    try {
-      const itemUpdates: ExecutionItemUpdate[] = execution.items.map(
-        (item) => ({
-          assetId: item.assetId,
-          effectiveTargetOverride: localOverrides[item.assetId],
-          excluded: localExclusions[item.assetId] ?? false,
-        }),
+  // Handle URL update after new execution creation
+  useEffect(() => {
+    if (createdExecutionId) {
+      const sourceParam = source
+        ? `&source=${encodeURIComponent(source as string)}`
+        : ""
+      router.replace(
+        `/rebalance/execute?executionId=${createdExecutionId}${sourceParam}`,
+        undefined,
+        { shallow: true },
       )
-
-      const response = await fetch(
-        `/api/rebalance/executions/${execution.id}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            itemUpdates,
-          }),
-        },
-      )
-
-      if (!response.ok) {
-        setError(`Failed to save: ${response.status}`)
-        return
-      }
-
-      const data = await response.json()
-      setExecution(data.data)
-      setHasChanges(false)
-    } catch (err) {
-      console.error("Failed to save execution:", err)
-      setError(err instanceof Error ? err.message : "Failed to save")
-    } finally {
-      setSaving(false)
     }
-  }, [execution, localOverrides, localExclusions])
-
-  // Refresh holdings
-  const handleRefresh = useCallback(async () => {
-    if (!execution) return
-
-    // Save any pending changes first
-    if (hasChanges) {
-      await handleSave()
-    }
-
-    setRefreshing(true)
-    try {
-      const response = await fetch(
-        `/api/rebalance/executions/${execution.id}/refresh`,
-        { method: "POST" },
-      )
-
-      if (!response.ok) {
-        setError(`Failed to refresh: ${response.status}`)
-        return
-      }
-
-      const data = await response.json()
-      setExecution(data.data)
-      // Re-initialize local state
-      const overrides: Record<string, number | undefined> = {}
-      const exclusions: Record<string, boolean> = {}
-      data.data.items.forEach((item: ExecutionItemDto) => {
-        if (item.hasOverride) {
-          overrides[item.assetId] = item.effectiveTarget
-        }
-        if (item.excluded) {
-          exclusions[item.assetId] = true
-        }
-      })
-      setLocalOverrides(overrides)
-      setLocalExclusions(exclusions)
-      setHasChanges(false)
-    } catch (err) {
-      console.error("Failed to refresh:", err)
-      setError(err instanceof Error ? err.message : "Failed to refresh")
-    } finally {
-      setRefreshing(false)
-    }
-  }, [execution, hasChanges, handleSave])
-
-  // Handle target percentage change
-  const handleTargetChange = (assetId: string, value: number): void => {
-    setLocalOverrides((prev) => ({ ...prev, [assetId]: value }))
-    setHasChanges(true)
-  }
-
-  // Handle exclude toggle - just marks asset as excluded, doesn't change % value
-  const handleExcludeToggle = (assetId: string): void => {
-    setLocalExclusions((prev) => ({ ...prev, [assetId]: !prev[assetId] }))
-    setHasChanges(true)
-  }
-
-  // Set all targets to current weights (exclude cash)
-  const handleSetAllToCurrent = (): void => {
-    if (!execution) return
-    const overrides: Record<string, number> = {}
-    execution.items.forEach((item) => {
-      if (!item.isCash) {
-        overrides[item.assetId] = item.snapshotWeight
-      }
-    })
-    setLocalOverrides(overrides)
-    setHasChanges(true)
-  }
-
-  // Set all targets to model target weights
-  const handleSetAllToTarget = (): void => {
-    setLocalOverrides({})
-    setLocalExclusions({})
-    setHasChanges(true)
-  }
-
-  // Set all non-cash targets to 0% and cash to 100% (sell everything to cash)
-  const handleSetAllToZero = (): void => {
-    if (!execution) return
-    const overrides: Record<string, number> = {}
-    execution.items.forEach((item) => {
-      if (item.isCash) {
-        overrides[item.assetId] = 1 // Cash becomes 100%
-      } else {
-        overrides[item.assetId] = 0
-      }
-    })
-    setLocalOverrides(overrides)
-    setLocalExclusions({})
-    setHasChanges(true)
-  }
-
-  // Set all targets to return-adjusted weights (accounts for price movements)
-  const handleSetAllToAdjusted = (): void => {
-    if (!execution) return
-    const overrides: Record<string, number> = {}
-    execution.items.forEach((item) => {
-      if (!item.isCash && item.returnAdjustedTarget != null) {
-        overrides[item.assetId] = item.returnAdjustedTarget
-      }
-    })
-    setLocalOverrides(overrides)
-    setHasChanges(true)
-  }
-
-  // Set single item to current weight
-  const handleSetToCurrent = (assetId: string, currentWeight: number): void => {
-    setLocalOverrides((prev) => ({ ...prev, [assetId]: currentWeight }))
-    setHasChanges(true)
-  }
-
-  // Set single item to target weight (remove override)
-  const handleSetToTarget = (assetId: string): void => {
-    setLocalOverrides((prev) => {
-      const newOverrides = { ...prev }
-      delete newOverrides[assetId]
-      return newOverrides
-    })
-    setLocalExclusions((prev) => {
-      const newExcluded = { ...prev }
-      delete newExcluded[assetId]
-      return newExcluded
-    })
-    setHasChanges(true)
-  }
-
-  // Commit execution - create transactions
-  const handleCommit = useCallback(async () => {
-    if (!execution || execution.portfolioIds.length === 0) return
-
-    setCommitting(true)
-    setError(null)
-
-    try {
-      // For now, commit to the first portfolio in the list
-      // TODO: Add portfolio selection if multiple portfolios
-      const portfolioId = execution.portfolioIds[0]
-
-      const response = await fetch(
-        `/api/rebalance/executions/${execution.id}/commit`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            portfolioId,
-            transactionStatus: "PROPOSED",
-            cashAssetId: selectedSettlementAccount,
-            brokerId: selectedBrokerId,
-          }),
-        },
-      )
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        setError(
-          errorData.message || `Failed to commit execution: ${response.status}`,
-        )
-        return
-      }
-
-      const result = await response.json()
-      console.log(
-        `Created ${result.data.transactionsCreated} transactions`,
-        result.data.transactionIds,
-      )
-
-      // Navigate to transactions page or show success
-      router.push(`/trns?portfolioId=${portfolioId}`)
-    } catch (err) {
-      console.error("Failed to commit execution:", err)
-      setError(err instanceof Error ? err.message : "Failed to commit")
-    } finally {
-      setCommitting(false)
-    }
-  }, [execution, selectedSettlementAccount, selectedBrokerId, router])
-
-  // Calculate display items with local overrides applied
-  // Default: Cash stays at current weight, other assets scale based on PLAN target weights
-  // Excluded assets use same calculation but don't generate transactions
-  const displayItems = useMemo(() => {
-    if (!execution) return []
-
-    const totalPortfolioValue = execution.totalPortfolioValue
-
-    // Find the cash item - cash stays at current weight by default (not scaled)
-    const cashItem = execution.items.find((item) => item.isCash)
-    const cashEffectiveTarget = cashItem
-      ? (localOverrides[cashItem.assetId] ?? cashItem.snapshotWeight)
-      : 0
-
-    // Calculate available allocation for non-cash assets (1 - cash target)
-    const availableForAssets = 1 - cashEffectiveTarget
-
-    // Sum of PLAN target weights for all non-cash assets (for proportional scaling)
-    // Excluded assets are included in the calculation - they just don't generate transactions
-    const totalPlanTargetWeights = execution.items
-      .filter((item) => !item.isCash)
-      .reduce((sum, item) => sum + item.planTargetWeight, 0)
-
-    return execution.items.map((item) => {
-      const isCash = item.isCash ?? false
-      const isExcluded = localExclusions[item.assetId] ?? item.excluded
-
-      let effectiveTarget: number
-      if (isCash) {
-        // Cash uses its own override or current weight (not scaled by default)
-        effectiveTarget = localOverrides[item.assetId] ?? item.snapshotWeight
-      } else if (localOverrides[item.assetId] !== undefined) {
-        // Asset has explicit override - use it directly
-        effectiveTarget = localOverrides[item.assetId]!
-      } else {
-        // Scale asset based on its PLAN target weight proportion
-        // Assets with 0% target in plan get 0% effective target
-        // Excluded assets use same calculation - they just won't generate transactions
-        effectiveTarget =
-          totalPlanTargetWeights > 0
-            ? (item.planTargetWeight / totalPlanTargetWeights) *
-              availableForAssets
-            : 0
-      }
-
-      const targetValue = totalPortfolioValue * effectiveTarget
-      const deltaValue = targetValue - item.snapshotValue
-      const price = item.snapshotPrice || 0
-      const deltaQuantity = isCash
-        ? deltaValue
-        : price > 0
-          ? Math.round(deltaValue / price)
-          : 0
-
-      return {
-        ...item,
-        effectiveTarget,
-        deltaValue,
-        deltaQuantity,
-        isExcluded,
-        isCash,
-      }
-    })
-  }, [execution, localOverrides, localExclusions])
-
-  // Filter active items (non-zero delta, not excluded, not cash)
-  const activeItems = displayItems.filter(
-    (item) =>
-      !item.isExcluded && !item.isCash && Math.abs(item.deltaValue) > 100,
-  )
-
-  // Compute cash summary from display items (updates in real-time with user changes)
-  const computedCashSummary = useMemo(() => {
-    if (!execution) {
-      return {
-        currentMarketValue: 0,
-        currentCash: 0,
-        targetCash: 0,
-        cashFromSales: 0,
-        cashForPurchases: 0,
-      }
-    }
-
-    const cashItem = displayItems.find((item) => item.isCash)
-    const targetCash =
-      execution.totalPortfolioValue * (cashItem?.effectiveTarget ?? 0)
-
-    let cashFromSales = 0
-    let cashForPurchases = 0
-
-    for (const item of displayItems) {
-      if (item.isCash || item.isExcluded) continue
-      if (item.deltaValue < 0) {
-        cashFromSales += Math.abs(item.deltaValue)
-      } else if (item.deltaValue > 0) {
-        cashForPurchases += item.deltaValue
-      }
-    }
-
-    return {
-      currentMarketValue: execution.totalPortfolioValue,
-      currentCash: execution.snapshotCashValue,
-      targetCash,
-      cashFromSales,
-      cashForPurchases,
-    }
-  }, [execution, displayItems])
+  }, [createdExecutionId, source, router])
 
   const formatCurrency = (value: number): string => {
     return new Intl.NumberFormat(undefined, {
@@ -524,7 +77,7 @@ function ExecuteRebalancePage(): React.ReactElement {
     return `${(value * 100).toFixed(2)}%`
   }
 
-  if (loading) {
+  if (states.loading) {
     return (
       <div className="w-full py-4">
         <TableSkeletonLoader rows={8} />
@@ -532,13 +85,16 @@ function ExecuteRebalancePage(): React.ReactElement {
     )
   }
 
-  if (error) {
+  if (states.error) {
     return (
       <div className="w-full py-4">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 max-w-4xl mx-auto">
-          <p>{error}</p>
+          <p>{states.error}</p>
           <button
-            onClick={() => initializeExecution()}
+            onClick={() => {
+              handlers.setError(null)
+              handlers.initialize()
+            }}
             className="mt-2 text-sm underline"
           >
             Retry
@@ -588,24 +144,24 @@ function ExecuteRebalancePage(): React.ReactElement {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={handleRefresh}
-              disabled={refreshing}
+              onClick={handlers.refresh}
+              disabled={states.refreshing}
               className="px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded hover:bg-gray-200 disabled:opacity-50"
               title="Refresh holdings from portfolios"
             >
               <i
-                className={`fas fa-sync-alt mr-1 ${refreshing ? "fa-spin" : ""}`}
+                className={`fas fa-sync-alt mr-1 ${states.refreshing ? "fa-spin" : ""}`}
               ></i>
               Refresh
             </button>
-            {hasChanges && (
+            {states.hasChanges && (
               <button
-                onClick={handleSave}
-                disabled={saving}
+                onClick={handlers.save}
+                disabled={states.saving}
                 className="px-3 py-2 text-sm text-white bg-invest-500 rounded hover:bg-invest-600 disabled:opacity-50"
               >
                 <i
-                  className={`fas ${saving ? "fa-spinner fa-spin" : "fa-save"} mr-1`}
+                  className={`fas ${states.saving ? "fa-spinner fa-spin" : "fa-save"} mr-1`}
                 ></i>
                 Save
               </button>
@@ -615,11 +171,11 @@ function ExecuteRebalancePage(): React.ReactElement {
 
         <div className="pt-4 border-t">
           <CashSummaryPanel
-            currentMarketValue={computedCashSummary.currentMarketValue}
-            currentCash={computedCashSummary.currentCash}
-            targetCash={computedCashSummary.targetCash}
-            cashFromSales={computedCashSummary.cashFromSales}
-            cashForPurchases={computedCashSummary.cashForPurchases}
+            currentMarketValue={cashSummary.currentMarketValue}
+            currentCash={cashSummary.currentCash}
+            targetCash={cashSummary.targetCash}
+            cashFromSales={cashSummary.cashFromSales}
+            cashForPurchases={cashSummary.cashForPurchases}
             currency={execution.currency}
           />
         </div>
@@ -651,9 +207,13 @@ function ExecuteRebalancePage(): React.ReactElement {
                     >
                       <button
                         type="button"
-                        onClick={handleSetAllToTarget}
+                        onClick={handlers.setAllToTarget}
                         className={`px-3 py-1 text-xs font-medium rounded-l-md border ${
-                          Object.keys(localOverrides).length === 0
+                          displayItems.every(
+                            (i) =>
+                              i.isCash ||
+                              i.effectiveTarget === i.planTargetWeight,
+                          )
                             ? "bg-invest-100 text-invest-700 border-invest-200"
                             : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
                         }`}
@@ -663,9 +223,9 @@ function ExecuteRebalancePage(): React.ReactElement {
                       </button>
                       <button
                         type="button"
-                        onClick={handleSetAllToAdjusted}
+                        onClick={handlers.setAllToAdjusted}
                         className={`px-3 py-1 text-xs font-medium rounded-r-md border-t border-b border-r ${
-                          Object.keys(localOverrides).length > 0
+                          states.hasChanges
                             ? "bg-amber-100 text-amber-700 border-amber-300"
                             : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
                         }`}
@@ -678,32 +238,32 @@ function ExecuteRebalancePage(): React.ReactElement {
                 </div>
                 <div className="flex gap-2">
                   <button
-                    onClick={handleSetAllToCurrent}
+                    onClick={handlers.setAllToCurrent}
                     className="px-3 py-1 text-xs text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-50"
                     title="Set all % to current weights (no changes)"
                   >
-                    All → Current
+                    All &rarr; Current
                   </button>
                   <button
-                    onClick={handleSetAllToTarget}
+                    onClick={handlers.setAllToTarget}
                     className="px-3 py-1 text-xs text-gray-600 bg-white border border-gray-300 rounded hover:bg-gray-50"
                     title="Reset all to target weights from model"
                   >
-                    All → Target
+                    All &rarr; Target
                   </button>
                   <button
-                    onClick={handleSetAllToAdjusted}
+                    onClick={handlers.setAllToAdjusted}
                     className="px-3 py-1 text-xs text-amber-600 bg-white border border-amber-300 rounded hover:bg-amber-50"
                     title="Set all to return-adjusted targets (accounts for price movements)"
                   >
-                    All → Adjusted
+                    All &rarr; Adjusted
                   </button>
                   <button
-                    onClick={handleSetAllToZero}
+                    onClick={handlers.setAllToZero}
                     className="px-3 py-1 text-xs text-red-600 bg-white border border-red-300 rounded hover:bg-red-50"
                     title="Set all assets to 0% (sell everything)"
                   >
-                    All → 0
+                    All &rarr; 0
                   </button>
                 </div>
               </div>
@@ -773,7 +333,9 @@ function ExecuteRebalancePage(): React.ReactElement {
                             <input
                               type="checkbox"
                               checked={item.isExcluded}
-                              onChange={() => handleExcludeToggle(item.assetId)}
+                              onChange={() =>
+                                handlers.excludeToggle(item.assetId)
+                              }
                               className="h-4 w-4 text-gray-600 rounded border-gray-300 focus:ring-gray-500"
                               title={
                                 item.isExcluded
@@ -809,7 +371,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                           <div className="flex items-center justify-end gap-1">
                             <button
                               onClick={() =>
-                                handleSetToCurrent(
+                                handlers.setToCurrent(
                                   item.assetId,
                                   item.snapshotWeight,
                                 )
@@ -838,7 +400,9 @@ function ExecuteRebalancePage(): React.ReactElement {
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-1">
                             <button
-                              onClick={() => handleSetToTarget(item.assetId)}
+                              onClick={() =>
+                                handlers.setToTarget(item.assetId)
+                              }
                               className="text-gray-400 hover:text-invest-600 p-0.5"
                               title="Copy to %"
                             >
@@ -858,7 +422,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                             <div className="flex items-center justify-end gap-1">
                               <button
                                 onClick={() =>
-                                  handleTargetChange(
+                                  handlers.targetChange(
                                     item.assetId,
                                     item.returnAdjustedTarget!,
                                   )
@@ -890,7 +454,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                             value={(item.effectiveTarget * 100).toFixed(2)}
                             onChange={(e) => {
                               const val = parseFloat(e.target.value) || 0
-                              handleTargetChange(item.assetId, val / 100)
+                              handlers.targetChange(item.assetId, val / 100)
                             }}
                             disabled={item.isExcluded}
                             className={`w-20 px-2 py-1 text-right border rounded focus:ring-invest-500 focus:border-invest-500 ${
@@ -972,9 +536,10 @@ function ExecuteRebalancePage(): React.ReactElement {
               {"Cancel"}
             </button>
             <button
-              onClick={() => {
-                if (hasChanges) {
-                  handleSave().then(() => setStep("preview"))
+              onClick={async () => {
+                if (states.hasChanges) {
+                  const success = await handlers.save()
+                  if (success) setStep("preview")
                 } else {
                   setStep("preview")
                 }
@@ -1106,11 +671,11 @@ function ExecuteRebalancePage(): React.ReactElement {
           {/* Cash Summary */}
           <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6 mb-6">
             <CashSummaryPanel
-              currentMarketValue={computedCashSummary.currentMarketValue}
-              currentCash={computedCashSummary.currentCash}
-              targetCash={computedCashSummary.targetCash}
-              cashFromSales={computedCashSummary.cashFromSales}
-              cashForPurchases={computedCashSummary.cashForPurchases}
+              currentMarketValue={cashSummary.currentMarketValue}
+              currentCash={cashSummary.currentCash}
+              targetCash={cashSummary.targetCash}
+              cashFromSales={cashSummary.cashFromSales}
+              cashForPurchases={cashSummary.cashForPurchases}
               currency={execution.currency}
             />
           </div>
@@ -1194,18 +759,23 @@ function ExecuteRebalancePage(): React.ReactElement {
               {"Back"}
             </button>
             <button
-              onClick={handleCommit}
-              disabled={committing || activeItems.length === 0}
+              onClick={async () => {
+                const result = await handlers.commit()
+                if (result) {
+                  router.push(`/trns?portfolioId=${result.portfolioId}`)
+                }
+              }}
+              disabled={states.committing || activeItems.length === 0}
               className={`px-4 py-2 rounded text-white transition-colors ${
-                committing || activeItems.length === 0
+                states.committing || activeItems.length === 0
                   ? "bg-gray-400 cursor-not-allowed"
                   : "bg-invest-500 hover:bg-invest-600"
               }`}
             >
               <i
-                className={`fas ${committing ? "fa-spinner fa-spin" : "fa-check"} mr-2`}
+                className={`fas ${states.committing ? "fa-spinner fa-spin" : "fa-check"} mr-2`}
               ></i>
-              {committing ? "Executing..." : "Execute Transactions"}
+              {states.committing ? "Executing..." : "Execute Transactions"}
             </button>
           </div>
         </>

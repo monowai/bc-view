@@ -5,6 +5,7 @@ import { ModelDto, CreateModelRequest } from "types/rebalance"
 import { Currency } from "types/beancounter"
 import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper"
 import ClientSelector from "@components/features/shares/ClientSelector"
+import { useDialogSubmit } from "@hooks/useDialogSubmit"
 
 interface ModelPortfolioFormProps {
   model?: ModelDto
@@ -29,8 +30,11 @@ const ModelPortfolioForm: React.FC<ModelPortfolioFormProps> = ({
   const [description, setDescription] = useState(model?.description || "")
   const [baseCurrency, setBaseCurrency] = useState(model?.baseCurrency || "NZD")
   const [clientId, setClientId] = useState(model?.clientId || "")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const {
+    isSubmitting,
+    submitError: error,
+    handleSubmit: dialogSubmit,
+  } = useDialogSubmit({ fallbackError: "Failed to save model" })
 
   const isValid = name.trim() !== ""
 
@@ -38,10 +42,7 @@ const ModelPortfolioForm: React.FC<ModelPortfolioFormProps> = ({
     e.preventDefault()
     if (!isValid) return
 
-    setIsSubmitting(true)
-    setError(null)
-
-    try {
+    await dialogSubmit(async () => {
       const payload: CreateModelRequest = {
         name: name.trim(),
         objective: objective.trim() || undefined,
@@ -63,8 +64,7 @@ const ModelPortfolioForm: React.FC<ModelPortfolioFormProps> = ({
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        setError(errorData.message || "Failed to save model")
-        return
+        throw new Error(errorData.message || "Failed to save model")
       }
 
       const result = await response.json()
@@ -73,11 +73,7 @@ const ModelPortfolioForm: React.FC<ModelPortfolioFormProps> = ({
       } else {
         router.push("/rebalance/models")
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save model")
-    } finally {
-      setIsSubmitting(false)
-    }
+    })
   }
 
   return (

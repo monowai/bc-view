@@ -4,6 +4,7 @@ import MathInput from "@components/ui/MathInput"
 import DateInput from "@components/ui/DateInput"
 import Dialog from "@components/ui/Dialog"
 import { stripOwnerPrefix, getAssetCurrency } from "@lib/assets/assetUtils"
+import { useDialogSubmit } from "@hooks/useDialogSubmit"
 
 const CATEGORY_LABELS: Record<string, string> = {
   PENSION: "Retirement Fund",
@@ -27,23 +28,21 @@ export default function SetPriceDialog({
 }: SetPriceDialogProps): React.ReactElement {
   const [date, setDate] = useState(new Date().toISOString().split("T")[0])
   const [price, setPrice] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const {
+    isSubmitting,
+    submitError: error,
+    handleSubmit,
+    setError,
+  } = useDialogSubmit({ fallbackError: "Failed to update price" })
 
   const handleSave = async (): Promise<void> => {
     if (!price || parseFloat(price) <= 0) {
       setError("Please enter a valid price greater than 0")
       return
     }
-    setIsSubmitting(true)
-    setError(null)
-    try {
+    await handleSubmit(async () => {
       await onSave(asset.id, date, price)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update price")
-    } finally {
-      setIsSubmitting(false)
-    }
+    })
   }
 
   return (
