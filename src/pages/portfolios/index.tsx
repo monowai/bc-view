@@ -1,19 +1,17 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react"
-import useSwr from "swr"
+import React, { useState, useCallback } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import type { User } from "@auth0/nextjs-auth0/types"
-import { Portfolio, Currency } from "types/beancounter"
-import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
+import { Portfolio } from "types/beancounter"
 import { errorOut } from "@components/errors/ErrorOut"
 import { useRouter } from "next/router"
 import { rootLoader } from "@components/ui/PageLoader"
 import PortfolioCorporateActionsPopup from "@components/features/portfolios/PortfolioCorporateActionsPopup"
 import ManagedPortfolios from "@components/features/portfolios/ManagedPortfolios"
-import { useFxRates } from "@hooks/useFxRates"
 import ShareInviteDialog from "@components/features/portfolios/ShareInviteDialog"
 import PortfolioImportDialog from "@components/features/portfolios/PortfolioImportDialog"
 import PortfoliosList from "@components/features/portfolios/PortfoliosList"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
+import { usePortfolios } from "@hooks/usePortfolios"
 
 export default withPageAuthRequired(function Portfolios({
   user,
@@ -21,10 +19,18 @@ export default withPageAuthRequired(function Portfolios({
   user: User
 }): React.ReactElement {
   const router = useRouter()
-  const { data, mutate, error } = useSwr(
-    portfoliosKey,
-    simpleFetcher(portfoliosKey),
-  )
+  const {
+    portfolios,
+    currencies,
+    displayCurrency,
+    setDisplayCurrency,
+    fxRates,
+    fxRatesReady,
+    error,
+    isLoading,
+    mutate,
+    deletePortfolio,
+  } = usePortfolios()
 
   // Corporate actions popup state
   const [corporateActionsPortfolio, setCorporateActionsPortfolio] =
@@ -58,32 +64,6 @@ export default withPageAuthRequired(function Portfolios({
     [router],
   )
 
-  // Currency display state
-  const [currencies, setCurrencies] = useState<Currency[]>([])
-
-  useEffect(() => {
-    fetch("/api/currencies")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.data) {
-          setCurrencies(data.data)
-        }
-      })
-      .catch(console.error)
-  }, [])
-
-  // FX rates for converting portfolio values to display currency
-  const sourceCurrencyCodes = useMemo(
-    () => (data?.data || []).map((p: Portfolio) => p.base.code),
-    [data?.data],
-  )
-  const {
-    displayCurrency,
-    setDisplayCurrency,
-    fxRates,
-    fxReady: fxRatesReady,
-  } = useFxRates(currencies, sourceCurrencyCodes)
-
   const handleCorporateActionsClose = useCallback(() => {
     setCorporateActionsPortfolio(null)
   }, [])
@@ -104,10 +84,7 @@ export default withPageAuthRequired(function Portfolios({
   async function deletePortfolioConfirm(): Promise<void> {
     if (!deleteTarget) return
     try {
-      await fetch(`/api/portfolios/${deleteTarget.id}`, {
-        method: "DELETE",
-      })
-      await mutate()
+      await deletePortfolio(deleteTarget.id)
     } catch (error) {
       console.error("Failed to delete portfolio:", error)
     } finally {
@@ -125,7 +102,7 @@ export default withPageAuthRequired(function Portfolios({
 
   if (
     activeTab === "my" &&
-    (!data || ((data.data?.length ?? 0) > 0 && !fxRatesReady))
+    (isLoading || (portfolios.length > 0 && !fxRatesReady))
   ) {
     return rootLoader("Loading...")
   }
@@ -161,9 +138,9 @@ export default withPageAuthRequired(function Portfolios({
       </div>
 
       {/* Tab content */}
-      {activeTab === "my" && data && (
+      {activeTab === "my" && !isLoading && (
         <PortfoliosList
-          portfolios={data.data}
+          portfolios={portfolios}
           displayCurrency={displayCurrency}
           currencies={currencies}
           fxRates={fxRates}
@@ -189,9 +166,9 @@ export default withPageAuthRequired(function Portfolios({
           onComplete={handleImportComplete}
         />
       )}
-      {sharePortfolioId !== null && data?.data && (
+      {sharePortfolioId !== null && portfolios.length > 0 && (
         <ShareInviteDialog
-          portfolios={data.data}
+          portfolios={portfolios}
           preSelectedPortfolioId={sharePortfolioId}
           onClose={() => setSharePortfolioId(null)}
           onSuccess={() => setSharePortfolioId(null)}

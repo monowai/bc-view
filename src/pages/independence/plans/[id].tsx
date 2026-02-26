@@ -3,15 +3,7 @@ import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import Head from "next/head"
 import Link from "next/link"
 import { useRouter } from "next/router"
-import useSwr, { mutate } from "swr"
-import { simpleFetcher, portfoliosKey } from "@utils/api/fetchHelper"
-import { PlanResponse, QuickScenariosResponse } from "types/independence"
-import {
-  Portfolio,
-  HoldingContract,
-  FxResponse,
-  Position,
-} from "types/beancounter"
+import { Position } from "types/beancounter"
 import { transformToAllocationSlices } from "@lib/allocation/aggregateHoldings"
 import { ValueIn } from "@components/features/holdings/GroupByOptions"
 import {
@@ -38,18 +30,17 @@ import {
 } from "@components/features/independence"
 import { usePrivateAssetConfigs } from "@utils/assets/usePrivateAssetConfigs"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
+import { useIndependencePlanData } from "@hooks/useIndependencePlanData"
+import { useIndependencePlanCurrency } from "@hooks/useIndependencePlanCurrency"
+import { useIndependencePlanProjections } from "@hooks/useIndependencePlanProjections"
+import type { LumpSumAsset } from "@hooks/useIndependencePlanProjections"
 import Alert from "@components/ui/Alert"
 import Spinner from "@components/ui/Spinner"
 import {
   parseManualAssets,
   hasManualAssets,
   manualAssetsToSlices,
-  PensionProjection,
 } from "@lib/independence/planHelpers"
-
-interface PortfoliosResponse {
-  data: Portfolio[]
-}
 
 function PlanView(): React.ReactElement {
   const router = useRouter()
@@ -84,128 +75,36 @@ function PlanView(): React.ReactElement {
   // Version counter to force modal re-initialization after save
   const [planVersion, setPlanVersion] = useState(0)
 
-  // Pension/Policy FV projections for Assets tab
-  const [pensionProjections, setPensionProjections] = useState<
-    PensionProjection[]
-  >([])
+  // Data-fetching hooks
+  const {
+    plan,
+    planError,
+    isClientPlan,
+    portfoliosData,
+    holdingsData,
+    refreshHoldings,
+    isRefreshingHoldings,
+    quickScenarios,
+    availableCurrencies,
+    mutatePlan,
+  } = useIndependencePlanData(id)
 
-  const { data: planData, error: planError } = useSwr<PlanResponse>(
-    id ? `/api/independence/plans/${id}` : null,
-    id ? simpleFetcher(`/api/independence/plans/${id}`) : null,
-    {
-      // Always fetch fresh data when viewing a plan - avoids stale cache after edits
-      revalidateOnMount: true,
-      revalidateIfStale: true,
-      dedupingInterval: 0,
-    },
-  )
-
-  const isClientPlan = planData?.data?.clientId != null
   const [isTransferring, setIsTransferring] = useState(false)
   const [transferError, setTransferError] = useState<string | null>(null)
 
-  // For client plans, fetch the client's managed portfolios instead of adviser's own
-  const { data: portfoliosData } = useSwr<PortfoliosResponse>(
-    isClientPlan ? "/api/shares/managed" : portfoliosKey,
-    simpleFetcher(isClientPlan ? "/api/shares/managed" : portfoliosKey),
-  )
-
-  // Fetch aggregated holdings to get category breakdown
-  // For client plans, skip holdings fetch (adviser's token returns adviser's data)
-  // Disable auto-revalidation - only refresh on manual action for performance
-  // Use dedupingInterval for caching across page refreshes
-  const {
-    data: holdingsResponse,
-    isLoading: holdingsLoading,
-    mutate: refreshHoldings,
-    isValidating: isRefreshingHoldings,
-  } = useSwr<{ data: HoldingContract }>(
-    isClientPlan ? null : "/api/holdings/aggregated?asAt=today",
-    isClientPlan ? null : simpleFetcher("/api/holdings/aggregated?asAt=today"),
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false,
-      dedupingInterval: 60000, // Cache for 60 seconds
-    },
-  )
-  // Only use holdings data when it has finished loading
-  const holdingsData = holdingsLoading ? undefined : holdingsResponse?.data
-
-  // Fetch quick scenarios for What-If analysis
-  const { data: scenariosData } = useSwr<QuickScenariosResponse>(
-    "/api/independence/scenarios",
-    simpleFetcher("/api/independence/scenarios"),
-  )
-  const quickScenarios = useMemo(
-    () => scenariosData?.data || [],
-    [scenariosData?.data],
-  )
+  const planCurrency = plan?.expensesCurrency || "NZD"
 
   // Fetch rental income from RE asset configs
   const { configs: assetConfigs, getNetRentalByCurrency } =
     usePrivateAssetConfigs()
 
-  const plan = planData?.data
-  const planCurrency = plan?.expensesCurrency || "NZD"
-
-  // Display currency conversion (all plan values are in planCurrency)
-  const [displayCurrency, setDisplayCurrency] = useState<string | null>(null)
-  const [fxRate, setFxRate] = useState<number>(1)
-  const [fxRateLoaded, setFxRateLoaded] = useState<boolean>(true) // true when no conversion needed
-  // Only use display currency when fxRate has been loaded to avoid showing wrong values
-  const effectiveCurrency =
-    displayCurrency && fxRateLoaded ? displayCurrency : planCurrency
-  // For plan values that need frontend FX conversion
-  const effectiveFxRate =
-    displayCurrency && fxRateLoaded && displayCurrency !== planCurrency
-      ? fxRate
-      : 1
-
-  // Fetch available currencies
-  const { data: currenciesData } = useSwr<{
-    data: { code: string; name: string; symbol: string }[]
-  }>("/api/currencies", simpleFetcher("/api/currencies"))
-  const availableCurrencies = currenciesData?.data || []
-
-  // Fetch FX rate when display currency changes
-  useEffect(() => {
-    const fetchFxRate = async (): Promise<void> => {
-      if (!displayCurrency || displayCurrency === planCurrency) {
-        setFxRate(1)
-        setFxRateLoaded(true)
-        return
-      }
-      // Mark as loading while fetching
-      setFxRateLoaded(false)
-      try {
-        const response = await fetch("/api/fx", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            rateDate: "today",
-            pairs: [{ from: planCurrency, to: displayCurrency }],
-          }),
-        })
-        const fxResponse: FxResponse = await response.json()
-        const rateKey = `${planCurrency}:${displayCurrency}`
-        const rate = fxResponse.data?.rates?.[rateKey]?.rate
-        if (rate && rate !== 1) {
-          setFxRate(rate)
-          setFxRateLoaded(true)
-        } else {
-          // Rate not found or is 1 - stay in plan currency
-          console.warn(`FX rate not found for ${rateKey}, using plan currency`)
-          setFxRate(1)
-          setFxRateLoaded(false) // Keep showing plan currency
-        }
-      } catch (err) {
-        console.error("Failed to fetch FX rate:", err)
-        setFxRate(1)
-        setFxRateLoaded(false) // Keep showing plan currency on error
-      }
-    }
-    fetchFxRate()
-  }, [planCurrency, displayCurrency])
+  // Display currency conversion
+  const {
+    displayCurrency,
+    setDisplayCurrency,
+    effectiveCurrency,
+    effectiveFxRate,
+  } = useIndependencePlanCurrency(planCurrency)
 
   // Get rental income by currency (backend handles FX conversion)
   const monthlyNetByCurrency = useMemo(() => {
@@ -362,20 +261,6 @@ function PlanView(): React.ReactElement {
   // Determine if assets are loaded (for enabling asset-dependent tabs)
   const hasAssets = liquidAssets > 0 || nonSpendableAssets > 0
 
-  // Calculate FV adjustment for pension/policy assets based on category selection
-  const excludedPensionFV = useMemo(() => {
-    return pensionProjections
-      .filter((p) => !effectiveSpendableCategories.includes(p.category))
-      .reduce((sum, p) => sum + p.projectedValue, 0)
-  }, [pensionProjections, effectiveSpendableCategories])
-
-  // Calculate the FV differential for included pension/policy assets
-  const includedPensionFvDifferential = useMemo(() => {
-    return pensionProjections
-      .filter((p) => effectiveSpendableCategories.includes(p.category))
-      .reduce((sum, p) => sum + (p.projectedValue - p.currentValue), 0)
-  }, [pensionProjections, effectiveSpendableCategories])
-
   // Default expected return rate for assets without a configured rate (3%)
   const DEFAULT_EXPECTED_RETURN = 0.03
 
@@ -458,7 +343,7 @@ function PlanView(): React.ReactElement {
     : 65
 
   // Identify pension/policy assets with lump sum settings for FV projection
-  const lumpSumAssets = useMemo(() => {
+  const lumpSumAssets = useMemo((): LumpSumAsset[] => {
     if (!assetConfigs || !holdingsData?.positions) return []
     const positions = Object.values(holdingsData.positions) as Position[]
     return assetConfigs
@@ -481,79 +366,25 @@ function PlanView(): React.ReactElement {
   }, [assetConfigs, holdingsData])
 
   // Fetch FV projections for lump sum pension/policy assets
-  useEffect(() => {
-    const fetchPensionProjections = async (): Promise<void> => {
-      if (!lumpSumAssets.length || currentAge === undefined) {
-        setPensionProjections([])
-        return
-      }
+  const { pensionProjections } = useIndependencePlanProjections(
+    lumpSumAssets,
+    currentAge,
+    planCurrency,
+  )
 
-      const projections: PensionProjection[] = []
+  // Calculate FV adjustment for pension/policy assets based on category selection
+  const excludedPensionFV = useMemo(() => {
+    return pensionProjections
+      .filter((p) => !effectiveSpendableCategories.includes(p.category))
+      .reduce((sum, p) => sum + p.projectedValue, 0)
+  }, [pensionProjections, effectiveSpendableCategories])
 
-      for (const asset of lumpSumAssets) {
-        const { config, assetName, currentValue, category } = asset
-
-        if (!config.payoutAge || !config.expectedReturnRate) {
-          continue
-        }
-
-        if (currentAge >= config.payoutAge) {
-          projections.push({
-            assetId: config.assetId,
-            assetName,
-            currentValue,
-            projectedValue: currentValue,
-            payoutAge: config.payoutAge,
-            currency: config.rentalCurrency || planCurrency,
-            category,
-          })
-          continue
-        }
-
-        try {
-          const response = await fetch("/api/projection/lump-sum", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              monthlyContribution: config.monthlyContribution || 0,
-              expectedReturnRate: config.expectedReturnRate,
-              currentAge: currentAge,
-              payoutAge: config.payoutAge,
-            }),
-          })
-
-          if (response.ok) {
-            const data = await response.json()
-            const yearsToMaturity = config.payoutAge - currentAge
-            const grownCurrentValue =
-              currentValue *
-              Math.pow(1 + config.expectedReturnRate, yearsToMaturity)
-            const contributionFV = data.data?.projectedPayout || 0
-            const totalProjected = grownCurrentValue + contributionFV
-
-            projections.push({
-              assetId: config.assetId,
-              assetName,
-              currentValue,
-              projectedValue: totalProjected,
-              payoutAge: config.payoutAge,
-              currency: config.rentalCurrency || planCurrency,
-              category,
-            })
-          }
-        } catch (err) {
-          console.error(
-            `Failed to fetch projection for ${config.assetId}:`,
-            err,
-          )
-        }
-      }
-
-      setPensionProjections(projections)
-    }
-
-    fetchPensionProjections()
-  }, [lumpSumAssets, currentAge, planCurrency])
+  // Calculate the FV differential for included pension/policy assets
+  const includedPensionFvDifferential = useMemo(() => {
+    return pensionProjections
+      .filter((p) => effectiveSpendableCategories.includes(p.category))
+      .reduce((sum, p) => sum + (p.projectedValue - p.currentValue), 0)
+  }, [pensionProjections, effectiveSpendableCategories])
 
   // Calculate pre-retirement contributions (for passing to backend)
   const effectiveWorkingIncome =
@@ -798,7 +629,7 @@ function PlanView(): React.ReactElement {
         })
         if (response.ok) {
           const updatedPlan = await response.json()
-          await mutate(`/api/independence/plans/${id}`, updatedPlan, false)
+          await mutatePlan(updatedPlan, false)
           setScenarioOverrides({})
           setShowSaveDialog(false)
           setPlanVersion((v) => v + 1)

@@ -1,8 +1,6 @@
 import React, { useState, useCallback } from "react"
-import useSwr from "swr"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
-import { BrokerInput, BrokerWithAccounts, Asset } from "types/beancounter"
-import { simpleFetcher } from "@utils/api/fetchHelper"
+import { BrokerInput, BrokerWithAccounts } from "types/beancounter"
 import { getAssetCurrency } from "@lib/assets/assetUtils"
 import { errorOut } from "@components/errors/ErrorOut"
 import { useRouter } from "next/router"
@@ -10,20 +8,22 @@ import { rootLoader } from "@components/ui/PageLoader"
 import Dialog from "@components/ui/Dialog"
 import Alert from "@components/ui/Alert"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
-
-const brokersKey = "/api/brokers?includeAccounts=true"
-const accountAssetsKey = "/api/assets?category=ACCOUNT"
+import { useBrokers } from "@hooks/useBrokers"
 
 // Common currencies for settlement accounts
 const SETTLEMENT_CURRENCIES = ["SGD", "USD", "NZD", "AUD", "GBP", "EUR"]
 
 export default withPageAuthRequired(function Brokers(): React.ReactElement {
   const router = useRouter()
-  const { data, mutate, error } = useSwr(brokersKey, simpleFetcher(brokersKey))
-  const { data: accountsData } = useSwr(
-    accountAssetsKey,
-    simpleFetcher(accountAssetsKey),
-  )
+  const {
+    brokers,
+    accountAssets,
+    error,
+    isLoading,
+    saveBroker,
+    deleteBroker,
+    transferTransactions,
+  } = useBrokers()
 
   const [editingBroker, setEditingBroker] = useState<BrokerWithAccounts | null>(
     null,
@@ -47,12 +47,6 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
   const [activeTab, setActiveTab] = useState<"details" | "settlement">(
     "details",
   )
-
-  // Available bank accounts for settlement selection
-  // API returns Record<string, Asset>, convert to array
-  const accountAssets: Asset[] = accountsData?.data
-    ? Object.values(accountsData.data)
-    : []
 
   const handleCreate = useCallback(() => {
     setFormData({
@@ -115,29 +109,14 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
 
     setIsSaving(true)
     try {
-      const url = editingBroker
-        ? `/api/brokers/${editingBroker.id}`
-        : "/api/brokers"
-      const method = editingBroker ? "PATCH" : "POST"
-
-      const response = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      })
-
-      if (response.ok) {
-        await mutate()
-        handleCancel()
-      } else {
-        console.error("Failed to save broker:", await response.text())
-      }
+      await saveBroker(editingBroker?.id, formData)
+      handleCancel()
     } catch (err) {
       console.error("Failed to save broker:", err)
     } finally {
       setIsSaving(false)
     }
-  }, [formData, editingBroker, mutate, handleCancel])
+  }, [formData, editingBroker, saveBroker, handleCancel])
 
   const handleDelete = useCallback((broker: BrokerWithAccounts) => {
     setDeleteError(null)
@@ -148,58 +127,38 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
     if (!deletingBroker) return
     setDeletingBroker(null)
     try {
-      const response = await fetch(`/api/brokers/${deletingBroker.id}`, {
-        method: "DELETE",
-      })
-
-      if (response.ok) {
-        await mutate()
-      } else {
-        const errorData = await response.json()
-        const errorMessage =
-          errorData?.message || errorData?.error || "Failed to delete broker"
-        if (errorMessage.toLowerCase().includes("transaction")) {
-          setTransferringBroker(deletingBroker)
-          setDeleteError(errorMessage)
-        } else {
-          setDeleteError(errorMessage)
-        }
-      }
+      await deleteBroker(deletingBroker.id)
     } catch (err) {
-      console.error("Failed to delete broker:", err)
-      setDeleteError("Failed to delete broker")
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to delete broker"
+      if (errorMessage.toLowerCase().includes("transaction")) {
+        setTransferringBroker(deletingBroker)
+        setDeleteError(errorMessage)
+      } else {
+        setDeleteError(errorMessage)
+      }
     }
-  }, [deletingBroker, mutate])
+  }, [deletingBroker, deleteBroker])
 
   const handleTransfer = useCallback(async () => {
     if (!transferringBroker || !targetBrokerId) return
 
     setIsTransferring(true)
     try {
-      const response = await fetch(
-        `/api/brokers/${transferringBroker.id}/transfer?toBrokerId=${targetBrokerId}`,
-        { method: "POST" },
-      )
-
-      if (response.ok) {
-        await response.json()
-        await mutate()
-        setTransferringBroker(null)
-        setTargetBrokerId("")
-        setDeleteError(null)
-        setTransferSuccess(`Transactions transferred successfully`)
-        setTimeout(() => setTransferSuccess(null), 3000)
-      } else {
-        const errorData = await response.json()
-        setDeleteError(errorData?.message || "Failed to transfer transactions")
-      }
+      await transferTransactions(transferringBroker.id, targetBrokerId)
+      setTransferringBroker(null)
+      setTargetBrokerId("")
+      setDeleteError(null)
+      setTransferSuccess(`Transactions transferred successfully`)
+      setTimeout(() => setTransferSuccess(null), 3000)
     } catch (err) {
-      console.error("Failed to transfer:", err)
-      setDeleteError("Failed to transfer transactions")
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to transfer transactions"
+      setDeleteError(errorMessage)
     } finally {
       setIsTransferring(false)
     }
-  }, [transferringBroker, targetBrokerId, mutate])
+  }, [transferringBroker, targetBrokerId, transferTransactions])
 
   const handleCancelTransfer = useCallback(() => {
     setTransferringBroker(null)
@@ -211,11 +170,9 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
     return errorOut("Error loading brokers", error)
   }
 
-  if (!data) {
+  if (isLoading) {
     return rootLoader("Loading...")
   }
-
-  const brokers: BrokerWithAccounts[] = data.data || []
 
   return (
     <div className="min-h-screen bg-gray-50">

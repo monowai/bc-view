@@ -1,16 +1,9 @@
-import React, { useMemo, useState } from "react"
+import React, { useState } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
-import { rootLoader } from "@components/ui/PageLoader"
 import { errorOut } from "@components/errors/ErrorOut"
-import useSwr from "swr"
-import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper"
-import {
-  Currency,
-  FxProvidersResponse,
-  FxRequest,
-  FxResponse,
-} from "types/beancounter"
 import { useIsAdmin } from "@hooks/useIsAdmin"
+import { useFxHistory } from "@hooks/useFxHistory"
+import { useFxMatrix } from "@hooks/useFxMatrix"
 import {
   LineChart,
   Line,
@@ -46,27 +39,6 @@ const TIME_RANGES = [
   { label: "1Y", months: 12 },
 ]
 
-// Fetcher for FX rates using POST
-const fxFetcher = async (
-  url: string,
-  pairs: Array<{ from: string; to: string }>,
-  provider?: string,
-): Promise<FxResponse> => {
-  const body: FxRequest = { pairs }
-  if (provider) {
-    body.provider = provider
-  }
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  })
-  if (!response.ok) {
-    throw new Error(`Failed to fetch FX rates: ${response.status}`)
-  }
-  return response.json()
-}
-
 // Rate color based on value (rates close to 1 are neutral, higher/lower have gradient)
 const getRateColor = (rate: number): string => {
   if (rate === 1) return "text-gray-400"
@@ -76,15 +48,6 @@ const getRateColor = (rate: number): string => {
   if (rate > 0.8) return "text-sky-500"
   if (rate > 0.5) return "text-blue-600"
   return "text-indigo-600"
-}
-
-// FX History Response type
-interface FxHistoryResponse {
-  from: string
-  to: string
-  startDate: string
-  endDate: string
-  data: Array<{ date: string; rate: number }>
 }
 
 // Rate History Chart Modal Component
@@ -99,33 +62,19 @@ const RateChartModal: React.FC<RateChartModalProps> = ({
   to: initialTo,
   onClose,
 }) => {
-  const [months, setMonths] = useState(3)
-  const [isInverted, setIsInverted] = useState(false)
+  const {
+    chartData,
+    stats,
+    isLoading,
+    error,
+    months,
+    setMonths,
+    isInverted,
+    setIsInverted,
+  } = useFxHistory(initialFrom, initialTo)
 
-  // Swap currencies when inverted
   const from = isInverted ? initialTo : initialFrom
   const to = isInverted ? initialFrom : initialTo
-
-  const { data, isLoading, error } = useSwr<FxHistoryResponse>(
-    `/api/fx/history?from=${from}&to=${to}&months=${months}`,
-    simpleFetcher(`/api/fx/history?from=${from}&to=${to}&months=${months}`),
-  )
-
-  const chartData = data?.data || []
-
-  // Calculate stats
-  const stats = useMemo(() => {
-    const rateData = data?.data || []
-    if (rateData.length === 0) return null
-    const rates = rateData.map((d) => d.rate)
-    const min = Math.min(...rates)
-    const max = Math.max(...rates)
-    const current = rates[rates.length - 1]
-    const first = rates[0]
-    const change = current - first
-    const changePercent = (change / first) * 100
-    return { min, max, current, change, changePercent }
-  }, [data?.data])
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -335,92 +284,23 @@ export default withPageAuthRequired(function FxMatrix(): React.ReactElement {
     to: string
   } | null>(null)
 
-  // Fetch available currencies
-  const ccyResponse = useSwr<{ data: Currency[] }>(
-    ccyKey,
-    simpleFetcher(ccyKey),
-  )
+  const {
+    currencies,
+    rates,
+    compareRates1: rates1,
+    compareRates2: rates2,
+    providers,
+    isLoading,
+    error: matrixError,
+    rateDates: { rateDate, rateDate1, rateDate2 },
+  } = useFxMatrix(selectedProvider, compareMode)
 
-  // Fetch available providers
-  const providersResponse = useSwr<FxProvidersResponse>(
-    "/api/fx/providers",
-    simpleFetcher("/api/fx/providers"),
-  )
-
-  // Generate all currency pairs when currencies are loaded
-  const currencyPairs = useMemo(() => {
-    if (!ccyResponse.data?.data) return []
-    const currencies = ccyResponse.data.data
-    const pairs: Array<{ from: string; to: string }> = []
-
-    for (const from of currencies) {
-      for (const to of currencies) {
-        if (from.code !== to.code) {
-          pairs.push({ from: from.code, to: to.code })
-        }
-      }
-    }
-    return pairs
-  }, [ccyResponse.data?.data])
-
-  // Fetch FX rates for selected provider (or default)
-  const fxKey =
-    currencyPairs.length > 0
-      ? ["/api/fx", currencyPairs, selectedProvider]
-      : null
-  const fxResponse = useSwr<FxResponse>(
-    fxKey,
-    ([url, pairs]: [string, Array<{ from: string; to: string }>, string?]) =>
-      fxFetcher(url, pairs, selectedProvider),
-  )
-
-  // Fetch rates from all providers when in compare mode
-  const providers = providersResponse.data?.providers || []
   const provider1 = providers[0]
   const provider2 = providers[1]
 
-  const fxResponse1 = useSwr<FxResponse>(
-    compareMode && currencyPairs.length > 0 && provider1
-      ? ["/api/fx", currencyPairs, provider1, "p1"]
-      : null,
-    ([url, pairs]: [
-      string,
-      Array<{ from: string; to: string }>,
-      string,
-      string,
-    ]) => fxFetcher(url, pairs, provider1),
-  )
-
-  const fxResponse2 = useSwr<FxResponse>(
-    compareMode && currencyPairs.length > 0 && provider2
-      ? ["/api/fx", currencyPairs, provider2, "p2"]
-      : null,
-    ([url, pairs]: [
-      string,
-      Array<{ from: string; to: string }>,
-      string,
-      string,
-    ]) => fxFetcher(url, pairs, provider2),
-  )
-
-  // Loading states
-  if (ccyResponse.isLoading) {
-    return rootLoader("Loading...")
+  if (matrixError) {
+    return errorOut("Error loading FX rates", matrixError)
   }
-
-  // Error handling
-  if (ccyResponse.error) {
-    return errorOut("Error loading currencies", ccyResponse.error)
-  }
-
-  if (fxResponse.error && !compareMode) {
-    return errorOut("Error loading FX rates", fxResponse.error)
-  }
-
-  const currencies = ccyResponse.data?.data || []
-  const rates = fxResponse.data?.data?.rates || {}
-  const rates1 = fxResponse1.data?.data?.rates || {}
-  const rates2 = fxResponse2.data?.data?.rates || {}
 
   // Get rate for a currency pair
   const getRate = (
@@ -453,15 +333,6 @@ export default withPageAuthRequired(function FxMatrix(): React.ReactElement {
     const percent = (diff / rate2.rate) * 100
     return { diff, percent }
   }
-
-  // Get rate date from first available rate
-  const rateDate = Object.values(rates)[0]?.date || ""
-  const rateDate1 = Object.values(rates1)[0]?.date || ""
-  const rateDate2 = Object.values(rates2)[0]?.date || ""
-
-  const isLoading =
-    fxResponse.isLoading ||
-    (compareMode && (fxResponse1.isLoading || fxResponse2.isLoading))
 
   // Clickable rate component
   const ClickableRate: React.FC<{

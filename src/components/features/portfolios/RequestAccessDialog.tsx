@@ -1,5 +1,6 @@
 import React, { useState } from "react"
 import Dialog from "@components/ui/Dialog"
+import { useDialogSubmit } from "@hooks/useDialogSubmit"
 
 interface RequestAccessDialogProps {
   onClose: () => void
@@ -12,21 +13,25 @@ export default function RequestAccessDialog({
 }: RequestAccessDialogProps): React.ReactElement {
   const [email, setEmail] = useState("")
   const [message, setMessage] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
+  const {
+    isSubmitting,
+    submitError: error,
+    submitSuccess,
+    handleSubmit,
+    setError,
+  } = useDialogSubmit({
+    onSuccess,
+    autoCloseDelay: 1500,
+    fallbackError: "Failed to send request",
+  })
 
-  const handleSubmit = async (): Promise<void> => {
-    setError(null)
-    setSuccess(null)
-
+  const onSubmit = async (): Promise<void> => {
     if (!email.trim()) {
       setError("Email is required")
       return
     }
 
-    setIsSubmitting(true)
-    try {
+    await handleSubmit(async () => {
       const response = await fetch("/api/shares/request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -37,18 +42,9 @@ export default function RequestAccessDialog({
       })
       if (!response.ok) {
         const data = await response.json().catch(() => ({}))
-        setError(data.error || "Failed to send request")
-        return
+        throw new Error(data.error || "Failed to send request")
       }
-      setSuccess("Access request sent successfully")
-      setTimeout(() => {
-        onSuccess()
-      }, 1500)
-    } catch {
-      setError("Failed to send request")
-    } finally {
-      setIsSubmitting(false)
-    }
+    })
   }
 
   return (
@@ -60,7 +56,7 @@ export default function RequestAccessDialog({
         <>
           <Dialog.CancelButton onClick={onClose} label={"Cancel"} />
           <Dialog.SubmitButton
-            onClick={handleSubmit}
+            onClick={onSubmit}
             label={"Send Request"}
             loadingLabel={"Sending..."}
             isSubmitting={isSubmitting}
@@ -71,7 +67,9 @@ export default function RequestAccessDialog({
       }
     >
       <Dialog.ErrorAlert message={error} />
-      <Dialog.SuccessAlert message={success} />
+      <Dialog.SuccessAlert
+        message={submitSuccess ? "Access request sent successfully" : null}
+      />
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">

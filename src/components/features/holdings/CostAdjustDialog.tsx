@@ -13,6 +13,7 @@ import MathInput from "@components/ui/MathInput"
 import DateInput from "@components/ui/DateInput"
 import Dialog from "@components/ui/Dialog"
 import { stripOwnerPrefix } from "@lib/assets/assetUtils"
+import { useDialogSubmit } from "@hooks/useDialogSubmit"
 
 interface CostAdjustDialogProps {
   asset: Asset
@@ -38,8 +39,12 @@ export default function CostAdjustDialog({
 }: CostAdjustDialogProps): React.ReactElement {
   const [date, setDate] = useState(new Date().toISOString().split("T")[0])
   const [newCostBasis, setNewCostBasis] = useState<string>("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const {
+    isSubmitting,
+    submitError: error,
+    handleSubmit,
+    setError,
+  } = useDialogSubmit({ fallbackError: "Failed to create cost adjustment" })
 
   // Calculate the adjustment amount (new - current)
   const { adjustmentAmount, hasValidTarget } = useMemo(() => {
@@ -56,17 +61,9 @@ export default function CostAdjustDialog({
       setError("Please enter a different cost basis")
       return
     }
-    setIsSubmitting(true)
-    setError(null)
-    try {
+    await handleSubmit(async () => {
       await onSave(asset.id, portfolioId, date, adjustmentAmount)
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to create cost adjustment",
-      )
-    } finally {
-      setIsSubmitting(false)
-    }
+    })
   }
 
   return (

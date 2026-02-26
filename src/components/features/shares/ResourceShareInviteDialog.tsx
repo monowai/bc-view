@@ -1,6 +1,7 @@
 import React, { useState } from "react"
 import Dialog from "@components/ui/Dialog"
 import { ShareAccessLevel, ShareResourceType } from "types/beancounter"
+import { useDialogSubmit } from "@hooks/useDialogSubmit"
 
 interface ShareableResource {
   id: string
@@ -27,9 +28,17 @@ export default function ResourceShareInviteDialog({
     preSelectedId ? new Set([preSelectedId]) : new Set(),
   )
   const [accessLevel, setAccessLevel] = useState<ShareAccessLevel>("VIEW")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
+  const {
+    isSubmitting,
+    submitError: error,
+    submitSuccess,
+    handleSubmit,
+    setError,
+  } = useDialogSubmit({
+    onSuccess,
+    autoCloseDelay: 1500,
+    fallbackError: "Failed to send invitation",
+  })
 
   const typeLabel = resourceType === "INDEPENDENCE_PLAN" ? "Plans" : "Models"
   const typeLabelSingular =
@@ -47,10 +56,7 @@ export default function ResourceShareInviteDialog({
     })
   }
 
-  const handleSubmit = async (): Promise<void> => {
-    setError(null)
-    setSuccess(null)
-
+  const onSubmit = async (): Promise<void> => {
     if (!email.trim()) {
       setError("Please enter an email address")
       return
@@ -60,8 +66,7 @@ export default function ResourceShareInviteDialog({
       return
     }
 
-    setIsSubmitting(true)
-    try {
+    await handleSubmit(async () => {
       const response = await fetch("/api/resource-shares/invite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -74,18 +79,9 @@ export default function ResourceShareInviteDialog({
       })
       if (!response.ok) {
         const data = await response.json().catch(() => ({}))
-        setError(data.error || "Failed to send invitation")
-        return
+        throw new Error(data.error || "Failed to send invitation")
       }
-      setSuccess("Invitation sent successfully")
-      setTimeout(() => {
-        onSuccess()
-      }, 1500)
-    } catch {
-      setError("Failed to send invitation")
-    } finally {
-      setIsSubmitting(false)
-    }
+    })
   }
 
   const canSubmit = email.trim().length > 0 && selectedIds.size > 0
@@ -100,7 +96,7 @@ export default function ResourceShareInviteDialog({
         <>
           <Dialog.CancelButton onClick={onClose} label={"Cancel"} />
           <Dialog.SubmitButton
-            onClick={handleSubmit}
+            onClick={onSubmit}
             label={"Send Invite"}
             loadingLabel={"Sending..."}
             isSubmitting={isSubmitting}
@@ -111,7 +107,9 @@ export default function ResourceShareInviteDialog({
       }
     >
       <Dialog.ErrorAlert message={error} />
-      <Dialog.SuccessAlert message={success} />
+      <Dialog.SuccessAlert
+        message={submitSuccess ? "Invitation sent successfully" : null}
+      />
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
