@@ -3,6 +3,7 @@ import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { rootLoader } from "@components/ui/PageLoader"
 import { useIsAdmin } from "@hooks/useIsAdmin"
 import Link from "next/link"
+import Spinner from "@components/ui/Spinner"
 
 interface TaskResult {
   success: boolean
@@ -298,7 +299,7 @@ export default withPageAuthRequired(
                       >
                         {isRunning ? (
                           <>
-                            <i className="fas fa-spinner fa-spin mr-2"></i>
+                            <Spinner className="mr-2" />
                             {"Running..."}
                           </>
                         ) : (

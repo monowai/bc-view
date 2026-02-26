@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react"
 import { useRouter } from "next/router"
+import Spinner from "@components/ui/Spinner"
 import RebalanceWizardProgress from "./RebalanceWizardProgress"
 import SelectModelStep from "./steps/SelectModelStep"
 import SelectPortfoliosStep from "./steps/SelectPortfoliosStep"
@@ -193,7 +194,7 @@ const RebalanceWizardContainer: React.FC<RebalanceWizardContainerProps> = ({
           >
             {isSubmitting ? (
               <span className="flex items-center">
-                <i className="fas fa-spinner fa-spin mr-2"></i>
+                <Spinner className="mr-2" />
                 {"Creating..."}
               </span>
             ) : (

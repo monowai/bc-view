@@ -7,6 +7,7 @@ import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { AssetOption, Market, Portfolio, Position } from "types/beancounter"
 import { ModelsContainingAssetResponse } from "types/rebalance"
 import AssetSearch from "@components/features/assets/AssetSearch"
+import Spinner from "@components/ui/Spinner"
 
 interface AssetPosition {
   portfolio: Portfolio
@@ -168,7 +169,7 @@ function AssetLookupPage(): React.ReactElement {
 
           {loadingPositions ? (
             <div className="p-8 text-center text-gray-500">
-              <i className="fas fa-spinner fa-spin mr-2"></i>
+              <Spinner className="mr-2" />
               {"Loading..."}
             </div>
           ) : positions.length === 0 ? (
@@ -295,7 +296,7 @@ function AssetLookupPage(): React.ReactElement {
 
           {loadingModels ? (
             <div className="p-8 text-center text-gray-500">
-              <i className="fas fa-spinner fa-spin mr-2"></i>
+              <Spinner className="mr-2" />
               {"Loading..."}
             </div>
           ) : models.length === 0 ? (

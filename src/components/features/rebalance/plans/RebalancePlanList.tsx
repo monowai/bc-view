@@ -7,6 +7,7 @@ import { FormatValue } from "@components/ui/MoneyUtils"
 import { formatDate } from "@utils/formatters"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 import { tbodyBase, hiddenSm, hiddenMd, hiddenLg } from "@utils/tableStyles"
+import Spinner from "@components/ui/Spinner"
 
 const RebalancePlanList: React.FC = () => {
   const router = useRouter()
@@ -125,7 +126,7 @@ const RebalancePlanList: React.FC = () => {
                   title={"Delete"}
                 >
                   {deletingId === plan.id ? (
-                    <i className="fas fa-spinner fa-spin"></i>
+                    <Spinner />
                   ) : (
                     <i className="fas fa-trash-alt"></i>
                   )}

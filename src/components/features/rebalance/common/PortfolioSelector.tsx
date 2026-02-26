@@ -2,6 +2,7 @@ import React, { useState } from "react"
 import useSwr from "swr"
 import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { PortfolioResponses, Portfolio } from "types/beancounter"
+import Spinner from "@components/ui/Spinner"
 
 interface PortfolioSelectorProps {
   onSelect: (portfolioCodes: string[]) => void
@@ -48,7 +49,7 @@ const PortfolioSelector: React.FC<PortfolioSelectorProps> = ({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <i className="fas fa-spinner fa-spin text-gray-400 text-xl"></i>
+        <Spinner size="xl" className="text-gray-400" />
       </div>
     )
   }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react"
 import useSWR from "swr"
 import Dialog from "@components/ui/Dialog"
+import Spinner from "@components/ui/Spinner"
 import { fetcher, portfoliosKey } from "@utils/api/fetchHelper"
 import WeightsSummary from "../common/WeightsSummary"
 import { AssetWeightWithDetails } from "types/rebalance"
@@ -158,8 +159,7 @@ const ImportHoldingsDialog: React.FC<ImportHoldingsDialogProps> = ({
 
       {loadingWeights && (
         <div className="flex items-center justify-center py-8">
-          <i className="fas fa-spinner fa-spin text-gray-400 text-xl mr-2"></i>
-          <span className="text-gray-500">{"Loading..."}</span>
+          <Spinner size="xl" className="text-gray-400" label="Loading..." />
         </div>
       )}
 
