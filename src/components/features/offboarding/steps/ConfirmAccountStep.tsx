@@ -1,4 +1,5 @@
 import React from "react"
+import Spinner from "@components/ui/Spinner"
 interface ConfirmAccountStepProps {
   deleteAccount: boolean
   setDeleteAccount: (value: boolean) => void
@@ -94,7 +95,7 @@ export default function ConfirmAccountStep({
         >
           {isDeleting ? (
             <>
-              <i className="fas fa-spinner fa-spin mr-2"></i>
+              <Spinner className="mr-2" />
               {"Deleting..."}
             </>
           ) : (

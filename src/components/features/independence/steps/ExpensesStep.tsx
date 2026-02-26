@@ -12,6 +12,7 @@ import useSwr from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import { WizardFormData, CategoryLabelsResponse } from "types/independence"
 import { wizardMessages } from "@lib/independence/messages"
+import Spinner from "@components/ui/Spinner"
 
 const msg = wizardMessages.steps.expenses
 
@@ -333,7 +334,7 @@ export default function ExpensesStep({
 
         {fields.length === 0 && (
           <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-            <i className="fas fa-spinner fa-spin text-4xl text-gray-400 mb-2"></i>
+            <Spinner size="4xl" className="text-gray-400 mb-2" />
             <p className="text-gray-500">Loading categories...</p>
           </div>
         )}

@@ -13,6 +13,7 @@ import { wizardMessages } from "@lib/independence/messages"
 import CompositeAssetEditor from "@components/features/assets/CompositeAssetEditor"
 import { buildCashRow } from "@lib/trns/tradeUtils"
 import { postData } from "@components/ui/DropZone"
+import Spinner from "@components/ui/Spinner"
 import { getAssetCurrency } from "@lib/assets/assetUtils"
 
 const msg = wizardMessages.steps.assets
@@ -819,7 +820,7 @@ export default function AssetsStep({
         {/* Existing POLICY Assets Without Balances */}
         {isCheckingBalances && (
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
-            <i className="fas fa-spinner fa-spin text-gray-400 mr-2"></i>
+            <Spinner className="text-gray-400 mr-2" />
             <span className="text-gray-600">{msg.checkingAssets}</span>
           </div>
         )}
@@ -983,7 +984,7 @@ export default function AssetsStep({
                     >
                       {isSettingBalance === entry.asset.id ? (
                         <>
-                          <i className="fas fa-spinner fa-spin mr-1"></i>
+                          <Spinner className="mr-1" />
                           {msg.settingBalance}
                         </>
                       ) : (
@@ -1341,7 +1342,7 @@ export default function AssetsStep({
                 >
                   {isCreating ? (
                     <>
-                      <i className="fas fa-spinner fa-spin mr-2"></i>
+                      <Spinner className="mr-2" />
                       {msg.creating}
                     </>
                   ) : (

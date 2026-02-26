@@ -9,6 +9,7 @@ import {
 import { WizardFormData } from "types/independence"
 import { AllocationResponse } from "types/beancounter"
 import { wizardMessages } from "@lib/independence/messages"
+import Spinner from "@components/ui/Spinner"
 
 const msg = wizardMessages.steps.assumptions
 const fields = wizardMessages.fields
@@ -212,7 +213,7 @@ export default function AssumptionsStep({
                 >
                   {isLoadingAllocation ? (
                     <>
-                      <i className="fas fa-spinner fa-spin mr-2"></i>
+                      <Spinner className="mr-2" />
                       {msg.loading}
                     </>
                   ) : (

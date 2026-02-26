@@ -9,6 +9,7 @@ import Dialog from "@components/ui/Dialog"
 import Alert from "@components/ui/Alert"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 import { useBrokers } from "@hooks/useBrokers"
+import Spinner from "@components/ui/Spinner"
 
 // Common currencies for settlement accounts
 const SETTLEMENT_CURRENCIES = ["SGD", "USD", "NZD", "AUD", "GBP", "EUR"]
@@ -411,7 +412,7 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
               >
                 {isSaving ? (
                   <span className="flex items-center">
-                    <i className="fas fa-spinner fa-spin mr-2"></i>
+                    <Spinner className="mr-2" />
                     {"Saving..."}
                   </span>
                 ) : (

@@ -1,6 +1,7 @@
 import React, { useState } from "react"
 import { useRouter } from "next/router"
 import useSWR from "swr"
+import Spinner from "@components/ui/Spinner"
 import { ModelDto, CreateModelRequest } from "types/rebalance"
 import { Currency } from "types/beancounter"
 import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper"
@@ -185,7 +186,7 @@ const ModelPortfolioForm: React.FC<ModelPortfolioFormProps> = ({
         >
           {isSubmitting ? (
             <span className="flex items-center">
-              <i className="fas fa-spinner fa-spin mr-2"></i>
+              <Spinner className="mr-2" />
               {"Saving..."}
             </span>
           ) : isEditing ? (

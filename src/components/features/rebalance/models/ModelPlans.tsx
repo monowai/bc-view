@@ -1,5 +1,6 @@
 import React, { useState } from "react"
 import { useRouter } from "next/router"
+import Spinner from "@components/ui/Spinner"
 import { useModelPlans } from "../hooks/useModelPlans"
 import { PlanDto } from "types/rebalance"
 import StatusBadge from "../common/StatusBadge"
@@ -60,7 +61,7 @@ const ModelPlans: React.FC<ModelPlansProps> = ({ modelId }) => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <i className="fas fa-spinner fa-spin text-gray-400 text-xl"></i>
+        <Spinner size="xl" className="text-gray-400" />
       </div>
     )
   }
@@ -85,7 +86,7 @@ const ModelPlans: React.FC<ModelPlansProps> = ({ modelId }) => {
           className="bg-violet-600 text-white px-3 py-1.5 rounded text-sm hover:bg-violet-700 transition-colors flex items-center disabled:opacity-50"
         >
           {creating ? (
-            <i className="fas fa-spinner fa-spin mr-2"></i>
+            <Spinner className="mr-2" />
           ) : (
             <i className="fas fa-plus mr-2"></i>
           )}
