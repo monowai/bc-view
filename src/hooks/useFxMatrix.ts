@@ -122,10 +122,15 @@ export function useFxMatrix(
 
   const isLoading =
     ccyResponse.isLoading ||
+    providersResponse.isLoading ||
     fxResponse.isLoading ||
     (compareMode && (fxResponse1.isLoading || fxResponse2.isLoading))
 
-  const error = ccyResponse.error || (!compareMode ? fxResponse.error : undefined)
+  const error =
+    ccyResponse.error ||
+    providersResponse.error ||
+    fxResponse.error ||
+    (compareMode ? fxResponse1.error || fxResponse2.error : undefined)
 
   return {
     currencies,

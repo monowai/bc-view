@@ -55,7 +55,7 @@ export function useFxHistory(
     const current = rates[rates.length - 1]
     const first = rates[0]
     const change = current - first
-    const changePercent = (change / first) * 100
+    const changePercent = first === 0 ? 0 : (change / first) * 100
     return { min, max, current, change, changePercent }
   }, [data?.data])
 

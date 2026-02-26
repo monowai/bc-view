@@ -48,12 +48,12 @@ export function useIndependencePlanCurrency(
         const fxResponse: FxResponse = await response.json()
         const rateKey = `${planCurrency}:${displayCurrency}`
         const rate = fxResponse.data?.rates?.[rateKey]?.rate
-        if (rate && rate !== 1) {
+        if (rate !== undefined) {
           setFxRate(rate)
           setFxRateLoaded(true)
         } else {
-          // Rate not found or is 1 - stay in plan currency
-          console.warn(`FX rate not found for ${rateKey}, using plan currency`)
+          // Rate not found in response
+          console.warn(`FX rate not found for ${rateKey}, falling back to plan currency`)
           setFxRate(1)
           setFxRateLoaded(false)
         }

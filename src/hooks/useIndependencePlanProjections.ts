@@ -52,7 +52,7 @@ export function useIndependencePlanProjections(
       for (const asset of lumpSumAssets) {
         const { config, assetName, currentValue, category } = asset
 
-        if (!config.payoutAge || !config.expectedReturnRate) {
+        if (config.payoutAge == null || config.expectedReturnRate == null) {
           continue
         }
 
@@ -81,30 +81,52 @@ export function useIndependencePlanProjections(
             }),
           })
 
-          if (response.ok) {
-            const data = await response.json()
-            const yearsToMaturity = config.payoutAge - currentAge
-            const grownCurrentValue =
-              currentValue *
-              Math.pow(1 + config.expectedReturnRate, yearsToMaturity)
-            const contributionFV = data.data?.projectedPayout || 0
-            const totalProjected = grownCurrentValue + contributionFV
-
+          if (!response.ok) {
+            // Fallback to current value when API fails
             projections.push({
               assetId: config.assetId,
               assetName,
               currentValue,
-              projectedValue: totalProjected,
+              projectedValue: currentValue,
               payoutAge: config.payoutAge,
               currency: config.rentalCurrency || planCurrency,
               category,
             })
+            continue
           }
+
+          const data = await response.json()
+          const yearsToMaturity = config.payoutAge - currentAge
+          const grownCurrentValue =
+            currentValue *
+            Math.pow(1 + config.expectedReturnRate, yearsToMaturity)
+          const contributionFV = data.data?.projectedPayout || 0
+          const totalProjected = grownCurrentValue + contributionFV
+
+          projections.push({
+            assetId: config.assetId,
+            assetName,
+            currentValue,
+            projectedValue: totalProjected,
+            payoutAge: config.payoutAge,
+            currency: config.rentalCurrency || planCurrency,
+            category,
+          })
         } catch (err) {
           console.error(
             `Failed to fetch projection for ${config.assetId}:`,
             err,
           )
+          // Fallback to current value on error
+          projections.push({
+            assetId: config.assetId,
+            assetName,
+            currentValue,
+            projectedValue: currentValue,
+            payoutAge: config.payoutAge,
+            currency: config.rentalCurrency || planCurrency,
+            category,
+          })
         }
       }
 
