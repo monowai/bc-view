@@ -11,9 +11,7 @@ describe("useIndependencePlanCurrency", () => {
   })
 
   it("returns plan currency when no display currency set", () => {
-    const { result } = renderHook(() =>
-      useIndependencePlanCurrency("NZD"),
-    )
+    const { result } = renderHook(() => useIndependencePlanCurrency("NZD"))
 
     expect(result.current.displayCurrency).toBeNull()
     expect(result.current.effectiveCurrency).toBe("NZD")
@@ -29,9 +27,7 @@ describe("useIndependencePlanCurrency", () => {
         }),
     })
 
-    const { result } = renderHook(() =>
-      useIndependencePlanCurrency("NZD"),
-    )
+    const { result } = renderHook(() => useIndependencePlanCurrency("NZD"))
 
     act(() => {
       result.current.setDisplayCurrency("USD")
@@ -46,9 +42,7 @@ describe("useIndependencePlanCurrency", () => {
   })
 
   it("stays in plan currency when same currency selected", async () => {
-    const { result } = renderHook(() =>
-      useIndependencePlanCurrency("NZD"),
-    )
+    const { result } = renderHook(() => useIndependencePlanCurrency("NZD"))
 
     act(() => {
       result.current.setDisplayCurrency("NZD")
@@ -64,9 +58,7 @@ describe("useIndependencePlanCurrency", () => {
   it("falls back to plan currency when FX rate fetch fails", async () => {
     ;(global.fetch as jest.Mock).mockRejectedValue(new Error("Network error"))
 
-    const { result } = renderHook(() =>
-      useIndependencePlanCurrency("NZD"),
-    )
+    const { result } = renderHook(() => useIndependencePlanCurrency("NZD"))
 
     act(() => {
       result.current.setDisplayCurrency("USD")
@@ -87,9 +79,7 @@ describe("useIndependencePlanCurrency", () => {
       json: () => Promise.resolve({ data: { rates: {} } }),
     })
 
-    const { result } = renderHook(() =>
-      useIndependencePlanCurrency("NZD"),
-    )
+    const { result } = renderHook(() => useIndependencePlanCurrency("NZD"))
 
     act(() => {
       result.current.setDisplayCurrency("USD")

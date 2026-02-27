@@ -229,11 +229,14 @@ export default function FiSummaryBar({
               <div className="h-8 w-px bg-gray-200" />
 
               <div className="flex flex-col">
-                <Tooltip position="below" text={
-                  isCoastFire
-                    ? "Your existing investments will grow to cover retirement expenses by your target age — even if you stop saving now. You only need to cover current living expenses."
-                    : "The age at which your current savings and investment rate will reach your FI Number. Once achieved, you could stop saving and your investments would still grow to cover retirement."
-                }>
+                <Tooltip
+                  position="below"
+                  text={
+                    isCoastFire
+                      ? "Your existing investments will grow to cover retirement expenses by your target age — even if you stop saving now. You only need to cover current living expenses."
+                      : "The age at which your current savings and investment rate will reach your FI Number. Once achieved, you could stop saving and your investments would still grow to cover retirement."
+                  }
+                >
                   <span className="text-xs text-gray-500 uppercase tracking-wide">
                     Coast FIRE
                   </span>
@@ -255,7 +258,6 @@ export default function FiSummaryBar({
               </div>
             </>
           )}
-
         </div>
       </div>
     </div>

@@ -53,7 +53,9 @@ export function useIndependencePlanCurrency(
           setFxRateLoaded(true)
         } else {
           // Rate not found in response
-          console.warn(`FX rate not found for ${rateKey}, falling back to plan currency`)
+          console.warn(
+            `FX rate not found for ${rateKey}, falling back to plan currency`,
+          )
           setFxRate(1)
           setFxRateLoaded(false)
         }

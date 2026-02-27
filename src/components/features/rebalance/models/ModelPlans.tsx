@@ -107,21 +107,11 @@ const ModelPlans: React.FC<ModelPlansProps> = ({ modelId }) => {
           <table className={tableBase}>
             <thead className={theadBase}>
               <tr>
-                <th className={thBase}>
-                  {"Version"}
-                </th>
-                <th className={thBase}>
-                  {"Status"}
-                </th>
-                <th className={thBase}>
-                  {"Created"}
-                </th>
-                <th className={thBase}>
-                  {"Approved"}
-                </th>
-                <th className={thBase}>
-                  {"Assets"}
-                </th>
+                <th className={thBase}>{"Version"}</th>
+                <th className={thBase}>{"Status"}</th>
+                <th className={thBase}>{"Created"}</th>
+                <th className={thBase}>{"Approved"}</th>
+                <th className={thBase}>{"Assets"}</th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>

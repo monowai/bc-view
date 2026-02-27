@@ -37,6 +37,7 @@ const defaultPreferences: UserPreferences = {
   showWeightedIrr: true,
   enableTwr: false,
   defaultMarket: "US",
+  milestoneMode: "ACTIVE",
 }
 
 const UserPreferencesContext = createContext<UserPreferencesContextValue>({

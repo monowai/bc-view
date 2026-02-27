@@ -2,13 +2,62 @@ import { useUser, withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import Link from "next/link"
 import React, { useEffect, useState } from "react"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
+import { useMilestones } from "@contexts/MilestonesContext"
 import useSwr from "swr"
 import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { Portfolio } from "types/beancounter"
 import { useRegistration } from "@contexts/RegistrationContext"
+import MilestoneBadge from "@components/features/milestones/MilestoneBadge"
+import { MilestoneTier } from "@utils/milestones/types"
 
 const capitalize = (str: string): string =>
   str ? str.charAt(0).toUpperCase() + str.slice(1) : ""
+
+function RecentMilestones(): React.ReactElement | null {
+  const { milestones, mode } = useMilestones()
+  if (mode === "OFF") return null
+  const earned = milestones
+    .filter((s) => s.earnedTier !== null)
+    .sort(
+      (a, b) =>
+        (b.earnedAt ?? "").localeCompare(a.earnedAt ?? "") ||
+        (b.earnedTier ?? 0) - (a.earnedTier ?? 0),
+    )
+    .slice(0, 3)
+  if (earned.length === 0) return null
+  return (
+    <div className="mt-8">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-gray-600">
+          Recent Milestones
+        </h3>
+        <Link
+          href="/milestones"
+          className="text-xs text-blue-500 hover:text-blue-700"
+        >
+          View all
+        </Link>
+      </div>
+      <div className="flex gap-4 justify-center">
+        {earned.map((s) => (
+          <Link
+            key={s.definition.id}
+            href="/milestones"
+            className="flex flex-col items-center gap-1 hover:opacity-80 transition-opacity"
+          >
+            <MilestoneBadge
+              definition={s.definition}
+              tier={s.earnedTier as MilestoneTier}
+            />
+            <span className="text-xs text-gray-600 text-center max-w-[80px] truncate">
+              {s.definition.title}
+            </span>
+          </Link>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 export default withPageAuthRequired(function Home(): React.ReactElement {
   const { user, error, isLoading } = useUser()
@@ -243,9 +292,12 @@ export default withPageAuthRequired(function Home(): React.ReactElement {
             </Link>
           </div>
 
+          {/* Recent Milestones */}
+          <RecentMilestones />
+
           {/* Tagline */}
           <p className="text-center text-gray-500 mt-8">
-            Start anywhere. Everything connect over time.
+            Start anywhere. Everything connects over time.
           </p>
         </div>
       </div>

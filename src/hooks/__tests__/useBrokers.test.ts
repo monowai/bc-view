@@ -126,7 +126,6 @@ describe("useBrokers", () => {
         isLoading: false,
         error: undefined,
       } as unknown as ReturnType<typeof useSwr>)
-
     ;(global.fetch as jest.Mock).mockResolvedValueOnce({ ok: true })
 
     const { result } = renderHook(() => useBrokers())
@@ -163,7 +162,6 @@ describe("useBrokers", () => {
         isLoading: false,
         error: undefined,
       } as unknown as ReturnType<typeof useSwr>)
-
     ;(global.fetch as jest.Mock).mockResolvedValueOnce({ ok: true })
 
     const { result } = renderHook(() => useBrokers())
@@ -199,7 +197,6 @@ describe("useBrokers", () => {
         isLoading: false,
         error: undefined,
       } as unknown as ReturnType<typeof useSwr>)
-
     ;(global.fetch as jest.Mock).mockResolvedValueOnce({ ok: true })
 
     const { result } = renderHook(() => useBrokers())
@@ -228,7 +225,6 @@ describe("useBrokers", () => {
         isLoading: false,
         error: undefined,
       } as unknown as ReturnType<typeof useSwr>)
-
     ;(global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: false,
       json: () => Promise.resolve({ message: "Has transactions" }),
@@ -258,7 +254,6 @@ describe("useBrokers", () => {
         isLoading: false,
         error: undefined,
       } as unknown as ReturnType<typeof useSwr>)
-
     ;(global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve({}),

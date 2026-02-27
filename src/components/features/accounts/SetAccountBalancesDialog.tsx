@@ -287,7 +287,11 @@ const SetAccountBalancesDialog: React.FC<SetAccountBalancesDialogProps> = ({
 
           {portfolios.length === 0 ? (
             <div className="flex items-center justify-center py-4">
-              <Spinner size="2xl" className="text-blue-500" label="Loading..." />
+              <Spinner
+                size="2xl"
+                className="text-blue-500"
+                label="Loading..."
+              />
             </div>
           ) : (
             <div className="space-y-4">

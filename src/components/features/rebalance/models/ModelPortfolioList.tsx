@@ -102,7 +102,9 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
             <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
               {"Model Name"}
             </th>
-            <th className={`px-4 py-3 text-left text-sm font-medium text-gray-700 ${hiddenSm}`}>
+            <th
+              className={`px-4 py-3 text-left text-sm font-medium text-gray-700 ${hiddenSm}`}
+            >
               {"Objective"}
             </th>
             <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">

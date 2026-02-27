@@ -1,7 +1,12 @@
 import { useMemo } from "react"
 import useSwr from "swr"
 import { simpleFetcher, portfoliosKey } from "@utils/api/fetchHelper"
-import { PlanResponse, QuickScenariosResponse, RetirementPlan, QuickScenario } from "types/independence"
+import {
+  PlanResponse,
+  QuickScenariosResponse,
+  RetirementPlan,
+  QuickScenario,
+} from "types/independence"
 import { Portfolio, HoldingContract } from "types/beancounter"
 import type { KeyedMutator } from "swr"
 
@@ -27,17 +32,19 @@ export function useIndependencePlanData(
   id: string | string[] | undefined,
 ): UseIndependencePlanDataResult {
   const normalizedId = Array.isArray(id) ? id[0] : id
-  const planKey = normalizedId ? `/api/independence/plans/${normalizedId}` : null
+  const planKey = normalizedId
+    ? `/api/independence/plans/${normalizedId}`
+    : null
 
-  const { data: planData, error: planError, mutate: mutatePlan } = useSwr<PlanResponse>(
-    planKey,
-    planKey ? simpleFetcher(planKey) : null,
-    {
-      revalidateOnMount: true,
-      revalidateIfStale: true,
-      dedupingInterval: 0,
-    },
-  )
+  const {
+    data: planData,
+    error: planError,
+    mutate: mutatePlan,
+  } = useSwr<PlanResponse>(planKey, planKey ? simpleFetcher(planKey) : null, {
+    revalidateOnMount: true,
+    revalidateIfStale: true,
+    dedupingInterval: 0,
+  })
 
   const isClientPlan = planData?.data?.clientId != null
   const hasResolvedPlan = planData?.data != null

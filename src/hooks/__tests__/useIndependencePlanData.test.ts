@@ -30,7 +30,9 @@ const makePlan = (overrides = {}) => ({
 
 // Helper to build the SWR mock for each call index
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-function buildSwrMock(calls: Record<number, Partial<ReturnType<typeof useSwr>>>) {
+function buildSwrMock(
+  calls: Record<number, Partial<ReturnType<typeof useSwr>>>,
+) {
   let callIndex = 0
   mockUseSwr.mockImplementation(() => {
     const idx = callIndex++

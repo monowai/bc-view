@@ -61,22 +61,30 @@ const RebalancePlanList: React.FC = () => {
             <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
               {"Plan Name"}
             </th>
-            <th className={`px-4 py-3 text-left text-sm font-medium text-gray-700 ${hiddenSm}`}>
+            <th
+              className={`px-4 py-3 text-left text-sm font-medium text-gray-700 ${hiddenSm}`}
+            >
               {"Model"}
             </th>
             <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
               {"Portfolios"}
             </th>
-            <th className={`px-4 py-3 text-right text-sm font-medium text-gray-700 ${hiddenMd}`}>
+            <th
+              className={`px-4 py-3 text-right text-sm font-medium text-gray-700 ${hiddenMd}`}
+            >
               {"Current Value"}
             </th>
-            <th className={`px-4 py-3 text-right text-sm font-medium text-gray-700 ${hiddenMd}`}>
+            <th
+              className={`px-4 py-3 text-right text-sm font-medium text-gray-700 ${hiddenMd}`}
+            >
               {"Target Value"}
             </th>
             <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
               {"Status"}
             </th>
-            <th className={`px-4 py-3 text-left text-sm font-medium text-gray-700 ${hiddenLg}`}>
+            <th
+              className={`px-4 py-3 text-left text-sm font-medium text-gray-700 ${hiddenLg}`}
+            >
               {"Created"}
             </th>
             <th className="px-4 py-3 w-12"></th>

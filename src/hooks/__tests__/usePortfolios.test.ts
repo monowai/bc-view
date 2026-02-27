@@ -135,10 +135,10 @@ describe("usePortfolios", () => {
 
     renderHook(() => usePortfolios())
 
-    expect(mockUseFxRates).toHaveBeenCalledWith(
-      expect.any(Array),
-      ["USD", "NZD"],
-    )
+    expect(mockUseFxRates).toHaveBeenCalledWith(expect.any(Array), [
+      "USD",
+      "NZD",
+    ])
   })
 
   it("deletePortfolio calls API and mutates", async () => {
@@ -150,7 +150,6 @@ describe("usePortfolios", () => {
       isLoading: false,
       isValidating: false,
     } as unknown as ReturnType<typeof useSwr>)
-
     ;(global.fetch as jest.Mock).mockImplementation((url: string) => {
       if (url.includes("/api/portfolios/")) {
         return Promise.resolve({ ok: true })

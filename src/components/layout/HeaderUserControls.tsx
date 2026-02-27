@@ -103,6 +103,14 @@ export default function HeaderUserControls(): React.ReactElement {
             {"Settings"}
           </Link>
           <Link
+            href="/milestones"
+            className="flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            onClick={() => setDropdownOpen(false)}
+          >
+            <i className="fas fa-trophy w-4 text-center text-xs text-gray-400"></i>
+            {"Milestones"}
+          </Link>
+          <Link
             href="/brokers"
             className="flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
             onClick={() => setDropdownOpen(false)}

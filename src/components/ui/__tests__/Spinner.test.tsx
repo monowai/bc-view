@@ -7,7 +7,11 @@ describe("Spinner", () => {
     const { container } = render(<Spinner />)
     const span = container.querySelector("span")
     expect(span).toHaveClass("text-sm")
-    expect(container.querySelector("i")).toHaveClass("fas", "fa-spinner", "fa-spin")
+    expect(container.querySelector("i")).toHaveClass(
+      "fas",
+      "fa-spinner",
+      "fa-spin",
+    )
   })
 
   it("renders label text", () => {

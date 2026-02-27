@@ -90,9 +90,7 @@ describe("tableStyles", () => {
     })
 
     it("tdCompactRight has smaller padding with right alignment", () => {
-      expect(tdCompactRight).toBe(
-        "px-2 py-2 text-sm text-right tabular-nums",
-      )
+      expect(tdCompactRight).toBe("px-2 py-2 text-sm text-right tabular-nums")
     })
   })
 
