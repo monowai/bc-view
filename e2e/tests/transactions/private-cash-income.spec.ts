@@ -79,7 +79,10 @@ test.describe("Private Cash Income", () => {
 
       // 5. Select INCOME from the Type dropdown (react-select)
       //    Click the react-select to open its menu, then select INCOME
-      const typeSelect = page.locator("form#cash-form").locator(".css-13cymwt-control").first()
+      const typeSelect = page
+        .locator("form#cash-form")
+        .locator(".css-13cymwt-control")
+        .first()
       await typeSelect.click()
       const incomeOption = page.getByRole("option", { name: "INCOME" })
       await expect(incomeOption).toBeVisible({ timeout: 5000 })
@@ -116,17 +119,17 @@ test.describe("Private Cash Income", () => {
           const res = await fetch(`/api/holdings/${code}?asAt=today`)
           if (res.ok) {
             const json = await res.json()
-            const positions =
-              json.data?.positions || json.positions || {}
+            const positions = json.data?.positions || json.positions || {}
             if (Object.keys(positions).length > 0) return json
           }
           await new Promise((r) => setTimeout(r, 1000))
         }
-        throw new Error(`Holdings with positions not available after 15 attempts`)
+        throw new Error(
+          `Holdings with positions not available after 15 attempts`,
+        )
       }, portfolio.code)
 
-      const positions =
-        holdings.data?.positions || holdings.positions || {}
+      const positions = holdings.data?.positions || holdings.positions || {}
       const positionKeys = Object.keys(positions)
 
       // Should have exactly 1 position - the private cash account

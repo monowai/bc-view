@@ -384,6 +384,7 @@ export interface UserPreferences {
   enableTwr: boolean
   hideValues?: boolean // Privacy mode - hide monetary values and quantities
   defaultMarket?: string // Default market for asset search (e.g., "US", "NZX")
+  milestoneMode?: "ACTIVE" | "SILENT" | "OFF" // Milestone notification mode
 }
 
 export interface UserPreferencesRequest {
@@ -397,6 +398,7 @@ export interface UserPreferencesRequest {
   enableTwr?: boolean
   hideValues?: boolean
   defaultMarket?: string
+  milestoneMode?: "ACTIVE" | "SILENT" | "OFF"
 }
 
 export interface RegistrationResponse {

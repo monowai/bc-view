@@ -6,8 +6,10 @@ import { Auth0Provider } from "@auth0/nextjs-auth0/client"
 import "@styles/globals.css"
 import "@fortawesome/fontawesome-free/css/all.min.css"
 import GitInfo from "@components/ui/GitInfo"
+import MilestoneToast from "@components/ui/MilestoneToast"
 import { RegistrationProvider } from "@contexts/RegistrationContext"
 import { UserPreferencesProvider } from "@contexts/UserPreferencesContext"
+import { MilestonesProvider } from "@contexts/MilestonesContext"
 import { PrivacyModeProvider } from "@hooks/usePrivacyMode"
 import { DM_Sans, JetBrains_Mono } from "next/font/google"
 
@@ -51,9 +53,12 @@ const App: React.FC<AppProps> = ({ Component, pageProps }) => {
     <Auth0Provider>
       <RegistrationProvider>
         <UserPreferencesProvider>
-          <PrivacyModeProvider>
-            <AppContent Component={Component} pageProps={pageProps} />
-          </PrivacyModeProvider>
+          <MilestonesProvider>
+            <PrivacyModeProvider>
+              <AppContent Component={Component} pageProps={pageProps} />
+              <MilestoneToast />
+            </PrivacyModeProvider>
+          </MilestonesProvider>
         </UserPreferencesProvider>
       </RegistrationProvider>
     </Auth0Provider>

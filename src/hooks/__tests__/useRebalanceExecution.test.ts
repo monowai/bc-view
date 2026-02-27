@@ -221,9 +221,7 @@ describe("useRebalanceExecution", () => {
 
     await act(async () => {})
 
-    expect(result.current.states.error).toBe(
-      "Failed to load execution: 404",
-    )
+    expect(result.current.states.error).toBe("Failed to load execution: 404")
     expect(result.current.execution).toBeNull()
   })
 
@@ -482,10 +480,14 @@ describe("useRebalanceExecution", () => {
 
   it("handleSave sends PUT with item updates", async () => {
     const exec = makeExecution()
-    const { result } = await renderWithExecution(exec, {}, {
-      ok: true,
-      data: { data: exec },
-    })
+    const { result } = await renderWithExecution(
+      exec,
+      {},
+      {
+        ok: true,
+        data: { data: exec },
+      },
+    )
 
     act(() => {
       result.current.handlers.targetChange("asset-1", 0.7)
@@ -509,10 +511,14 @@ describe("useRebalanceExecution", () => {
 
   it("handleRefresh sends POST to refresh endpoint", async () => {
     const exec = makeExecution()
-    const { result } = await renderWithExecution(exec, {}, {
-      ok: true,
-      data: { data: exec },
-    })
+    const { result } = await renderWithExecution(
+      exec,
+      {},
+      {
+        ok: true,
+        data: { data: exec },
+      },
+    )
 
     await act(async () => {
       await result.current.handlers.refresh()
@@ -528,15 +534,19 @@ describe("useRebalanceExecution", () => {
 
   it("handleCommit sends POST and returns portfolioId", async () => {
     const exec = makeExecution()
-    const { result } = await renderWithExecution(exec, {}, {
-      ok: true,
-      data: {
+    const { result } = await renderWithExecution(
+      exec,
+      {},
+      {
+        ok: true,
         data: {
-          transactionsCreated: 3,
-          transactionIds: ["t1", "t2", "t3"],
+          data: {
+            transactionsCreated: 3,
+            transactionIds: ["t1", "t2", "t3"],
+          },
         },
       },
-    })
+    )
 
     let commitResult: { portfolioId: string } | undefined
     await act(async () => {
@@ -555,11 +565,15 @@ describe("useRebalanceExecution", () => {
 
   it("handleCommit returns undefined on failure", async () => {
     const exec = makeExecution()
-    const { result } = await renderWithExecution(exec, {}, {
-      ok: false,
-      status: 500,
-      data: { message: "Server error" },
-    })
+    const { result } = await renderWithExecution(
+      exec,
+      {},
+      {
+        ok: false,
+        status: 500,
+        data: { message: "Server error" },
+      },
+    )
 
     let commitResult: { portfolioId: string } | undefined
     await act(async () => {

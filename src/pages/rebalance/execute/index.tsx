@@ -400,9 +400,7 @@ function ExecuteRebalancePage(): React.ReactElement {
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-1">
                             <button
-                              onClick={() =>
-                                handlers.setToTarget(item.assetId)
-                              }
+                              onClick={() => handlers.setToTarget(item.assetId)}
                               className="text-gray-400 hover:text-invest-600 p-0.5"
                               title="Copy to %"
                             >

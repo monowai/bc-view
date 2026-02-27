@@ -1,4 +1,4 @@
-import React from "react";
+import React from "react"
 import { render, screen } from "@testing-library/react"
 import FiMetrics from "../FiMetrics"
 
@@ -213,9 +213,7 @@ describe("FiMetrics", () => {
     })
 
     it("does not show Coast FIRE when retirementAge not provided", () => {
-      render(
-        <FiMetrics {...defaultProps} currentAge={CURRENT_AGE} />,
-      )
+      render(<FiMetrics {...defaultProps} currentAge={CURRENT_AGE} />)
       expect(screen.queryByText("Coast FI Number")).not.toBeInTheDocument()
     })
 

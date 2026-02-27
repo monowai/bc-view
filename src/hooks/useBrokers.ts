@@ -12,10 +12,7 @@ interface UseBrokersResult {
   error: Error | undefined
   isLoading: boolean
   mutate: () => Promise<unknown>
-  saveBroker: (
-    id: string | undefined,
-    formData: BrokerInput,
-  ) => Promise<void>
+  saveBroker: (id: string | undefined, formData: BrokerInput) => Promise<void>
   deleteBroker: (id: string) => Promise<void>
   transferTransactions: (fromId: string, toId: string) => Promise<void>
 }
@@ -77,9 +74,7 @@ export function useBrokers(): UseBrokersResult {
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(
-          errorData?.message || "Failed to transfer transactions",
-        )
+        throw new Error(errorData?.message || "Failed to transfer transactions")
       }
       await response.json()
       await mutate()
