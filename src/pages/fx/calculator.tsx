@@ -71,8 +71,7 @@ export default withPageAuthRequired(
       }
     }, [currencies, from])
 
-    const fxKey =
-      from && to && from !== to ? ["/api/fx", from, to] : null
+    const fxKey = from && to && from !== to ? ["/api/fx", from, to] : null
     const { data: fxData, isLoading: fxLoading } = useSwr<FxResponse>(
       fxKey,
       ([url, f, t]: [string, string, string]) => fxFetcher(url, f, t),
@@ -241,7 +240,7 @@ export default withPageAuthRequired(
                         {fxLoading ? (
                           <span className="text-slate-400">Loading...</span>
                         ) : (
-                          result ?? "-"
+                          (result ?? "-")
                         )}
                       </div>
                     </div>

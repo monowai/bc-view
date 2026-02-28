@@ -35,18 +35,14 @@ jest.mock("@components/ui/MathInput", () => {
 describe("FxConverter", () => {
   describe("Compact mode", () => {
     it("renders Quick Convert label and input", () => {
-      render(
-        <FxConverter from="USD" to="EUR" rate={0.85} compact={true} />,
-      )
+      render(<FxConverter from="USD" to="EUR" rate={0.85} compact={true} />)
 
       expect(screen.getByText("Quick Convert")).toBeInTheDocument()
       expect(screen.getByPlaceholderText("Amount")).toBeInTheDocument()
     })
 
     it("displays converted amount with tilde prefix", () => {
-      render(
-        <FxConverter from="USD" to="EUR" rate={0.85} compact={true} />,
-      )
+      render(<FxConverter from="USD" to="EUR" rate={0.85} compact={true} />)
 
       const input = screen.getByTestId("math-input")
       fireEvent.change(input, { target: { value: "1000" } })
@@ -55,9 +51,7 @@ describe("FxConverter", () => {
     })
 
     it("does not render combobox", () => {
-      render(
-        <FxConverter from="USD" to="EUR" rate={0.85} compact={true} />,
-      )
+      render(<FxConverter from="USD" to="EUR" rate={0.85} compact={true} />)
 
       const comboboxes = screen.queryAllByRole("combobox")
       expect(comboboxes).toHaveLength(0)
@@ -67,9 +61,7 @@ describe("FxConverter", () => {
   describe("Full mode", () => {
     it("renders swap button when onSwap provided", () => {
       const onSwap = jest.fn()
-      render(
-        <FxConverter from="USD" to="EUR" rate={0.85} onSwap={onSwap} />,
-      )
+      render(<FxConverter from="USD" to="EUR" rate={0.85} onSwap={onSwap} />)
 
       const swapButton = screen.getByRole("button", { name: /swap/i })
       expect(swapButton).toBeInTheDocument()
@@ -77,9 +69,7 @@ describe("FxConverter", () => {
 
     it("calls onSwap when swap button clicked", () => {
       const onSwap = jest.fn()
-      render(
-        <FxConverter from="USD" to="EUR" rate={0.85} onSwap={onSwap} />,
-      )
+      render(<FxConverter from="USD" to="EUR" rate={0.85} onSwap={onSwap} />)
 
       const swapButton = screen.getByRole("button", { name: /swap/i })
       fireEvent.click(swapButton)
@@ -88,26 +78,20 @@ describe("FxConverter", () => {
     })
 
     it("shows from and to currency labels", () => {
-      render(
-        <FxConverter from="USD" to="EUR" rate={0.85} />,
-      )
+      render(<FxConverter from="USD" to="EUR" rate={0.85} />)
 
       expect(screen.getByText("USD")).toBeInTheDocument()
       expect(screen.getByText("EUR")).toBeInTheDocument()
     })
 
     it("shows current rate formatted to 4 decimals", () => {
-      render(
-        <FxConverter from="USD" to="EUR" rate={0.85} />,
-      )
+      render(<FxConverter from="USD" to="EUR" rate={0.85} />)
 
       expect(screen.getByText(/1 USD = 0\.8500 EUR/)).toBeInTheDocument()
     })
 
     it("displays dash when no amount entered", () => {
-      render(
-        <FxConverter from="USD" to="EUR" rate={0.85} />,
-      )
+      render(<FxConverter from="USD" to="EUR" rate={0.85} />)
 
       expect(screen.getByText("-")).toBeInTheDocument()
     })

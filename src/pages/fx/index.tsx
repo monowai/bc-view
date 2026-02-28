@@ -112,12 +112,7 @@ const RateChartModal: React.FC<RateChartModalProps> = ({
 
             {/* Quick Convert */}
             {stats && (
-              <FxConverter
-                from={from}
-                to={to}
-                rate={stats.current}
-                compact
-              />
+              <FxConverter from={from} to={to} rate={stats.current} compact />
             )}
 
             {/* Close button */}
