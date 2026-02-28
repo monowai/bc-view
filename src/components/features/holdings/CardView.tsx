@@ -410,14 +410,16 @@ const CardView: React.FC<CardViewProps> = ({
     )
   }, [groupedPositions])
 
-  // Track collapsed groups - start all collapsed
+  // Track collapsed groups - start with first group expanded
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
-    () => new Set(groupedPositions.map((g) => g.groupKey)),
+    () => new Set(groupedPositions.slice(1).map((g) => g.groupKey)),
   )
 
-  // Collapse all groups when groupBy changes
+  // Collapse all except first group when groupBy changes
   useEffect(() => {
-    setCollapsedGroups(new Set(groupedPositions.map((g) => g.groupKey)))
+    setCollapsedGroups(
+      new Set(groupedPositions.slice(1).map((g) => g.groupKey)),
+    )
   }, [groupBy]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleGroup = useCallback((groupKey: string) => {
