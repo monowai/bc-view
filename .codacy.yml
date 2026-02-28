@@ -20,6 +20,10 @@ engines:
   tslint:
     enabled: false # Using ESLint instead
 
+  # Disable Stylelint - false positives on Tailwind CSS v4 directives (@theme, @tailwind)
+  stylelint:
+    enabled: false
+
   # Enable Metrics for complexity analysis
   metrics:
     enabled: true

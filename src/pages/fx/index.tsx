@@ -4,6 +4,7 @@ import { errorOut } from "@components/errors/ErrorOut"
 import { useIsAdmin } from "@hooks/useIsAdmin"
 import { useFxHistory } from "@hooks/useFxHistory"
 import { useFxMatrix } from "@hooks/useFxMatrix"
+import FxConverter from "@components/features/fx/FxConverter"
 import {
   LineChart,
   Line,
@@ -82,44 +83,54 @@ const RateChartModal: React.FC<RateChartModalProps> = ({
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl mx-auto z-50 overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-500 to-indigo-500 px-6 py-4 text-white">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <div>
-                <h2 className="text-xl font-bold flex items-center gap-2">
-                  <span>{from}</span>
-                  <button
-                    onClick={() => setIsInverted(!isInverted)}
-                    className="p-1.5 hover:bg-white/20 rounded-lg transition-all hover:scale-110"
-                    title="Swap currencies"
-                  >
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
-                      />
-                    </svg>
-                  </button>
-                  <span>{to}</span>
-                </h2>
-                <p className="text-blue-100 text-sm">Historical rate chart</p>
-              </div>
-            </div>
+          <div className="flex items-center justify-between gap-4">
+            {/* Currency pair */}
+            <h2 className="text-xl font-bold flex items-center gap-2 shrink-0">
+              <span>{from}</span>
+              <button
+                onClick={() => setIsInverted(!isInverted)}
+                className="p-1.5 hover:bg-white/20 rounded-lg transition-all hover:scale-110"
+                title="Swap currencies"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+                  />
+                </svg>
+              </button>
+              <span>{to}</span>
+            </h2>
+
+            {/* Quick Convert */}
+            {stats && (
+              <FxConverter
+                from={from}
+                to={to}
+                rate={stats.current}
+                compact
+              />
+            )}
+
+            {/* Close button */}
             <button
               onClick={onClose}
-              className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+              className="p-2 hover:bg-white/20 rounded-lg transition-colors shrink-0"
             >
               <svg
                 className="w-6 h-6"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
+                aria-hidden="true"
               >
                 <path
                   strokeLinecap="round"

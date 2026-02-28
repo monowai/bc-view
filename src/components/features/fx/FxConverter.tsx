@@ -29,21 +29,21 @@ export default function FxConverter({
 
   if (compact) {
     return (
-      <div className="border-t border-slate-200 mt-4 pt-4">
-        <div className="flex items-center gap-3">
-          <MathInput
-            value={amount || undefined}
-            onChange={setAmount}
-            className="w-32 rounded-md border border-slate-300 px-3 py-1.5 text-sm tabular-nums focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            placeholder="Enter amount"
-          />
-          {result && (
-            <span className="text-sm tabular-nums">
-              = <span>{result}</span>{" "}
-              <span>{to}</span>
-            </span>
-          )}
-        </div>
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-medium text-blue-200 whitespace-nowrap">
+          Quick Convert
+        </span>
+        <MathInput
+          value={amount || undefined}
+          onChange={setAmount}
+          className="w-28 rounded-md bg-white/20 border border-white/30 px-2 py-1 text-sm tabular-nums text-white placeholder-blue-200 focus:bg-white/30 focus:outline-none focus:ring-1 focus:ring-white/50"
+          placeholder="Amount"
+        />
+        {result && (
+          <span className="text-sm tabular-nums text-blue-100 whitespace-nowrap">
+            = <span className="font-bold text-white">~{result}</span>
+          </span>
+        )}
       </div>
     )
   }
@@ -78,6 +78,7 @@ export default function FxConverter({
               viewBox="0 0 20 20"
               fill="currentColor"
               className="h-5 w-5"
+              aria-hidden="true"
             >
               <path
                 fillRule="evenodd"
