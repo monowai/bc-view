@@ -34,16 +34,16 @@ jest.mock("@components/ui/MathInput", () => {
 
 describe("FxConverter", () => {
   describe("Compact mode", () => {
-    it("renders input with placeholder", () => {
+    it("renders Quick Convert label and input", () => {
       render(
         <FxConverter from="USD" to="EUR" rate={0.85} compact={true} />,
       )
 
-      const input = screen.getByPlaceholderText("Enter amount")
-      expect(input).toBeInTheDocument()
+      expect(screen.getByText("Quick Convert")).toBeInTheDocument()
+      expect(screen.getByPlaceholderText("Amount")).toBeInTheDocument()
     })
 
-    it("displays converted amount", () => {
+    it("displays converted amount with tilde prefix", () => {
       render(
         <FxConverter from="USD" to="EUR" rate={0.85} compact={true} />,
       )
@@ -51,8 +51,7 @@ describe("FxConverter", () => {
       const input = screen.getByTestId("math-input")
       fireEvent.change(input, { target: { value: "1000" } })
 
-      expect(screen.getByText("850.00")).toBeInTheDocument()
-      expect(screen.getByText("EUR")).toBeInTheDocument()
+      expect(screen.getByText(/~850\.00/)).toBeInTheDocument()
     })
 
     it("does not render combobox", () => {
