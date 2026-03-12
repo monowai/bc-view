@@ -80,6 +80,12 @@ export interface CostAdjustData {
   currency: Currency // Trade currency for the position
 }
 
+export interface MovePositionData {
+  asset: Asset
+  portfolioId: string
+  portfolioCode: string
+}
+
 // As returned from the server
 interface HoldingContract {
   portfolio: Portfolio

@@ -10,6 +10,7 @@ import {
   SetBalanceData,
   CashTransferData,
   CostAdjustData,
+  MovePositionData,
   Asset,
 } from "types/beancounter"
 import {
@@ -55,6 +56,7 @@ interface RowsProps extends HoldingValues {
   onCashTransfer?: (data: CashTransferData) => void
   onCashTransaction?: (assetCode: string) => void
   onCostAdjust?: (data: CostAdjustData) => void
+  onMovePosition?: (data: MovePositionData) => void
   onRecordIncome?: (data: QuickSellData) => void
   onRecordExpense?: (data: QuickSellData) => void
 }
@@ -69,6 +71,7 @@ const truncateText = (text: string, maxLength: number): string => {
 interface ActionsMenuProps {
   asset: Asset
   portfolioId: string
+  portfolioCode: string
   fromDate?: string
   closedDate?: string
   quantity: number
@@ -83,6 +86,7 @@ interface ActionsMenuProps {
   onSetBalance?: (data: SetBalanceData) => void
   onSectorWeightings?: (data: SectorWeightingsData) => void
   onCostAdjust?: (data: CostAdjustData) => void
+  onMovePosition?: (data: MovePositionData) => void
   onRecordIncome?: (data: QuickSellData) => void
   onRecordExpense?: (data: QuickSellData) => void
 }
@@ -90,6 +94,7 @@ interface ActionsMenuProps {
 const ActionsMenu: React.FC<ActionsMenuProps> = ({
   asset,
   portfolioId,
+  portfolioCode,
   fromDate,
   closedDate,
   quantity,
@@ -103,6 +108,7 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
   onSetBalance,
   onSectorWeightings,
   onCostAdjust,
+  onMovePosition,
   onRecordIncome,
   onRecordExpense,
 }) => {
@@ -271,6 +277,24 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
                 >
                   <i className="fas fa-scale-balanced text-orange-500 w-4"></i>
                   {"Adjust Cost"}
+                </button>
+              )}
+              {onMovePosition && (
+                <button
+                  type="button"
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setIsOpen(false)
+                    onMovePosition({
+                      asset,
+                      portfolioId,
+                      portfolioCode,
+                    })
+                  }}
+                >
+                  <i className="fas fa-arrow-right-arrow-left text-indigo-500 w-4"></i>
+                  {"Move Position"}
                 </button>
               )}
               {onRecordIncome && (
@@ -492,6 +516,7 @@ export default function Rows({
   onCashTransfer,
   onCashTransaction,
   onCostAdjust,
+  onMovePosition,
   onRecordIncome,
   onRecordExpense,
 }: RowsProps): React.ReactElement {
@@ -594,6 +619,7 @@ export default function Rows({
                     <ActionsMenu
                       asset={asset}
                       portfolioId={portfolio.id}
+                      portfolioCode={portfolio.code}
                       fromDate={dateValues?.opened}
                       closedDate={dateValues?.closed}
                       quantity={quantityValues.total}
@@ -615,6 +641,9 @@ export default function Rows({
                       onSectorWeightings={onSectorWeightings}
                       onCostAdjust={
                         isCashRelated(asset) ? undefined : onCostAdjust
+                      }
+                      onMovePosition={
+                        isCashRelated(asset) ? undefined : onMovePosition
                       }
                       onRecordIncome={onRecordIncome}
                       onRecordExpense={onRecordExpense}
