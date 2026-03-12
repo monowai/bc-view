@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState, useRef } from "react"
+import React, { useEffect, useMemo, useState, useRef, useCallback } from "react"
+import { createPortal } from "react-dom"
 import {
   HoldingValues,
   PriceData,
@@ -106,12 +107,26 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
   onRecordExpense,
 }) => {
   const [isOpen, setIsOpen] = useState(false)
+  const buttonRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
+
+  const updatePosition = useCallback(() => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect()
+      setMenuPos({ top: rect.bottom + 4, left: rect.left })
+    }
+  }, [])
 
   // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent): void => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(event.target as Node) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false)
       }
     }
@@ -119,176 +134,192 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
+  // Close on scroll to avoid stale position
+  useEffect(() => {
+    if (!isOpen) return undefined
+    const handleScroll = (): void => setIsOpen(false)
+    window.addEventListener("scroll", handleScroll, true)
+    return () => window.removeEventListener("scroll", handleScroll, true)
+  }, [isOpen])
+
   const assetCode = stripOwnerPrefix(asset.code)
 
   return (
-    <div className="relative" ref={menuRef}>
+    <div className="relative">
       <button
+        ref={buttonRef}
         type="button"
         aria-label={`${"Actions"} ${assetCode}`}
         className="inline-flex items-center justify-center w-8 h-8 min-w-[44px] min-h-[44px] -m-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors duration-150"
         onClick={(e) => {
           e.stopPropagation()
+          updatePosition()
           setIsOpen(!isOpen)
         }}
         title={"Actions"}
       >
         <i className="fas fa-ellipsis-vertical text-sm"></i>
       </button>
-      {isOpen && (
-        <div className="absolute left-0 mt-1 w-48 bg-white rounded-lg shadow-xl z-50 border border-slate-200">
-          <div className="py-1">
-            {onQuickSell && (
-              <button
-                type="button"
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setIsOpen(false)
-                  onQuickSell({
-                    asset: assetCode,
-                    market: asset.market.code,
-                    quantity,
-                    price,
-                    held,
-                  })
-                }}
-              >
-                <i className="fas fa-money-bill-transfer text-red-500 w-4"></i>
-                {"Quick Sell"}
-              </button>
-            )}
-            {onCorporateActions && (
-              <button
-                type="button"
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setIsOpen(false)
-                  onCorporateActions({
-                    asset,
-                    portfolioId,
-                    fromDate: fromDate || "",
-                    closedDate,
-                  })
-                }}
-              >
-                <i className="fas fa-calendar-check text-blue-500 w-4"></i>
-                {"Corporate Actions"}
-              </button>
-            )}
-            {asset.market?.code === "PRIVATE" &&
-              isConstantPrice(asset) &&
-              onSetBalance && (
+      {isOpen &&
+        createPortal(
+          <div
+            ref={menuRef}
+            className="fixed w-48 bg-white rounded-lg shadow-xl z-50 border border-slate-200"
+            style={{ top: menuPos.top, left: menuPos.left }}
+          >
+            <div className="py-1">
+              {onQuickSell && (
                 <button
                   type="button"
                   className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
                   onClick={(e) => {
                     e.stopPropagation()
                     setIsOpen(false)
-                    onSetBalance({ asset })
+                    onQuickSell({
+                      asset: assetCode,
+                      market: asset.market.code,
+                      quantity,
+                      price,
+                      held,
+                    })
                   }}
                 >
-                  <i className="fas fa-piggy-bank text-amber-500 w-4"></i>
-                  {"Set Balance"}
+                  <i className="fas fa-money-bill-transfer text-red-500 w-4"></i>
+                  {"Quick Sell"}
                 </button>
               )}
-            {onSetPrice &&
-              asset.market?.code === "PRIVATE" &&
-              !isConstantPrice(asset) && (
+              {onCorporateActions && (
                 <button
                   type="button"
                   className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
                   onClick={(e) => {
                     e.stopPropagation()
                     setIsOpen(false)
-                    onSetPrice({ asset })
+                    onCorporateActions({
+                      asset,
+                      portfolioId,
+                      fromDate: fromDate || "",
+                      closedDate,
+                    })
                   }}
                 >
-                  <i className="fas fa-tag text-green-500 w-4"></i>
-                  {"Set Price"}
+                  <i className="fas fa-calendar-check text-blue-500 w-4"></i>
+                  {"Corporate Actions"}
                 </button>
               )}
-            {onSectorWeightings && asset.assetCategory?.id === "ETF" && (
-              <button
-                type="button"
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setIsOpen(false)
-                  onSectorWeightings({ asset })
-                }}
-              >
-                <i className="fas fa-chart-pie text-purple-500 w-4"></i>
-                {"View Sectors"}
-              </button>
-            )}
-            {onCostAdjust && (
-              <button
-                type="button"
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setIsOpen(false)
-                  onCostAdjust({
-                    asset,
-                    portfolioId,
-                    currentCostBasis: costBasis,
-                    currency: tradeCurrency,
-                  })
-                }}
-              >
-                <i className="fas fa-scale-balanced text-orange-500 w-4"></i>
-                {"Adjust Cost"}
-              </button>
-            )}
-            {onRecordIncome && (
-              <button
-                type="button"
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setIsOpen(false)
-                  onRecordIncome({
-                    asset: assetCode,
-                    assetId: asset.id,
-                    currency: tradeCurrency.code,
-                    market: asset.market.code,
-                    quantity: 0,
-                    price: 0,
-                    type: "INCOME",
-                  })
-                }}
-              >
-                <i className="fas fa-arrow-down text-green-500 w-4"></i>
-                {"Record Income"}
-              </button>
-            )}
-            {onRecordExpense && (
-              <button
-                type="button"
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setIsOpen(false)
-                  onRecordExpense({
-                    asset: assetCode,
-                    assetId: asset.id,
-                    currency: tradeCurrency.code,
-                    market: asset.market.code,
-                    quantity: 0,
-                    price: 0,
-                    type: "EXPENSE",
-                  })
-                }}
-              >
-                <i className="fas fa-arrow-up text-red-500 w-4"></i>
-                {"Record Expense"}
-              </button>
-            )}
-          </div>
-        </div>
-      )}
+              {asset.market?.code === "PRIVATE" &&
+                isConstantPrice(asset) &&
+                onSetBalance && (
+                  <button
+                    type="button"
+                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setIsOpen(false)
+                      onSetBalance({ asset })
+                    }}
+                  >
+                    <i className="fas fa-piggy-bank text-amber-500 w-4"></i>
+                    {"Set Balance"}
+                  </button>
+                )}
+              {onSetPrice &&
+                asset.market?.code === "PRIVATE" &&
+                !isConstantPrice(asset) && (
+                  <button
+                    type="button"
+                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setIsOpen(false)
+                      onSetPrice({ asset })
+                    }}
+                  >
+                    <i className="fas fa-tag text-green-500 w-4"></i>
+                    {"Set Price"}
+                  </button>
+                )}
+              {onSectorWeightings && asset.assetCategory?.id === "ETF" && (
+                <button
+                  type="button"
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setIsOpen(false)
+                    onSectorWeightings({ asset })
+                  }}
+                >
+                  <i className="fas fa-chart-pie text-purple-500 w-4"></i>
+                  {"View Sectors"}
+                </button>
+              )}
+              {onCostAdjust && (
+                <button
+                  type="button"
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setIsOpen(false)
+                    onCostAdjust({
+                      asset,
+                      portfolioId,
+                      currentCostBasis: costBasis,
+                      currency: tradeCurrency,
+                    })
+                  }}
+                >
+                  <i className="fas fa-scale-balanced text-orange-500 w-4"></i>
+                  {"Adjust Cost"}
+                </button>
+              )}
+              {onRecordIncome && (
+                <button
+                  type="button"
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setIsOpen(false)
+                    onRecordIncome({
+                      asset: assetCode,
+                      assetId: asset.id,
+                      currency: tradeCurrency.code,
+                      market: asset.market.code,
+                      quantity: 0,
+                      price: 0,
+                      type: "INCOME",
+                    })
+                  }}
+                >
+                  <i className="fas fa-arrow-down text-green-500 w-4"></i>
+                  {"Record Income"}
+                </button>
+              )}
+              {onRecordExpense && (
+                <button
+                  type="button"
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setIsOpen(false)
+                    onRecordExpense({
+                      asset: assetCode,
+                      assetId: asset.id,
+                      currency: tradeCurrency.code,
+                      market: asset.market.code,
+                      quantity: 0,
+                      price: 0,
+                      type: "EXPENSE",
+                    })
+                  }}
+                >
+                  <i className="fas fa-arrow-up text-red-500 w-4"></i>
+                  {"Record Expense"}
+                </button>
+              )}
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   )
 }
@@ -312,12 +343,26 @@ const CashActionsMenu: React.FC<CashActionsMenuProps> = ({
   onCashTransaction,
 }) => {
   const [isOpen, setIsOpen] = useState(false)
+  const buttonRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
+
+  const updatePosition = useCallback(() => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect()
+      setMenuPos({ top: rect.bottom + 4, left: rect.left })
+    }
+  }, [])
 
   // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent): void => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(event.target as Node) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false)
       }
     }
@@ -325,90 +370,106 @@ const CashActionsMenu: React.FC<CashActionsMenuProps> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
+  // Close on scroll to avoid stale position
+  useEffect(() => {
+    if (!isOpen) return undefined
+    const handleScroll = (): void => setIsOpen(false)
+    window.addEventListener("scroll", handleScroll, true)
+    return () => window.removeEventListener("scroll", handleScroll, true)
+  }, [isOpen])
+
   const assetCode = stripOwnerPrefix(asset.code)
 
   return (
-    <div className="relative" ref={menuRef}>
+    <div className="relative">
       <button
+        ref={buttonRef}
         type="button"
         aria-label={`${"Actions"} ${assetCode}`}
         className="inline-flex items-center justify-center w-8 h-8 min-w-[44px] min-h-[44px] -m-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors duration-150"
         onClick={(e) => {
           e.stopPropagation()
+          updatePosition()
           setIsOpen(!isOpen)
         }}
         title={"Actions"}
       >
         <i className="fas fa-ellipsis-vertical text-sm"></i>
       </button>
-      {isOpen && (
-        <div className="absolute left-0 bottom-full mb-1 w-48 bg-white rounded-lg shadow-xl z-50 border border-slate-200">
-          <div className="py-1">
-            {onSetCashBalance && (
-              <button
-                type="button"
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setIsOpen(false)
-                  const isAccountAsset = isAccount(asset)
-                  onSetCashBalance({
-                    currency: isAccountAsset
-                      ? getAssetCurrency(asset) || asset.code
-                      : asset.code,
-                    currentBalance: marketValue,
-                    market: isAccountAsset ? "PRIVATE" : "CASH",
-                    assetCode: isAccountAsset ? asset.code : undefined,
-                    assetName: isAccountAsset ? asset.name : undefined,
-                  })
-                }}
-              >
-                <i className="fas fa-balance-scale text-purple-500 w-4"></i>
-                {"Set Balance"}
-              </button>
-            )}
-            {onCashTransfer && (
-              <button
-                type="button"
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setIsOpen(false)
-                  const isAccountAsset = isAccount(asset)
-                  onCashTransfer({
-                    portfolioId: portfolio.id,
-                    portfolioCode: portfolio.code,
-                    assetId: asset.id,
-                    assetCode: asset.code,
-                    assetName: asset.name || asset.code,
-                    currency: isAccountAsset
-                      ? getAssetCurrency(asset) || asset.code
-                      : asset.code,
-                    currentBalance: marketValue,
-                  })
-                }}
-              >
-                <i className="fas fa-exchange-alt text-blue-500 w-4"></i>
-                {"Transfer Cash"}
-              </button>
-            )}
-            {onCashTransaction && (
-              <button
-                type="button"
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setIsOpen(false)
-                  onCashTransaction(assetCode)
-                }}
-              >
-                <i className="fas fa-dollar-sign text-green-500 w-4"></i>
-                {"Cash Transaction"}
-              </button>
-            )}
-          </div>
-        </div>
-      )}
+      {isOpen &&
+        createPortal(
+          <div
+            ref={menuRef}
+            className="fixed w-48 bg-white rounded-lg shadow-xl z-50 border border-slate-200"
+            style={{ top: menuPos.top, left: menuPos.left }}
+          >
+            <div className="py-1">
+              {onSetCashBalance && (
+                <button
+                  type="button"
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setIsOpen(false)
+                    const isAccountAsset = isAccount(asset)
+                    onSetCashBalance({
+                      currency: isAccountAsset
+                        ? getAssetCurrency(asset) || asset.code
+                        : asset.code,
+                      currentBalance: marketValue,
+                      market: isAccountAsset ? "PRIVATE" : "CASH",
+                      assetCode: isAccountAsset ? asset.code : undefined,
+                      assetName: isAccountAsset ? asset.name : undefined,
+                    })
+                  }}
+                >
+                  <i className="fas fa-balance-scale text-purple-500 w-4"></i>
+                  {"Set Balance"}
+                </button>
+              )}
+              {onCashTransfer && (
+                <button
+                  type="button"
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setIsOpen(false)
+                    const isAccountAsset = isAccount(asset)
+                    onCashTransfer({
+                      portfolioId: portfolio.id,
+                      portfolioCode: portfolio.code,
+                      assetId: asset.id,
+                      assetCode: asset.code,
+                      assetName: asset.name || asset.code,
+                      currency: isAccountAsset
+                        ? getAssetCurrency(asset) || asset.code
+                        : asset.code,
+                      currentBalance: marketValue,
+                    })
+                  }}
+                >
+                  <i className="fas fa-exchange-alt text-blue-500 w-4"></i>
+                  {"Transfer Cash"}
+                </button>
+              )}
+              {onCashTransaction && (
+                <button
+                  type="button"
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setIsOpen(false)
+                    onCashTransaction(assetCode)
+                  }}
+                >
+                  <i className="fas fa-dollar-sign text-green-500 w-4"></i>
+                  {"Cash Transaction"}
+                </button>
+              )}
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   )
 }
