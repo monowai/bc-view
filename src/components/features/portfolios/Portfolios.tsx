@@ -20,7 +20,7 @@ export function Portfolios(selectedPortfolio: Portfolio): ReactElement {
 
   // Show the selected portfolio immediately, even if the list hasn't loaded yet
   // Sort inactive portfolios (zero balance) last
-  const portfolios: Portfolio[] = (data?.data || []).sort(
+  const portfolios: Portfolio[] = [...(data?.data || [])].sort(
     (a: Portfolio, b: Portfolio) => {
       const aInactive = (a.marketValue || 0) === 0 ? 1 : 0
       const bInactive = (b.marketValue || 0) === 0 ? 1 : 0
