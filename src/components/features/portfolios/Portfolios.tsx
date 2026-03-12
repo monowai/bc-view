@@ -19,7 +19,14 @@ export function Portfolios(selectedPortfolio: Portfolio): ReactElement {
   }, [selectedPortfolio])
 
   // Show the selected portfolio immediately, even if the list hasn't loaded yet
-  const portfolios: Portfolio[] = data?.data || []
+  // Sort inactive portfolios (zero balance) last
+  const portfolios: Portfolio[] = (data?.data || []).sort(
+    (a: Portfolio, b: Portfolio) => {
+      const aInactive = (a.marketValue || 0) === 0 ? 1 : 0
+      const bInactive = (b.marketValue || 0) === 0 ? 1 : 0
+      return aInactive - bInactive
+    },
+  )
 
   const handleSelect = (portfolio: Portfolio): void => {
     setSelected(portfolio)
@@ -64,16 +71,30 @@ export function Portfolios(selectedPortfolio: Portfolio): ReactElement {
             aria-labelledby="options-menu"
           >
             {portfolios.length > 0 ? (
-              portfolios.map((portfolio) => (
-                <button
-                  key={portfolio.code}
-                  onClick={() => handleSelect(portfolio)}
-                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                  role="menuitem"
-                >
-                  {portfolio.name}
-                </button>
-              ))
+              portfolios.map((portfolio, index) => {
+                const isInactive = (portfolio.marketValue || 0) === 0
+                const prevPortfolio = index > 0 ? portfolios[index - 1] : null
+                const showSeparator =
+                  isInactive &&
+                  prevPortfolio &&
+                  (prevPortfolio.marketValue || 0) !== 0
+                return (
+                  <React.Fragment key={portfolio.code}>
+                    {showSeparator && (
+                      <div className="border-t border-gray-200 my-1 mx-2" />
+                    )}
+                    <button
+                      onClick={() => handleSelect(portfolio)}
+                      className={`block px-4 py-2 text-sm hover:bg-gray-100 w-full text-left ${
+                        isInactive ? "text-gray-400" : "text-gray-700"
+                      }`}
+                      role="menuitem"
+                    >
+                      {portfolio.name}
+                    </button>
+                  </React.Fragment>
+                )
+              })
             ) : isLoading ? (
               <div className="px-4 py-2 text-sm text-gray-500">
                 {"Loading..."}

@@ -24,7 +24,14 @@ const PortfolioSelector: React.FC<PortfolioSelectorProps> = ({
     simpleFetcher(portfoliosKey),
   )
 
-  const portfolios: Portfolio[] = data?.data || []
+  // Sort inactive portfolios (zero balance) last
+  const portfolios: Portfolio[] = (data?.data || []).sort(
+    (a: Portfolio, b: Portfolio) => {
+      const aInactive = (a.marketValue || 0) === 0 ? 1 : 0
+      const bInactive = (b.marketValue || 0) === 0 ? 1 : 0
+      return aInactive - bInactive
+    },
+  )
 
   const handleToggle = (portfolioCode: string): void => {
     if (multiSelect) {
@@ -90,30 +97,52 @@ const PortfolioSelector: React.FC<PortfolioSelectorProps> = ({
       )}
 
       <div className="space-y-2 max-h-64 overflow-y-auto">
-        {portfolios.map((portfolio) => (
-          <label
-            key={portfolio.id}
-            className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${
-              selectedCodes.includes(portfolio.code)
-                ? "border-violet-300 bg-violet-50"
-                : "border-gray-200 hover:border-gray-300"
-            }`}
-          >
-            <input
-              type={multiSelect ? "checkbox" : "radio"}
-              checked={selectedCodes.includes(portfolio.code)}
-              onChange={() => handleToggle(portfolio.code)}
-              className="w-4 h-4 text-violet-600 mr-3"
-            />
-            <div className="flex-1 min-w-0">
-              <div className="font-medium text-gray-900">{portfolio.name}</div>
-              <div className="text-sm text-gray-500">{portfolio.code}</div>
-            </div>
-            <div className="text-sm text-gray-500 ml-2">
-              {portfolio.currency.code}
-            </div>
-          </label>
-        ))}
+        {portfolios.map((portfolio, index) => {
+          const isInactive = (portfolio.marketValue || 0) === 0
+          const prevPortfolio = index > 0 ? portfolios[index - 1] : null
+          const showSeparator =
+            isInactive &&
+            prevPortfolio &&
+            (prevPortfolio.marketValue || 0) !== 0
+          return (
+            <React.Fragment key={portfolio.id}>
+              {showSeparator && (
+                <div className="border-t border-gray-200 pt-2 mt-2">
+                  <span className="text-xs text-gray-400 px-1">
+                    {"Inactive"}
+                  </span>
+                </div>
+              )}
+              <label
+                className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${
+                  selectedCodes.includes(portfolio.code)
+                    ? "border-violet-300 bg-violet-50"
+                    : isInactive
+                      ? "border-gray-100 hover:border-gray-200"
+                      : "border-gray-200 hover:border-gray-300"
+                }`}
+              >
+                <input
+                  type={multiSelect ? "checkbox" : "radio"}
+                  checked={selectedCodes.includes(portfolio.code)}
+                  onChange={() => handleToggle(portfolio.code)}
+                  className="w-4 h-4 text-violet-600 mr-3"
+                />
+                <div className="flex-1 min-w-0">
+                  <div
+                    className={`font-medium ${isInactive ? "text-gray-400" : "text-gray-900"}`}
+                  >
+                    {portfolio.name}
+                  </div>
+                  <div className="text-sm text-gray-500">{portfolio.code}</div>
+                </div>
+                <div className="text-sm text-gray-500 ml-2">
+                  {portfolio.currency.code}
+                </div>
+              </label>
+            </React.Fragment>
+          )
+        })}
       </div>
 
       <div className="flex justify-end gap-3 pt-4 border-t">

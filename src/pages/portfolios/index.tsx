@@ -51,10 +51,15 @@ export default withPageAuthRequired(function Portfolios({
   >(null)
 
   // Tab state - read from query param, default to "my"
+  const tabParam = router.query.tab as string
   const activeTab =
-    (router.query.tab as string) === "managed" ? "managed" : "my"
+    tabParam === "managed"
+      ? "managed"
+      : tabParam === "inactive"
+        ? "inactive"
+        : "my"
   const setActiveTab = useCallback(
-    (tab: "my" | "managed") => {
+    (tab: "my" | "managed" | "inactive") => {
       router.replace(
         { pathname: router.pathname, query: tab === "my" ? {} : { tab } },
         undefined,
@@ -62,6 +67,11 @@ export default withPageAuthRequired(function Portfolios({
       )
     },
     [router],
+  )
+
+  const activePortfolios = portfolios.filter((p) => (p.marketValue || 0) !== 0)
+  const inactivePortfolios = portfolios.filter(
+    (p) => (p.marketValue || 0) === 0,
   )
 
   const handleCorporateActionsClose = useCallback(() => {
@@ -125,6 +135,22 @@ export default withPageAuthRequired(function Portfolios({
           </button>
           <button
             className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === "inactive"
+                ? "border-wealth-500 text-wealth-600"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            }`}
+            onClick={() => setActiveTab("inactive")}
+          >
+            <i className="fas fa-archive mr-2"></i>
+            {"Inactive"}
+            {inactivePortfolios.length > 0 && (
+              <span className="ml-1.5 bg-gray-200 text-gray-600 text-xs font-medium px-1.5 py-0.5 rounded-full">
+                {inactivePortfolios.length}
+              </span>
+            )}
+          </button>
+          <button
+            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
               activeTab === "managed"
                 ? "border-wealth-500 text-wealth-600"
                 : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
@@ -140,7 +166,20 @@ export default withPageAuthRequired(function Portfolios({
       {/* Tab content */}
       {activeTab === "my" && !isLoading && (
         <PortfoliosList
-          portfolios={portfolios}
+          portfolios={activePortfolios}
+          displayCurrency={displayCurrency}
+          currencies={currencies}
+          fxRates={fxRates}
+          onCurrencyChange={setDisplayCurrency}
+          onImportClick={handleImportClick}
+          onShareClick={handleShareClick}
+          onCorporateActions={setCorporateActionsPortfolio}
+          onDelete={setDeleteTarget}
+        />
+      )}
+      {activeTab === "inactive" && !isLoading && (
+        <PortfoliosList
+          portfolios={inactivePortfolios}
           displayCurrency={displayCurrency}
           currencies={currencies}
           fxRates={fxRates}
