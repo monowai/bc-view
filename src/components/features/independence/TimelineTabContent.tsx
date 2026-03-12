@@ -186,9 +186,9 @@ export default function TimelineTabContent({
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
               data={
-                chartDataWithBaseline.length > 0
+                (chartDataWithBaseline.length > 0
                   ? chartDataWithBaseline
-                  : projection.yearlyProjections
+                  : projection.yearlyProjections) as Record<string, unknown>[]
               }
               margin={{ top: 10, right: 30, left: 20, bottom: 20 }}
             >
