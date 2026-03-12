@@ -17,6 +17,7 @@ export { default as SetCashBalanceDialog } from "./SetCashBalanceDialog"
 export { default as SetPriceDialog } from "./SetPriceDialog"
 export { default as SetBalanceDialog } from "./SetBalanceDialog"
 export { default as CashTransferDialog } from "./CashTransferDialog"
+export { default as MovePositionDialog } from "./MovePositionDialog"
 export { default as CostAdjustDialog } from "./CostAdjustDialog"
 
 // Types and utilities

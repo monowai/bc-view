@@ -8,6 +8,7 @@ import {
   SetBalanceData,
   CashTransferData,
   CostAdjustData,
+  MovePositionData,
   Asset,
 } from "types/beancounter"
 import {
@@ -43,6 +44,7 @@ import SetCashBalanceDialog from "@components/features/holdings/SetCashBalanceDi
 import SetPriceDialog from "@components/features/holdings/SetPriceDialog"
 import SetBalanceDialog from "@components/features/holdings/SetBalanceDialog"
 import CashTransferDialog from "@components/features/holdings/CashTransferDialog"
+import MovePositionDialog from "@components/features/holdings/MovePositionDialog"
 import CostAdjustDialog from "@components/features/holdings/CostAdjustDialog"
 import CashInputForm from "@components/features/transactions/CashInputForm"
 import TrnDropZone from "@components/ui/DropZone"
@@ -101,6 +103,9 @@ function HoldingsPage(): React.ReactElement {
   >(undefined)
   const [costAdjustData, setCostAdjustData] = useState<
     CostAdjustData | undefined
+  >(undefined)
+  const [movePositionData, setMovePositionData] = useState<
+    MovePositionData | undefined
   >(undefined)
   const [cashTransactionAsset, setCashTransactionAsset] = useState<
     string | undefined
@@ -245,6 +250,16 @@ function HoldingsPage(): React.ReactElement {
   // Handle record expense from card/row menu
   const handleRecordExpense = useCallback((data: QuickSellData) => {
     setQuickSellData({ ...data, type: "EXPENSE" })
+  }, [])
+
+  // Handle move position from position row
+  const handleMovePosition = useCallback((data: MovePositionData) => {
+    setMovePositionData(data)
+  }, [])
+
+  // Close move position dialog (SWR cache invalidation in dialog handles refresh)
+  const handleMovePositionClose = useCallback(() => {
+    setMovePositionData(undefined)
   }, [])
 
   // Handle cost adjust from position row
@@ -472,6 +487,7 @@ function HoldingsPage(): React.ReactElement {
                           onCashTransfer={handleCashTransfer}
                           onCashTransaction={handleCashTransaction}
                           onCostAdjust={handleCostAdjust}
+                          onMovePosition={handleMovePosition}
                           onRecordIncome={handleRecordIncome}
                           onRecordExpense={handleRecordExpense}
                         />
@@ -607,6 +623,14 @@ function HoldingsPage(): React.ReactElement {
           modalOpen={!!cashTransferData}
           onClose={handleCashTransferClose}
           sourceData={cashTransferData}
+          portfolios={portfoliosData?.data || []}
+        />
+      )}
+      {movePositionData && (
+        <MovePositionDialog
+          modalOpen={!!movePositionData}
+          onClose={handleMovePositionClose}
+          sourceData={movePositionData}
           portfolios={portfoliosData?.data || []}
         />
       )}
