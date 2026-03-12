@@ -81,3 +81,5 @@ test-results/
 
 # Code quality tools
 codacy-coverage-reporter
+ROUTER_ANALYSIS.md
+REFACTORING_PLAN.md

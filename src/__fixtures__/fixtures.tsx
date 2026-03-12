@@ -43,8 +43,8 @@ export const portfolioResult: PortfolioResponses = {
         active: true,
         since: "2020-03-03",
       },
-      marketValue: 0,
-      irr: 0,
+      marketValue: 10000,
+      irr: 0.05,
     },
   ],
 }

@@ -136,9 +136,10 @@ const ActionsMenu: React.FC<ActionsMenuProps> = ({
 
   // Close on scroll to avoid stale position
   useEffect(() => {
-    if (!isOpen) return undefined
     const handleScroll = (): void => setIsOpen(false)
-    window.addEventListener("scroll", handleScroll, true)
+    if (isOpen) {
+      window.addEventListener("scroll", handleScroll, true)
+    }
     return () => window.removeEventListener("scroll", handleScroll, true)
   }, [isOpen])
 
@@ -372,9 +373,10 @@ const CashActionsMenu: React.FC<CashActionsMenuProps> = ({
 
   // Close on scroll to avoid stale position
   useEffect(() => {
-    if (!isOpen) return undefined
     const handleScroll = (): void => setIsOpen(false)
-    window.addEventListener("scroll", handleScroll, true)
+    if (isOpen) {
+      window.addEventListener("scroll", handleScroll, true)
+    }
     return () => window.removeEventListener("scroll", handleScroll, true)
   }, [isOpen])
 
