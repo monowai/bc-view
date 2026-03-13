@@ -59,7 +59,7 @@ import { ModelDto, PlanDto } from "types/rebalance"
 function HoldingsPage(): React.ReactElement {
   const router = useRouter()
   const holdingState = useHoldingState()
-  const { data, error, isLoading } = useSwr(
+  const { data, error, isLoading, mutate } = useSwr(
     holdingKey(`${router.query.code}`, `${holdingState.asAt}`),
     simpleFetcher(holdingKey(`${router.query.code}`, `${holdingState.asAt}`)),
   )
@@ -173,10 +173,11 @@ function HoldingsPage(): React.ReactElement {
     setSetCashBalanceData(data)
   }, [])
 
-  // Close set cash balance dialog
+  // Close set cash balance dialog and refresh
   const handleSetCashBalanceDialogClose = useCallback(() => {
     setSetCashBalanceData(undefined)
-  }, [])
+    mutate()
+  }, [mutate])
 
   // Handle set price from position row
   const handleSetPrice = useCallback((data: SetPriceData) => {
@@ -186,7 +187,8 @@ function HoldingsPage(): React.ReactElement {
   // Close set price dialog
   const handleSetPriceDialogClose = useCallback(() => {
     setSetPriceData(undefined)
-  }, [])
+    mutate()
+  }, [mutate])
 
   // Handle set balance from position row (for POLICY assets)
   const handleSetBalance = useCallback((data: SetBalanceData) => {
@@ -201,8 +203,8 @@ function HoldingsPage(): React.ReactElement {
   // Refresh holdings after balance is set
   const handleSetBalanceComplete = useCallback(async (): Promise<void> => {
     setSetBalanceData(undefined)
-    await router.replace(router.asPath)
-  }, [router])
+    await mutate()
+  }, [mutate])
 
   // Handle sector weightings popup for ETFs
   const handleSectorWeightings = useCallback((data: SectorWeightingsData) => {
@@ -219,27 +221,26 @@ function HoldingsPage(): React.ReactElement {
     setCashTransferData(data)
   }, [])
 
-  // Close cash transfer dialog
+  // Close cash transfer dialog and refresh
   const handleCashTransferClose = useCallback(() => {
     setCashTransferData(undefined)
-    // Refresh holdings data after transfer
-    router.replace(router.asPath)
-  }, [router])
+    mutate()
+  }, [mutate])
 
   // Handle cash transaction from cash row menu
   const handleCashTransaction = useCallback((assetCode: string) => {
     setCashTransactionAsset(assetCode)
   }, [])
 
-  // Close cash transaction modal
+  // Close cash transaction modal and refresh
   const handleCashTransactionClose = useCallback(
     (open: boolean) => {
       if (!open) {
         setCashTransactionAsset(undefined)
-        router.replace(router.asPath)
+        mutate()
       }
     },
-    [router],
+    [mutate],
   )
 
   // Handle record income from card/row menu
@@ -257,20 +258,22 @@ function HoldingsPage(): React.ReactElement {
     setMovePositionData(data)
   }, [])
 
-  // Close move position dialog (SWR cache invalidation in dialog handles refresh)
+  // Close move position dialog and refresh
   const handleMovePositionClose = useCallback(() => {
     setMovePositionData(undefined)
-  }, [])
+    mutate()
+  }, [mutate])
 
   // Handle cost adjust from position row
   const handleCostAdjust = useCallback((data: CostAdjustData) => {
     setCostAdjustData(data)
   }, [])
 
-  // Close cost adjust dialog
+  // Close cost adjust dialog and refresh
   const handleCostAdjustClose = useCallback(() => {
     setCostAdjustData(undefined)
-  }, [])
+    mutate()
+  }, [mutate])
 
   // Save cost adjustment via API
   const handleCostAdjustSave = useCallback(
@@ -333,10 +336,9 @@ function HoldingsPage(): React.ReactElement {
         throw new Error(errorData.message || "Failed to set price")
       }
       setSetPriceData(undefined)
-      // Refresh holdings data
-      router.replace(router.asPath)
+      await mutate()
     },
-    [router],
+    [mutate],
   )
 
   if (error) {

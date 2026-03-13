@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react"
+import React, { useState, useEffect, useMemo, useCallback } from "react"
 import { NumericFormat } from "react-number-format"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useRouter } from "next/router"
@@ -22,6 +22,10 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
   const router = useRouter()
   const [editModalOpen, setEditModalOpen] = useState(true)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [listDeleteTarget, setListDeleteTarget] = useState<{
+    id: string
+    portfolioCode: string
+  } | null>(null)
 
   // Extract query params - safe to access even before router is ready (will be undefined)
   const tradesParam = router.query.trades as string[] | undefined
@@ -133,6 +137,46 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
       return (a.broker?.name || "").localeCompare(b.broker?.name || "")
     })
   }, [trnResults])
+
+  // Copy row data to clipboard as tab-separated values
+  const copyRowToClipboard = useCallback(
+    (trn: Transaction, e: React.MouseEvent) => {
+      e.stopPropagation()
+      const row = [
+        trn.tradeDate,
+        trn.trnType,
+        getDisplayCode(trn.asset),
+        trn.tradeCurrency.code,
+        trn.quantity?.toFixed(2) || "",
+        trn.price?.toFixed(2) || "",
+        trn.tradeAmount?.toFixed(2) || "",
+        trn.cashAmount?.toFixed(2) || "",
+      ].join("\t")
+      navigator.clipboard.writeText(row)
+    },
+    [],
+  )
+
+  // Delete transaction from list mode
+  const handleListDeleteConfirm = useCallback(async (): Promise<void> => {
+    if (!listDeleteTarget) return
+    try {
+      const response = await fetch(
+        `/api/trns/trades/${listDeleteTarget.id}`,
+        { method: "DELETE" },
+      )
+      if (response.ok) {
+        setTimeout(() => {
+          mutate(holdingKey(listDeleteTarget.portfolioCode, "today"))
+          trades.mutate()
+        }, 1500)
+      }
+    } catch (err) {
+      console.error("Error deleting transaction:", err)
+    } finally {
+      setListDeleteTarget(null)
+    }
+  }, [listDeleteTarget, trades])
 
   // Wait for router to be ready (query params available) during client-side navigation
   if (!router.isReady) {
@@ -567,6 +611,9 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                         {"Comments"}
                       </th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                        {"Actions"}
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -700,6 +747,45 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                         >
                           {trn.comments || "-"}
                         </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                router.push(
+                                  `/trns/trades/edit/${trn.portfolio.id}/${trn.id}`,
+                                )
+                              }}
+                              className="text-gray-400 hover:text-blue-600 p-1"
+                              title={"Edit"}
+                            >
+                              <i className="fas fa-edit"></i>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => copyRowToClipboard(trn, e)}
+                              className="text-gray-400 hover:text-gray-600 p-1"
+                              title={"Copy"}
+                            >
+                              <i className="fas fa-copy"></i>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setListDeleteTarget({
+                                  id: trn.id,
+                                  portfolioCode: trn.portfolio.code,
+                                })
+                              }}
+                              className="text-gray-400 hover:text-red-600 p-1"
+                              title={"Delete"}
+                            >
+                              <i className="fas fa-trash-alt"></i>
+                            </button>
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -758,6 +844,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                       </td>
                       <td className="px-4 py-3"></td>
                       <td className="px-4 py-3"></td>
+                      <td className="px-4 py-3"></td>
                     </tr>
                   </tfoot>
                 </table>
@@ -766,6 +853,17 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
           ))}
         </div>
       </div>
+      {listDeleteTarget && (
+        <ConfirmDialog
+          title={"Delete Transaction"}
+          message={"Permanently delete this transaction?"}
+          confirmLabel={"Delete"}
+          cancelLabel={"Cancel"}
+          variant="red"
+          onConfirm={handleListDeleteConfirm}
+          onCancel={() => setListDeleteTarget(null)}
+        />
+      )}
     </div>
   )
 })
