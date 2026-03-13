@@ -1,9 +1,11 @@
-import React from "react"
+import React, { useCallback, useState } from "react"
 import { NumericFormat } from "react-number-format"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useRouter } from "next/router"
 import { Transaction } from "types/beancounter"
-import useSwr from "swr"
+import ConfirmDialog from "@components/ui/ConfirmDialog"
+import useSwr, { mutate } from "swr"
+import { holdingKey } from "@utils/api/fetchHelper"
 import { errorOut } from "@components/errors/ErrorOut"
 import { assetKey, eventKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { rootLoader } from "@components/ui/PageLoader"
@@ -28,6 +30,49 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
       ? simpleFetcher(eventKey(portfolioId, assetId))
       : null,
   )
+
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: string
+    portfolioCode: string
+  } | null>(null)
+
+  // Copy row data to clipboard as tab-separated values
+  const copyRowToClipboard = useCallback(
+    (trn: Transaction, e: React.MouseEvent) => {
+      e.stopPropagation()
+      const row = [
+        trn.tradeDate,
+        trn.trnType,
+        trn.tradeCurrency.code,
+        trn.tradeAmount?.toFixed(2) || "",
+        trn.tax?.toFixed(2) || "",
+        trn.quantity?.toFixed(0) || "",
+        trn.price?.toFixed(2) || "",
+      ].join("\t")
+      navigator.clipboard.writeText(row)
+    },
+    [],
+  )
+
+  // Delete transaction
+  const handleDeleteConfirm = useCallback(async (): Promise<void> => {
+    if (!deleteTarget) return
+    try {
+      const response = await fetch(`/api/trns/trades/${deleteTarget.id}`, {
+        method: "DELETE",
+      })
+      if (response.ok) {
+        setTimeout(() => {
+          mutate(holdingKey(deleteTarget.portfolioCode, "today"))
+          events.mutate()
+        }, 1500)
+      }
+    } catch (err) {
+      console.error("Error deleting transaction:", err)
+    } finally {
+      setDeleteTarget(null)
+    }
+  }, [deleteTarget, events])
 
   // Wait for router to be ready (query params available) during client-side navigation
   if (!router.isReady) {
@@ -240,6 +285,9 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                       {"Status"}
                     </th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                      {"Actions"}
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -322,6 +370,45 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
                           {trn.status}
                         </span>
                       </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              router.push(
+                                `/trns/trades/edit/${trn.portfolio.id}/${trn.id}`,
+                              )
+                            }}
+                            className="text-gray-400 hover:text-blue-600 p-1"
+                            title={"Edit"}
+                          >
+                            <i className="fas fa-edit"></i>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => copyRowToClipboard(trn, e)}
+                            className="text-gray-400 hover:text-gray-600 p-1"
+                            title={"Copy"}
+                          >
+                            <i className="fas fa-copy"></i>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setDeleteTarget({
+                                id: trn.id,
+                                portfolioCode: trn.portfolio.code,
+                              })
+                            }}
+                            className="text-gray-400 hover:text-red-600 p-1"
+                            title={"Delete"}
+                          >
+                            <i className="fas fa-trash-alt"></i>
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -330,6 +417,17 @@ export default withPageAuthRequired(function Events(): React.ReactElement {
           </>
         )}
       </div>
+      {deleteTarget && (
+        <ConfirmDialog
+          title={"Delete Transaction"}
+          message={"Permanently delete this transaction?"}
+          confirmLabel={"Delete"}
+          cancelLabel={"Cancel"}
+          variant="red"
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
     </div>
   )
 })

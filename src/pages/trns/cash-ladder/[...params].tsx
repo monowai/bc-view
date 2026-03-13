@@ -1,10 +1,17 @@
-import React, { useCallback, useMemo } from "react"
+import React, { useCallback, useMemo, useState } from "react"
 import { NumericFormat } from "react-number-format"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useRouter } from "next/router"
 import { assetKey, portfolioKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { Asset, Portfolio, Transaction } from "types/beancounter"
-import { getAssetCurrency, stripOwnerPrefix } from "@lib/assets/assetUtils"
+import ConfirmDialog from "@components/ui/ConfirmDialog"
+import { mutate } from "swr"
+import { holdingKey } from "@utils/api/fetchHelper"
+import {
+  getAssetCurrency,
+  stripOwnerPrefix,
+  isCash,
+} from "@lib/assets/assetUtils"
 import { rootLoader } from "@components/ui/PageLoader"
 import { errorOut } from "@components/errors/ErrorOut"
 import useSwr from "swr"
@@ -168,6 +175,31 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
     },
     [],
   )
+
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: string
+    portfolioCode: string
+  } | null>(null)
+
+  // Delete transaction
+  const handleDeleteConfirm = useCallback(async (): Promise<void> => {
+    if (!deleteTarget) return
+    try {
+      const response = await fetch(`/api/trns/trades/${deleteTarget.id}`, {
+        method: "DELETE",
+      })
+      if (response.ok) {
+        setTimeout(() => {
+          mutate(holdingKey(deleteTarget.portfolioCode, "today"))
+          cashLadderData.mutate()
+        }, 1500)
+      }
+    } catch (err) {
+      console.error("Error deleting transaction:", err)
+    } finally {
+      setDeleteTarget(null)
+    }
+  }, [deleteTarget, cashLadderData])
 
   // Loading states
   if (!router.isReady) {
@@ -423,14 +455,43 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
                         </span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-center">
-                        <button
-                          type="button"
-                          onClick={(e) => copyRowToClipboard(trn, e)}
-                          className="text-gray-400 hover:text-gray-600 p-1"
-                          title={"Copy"}
-                        >
-                          <i className="fas fa-copy"></i>
-                        </button>
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleEditClick(trn)
+                            }}
+                            className="text-gray-400 hover:text-blue-600 p-1"
+                            title={"Edit"}
+                          >
+                            <i className="fas fa-edit"></i>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => copyRowToClipboard(trn, e)}
+                            className="text-gray-400 hover:text-gray-600 p-1"
+                            title={"Copy"}
+                          >
+                            <i className="fas fa-copy"></i>
+                          </button>
+                          {isCash(trn.asset) && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setDeleteTarget({
+                                  id: trn.id,
+                                  portfolioCode: trn.portfolio.code,
+                                })
+                              }}
+                              className="text-gray-400 hover:text-red-600 p-1"
+                              title={"Delete"}
+                            >
+                              <i className="fas fa-trash-alt"></i>
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -440,6 +501,17 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
           </>
         )}
       </div>
+      {deleteTarget && (
+        <ConfirmDialog
+          title={"Delete Transaction"}
+          message={"Permanently delete this transaction?"}
+          confirmLabel={"Delete"}
+          cancelLabel={"Cancel"}
+          variant="red"
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
     </div>
   )
 })
