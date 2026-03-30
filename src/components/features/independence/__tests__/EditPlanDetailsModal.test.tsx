@@ -29,6 +29,7 @@ const mockPlan: RetirementPlan = {
   housingAllocation: 0.2,
   targetBalance: 100000,
   ownerId: "test-owner",
+  isPrimary: false,
   createdDate: "2024-01-01",
   updatedDate: "2024-01-01",
 }

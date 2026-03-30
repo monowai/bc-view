@@ -38,8 +38,13 @@ export interface RetirementPlan {
   lifeEvents?: string // JSON array of life events
   manualAssets?: Record<string, number> // JSON map of category -> value
   clientId?: string // When set, plan managed by adviser on behalf of client
+  isPrimary: boolean
   createdDate: string
   updatedDate: string
+}
+
+export interface PlanCopyRequest {
+  name: string
 }
 
 // Life event type for one-off income/expense at specific age

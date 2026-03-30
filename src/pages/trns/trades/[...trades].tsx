@@ -161,10 +161,9 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
   const handleListDeleteConfirm = useCallback(async (): Promise<void> => {
     if (!listDeleteTarget) return
     try {
-      const response = await fetch(
-        `/api/trns/trades/${listDeleteTarget.id}`,
-        { method: "DELETE" },
-      )
+      const response = await fetch(`/api/trns/trades/${listDeleteTarget.id}`, {
+        method: "DELETE",
+      })
       if (response.ok) {
         setTimeout(() => {
           mutate(holdingKey(listDeleteTarget.portfolioCode, "today"))
