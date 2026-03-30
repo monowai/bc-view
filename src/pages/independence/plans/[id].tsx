@@ -635,29 +635,41 @@ function PlanView(): React.ReactElement {
           setPlanVersion((v) => v + 1)
         }
       } else {
-        const newPlan = {
-          name: newPlanName || `${plan.name} (Scenario)`,
-          yearOfBirth: plan.yearOfBirth,
-          lifeExpectancy: plan.lifeExpectancy,
-          planningHorizonYears: plan.planningHorizonYears,
-          expensesCurrency: plan.expensesCurrency,
-          workingIncomeMonthly: plan.workingIncomeMonthly,
-          workingExpensesMonthly: plan.workingExpensesMonthly,
-          taxesMonthly: plan.taxesMonthly,
-          bonusMonthly: plan.bonusMonthly,
-          investmentAllocationPercent: plan.investmentAllocationPercent,
-          ...updates,
-        }
-        const response = await fetch("/api/independence/plans", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(newPlan),
-        })
-        if (response.ok) {
-          const result = await response.json()
+        // Deep copy the plan (including expenses and contributions) via backend
+        const copyName = newPlanName || `${plan.name} (Scenario)`
+        const copyResponse = await fetch(
+          `/api/independence/plans/${plan.id}/copy`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: copyName }),
+          },
+        )
+        if (copyResponse.ok) {
+          const copyResult = await copyResponse.json()
+          const newPlanId = copyResult.data.id
+          // Apply scenario overrides to the copied plan
+          const hasOverrides = Object.keys(updates).some(
+            (key) =>
+              updates[key as keyof typeof updates] !==
+              plan[key as keyof typeof plan],
+          )
+          if (hasOverrides) {
+            const patchResponse = await fetch(
+              `/api/independence/plans/${newPlanId}`,
+              {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(updates),
+              },
+            )
+            if (!patchResponse.ok) {
+              console.error("Failed to apply scenario overrides to copied plan")
+            }
+          }
           setScenarioOverrides({})
           setShowSaveDialog(false)
-          router.push(`/independence/plans/${result.data.id}`)
+          router.push(`/independence/plans/${newPlanId}`)
         }
       }
     } catch (err) {

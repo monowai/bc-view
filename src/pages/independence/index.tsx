@@ -16,6 +16,7 @@ import {
 import ResourceShareInviteDialog from "@components/features/shares/ResourceShareInviteDialog"
 import Alert from "@components/ui/Alert"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
+import Dialog from "@components/ui/Dialog"
 import Spinner from "@components/ui/Spinner"
 
 const plansKey = "/api/independence/plans"
@@ -28,12 +29,16 @@ function PlanCard({
   hideValues,
   onDelete,
   onExport,
+  onCopy,
+  onSetPrimary,
 }: {
   plan: RetirementPlan
   assets: AssetBreakdown
   hideValues: boolean
   onDelete: (planId: string) => void
   onExport: (plan: RetirementPlan) => void
+  onCopy: (plan: RetirementPlan) => void
+  onSetPrimary: (planId: string) => void
 }): React.ReactElement {
   // Use unified projection hook with shared assets
   const { projection, isLoading: fiLoading } = useFiProjectionSimple({
@@ -82,7 +87,15 @@ function PlanCard({
     <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow p-6">
       <div className="flex justify-between items-start mb-4">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">{plan.name}</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-gray-900">{plan.name}</h3>
+            {plan.isPrimary && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-independence-100 text-independence-700">
+                <i className="fas fa-star text-independence-500 mr-1 text-[10px]"></i>
+                Primary
+              </span>
+            )}
+          </div>
           <p className="text-sm text-gray-500">
             {plan.planningHorizonYears} year horizon
             {plan.expensesCurrency && ` · ${plan.expensesCurrency}`}
@@ -97,12 +110,28 @@ function PlanCard({
             <i className="fas fa-trash text-xs"></i>
           </button>
           <button
+            onClick={() => onCopy(plan)}
+            className="text-gray-400 hover:text-gray-600 p-1.5"
+            title="Copy plan"
+          >
+            <i className="fas fa-copy text-xs"></i>
+          </button>
+          <button
             onClick={() => onExport(plan)}
             className="text-gray-400 hover:text-gray-600 p-1.5"
             title="Export plan as JSON"
           >
             <i className="fas fa-download text-xs"></i>
           </button>
+          {!plan.isPrimary && (
+            <button
+              onClick={() => onSetPrimary(plan.id)}
+              className="text-gray-400 hover:text-independence-600 p-1.5"
+              title="Set as primary plan"
+            >
+              <i className="fas fa-star text-xs"></i>
+            </button>
+          )}
           <Link
             href={`/independence/wizard/${plan.id}`}
             className="!text-green-600 hover:!text-green-900 p-1.5"
@@ -226,6 +255,8 @@ function RetirementPlanning(): React.ReactElement {
   const [importError, setImportError] = useState<string | null>(null)
   const [showShareDialog, setShowShareDialog] = useState(false)
   const [deletePlanId, setDeletePlanId] = useState<string | null>(null)
+  const [copyPlan, setCopyPlan] = useState<RetirementPlan | null>(null)
+  const [copyName, setCopyName] = useState("")
 
   const { data, error, isLoading, mutate } = useSwr<PlansResponse>(
     plansKey,
@@ -393,6 +424,46 @@ function RetirementPlanning(): React.ReactElement {
     }
   }
 
+  const handleCopyClick = (plan: RetirementPlan): void => {
+    setCopyPlan(plan)
+    setCopyName(`${plan.name} (Copy)`)
+  }
+
+  const handleCopyConfirm = async (): Promise<void> => {
+    if (!copyPlan || !copyName.trim()) return
+    try {
+      const response = await fetch(
+        `/api/independence/plans/${copyPlan.id}/copy`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: copyName.trim() }),
+        },
+      )
+      if (response.ok) {
+        mutate()
+      }
+    } catch (err) {
+      console.error("Failed to copy plan:", err)
+    } finally {
+      setCopyPlan(null)
+    }
+  }
+
+  const handleSetPrimary = async (planId: string): Promise<void> => {
+    try {
+      const response = await fetch(
+        `/api/independence/plans/${planId}/primary`,
+        { method: "POST" },
+      )
+      if (response.ok) {
+        mutate()
+      }
+    } catch (err) {
+      console.error("Failed to set primary:", err)
+    }
+  }
+
   return (
     <>
       <Head>
@@ -507,6 +578,8 @@ function RetirementPlanning(): React.ReactElement {
                   hideValues={hideValues}
                   onDelete={setDeletePlanId}
                   onExport={handleExportPlan}
+                  onCopy={handleCopyClick}
+                  onSetPrimary={handleSetPrimary}
                 />
               ))}
             </div>
@@ -532,6 +605,42 @@ function RetirementPlanning(): React.ReactElement {
           onConfirm={handleDeletePlanConfirm}
           onCancel={() => setDeletePlanId(null)}
         />
+      )}
+      {copyPlan && (
+        <Dialog
+          title="Copy Plan"
+          onClose={() => setCopyPlan(null)}
+          maxWidth="sm"
+          footer={
+            <>
+              <Dialog.CancelButton onClick={() => setCopyPlan(null)} />
+              <Dialog.SubmitButton
+                onClick={handleCopyConfirm}
+                label="Copy"
+                variant="blue"
+                disabled={!copyName.trim()}
+              />
+            </>
+          }
+        >
+          <p className="text-gray-600 text-sm mb-3">
+            Create a copy of &ldquo;{copyPlan.name}&rdquo; with all expenses and
+            contributions.
+          </p>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            New plan name
+          </label>
+          <input
+            type="text"
+            value={copyName}
+            onChange={(e) => setCopyName(e.target.value)}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && copyName.trim()) handleCopyConfirm()
+            }}
+          />
+        </Dialog>
       )}
     </>
   )
