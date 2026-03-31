@@ -19,11 +19,11 @@ export function Portfolios(selectedPortfolio: Portfolio): ReactElement {
   }, [selectedPortfolio])
 
   // Show the selected portfolio immediately, even if the list hasn't loaded yet
-  // Sort inactive portfolios (zero balance) last
+  // Sort inactive portfolios last
   const portfolios: Portfolio[] = [...(data?.data || [])].sort(
     (a: Portfolio, b: Portfolio) => {
-      const aInactive = (a.marketValue || 0) === 0 ? 1 : 0
-      const bInactive = (b.marketValue || 0) === 0 ? 1 : 0
+      const aInactive = a.active === false ? 1 : 0
+      const bInactive = b.active === false ? 1 : 0
       return aInactive - bInactive
     },
   )
@@ -72,12 +72,12 @@ export function Portfolios(selectedPortfolio: Portfolio): ReactElement {
           >
             {portfolios.length > 0 ? (
               portfolios.map((portfolio, index) => {
-                const isInactive = (portfolio.marketValue || 0) === 0
+                const isInactive = portfolio.active === false
                 const prevPortfolio = index > 0 ? portfolios[index - 1] : null
                 const showSeparator =
                   isInactive &&
                   prevPortfolio &&
-                  (prevPortfolio.marketValue || 0) !== 0
+                  prevPortfolio.active !== false
                 return (
                   <React.Fragment key={portfolio.code}>
                     {showSeparator && (

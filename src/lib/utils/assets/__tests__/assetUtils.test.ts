@@ -1,4 +1,9 @@
-import { stripOwnerPrefix, getDisplayCode } from "../assetUtils"
+import {
+  stripOwnerPrefix,
+  getDisplayCode,
+  isCashRelated,
+  isNonTradeable,
+} from "../assetUtils"
 
 describe("stripOwnerPrefix", () => {
   it("returns code after last dot", () => {
@@ -23,6 +28,44 @@ describe("stripOwnerPrefix", () => {
 
   it("handles dot at end", () => {
     expect(stripOwnerPrefix("userId.")).toBe("")
+  })
+})
+
+describe("isCashRelated", () => {
+  it("returns true for CASH", () => {
+    expect(isCashRelated({ assetCategory: { id: "CASH" } } as any)).toBe(true)
+  })
+  it("returns true for ACCOUNT", () => {
+    expect(isCashRelated({ assetCategory: { id: "ACCOUNT" } } as any)).toBe(
+      true,
+    )
+  })
+  it("returns false for RE", () => {
+    expect(isCashRelated({ assetCategory: { id: "RE" } } as any)).toBe(false)
+  })
+  it("returns false for EQUITY", () => {
+    expect(isCashRelated({ assetCategory: { id: "EQUITY" } } as any)).toBe(
+      false,
+    )
+  })
+})
+
+describe("isNonTradeable", () => {
+  it("returns true for RE", () => {
+    expect(isNonTradeable({ assetCategory: { id: "RE" } } as any)).toBe(true)
+  })
+  it("returns true for CASH", () => {
+    expect(isNonTradeable({ assetCategory: { id: "CASH" } } as any)).toBe(true)
+  })
+  it("returns true for ACCOUNT", () => {
+    expect(isNonTradeable({ assetCategory: { id: "ACCOUNT" } } as any)).toBe(
+      true,
+    )
+  })
+  it("returns false for EQUITY", () => {
+    expect(isNonTradeable({ assetCategory: { id: "EQUITY" } } as any)).toBe(
+      false,
+    )
   })
 })
 

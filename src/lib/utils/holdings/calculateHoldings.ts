@@ -7,7 +7,7 @@ import {
   Position,
   Total,
 } from "types/beancounter"
-import { isCashRelated, isCash, isAccount } from "@lib/assets/assetUtils"
+import { isNonTradeable, isCash, isAccount } from "@lib/assets/assetUtils"
 import { GroupBy, ValueIn } from "@components/features/holdings/GroupByOptions"
 import { getReportCategory } from "../categoryMapping"
 
@@ -73,7 +73,7 @@ function updateSubTotal(
       subTotal[key] += position.moneyValues[valueIn][key]
     }
   })
-  if (isCashRelated(position.asset)) {
+  if (isNonTradeable(position.asset)) {
     subTotal.cash += position.moneyValues[valueIn].marketValue
     subTotal.weight += position.moneyValues[valueIn].weight
   } else {
@@ -192,7 +192,7 @@ function calculateWeightedIrr(positions: Position[], valueIn: ValueIn): number {
 
   for (const position of positions) {
     // Skip cash-related positions
-    if (isCashRelated(position.asset)) {
+    if (isNonTradeable(position.asset)) {
       continue
     }
 

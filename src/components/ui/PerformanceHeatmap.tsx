@@ -1,7 +1,7 @@
 import React, { useState } from "react"
 import { HoldingGroup } from "types/beancounter"
 import { FormatValue } from "@components/ui/MoneyUtils"
-import { isCash, isCashRelated, stripOwnerPrefix } from "@lib/assets/assetUtils"
+import { isCash, isNonTradeable, stripOwnerPrefix } from "@lib/assets/assetUtils"
 import { compareByReportCategory, compareBySector } from "@lib/categoryMapping"
 import { GroupBy } from "@components/features/holdings/GroupByOptions"
 import { ProgressBar } from "@components/ui/ProgressBar"
@@ -92,7 +92,7 @@ export const PerformanceHeatmap: React.FC<PerformanceHeatmapProps> = ({
       const cells: HeatmapCell[] = []
 
       group.positions.forEach((position) => {
-        if (isCash(position.asset) || isCashRelated(position.asset)) return
+        if (isCash(position.asset) || isNonTradeable(position.asset)) return
 
         const moneyValues = position.moneyValues[valueIn]
         const totalGainPercent =
