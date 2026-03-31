@@ -7,7 +7,12 @@ import {
   QuickSellData,
 } from "types/beancounter"
 import { FormatValue, PrivateQuantity } from "@components/ui/MoneyUtils"
-import { isCash, isCashRelated, stripOwnerPrefix } from "@lib/assets/assetUtils"
+import {
+  isCash,
+  isCashRelated,
+  isNonTradeable,
+  stripOwnerPrefix,
+} from "@lib/assets/assetUtils"
 import { useDisplayCurrencyConversion } from "@lib/hooks/useDisplayCurrencyConversion"
 import { compareByReportCategory, compareBySector } from "@lib/categoryMapping"
 import { GroupBy } from "@components/features/holdings/GroupByOptions"
@@ -358,8 +363,8 @@ const sortPositionsWithinGroup = (
   valueIn: string,
 ): Position[] => {
   return [...positions].sort((a, b) => {
-    const aIsCash = isCashRelated(a.asset)
-    const bIsCash = isCashRelated(b.asset)
+    const aIsCash = isNonTradeable(a.asset)
+    const bIsCash = isNonTradeable(b.asset)
 
     // Cash positions go to the end
     if (aIsCash && !bIsCash) return 1

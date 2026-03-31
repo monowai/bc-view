@@ -24,11 +24,11 @@ const PortfolioSelector: React.FC<PortfolioSelectorProps> = ({
     simpleFetcher(portfoliosKey),
   )
 
-  // Sort inactive portfolios (zero balance) last
+  // Sort inactive portfolios last
   const portfolios: Portfolio[] = [...(data?.data || [])].sort(
     (a: Portfolio, b: Portfolio) => {
-      const aInactive = (a.marketValue || 0) === 0 ? 1 : 0
-      const bInactive = (b.marketValue || 0) === 0 ? 1 : 0
+      const aInactive = a.active === false ? 1 : 0
+      const bInactive = b.active === false ? 1 : 0
       return aInactive - bInactive
     },
   )
@@ -98,12 +98,12 @@ const PortfolioSelector: React.FC<PortfolioSelectorProps> = ({
 
       <div className="space-y-2 max-h-64 overflow-y-auto">
         {portfolios.map((portfolio, index) => {
-          const isInactive = (portfolio.marketValue || 0) === 0
+          const isInactive = portfolio.active === false
           const prevPortfolio = index > 0 ? portfolios[index - 1] : null
           const showSeparator =
             isInactive &&
             prevPortfolio &&
-            (prevPortfolio.marketValue || 0) !== 0
+            prevPortfolio.active !== false
           return (
             <React.Fragment key={portfolio.id}>
               {showSeparator && (

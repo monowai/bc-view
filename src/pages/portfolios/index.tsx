@@ -69,10 +69,8 @@ export default withPageAuthRequired(function Portfolios({
     [router],
   )
 
-  const activePortfolios = portfolios.filter((p) => (p.marketValue || 0) !== 0)
-  const inactivePortfolios = portfolios.filter(
-    (p) => (p.marketValue || 0) === 0,
-  )
+  const activePortfolios = portfolios.filter((p) => p.active !== false)
+  const inactivePortfolios = portfolios.filter((p) => p.active === false)
 
   const handleCorporateActionsClose = useCallback(() => {
     setCorporateActionsPortfolio(null)

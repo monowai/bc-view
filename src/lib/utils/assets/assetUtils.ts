@@ -18,6 +18,10 @@ export function getAssetCurrency(asset: {
 }
 
 export function isCashRelated(asset: Asset): boolean {
+  return isCash(asset) || isAccount(asset)
+}
+
+export function isNonTradeable(asset: Asset): boolean {
   return asset.assetCategory.id === "RE" || isCash(asset) || isAccount(asset)
 }
 export function isCash(asset: Asset): boolean {

@@ -77,7 +77,8 @@ export const ccyKey = `${apiRoot}/currencies`
 export const marketsKey = `${apiRoot}/markets`
 export const categoriesKey = `${apiRoot}/categories`
 
-export const portfoliosKey = `${apiRoot}/portfolios`
+const portfoliosBase = `${apiRoot}/portfolios`
+export const portfoliosKey = `${portfoliosBase}?inactive=true`
 export const assetsKey = `${apiRoot}/assets`
 export const accountsKey = `${assetsKey}?category=ACCOUNT`
 export const tradeAccountsKey = `${assetsKey}?category=TRADE`
@@ -95,7 +96,7 @@ export const holdingKey = (portfolioCode: string, asAt: string): string =>
   `${apiRoot}/holdings/${portfolioCode}?asAt=${asAt}`
 
 export const portfolioKey = (portfolioId: string): string =>
-  `${portfoliosKey}/${portfolioId}`
+  `${portfoliosBase}/${portfolioId}`
 
 export const trnKey = (trnId: string): string => `${trnsKey}/${trnId}`
 
