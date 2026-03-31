@@ -186,6 +186,7 @@ export default withPageAuthRequired(function Portfolios({
           onShareClick={handleShareClick}
           onCorporateActions={setCorporateActionsPortfolio}
           onDelete={setDeleteTarget}
+          isInactiveTab
         />
       )}
       {activeTab === "managed" && <ManagedPortfolios />}

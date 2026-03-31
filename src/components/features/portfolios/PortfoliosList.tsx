@@ -17,6 +17,7 @@ interface PortfoliosListProps {
   onShareClick: (portfolioId?: string) => void
   onCorporateActions: (portfolio: Portfolio) => void
   onDelete: (target: { id: string; code: string }) => void
+  isInactiveTab?: boolean
 }
 
 // Check if valuation date is stale (not today)
@@ -132,6 +133,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
   onShareClick,
   onCorporateActions,
   onDelete,
+  isInactiveTab = false,
 }) => {
   const router = useRouter()
 
@@ -189,6 +191,20 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
   }, [selectedPortfolios, router])
 
   if (!portfolios || portfolios.length === 0) {
+    if (isInactiveTab) {
+      return (
+        <div className="min-h-screen bg-gray-50 px-4 py-8">
+          <div className="max-w-2xl mx-auto text-center">
+            <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <i className="fas fa-archive text-xl text-gray-400"></i>
+            </div>
+            <p className="text-gray-500">
+              {"No inactive portfolios"}
+            </p>
+          </div>
+        </div>
+      )
+    }
     return (
       <div className="min-h-screen bg-gray-50 px-4 py-8">
         <div className="max-w-2xl mx-auto">
