@@ -134,8 +134,8 @@ export default function WizardContainer({
   }
 
   const handleCancel = (): void => {
-    if (isEditMode) {
-      router.back()
+    if (isEditMode && planId) {
+      router.push(`/independence/plans/${planId}`)
     } else {
       router.push("/independence")
     }
@@ -353,15 +353,13 @@ export default function WizardContainer({
         }
       }
 
-      // Invalidate all plan cache keys so subsequent fetches get fresh data
-      await mutate(`/api/independence/plans/${savedPlanId}`)
-      await mutate(`/api/independence/plans/${savedPlanId}/details`)
-
       if (isEditMode) {
-        // Stay on the wizard page - data will refresh via SWR invalidation
+        // Stay on the wizard page - no cache invalidation needed since we just saved
         setIsSubmitting(false)
       } else {
-        // Navigate to the plan view for new plans
+        // Invalidate cache and navigate to the plan view for new plans
+        await mutate(`/api/independence/plans/${savedPlanId}`)
+        await mutate(`/api/independence/plans/${savedPlanId}/details`)
         router.push(`/independence/plans/${savedPlanId}`)
       }
     } catch (err: unknown) {
@@ -394,6 +392,7 @@ export default function WizardContainer({
             control={control}
             errors={errors}
             getValues={getValues}
+            setValue={setValue}
             isEditMode={isEditMode}
           />
         )
@@ -420,7 +419,6 @@ export default function WizardContainer({
             control={control}
             errors={errors}
             isEditMode={isEditMode}
-            setValue={setValue}
           />
         )
       case 7:

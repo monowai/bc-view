@@ -6,9 +6,11 @@ import {
   useFieldArray,
   useWatch,
   UseFormGetValues,
+  UseFormSetValue,
 } from "react-hook-form"
 import useSwr from "swr"
 import { usePrivateAssetConfigs } from "@lib/assets/usePrivateAssetConfigs"
+import { useExcludedAssetIds } from "@hooks/useExcludedAssetIds"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import { WizardFormData, ContributionFormEntry } from "types/independence"
 import { Asset } from "types/beancounter"
@@ -33,6 +35,7 @@ interface ContributionsStepProps {
   control: Control<WizardFormData>
   errors: FieldErrors<WizardFormData>
   getValues: UseFormGetValues<WizardFormData>
+  setValue: UseFormSetValue<WizardFormData>
   isEditMode?: boolean
 }
 
@@ -40,6 +43,7 @@ export default function ContributionsStep({
   control,
   errors,
   getValues,
+  setValue,
   isEditMode,
 }: ContributionsStepProps): React.ReactElement {
   const { fields, replace } = useFieldArray({
@@ -48,7 +52,11 @@ export default function ContributionsStep({
   })
   const hasInitialized = useRef(false)
 
-  const { configs, isLoading: configsLoading } = usePrivateAssetConfigs()
+  const {
+    configs,
+    isLoading: configsLoading,
+    assetNames,
+  } = usePrivateAssetConfigs()
 
   // Fetch user's assets to get names and categories
   const { data: assetsData, isLoading: assetsLoading } = useSwr<AssetsResponse>(
@@ -85,6 +93,111 @@ export default function ContributionsStep({
     () => watchedContributions || ([] as ContributionFormEntry[]),
     [watchedContributions],
   )
+
+  // Rental income: watch excluded portfolios and rental asset exclusions
+  const watchedExcludedIds = useWatch({
+    control,
+    name: "excludedPortfolioIds",
+  })
+  const excludedAssetIds = useExcludedAssetIds(watchedExcludedIds)
+
+  const watchedExcludedRentalIds = useWatch({
+    control,
+    name: "excludedRentalAssetIds",
+  })
+  const excludedRentalIds = useMemo(
+    () => new Set(watchedExcludedRentalIds || []),
+    [watchedExcludedRentalIds],
+  )
+
+  const rentalProperties = useMemo(() => {
+    if (!configs || configs.length === 0) return []
+    return configs.filter(
+      (c) =>
+        !c.isPrimaryResidence &&
+        c.monthlyRentalIncome > 0 &&
+        !excludedAssetIds.has(c.assetId),
+    )
+  }, [configs, excludedAssetIds])
+
+  // Plan currency for FX conversion of rental income
+  const planCurrency = useWatch({ control, name: "expensesCurrency" }) || "NZD"
+
+  // Fetch FX rates for rental currencies that differ from plan currency
+  const rentalFxPairs = useMemo(() => {
+    const currencies = new Set(
+      rentalProperties
+        .filter((c) => !excludedRentalIds.has(c.assetId))
+        .map((c) => c.rentalCurrency)
+        .filter((ccy) => ccy !== planCurrency),
+    )
+    return Array.from(currencies).map((ccy) => ({
+      from: ccy,
+      to: planCurrency,
+    }))
+  }, [rentalProperties, excludedRentalIds, planCurrency])
+
+  const fxKey =
+    rentalFxPairs.length > 0
+      ? `/api/fx?pairs=${rentalFxPairs.map((p) => `${p.from}:${p.to}`).join(",")}`
+      : null
+
+  const { data: fxData } = useSwr(
+    fxKey,
+    fxKey
+      ? async () => {
+          const res = await fetch("/api/fx", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              rateDate: "today",
+              pairs: rentalFxPairs,
+            }),
+          })
+          if (!res.ok) return null
+          return res.json()
+        }
+      : null,
+  )
+
+  const fxRates: Record<string, number> = useMemo(() => {
+    if (!fxData?.data?.rates) return {}
+    const rates: Record<string, number> = {}
+    for (const [key, value] of Object.entries(fxData.data.rates)) {
+      rates[key] = (value as { rate: number }).rate
+    }
+    return rates
+  }, [fxData])
+
+  // Calculate net rental income per property (in property currency)
+  const getNetRentalIncome = (config: (typeof rentalProperties)[0]): number => {
+    const percentFee = config.monthlyRentalIncome * config.managementFeePercent
+    const effectiveMgmtFee = Math.max(config.monthlyManagementFee, percentFee)
+    const monthlyPropertyTax = (config.annualPropertyTax || 0) / 12
+    const monthlyInsurance = (config.annualInsurance || 0) / 12
+    const totalExpenses =
+      effectiveMgmtFee +
+      (config.monthlyBodyCorporateFee || 0) +
+      monthlyPropertyTax +
+      monthlyInsurance +
+      (config.monthlyOtherExpenses || 0)
+    return Math.max(0, config.monthlyRentalIncome - totalExpenses)
+  }
+
+  // Total rental income converted to plan currency
+  const totalRentalIncome = useMemo(() => {
+    return rentalProperties
+      .filter((c) => !excludedRentalIds.has(c.assetId))
+      .reduce((sum, config) => {
+        const netIncome = getNetRentalIncome(config)
+        if (config.rentalCurrency === planCurrency) {
+          return sum + netIncome
+        }
+        const rateKey = `${config.rentalCurrency}:${planCurrency}`
+        const rate = fxRates[rateKey] || 1
+        return sum + netIncome * rate
+      }, 0)
+  }, [rentalProperties, excludedRentalIds, planCurrency, fxRates]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Watch income-related fields for summary
   const workingIncomeMonthly =
@@ -199,7 +312,8 @@ export default function ContributionsStep({
   }, [contributions, assetLookup])
 
   // Income calculations for employment summary
-  const netIncomeMonthly = workingIncomeMonthly + bonusMonthly - taxesMonthly
+  const netIncomeMonthly =
+    workingIncomeMonthly + bonusMonthly - taxesMonthly + totalRentalIncome
   const monthlySurplus = netIncomeMonthly - workingExpensesMonthly
   const surplusAfterContributions = monthlySurplus - grandTotal
   const monthlyInvestment = Math.max(
@@ -219,6 +333,17 @@ export default function ContributionsStep({
       format: "currency",
       valueClassName: "text-green-700",
     },
+    ...(totalRentalIncome > 0
+      ? [
+          {
+            icon: "fa-home",
+            label: "Property Rental",
+            value: totalRentalIncome,
+            format: "currency" as const,
+            valueClassName: "text-green-700",
+          },
+        ]
+      : []),
     {
       icon: "fa-receipt",
       label: "Working Expenses",
@@ -349,6 +474,78 @@ export default function ContributionsStep({
           control={control}
           errors={errors}
         />
+
+        {/* Property Rental Income - per property with toggle */}
+        {!configsLoading && rentalProperties.length > 0 && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="flex items-center mb-2">
+              <i className="fas fa-home text-green-600 mr-2"></i>
+              <h3 className="text-sm font-semibold text-green-800">
+                Property Rental Income
+              </h3>
+            </div>
+            <div className="space-y-1">
+              {rentalProperties.map((config) => {
+                const isExcluded = excludedRentalIds.has(config.assetId)
+                const netIncome = getNetRentalIncome(config)
+                const name = assetNames[config.assetId] || config.assetId
+                const needsConversion = config.rentalCurrency !== planCurrency
+                const rateKey = `${config.rentalCurrency}:${planCurrency}`
+                const rate = fxRates[rateKey] || 1
+                const convertedIncome = needsConversion
+                  ? netIncome * rate
+                  : netIncome
+                return (
+                  <label
+                    key={config.assetId}
+                    className="flex items-center justify-between p-2 rounded-lg hover:bg-green-100 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={!isExcluded}
+                        onChange={() => {
+                          const current = watchedExcludedRentalIds || []
+                          const updated = isExcluded
+                            ? current.filter(
+                                (id: string) => id !== config.assetId,
+                              )
+                            : [...current, config.assetId]
+                          setValue("excludedRentalAssetIds", updated)
+                        }}
+                        className="w-4 h-4 text-green-500 rounded border-gray-300"
+                      />
+                      <span
+                        className={`text-sm ${isExcluded ? "line-through text-gray-400" : "text-green-700"}`}
+                      >
+                        {name}
+                      </span>
+                    </div>
+                    <span
+                      className={`text-sm font-medium ${isExcluded ? "text-gray-400 line-through" : "text-green-600"}`}
+                    >
+                      {planCurrency}{" "}
+                      {Math.round(convertedIncome).toLocaleString()}
+                      {needsConversion && (
+                        <span className="text-xs text-gray-400 ml-1">
+                          ({config.rentalCurrency}{" "}
+                          {netIncome.toLocaleString(undefined, {
+                            maximumFractionDigits: 0,
+                          })}
+                          )
+                        </span>
+                      )}
+                    </span>
+                  </label>
+                )
+              })}
+            </div>
+            <p className="text-xs text-green-600 mt-2">
+              <i className="fas fa-info-circle mr-1"></i>
+              Net of expenses. Configure in Accounts &gt; Real Estate.
+            </p>
+          </div>
+        )}
 
         <PercentInput
           name="investmentAllocationPercent"
