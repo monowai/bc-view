@@ -1,27 +1,19 @@
 import React from "react"
-import {
-  Control,
-  FieldErrors,
-  UseFormSetValue,
-  useWatch,
-} from "react-hook-form"
+import { Control, FieldErrors, useWatch } from "react-hook-form"
 import { WizardFormData } from "types/independence"
 import { StepHeader, CurrencyInputWithPeriod, SummaryBox } from "../form"
 import { usePrivateAssetConfigs } from "@utils/assets/usePrivateAssetConfigs"
-import { useExcludedAssetIds } from "@hooks/useExcludedAssetIds"
 
 interface IncomeSourcesStepProps {
   control: Control<WizardFormData>
   errors: FieldErrors<WizardFormData>
   isEditMode?: boolean
-  setValue?: UseFormSetValue<WizardFormData>
 }
 
 export default function IncomeSourcesStep({
   control,
   errors,
   isEditMode,
-  setValue: externalSetValue,
 }: IncomeSourcesStepProps): React.ReactElement {
   const pensionMonthly = useWatch({ control, name: "pensionMonthly" }) || 0
   const socialSecurityMonthly =
@@ -29,37 +21,7 @@ export default function IncomeSourcesStep({
   const otherIncomeMonthly =
     useWatch({ control, name: "otherIncomeMonthly" }) || 0
 
-  // Fetch rental income from RE assets (net after expenses and income tax)
-  const {
-    configs,
-    isLoading: configsLoading,
-    assetNames,
-  } = usePrivateAssetConfigs()
-
-  // Filter rental income by excluded portfolios
-  const watchedExcludedIds = useWatch({
-    control,
-    name: "excludedPortfolioIds",
-  })
-  const excludedAssetIds = useExcludedAssetIds(watchedExcludedIds)
-
-  // Watch excluded rental asset IDs from form
-  const watchedExcludedRentalIds = useWatch({
-    control,
-    name: "excludedRentalAssetIds",
-  })
-  const excludedRentalIds = new Set(watchedExcludedRentalIds || [])
-
-  // Rental properties (non-primary-residence with rental income, not portfolio-excluded)
-  const rentalProperties = React.useMemo(() => {
-    if (!configs || configs.length === 0) return []
-    return configs.filter(
-      (c) =>
-        !c.isPrimaryResidence &&
-        c.monthlyRentalIncome > 0 &&
-        !excludedAssetIds.has(c.assetId),
-    )
-  }, [configs, excludedAssetIds])
+  const { configs } = usePrivateAssetConfigs()
 
   // Filter pension assets (isPension = true), excluding composites
   const pensionAssets = React.useMemo(() => {
@@ -95,85 +57,6 @@ export default function IncomeSourcesStep({
           <i className="fas fa-check-circle text-green-600 mt-0.5 mr-2"></i>
           <p className="text-sm text-green-700">
             You can configure income sources later — click Next to continue.
-          </p>
-        </div>
-      )}
-
-      {/* Property Rental Income - per property with toggle */}
-      {!configsLoading && rentalProperties.length > 0 && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <div className="flex items-center mb-2">
-            <i className="fas fa-home text-green-600 mr-2"></i>
-            <h3 className="text-sm font-semibold text-green-800">
-              Property Rental Income
-            </h3>
-          </div>
-          <div className="space-y-1">
-            {rentalProperties.map((config) => {
-              const isExcluded = excludedRentalIds.has(config.assetId)
-              const percentFee =
-                config.monthlyRentalIncome * config.managementFeePercent
-              const effectiveMgmtFee = Math.max(
-                config.monthlyManagementFee,
-                percentFee,
-              )
-              const monthlyPropertyTax = (config.annualPropertyTax || 0) / 12
-              const monthlyInsurance = (config.annualInsurance || 0) / 12
-              const totalExpenses =
-                effectiveMgmtFee +
-                (config.monthlyBodyCorporateFee || 0) +
-                monthlyPropertyTax +
-                monthlyInsurance +
-                (config.monthlyOtherExpenses || 0)
-              const netIncome = Math.max(
-                0,
-                config.monthlyRentalIncome - totalExpenses,
-              )
-              const name = assetNames[config.assetId] || config.assetId
-              return (
-                <label
-                  key={config.assetId}
-                  className="flex items-center justify-between p-2 rounded-lg hover:bg-green-100 cursor-pointer"
-                >
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={!isExcluded}
-                      onChange={() => {
-                        const current = watchedExcludedRentalIds || []
-                        const updated = isExcluded
-                          ? current.filter(
-                              (id: string) => id !== config.assetId,
-                            )
-                          : [...current, config.assetId]
-                        if (externalSetValue) {
-                          externalSetValue("excludedRentalAssetIds", updated)
-                        }
-                      }}
-                      className="w-4 h-4 text-green-500 rounded border-gray-300"
-                    />
-                    <span
-                      className={`text-sm ${isExcluded ? "line-through text-gray-400" : "text-green-700"}`}
-                    >
-                      {name}
-                    </span>
-                  </div>
-                  <span
-                    className={`text-sm font-medium ${isExcluded ? "text-gray-400 line-through" : "text-green-600"}`}
-                  >
-                    {config.rentalCurrency}{" "}
-                    {netIncome.toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
-                  </span>
-                </label>
-              )
-            })}
-          </div>
-          <p className="text-xs text-green-600 mt-2">
-            <i className="fas fa-info-circle mr-1"></i>
-            Net of expenses. Configure in Accounts &gt; Real Estate.
           </p>
         </div>
       )}
