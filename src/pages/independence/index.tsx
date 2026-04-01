@@ -213,7 +213,7 @@ function PlanCard({
             >
               {hideValues
                 ? HIDDEN_VALUE
-                : `-${currency}${Math.round(totalMonthlyIncome).toLocaleString()}`}
+                : `${currency}${Math.round(totalMonthlyIncome).toLocaleString()}`}
             </span>
           </div>
         )}
@@ -279,6 +279,7 @@ function RetirementPlanning(): React.ReactElement {
   const holdingsData = holdingsLoading ? undefined : holdingsResponse?.data
   const assets = useAssetBreakdown(holdingsData)
 
+  // Backend returns plans sorted: primary first, then by name
   const plans = data?.data || []
 
   const handleExportPlan = async (plan: RetirementPlan): Promise<void> => {

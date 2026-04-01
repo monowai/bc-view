@@ -16,6 +16,10 @@ import {
   PlanContributionsResponse,
   ContributionFormEntry,
 } from "types/independence"
+import {
+  parseExcludedPortfolioIds,
+  parseExcludedRentalAssetIds,
+} from "@lib/independence/planHelpers"
 
 interface WorkingExpensesResponse {
   data: Array<{
@@ -185,6 +189,10 @@ function EditPlanWizard(): React.ReactElement {
     equityAllocation: toPercent(plan.equityAllocation, 0.8),
     housingAllocation: toPercent(plan.housingAllocation, 0.0),
     selectedPortfolioIds: [],
+    excludedPortfolioIds: parseExcludedPortfolioIds(plan.excludedPortfolioIds),
+    excludedRentalAssetIds: parseExcludedRentalAssetIds(
+      plan.excludedRentalAssetIds,
+    ),
     manualAssets: parseManualAssets(),
     lifeEvents: parseLifeEvents(),
     // Contributions (pension/insurance)
@@ -201,14 +209,14 @@ function EditPlanWizard(): React.ReactElement {
   return (
     <>
       <Head>
-        <title>Edit Plan | Beancounter</title>
+        <title>Edit {plan.name} | Beancounter</title>
       </Head>
 
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="container mx-auto px-4">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900">
-              Edit Independence Plan
+              Edit {plan.name} Plan
             </h1>
           </div>
 

@@ -1,7 +1,11 @@
 import React, { useState } from "react"
 import { HoldingGroup } from "types/beancounter"
 import { FormatValue } from "@components/ui/MoneyUtils"
-import { isCash, isNonTradeable, stripOwnerPrefix } from "@lib/assets/assetUtils"
+import {
+  isCash,
+  isNonTradeable,
+  stripOwnerPrefix,
+} from "@lib/assets/assetUtils"
 import { compareByReportCategory, compareBySector } from "@lib/categoryMapping"
 import { GroupBy } from "@components/features/holdings/GroupByOptions"
 import { ProgressBar } from "@components/ui/ProgressBar"

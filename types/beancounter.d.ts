@@ -750,6 +750,7 @@ export interface PrivateAssetConfigResponse {
 
 export interface PrivateAssetConfigsResponse {
   data: PrivateAssetConfig[]
+  assetNames?: Record<string, string>
 }
 
 // ============ Tax Rates ============

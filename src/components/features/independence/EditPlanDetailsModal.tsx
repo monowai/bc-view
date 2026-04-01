@@ -1,7 +1,16 @@
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useMemo } from "react"
+import useSwr from "swr"
 import { RetirementPlan } from "types/independence"
+import { Portfolio } from "types/beancounter"
 import { ScenarioOverrides } from "./types"
+import {
+  parseExcludedPortfolioIds,
+  parseExcludedRentalAssetIds,
+} from "@lib/independence/planHelpers"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
+import { usePrivateAssetConfigs } from "@utils/assets/usePrivateAssetConfigs"
+import { useExcludedAssetIds } from "@hooks/useExcludedAssetIds"
+import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
 
 const HIDDEN_VALUE = "****"
 
@@ -18,6 +27,8 @@ interface EditFormData {
   housingAllocation: number
   inflationRate: number
   targetBalance: number
+  excludedPortfolioIds: string[]
+  excludedRentalAssetIds: string[]
 }
 
 interface EditPlanDetailsModalProps {
@@ -82,6 +93,12 @@ export default function EditPlanDetailsModal({
   plan,
 }: EditPlanDetailsModalProps): React.ReactElement | null {
   const { hideValues } = usePrivacyMode()
+  const { data: portfolioData } = useSwr(
+    isOpen ? portfoliosKey : null,
+    simpleFetcher(portfoliosKey),
+  )
+  const portfolios: Portfolio[] = portfolioData?.data || []
+
   const [formData, setFormData] = useState<EditFormData>({
     pensionMonthly: 0,
     socialSecurityMonthly: 0,
@@ -95,27 +112,54 @@ export default function EditPlanDetailsModal({
     housingAllocation: 0,
     inflationRate: 0,
     targetBalance: 0,
+    excludedPortfolioIds: [],
+    excludedRentalAssetIds: [],
   })
 
-  // Initialize form when modal opens
+  // Fetch rental property configs for per-property checkboxes
+  const { configs: assetConfigs, assetNames } = usePrivateAssetConfigs()
+  const excludedAssetIds = useExcludedAssetIds(
+    formData.excludedPortfolioIds,
+    portfolios,
+  )
+
+  const rentalProperties = useMemo(() => {
+    if (!assetConfigs || assetConfigs.length === 0) return []
+    return assetConfigs.filter(
+      (c) =>
+        !c.isPrimaryResidence &&
+        c.monthlyRentalIncome > 0 &&
+        !excludedAssetIds.has(c.assetId),
+    )
+  }, [assetConfigs, excludedAssetIds])
+
+  // Initialize form when modal opens or plan changes
+  // Use plan.updatedDate as stable change indicator to avoid re-init on reference changes
+  const planVersion = `${plan.id}-${plan.updatedDate}`
   useEffect(() => {
-    if (isOpen && plan) {
+    if (isOpen) {
       setFormData({
         pensionMonthly: plan.pensionMonthly,
         socialSecurityMonthly: plan.socialSecurityMonthly,
         otherIncomeMonthly: plan.otherIncomeMonthly ?? 0,
         monthlyExpenses: plan.monthlyExpenses,
-        equityReturnRate: plan.equityReturnRate * 100, // Convert to percentage
+        equityReturnRate: plan.equityReturnRate * 100,
         cashReturnRate: plan.cashReturnRate * 100,
         housingReturnRate: plan.housingReturnRate * 100,
-        equityAllocation: plan.equityAllocation * 100, // Convert to percentage
+        equityAllocation: plan.equityAllocation * 100,
         cashAllocation: plan.cashAllocation * 100,
         housingAllocation: plan.housingAllocation * 100,
         inflationRate: plan.inflationRate * 100,
         targetBalance: plan.targetBalance ?? 0,
+        excludedPortfolioIds: parseExcludedPortfolioIds(
+          plan.excludedPortfolioIds,
+        ),
+        excludedRentalAssetIds: parseExcludedRentalAssetIds(
+          plan.excludedRentalAssetIds,
+        ),
       })
     }
-  }, [isOpen, plan])
+  }, [isOpen, planVersion]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!isOpen) return null
 
@@ -125,14 +169,16 @@ export default function EditPlanDetailsModal({
       socialSecurityMonthly: formData.socialSecurityMonthly,
       otherIncomeMonthly: formData.otherIncomeMonthly,
       monthlyExpenses: formData.monthlyExpenses,
-      equityReturnRate: formData.equityReturnRate / 100, // Convert back to decimal
+      equityReturnRate: formData.equityReturnRate / 100,
       cashReturnRate: formData.cashReturnRate / 100,
       housingReturnRate: formData.housingReturnRate / 100,
-      equityAllocation: formData.equityAllocation / 100, // Convert back to decimal
+      equityAllocation: formData.equityAllocation / 100,
       cashAllocation: formData.cashAllocation / 100,
       housingAllocation: formData.housingAllocation / 100,
       inflationRate: formData.inflationRate / 100,
       targetBalance: formData.targetBalance || undefined,
+      excludedPortfolioIds: formData.excludedPortfolioIds,
+      excludedRentalAssetIds: formData.excludedRentalAssetIds,
     })
     onClose()
   }
@@ -417,6 +463,146 @@ export default function EditPlanDetailsModal({
             </p>
           </div>
 
+          {/* Portfolios */}
+          {portfolios.length > 0 && (
+            <div className="border-t pt-4 mt-4">
+              <h3 className="text-sm font-medium text-gray-700 mb-3">
+                Portfolios
+              </h3>
+              <p className="text-xs text-gray-500 mb-2">
+                Uncheck to exclude a portfolio from this plan
+              </p>
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {portfolios
+                  .filter((p) => p.active !== false)
+                  .map((portfolio) => {
+                    const isExcluded = formData.excludedPortfolioIds.includes(
+                      portfolio.id,
+                    )
+                    return (
+                      <label
+                        key={portfolio.id}
+                        className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors ${
+                          isExcluded
+                            ? "bg-gray-50 text-gray-400"
+                            : "hover:bg-gray-50"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={!isExcluded}
+                          onChange={() => {
+                            setFormData((prev) => ({
+                              ...prev,
+                              excludedPortfolioIds: isExcluded
+                                ? prev.excludedPortfolioIds.filter(
+                                    (id) => id !== portfolio.id,
+                                  )
+                                : [...prev.excludedPortfolioIds, portfolio.id],
+                            }))
+                          }}
+                          className="w-4 h-4 text-independence-500 rounded border-gray-300 focus:ring-independence-500"
+                        />
+                        <span
+                          className={`text-sm ${isExcluded ? "line-through" : "font-medium text-gray-900"}`}
+                        >
+                          {portfolio.code}
+                        </span>
+                        <span
+                          className={`text-xs ${isExcluded ? "" : "text-gray-500"}`}
+                        >
+                          {portfolio.name}
+                        </span>
+                      </label>
+                    )
+                  })}
+              </div>
+            </div>
+          )}
+
+          {/* Per-property Rental Income */}
+          {rentalProperties.length > 0 && (
+            <div className="border-t pt-4 mt-4">
+              <h3 className="text-sm font-medium text-gray-700 mb-2">
+                Rental Income
+              </h3>
+              <p className="text-xs text-gray-500 mb-2">
+                Uncheck to exclude a property from projections
+              </p>
+              <div className="space-y-1">
+                {rentalProperties.map((config) => {
+                  const isExcluded = formData.excludedRentalAssetIds.includes(
+                    config.assetId,
+                  )
+                  const percentFee =
+                    config.monthlyRentalIncome * config.managementFeePercent
+                  const effectiveMgmtFee = Math.max(
+                    config.monthlyManagementFee,
+                    percentFee,
+                  )
+                  const monthlyPropertyTax =
+                    (config.annualPropertyTax || 0) / 12
+                  const monthlyInsurance = (config.annualInsurance || 0) / 12
+                  const totalExpenses =
+                    effectiveMgmtFee +
+                    (config.monthlyBodyCorporateFee || 0) +
+                    monthlyPropertyTax +
+                    monthlyInsurance +
+                    (config.monthlyOtherExpenses || 0)
+                  const netIncome = Math.max(
+                    0,
+                    config.monthlyRentalIncome - totalExpenses,
+                  )
+                  return (
+                    <label
+                      key={config.assetId}
+                      className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors ${
+                        isExcluded
+                          ? "bg-gray-50 text-gray-400"
+                          : "hover:bg-green-50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={!isExcluded}
+                          onChange={() => {
+                            setFormData((prev) => ({
+                              ...prev,
+                              excludedRentalAssetIds: isExcluded
+                                ? prev.excludedRentalAssetIds.filter(
+                                    (id) => id !== config.assetId,
+                                  )
+                                : [
+                                    ...prev.excludedRentalAssetIds,
+                                    config.assetId,
+                                  ],
+                            }))
+                          }}
+                          className="w-4 h-4 text-green-500 rounded border-gray-300"
+                        />
+                        <span
+                          className={`text-sm ${isExcluded ? "line-through" : "text-gray-700"}`}
+                        >
+                          {assetNames[config.assetId] || config.assetId}
+                        </span>
+                      </div>
+                      <span
+                        className={`text-sm font-medium ${isExcluded ? "line-through" : "text-green-600"}`}
+                      >
+                        {config.rentalCurrency}{" "}
+                        {netIncome.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </span>
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Net Monthly Need Preview */}
           <div className="bg-gray-50 rounded-lg p-3">
             <div className="flex justify-between text-sm">
@@ -448,8 +634,7 @@ export default function EditPlanDetailsModal({
           </button>
         </div>
         <p className="text-xs text-gray-500 text-center mt-2">
-          Changes will update the projection. Use &quot;Save Scenario&quot; to
-          persist.
+          Changes will update the projection. Use Save to persist.
         </p>
       </div>
     </div>

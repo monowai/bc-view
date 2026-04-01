@@ -1,19 +1,27 @@
 import React from "react"
-import { Control, FieldErrors, useWatch } from "react-hook-form"
+import {
+  Control,
+  FieldErrors,
+  UseFormSetValue,
+  useWatch,
+} from "react-hook-form"
 import { WizardFormData } from "types/independence"
 import { StepHeader, CurrencyInputWithPeriod, SummaryBox } from "../form"
 import { usePrivateAssetConfigs } from "@utils/assets/usePrivateAssetConfigs"
+import { useExcludedAssetIds } from "@hooks/useExcludedAssetIds"
 
 interface IncomeSourcesStepProps {
   control: Control<WizardFormData>
   errors: FieldErrors<WizardFormData>
   isEditMode?: boolean
+  setValue?: UseFormSetValue<WizardFormData>
 }
 
 export default function IncomeSourcesStep({
   control,
   errors,
   isEditMode,
+  setValue: externalSetValue,
 }: IncomeSourcesStepProps): React.ReactElement {
   const pensionMonthly = useWatch({ control, name: "pensionMonthly" }) || 0
   const socialSecurityMonthly =
@@ -25,15 +33,33 @@ export default function IncomeSourcesStep({
   const {
     configs,
     isLoading: configsLoading,
-    getNetRentalByCurrency,
+    assetNames,
   } = usePrivateAssetConfigs()
 
-  const rentalIncomeByCurrency = React.useMemo(() => {
-    if (!configs || configs.length === 0) return {}
-    return getNetRentalByCurrency()
-  }, [configs, getNetRentalByCurrency])
+  // Filter rental income by excluded portfolios
+  const watchedExcludedIds = useWatch({
+    control,
+    name: "excludedPortfolioIds",
+  })
+  const excludedAssetIds = useExcludedAssetIds(watchedExcludedIds)
 
-  const hasRentalIncome = Object.keys(rentalIncomeByCurrency).length > 0
+  // Watch excluded rental asset IDs from form
+  const watchedExcludedRentalIds = useWatch({
+    control,
+    name: "excludedRentalAssetIds",
+  })
+  const excludedRentalIds = new Set(watchedExcludedRentalIds || [])
+
+  // Rental properties (non-primary-residence with rental income, not portfolio-excluded)
+  const rentalProperties = React.useMemo(() => {
+    if (!configs || configs.length === 0) return []
+    return configs.filter(
+      (c) =>
+        !c.isPrimaryResidence &&
+        c.monthlyRentalIncome > 0 &&
+        !excludedAssetIds.has(c.assetId),
+    )
+  }, [configs, excludedAssetIds])
 
   // Filter pension assets (isPension = true), excluding composites
   const pensionAssets = React.useMemo(() => {
@@ -73,8 +99,8 @@ export default function IncomeSourcesStep({
         </div>
       )}
 
-      {/* Property Rental Income (read-only) */}
-      {!configsLoading && hasRentalIncome && (
+      {/* Property Rental Income - per property with toggle */}
+      {!configsLoading && rentalProperties.length > 0 && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
           <div className="flex items-center mb-2">
             <i className="fas fa-home text-green-600 mr-2"></i>
@@ -83,26 +109,71 @@ export default function IncomeSourcesStep({
             </h3>
           </div>
           <div className="space-y-1">
-            {Object.entries(rentalIncomeByCurrency).map(
-              ([currency, amount]) => (
-                <div
-                  key={currency}
-                  className="flex justify-between text-sm text-green-700"
+            {rentalProperties.map((config) => {
+              const isExcluded = excludedRentalIds.has(config.assetId)
+              const percentFee =
+                config.monthlyRentalIncome * config.managementFeePercent
+              const effectiveMgmtFee = Math.max(
+                config.monthlyManagementFee,
+                percentFee,
+              )
+              const monthlyPropertyTax = (config.annualPropertyTax || 0) / 12
+              const monthlyInsurance = (config.annualInsurance || 0) / 12
+              const totalExpenses =
+                effectiveMgmtFee +
+                (config.monthlyBodyCorporateFee || 0) +
+                monthlyPropertyTax +
+                monthlyInsurance +
+                (config.monthlyOtherExpenses || 0)
+              const netIncome = Math.max(
+                0,
+                config.monthlyRentalIncome - totalExpenses,
+              )
+              const name = assetNames[config.assetId] || config.assetId
+              return (
+                <label
+                  key={config.assetId}
+                  className="flex items-center justify-between p-2 rounded-lg hover:bg-green-100 cursor-pointer"
                 >
-                  <span>Net Monthly Rental ({currency})</span>
-                  <span className="font-medium">
-                    {amount.toLocaleString(undefined, {
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={!isExcluded}
+                      onChange={() => {
+                        const current = watchedExcludedRentalIds || []
+                        const updated = isExcluded
+                          ? current.filter(
+                              (id: string) => id !== config.assetId,
+                            )
+                          : [...current, config.assetId]
+                        if (externalSetValue) {
+                          externalSetValue("excludedRentalAssetIds", updated)
+                        }
+                      }}
+                      className="w-4 h-4 text-green-500 rounded border-gray-300"
+                    />
+                    <span
+                      className={`text-sm ${isExcluded ? "line-through text-gray-400" : "text-green-700"}`}
+                    >
+                      {name}
+                    </span>
+                  </div>
+                  <span
+                    className={`text-sm font-medium ${isExcluded ? "text-gray-400 line-through" : "text-green-600"}`}
+                  >
+                    {config.rentalCurrency}{" "}
+                    {netIncome.toLocaleString(undefined, {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}
                   </span>
-                </div>
-              ),
-            )}
+                </label>
+              )
+            })}
           </div>
           <p className="text-xs text-green-600 mt-2">
             <i className="fas fa-info-circle mr-1"></i>
-            Net of all expenses. Configure in Accounts &gt; Real Estate.
+            Net of expenses. Configure in Accounts &gt; Real Estate.
           </p>
         </div>
       )}

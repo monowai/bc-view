@@ -198,9 +198,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
             <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <i className="fas fa-archive text-xl text-gray-400"></i>
             </div>
-            <p className="text-gray-500">
-              {"No inactive portfolios"}
-            </p>
+            <p className="text-gray-500">{"No inactive portfolios"}</p>
           </div>
         </div>
       )

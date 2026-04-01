@@ -10,6 +10,7 @@ import {
 
 interface UsePrivateAssetConfigsResult {
   configs: PrivateAssetConfig[]
+  assetNames: Record<string, string>
   isLoading: boolean
   error: Error | undefined
   saveConfig: (
@@ -19,7 +20,9 @@ interface UsePrivateAssetConfigsResult {
   deleteConfig: (assetId: string) => Promise<void>
   getConfigForAsset: (assetId: string) => PrivateAssetConfig | undefined
   getTotalRentalByCurrency: () => Record<string, number>
-  getNetRentalByCurrency: () => Record<string, number>
+  getNetRentalByCurrency: (
+    excludedAssetIds?: Set<string>,
+  ) => Record<string, number>
   getConfigsByLiquidationOrder: () => PrivateAssetConfig[]
   isComposite: (config: PrivateAssetConfig) => boolean
   getCompositeConfigs: () => PrivateAssetConfig[]
@@ -133,11 +136,18 @@ export function usePrivateAssetConfigs(): UsePrivateAssetConfigsResult {
    * Net = gross - all expenses - income tax (when deductIncomeTax=true).
    * Excludes primary residences.
    */
-  const getNetRentalByCurrency = (): Record<string, number> => {
+  const getNetRentalByCurrency = (
+    excludedAssetIds?: Set<string>,
+  ): Record<string, number> => {
     if (!data?.data) return {}
 
     return data.data
-      .filter((c) => !c.isPrimaryResidence && c.monthlyRentalIncome > 0)
+      .filter(
+        (c) =>
+          !c.isPrimaryResidence &&
+          c.monthlyRentalIncome > 0 &&
+          (!excludedAssetIds || !excludedAssetIds.has(c.assetId)),
+      )
       .reduce(
         (acc, c) => {
           const currency = c.rentalCurrency || "NZD"
@@ -216,6 +226,7 @@ export function usePrivateAssetConfigs(): UsePrivateAssetConfigsResult {
 
   return {
     configs: data?.data || [],
+    assetNames: data?.assetNames || {},
     isLoading,
     error,
     saveConfig,

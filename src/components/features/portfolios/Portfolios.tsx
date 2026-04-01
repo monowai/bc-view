@@ -75,9 +75,7 @@ export function Portfolios(selectedPortfolio: Portfolio): ReactElement {
                 const isInactive = portfolio.active === false
                 const prevPortfolio = index > 0 ? portfolios[index - 1] : null
                 const showSeparator =
-                  isInactive &&
-                  prevPortfolio &&
-                  prevPortfolio.active !== false
+                  isInactive && prevPortfolio && prevPortfolio.active !== false
                 return (
                   <React.Fragment key={portfolio.code}>
                     {showSeparator && (

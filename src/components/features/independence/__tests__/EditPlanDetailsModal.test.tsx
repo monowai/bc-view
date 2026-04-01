@@ -156,6 +156,8 @@ describe("EditPlanDetailsModal", () => {
       housingAllocation: 0.2,
       inflationRate: 0.025,
       targetBalance: 100000,
+      excludedPortfolioIds: [],
+      excludedRentalAssetIds: [],
     })
   })
 
@@ -201,23 +203,21 @@ describe("EditPlanDetailsModal", () => {
     ).toBeInTheDocument()
   })
 
-  it("shows note about saving scenarios", () => {
+  it("shows note about saving", () => {
     render(<EditPlanDetailsModal {...defaultProps} />)
 
-    expect(
-      screen.getByText(/Changes will update the projection/),
-    ).toBeInTheDocument()
+    expect(screen.getByText(/Use Save to persist/)).toBeInTheDocument()
   })
 
-  it("reinitializes form when plan changes", () => {
-    const { rerender } = render(<EditPlanDetailsModal {...defaultProps} />)
-
+  it("reinitializes form when plan changes via remount", () => {
     const updatedPlan = {
       ...mockPlan,
       pensionMonthly: 2000,
+      updatedDate: "2026-04-01",
     }
 
-    rerender(<EditPlanDetailsModal {...defaultProps} plan={updatedPlan} />)
+    // In production, modal remounts via key={planVersion} after save
+    render(<EditPlanDetailsModal {...defaultProps} plan={updatedPlan} />)
 
     const inputs = screen.getAllByRole("spinbutton")
     expect(inputs[0]).toHaveValue(2000)

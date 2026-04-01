@@ -47,6 +47,38 @@ export function manualAssetsToSlices(
 }
 
 /**
+ * Parse excludedPortfolioIds from JSON string if needed.
+ * Backend stores as JSON string, but frontend needs string[].
+ */
+export function parseExcludedPortfolioIds(
+  value: string[] | string | undefined | null,
+): string[] {
+  if (!value) return []
+  if (Array.isArray(value)) return value
+  try {
+    return JSON.parse(value)
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Parse excludedRentalAssetIds from JSON string if needed.
+ * Backend stores as JSON string, but frontend needs string[].
+ */
+export function parseExcludedRentalAssetIds(
+  value: string[] | string | undefined | null,
+): string[] {
+  if (!value) return []
+  if (Array.isArray(value)) return value
+  try {
+    return JSON.parse(value)
+  } catch {
+    return []
+  }
+}
+
+/**
  * Parse manualAssets from JSON string if needed.
  * Backend stores as JSON string, but we need it as an object.
  */
