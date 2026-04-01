@@ -432,7 +432,7 @@ export default function WizardContainer({
           />
         )
       case 8:
-        return <LifeEventsStep control={control} isEditMode={isEditMode} />
+        return <LifeEventsStep control={control} setValue={setValue} isEditMode={isEditMode} />
       default:
         return null
     }
