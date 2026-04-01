@@ -134,8 +134,8 @@ export default function WizardContainer({
   }
 
   const handleCancel = (): void => {
-    if (isEditMode && planId) {
-      router.push(`/independence/plans/${planId}`)
+    if (isEditMode) {
+      router.back()
     } else {
       router.push("/independence")
     }
@@ -219,6 +219,8 @@ export default function WizardContainer({
             ? JSON.stringify(formData.lifeEvents)
             : undefined,
         manualAssets,
+        excludedPortfolioIds: formData.excludedPortfolioIds || [],
+        excludedRentalAssetIds: formData.excludedRentalAssetIds || [],
         ...(!isEditMode && { clientId: clientId.trim() || undefined }),
       }
 
@@ -355,8 +357,13 @@ export default function WizardContainer({
       await mutate(`/api/independence/plans/${savedPlanId}`)
       await mutate(`/api/independence/plans/${savedPlanId}/details`)
 
-      // Navigate to the plan view
-      router.push(`/independence/plans/${savedPlanId}`)
+      if (isEditMode) {
+        // Stay on the wizard page - data will refresh via SWR invalidation
+        setIsSubmitting(false)
+      } else {
+        // Navigate to the plan view for new plans
+        router.push(`/independence/plans/${savedPlanId}`)
+      }
     } catch (err: unknown) {
       const message =
         err instanceof Error
@@ -413,6 +420,7 @@ export default function WizardContainer({
             control={control}
             errors={errors}
             isEditMode={isEditMode}
+            setValue={setValue}
           />
         )
       case 7:

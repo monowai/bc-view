@@ -40,6 +40,7 @@ describe("IncomeSourcesStep", () => {
     // Default: no pension assets configured
     mockUsePrivateAssetConfigs.mockReturnValue({
       configs: [],
+      assetNames: {},
       isLoading: false,
       error: undefined,
       getNetRentalByCurrency: () => ({}),

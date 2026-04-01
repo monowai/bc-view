@@ -5,6 +5,7 @@ import {
   ProjectionResponse,
 } from "types/independence"
 import { WhatIfAdjustments, ScenarioOverrides } from "./types"
+import { parseExcludedPortfolioIds } from "@lib/independence/planHelpers"
 
 /**
  * Simple hash function to create a numeric checksum from a string.
@@ -224,6 +225,11 @@ export function useRetirementProjection({
           scenarioOverrides.otherIncomeMonthly ?? plan.otherIncomeMonthly,
         targetBalance: scenarioOverrides.targetBalance ?? plan.targetBalance,
         liquidationThreshold: whatIfAdjustments.liquidationThreshold,
+        excludedPortfolioIds:
+          scenarioOverrides.excludedPortfolioIds ??
+          (parseExcludedPortfolioIds(plan.excludedPortfolioIds).length > 0
+            ? parseExcludedPortfolioIds(plan.excludedPortfolioIds)
+            : undefined),
       }
 
       // Pass pre-calculated asset values to avoid backend refetch from svc-position

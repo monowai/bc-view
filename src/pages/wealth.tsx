@@ -89,7 +89,7 @@ function WealthDashboard(): React.ReactElement {
     simpleFetcher("/api/independence/plans"),
   )
 
-  // Get the first plan (or could allow selection)
+  // Backend returns plans sorted: primary first, then by name
   const primaryPlan = plansData?.data?.[0]
 
   const currencies = useMemo(

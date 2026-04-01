@@ -32,12 +32,15 @@ import { usePrivateAssetConfigs } from "@utils/assets/usePrivateAssetConfigs"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import { useIndependencePlanData } from "@hooks/useIndependencePlanData"
 import { useIndependencePlanCurrency } from "@hooks/useIndependencePlanCurrency"
+import { useExcludedAssetIds } from "@hooks/useExcludedAssetIds"
 import { useIndependencePlanProjections } from "@hooks/useIndependencePlanProjections"
 import type { LumpSumAsset } from "@hooks/useIndependencePlanProjections"
 import Alert from "@components/ui/Alert"
 import Spinner from "@components/ui/Spinner"
 import {
   parseManualAssets,
+  parseExcludedPortfolioIds,
+  parseExcludedRentalAssetIds,
   hasManualAssets,
   manualAssetsToSlices,
 } from "@lib/independence/planHelpers"
@@ -98,6 +101,14 @@ function PlanView(): React.ReactElement {
   const { configs: assetConfigs, getNetRentalByCurrency } =
     usePrivateAssetConfigs()
 
+  // Resolve asset IDs belonging to excluded portfolios (for rental income filtering)
+  const effectiveExcluded =
+    scenarioOverrides.excludedPortfolioIds ?? plan?.excludedPortfolioIds
+  const excludedAssetIds = useExcludedAssetIds(
+    effectiveExcluded,
+    portfoliosData?.data,
+  )
+
   // Display currency conversion
   const {
     displayCurrency,
@@ -106,11 +117,11 @@ function PlanView(): React.ReactElement {
     effectiveFxRate,
   } = useIndependencePlanCurrency(planCurrency)
 
-  // Get rental income by currency (backend handles FX conversion)
+  // Get rental income by currency, filtering out assets from excluded portfolios
   const monthlyNetByCurrency = useMemo(() => {
     if (!assetConfigs || assetConfigs.length === 0) return {}
-    return getNetRentalByCurrency()
-  }, [assetConfigs, getNetRentalByCurrency])
+    return getNetRentalByCurrency(excludedAssetIds)
+  }, [assetConfigs, getNetRentalByCurrency, excludedAssetIds])
 
   // Build rental income data for projections (backend fetches and converts from svc-data)
   // We no longer do FX conversion here - backend handles it
@@ -600,6 +611,7 @@ function PlanView(): React.ReactElement {
     setIsSaving(true)
     try {
       const updates = {
+        name: plan.name,
         monthlyExpenses:
           scenarioOverrides.monthlyExpenses ?? plan.monthlyExpenses,
         pensionMonthly: scenarioOverrides.pensionMonthly ?? plan.pensionMonthly,
@@ -619,6 +631,12 @@ function PlanView(): React.ReactElement {
         cashAllocation: scenarioOverrides.cashAllocation ?? plan.cashAllocation,
         housingAllocation:
           scenarioOverrides.housingAllocation ?? plan.housingAllocation,
+        excludedPortfolioIds:
+          scenarioOverrides.excludedPortfolioIds ??
+          parseExcludedPortfolioIds(plan.excludedPortfolioIds),
+        excludedRentalAssetIds:
+          scenarioOverrides.excludedRentalAssetIds ??
+          parseExcludedRentalAssetIds(plan.excludedRentalAssetIds),
       }
 
       if (mode === "update") {
@@ -846,7 +864,7 @@ function PlanView(): React.ReactElement {
             }
             onWhatIfClick={() => setShowWhatIfModal(true)}
             onScenarioToggle={toggleScenario}
-            onSave={() => setShowSaveDialog(true)}
+            onSave={() => handleSaveScenario("update")}
             onReset={() => {
               resetWhatIf()
               resetScenarioOverrides()

@@ -9,6 +9,7 @@ import {
 } from "types/independence"
 import { Portfolio, HoldingContract } from "types/beancounter"
 import type { KeyedMutator } from "swr"
+import { parseExcludedPortfolioIds } from "@lib/independence/planHelpers"
 
 interface PortfoliosResponse {
   data: Portfolio[]
@@ -61,13 +62,29 @@ export function useIndependencePlanData(
     portfoliosEndpoint ? simpleFetcher(portfoliosEndpoint) : null,
   )
 
+  // Compute included portfolio codes (all minus excluded)
+  const includedPortfolioCodes = useMemo(() => {
+    if (!portfoliosData?.data || !planData?.data) return null
+    const excluded = new Set(
+      parseExcludedPortfolioIds(planData.data.excludedPortfolioIds),
+    )
+    if (excluded.size === 0) return null // null = fetch all
+    const included = portfoliosData.data
+      .filter((p) => !excluded.has(p.id))
+      .map((p) => p.code)
+    return included.length > 0 ? included.join(",") : null
+  }, [portfoliosData, planData])
+
   // Fetch aggregated holdings to get category breakdown
   // For client plans, skip holdings fetch (adviser's token returns adviser's data)
   // Wait for plan to resolve before deciding
-  const holdingsEndpoint =
-    hasResolvedPlan && !isClientPlan
-      ? "/api/holdings/aggregated?asAt=today"
-      : null
+  const holdingsEndpoint = useMemo(() => {
+    if (!hasResolvedPlan || isClientPlan) return null
+    const base = "/api/holdings/aggregated?asAt=today"
+    return includedPortfolioCodes
+      ? `${base}&codes=${encodeURIComponent(includedPortfolioCodes)}`
+      : base
+  }, [hasResolvedPlan, isClientPlan, includedPortfolioCodes])
   const {
     data: holdingsResponse,
     isLoading: holdingsLoading,

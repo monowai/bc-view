@@ -37,6 +37,8 @@ export interface ScenarioOverrides {
   // Other
   inflationRate?: number
   targetBalance?: number
+  excludedPortfolioIds?: string[]
+  excludedRentalAssetIds?: string[]
 }
 
 // Tab identifiers for plan view

@@ -183,14 +183,19 @@ export default function AssetsStep({
     [watchedPortfolioIds],
   )
 
-  // Auto-select all portfolios with balance when data first loads
+  // Auto-select portfolios when data first loads
+  // For edit mode: select all except excluded. For new: select all.
+  const watchedExcludedIds = useWatch({ control, name: "excludedPortfolioIds" })
   useEffect(() => {
     if (portfoliosWithBalance.length > 0 && !hasAutoSelected.current) {
-      const allIds = portfoliosWithBalance.map((p) => p.id)
+      const excluded = new Set(watchedExcludedIds || [])
+      const allIds = portfoliosWithBalance
+        .map((p) => p.id)
+        .filter((id) => !excluded.has(id))
       setValue("selectedPortfolioIds", allIds)
       hasAutoSelected.current = true
     }
-  }, [portfoliosWithBalance, setValue])
+  }, [portfoliosWithBalance, setValue, watchedExcludedIds])
 
   // Check for POLICY assets without balances
   useEffect(() => {
@@ -784,12 +789,23 @@ export default function AssetsStep({
                       checked={field.value?.includes(portfolio.id) || false}
                       onChange={(e) => {
                         const current = field.value || []
+                        const currentExcluded = watchedExcludedIds || []
                         if (e.target.checked) {
                           field.onChange([...current, portfolio.id])
+                          setValue(
+                            "excludedPortfolioIds",
+                            currentExcluded.filter(
+                              (id: string) => id !== portfolio.id,
+                            ),
+                          )
                         } else {
                           field.onChange(
                             current.filter((id: string) => id !== portfolio.id),
                           )
+                          setValue("excludedPortfolioIds", [
+                            ...currentExcluded,
+                            portfolio.id,
+                          ])
                         }
                       }}
                       className="h-4 w-4 text-independence-600 focus:ring-independence-500 border-gray-300 rounded"

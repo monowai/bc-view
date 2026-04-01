@@ -37,6 +37,8 @@ export interface RetirementPlan {
   investmentAllocationPercent: number
   lifeEvents?: string // JSON array of life events
   manualAssets?: Record<string, number> // JSON map of category -> value
+  excludedPortfolioIds?: string[] | string // JSON array from backend
+  excludedRentalAssetIds?: string[] | string // JSON array from backend
   clientId?: string // When set, plan managed by adviser on behalf of client
   isPrimary: boolean
   createdDate: string
@@ -81,6 +83,8 @@ export interface PlanRequest {
   investmentAllocationPercent?: number
   lifeEvents?: string
   manualAssets?: Record<string, number> | null
+  excludedPortfolioIds?: string[]
+  excludedRentalAssetIds?: string[]
   clientId?: string
 }
 
@@ -232,6 +236,8 @@ export interface ProjectionRequest {
   targetBalance?: number
   /** Override defined contribution amount. If non-null, used instead of auto-calculated. */
   definedContribution?: number
+  /** Portfolio IDs to exclude from wealth and rental income. Overrides plan.excludedPortfolioIds. */
+  excludedPortfolioIds?: string[]
 }
 
 /**
@@ -584,6 +590,8 @@ export interface WizardFormData {
 
   // Portfolio Integration
   selectedPortfolioIds: string[]
+  excludedPortfolioIds?: string[]
+  excludedRentalAssetIds?: string[]
 
   // Manual Asset Entry (for users without portfolios)
   manualAssets: ManualAssets
