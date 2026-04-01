@@ -26,6 +26,7 @@ export default function IncomeBreakdownTable({
       socialSecurity: false,
       otherIncome: false,
       rentalIncome: false,
+      lifeEvents: false,
     }
 
     for (const projection of projections) {
@@ -39,6 +40,8 @@ export default function IncomeBreakdownTable({
       if (breakdown.socialSecurity > 0) hasData.socialSecurity = true
       if (breakdown.otherIncome > 0) hasData.otherIncome = true
       if (breakdown.rentalIncome > 0) hasData.rentalIncome = true
+      if ((breakdown.lifeEventIncome ?? 0) > 0 || (breakdown.lifeEventExpense ?? 0) > 0)
+        hasData.lifeEvents = true
     }
 
     return hasData
@@ -54,6 +57,7 @@ export default function IncomeBreakdownTable({
     (columnVisibility.socialSecurity ? 1 : 0) +
     (columnVisibility.otherIncome ? 1 : 0) +
     (columnVisibility.rentalIncome ? 1 : 0) +
+    (columnVisibility.lifeEvents ? 1 : 0) +
     4 // Total Income, Expenses, Withdrawals, End Balance (always visible)
 
   const formatCurrency = (value: number): string => {
@@ -141,6 +145,11 @@ export default function IncomeBreakdownTable({
                   <span className="text-teal-600">Rental</span>
                 </th>
               )}
+              {columnVisibility.lifeEvents && (
+                <th className="text-right py-2 px-2 font-medium text-gray-600">
+                  <span className="text-amber-600">Life Events</span>
+                </th>
+              )}
               <th className="text-right py-2 px-2 font-medium text-gray-700 border-l border-gray-200">
                 Total Income
               </th>
@@ -174,13 +183,16 @@ export default function IncomeBreakdownTable({
               const isNegativeBalance = projection.endingBalance <= 0
               const hasPropertyLiquidation = projection.propertyLiquidated
               const hasLumpSum = (breakdown?.lumpSumPayout ?? 0) > 0
+              const hasLifeEvent =
+                (breakdown?.lifeEventIncome ?? 0) > 0 ||
+                (breakdown?.lifeEventExpense ?? 0) > 0
 
               return (
                 <tr
                   key={projection.year}
                   className={`border-b border-gray-100 hover:bg-gray-50 ${
                     isNegativeBalance ? "bg-red-50" : ""
-                  } ${hasPropertyLiquidation ? "bg-purple-50" : ""} ${hasLumpSum ? "bg-pink-50" : ""}`}
+                  } ${hasPropertyLiquidation ? "bg-purple-50" : ""} ${hasLumpSum ? "bg-pink-50" : ""} ${hasLifeEvent ? "bg-amber-50" : ""}`}
                 >
                   <td className="py-2 px-2 font-medium border-r border-gray-200">
                     {projection.age}
@@ -194,6 +206,12 @@ export default function IncomeBreakdownTable({
                       <i
                         className="fas fa-gift text-pink-500 ml-1"
                         title="Lump sum payout received"
+                      ></i>
+                    )}
+                    {hasLifeEvent && (
+                      <i
+                        className="fas fa-calendar-day text-amber-500 ml-1"
+                        title="Life event"
                       ></i>
                     )}
                   </td>
@@ -240,6 +258,17 @@ export default function IncomeBreakdownTable({
                       {breakdown ? formatCurrency(breakdown.rentalIncome) : "-"}
                     </td>
                   )}
+                  {columnVisibility.lifeEvents && (() => {
+                    const income = breakdown?.lifeEventIncome ?? 0
+                    const expense = breakdown?.lifeEventExpense ?? 0
+                    const net = income - expense
+                    if (net === 0) return <td className="text-right py-2 px-2 text-gray-400">-</td>
+                    return (
+                      <td className={`text-right py-2 px-2 font-medium ${net > 0 ? "text-green-600" : "text-red-600"}`}>
+                        {hideValues ? HIDDEN_VALUE : `${net > 0 ? "+" : "-"}$${Math.abs(Math.round(net)).toLocaleString()}`}
+                      </td>
+                    )
+                  })()}
                   <td className="text-right py-2 px-2 font-medium border-l border-gray-200">
                     {breakdown ? formatCurrency(breakdown.totalIncome) : "-"}
                   </td>
@@ -311,6 +340,12 @@ export default function IncomeBreakdownTable({
             <span>
               <span className="font-medium text-teal-600">Rental:</span>{" "}
               Property income
+            </span>
+          )}
+          {columnVisibility.lifeEvents && (
+            <span>
+              <span className="font-medium text-amber-600">Life Events:</span>{" "}
+              One-off income/expenses
             </span>
           )}
           <span>

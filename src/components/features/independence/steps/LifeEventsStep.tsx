@@ -1,15 +1,17 @@
 import React, { useState } from "react"
-import { Control, useWatch, useFieldArray } from "react-hook-form"
+import { Control, useWatch, useFieldArray, UseFormSetValue } from "react-hook-form"
 import { WizardFormData, LifeEvent } from "types/independence"
 import { StepHeader } from "../form"
 
 interface LifeEventsStepProps {
   control: Control<WizardFormData>
+  setValue: UseFormSetValue<WizardFormData>
   isEditMode?: boolean
 }
 
 export default function LifeEventsStep({
   control,
+  setValue,
   isEditMode,
 }: LifeEventsStepProps): React.ReactElement {
   const lifeEvents = useWatch({ control, name: "lifeEvents" }) || []
@@ -19,6 +21,7 @@ export default function LifeEventsStep({
     name: "lifeEvents",
   })
 
+  const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [newEvent, setNewEvent] = useState<Partial<LifeEvent>>({
     age: 70,
     amount: 0,
@@ -159,38 +162,134 @@ export default function LifeEventsStep({
             .map((field, index) => {
               const event = lifeEvents[index] as LifeEvent
               if (!event) return null
+              const isEditing = editingIndex === index
               return (
                 <div
                   key={field.id}
-                  className={`flex items-center justify-between p-3 rounded-lg ${
+                  className={`p-3 rounded-lg ${
                     event.eventType === "income"
                       ? "bg-green-50 border border-green-200"
                       : "bg-red-50 border border-red-200"
                   }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-gray-500 w-16">
-                      Age {event.age}
-                    </span>
-                    <span className="text-gray-900">{event.description}</span>
-                    <span
-                      className={`font-medium ${
-                        event.eventType === "income"
-                          ? "text-green-600"
-                          : "text-red-600"
-                      }`}
-                    >
-                      {event.eventType === "income" ? "+" : "-"}$
-                      {event.amount?.toLocaleString()}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => remove(index)}
-                    className="text-gray-400 hover:text-red-500 p-1"
-                  >
-                    <i className="fas fa-times"></i>
-                  </button>
+                  {isEditing ? (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">
+                            Age
+                          </label>
+                          <input
+                            type="number"
+                            value={event.age}
+                            onChange={(e) =>
+                              setValue(`lifeEvents.${index}.age`, parseInt(e.target.value) || 0)
+                            }
+                            min={18}
+                            max={120}
+                            className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-independence-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">
+                            Amount
+                          </label>
+                          <input
+                            type="number"
+                            value={event.amount}
+                            onChange={(e) =>
+                              setValue(`lifeEvents.${index}.amount`, parseFloat(e.target.value) || 0)
+                            }
+                            min={0}
+                            className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-independence-500"
+                          />
+                        </div>
+                      </div>
+                      <input
+                        type="text"
+                        value={event.description}
+                        onChange={(e) =>
+                          setValue(`lifeEvents.${index}.description`, e.target.value)
+                        }
+                        className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-independence-500"
+                      />
+                      <div className="flex items-center justify-between">
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setValue(`lifeEvents.${index}.eventType`, "income")}
+                            className={`px-3 py-1 rounded text-xs font-medium ${
+                              event.eventType === "income"
+                                ? "bg-green-500 text-white"
+                                : "bg-gray-200 text-gray-700"
+                            }`}
+                          >
+                            Income
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setValue(`lifeEvents.${index}.eventType`, "expense")}
+                            className={`px-3 py-1 rounded text-xs font-medium ${
+                              event.eventType === "expense"
+                                ? "bg-red-500 text-white"
+                                : "bg-gray-200 text-gray-700"
+                            }`}
+                          >
+                            Expense
+                          </button>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setEditingIndex(null)}
+                          className="px-3 py-1 text-xs font-medium text-independence-600 hover:text-independence-800"
+                        >
+                          Done
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <div
+                        className="flex items-center gap-3 cursor-pointer flex-1"
+                        onClick={() => setEditingIndex(index)}
+                      >
+                        <span className="text-sm font-medium text-gray-500 w-16">
+                          Age {event.age}
+                        </span>
+                        <span className="text-gray-900">
+                          {event.description}
+                        </span>
+                        <span
+                          className={`font-medium ${
+                            event.eventType === "income"
+                              ? "text-green-600"
+                              : "text-red-600"
+                          }`}
+                        >
+                          {event.eventType === "income" ? "+" : "-"}$
+                          {event.amount?.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setEditingIndex(index)}
+                          className="text-gray-400 hover:text-independence-500 p-1"
+                          title="Edit"
+                        >
+                          <i className="fas fa-pen text-xs"></i>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => remove(index)}
+                          className="text-gray-400 hover:text-red-500 p-1"
+                          title="Delete"
+                        >
+                          <i className="fas fa-times"></i>
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )
             })}

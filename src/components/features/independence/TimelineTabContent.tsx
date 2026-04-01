@@ -59,6 +59,35 @@ export default function TimelineTabContent({
   // FI achievement age from backend calculation
   const fiAchievementAge = projection?.fiAchievementAge ?? null
 
+  // Detect life events from projection data (years with non-zero lifeEventAmount)
+  const lifeEventAges = useMemo(() => {
+    if (!projection) return []
+    const events: { age: number; amount: number; type: "income" | "expense" }[] =
+      []
+    for (const y of projection.accumulationProjections || []) {
+      // lifeEventAmount may be present in the JSON but not typed on YearlyAccumulation
+      const amt = (y as unknown as { lifeEventAmount?: number })
+        .lifeEventAmount
+      if (amt && amt !== 0 && y.age != null) {
+        events.push({
+          age: y.age,
+          amount: amt,
+          type: amt > 0 ? "income" : "expense",
+        })
+      }
+    }
+    for (const y of projection.yearlyProjections) {
+      if (y.lifeEventAmount && y.lifeEventAmount !== 0 && y.age != null) {
+        events.push({
+          age: y.age!,
+          amount: y.lifeEventAmount,
+          type: y.lifeEventAmount > 0 ? "income" : "expense",
+        })
+      }
+    }
+    return events
+  }, [projection])
+
   // Determine if what-if changes are active
   const hasActiveWhatIf =
     hasScenarioChanges(combinedAdjustments) || baselineProjection !== null
@@ -317,6 +346,23 @@ export default function TimelineTabContent({
                   }}
                 />
               )}
+              {/* Life event markers */}
+              {lifeEventAges.map((event) => (
+                <ReferenceLine
+                  key={`life-event-${event.age}`}
+                  x={event.age}
+                  stroke={event.type === "expense" ? "#ef4444" : "#22c55e"}
+                  strokeDasharray="3 3"
+                  strokeWidth={1.5}
+                  label={{
+                    value: `${event.type === "expense" ? "-" : "+"}$${Math.abs(Math.round(event.amount / 1000))}k`,
+                    position: "insideTopRight",
+                    fill:
+                      event.type === "expense" ? "#ef4444" : "#22c55e",
+                    fontSize: 10,
+                  }}
+                />
+              ))}
               {/* Total Wealth line - show in traditional view when non-spendable assets exist */}
               {timelineViewMode === "traditional" &&
                 projection.nonSpendableAtRetirement > 0 && (
@@ -395,6 +441,10 @@ export default function TimelineTabContent({
             <ComposedChart
               data={projection.yearlyProjections.map((y) => ({
                 ...y,
+                // Life event expenses are already in withdrawals (backend includes them)
+                // Life event income needs to be added to the positive bar
+                investmentAndIncome:
+                  y.investment + (y.incomeBreakdown?.lifeEventIncome ?? 0),
                 negWithdrawals: -y.withdrawals,
               }))}
               margin={{ top: 10, right: 30, left: 20, bottom: 20 }}
@@ -418,16 +468,14 @@ export default function TimelineTabContent({
               <ChartTooltip
                 formatter={(value, name) => {
                   if (hideValues) {
-                    if (name === "negWithdrawals") {
-                      return [HIDDEN_VALUE, "Withdrawals"]
-                    }
-                    return [HIDDEN_VALUE, "Investment Returns"]
+                    if (name === "negWithdrawals") return [HIDDEN_VALUE, "Withdrawals"]
+                    return [HIDDEN_VALUE, "Returns & Income"]
                   }
                   const absVal = Math.abs(Number(value || 0))
                   if (name === "negWithdrawals") {
                     return [`-$${absVal.toLocaleString()}`, "Withdrawals"]
                   }
-                  return [`+$${absVal.toLocaleString()}`, "Investment Returns"]
+                  return [`+$${absVal.toLocaleString()}`, "Returns & Income"]
                 }}
                 labelFormatter={(label) => `Age ${label}`}
               />
@@ -437,14 +485,14 @@ export default function TimelineTabContent({
                 formatter={(value) =>
                   value === "negWithdrawals"
                     ? "Withdrawals"
-                    : "Investment Returns"
+                    : "Returns & Income"
                 }
               />
               <ReferenceLine y={0} stroke="#9ca3af" />
               <Bar
-                dataKey="investment"
+                dataKey="investmentAndIncome"
                 fill="#22c55e"
-                name="Investment Returns"
+                name="investmentAndIncome"
               />
               <Bar
                 dataKey="negWithdrawals"

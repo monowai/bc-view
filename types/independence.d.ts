@@ -316,6 +316,10 @@ export interface IncomeBreakdown {
   otherIncome: number
   /** Property rental income (stops if liquidated) */
   rentalIncome: number
+  /** One-off life event income at this age */
+  lifeEventIncome?: number
+  /** One-off life event expense at this age */
+  lifeEventExpense?: number
   /** Total income from all sources */
   totalIncome: number
 }
@@ -335,6 +339,8 @@ export interface YearlyProjection {
   totalWealth: number
   /** True if property was liquidated this year (when liquid assets fell below 10%) */
   propertyLiquidated?: boolean
+  /** Net life event amount (income - expense) for this year */
+  lifeEventAmount?: number
   /** Breakdown of income sources for this year */
   incomeBreakdown?: IncomeBreakdown
 }
