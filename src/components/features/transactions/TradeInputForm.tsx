@@ -631,7 +631,7 @@ const TradeInputForm: React.FC<{
               onDelete={editMode?.onDelete}
               handleCopy={handleCopy}
               copyStatus={copyStatus}
-              control={control}
+              control={control as any}
             />
 
             {/* Tab Bar */}
@@ -746,7 +746,7 @@ const TradeInputForm: React.FC<{
                       <label className={labelClass}>{"Type"}</label>
                       <TradeTypeController
                         name="type"
-                        control={control}
+                        control={control as any}
                         options={TradeTypeValues.map((value) => ({
                           value,
                           label: value,
@@ -757,7 +757,7 @@ const TradeInputForm: React.FC<{
                       <label className={labelClass}>{"Trade Date"}</label>
                       <Controller
                         name="tradeDate"
-                        control={control}
+                        control={control as any}
                         render={({ field }) => (
                           <DateInput
                             ref={dateInputRef}
@@ -798,7 +798,7 @@ const TradeInputForm: React.FC<{
                         <label className={labelClass}>{"Market"}</label>
                         <Controller
                           name="market"
-                          control={control}
+                          control={control as any}
                           render={({ field }) => (
                             <select {...field} className={inputClass}>
                               {marketOptions.map(
@@ -822,7 +822,7 @@ const TradeInputForm: React.FC<{
                         <AssetSearch
                           name="asset"
                           inputId="asset-search"
-                          control={control}
+                          control={control as any}
                           market={watch("market")}
                           defaultValue={initialValues?.asset}
                           onSelect={handleAssetSelect}
@@ -864,7 +864,7 @@ const TradeInputForm: React.FC<{
                       </label>
                       <Controller
                         name="tradeAmount"
-                        control={control}
+                        control={control as any}
                         render={({ field }) => (
                           <MathInput
                             value={field.value}
@@ -892,7 +892,7 @@ const TradeInputForm: React.FC<{
                       <label className={labelClass}>{"Fees"}</label>
                       <Controller
                         name="fees"
-                        control={control}
+                        control={control as any}
                         render={({ field }) => (
                           <MathInput
                             value={field.value}
@@ -918,7 +918,7 @@ const TradeInputForm: React.FC<{
                           </label>
                           <Controller
                             name="quantity"
-                            control={control}
+                            control={control as any}
                             render={({ field }) => (
                               <MathInput
                                 value={field.value}
@@ -932,7 +932,7 @@ const TradeInputForm: React.FC<{
                           <label className={labelClass}>{"Price"}</label>
                           <Controller
                             name="price"
-                            control={control}
+                            control={control as any}
                             render={({ field }) => (
                               <MathInput
                                 value={field.value}
@@ -947,7 +947,7 @@ const TradeInputForm: React.FC<{
                           <label className={labelClass}>{"Fees"}</label>
                           <Controller
                             name="fees"
-                            control={control}
+                            control={control as any}
                             render={({ field }) => (
                               <MathInput
                                 value={field.value}
@@ -976,7 +976,7 @@ const TradeInputForm: React.FC<{
                       </div>
                       <Controller
                         name="brokerId"
-                        control={control}
+                        control={control as any}
                         render={({ field }) => (
                           <select
                             className={inputClass}
@@ -1008,7 +1008,7 @@ const TradeInputForm: React.FC<{
                       </label>
                       <Controller
                         name="comment"
-                        control={control}
+                        control={control as any}
                         render={({ field }) => (
                           <input
                             {...field}
@@ -1097,7 +1097,7 @@ const TradeInputForm: React.FC<{
                     <label className={labelClass}>{"Fees"}</label>
                     <Controller
                       name="fees"
-                      control={control}
+                      control={control as any}
                       render={({ field }) => (
                         <MathInput
                           value={field.value}
@@ -1124,7 +1124,7 @@ const TradeInputForm: React.FC<{
                     </label>
                     <SettlementAccountSelect
                       name="settlementAccount"
-                      control={control}
+                      control={control as any}
                       accounts={
                         isIncome || isExpense ? [] : (allTradeAccounts as any[])
                       }
@@ -1146,7 +1146,7 @@ const TradeInputForm: React.FC<{
                       <label className={labelClass}>{"Fees"}</label>
                       <Controller
                         name="fees"
-                        control={control}
+                        control={control as any}
                         render={({ field }) => (
                           <MathInput
                             value={field.value}
@@ -1163,7 +1163,7 @@ const TradeInputForm: React.FC<{
                     <label className={labelClass}>{"Tax"}</label>
                     <Controller
                       name="tax"
-                      control={control}
+                      control={control as any}
                       render={({ field }) => (
                         <MathInput
                           value={field.value}
@@ -1210,7 +1210,7 @@ const TradeInputForm: React.FC<{
                       <label className={labelClass}>{"Comments"}</label>
                       <Controller
                         name="comment"
-                        control={control}
+                        control={control as any}
                         render={({ field }) => (
                           <input
                             {...field}
