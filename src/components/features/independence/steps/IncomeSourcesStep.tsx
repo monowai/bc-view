@@ -1,5 +1,5 @@
 import React from "react"
-import { Control, FieldErrors, useWatch } from "react-hook-form"
+import { Control, Controller, FieldErrors, useWatch } from "react-hook-form"
 import { WizardFormData } from "types/independence"
 import { StepHeader, CurrencyInputWithPeriod, SummaryBox } from "../form"
 import { usePrivateAssetConfigs } from "@utils/assets/usePrivateAssetConfigs"
@@ -137,13 +137,46 @@ export default function IncomeSourcesStep({
           </div>
         )}
 
-        <CurrencyInputWithPeriod
-          name="socialSecurityMonthly"
-          label="Government Benefits (Social Security)"
-          helperText="Expected government benefits (e.g., Social Security, state pension)."
-          control={control}
-          errors={errors}
-        />
+        <div className="flex gap-4">
+          <div className="flex-1">
+            <CurrencyInputWithPeriod
+              name="socialSecurityMonthly"
+              label="Government Benefits (Social Security)"
+              helperText="Expected government benefits (e.g., Social Security, state pension)."
+              control={control}
+              errors={errors}
+            />
+          </div>
+          <div className="w-32">
+            <Controller
+              name="benefitsStartAge"
+              control={control}
+              render={({ field }) => (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Starting Age
+                  </label>
+                  <input
+                    type="number"
+                    value={field.value || ""}
+                    onChange={(e) =>
+                      field.onChange(
+                        e.target.value ? parseInt(e.target.value) : undefined,
+                      )
+                    }
+                    placeholder="e.g. 65"
+                    min={50}
+                    max={100}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-independence-500"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Age benefits begin
+                  </p>
+                </div>
+              )}
+            />
+          </div>
+        </div>
 
         <CurrencyInputWithPeriod
           name="otherIncomeMonthly"

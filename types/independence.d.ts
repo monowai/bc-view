@@ -29,6 +29,7 @@ export interface RetirementPlan {
   housingAllocation: number
   pensionMonthly: number
   socialSecurityMonthly: number
+  benefitsStartAge?: number
   otherIncomeMonthly: number
   workingIncomeMonthly: number
   workingExpensesMonthly: number
@@ -75,6 +76,7 @@ export interface PlanRequest {
   housingAllocation?: number
   pensionMonthly?: number
   socialSecurityMonthly?: number
+  benefitsStartAge?: number
   otherIncomeMonthly?: number
   workingIncomeMonthly?: number
   workingExpensesMonthly?: number
@@ -577,6 +579,7 @@ export interface WizardFormData {
   // Step 3: Income Sources (retirement income)
   pensionMonthly: number
   socialSecurityMonthly: number
+  benefitsStartAge?: number
   otherIncomeMonthly: number
 
   // Step 4: Expenses
@@ -637,6 +640,7 @@ export interface PlanExport {
   housingAllocation: number
   pensionMonthly: number
   socialSecurityMonthly: number
+  benefitsStartAge?: number
   otherIncomeMonthly: number
   workingIncomeMonthly: number
   workingExpensesMonthly: number

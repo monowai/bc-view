@@ -617,6 +617,8 @@ function PlanView(): React.ReactElement {
         pensionMonthly: scenarioOverrides.pensionMonthly ?? plan.pensionMonthly,
         socialSecurityMonthly:
           scenarioOverrides.socialSecurityMonthly ?? plan.socialSecurityMonthly,
+        benefitsStartAge:
+          scenarioOverrides.benefitsStartAge ?? plan.benefitsStartAge,
         otherIncomeMonthly:
           scenarioOverrides.otherIncomeMonthly ?? plan.otherIncomeMonthly,
         inflationRate: scenarioOverrides.inflationRate ?? plan.inflationRate,

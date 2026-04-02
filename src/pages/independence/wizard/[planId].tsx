@@ -173,6 +173,7 @@ function EditPlanWizard(): React.ReactElement {
     ),
     pensionMonthly: plan.pensionMonthly || 0,
     socialSecurityMonthly: plan.socialSecurityMonthly || 0,
+    benefitsStartAge: plan.benefitsStartAge,
     otherIncomeMonthly: plan.otherIncomeMonthly || 0,
     // Retirement expenses
     expenses: expenses.map((e) => ({

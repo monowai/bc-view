@@ -67,6 +67,7 @@ describe("EditPlanDetailsModal", () => {
     expect(
       screen.getByText("Government Benefits (Monthly)"),
     ).toBeInTheDocument()
+    expect(screen.getByText("Start Age")).toBeInTheDocument()
     expect(screen.getByText("Other Income (Monthly)")).toBeInTheDocument()
     expect(screen.getByText("Monthly Expenses")).toBeInTheDocument()
     expect(screen.getByText("Return Rates")).toBeInTheDocument()
@@ -83,26 +84,28 @@ describe("EditPlanDetailsModal", () => {
     expect(inputs[0]).toHaveValue(1000)
     // Government Benefits
     expect(inputs[1]).toHaveValue(500)
+    // Benefits Start Age (empty by default)
+    expect(inputs[2]).toHaveValue(null)
     // Other Income
-    expect(inputs[2]).toHaveValue(200)
+    expect(inputs[3]).toHaveValue(200)
     // Monthly Expenses
-    expect(inputs[3]).toHaveValue(5000)
+    expect(inputs[4]).toHaveValue(5000)
     // Equity Return Rate (converted to %) - use closeTo for floating point
-    expect(parseFloat(inputs[4].value)).toBeCloseTo(7, 1)
+    expect(parseFloat(inputs[5].value)).toBeCloseTo(7, 1)
     // Cash Return Rate (converted to %)
-    expect(parseFloat(inputs[5].value)).toBeCloseTo(3, 1)
+    expect(parseFloat(inputs[6].value)).toBeCloseTo(3, 1)
     // Housing Return Rate (converted to %)
-    expect(parseFloat(inputs[6].value)).toBeCloseTo(4, 1)
+    expect(parseFloat(inputs[7].value)).toBeCloseTo(4, 1)
     // Equity Allocation (converted to %)
-    expect(parseFloat(inputs[7].value)).toBeCloseTo(50, 1)
+    expect(parseFloat(inputs[8].value)).toBeCloseTo(50, 1)
     // Cash Allocation (converted to %)
-    expect(parseFloat(inputs[8].value)).toBeCloseTo(30, 1)
+    expect(parseFloat(inputs[9].value)).toBeCloseTo(30, 1)
     // Housing Allocation (converted to %)
-    expect(parseFloat(inputs[9].value)).toBeCloseTo(20, 1)
+    expect(parseFloat(inputs[10].value)).toBeCloseTo(20, 1)
     // Inflation Rate (converted to %)
-    expect(parseFloat(inputs[10].value)).toBeCloseTo(2.5, 1)
+    expect(parseFloat(inputs[11].value)).toBeCloseTo(2.5, 1)
     // Target Balance
-    expect(inputs[11]).toHaveValue(100000)
+    expect(inputs[12]).toHaveValue(100000)
   })
 
   it("displays net monthly need calculation", () => {
@@ -146,6 +149,7 @@ describe("EditPlanDetailsModal", () => {
     expect(defaultProps.onApply).toHaveBeenCalledWith({
       pensionMonthly: 1500,
       socialSecurityMonthly: 500,
+      benefitsStartAge: undefined,
       otherIncomeMonthly: 200,
       monthlyExpenses: 5000,
       equityReturnRate: 0.07, // Converted back to decimal
@@ -164,8 +168,8 @@ describe("EditPlanDetailsModal", () => {
   it("converts inflation rate from percentage to decimal on apply", () => {
     render(<EditPlanDetailsModal {...defaultProps} />)
 
-    // Change inflation rate (index 10 now - after 3 allocation fields)
-    const inflationInput = screen.getAllByRole("spinbutton")[10]
+    // Change inflation rate (index 11 now - after benefits start age + 3 allocation fields)
+    const inflationInput = screen.getAllByRole("spinbutton")[11]
     fireEvent.change(inflationInput, { target: { value: "3.5" } })
 
     const applyButton = screen.getByText("Apply")
@@ -181,8 +185,8 @@ describe("EditPlanDetailsModal", () => {
   it("sets targetBalance to undefined when empty", () => {
     render(<EditPlanDetailsModal {...defaultProps} />)
 
-    // Clear target balance (index 11 now - after 3 allocation fields)
-    const targetInput = screen.getAllByRole("spinbutton")[11]
+    // Clear target balance (index 12 now - after benefits start age + 3 allocation fields)
+    const targetInput = screen.getAllByRole("spinbutton")[12]
     fireEvent.change(targetInput, { target: { value: "" } })
 
     const applyButton = screen.getByText("Apply")
