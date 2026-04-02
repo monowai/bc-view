@@ -89,16 +89,15 @@ export default function WorkingExpensesStep({
   }, [systemCategories, setValue, getValues])
 
   // Update workingExpensesMonthly whenever workingExpenses changes
-  // BUT only if user has made changes OR the computed total is greater than 0
-  // This preserves the stored plan value when editing an existing plan
+  const prevTotalRef = useRef<number | null>(null)
   useEffect(() => {
     const total = workingExpenses.reduce(
       (sum, expense) => sum + (expense?.monthlyAmount || 0),
       0,
     )
-    // Only update if user has made changes or the total is non-zero
-    // This prevents overwriting stored workingExpensesMonthly when loading with empty expenses
-    if (hasUserChanges.current || total > 0) {
+    // Only call setValue when the total actually changes to avoid infinite loop
+    if (total !== prevTotalRef.current && (hasUserChanges.current || total > 0)) {
+      prevTotalRef.current = total
       setValue("workingExpensesMonthly", total)
     }
   }, [workingExpenses, setValue])

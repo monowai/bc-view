@@ -206,6 +206,7 @@ export default function WizardContainer({
         housingAllocation: toDecimal(formData.housingAllocation),
         pensionMonthly: formData.pensionMonthly,
         socialSecurityMonthly: formData.socialSecurityMonthly,
+        benefitsStartAge: formData.benefitsStartAge,
         otherIncomeMonthly: formData.otherIncomeMonthly,
         workingIncomeMonthly: formData.workingIncomeMonthly,
         workingExpensesMonthly: formData.workingExpensesMonthly,
@@ -353,13 +354,17 @@ export default function WizardContainer({
         }
       }
 
+      // Mark cached plan data as stale so other pages refetch on next access
+      // Using mutate without data arg triggers background revalidation without clearing existing data
+      await Promise.all([
+        mutate(`/api/independence/plans/${savedPlanId}`),
+        mutate(`/api/independence/plans/${savedPlanId}/details`),
+        mutate("/api/independence/plans"),
+      ])
+
       if (isEditMode) {
-        // Stay on the wizard page - no cache invalidation needed since we just saved
         setIsSubmitting(false)
       } else {
-        // Invalidate cache and navigate to the plan view for new plans
-        await mutate(`/api/independence/plans/${savedPlanId}`)
-        await mutate(`/api/independence/plans/${savedPlanId}/details`)
         router.push(`/independence/plans/${savedPlanId}`)
       }
     } catch (err: unknown) {

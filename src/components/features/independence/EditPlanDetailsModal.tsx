@@ -17,6 +17,7 @@ const HIDDEN_VALUE = "****"
 interface EditFormData {
   pensionMonthly: number
   socialSecurityMonthly: number
+  benefitsStartAge: number | undefined
   otherIncomeMonthly: number
   monthlyExpenses: number
   equityReturnRate: number
@@ -102,6 +103,7 @@ export default function EditPlanDetailsModal({
   const [formData, setFormData] = useState<EditFormData>({
     pensionMonthly: 0,
     socialSecurityMonthly: 0,
+    benefitsStartAge: undefined,
     otherIncomeMonthly: 0,
     monthlyExpenses: 0,
     equityReturnRate: 0,
@@ -141,6 +143,7 @@ export default function EditPlanDetailsModal({
       setFormData({
         pensionMonthly: plan.pensionMonthly,
         socialSecurityMonthly: plan.socialSecurityMonthly,
+        benefitsStartAge: plan.benefitsStartAge,
         otherIncomeMonthly: plan.otherIncomeMonthly ?? 0,
         monthlyExpenses: plan.monthlyExpenses,
         equityReturnRate: plan.equityReturnRate * 100,
@@ -167,6 +170,7 @@ export default function EditPlanDetailsModal({
     onApply({
       pensionMonthly: formData.pensionMonthly,
       socialSecurityMonthly: formData.socialSecurityMonthly,
+      benefitsStartAge: formData.benefitsStartAge,
       otherIncomeMonthly: formData.otherIncomeMonthly,
       monthlyExpenses: formData.monthlyExpenses,
       equityReturnRate: formData.equityReturnRate / 100,
@@ -212,20 +216,43 @@ export default function EditPlanDetailsModal({
           </div>
 
           {/* Government Benefits */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Government Benefits (Monthly)
-            </label>
-            <PrivacyMoneyInput
-              value={formData.socialSecurityMonthly}
-              onChange={(value) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  socialSecurityMonthly: value,
-                }))
-              }
-              hideValues={hideValues}
-            />
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Government Benefits (Monthly)
+              </label>
+              <PrivacyMoneyInput
+                value={formData.socialSecurityMonthly}
+                onChange={(value) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    socialSecurityMonthly: value,
+                  }))
+                }
+                hideValues={hideValues}
+              />
+            </div>
+            <div className="w-24">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Start Age
+              </label>
+              <input
+                type="number"
+                value={formData.benefitsStartAge ?? ""}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    benefitsStartAge: e.target.value
+                      ? parseInt(e.target.value)
+                      : undefined,
+                  }))
+                }
+                placeholder="e.g. 65"
+                min={50}
+                max={100}
+                className="w-full px-2 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
+              />
+            </div>
           </div>
 
           {/* Other Income */}

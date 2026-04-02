@@ -21,6 +21,7 @@ export interface ScenarioOverrides {
   // Income sources (retirement)
   pensionMonthly?: number
   socialSecurityMonthly?: number
+  benefitsStartAge?: number
   otherIncomeMonthly?: number
   // Working income (affects monthly investment)
   workingIncomeMonthly?: number

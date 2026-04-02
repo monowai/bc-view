@@ -192,6 +192,7 @@ export const defaultWizardValues = {
   // Retirement income sources
   pensionMonthly: 0,
   socialSecurityMonthly: 0,
+  benefitsStartAge: undefined,
   otherIncomeMonthly: 0,
   expenses: [],
   expensesCurrency: "NZD",
