@@ -252,15 +252,16 @@ export default function DetailsTabContent({
                   : `${detailsCurrency}${Math.round(projection.sustainableMonthlyExpense).toLocaleString()}`}
               </div>
             </div>
-            {projection.sustainableTargetBalance != null && (
-              <div className="text-sm text-gray-500">
-                Targeting{" "}
-                {hideValues
-                  ? HIDDEN_VALUE
-                  : `${detailsCurrency}${Math.round(projection.sustainableTargetBalance).toLocaleString()}`}{" "}
-                ending balance
-              </div>
-            )}
+            {projection.sustainableTargetBalance != null &&
+              projection.sustainableTargetBalance > 0 && (
+                <div className="text-sm text-gray-500">
+                  Targeting{" "}
+                  {hideValues
+                    ? HIDDEN_VALUE
+                    : `${detailsCurrency}${Math.round(projection.sustainableTargetBalance).toLocaleString()}`}{" "}
+                  ending balance
+                </div>
+              )}
             <div className="text-xs text-amber-600 bg-amber-50 rounded px-2 py-1">
               Assumes steady returns with no market volatility. Use Stress Test
               for a range of outcomes.
