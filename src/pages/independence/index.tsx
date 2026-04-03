@@ -144,48 +144,56 @@ function PlanCard({
 
       {/* FI Number and Progress */}
       <div className="bg-gradient-to-r from-independence-50 to-independence-100 rounded-lg p-3 mb-4 border border-independence-100">
-        <div className="flex justify-between items-center">
-          <span className="text-sm text-gray-600">
-            <i className="fas fa-bullseye text-independence-500 mr-1"></i>
-            FI Number
-          </span>
-          <span
-            className={`font-bold ${hideValues ? "text-gray-400" : "text-independence-600"}`}
-          >
-            {hideValues
-              ? HIDDEN_VALUE
-              : `${currency}${Math.round(fiNumber).toLocaleString()}`}
-          </span>
-        </div>
-
-        {/* FI Progress Bar */}
         {fiLoading ? (
-          <div className="mt-2 flex items-center text-xs text-gray-400">
-            <Spinner label="Calculating progress..." />
+          <div className="flex items-center text-xs text-gray-400">
+            <Spinner label="Calculating..." />
           </div>
         ) : projection?.fiMetrics ? (
-          <div className="mt-2">
-            <div className="flex justify-between items-center mb-1">
-              <span className="text-xs text-gray-500">FI Progress</span>
+          <>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">
+                <i className="fas fa-bullseye text-independence-500 mr-1"></i>
+                FI Number
+              </span>
               <span
-                className={`text-xs font-medium ${hideValues ? "text-gray-400" : getProgressColor(fiProgress)}`}
+                className={`font-bold ${hideValues ? "text-gray-400" : "text-independence-600"}`}
               >
-                {hideValues ? HIDDEN_VALUE : `${fiProgress.toFixed(1)}%`}
+                {hideValues
+                  ? HIDDEN_VALUE
+                  : `${currency}${Math.round(fiNumber).toLocaleString()}`}
               </span>
             </div>
-            <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-              <div
-                className={`h-full ${getProgressBgColor(fiProgress)} transition-all duration-500`}
-                style={{
-                  width: hideValues ? "0%" : `${Math.min(fiProgress, 100)}%`,
-                }}
-              />
+            <div className="mt-2">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-xs text-gray-500">FI Progress</span>
+                <span
+                  className={`text-xs font-medium ${hideValues ? "text-gray-400" : getProgressColor(fiProgress)}`}
+                >
+                  {hideValues ? HIDDEN_VALUE : `${fiProgress.toFixed(1)}%`}
+                </span>
+              </div>
+              <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className={`h-full ${getProgressBgColor(fiProgress)} transition-all duration-500`}
+                  style={{
+                    width: hideValues
+                      ? "0%"
+                      : `${Math.min(fiProgress, 100)}%`,
+                  }}
+                />
+              </div>
             </div>
-          </div>
+          </>
         ) : (
-          <p className="text-xs text-gray-500 mt-1">
-            25× annual expenses (4% SWR)
-          </p>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-600">
+              <i className="fas fa-bullseye text-independence-500 mr-1"></i>
+              FI Number
+            </span>
+            <span className="text-xs text-gray-500">
+              25× annual expenses (4% SWR)
+            </span>
+          </div>
         )}
       </div>
 
