@@ -359,6 +359,8 @@ export default function WizardContainer({
       await Promise.all([
         mutate(`/api/independence/plans/${savedPlanId}`),
         mutate(`/api/independence/plans/${savedPlanId}/details`),
+        mutate(`/api/independence/plans/${savedPlanId}/expenses?phase=WORKING`),
+        mutate(`/api/independence/plans/${savedPlanId}/contributions`),
         mutate("/api/independence/plans"),
       ])
 
