@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React from "react"
 import type {
   RetirementPlan,
   UserIndependenceSettings,
@@ -7,7 +7,6 @@ import type {
 import { useCompositeProjection } from "@hooks/useCompositeProjection"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import PhaseConfigList from "./PhaseConfigList"
-import IndependenceSettingsModal from "./IndependenceSettingsModal"
 import Spinner from "@components/ui/Spinner"
 import Alert from "@components/ui/Alert"
 
@@ -32,7 +31,6 @@ export default function CompositeTab({
   settings,
 }: CompositeTabProps): React.ReactElement {
   const { hideValues } = usePrivacyMode()
-  const [showSettings, setShowSettings] = useState(false)
   const {
     phases,
     setPhases,
@@ -83,14 +81,6 @@ export default function CompositeTab({
               ))}
             </select>
           </div>
-
-          <button
-            onClick={() => setShowSettings(true)}
-            className="text-sm text-independence-600 hover:text-independence-800 font-medium"
-          >
-            <i className="fas fa-cog mr-1"></i>
-            Settings
-          </button>
 
           {sustainabilityText && (
             <span
@@ -270,12 +260,6 @@ export default function CompositeTab({
         </div>
       )}
 
-      {showSettings && (
-        <IndependenceSettingsModal
-          isOpen={showSettings}
-          onClose={() => setShowSettings(false)}
-        />
-      )}
     </div>
   )
 }

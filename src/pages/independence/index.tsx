@@ -15,6 +15,7 @@ import {
   AssetBreakdown,
 } from "@components/features/independence"
 import CompositeTab from "@components/features/independence/CompositeTab"
+import IndependenceSettingsPanel from "@components/features/independence/IndependenceSettingsPanel"
 import ResourceShareInviteDialog from "@components/features/shares/ResourceShareInviteDialog"
 import Alert from "@components/ui/Alert"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
@@ -262,7 +263,9 @@ function RetirementPlanning(): React.ReactElement {
   const { hideValues } = usePrivacyMode()
   const { settings } = useIndependenceSettings()
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [activeView, setActiveView] = useState<"plans" | "composite">("plans")
+  const [activeView, setActiveView] = useState<
+    "settings" | "plans" | "composite"
+  >("plans")
   const [isImporting, setIsImporting] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
   const [showShareDialog, setShowShareDialog] = useState(false)
@@ -552,19 +555,30 @@ function RetirementPlanning(): React.ReactElement {
           )}
 
           {/* Tab Switcher */}
-          {plans.length > 1 && (
-            <div className="flex gap-1 mb-6 bg-gray-100 rounded-lg p-1 w-fit">
-              <button
-                onClick={() => setActiveView("plans")}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  activeView === "plans"
-                    ? "bg-white text-independence-700 shadow-sm"
-                    : "text-gray-600 hover:text-gray-800"
-                }`}
-              >
-                <i className="fas fa-th-large mr-2"></i>
-                Plans
-              </button>
+          <div className="flex gap-1 mb-6 bg-gray-100 rounded-lg p-1 w-fit">
+            <button
+              onClick={() => setActiveView("settings")}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                activeView === "settings"
+                  ? "bg-white text-independence-700 shadow-sm"
+                  : "text-gray-600 hover:text-gray-800"
+              }`}
+            >
+              <i className="fas fa-cog mr-2"></i>
+              Settings
+            </button>
+            <button
+              onClick={() => setActiveView("plans")}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                activeView === "plans"
+                  ? "bg-white text-independence-700 shadow-sm"
+                  : "text-gray-600 hover:text-gray-800"
+              }`}
+            >
+              <i className="fas fa-th-large mr-2"></i>
+              Plans
+            </button>
+            {plans.length > 1 && (
               <button
                 onClick={() => setActiveView("composite")}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -576,8 +590,8 @@ function RetirementPlanning(): React.ReactElement {
                 <i className="fas fa-layer-group mr-2"></i>
                 Composite
               </button>
-            </div>
-          )}
+            )}
+          </div>
 
           {isLoading && (
             <div className="text-center py-12">
@@ -608,6 +622,8 @@ function RetirementPlanning(): React.ReactElement {
               </Link>
             </div>
           )}
+
+          {activeView === "settings" && <IndependenceSettingsPanel />}
 
           {!isLoading && plans.length > 0 && activeView === "plans" && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -79,12 +79,6 @@ describe("CompositeTab", () => {
     expect(screen.getByLabelText("Display Currency")).toBeInTheDocument()
   })
 
-  it("renders settings button", () => {
-    render(<CompositeTab plans={plans} settings={settings} />)
-
-    expect(screen.getByText("Settings")).toBeInTheDocument()
-  })
-
   it("renders phase configuration", () => {
     render(<CompositeTab plans={plans} settings={settings} />)
 
