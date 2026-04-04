@@ -7,10 +7,12 @@ import type {
   CompositeProjectionResult,
   CompositeScenarioComparison,
 } from "types/independence"
+import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
 
 const COMPOSITE_PROJECTION_URL = "/api/independence/composite/projection"
 const COMPOSITE_SCENARIOS_URL = "/api/independence/composite/scenarios"
 const DEBOUNCE_MS = 500
+const SAVE_DEBOUNCE_MS = 1000
 
 export interface UseCompositeProjectionResult {
   phases: CompositePhase[]
@@ -56,6 +58,28 @@ export function buildInitialPhases(
   })
 }
 
+function parseSavedPhases(json: string | undefined): CompositePhase[] | null {
+  if (!json) return null
+  try {
+    const parsed = JSON.parse(json)
+    if (Array.isArray(parsed) && parsed.length > 0) return parsed
+  } catch {
+    // Invalid JSON
+  }
+  return null
+}
+
+function parseSavedExclusions(json: string | undefined): Set<string> | null {
+  if (!json) return null
+  try {
+    const parsed = JSON.parse(json)
+    if (Array.isArray(parsed)) return new Set(parsed)
+  } catch {
+    // Invalid JSON
+  }
+  return null
+}
+
 export function useCompositeProjection(
   plans: RetirementPlan[],
   settings: UserIndependenceSettings | undefined,
@@ -67,9 +91,12 @@ export function useCompositeProjection(
   const currentAge = yearOfBirth ? currentYear - yearOfBirth : 60
   const lifeExpectancy = settings?.lifeExpectancy ?? 90
 
+  const { updateSettings } = useIndependenceSettings()
+
   const [excludedPlanIds, setExcludedPlanIds] = useState<Set<string>>(new Set())
   const [phases, setPhases] = useState<CompositePhase[]>([])
   const [displayCurrency, setDisplayCurrency] = useState(defaultCurrency)
+  const [initialized, setInitialized] = useState(false)
   const [projection, setProjection] = useState<
     CompositeProjectionResult | undefined
   >()
@@ -79,19 +106,63 @@ export function useCompositeProjection(
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Initialize phases when plans or settings change
+  // Initialize from saved settings or build defaults
   useEffect(() => {
-    if (plans.length === 0) return
-    const initial = buildInitialPhases(
-      plans,
-      excludedPlanIds,
-      currentAge,
-      lifeExpectancy,
+    if (plans.length === 0 || !settings || initialized) return
+
+    const savedExclusions = parseSavedExclusions(
+      settings.compositeExcludedPlanIds,
     )
-    setPhases(initial)
+    const savedPhases = parseSavedPhases(settings.compositePhases)
+    const savedCurrency = settings.compositeDisplayCurrency
+
+    if (savedExclusions) setExcludedPlanIds(savedExclusions)
+    if (savedCurrency) setDisplayCurrency(savedCurrency)
+
+    // Validate saved phases — all planIds must still exist
+    const planIds = new Set(plans.map((p) => p.id))
+    if (
+      savedPhases &&
+      savedPhases.every((phase) => planIds.has(phase.planId))
+    ) {
+      setPhases(savedPhases)
+    } else {
+      const exclusions = savedExclusions ?? new Set<string>()
+      const initial = buildInitialPhases(
+        plans,
+        exclusions,
+        currentAge,
+        lifeExpectancy,
+      )
+      setPhases(initial)
+    }
+
+    setInitialized(true)
+  }, [plans, settings, currentAge, lifeExpectancy, initialized])
+
+  // Save composite config to settings (debounced)
+  useEffect(() => {
+    if (!initialized || phases.length === 0) return undefined
+
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+
+    saveTimer.current = setTimeout(() => {
+      updateSettings({
+        compositeDisplayCurrency: displayCurrency,
+        compositePhases: JSON.stringify(phases),
+        compositeExcludedPlanIds: JSON.stringify(Array.from(excludedPlanIds)),
+      }).catch(() => {
+        // Silent save failure — not critical
+      })
+    }, SAVE_DEBOUNCE_MS)
+
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [plans.length, currentAge, lifeExpectancy])
+  }, [phases, displayCurrency, excludedPlanIds, initialized])
 
   const toggleExclusion = useCallback(
     (planId: string) => {

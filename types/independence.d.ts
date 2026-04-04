@@ -780,6 +780,9 @@ export interface UserIndependenceSettings {
   monthOfBirth?: number
   targetIndependenceAge?: number
   lifeExpectancy: number
+  compositeDisplayCurrency?: string
+  compositePhases?: string
+  compositeExcludedPlanIds?: string
   createdDate: string
   updatedDate: string
 }
@@ -789,6 +792,9 @@ export interface UpdateSettingsRequest {
   monthOfBirth?: number
   lifeExpectancy?: number
   targetIndependenceAge?: number
+  compositeDisplayCurrency?: string
+  compositePhases?: string
+  compositeExcludedPlanIds?: string
 }
 
 // ============ Composite Projection Types ============
