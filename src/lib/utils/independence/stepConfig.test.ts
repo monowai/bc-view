@@ -32,10 +32,11 @@ describe("WIZARD_STEPS", () => {
     it("should contain expected fields", () => {
       const fields = WIZARD_STEPS[0].fields
       expect(fields).toContain("planName")
-      expect(fields).toContain("yearOfBirth")
-      expect(fields).toContain("targetRetirementAge")
-      expect(fields).toContain("lifeExpectancy")
       expect(fields).toContain("expensesCurrency")
+      // yearOfBirth, targetRetirementAge, lifeExpectancy moved to user-level settings
+      expect(fields).not.toContain("yearOfBirth")
+      expect(fields).not.toContain("targetRetirementAge")
+      expect(fields).not.toContain("lifeExpectancy")
     })
   })
 
@@ -128,7 +129,7 @@ describe("getStepFields", () => {
   })
 
   it("should return correct number of fields for each step", () => {
-    expect(getStepFields(1)).toHaveLength(5) // Personal Info
+    expect(getStepFields(1)).toHaveLength(2) // Personal Info (planName, expensesCurrency)
     expect(getStepFields(2)).toHaveLength(1) // Working Expenses
     expect(getStepFields(3)).toHaveLength(3) // Income & Contributions
     expect(getStepFields(4)).toHaveLength(2) // Assets

@@ -1,6 +1,8 @@
-import React from "react"
-import { Control, Controller, FieldErrors, useWatch } from "react-hook-form"
+import React, { useState } from "react"
+import { Control, Controller, FieldErrors } from "react-hook-form"
 import { WizardFormData } from "types/independence"
+import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
+import IndependenceSettingsModal from "../IndependenceSettingsModal"
 
 interface PersonalInfoStepProps {
   control: Control<WizardFormData>
@@ -24,8 +26,13 @@ export default function PersonalInfoStep({
   control,
   errors,
 }: PersonalInfoStepProps): React.ReactElement {
-  const yearOfBirth = useWatch({ control, name: "yearOfBirth" })
+  const { settings, isLoading: settingsLoading } = useIndependenceSettings()
+  const [showSettingsModal, setShowSettingsModal] = useState(false)
+
+  const yearOfBirth = settings?.yearOfBirth
   const currentAge = yearOfBirth ? currentYear - yearOfBirth : undefined
+  const targetIndependenceAge = settings?.targetIndependenceAge ?? 65
+  const lifeExpectancy = settings?.lifeExpectancy ?? 90
 
   return (
     <div className="space-y-4">
@@ -110,111 +117,53 @@ export default function PersonalInfoStep({
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label
-              htmlFor="yearOfBirth"
-              className="block text-sm font-medium text-gray-700 mb-1"
+        {/* Read-only settings display */}
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-gray-700">
+              Your Independence Settings
+            </h3>
+            <button
+              type="button"
+              onClick={() => setShowSettingsModal(true)}
+              className="text-sm text-independence-600 hover:text-independence-700 font-medium"
             >
-              Year of Birth
-            </label>
-            <Controller
-              name="yearOfBirth"
-              control={control}
-              render={({ field }) => (
-                <input
-                  {...field}
-                  id="yearOfBirth"
-                  type="number"
-                  min={1920}
-                  max={currentYear - 18}
-                  onChange={(e) => field.onChange(Number(e.target.value))}
-                  className={`
-                    w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
-                    ${errors.yearOfBirth ? "border-red-500" : "border-gray-300"}
-                  `}
-                />
-              )}
-            />
-            {errors.yearOfBirth && (
-              <p className="mt-1 text-sm text-red-600">
-                {errors.yearOfBirth.message}
-              </p>
-            )}
-            {currentAge !== undefined && (
-              <p className="mt-1 text-sm text-gray-500">
-                Currently {currentAge} years old
-              </p>
-            )}
+              <i className="fas fa-edit mr-1"></i>
+              Edit
+            </button>
           </div>
 
-          <div>
-            <label
-              htmlFor="targetRetirementAge"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Target Independence Age
-            </label>
-            <Controller
-              name="targetRetirementAge"
-              control={control}
-              render={({ field }) => (
-                <input
-                  {...field}
-                  id="targetRetirementAge"
-                  type="number"
-                  min={18}
-                  max={100}
-                  onChange={(e) => field.onChange(Number(e.target.value))}
-                  className={`
-                    w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
-                    ${errors.targetRetirementAge ? "border-red-500" : "border-gray-300"}
-                  `}
-                />
-              )}
-            />
-            {errors.targetRetirementAge && (
-              <p className="mt-1 text-sm text-red-600">
-                {errors.targetRetirementAge.message}
-              </p>
-            )}
-            <p className="mt-1 text-sm text-gray-500">
-              Your baseline age for projections. You can explore different ages
-              using scenarios later.
-            </p>
-          </div>
-
-          <div>
-            <label
-              htmlFor="lifeExpectancy"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Life Expectancy
-            </label>
-            <Controller
-              name="lifeExpectancy"
-              control={control}
-              render={({ field }) => (
-                <input
-                  {...field}
-                  id="lifeExpectancy"
-                  type="number"
-                  min={50}
-                  max={120}
-                  onChange={(e) => field.onChange(Number(e.target.value))}
-                  className={`
-                    w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
-                    ${errors.lifeExpectancy ? "border-red-500" : "border-gray-300"}
-                  `}
-                />
-              )}
-            />
-            {errors.lifeExpectancy && (
-              <p className="mt-1 text-sm text-red-600">
-                {errors.lifeExpectancy.message}
-              </p>
-            )}
-          </div>
+          {settingsLoading ? (
+            <p className="text-sm text-gray-500">Loading settings...</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Year of Birth</p>
+                <p className="text-sm font-medium text-gray-900">
+                  {yearOfBirth ?? "Not set"}
+                </p>
+                {currentAge !== undefined && (
+                  <p className="text-xs text-gray-500">
+                    Currently {currentAge} years old
+                  </p>
+                )}
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 mb-1">
+                  Target Independence Age
+                </p>
+                <p className="text-sm font-medium text-gray-900">
+                  {targetIndependenceAge}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Life Expectancy</p>
+                <p className="text-sm font-medium text-gray-900">
+                  {lifeExpectancy}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="bg-independence-50 border border-independence-200 rounded-lg p-4">
@@ -223,14 +172,20 @@ export default function PersonalInfoStep({
             <div className="text-sm text-independence-700">
               <p className="font-medium">Planning horizon</p>
               <p className="mt-1">
-                Your planning horizon will be calculated as the years from
-                independence to life expectancy. A longer horizon means your
-                savings need to last longer.
+                Your planning horizon will be{" "}
+                {lifeExpectancy - targetIndependenceAge} years (from age{" "}
+                {targetIndependenceAge} to {lifeExpectancy}). These settings
+                apply across all your independence plans.
               </p>
             </div>
           </div>
         </div>
       </div>
+
+      <IndependenceSettingsModal
+        isOpen={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+      />
     </div>
   )
 }

@@ -1,7 +1,5 @@
 import * as yup from "yup"
 
-const currentYear = new Date().getFullYear()
-
 export const personalInfoSchema = yup.object({
   planName: yup
     .string()
@@ -12,39 +10,6 @@ export const personalInfoSchema = yup.object({
     .string()
     .required("Currency is required")
     .default("NZD"),
-  yearOfBirth: yup
-    .number()
-    .required("Year of birth is required")
-    .min(1920, "Must be 1920 or later")
-    .max(currentYear - 18, `Must be ${currentYear - 18} or earlier`),
-  targetRetirementAge: yup
-    .number()
-    .required("Target retirement age is required")
-    .min(18, "Must be at least 18")
-    .max(100, "Must be 100 or less")
-    .test(
-      "greater-than-current",
-      "Retirement age must be after your current age",
-      function (value) {
-        const { yearOfBirth } = this.parent
-        if (!value || !yearOfBirth) return true
-        const currentAge = currentYear - yearOfBirth
-        return value > currentAge
-      },
-    ),
-  lifeExpectancy: yup
-    .number()
-    .required("Life expectancy is required")
-    .min(50, "Must be at least 50")
-    .max(120, "Must be 120 or less")
-    .test(
-      "greater-than-retirement",
-      "Life expectancy must be after retirement age",
-      function (value) {
-        const { targetRetirementAge } = this.parent
-        return !value || !targetRetirementAge || value > targetRetirementAge
-      },
-    ),
 })
 
 export const preRetirementSchema = yup.object({
@@ -176,11 +141,13 @@ export const defaultManualAssets = {
   RE: 0,
 }
 
+const currentYear = new Date().getFullYear()
+
 export const defaultWizardValues = {
   planName: "",
-  yearOfBirth: currentYear - 55, // Default to age 55
-  targetRetirementAge: 65,
-  lifeExpectancy: 90,
+  yearOfBirth: currentYear - 55, // Default to age 55 (kept for form type compatibility)
+  targetRetirementAge: 65, // Kept for form type compatibility
+  lifeExpectancy: 90, // Kept for form type compatibility
   // Working expenses (categorized)
   workingExpenses: [],
   // Pre-retirement (working years)

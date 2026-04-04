@@ -143,19 +143,8 @@ function EditPlanWizard(): React.ReactElement {
     }
   }
 
-  // Calculate values from stored plan data
-  const currentYear = new Date().getFullYear()
-  const lifeExpectancy = plan.lifeExpectancy || 90
-  const targetRetirementAge = lifeExpectancy - plan.planningHorizonYears
-  // Use stored yearOfBirth if available, otherwise estimate from targetRetirementAge
-  const yearOfBirth =
-    plan.yearOfBirth || currentYear - (targetRetirementAge - 10)
-
   const initialData: Partial<WizardFormData> = {
     planName: plan.name,
-    yearOfBirth,
-    targetRetirementAge,
-    lifeExpectancy,
     expensesCurrency: plan.expensesCurrency || "NZD",
     // Working expenses (categorized)
     workingExpenses: workingExpenses.map((e) => ({

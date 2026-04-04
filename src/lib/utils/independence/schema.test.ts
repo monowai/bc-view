@@ -8,8 +8,6 @@ import {
   defaultWizardValues,
 } from "./schema"
 
-const currentYear = new Date().getFullYear()
-
 describe("personalInfoSchema", () => {
   describe("planName", () => {
     it("should require plan name", async () => {
@@ -39,107 +37,31 @@ describe("personalInfoSchema", () => {
     })
   })
 
-  describe("yearOfBirth", () => {
-    it("should require year of birth", async () => {
+  describe("expensesCurrency", () => {
+    it("should require currency", async () => {
       await expect(
-        personalInfoSchema.validateAt("yearOfBirth", {}),
-      ).rejects.toThrow()
-    })
-
-    it("should reject years before 1920", async () => {
-      await expect(
-        personalInfoSchema.validateAt("yearOfBirth", { yearOfBirth: 1919 }),
-      ).rejects.toThrow("1920 or later")
-    })
-
-    it("should reject users younger than 18", async () => {
-      await expect(
-        personalInfoSchema.validateAt("yearOfBirth", {
-          yearOfBirth: currentYear - 17,
+        personalInfoSchema.validateAt("expensesCurrency", {
+          expensesCurrency: "",
         }),
       ).rejects.toThrow()
     })
 
-    it("should accept valid birth years", async () => {
-      const result = await personalInfoSchema.validateAt("yearOfBirth", {
-        yearOfBirth: 1970,
+    it("should accept valid currency", async () => {
+      const result = await personalInfoSchema.validateAt("expensesCurrency", {
+        expensesCurrency: "NZD",
       })
-      expect(result).toBe(1970)
+      expect(result).toBe("NZD")
     })
   })
 
-  describe("targetRetirementAge", () => {
-    it("should require retirement age to be at least 18", async () => {
-      await expect(
-        personalInfoSchema.validateAt("targetRetirementAge", {
-          targetRetirementAge: 17,
-        }),
-      ).rejects.toThrow("at least 18")
-    })
-
-    it("should reject retirement age over 100", async () => {
-      await expect(
-        personalInfoSchema.validateAt("targetRetirementAge", {
-          targetRetirementAge: 101,
-        }),
-      ).rejects.toThrow("100 or less")
-    })
-
-    it("should validate retirement age is after current age", async () => {
-      const data = {
-        planName: "Test Plan",
-        expensesCurrency: "NZD",
-        yearOfBirth: 1970,
-        targetRetirementAge: 50, // Person is 54/55, so 50 is invalid
-        lifeExpectancy: 90,
-      }
-      await expect(personalInfoSchema.validate(data)).rejects.toThrow(
-        "after your current age",
-      )
-    })
-
-    it("should accept valid retirement age after current age", async () => {
-      const data = {
-        planName: "Test Plan",
-        expensesCurrency: "NZD",
-        yearOfBirth: 1970,
-        targetRetirementAge: 65,
-        lifeExpectancy: 90,
-      }
-      const result = await personalInfoSchema.validate(data)
-      expect(result.targetRetirementAge).toBe(65)
-    })
-  })
-
-  describe("lifeExpectancy", () => {
-    it("should require life expectancy to be at least 50", async () => {
-      await expect(
-        personalInfoSchema.validateAt("lifeExpectancy", {
-          lifeExpectancy: 49,
-        }),
-      ).rejects.toThrow("at least 50")
-    })
-
-    it("should reject life expectancy over 120", async () => {
-      await expect(
-        personalInfoSchema.validateAt("lifeExpectancy", {
-          lifeExpectancy: 121,
-        }),
-      ).rejects.toThrow("120 or less")
-    })
-
-    it("should validate life expectancy is after retirement age", async () => {
-      const data = {
-        planName: "Test",
-        expensesCurrency: "NZD",
-        yearOfBirth: 1990,
-        targetRetirementAge: 70,
-        lifeExpectancy: 65,
-      }
-      await expect(personalInfoSchema.validate(data)).rejects.toThrow(
-        "after retirement age",
-      )
-    })
+  it("should validate a complete form with only plan fields", async () => {
+    const data = {
+      planName: "Test Plan",
+      expensesCurrency: "NZD",
+    }
+    const result = await personalInfoSchema.validate(data)
+    expect(result.planName).toBe("Test Plan")
+    expect(result.expensesCurrency).toBe("NZD")
   })
 })
 
@@ -321,9 +243,6 @@ describe("goalsSchema", () => {
 describe("defaultWizardValues", () => {
   it("should have all required fields", () => {
     expect(defaultWizardValues).toHaveProperty("planName")
-    expect(defaultWizardValues).toHaveProperty("yearOfBirth")
-    expect(defaultWizardValues).toHaveProperty("targetRetirementAge")
-    expect(defaultWizardValues).toHaveProperty("lifeExpectancy")
     expect(defaultWizardValues).toHaveProperty("workingIncomeMonthly")
     expect(defaultWizardValues).toHaveProperty("workingExpensesMonthly")
     expect(defaultWizardValues).toHaveProperty("investmentAllocationPercent")
@@ -335,16 +254,9 @@ describe("defaultWizardValues", () => {
   })
 
   it("should have sensible defaults", () => {
-    expect(defaultWizardValues.targetRetirementAge).toBe(65)
-    expect(defaultWizardValues.lifeExpectancy).toBe(90)
     expect(defaultWizardValues.investmentAllocationPercent).toBe(80)
     expect(defaultWizardValues.expensesCurrency).toBe("NZD")
     expect(defaultWizardValues.expenses).toEqual([])
-  })
-
-  it("should default to age 55", () => {
-    const expectedBirthYear = currentYear - 55
-    expect(defaultWizardValues.yearOfBirth).toBe(expectedBirthYear)
   })
 
   it("should have allocation percentages that sum correctly", () => {
@@ -361,6 +273,8 @@ describe("wizardSchema", () => {
     const validForm = {
       planName: "My Retirement Plan",
       expensesCurrency: "NZD",
+      // yearOfBirth, targetRetirementAge, lifeExpectancy are now in user settings
+      // but kept in form type for backward compatibility
       yearOfBirth: 1970,
       targetRetirementAge: 65,
       lifeExpectancy: 90,
@@ -384,13 +298,11 @@ describe("wizardSchema", () => {
 
     const result = await wizardSchema.validate(validForm)
     expect(result.planName).toBe("My Retirement Plan")
-    expect(result.targetRetirementAge).toBe(65)
   })
 
   it("should reject invalid form data", async () => {
     const invalidForm = {
       planName: "ab", // Too short
-      yearOfBirth: 1970,
     }
 
     await expect(wizardSchema.validate(invalidForm)).rejects.toThrow()
