@@ -2,7 +2,38 @@ import React, { useState, useEffect } from "react"
 import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
 import { UpdateSettingsRequest } from "types/independence"
 
-const currentYear = new Date().getFullYear()
+const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+]
+
+function calculateAge(
+  yearOfBirth: number,
+  monthOfBirth?: number,
+): { years: number; display: string } {
+  const now = new Date()
+  const currentYear = now.getFullYear()
+  const currentMonth = now.getMonth() + 1 // 1-based
+  let age = currentYear - yearOfBirth
+  if (monthOfBirth && currentMonth < monthOfBirth) {
+    age -= 1
+  }
+  const display =
+    monthOfBirth && currentMonth < monthOfBirth
+      ? `${age} (turning ${age + 1} in ${MONTHS[monthOfBirth - 1]})`
+      : `${age}`
+  return { years: age, display }
+}
 
 interface IndependenceSettingsModalProps {
   isOpen: boolean
@@ -17,30 +48,40 @@ export default function IndependenceSettingsModal({
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const currentYear = new Date().getFullYear()
   const [yearOfBirth, setYearOfBirth] = useState<number>(currentYear - 55)
+  const [monthOfBirth, setMonthOfBirth] = useState<number | undefined>(
+    undefined,
+  )
   const [targetIndependenceAge, setTargetIndependenceAge] = useState<number>(65)
   const [lifeExpectancy, setLifeExpectancy] = useState<number>(90)
 
-  // Initialize form when modal opens or settings load
   useEffect(() => {
     if (isOpen && settings) {
       setYearOfBirth(settings.yearOfBirth ?? currentYear - 55)
+      setMonthOfBirth(settings.monthOfBirth ?? undefined)
       setTargetIndependenceAge(settings.targetIndependenceAge ?? 65)
       setLifeExpectancy(settings.lifeExpectancy ?? 90)
       setError(null)
     }
-  }, [isOpen, settings])
+  }, [isOpen, settings, currentYear])
 
   if (!isOpen) return null
 
-  const currentAge = currentYear - yearOfBirth
+  const { years: currentAge, display: ageDisplay } = calculateAge(
+    yearOfBirth,
+    monthOfBirth,
+  )
 
   const validate = (): string | null => {
     if (yearOfBirth < 1920 || yearOfBirth > currentYear - 18) {
       return `Year of birth must be between 1920 and ${currentYear - 18}`
     }
-    if (targetIndependenceAge <= currentAge) {
-      return "Target independence age must be after your current age"
+    if (monthOfBirth !== undefined && (monthOfBirth < 1 || monthOfBirth > 12)) {
+      return "Month must be between 1 and 12"
+    }
+    if (targetIndependenceAge < currentAge) {
+      return "Target independence age must be at or after your current age"
     }
     if (targetIndependenceAge < 18 || targetIndependenceAge > 100) {
       return "Target independence age must be between 18 and 100"
@@ -66,6 +107,7 @@ export default function IndependenceSettingsModal({
     try {
       const request: UpdateSettingsRequest = {
         yearOfBirth,
+        monthOfBirth,
         targetIndependenceAge,
         lifeExpectancy,
       }
@@ -95,26 +137,51 @@ export default function IndependenceSettingsModal({
         )}
 
         <div className="space-y-4">
-          <div>
-            <label
-              htmlFor="settings-yearOfBirth"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Year of Birth
-            </label>
-            <input
-              id="settings-yearOfBirth"
-              type="number"
-              value={yearOfBirth}
-              onChange={(e) => setYearOfBirth(Number(e.target.value))}
-              min={1920}
-              max={currentYear - 18}
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 border-gray-300"
-            />
-            <p className="mt-1 text-sm text-gray-500">
-              Currently {currentAge} years old
-            </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label
+                htmlFor="settings-monthOfBirth"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Month of Birth
+              </label>
+              <select
+                id="settings-monthOfBirth"
+                value={monthOfBirth ?? ""}
+                onChange={(e) =>
+                  setMonthOfBirth(
+                    e.target.value ? Number(e.target.value) : undefined,
+                  )
+                }
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 border-gray-300"
+              >
+                <option value="">--</option>
+                {MONTHS.map((name, i) => (
+                  <option key={i + 1} value={i + 1}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label
+                htmlFor="settings-yearOfBirth"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Year of Birth
+              </label>
+              <input
+                id="settings-yearOfBirth"
+                type="number"
+                value={yearOfBirth}
+                onChange={(e) => setYearOfBirth(Number(e.target.value))}
+                min={1920}
+                max={currentYear - 18}
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 border-gray-300"
+              />
+            </div>
           </div>
+          <p className="text-sm text-gray-500">Currently {ageDisplay}</p>
 
           <div>
             <label

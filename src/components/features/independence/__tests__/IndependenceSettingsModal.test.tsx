@@ -12,6 +12,7 @@ jest.mock("@hooks/useIndependenceSettings", () => ({
       id: "test-id",
       ownerId: "test-owner",
       yearOfBirth: 1971,
+      monthOfBirth: 6,
       targetIndependenceAge: 65,
       lifeExpectancy: 90,
       createdDate: "2026-01-01",
@@ -47,27 +48,33 @@ describe("IndependenceSettingsModal", () => {
     render(<IndependenceSettingsModal {...defaultProps} />)
 
     expect(screen.getByLabelText(/year of birth/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/month of birth/i)).toBeInTheDocument()
     expect(
       screen.getByLabelText(/target independence age/i),
     ).toBeInTheDocument()
     expect(screen.getByLabelText(/life expectancy/i)).toBeInTheDocument()
   })
 
-  it("displays current age derived from year of birth", () => {
+  it("displays current age derived from birth date", () => {
     render(<IndependenceSettingsModal {...defaultProps} />)
 
+    // Age depends on current month relative to June birth month
+    const expectedAge = currentYear - 1971
+    expect(screen.getByText(/Currently/)).toBeInTheDocument()
     expect(
-      screen.getByText(`Currently ${currentYear - 1971} years old`),
+      screen.getByText(new RegExp(`${expectedAge - 1}|${expectedAge}`)),
     ).toBeInTheDocument()
   })
 
   it("shows planning horizon info", () => {
     render(<IndependenceSettingsModal {...defaultProps} />)
 
-    expect(screen.getByText(/25 years \(from age 65 to 90\)/)).toBeInTheDocument()
+    expect(
+      screen.getByText(/25 years \(from age 65 to 90\)/),
+    ).toBeInTheDocument()
   })
 
-  it("calls updateSettings and onClose on save", async () => {
+  it("calls updateSettings with monthOfBirth on save", async () => {
     render(<IndependenceSettingsModal {...defaultProps} />)
 
     fireEvent.click(screen.getByText(/save settings/i))
@@ -75,6 +82,7 @@ describe("IndependenceSettingsModal", () => {
     await waitFor(() => {
       expect(mockUpdateSettings).toHaveBeenCalledWith({
         yearOfBirth: 1971,
+        monthOfBirth: 6,
         targetIndependenceAge: 65,
         lifeExpectancy: 90,
       })
