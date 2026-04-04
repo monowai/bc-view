@@ -3,4 +3,5 @@ import { getRetireUrl } from "@utils/api/bcConfig"
 
 export default createApiHandler({
   url: getRetireUrl("/settings"),
+  methods: ["GET", "PATCH"],
 })
