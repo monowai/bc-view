@@ -777,6 +777,7 @@ export interface UserIndependenceSettings {
   id: string
   ownerId: string
   yearOfBirth?: number
+  monthOfBirth?: number
   targetIndependenceAge?: number
   lifeExpectancy: number
   createdDate: string
@@ -785,6 +786,7 @@ export interface UserIndependenceSettings {
 
 export interface UpdateSettingsRequest {
   yearOfBirth?: number
+  monthOfBirth?: number
   lifeExpectancy?: number
   targetIndependenceAge?: number
 }
