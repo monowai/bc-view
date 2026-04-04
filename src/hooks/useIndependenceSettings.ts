@@ -8,27 +8,25 @@ import { simpleFetcher } from "@utils/api/fetchHelper"
 
 const settingsKey = "/api/independence/settings"
 
-interface SettingsResponse {
-  data: UserIndependenceSettings
-}
-
 interface UseIndependenceSettingsResult {
   settings: UserIndependenceSettings | undefined
   settingsError: Error | undefined
   isLoading: boolean
-  updateSettings: (request: UpdateSettingsRequest) => Promise<SettingsResponse>
-  mutateSettings: KeyedMutator<SettingsResponse>
+  updateSettings: (
+    request: UpdateSettingsRequest,
+  ) => Promise<UserIndependenceSettings>
+  mutateSettings: KeyedMutator<UserIndependenceSettings>
 }
 
 export function useIndependenceSettings(): UseIndependenceSettingsResult {
-  const { data, error, mutate } = useSwr<SettingsResponse>(
+  const { data, error, mutate } = useSwr<UserIndependenceSettings>(
     settingsKey,
     simpleFetcher(settingsKey),
   )
 
   const updateSettings = async (
     request: UpdateSettingsRequest,
-  ): Promise<SettingsResponse> => {
+  ): Promise<UserIndependenceSettings> => {
     const response = await fetch(settingsKey, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -41,7 +39,7 @@ export function useIndependenceSettings(): UseIndependenceSettingsResult {
   }
 
   return {
-    settings: data?.data,
+    settings: data,
     settingsError: error,
     isLoading: !data && !error,
     updateSettings,
