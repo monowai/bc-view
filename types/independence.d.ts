@@ -771,3 +771,79 @@ export interface MonteCarloParameters {
   equityCashCorrelation: number
   investmentTaxRate: number
 }
+
+// ============ User Independence Settings ============
+export interface UserIndependenceSettings {
+  id: string
+  ownerId: string
+  yearOfBirth?: number
+  targetIndependenceAge?: number
+  lifeExpectancy: number
+  createdDate: string
+  updatedDate: string
+}
+
+export interface UpdateSettingsRequest {
+  yearOfBirth?: number
+  lifeExpectancy?: number
+  targetIndependenceAge?: number
+}
+
+// ============ Composite Projection Types ============
+export interface CompositePhase {
+  planId: string
+  fromAge: number
+  toAge?: number
+}
+
+export interface CompositeProjectionRequest {
+  displayCurrency: string
+  phases: CompositePhase[]
+}
+
+export interface CompositeYearlyProjection {
+  year: number
+  age: number
+  planId: string
+  planName: string
+  startingBalance: number
+  investmentReturns: number
+  income: number
+  expenses: number
+  endingBalance: number
+  nonSpendableValue: number
+  totalWealth: number
+  currency: string
+  incomeBreakdown?: IncomeBreakdown
+}
+
+export interface CompositePhaseInfo {
+  planId: string
+  planName: string
+  fromAge: number
+  toAge: number
+  expensesCurrency: string
+}
+
+export interface CompositeProjectionResult {
+  asOfDate: string
+  displayCurrency: string
+  phases: CompositePhaseInfo[]
+  totalAssets: number
+  liquidAssets: number
+  runwayYears: number
+  depletionAge?: number
+  isSustainable: boolean
+  yearlyProjections: CompositeYearlyProjection[]
+  warnings: string[]
+}
+
+export interface CompositeScenarioResult {
+  name: string
+  description: string
+  projection: CompositeProjectionResult
+}
+
+export interface CompositeScenarioComparison {
+  scenarios: CompositeScenarioResult[]
+}
