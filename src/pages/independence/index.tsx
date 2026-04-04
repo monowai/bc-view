@@ -8,11 +8,13 @@ import { simpleFetcher, holdingKey } from "@utils/api/fetchHelper"
 import { PlansResponse, RetirementPlan, PlanExport } from "types/independence"
 import { HoldingContract } from "types/beancounter"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
+import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
 import {
   useAssetBreakdown,
   useFiProjectionSimple,
   AssetBreakdown,
 } from "@components/features/independence"
+import CompositeTab from "@components/features/independence/CompositeTab"
 import ResourceShareInviteDialog from "@components/features/shares/ResourceShareInviteDialog"
 import Alert from "@components/ui/Alert"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
@@ -258,7 +260,9 @@ function PlanCard({
 function RetirementPlanning(): React.ReactElement {
   const router = useRouter()
   const { hideValues } = usePrivacyMode()
+  const { settings } = useIndependenceSettings()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [activeView, setActiveView] = useState<"plans" | "composite">("plans")
   const [isImporting, setIsImporting] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
   const [showShareDialog, setShowShareDialog] = useState(false)
@@ -547,6 +551,34 @@ function RetirementPlanning(): React.ReactElement {
             </div>
           )}
 
+          {/* Tab Switcher */}
+          {plans.length > 1 && (
+            <div className="flex gap-1 mb-6 bg-gray-100 rounded-lg p-1 w-fit">
+              <button
+                onClick={() => setActiveView("plans")}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  activeView === "plans"
+                    ? "bg-white text-independence-700 shadow-sm"
+                    : "text-gray-600 hover:text-gray-800"
+                }`}
+              >
+                <i className="fas fa-th-large mr-2"></i>
+                Plans
+              </button>
+              <button
+                onClick={() => setActiveView("composite")}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  activeView === "composite"
+                    ? "bg-white text-independence-700 shadow-sm"
+                    : "text-gray-600 hover:text-gray-800"
+                }`}
+              >
+                <i className="fas fa-layer-group mr-2"></i>
+                Composite
+              </button>
+            </div>
+          )}
+
           {isLoading && (
             <div className="text-center py-12">
               <Spinner label="Loading plans..." size="lg" />
@@ -577,7 +609,7 @@ function RetirementPlanning(): React.ReactElement {
             </div>
           )}
 
-          {!isLoading && plans.length > 0 && (
+          {!isLoading && plans.length > 0 && activeView === "plans" && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {plans.map((plan: RetirementPlan) => (
                 <PlanCard
@@ -592,6 +624,10 @@ function RetirementPlanning(): React.ReactElement {
                 />
               ))}
             </div>
+          )}
+
+          {!isLoading && plans.length > 1 && activeView === "composite" && (
+            <CompositeTab plans={plans} settings={settings} />
           )}
         </div>
       </div>

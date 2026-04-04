@@ -41,6 +41,8 @@ export { default as MonteCarloTab } from "./MonteCarloTab"
 export { default as DetailsTabContent } from "./DetailsTabContent"
 export { default as AssetsTabContent } from "./AssetsTabContent"
 export { default as TimelineTabContent } from "./TimelineTabContent"
+export { default as CompositeTab } from "./CompositeTab"
+export { default as PhaseConfigList } from "./PhaseConfigList"
 
 // Monte Carlo Hook
 export { useMonteCarloSimulation } from "./useMonteCarloSimulation"
