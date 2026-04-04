@@ -34,6 +34,15 @@ export function getRebalanceUrl(path: string = ""): string {
   return `${process.env.BC_REBALANCE}${path}`
 }
 
+// Independence settings
+export const getIndependenceSettingsUrl = (): string => getRetireUrl("/settings")
+
+// Composite projection
+export const getCompositeProjectionUrl = (): string =>
+  getRetireUrl("/composite/projection")
+export const getCompositeScenariosUrl = (): string =>
+  getRetireUrl("/composite/scenarios")
+
 export function getRebalanceActuatorUrl(path: string = ""): string {
   return `${process.env.BC_REBALANCE_ACTUATOR || process.env.BC_REBALANCE}${path}`
 }
