@@ -24,6 +24,7 @@ import {
 import { toDecimal } from "@lib/independence/conversions"
 import { WizardFormData, PlanRequest } from "types/independence"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
+import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
 
 interface WizardContainerProps {
   planId?: string
@@ -42,6 +43,7 @@ export default function WizardContainer({
   const [error, setError] = useState<string | null>(null)
   const [stepErrors, setStepErrors] = useState<Set<number>>(new Set())
   const { preferences } = useUserPreferences()
+  const { settings } = useIndependenceSettings()
 
   // Use user's preferred currency for new plans
   const effectiveDefaults = useMemo(() => {
@@ -165,9 +167,10 @@ export default function WizardContainer({
     try {
       const formData = getValues()
 
-      // Calculate planning horizon
-      const planningHorizonYears =
-        formData.lifeExpectancy - formData.targetRetirementAge
+      // Calculate planning horizon from user settings
+      const settingsLifeExpectancy = settings?.lifeExpectancy ?? 90
+      const settingsTargetAge = settings?.targetIndependenceAge ?? 65
+      const planningHorizonYears = settingsLifeExpectancy - settingsTargetAge
 
       // Calculate total monthly expenses
       const monthlyExpenses = formData.expenses.reduce(
@@ -189,11 +192,10 @@ export default function WizardContainer({
           : null
 
       // Backend stores decimals (0.07 for 7%), so convert from percentage
+      // yearOfBirth and lifeExpectancy are now user-level settings, not plan-level
       const planRequest: PlanRequest = {
         name: formData.planName,
         planningHorizonYears,
-        lifeExpectancy: formData.lifeExpectancy,
-        yearOfBirth: formData.yearOfBirth,
         monthlyExpenses,
         expensesCurrency: formData.expensesCurrency,
         targetBalance: formData.targetBalance ?? null,

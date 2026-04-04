@@ -34,6 +34,7 @@ import { useIndependencePlanData } from "@hooks/useIndependencePlanData"
 import { useIndependencePlanCurrency } from "@hooks/useIndependencePlanCurrency"
 import { useExcludedAssetIds } from "@hooks/useExcludedAssetIds"
 import { useIndependencePlanProjections } from "@hooks/useIndependencePlanProjections"
+import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
 import type { LumpSumAsset } from "@hooks/useIndependencePlanProjections"
 import Alert from "@components/ui/Alert"
 import Spinner from "@components/ui/Spinner"
@@ -49,6 +50,7 @@ function PlanView(): React.ReactElement {
   const router = useRouter()
   const { id } = router.query
   const { hideValues } = usePrivacyMode()
+  const { settings: independenceSettings } = useIndependenceSettings()
   const hasAutoSelected = useRef(false)
   const hasCategoriesInitialized = useRef(false)
   const [activeTab, setActiveTab] = useState<TabId>("details")
@@ -339,19 +341,18 @@ function PlanView(): React.ReactElement {
     return totalValue > 0 ? weightedSum / totalValue : DEFAULT_EXPECTED_RETURN
   }, [holdingsData, plan?.manualAssets, effectivePlanValues, usingManualAssets])
 
-  // Calculate current age from yearOfBirth
+  // Derive age values from user-level independence settings
   const currentYear = new Date().getFullYear()
-  const currentAge = plan?.yearOfBirth
-    ? currentYear - plan.yearOfBirth
+  const currentAge = independenceSettings?.yearOfBirth
+    ? currentYear - independenceSettings.yearOfBirth
     : undefined
 
-  // Use stored lifeExpectancy from plan (default 90)
-  const lifeExpectancy = plan?.lifeExpectancy || 90
+  const lifeExpectancy = independenceSettings?.lifeExpectancy ?? 90
 
-  // Calculate retirement age: lifeExpectancy - planningHorizon
-  const retirementAge = plan?.planningHorizonYears
-    ? lifeExpectancy - plan.planningHorizonYears
-    : 65
+  // Use settings targetIndependenceAge, falling back to plan-derived value
+  const retirementAge =
+    independenceSettings?.targetIndependenceAge ??
+    (plan?.planningHorizonYears ? lifeExpectancy - plan.planningHorizonYears : 65)
 
   // Identify pension/policy assets with lump sum settings for FV projection
   const lumpSumAssets = useMemo((): LumpSumAsset[] => {

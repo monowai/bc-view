@@ -16,13 +16,7 @@ export const WIZARD_STEPS: WizardStep[] = [
   {
     id: 1,
     name: wizardMessages.steps.personalInfo.name,
-    fields: [
-      "planName",
-      "yearOfBirth",
-      "targetRetirementAge",
-      "lifeExpectancy",
-      "expensesCurrency",
-    ],
+    fields: ["planName", "expensesCurrency"],
   },
   {
     id: 2,

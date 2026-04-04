@@ -10,6 +10,25 @@ import {
 } from "@lib/independence/schema"
 import { WizardFormData } from "types/independence"
 
+// Mock the independence settings hook
+jest.mock("@hooks/useIndependenceSettings", () => ({
+  useIndependenceSettings: () => ({
+    settings: {
+      id: "test-id",
+      ownerId: "test-owner",
+      yearOfBirth: 1971,
+      targetIndependenceAge: 65,
+      lifeExpectancy: 90,
+      createdDate: "2026-01-01",
+      updatedDate: "2026-01-01",
+    },
+    settingsError: undefined,
+    isLoading: false,
+    updateSettings: jest.fn(),
+    mutateSettings: jest.fn(),
+  }),
+}))
+
 const TestWrapper: React.FC<{ children: React.ReactNode }> = () => {
   const methods = useForm<WizardFormData>({
     resolver: yupResolver(personalInfoSchema) as any,
@@ -32,7 +51,7 @@ const TestWrapper: React.FC<{ children: React.ReactNode }> = () => {
 const currentYear = new Date().getFullYear()
 
 describe("PersonalInfoStep", () => {
-  it("renders all required fields", () => {
+  it("renders plan name and currency fields", () => {
     render(
       <TestWrapper>
         <div />
@@ -40,24 +59,33 @@ describe("PersonalInfoStep", () => {
     )
 
     expect(screen.getByLabelText(/plan name/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/year of birth/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/independence age/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/life expectancy/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/currency/i)).toBeInTheDocument()
   })
 
-  it("shows default values for age fields", () => {
+  it("shows read-only settings values from user settings", () => {
     render(
       <TestWrapper>
         <div />
       </TestWrapper>,
     )
 
-    // Default yearOfBirth is currentYear - 55 (for age 55)
-    expect(screen.getByLabelText(/year of birth/i)).toHaveValue(
-      currentYear - 55,
+    // Settings are displayed as read-only text, not form inputs
+    expect(screen.getByText("1971")).toBeInTheDocument()
+    expect(screen.getByText("65")).toBeInTheDocument()
+    expect(screen.getByText("90")).toBeInTheDocument()
+    expect(
+      screen.getByText(`Currently ${currentYear - 1971} years old`),
+    ).toBeInTheDocument()
+  })
+
+  it("shows edit button to open settings modal", () => {
+    render(
+      <TestWrapper>
+        <div />
+      </TestWrapper>,
     )
-    expect(screen.getByLabelText(/independence age/i)).toHaveValue(65)
-    expect(screen.getByLabelText(/life expectancy/i)).toHaveValue(90)
+
+    expect(screen.getByText(/edit/i)).toBeInTheDocument()
   })
 
   it("shows validation error for empty plan name", async () => {
@@ -97,7 +125,7 @@ describe("PersonalInfoStep", () => {
     )
 
     expect(
-      screen.getByText(/your planning horizon will be calculated/i),
+      screen.getByText(/these settings apply across all/i),
     ).toBeInTheDocument()
   })
 })
