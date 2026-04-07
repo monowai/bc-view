@@ -72,7 +72,7 @@ describe("CorporateActionsPopup", () => {
     jest.clearAllMocks()
     // Mock current date for consistent tests
     jest.useFakeTimers()
-    jest.setSystemTime(new Date("2024-06-15"))
+    jest.setSystemTime(new Date("2024-06-15").getTime())
   })
 
   afterEach(() => {
