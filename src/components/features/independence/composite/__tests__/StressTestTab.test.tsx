@@ -36,17 +36,27 @@ jest.mock("@hooks/useCompositeMonteCarloSimulation", () => ({
   }),
 }))
 
+let mockHideValues = false
+jest.mock("@hooks/usePrivacyMode", () => ({
+  usePrivacyMode: () => ({ hideValues: mockHideValues }),
+}))
+
 // Stub MonteCarloResultView so we can assert it renders without dragging
 // in the full chart implementation (recharts + jsdom measurements).
 jest.mock("../../monte-carlo/MonteCarloResultView", () => ({
   MonteCarloResultView: ({
     result,
     currency,
+    hideValues,
   }: {
     result: MonteCarloResult
     currency: string
+    hideValues: boolean
   }): React.ReactElement => (
-    <div data-testid="monte-carlo-result-view">
+    <div
+      data-testid="monte-carlo-result-view"
+      data-hide-values={String(hideValues)}
+    >
       MC result {result.successRate}% {currency}
     </div>
   ),
@@ -138,6 +148,7 @@ describe("StressTestTab", () => {
   beforeEach(() => {
     mockRunSimulation.mockReset()
     mockHookState = { result: null, isRunning: false, error: null }
+    mockHideValues = false
   })
 
   it("disables Run button when no phases are configured", () => {
@@ -195,6 +206,22 @@ describe("StressTestTab", () => {
     mockHookState = { result: fixtureResult, isRunning: false, error: null }
     renderWithCtx()
     expect(screen.getByTestId("monte-carlo-result-view")).toBeInTheDocument()
+  })
+
+  it("forwards hideValues from usePrivacyMode to MonteCarloResultView", () => {
+    mockHideValues = true
+    mockHookState = { result: fixtureResult, isRunning: false, error: null }
+    renderWithCtx()
+    const view = screen.getByTestId("monte-carlo-result-view")
+    expect(view).toHaveAttribute("data-hide-values", "true")
+  })
+
+  it("passes hideValues=false when privacy mode is off", () => {
+    mockHideValues = false
+    mockHookState = { result: fixtureResult, isRunning: false, error: null }
+    renderWithCtx()
+    const view = screen.getByTestId("monte-carlo-result-view")
+    expect(view).toHaveAttribute("data-hide-values", "false")
   })
 
   it("shows an error message on failure", () => {

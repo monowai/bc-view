@@ -32,6 +32,22 @@ jest.mock("@hooks/usePrivacyMode", () => ({
   usePrivacyMode: () => ({ hideValues: false }),
 }))
 
+jest.mock("@hooks/useCompositeMonteCarloSimulation", () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    result: null,
+    isRunning: false,
+    error: null,
+    runSimulation: jest.fn(),
+  })),
+  useCompositeMonteCarloSimulation: jest.fn(() => ({
+    result: null,
+    isRunning: false,
+    error: null,
+    runSimulation: jest.fn(),
+  })),
+}))
+
 function makePlan(overrides: Partial<RetirementPlan> = {}): RetirementPlan {
   return {
     id: "plan-1",

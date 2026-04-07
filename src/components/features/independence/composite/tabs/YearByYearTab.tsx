@@ -16,7 +16,7 @@ function formatMoney(value: number, currency: string, hide: boolean): string {
  * Year-by-Year tab — renders the yearly timeline table from the composite
  * projection. Reads all state from {@link useCompositeProjectionContext}.
  */
-export default function YearByYearTab(): React.ReactElement {
+export default function YearByYearTab(): React.ReactElement | null {
   const { hideValues } = usePrivacyMode()
   const { displayCurrency, projection, isLoading, error } =
     useCompositeProjectionContext()
@@ -34,7 +34,7 @@ export default function YearByYearTab(): React.ReactElement {
   }
 
   if (!projection) {
-    return null as unknown as React.ReactElement
+    return null
   }
 
   return (

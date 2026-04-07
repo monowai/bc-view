@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react"
 import { useCompositeProjectionContext } from "../CompositeProjectionContext"
 import useCompositeMonteCarloSimulation from "@hooks/useCompositeMonteCarloSimulation"
+import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import { MonteCarloResultView } from "../../monte-carlo/MonteCarloResultView"
 
 const ITERATION_OPTIONS = [500, 1000, 2000, 5000]
@@ -15,6 +16,7 @@ const ITERATION_OPTIONS = [500, 1000, 2000, 5000]
  */
 export default function StressTestTab(): React.ReactElement {
   const { phases, displayCurrency } = useCompositeProjectionContext()
+  const { hideValues } = usePrivacyMode()
   const { result, isRunning, error, runSimulation } =
     useCompositeMonteCarloSimulation()
   const [iterations, setIterations] = useState(1000)
@@ -142,7 +144,7 @@ export default function StressTestTab(): React.ReactElement {
           result={result}
           deterministicProjection={undefined}
           currency={displayCurrency}
-          hideValues={false}
+          hideValues={hideValues}
         />
       )}
     </div>

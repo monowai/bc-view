@@ -34,7 +34,7 @@ const PHASE_COLORS = [
  * total-wealth area, liquid-assets line, and phase boundary annotations.
  * Reads all state from {@link useCompositeProjectionContext}.
  */
-export default function WealthJourneyTab(): React.ReactElement {
+export default function WealthJourneyTab(): React.ReactElement | null {
   const { hideValues } = usePrivacyMode()
   const { displayCurrency, projection, isLoading, error } =
     useCompositeProjectionContext()
@@ -52,7 +52,7 @@ export default function WealthJourneyTab(): React.ReactElement {
   }
 
   if (!projection) {
-    return null as unknown as React.ReactElement
+    return null
   }
 
   const chartData = projection.yearlyProjections.map((row) => ({
@@ -66,7 +66,7 @@ export default function WealthJourneyTab(): React.ReactElement {
   }))
 
   if (chartData.length === 0) {
-    return null as unknown as React.ReactElement
+    return null
   }
 
   const phaseBoundaries = projection.phases.map((phase, idx) => ({
@@ -158,9 +158,9 @@ export default function WealthJourneyTab(): React.ReactElement {
             <ReferenceLine y={0} stroke="#ef4444" strokeWidth={2} />
 
             {/* Phase background shading */}
-            {phaseBoundaries.map((pb, idx) => (
+            {phaseBoundaries.map((pb) => (
               <ReferenceArea
-                key={`phase-bg-${idx}`}
+                key={`phase-bg-${pb.planId}-${pb.fromAge}`}
                 x1={pb.fromAge}
                 x2={pb.toAge}
                 fill={pb.color.fill}
@@ -172,7 +172,7 @@ export default function WealthJourneyTab(): React.ReactElement {
             {phaseBoundaries.map((pb, idx) =>
               idx > 0 ? (
                 <ReferenceLine
-                  key={`phase-line-${idx}`}
+                  key={`phase-line-${pb.planId}-${pb.fromAge}`}
                   x={pb.fromAge}
                   stroke={pb.color.stroke}
                   strokeDasharray="5 5"
@@ -215,9 +215,9 @@ export default function WealthJourneyTab(): React.ReactElement {
 
       {/* Phase legend */}
       <div className="flex flex-wrap gap-3 mt-3 pt-3 border-t border-gray-100">
-        {phaseBoundaries.map((pb, idx) => (
+        {phaseBoundaries.map((pb) => (
           <div
-            key={idx}
+            key={`${pb.planId}-${pb.fromAge}`}
             className="flex items-center gap-1.5 text-xs text-gray-600"
           >
             <span
