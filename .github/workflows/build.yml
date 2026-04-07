@@ -1,5 +1,10 @@
 name: Build and Package
 
+# NOTE: The "test" job below is the gating signal for Renovate auto-merge.
+# It must be configured as a required status check in branch protection on main
+# so that dependency PRs cannot merge with failing tests. Without this, Renovate
+# automerge will land breaking lockfile updates (see #614 for an example).
+
 on:
   push:
   pull_request:
