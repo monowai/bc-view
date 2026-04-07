@@ -10,18 +10,14 @@ import {
 } from "recharts"
 import { MonteCarloResult } from "types/independence"
 
-const HIDDEN_VALUE = "****"
-
 interface DepletionHistogramProps {
   distribution: MonteCarloResult["depletionAgeDistribution"]
   iterations: number
-  hideValues: boolean
 }
 
 export function DepletionHistogram({
   distribution,
   iterations,
-  hideValues,
 }: DepletionHistogramProps): React.ReactElement | null {
   const histogramData = (() => {
     const sorted = Object.entries(distribution.histogram)
@@ -84,16 +80,6 @@ export function DepletionHistogram({
                   (d) => d.age === Number(label),
                 )
                 if (!entry) return null
-                if (hideValues) {
-                  return (
-                    <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-xs">
-                      <div className="font-semibold text-gray-700 mb-1">
-                        Age {label}
-                      </div>
-                      <div>{HIDDEN_VALUE}</div>
-                    </div>
-                  )
-                }
                 // Find depleted path summaries for this age
                 const paths =
                   distribution.depletedPaths?.filter(

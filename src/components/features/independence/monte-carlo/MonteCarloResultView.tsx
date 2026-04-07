@@ -4,12 +4,14 @@ import { FanChart } from "./FanChart"
 import { DepletionHistogram } from "./DepletionHistogram"
 import { PercentileTable } from "./PercentileTable"
 
-const HIDDEN_VALUE = "****"
-
 interface MonteCarloResultViewProps {
   result: MonteCarloResult
   deterministicProjection?: RetirementProjection
   currency: string
+  /**
+   * When true, dollar values are masked. Percentages, counts, ages and years
+   * remain visible — privacy mode hides money, not the shape of the result.
+   */
   hideValues: boolean
 }
 
@@ -45,29 +47,22 @@ export function MonteCarloResultView({
             <div
               className={`text-4xl font-bold ${successRateColor(result.successRate)}`}
             >
-              {hideValues
-                ? HIDDEN_VALUE
-                : `${result.successRate.toFixed(1)}%`}
+              {result.successRate.toFixed(1)}%
             </div>
             <div className="text-sm text-gray-500 mt-1">
-              {hideValues
-                ? HIDDEN_VALUE
-                : `${result.depletionAgeDistribution.survivedCount.toLocaleString()} of ${result.iterations.toLocaleString()} iterations survived the full planning horizon`}
+              {result.depletionAgeDistribution.survivedCount.toLocaleString()}{" "}
+              of {result.iterations.toLocaleString()} iterations survived the
+              full planning horizon
             </div>
           </div>
           <div className="text-right text-sm text-gray-500">
             <div>
-              Deterministic runway:{" "}
-              {hideValues
-                ? HIDDEN_VALUE
-                : `${result.deterministicRunwayYears} years`}
+              Deterministic runway: {result.deterministicRunwayYears} years
             </div>
             {result.deterministicDepletionAge && (
               <div>
                 Deterministic depletion age:{" "}
-                {hideValues
-                  ? HIDDEN_VALUE
-                  : result.deterministicDepletionAge}
+                {result.deterministicDepletionAge}
               </div>
             )}
           </div>
@@ -100,17 +95,13 @@ export function MonteCarloResultView({
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Survived</span>
               <span className="font-medium text-green-600">
-                {hideValues
-                  ? HIDDEN_VALUE
-                  : result.depletionAgeDistribution.survivedCount.toLocaleString()}
+                {result.depletionAgeDistribution.survivedCount.toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Depleted</span>
               <span className="font-medium text-red-600">
-                {hideValues
-                  ? HIDDEN_VALUE
-                  : result.depletionAgeDistribution.depletedCount.toLocaleString()}
+                {result.depletionAgeDistribution.depletedCount.toLocaleString()}
               </span>
             </div>
             {result.depletionAgeDistribution.earliestDepletionAge && (
@@ -119,9 +110,7 @@ export function MonteCarloResultView({
                   Earliest depletion age
                 </span>
                 <span className="font-medium text-gray-900">
-                  {hideValues
-                    ? HIDDEN_VALUE
-                    : result.depletionAgeDistribution.earliestDepletionAge}
+                  {result.depletionAgeDistribution.earliestDepletionAge}
                 </span>
               </div>
             )}
@@ -131,10 +120,7 @@ export function MonteCarloResultView({
                   Most common depletion age
                 </span>
                 <span className="font-medium text-gray-900">
-                  {hideValues
-                    ? HIDDEN_VALUE
-                    : result.depletionAgeDistribution
-                        .mostCommonDepletionAge}
+                  {result.depletionAgeDistribution.mostCommonDepletionAge}
                 </span>
               </div>
             )}
@@ -185,7 +171,6 @@ export function MonteCarloResultView({
       <DepletionHistogram
         distribution={result.depletionAgeDistribution}
         iterations={result.iterations}
-        hideValues={hideValues}
       />
     </>
   )
