@@ -1,0 +1,408 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`MonteCarloTab snapshot baseline matches snapshot with fixture result 1`] = `
+<div>
+  <div
+    class="space-y-6"
+  >
+    <div
+      class="bg-white rounded-xl shadow-md p-6"
+    >
+      <div
+        class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+      >
+        <div>
+          <h2
+            class="text-lg font-semibold text-gray-900"
+          >
+            Monte Carlo Simulation
+          </h2>
+          <p
+            class="text-sm text-gray-500 mt-1"
+          >
+            Randomise returns and inflation to estimate the probability your plan survives the full planning horizon.
+          </p>
+        </div>
+        <div
+          class="flex items-center gap-3 shrink-0"
+        >
+          <select
+            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
+          >
+            <option
+              value="500"
+            >
+              500
+               iterations
+            </option>
+            <option
+              value="1000"
+            >
+              1,000
+               iterations
+            </option>
+            <option
+              value="2000"
+            >
+              2,000
+               iterations
+            </option>
+            <option
+              value="5000"
+            >
+              5,000
+               iterations
+            </option>
+          </select>
+          <button
+            class="px-4 py-2 bg-independence-500 hover:bg-independence-600 disabled:bg-independence-200 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+          >
+            <i
+              class="fas fa-play"
+            />
+            Run Simulation
+          </button>
+        </div>
+      </div>
+    </div>
+    <div
+      class="rounded-xl shadow-md p-6 border bg-amber-50 border-amber-200"
+    >
+      <div
+        class="flex items-center justify-between"
+      >
+        <div>
+          <div
+            class="text-sm font-medium text-gray-600 mb-1"
+          >
+            Success Rate
+          </div>
+          <div
+            class="text-4xl font-bold text-amber-600"
+          >
+            72.5%
+          </div>
+          <div
+            class="text-sm text-gray-500 mt-1"
+          >
+            725 of 1,000 iterations survived the full planning horizon
+          </div>
+        </div>
+        <div
+          class="text-right text-sm text-gray-500"
+        >
+          <div>
+            Deterministic runway:
+             
+            28 years
+          </div>
+          <div>
+            Deterministic depletion age:
+             
+            88
+          </div>
+        </div>
+      </div>
+    </div>
+    <div
+      class="bg-white rounded-xl shadow-md p-6"
+    >
+      <div
+        class="flex items-center justify-between mb-4"
+      >
+        <h3
+          class="text-lg font-semibold text-gray-900"
+        >
+          Projected Balance Range
+        </h3>
+        <button
+          class="text-xs px-2 py-1 rounded transition-colors bg-gray-100 text-gray-600 hover:bg-gray-200"
+          title="Hide tooltip"
+          type="button"
+        >
+          <i
+            class="fas fa-eye-slash mr-1"
+          />
+          Tooltip
+        </button>
+      </div>
+      <div
+        class="h-72"
+      >
+        <div
+          style="width: 800px; height: 400px;"
+        >
+          <div
+            class="recharts-wrapper"
+            style="position: relative; cursor: default;"
+          />
+        </div>
+      </div>
+    </div>
+    <div
+      class="grid grid-cols-1 lg:grid-cols-3 gap-6"
+    >
+      <div
+        class="bg-white rounded-xl shadow-md p-6"
+      >
+        <h3
+          class="text-sm font-semibold text-gray-900 mb-3"
+        >
+          Terminal Balance Percentiles
+        </h3>
+        <div
+          class="space-y-2 text-sm"
+        >
+          <div
+            class="flex justify-between items-center"
+          >
+            <span
+              class="text-gray-600"
+            >
+              p95
+            </span>
+            <span
+              class="font-medium text-gray-900"
+            >
+              S$2,400,000
+            </span>
+          </div>
+          <div
+            class="flex justify-between items-center"
+          >
+            <span
+              class="text-gray-600"
+            >
+              p75
+            </span>
+            <span
+              class="font-medium text-gray-900"
+            >
+              S$1,200,000
+            </span>
+          </div>
+          <div
+            class="flex justify-between items-center"
+          >
+            <span
+              class="text-gray-600"
+            >
+              p50
+            </span>
+            <span
+              class="font-medium text-gray-900"
+            >
+              S$600,000
+            </span>
+          </div>
+          <div
+            class="flex justify-between items-center"
+          >
+            <span
+              class="text-gray-600"
+            >
+              p25
+            </span>
+            <span
+              class="font-medium text-gray-900"
+            >
+              S$250,000
+            </span>
+          </div>
+          <div
+            class="flex justify-between items-center"
+          >
+            <span
+              class="text-gray-600"
+            >
+              p5
+            </span>
+            <span
+              class="font-medium text-gray-900"
+            >
+              S$0
+            </span>
+          </div>
+        </div>
+      </div>
+      <div
+        class="bg-white rounded-xl shadow-md p-6"
+      >
+        <h3
+          class="text-sm font-semibold text-gray-900 mb-3"
+        >
+          Depletion Distribution
+        </h3>
+        <div
+          class="space-y-2 text-sm"
+        >
+          <div
+            class="flex justify-between items-center"
+          >
+            <span
+              class="text-gray-600"
+            >
+              Survived
+            </span>
+            <span
+              class="font-medium text-green-600"
+            >
+              725
+            </span>
+          </div>
+          <div
+            class="flex justify-between items-center"
+          >
+            <span
+              class="text-gray-600"
+            >
+              Depleted
+            </span>
+            <span
+              class="font-medium text-red-600"
+            >
+              275
+            </span>
+          </div>
+          <div
+            class="flex justify-between items-center"
+          >
+            <span
+              class="text-gray-600"
+            >
+              Earliest depletion age
+            </span>
+            <span
+              class="font-medium text-gray-900"
+            >
+              78
+            </span>
+          </div>
+          <div
+            class="flex justify-between items-center"
+          >
+            <span
+              class="text-gray-600"
+            >
+              Most common depletion age
+            </span>
+            <span
+              class="font-medium text-gray-900"
+            >
+              84
+            </span>
+          </div>
+        </div>
+      </div>
+      <div
+        class="bg-white rounded-xl shadow-md p-6"
+      >
+        <h3
+          class="text-sm font-semibold text-gray-900 mb-3"
+        >
+          Simulation Parameters
+        </h3>
+        <div
+          class="space-y-2 text-sm"
+        >
+          <div
+            class="flex justify-between items-center"
+          >
+            <span
+              class="text-gray-600"
+            >
+              Blended return
+            </span>
+            <span
+              class="font-medium text-gray-900"
+            >
+              5.80
+              %
+            </span>
+          </div>
+          <div
+            class="flex justify-between items-center"
+          >
+            <span
+              class="text-gray-600"
+            >
+              Blended volatility
+            </span>
+            <span
+              class="font-medium text-gray-900"
+            >
+              12.40
+              %
+            </span>
+          </div>
+          <div
+            class="flex justify-between items-center"
+          >
+            <span
+              class="text-gray-600"
+            >
+              Inflation
+            </span>
+            <span
+              class="font-medium text-gray-900"
+            >
+              3.00
+              %
+            </span>
+          </div>
+          <div
+            class="flex justify-between items-center"
+          >
+            <span
+              class="text-gray-600"
+            >
+              Inflation vol
+            </span>
+            <span
+              class="font-medium text-gray-900"
+            >
+              1.20
+              %
+            </span>
+          </div>
+          <div
+            class="flex justify-between items-center"
+          >
+            <span
+              class="text-gray-600"
+            >
+              Iterations
+            </span>
+            <span
+              class="font-medium text-gray-900"
+            >
+              1,000
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div
+      class="bg-white rounded-xl shadow-md p-6"
+    >
+      <h3
+        class="text-lg font-semibold text-gray-900 mb-4"
+      >
+        Depletion Age Distribution
+      </h3>
+      <div
+        class="h-48"
+      >
+        <div
+          style="width: 800px; height: 400px;"
+        >
+          <div
+            class="recharts-wrapper"
+            style="position: relative; cursor: default;"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
