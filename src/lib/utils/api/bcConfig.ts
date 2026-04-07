@@ -42,6 +42,8 @@ export const getCompositeProjectionUrl = (): string =>
   getRetireUrl("/composite/projection")
 export const getCompositeScenariosUrl = (): string =>
   getRetireUrl("/composite/scenarios")
+export const getCompositeMonteCarloUrl = (): string =>
+  getRetireUrl("/composite/monte-carlo")
 
 export function getRebalanceActuatorUrl(path: string = ""): string {
   return `${process.env.BC_REBALANCE_ACTUATOR || process.env.BC_REBALANCE}${path}`
