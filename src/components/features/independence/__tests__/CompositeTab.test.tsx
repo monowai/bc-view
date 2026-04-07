@@ -220,10 +220,12 @@ describe("CompositeTab", () => {
     expect(screen.getByText("Year-by-Year Timeline")).toBeInTheDocument()
   })
 
-  it("switches to the Stress Test placeholder tab when clicked", async () => {
+  it("switches to the Stress Test tab when clicked", async () => {
     render(<CompositeTab plans={plans} settings={settings} />)
     await userEvent.click(screen.getByRole("tab", { name: /Stress Test/ }))
-    expect(screen.getByText(/Stress Test tab/i)).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: /Run Stress Test/ }),
+    ).toBeInTheDocument()
   })
 
   it("renders error inside Plans tab when present", () => {
