@@ -24,6 +24,9 @@ export interface CompositeProjectionValue {
   setDisplayCurrency: (currency: string) => void
   excludedPlanIds: Set<string>
   toggleExclusion: (planId: string) => void
+  /** Overarching composite-plan narrative (shared across all phases). */
+  compositeNarrative: string
+  setCompositeNarrative: (narrative: string) => void
 
   // Results
   projection: CompositeProjectionResult | undefined

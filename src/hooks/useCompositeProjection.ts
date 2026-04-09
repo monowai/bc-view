@@ -21,6 +21,9 @@ export interface UseCompositeProjectionResult {
   setDisplayCurrency: (currency: string) => void
   excludedPlanIds: Set<string>
   toggleExclusion: (planId: string) => void
+  /** Free-form narrative describing the overarching composite-plan goal. */
+  compositeNarrative: string
+  setCompositeNarrative: (narrative: string) => void
   projection: CompositeProjectionResult | undefined
   scenarios: CompositeScenarioComparison | undefined
   isLoading: boolean
@@ -96,6 +99,7 @@ export function useCompositeProjection(
   const [excludedPlanIds, setExcludedPlanIds] = useState<Set<string>>(new Set())
   const [phases, setPhases] = useState<CompositePhase[]>([])
   const [displayCurrency, setDisplayCurrency] = useState(defaultCurrency)
+  const [compositeNarrative, setCompositeNarrative] = useState<string>("")
   const [initialized, setInitialized] = useState(false)
   const [projection, setProjection] = useState<
     CompositeProjectionResult | undefined
@@ -117,9 +121,11 @@ export function useCompositeProjection(
     )
     const savedPhases = parseSavedPhases(settings.compositePhases)
     const savedCurrency = settings.compositeDisplayCurrency
+    const savedNarrative = settings.compositeNarrative
 
     if (savedExclusions) setExcludedPlanIds(savedExclusions)
     if (savedCurrency) setDisplayCurrency(savedCurrency)
+    if (savedNarrative != null) setCompositeNarrative(savedNarrative)
 
     // Validate saved phases — all planIds must still exist
     const planIds = new Set(plans.map((p) => p.id))
@@ -153,6 +159,7 @@ export function useCompositeProjection(
         compositeDisplayCurrency: displayCurrency,
         compositePhases: JSON.stringify(phases),
         compositeExcludedPlanIds: JSON.stringify(Array.from(excludedPlanIds)),
+        compositeNarrative: compositeNarrative,
       }).catch(() => {
         // Silent save failure — not critical
       })
@@ -162,7 +169,13 @@ export function useCompositeProjection(
       if (saveTimer.current) clearTimeout(saveTimer.current)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phases, displayCurrency, excludedPlanIds, initialized])
+  }, [
+    phases,
+    displayCurrency,
+    excludedPlanIds,
+    compositeNarrative,
+    initialized,
+  ])
 
   const toggleExclusion = useCallback(
     (planId: string) => {
@@ -206,6 +219,15 @@ export function useCompositeProjection(
         phases,
       }
 
+      // Reset result state to an error with the given message. Used for
+      // both expected HTTP-non-OK responses and unexpected network errors
+      // so we don't duplicate setter calls in two branches.
+      const reportError = (message: string): void => {
+        setError(message)
+        setProjection(undefined)
+        setScenarios(undefined)
+      }
+
       try {
         const [projRes, scenRes] = await Promise.all([
           fetch(COMPOSITE_PROJECTION_URL, {
@@ -220,11 +242,15 @@ export function useCompositeProjection(
           }),
         ])
 
+        // Expected-failure path: the projection endpoint returned non-2xx.
+        // Handle it inline instead of throwing-and-catching-locally, which
+        // is an anti-pattern (sonarjs S3696 / similar).
         if (!projRes.ok) {
           const errData = await projRes.json().catch(() => ({}))
-          throw new Error(
+          reportError(
             errData.message || `Projection failed (${projRes.status})`,
           )
+          return
         }
 
         const projData = await projRes.json()
@@ -235,11 +261,12 @@ export function useCompositeProjection(
           setScenarios(scenData.data)
         }
       } catch (err) {
+        // Only genuinely unexpected errors reach here — fetch rejection
+        // (network down, DNS failure, CORS), response.json() parse errors
+        // on a body that claimed to be JSON but wasn't, etc.
         const message =
           err instanceof Error ? err.message : "Failed to fetch projection"
-        setError(message)
-        setProjection(undefined)
-        setScenarios(undefined)
+        reportError(message)
       } finally {
         setIsLoading(false)
       }
@@ -259,6 +286,8 @@ export function useCompositeProjection(
     setDisplayCurrency,
     excludedPlanIds,
     toggleExclusion,
+    compositeNarrative,
+    setCompositeNarrative,
     projection,
     scenarios,
     isLoading,

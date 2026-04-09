@@ -799,6 +799,12 @@ export interface UserIndependenceSettings {
   compositeDisplayCurrency?: string
   compositePhases?: string
   compositeExcludedPlanIds?: string
+  /**
+   * Free-form narrative describing the overarching goal of the composite
+   * plan — applies across ALL phases. Surfaced to svc-agent as shared
+   * cross-plan context.
+   */
+  compositeNarrative?: string
   createdDate: string
   updatedDate: string
 }
@@ -811,6 +817,8 @@ export interface UpdateSettingsRequest {
   compositeDisplayCurrency?: string
   compositePhases?: string
   compositeExcludedPlanIds?: string
+  /** Free-form composite-level narrative. Empty string clears it. */
+  compositeNarrative?: string
 }
 
 // ============ Composite Projection Types ============

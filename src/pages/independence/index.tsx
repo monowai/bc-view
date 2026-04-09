@@ -9,6 +9,7 @@ import { PlansResponse, RetirementPlan, PlanExport } from "types/independence"
 import { HoldingContract } from "types/beancounter"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
+import { sortPlansByCompositeOrder } from "@lib/independence/planOrdering"
 import {
   useAssetBreakdown,
   useFiProjectionSimple,
@@ -292,8 +293,12 @@ function RetirementPlanning(): React.ReactElement {
   const holdingsData = holdingsLoading ? undefined : holdingsResponse?.data
   const assets = useAssetBreakdown(holdingsData)
 
-  // Backend returns plans sorted: primary first, then by name
-  const plans = data?.data || []
+  // Backend returns plans sorted primary-first-then-by-name. Once the user
+  // has configured a composite, we re-order so plans follow the sequence
+  // they've defined on the Composite tab — a timeline like Singapore → NZ →
+  // Thailand should show those cards in that order everywhere. Plans not in
+  // the composite retain their backend order behind the sequenced ones.
+  const plans = sortPlansByCompositeOrder(data?.data || [], settings)
 
   const handleExportPlan = async (plan: RetirementPlan): Promise<void> => {
     try {

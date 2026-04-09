@@ -136,15 +136,14 @@ export default function PersonalInfoStep({
                 value={field.value ?? ""}
                 id="country"
                 type="text"
-                placeholder="e.g., Thailand"
+                placeholder="e.g. Philippines"
                 className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 border-gray-300"
               />
             )}
           />
           <p className="mt-1 text-sm text-gray-500">
             Which country do the values in this plan apply to? For example, you
-            might be working in Singapore but planning to retire in Thailand —
-            the values here are for Thailand.
+            might be earning in one country but planning to retire to another.
           </p>
         </div>
 

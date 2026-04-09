@@ -111,6 +111,8 @@ function makeCtx(
     setDisplayCurrency: jest.fn(),
     excludedPlanIds: new Set<string>(),
     toggleExclusion: jest.fn(),
+    compositeNarrative: "",
+    setCompositeNarrative: jest.fn(),
     projection: undefined,
     scenarios: undefined,
     isLoading: false,
