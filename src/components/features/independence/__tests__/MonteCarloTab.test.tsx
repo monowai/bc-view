@@ -1,10 +1,7 @@
 import React from "react"
 import { render } from "@testing-library/react"
 import "@testing-library/jest-dom"
-import type {
-  RetirementPlan,
-  RetirementProjection,
-} from "types/independence"
+import type { RetirementPlan, RetirementProjection } from "types/independence"
 import type { AssetBreakdown } from "../useAssetBreakdown"
 import type { WhatIfAdjustments, ScenarioOverrides } from "../types"
 

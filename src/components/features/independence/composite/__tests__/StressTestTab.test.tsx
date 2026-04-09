@@ -2,10 +2,7 @@ import React from "react"
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import "@testing-library/jest-dom"
-import type {
-  CompositePhase,
-  MonteCarloResult,
-} from "types/independence"
+import type { CompositePhase, MonteCarloResult } from "types/independence"
 import {
   CompositeProjectionProvider,
   type CompositeProjectionValue,
@@ -122,9 +119,7 @@ function makeCtx(
   }
 }
 
-function renderWithCtx(
-  ctxOverrides: Partial<CompositeProjectionValue> = {},
-): {
+function renderWithCtx(ctxOverrides: Partial<CompositeProjectionValue> = {}): {
   ctx: CompositeProjectionValue
   rerender: (newCtx: CompositeProjectionValue) => void
 } {
@@ -173,9 +168,7 @@ describe("StressTestTab", () => {
     renderWithCtx()
 
     // Default iterations = 1000
-    await user.click(
-      screen.getByRole("button", { name: /Run Stress Test/i }),
-    )
+    await user.click(screen.getByRole("button", { name: /Run Stress Test/i }))
 
     expect(mockRunSimulation).toHaveBeenCalledTimes(1)
     expect(mockRunSimulation).toHaveBeenCalledWith({
@@ -189,13 +182,8 @@ describe("StressTestTab", () => {
     const user = userEvent.setup()
     renderWithCtx()
 
-    await user.selectOptions(
-      screen.getByLabelText(/Iterations/i),
-      "5000",
-    )
-    await user.click(
-      screen.getByRole("button", { name: /Run Stress Test/i }),
-    )
+    await user.selectOptions(screen.getByLabelText(/Iterations/i), "5000")
+    await user.click(screen.getByRole("button", { name: /Run Stress Test/i }))
 
     expect(mockRunSimulation).toHaveBeenCalledWith(
       expect.objectContaining({ iterations: 5000 }),
@@ -241,9 +229,7 @@ describe("StressTestTab", () => {
     const { rerender } = renderWithCtx()
 
     // No stale indicator on initial render with a result.
-    expect(
-      screen.queryByText(/Results are stale/i),
-    ).not.toBeInTheDocument()
+    expect(screen.queryByText(/Results are stale/i)).not.toBeInTheDocument()
 
     // Change the phases — should trigger the stale state.
     rerender(
@@ -267,8 +253,6 @@ describe("StressTestTab", () => {
   it("disables Run button while isRunning", () => {
     mockHookState = { result: null, isRunning: true, error: null }
     renderWithCtx()
-    expect(
-      screen.getByRole("button", { name: /Running/i }),
-    ).toBeDisabled()
+    expect(screen.getByRole("button", { name: /Running/i })).toBeDisabled()
   })
 })

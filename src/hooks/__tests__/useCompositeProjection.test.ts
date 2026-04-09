@@ -122,10 +122,7 @@ describe("buildInitialPhases", () => {
   })
 
   it("last phase always has undefined toAge", () => {
-    const plans = [
-      makePlan({ id: "p1" }),
-      makePlan({ id: "p2" }),
-    ]
+    const plans = [makePlan({ id: "p1" }), makePlan({ id: "p2" })]
     const phases = buildInitialPhases(plans, new Set(), 60, 90)
 
     expect(phases[phases.length - 1].toAge).toBeUndefined()

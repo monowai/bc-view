@@ -102,8 +102,7 @@ exports[`MonteCarloTab snapshot baseline matches snapshot with fixture result 1`
              years
           </div>
           <div>
-            Deterministic depletion age:
-             
+            Deterministic depletion age: 
             88
           </div>
         </div>

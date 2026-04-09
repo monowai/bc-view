@@ -76,9 +76,7 @@ export function DepletionHistogram({
             <ChartTooltip
               content={({ active, payload, label }) => {
                 if (!active || !payload?.length) return null
-                const entry = histogramData.find(
-                  (d) => d.age === Number(label),
-                )
+                const entry = histogramData.find((d) => d.age === Number(label))
                 if (!entry) return null
                 // Find depleted path summaries for this age
                 const paths =
@@ -92,9 +90,7 @@ export function DepletionHistogram({
                     </div>
                     <div className="space-y-1">
                       <div className="flex justify-between gap-4">
-                        <span className="text-gray-600">
-                          Iterations
-                        </span>
+                        <span className="text-gray-600">Iterations</span>
                         <span className="font-medium text-red-700">
                           {entry.count.toLocaleString()}
                         </span>
@@ -108,9 +104,7 @@ export function DepletionHistogram({
                         </span>
                       </div>
                       <div className="flex justify-between gap-4">
-                        <span className="text-gray-600">
-                          % of depleted
-                        </span>
+                        <span className="text-gray-600">% of depleted</span>
                         <span className="font-medium text-gray-900">
                           {entry.pctOfDepleted.toFixed(1)}%
                         </span>
@@ -137,18 +131,14 @@ export function DepletionHistogram({
                         </div>
                         {(() => {
                           const avgReturn =
-                            paths.reduce(
-                              (s, p) => s + p.averageReturn,
-                              0,
-                            ) / paths.length
+                            paths.reduce((s, p) => s + p.averageReturn, 0) /
+                            paths.length
                           const worstReturn = Math.min(
                             ...paths.map((p) => p.worstReturn),
                           )
                           const avgInflation =
-                            paths.reduce(
-                              (s, p) => s + p.averageInflation,
-                              0,
-                            ) / paths.length
+                            paths.reduce((s, p) => s + p.averageInflation, 0) /
+                            paths.length
                           const worstInflation = Math.max(
                             ...paths.map((p) => p.worstInflation),
                           )
@@ -193,8 +183,7 @@ export function DepletionHistogram({
                     )}
                     {paths.length === 0 && (
                       <div className="mt-2 pt-2 border-t border-gray-100 text-gray-500">
-                        Worst-case return sequences depleted funds by
-                        this age
+                        Worst-case return sequences depleted funds by this age
                       </div>
                     )}
                   </div>

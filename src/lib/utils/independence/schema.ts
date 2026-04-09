@@ -10,6 +10,14 @@ export const personalInfoSchema = yup.object({
     .string()
     .required("Currency is required")
     .default("NZD"),
+  country: yup
+    .string()
+    .max(64, "Country must be 64 characters or less")
+    .optional(),
+  narrative: yup
+    .string()
+    .max(2000, "Narrative must be 2000 characters or less")
+    .optional(),
 })
 
 export const preRetirementSchema = yup.object({
@@ -145,6 +153,8 @@ const currentYear = new Date().getFullYear()
 
 export const defaultWizardValues = {
   planName: "",
+  country: "",
+  narrative: "",
   yearOfBirth: currentYear - 55, // Default to age 55 (kept for form type compatibility)
   targetRetirementAge: 65, // Kept for form type compatibility
   lifeExpectancy: 90, // Kept for form type compatibility

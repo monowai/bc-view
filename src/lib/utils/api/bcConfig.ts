@@ -35,7 +35,8 @@ export function getRebalanceUrl(path: string = ""): string {
 }
 
 // Independence settings
-export const getIndependenceSettingsUrl = (): string => getRetireUrl("/settings")
+export const getIndependenceSettingsUrl = (): string =>
+  getRetireUrl("/settings")
 
 // Composite projection
 export const getCompositeProjectionUrl = (): string =>

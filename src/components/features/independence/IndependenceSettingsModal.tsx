@@ -194,9 +194,7 @@ export default function IndependenceSettingsModal({
               id="settings-targetIndependenceAge"
               type="number"
               value={targetIndependenceAge}
-              onChange={(e) =>
-                setTargetIndependenceAge(Number(e.target.value))
-              }
+              onChange={(e) => setTargetIndependenceAge(Number(e.target.value))}
               min={18}
               max={100}
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 border-gray-300"

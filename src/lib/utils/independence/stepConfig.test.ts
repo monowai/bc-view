@@ -129,7 +129,7 @@ describe("getStepFields", () => {
   })
 
   it("should return correct number of fields for each step", () => {
-    expect(getStepFields(1)).toHaveLength(2) // Personal Info (planName, expensesCurrency)
+    expect(getStepFields(1)).toHaveLength(4) // Personal Info (planName, expensesCurrency, country, narrative)
     expect(getStepFields(2)).toHaveLength(1) // Working Expenses
     expect(getStepFields(3)).toHaveLength(3) // Income & Contributions
     expect(getStepFields(4)).toHaveLength(2) // Assets

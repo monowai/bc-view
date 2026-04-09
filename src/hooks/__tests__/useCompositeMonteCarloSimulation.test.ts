@@ -80,9 +80,7 @@ describe("useCompositeMonteCarloSimulation", () => {
       })
     })
 
-    const body = JSON.parse(
-      (global.fetch as jest.Mock).mock.calls[0][1].body,
-    )
+    const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body)
     expect(body).not.toHaveProperty("seed")
   })
 

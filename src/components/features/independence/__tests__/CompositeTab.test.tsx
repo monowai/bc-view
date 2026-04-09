@@ -159,9 +159,7 @@ describe("CompositeTab", () => {
     expect(
       screen.getByRole("tab", { name: /Wealth Journey/ }),
     ).toBeInTheDocument()
-    expect(
-      screen.getByRole("tab", { name: /Stress Test/ }),
-    ).toBeInTheDocument()
+    expect(screen.getByRole("tab", { name: /Stress Test/ })).toBeInTheDocument()
     expect(
       screen.getByRole("tab", { name: /Year-by-Year/ }),
     ).toBeInTheDocument()
@@ -176,9 +174,7 @@ describe("CompositeTab", () => {
 
   it("does not render Year-by-Year timeline by default", () => {
     render(<CompositeTab plans={plans} settings={settings} />)
-    expect(
-      screen.queryByText("Year-by-Year Timeline"),
-    ).not.toBeInTheDocument()
+    expect(screen.queryByText("Year-by-Year Timeline")).not.toBeInTheDocument()
   })
 
   it("switches to the Wealth Journey tab when clicked", async () => {
@@ -229,9 +225,7 @@ describe("CompositeTab", () => {
     useCompositeProjection.mockReturnValue(projectionState)
 
     render(<CompositeTab plans={plans} settings={settings} />)
-    await userEvent.click(
-      screen.getByRole("tab", { name: /Year-by-Year/ }),
-    )
+    await userEvent.click(screen.getByRole("tab", { name: /Year-by-Year/ }))
 
     expect(screen.getByText("Year-by-Year Timeline")).toBeInTheDocument()
   })

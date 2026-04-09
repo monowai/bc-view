@@ -105,15 +105,9 @@ export function FanChart({
                 content={({ active, payload, label }) => {
                   if (!active || !payload?.length) return null
                   // Hide tooltip when p50, p75, and p95 are all 0
-                  const p50 = payload.find(
-                    (p) => p.dataKey === "p50",
-                  )?.value
-                  const p75 = payload.find(
-                    (p) => p.dataKey === "p75",
-                  )?.value
-                  const p95 = payload.find(
-                    (p) => p.dataKey === "p95",
-                  )?.value
+                  const p50 = payload.find((p) => p.dataKey === "p50")?.value
+                  const p75 = payload.find((p) => p.dataKey === "p75")?.value
+                  const p95 = payload.find((p) => p.dataKey === "p95")?.value
                   if (
                     Number(p50 ?? 0) === 0 &&
                     Number(p75 ?? 0) === 0 &&
@@ -151,8 +145,7 @@ export function FanChart({
                           .filter((p) => p.value != null)
                           .map((p) => {
                             const key = String(p.dataKey ?? "")
-                            const isDeterministic =
-                              key === "deterministic"
+                            const isDeterministic = key === "deterministic"
                             return (
                               <div
                                 key={key}
@@ -170,9 +163,7 @@ export function FanChart({
                                 <span
                                   className={`font-medium ${isDeterministic ? "text-blue-700" : "text-gray-900"}`}
                                 >
-                                  {formatFullCurrency(
-                                    Number(p.value ?? 0),
-                                  )}
+                                  {formatFullCurrency(Number(p.value ?? 0))}
                                 </span>
                               </div>
                             )

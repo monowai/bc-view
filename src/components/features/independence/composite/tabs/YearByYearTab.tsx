@@ -59,15 +59,12 @@ export default function YearByYearTab(): React.ReactElement | null {
               (row: CompositeYearlyProjection, idx: number) => {
                 const isPhaseStart =
                   idx === 0 ||
-                  row.planId !==
-                    projection.yearlyProjections[idx - 1]?.planId
+                  row.planId !== projection.yearlyProjections[idx - 1]?.planId
                 return (
                   <tr
                     key={`${row.year}-${row.planId}`}
                     className={`border-b border-gray-50 ${
-                      isPhaseStart
-                        ? "border-t-2 border-t-independence-200"
-                        : ""
+                      isPhaseStart ? "border-t-2 border-t-independence-200" : ""
                     } ${row.endingBalance <= 0 ? "bg-red-50" : ""}`}
                   >
                     <td className="py-1.5 px-2 text-gray-600">{row.age}</td>

@@ -224,6 +224,8 @@ export default function WizardContainer({
         manualAssets,
         excludedPortfolioIds: formData.excludedPortfolioIds || [],
         excludedRentalAssetIds: formData.excludedRentalAssetIds || [],
+        country: formData.country?.trim() || undefined,
+        narrative: formData.narrative?.trim() || undefined,
         ...(!isEditMode && { clientId: clientId.trim() || undefined }),
       }
 
@@ -441,7 +443,13 @@ export default function WizardContainer({
           />
         )
       case 8:
-        return <LifeEventsStep control={control} setValue={setValue} isEditMode={isEditMode} />
+        return (
+          <LifeEventsStep
+            control={control}
+            setValue={setValue}
+            isEditMode={isEditMode}
+          />
+        )
       default:
         return null
     }

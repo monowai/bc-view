@@ -62,12 +62,14 @@ export default function TimelineTabContent({
   // Detect life events from projection data (years with non-zero lifeEventAmount)
   const lifeEventAges = useMemo(() => {
     if (!projection) return []
-    const events: { age: number; amount: number; type: "income" | "expense" }[] =
-      []
+    const events: {
+      age: number
+      amount: number
+      type: "income" | "expense"
+    }[] = []
     for (const y of projection.accumulationProjections || []) {
       // lifeEventAmount may be present in the JSON but not typed on YearlyAccumulation
-      const amt = (y as unknown as { lifeEventAmount?: number })
-        .lifeEventAmount
+      const amt = (y as unknown as { lifeEventAmount?: number }).lifeEventAmount
       if (amt && amt !== 0 && y.age != null) {
         events.push({
           age: y.age,
@@ -357,8 +359,7 @@ export default function TimelineTabContent({
                   label={{
                     value: `${event.type === "expense" ? "-" : "+"}$${Math.abs(Math.round(event.amount / 1000))}k`,
                     position: "insideTopRight",
-                    fill:
-                      event.type === "expense" ? "#ef4444" : "#22c55e",
+                    fill: event.type === "expense" ? "#ef4444" : "#22c55e",
                     fontSize: 10,
                   }}
                 />
@@ -468,7 +469,8 @@ export default function TimelineTabContent({
               <ChartTooltip
                 formatter={(value, name) => {
                   if (hideValues) {
-                    if (name === "negWithdrawals") return [HIDDEN_VALUE, "Withdrawals"]
+                    if (name === "negWithdrawals")
+                      return [HIDDEN_VALUE, "Withdrawals"]
                     return [HIDDEN_VALUE, "Returns & Income"]
                   }
                   const absVal = Math.abs(Number(value || 0))

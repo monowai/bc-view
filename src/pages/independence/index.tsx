@@ -179,9 +179,7 @@ function PlanCard({
                 <div
                   className={`h-full ${getProgressBgColor(fiProgress)} transition-all duration-500`}
                   style={{
-                    width: hideValues
-                      ? "0%"
-                      : `${Math.min(fiProgress, 100)}%`,
+                    width: hideValues ? "0%" : `${Math.min(fiProgress, 100)}%`,
                   }}
                 />
               </div>

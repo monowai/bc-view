@@ -61,8 +61,7 @@ export function MonteCarloResultView({
             </div>
             {result.deterministicDepletionAge && (
               <div>
-                Deterministic depletion age:{" "}
-                {result.deterministicDepletionAge}
+                Deterministic depletion age: {result.deterministicDepletionAge}
               </div>
             )}
           </div>
@@ -106,9 +105,7 @@ export function MonteCarloResultView({
             </div>
             {result.depletionAgeDistribution.earliestDepletionAge && (
               <div className="flex justify-between items-center">
-                <span className="text-gray-600">
-                  Earliest depletion age
-                </span>
+                <span className="text-gray-600">Earliest depletion age</span>
                 <span className="font-medium text-gray-900">
                   {result.depletionAgeDistribution.earliestDepletionAge}
                 </span>
@@ -116,9 +113,7 @@ export function MonteCarloResultView({
             )}
             {result.depletionAgeDistribution.mostCommonDepletionAge && (
               <div className="flex justify-between items-center">
-                <span className="text-gray-600">
-                  Most common depletion age
-                </span>
+                <span className="text-gray-600">Most common depletion age</span>
                 <span className="font-medium text-gray-900">
                   {result.depletionAgeDistribution.mostCommonDepletionAge}
                 </span>

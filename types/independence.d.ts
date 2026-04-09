@@ -41,6 +41,10 @@ export interface RetirementPlan {
   excludedPortfolioIds?: string[] | string // JSON array from backend
   excludedRentalAssetIds?: string[] | string // JSON array from backend
   clientId?: string // When set, plan managed by adviser on behalf of client
+  /** Optional free-text country whose values this plan targets (e.g. "Thailand"). */
+  country?: string
+  /** Optional user-authored narrative describing the plan's context / assumptions. */
+  narrative?: string
   isPrimary: boolean
   createdDate: string
   updatedDate: string
@@ -88,6 +92,10 @@ export interface PlanRequest {
   excludedPortfolioIds?: string[]
   excludedRentalAssetIds?: string[]
   clientId?: string
+  /** Optional country whose values this plan targets (e.g. "Thailand"). */
+  country?: string
+  /** Optional user-authored narrative describing the plan. */
+  narrative?: string
 }
 
 export interface PlanResponse {
@@ -562,6 +570,10 @@ export interface ContributionFormEntry {
 export interface WizardFormData {
   // Step 1: Personal Info
   planName: string
+  /** Optional free-text country whose values this plan targets (e.g. "Thailand"). */
+  country?: string
+  /** Optional user-authored narrative describing the plan context / assumptions. */
+  narrative?: string
   yearOfBirth: number
   targetRetirementAge: number
   lifeExpectancy: number
@@ -651,6 +663,10 @@ export interface PlanExport {
   lifeEvents?: string
   manualAssets?: Record<string, number>
   clientId?: string
+  /** Optional country whose values this plan targets. */
+  country?: string
+  /** Optional user-authored narrative describing the plan. */
+  narrative?: string
 }
 
 export interface PlanExportResponse {

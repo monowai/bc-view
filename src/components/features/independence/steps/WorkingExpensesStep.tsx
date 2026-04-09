@@ -96,7 +96,10 @@ export default function WorkingExpensesStep({
       0,
     )
     // Only call setValue when the total actually changes to avoid infinite loop
-    if (total !== prevTotalRef.current && (hasUserChanges.current || total > 0)) {
+    if (
+      total !== prevTotalRef.current &&
+      (hasUserChanges.current || total > 0)
+    ) {
       prevTotalRef.current = total
       setValue("workingExpensesMonthly", total)
     }

@@ -352,7 +352,9 @@ function PlanView(): React.ReactElement {
   // Use settings targetIndependenceAge, falling back to plan-derived value
   const retirementAge =
     independenceSettings?.targetIndependenceAge ??
-    (plan?.planningHorizonYears ? lifeExpectancy - plan.planningHorizonYears : 65)
+    (plan?.planningHorizonYears
+      ? lifeExpectancy - plan.planningHorizonYears
+      : 65)
 
   // Identify pension/policy assets with lump sum settings for FV projection
   const lumpSumAssets = useMemo((): LumpSumAsset[] => {

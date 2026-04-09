@@ -1,5 +1,10 @@
 import React, { useState } from "react"
-import { Control, useWatch, useFieldArray, UseFormSetValue } from "react-hook-form"
+import {
+  Control,
+  useWatch,
+  useFieldArray,
+  UseFormSetValue,
+} from "react-hook-form"
 import { WizardFormData, LifeEvent } from "types/independence"
 import { StepHeader } from "../form"
 
@@ -183,7 +188,10 @@ export default function LifeEventsStep({
                             type="number"
                             value={event.age}
                             onChange={(e) =>
-                              setValue(`lifeEvents.${index}.age`, parseInt(e.target.value) || 0)
+                              setValue(
+                                `lifeEvents.${index}.age`,
+                                parseInt(e.target.value) || 0,
+                              )
                             }
                             min={18}
                             max={120}
@@ -198,7 +206,10 @@ export default function LifeEventsStep({
                             type="number"
                             value={event.amount}
                             onChange={(e) =>
-                              setValue(`lifeEvents.${index}.amount`, parseFloat(e.target.value) || 0)
+                              setValue(
+                                `lifeEvents.${index}.amount`,
+                                parseFloat(e.target.value) || 0,
+                              )
                             }
                             min={0}
                             className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-independence-500"
@@ -209,7 +220,10 @@ export default function LifeEventsStep({
                         type="text"
                         value={event.description}
                         onChange={(e) =>
-                          setValue(`lifeEvents.${index}.description`, e.target.value)
+                          setValue(
+                            `lifeEvents.${index}.description`,
+                            e.target.value,
+                          )
                         }
                         className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-independence-500"
                       />
@@ -217,7 +231,12 @@ export default function LifeEventsStep({
                         <div className="flex gap-2">
                           <button
                             type="button"
-                            onClick={() => setValue(`lifeEvents.${index}.eventType`, "income")}
+                            onClick={() =>
+                              setValue(
+                                `lifeEvents.${index}.eventType`,
+                                "income",
+                              )
+                            }
                             className={`px-3 py-1 rounded text-xs font-medium ${
                               event.eventType === "income"
                                 ? "bg-green-500 text-white"
@@ -228,7 +247,12 @@ export default function LifeEventsStep({
                           </button>
                           <button
                             type="button"
-                            onClick={() => setValue(`lifeEvents.${index}.eventType`, "expense")}
+                            onClick={() =>
+                              setValue(
+                                `lifeEvents.${index}.eventType`,
+                                "expense",
+                              )
+                            }
                             className={`px-3 py-1 rounded text-xs font-medium ${
                               event.eventType === "expense"
                                 ? "bg-red-500 text-white"

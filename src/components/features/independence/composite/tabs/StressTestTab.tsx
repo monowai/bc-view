@@ -58,8 +58,8 @@ export default function StressTestTab(): React.ReactElement {
               Composite Stress Test
             </h2>
             <p className="text-sm text-gray-500 mt-1">
-              Randomise returns and inflation across all phases to estimate
-              the probability your composite plan survives the full planning
+              Randomise returns and inflation across all phases to estimate the
+              probability your composite plan survives the full planning
               horizon.
             </p>
           </div>

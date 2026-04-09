@@ -117,6 +117,67 @@ export default function PersonalInfoStep({
           </p>
         </div>
 
+        <div>
+          <label
+            htmlFor="country"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Country
+            <span className="ml-1 text-xs font-normal text-gray-500">
+              (optional)
+            </span>
+          </label>
+          <Controller
+            name="country"
+            control={control}
+            render={({ field }) => (
+              <input
+                {...field}
+                value={field.value ?? ""}
+                id="country"
+                type="text"
+                placeholder="e.g., Thailand"
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 border-gray-300"
+              />
+            )}
+          />
+          <p className="mt-1 text-sm text-gray-500">
+            Which country do the values in this plan apply to? For example, you
+            might be working in Singapore but planning to retire in Thailand —
+            the values here are for Thailand.
+          </p>
+        </div>
+
+        <div>
+          <label
+            htmlFor="narrative"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            About this plan
+            <span className="ml-1 text-xs font-normal text-gray-500">
+              (optional)
+            </span>
+          </label>
+          <Controller
+            name="narrative"
+            control={control}
+            render={({ field }) => (
+              <textarea
+                {...field}
+                value={field.value ?? ""}
+                id="narrative"
+                rows={4}
+                placeholder="Tell us a bit about this plan — your life situation, assumptions, or anything else we should know. For example: 'I'm working in Singapore until 50, then moving to Thailand for semi-retirement.'"
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 border-gray-300"
+              />
+            )}
+          />
+          <p className="mt-1 text-sm text-gray-500">
+            Free-form notes about this plan. The AI assistant can use this
+            context to better interpret your questions.
+          </p>
+        </div>
+
         {/* Read-only settings display */}
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">

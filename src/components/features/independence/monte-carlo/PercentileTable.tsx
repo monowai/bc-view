@@ -34,10 +34,7 @@ export function PercentileTable({
             ["p5", percentiles.p5],
           ] as [string, number][]
         ).map(([label, value]) => (
-          <div
-            key={label}
-            className="flex justify-between items-center"
-          >
+          <div key={label} className="flex justify-between items-center">
             <span className="text-gray-600">{label}</span>
             <span className="font-medium text-gray-900">
               {formatFullCurrency(value)}

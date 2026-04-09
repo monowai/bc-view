@@ -146,6 +146,8 @@ function EditPlanWizard(): React.ReactElement {
   const initialData: Partial<WizardFormData> = {
     planName: plan.name,
     expensesCurrency: plan.expensesCurrency || "NZD",
+    country: plan.country ?? "",
+    narrative: plan.narrative ?? "",
     // Working expenses (categorized)
     workingExpenses: workingExpenses.map((e) => ({
       categoryLabelId: e.categoryLabelId,
