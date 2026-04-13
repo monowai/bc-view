@@ -27,6 +27,9 @@ export interface CompositeProjectionValue {
   /** Overarching composite-plan narrative (shared across all phases). */
   compositeNarrative: string
   setCompositeNarrative: (narrative: string) => void
+  /** Work scenario ID selected for composite projections. */
+  compositeWorkScenarioId: string | undefined
+  setCompositeWorkScenarioId: (id: string | undefined) => void
 
   // Results
   projection: CompositeProjectionResult | undefined

@@ -13,21 +13,11 @@ import {
   WizardFormData,
   ManualAssets,
   LifeEvent,
-  PlanContributionsResponse,
-  ContributionFormEntry,
 } from "types/independence"
 import {
   parseExcludedPortfolioIds,
   parseExcludedRentalAssetIds,
 } from "@lib/independence/planHelpers"
-
-interface WorkingExpensesResponse {
-  data: Array<{
-    categoryLabelId: string
-    categoryName: string
-    monthlyAmount: number
-  }>
-}
 
 function EditPlanWizard(): React.ReactElement {
   const router = useRouter()
@@ -44,41 +34,7 @@ function EditPlanWizard(): React.ReactElement {
     },
   )
 
-  // Fetch working expenses separately
-  const { data: workingExpensesData, isLoading: workingExpensesLoading } =
-    useSwr<WorkingExpensesResponse>(
-      planId
-        ? `/api/independence/plans/${planId}/expenses?phase=WORKING`
-        : null,
-      planId
-        ? simpleFetcher(
-            `/api/independence/plans/${planId}/expenses?phase=WORKING`,
-          )
-        : null,
-      {
-        revalidateOnMount: true,
-        dedupingInterval: 0,
-      },
-    )
-
-  // Fetch contributions separately
-  const { data: contributionsData, isLoading: contributionsLoading } =
-    useSwr<PlanContributionsResponse>(
-      planId ? `/api/independence/plans/${planId}/contributions` : null,
-      planId
-        ? simpleFetcher(`/api/independence/plans/${planId}/contributions`)
-        : null,
-      {
-        revalidateOnMount: true,
-        dedupingInterval: 0,
-      },
-    )
-
-  // Wait for all data to load before rendering the wizard
-  const allDataLoading =
-    isLoading || workingExpensesLoading || contributionsLoading
-
-  if (!planId || allDataLoading) {
+  if (!planId || isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="container mx-auto px-4">
@@ -102,10 +58,9 @@ function EditPlanWizard(): React.ReactElement {
   }
 
   // Transform backend data to form format
+  // Working-phase data is now managed via work scenarios, not the plan wizard
   const plan = data.plan
   const expenses = data.expenses || []
-  const workingExpenses = workingExpensesData?.data || []
-  const contributions = contributionsData?.data || []
 
   // Parse manualAssets from JSON string if needed
   const parseManualAssets = (): ManualAssets => {
@@ -148,20 +103,6 @@ function EditPlanWizard(): React.ReactElement {
     expensesCurrency: plan.expensesCurrency || "NZD",
     country: plan.country ?? "",
     narrative: plan.narrative ?? "",
-    // Working expenses (categorized)
-    workingExpenses: workingExpenses.map((e) => ({
-      categoryLabelId: e.categoryLabelId,
-      categoryName: e.categoryName,
-      monthlyAmount: e.monthlyAmount,
-    })),
-    workingIncomeMonthly: plan.workingIncomeMonthly || 0,
-    workingExpensesMonthly: plan.workingExpensesMonthly || 0,
-    taxesMonthly: plan.taxesMonthly || 0,
-    bonusMonthly: plan.bonusMonthly || 0,
-    investmentAllocationPercent: toPercent(
-      plan.investmentAllocationPercent,
-      0.8,
-    ),
     pensionMonthly: plan.pensionMonthly || 0,
     socialSecurityMonthly: plan.socialSecurityMonthly || 0,
     benefitsStartAge: plan.benefitsStartAge,
@@ -187,15 +128,6 @@ function EditPlanWizard(): React.ReactElement {
     ),
     manualAssets: parseManualAssets(),
     lifeEvents: parseLifeEvents(),
-    // Contributions (pension/insurance)
-    contributions: contributions.map(
-      (c): ContributionFormEntry => ({
-        assetId: c.assetId,
-        assetName: c.assetName || c.assetId,
-        monthlyAmount: c.monthlyAmount,
-        contributionType: c.contributionType,
-      }),
-    ),
   }
 
   return (

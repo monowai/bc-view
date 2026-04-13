@@ -20,26 +20,11 @@ export const WIZARD_STEPS: WizardStep[] = [
   },
   {
     id: 2,
-    name: wizardMessages.steps.workingExpenses.name,
-    fields: ["workingExpenses"],
-  },
-  {
-    id: 3,
-    name: wizardMessages.steps.contributions.name,
-    // Contributions step now also includes employment income fields
-    fields: [
-      "contributions",
-      "workingIncomeMonthly",
-      "investmentAllocationPercent",
-    ],
-  },
-  {
-    id: 4,
     name: wizardMessages.steps.assets.name,
     fields: ["selectedPortfolioIds", "manualAssets"],
   },
   {
-    id: 5,
+    id: 3,
     name: wizardMessages.steps.assumptions.name,
     fields: [
       "targetBalance",
@@ -53,17 +38,17 @@ export const WIZARD_STEPS: WizardStep[] = [
     ],
   },
   {
-    id: 6,
+    id: 4,
     name: wizardMessages.steps.income.name,
     fields: ["pensionMonthly", "socialSecurityMonthly", "otherIncomeMonthly"],
   },
   {
-    id: 7,
+    id: 5,
     name: wizardMessages.steps.expenses.name,
     fields: ["expenses"],
   },
   {
-    id: 8,
+    id: 6,
     name: wizardMessages.steps.lifeEvents.name,
     fields: ["lifeEvents"],
   },

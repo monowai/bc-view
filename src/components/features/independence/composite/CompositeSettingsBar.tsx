@@ -1,5 +1,10 @@
 import React from "react"
+import useSwr from "swr"
+import type { WorkScenariosResponse } from "types/independence"
+import { simpleFetcher } from "@utils/api/fetchHelper"
 import { useCompositeProjectionContext } from "./CompositeProjectionContext"
+
+const WORK_SCENARIOS_URL = "/api/independence/work-scenarios"
 
 /**
  * Settings bar for the composite projection view.
@@ -18,7 +23,15 @@ export default function CompositeSettingsBar(): React.ReactElement {
     projection,
     compositeNarrative,
     setCompositeNarrative,
+    compositeWorkScenarioId,
+    setCompositeWorkScenarioId,
   } = useCompositeProjectionContext()
+
+  const { data: scenariosData } = useSwr<WorkScenariosResponse>(
+    WORK_SCENARIOS_URL,
+    simpleFetcher(WORK_SCENARIOS_URL),
+  )
+  const workScenarios = scenariosData?.data ?? []
 
   // Collect unique currencies from plans
   const currencies = Array.from(
@@ -58,6 +71,33 @@ export default function CompositeSettingsBar(): React.ReactElement {
               ))}
             </select>
           </div>
+
+          {workScenarios.length > 0 && (
+            <div className="flex items-center gap-2">
+              <label
+                htmlFor="composite-work-scenario"
+                className="text-sm font-medium text-gray-700"
+              >
+                Work Scenario
+              </label>
+              <select
+                id="composite-work-scenario"
+                value={compositeWorkScenarioId ?? ""}
+                onChange={(e) =>
+                  setCompositeWorkScenarioId(e.target.value || undefined)
+                }
+                className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
+              >
+                <option value="">Current scenario</option>
+                {workScenarios.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                    {s.isCurrent ? " (current)" : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {sustainabilityText && (
             <span

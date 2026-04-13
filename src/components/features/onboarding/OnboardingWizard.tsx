@@ -576,6 +576,20 @@ const OnboardingWizard: React.FC = () => {
       // Create independence plan if enabled
       if (independencePlanEnabled) {
         try {
+          // Create a default work scenario before the plan
+          await fetch("/api/independence/work-scenarios", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: "My Work Scenario",
+              currency: baseCurrency,
+            }),
+          })
+        } catch (scenarioErr) {
+          console.warn("Work scenario creation failed:", scenarioErr)
+        }
+
+        try {
           const planResponse = await fetch("/api/independence/plans", {
             method: "POST",
             headers: { "Content-Type": "application/json" },

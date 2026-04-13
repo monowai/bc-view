@@ -5,11 +5,10 @@ import { useRouter } from "next/router"
 import { mutate } from "swr"
 import WizardProgress from "./WizardProgress"
 import WizardNavigation from "./WizardNavigation"
+import WorkScenarioBanner from "./WorkScenarioBanner"
 import PersonalInfoStep from "./steps/PersonalInfoStep"
-import WorkingExpensesStep from "./steps/WorkingExpensesStep"
 import AssetsStep from "./steps/AssetsStep"
 import AssumptionsStep from "./steps/AssumptionsStep"
-import ContributionsStep from "./steps/ContributionsStep"
 import IncomeSourcesStep from "./steps/IncomeSourcesStep"
 import LifeEventsStep from "./steps/LifeEventsStep"
 import ExpensesStep from "./steps/ExpensesStep"
@@ -193,6 +192,7 @@ export default function WizardContainer({
 
       // Backend stores decimals (0.07 for 7%), so convert from percentage
       // yearOfBirth and lifeExpectancy are now user-level settings, not plan-level
+      // Working-phase fields are managed via work scenarios, not the plan wizard
       const planRequest: PlanRequest = {
         name: formData.planName,
         planningHorizonYears,
@@ -210,13 +210,6 @@ export default function WizardContainer({
         socialSecurityMonthly: formData.socialSecurityMonthly,
         benefitsStartAge: formData.benefitsStartAge,
         otherIncomeMonthly: formData.otherIncomeMonthly,
-        workingIncomeMonthly: formData.workingIncomeMonthly,
-        workingExpensesMonthly: formData.workingExpensesMonthly,
-        taxesMonthly: formData.taxesMonthly,
-        bonusMonthly: formData.bonusMonthly,
-        investmentAllocationPercent: toDecimal(
-          formData.investmentAllocationPercent,
-        ),
         lifeEvents:
           formData.lifeEvents?.length > 0
             ? JSON.stringify(formData.lifeEvents)
@@ -255,9 +248,8 @@ export default function WizardContainer({
       const result = await response.json()
       const savedPlanId = result.data.id
 
-      // Sync expenses - for edit mode, delete existing expenses first
+      // Sync retirement expenses to the plan - for edit mode, delete existing first
       if (isEditMode) {
-        // Fetch existing expenses and delete them
         const existingExpensesRes = await fetch(
           `/api/independence/plans/${savedPlanId}/expenses`,
         )
@@ -271,27 +263,6 @@ export default function WizardContainer({
                 method: "DELETE",
               },
             )
-          }
-        }
-      }
-
-      // Add working expenses with expensePhase: "WORKING"
-      if (formData.workingExpenses?.length > 0) {
-        for (const expense of formData.workingExpenses) {
-          if (expense.monthlyAmount > 0) {
-            await fetch(`/api/independence/plans/${savedPlanId}/expenses`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                categoryLabelId: expense.categoryLabelId,
-                categoryName: expense.categoryName,
-                monthlyAmount: expense.monthlyAmount,
-                currency: formData.expensesCurrency,
-                expensePhase: "WORKING",
-              }),
-            })
           }
         }
       }
@@ -315,56 +286,10 @@ export default function WizardContainer({
         }
       }
 
-      // Sync contributions - for edit mode, delete existing contributions first
-      if (isEditMode) {
-        const existingContributionsRes = await fetch(
-          `/api/independence/plans/${savedPlanId}/contributions`,
-        )
-        if (existingContributionsRes.ok) {
-          const existingData = await existingContributionsRes.json()
-          const existingContributions = existingData.data || []
-          for (const contribution of existingContributions) {
-            await fetch(
-              `/api/independence/plans/${savedPlanId}/contributions/${contribution.id}`,
-              {
-                method: "DELETE",
-              },
-            )
-          }
-        }
-      }
-
-      // Add contributions (only those with amounts > 0)
-      if (formData.contributions?.length > 0) {
-        for (const contribution of formData.contributions) {
-          if (contribution.monthlyAmount > 0) {
-            await fetch(
-              `/api/independence/plans/${savedPlanId}/contributions`,
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  assetId: contribution.assetId,
-                  assetName: contribution.assetName,
-                  monthlyAmount: contribution.monthlyAmount,
-                  currency: formData.expensesCurrency,
-                  contributionType: contribution.contributionType,
-                }),
-              },
-            )
-          }
-        }
-      }
-
-      // Mark cached plan data as stale so other pages refetch on next access
-      // Using mutate without data arg triggers background revalidation without clearing existing data
+      // Mark cached data as stale so other pages refetch on next access
       await Promise.all([
         mutate(`/api/independence/plans/${savedPlanId}`),
         mutate(`/api/independence/plans/${savedPlanId}/details`),
-        mutate(`/api/independence/plans/${savedPlanId}/expenses?phase=WORKING`),
-        mutate(`/api/independence/plans/${savedPlanId}/contributions`),
         mutate("/api/independence/plans"),
       ])
 
@@ -389,33 +314,13 @@ export default function WizardContainer({
         return <PersonalInfoStep control={control} errors={errors} />
       case 2:
         return (
-          <WorkingExpensesStep
-            control={control}
-            errors={errors}
-            setValue={setValue}
-            getValues={getValues}
-            isEditMode={isEditMode}
-          />
-        )
-      case 3:
-        return (
-          <ContributionsStep
-            control={control}
-            errors={errors}
-            getValues={getValues}
-            setValue={setValue}
-            isEditMode={isEditMode}
-          />
-        )
-      case 4:
-        return (
           <AssetsStep
             control={control}
             setValue={setValue}
             isEditMode={isEditMode}
           />
         )
-      case 5:
+      case 3:
         return (
           <AssumptionsStep
             control={control}
@@ -424,7 +329,7 @@ export default function WizardContainer({
             isEditMode={isEditMode}
           />
         )
-      case 6:
+      case 4:
         return (
           <IncomeSourcesStep
             control={control}
@@ -432,7 +337,7 @@ export default function WizardContainer({
             isEditMode={isEditMode}
           />
         )
-      case 7:
+      case 5:
         return (
           <ExpensesStep
             control={control}
@@ -442,7 +347,7 @@ export default function WizardContainer({
             isEditMode={isEditMode}
           />
         )
-      case 8:
+      case 6:
         return (
           <LifeEventsStep
             control={control}
@@ -464,6 +369,8 @@ export default function WizardContainer({
           stepErrors={stepErrors}
           onStepClick={handleStepClick}
         />
+
+        <WorkScenarioBanner />
 
         {error && (
           <div className="mb-6">

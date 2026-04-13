@@ -113,6 +113,8 @@ function makeCtx(
     toggleExclusion: jest.fn(),
     compositeNarrative: "",
     setCompositeNarrative: jest.fn(),
+    compositeWorkScenarioId: undefined,
+    setCompositeWorkScenarioId: jest.fn(),
     projection: undefined,
     scenarios: undefined,
     isLoading: false,

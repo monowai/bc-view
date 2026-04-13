@@ -16,6 +16,7 @@ import {
   AssetBreakdown,
 } from "@components/features/independence"
 import CompositeTab from "@components/features/independence/CompositeTab"
+import ScenarioList from "@components/features/independence/scenarios/ScenarioList"
 import IndependenceSettingsPanel from "@components/features/independence/IndependenceSettingsPanel"
 import ResourceShareInviteDialog from "@components/features/shares/ResourceShareInviteDialog"
 import Alert from "@components/ui/Alert"
@@ -263,8 +264,8 @@ function RetirementPlanning(): React.ReactElement {
   const { settings } = useIndependenceSettings()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [activeView, setActiveView] = useState<
-    "settings" | "plans" | "composite"
-  >("plans")
+    "profile" | "work" | "plans" | "composite"
+  >("work")
   const [isImporting, setIsImporting] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
   const [showShareDialog, setShowShareDialog] = useState(false)
@@ -560,15 +561,26 @@ function RetirementPlanning(): React.ReactElement {
           {/* Tab Switcher */}
           <div className="flex gap-1 mb-6 bg-gray-100 rounded-lg p-1 w-fit">
             <button
-              onClick={() => setActiveView("settings")}
+              onClick={() => setActiveView("profile")}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                activeView === "settings"
+                activeView === "profile"
                   ? "bg-white text-independence-700 shadow-sm"
                   : "text-gray-600 hover:text-gray-800"
               }`}
             >
               <i className="fas fa-cog mr-2"></i>
-              Settings
+              Profile
+            </button>
+            <button
+              onClick={() => setActiveView("work")}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                activeView === "work"
+                  ? "bg-white text-independence-700 shadow-sm"
+                  : "text-gray-600 hover:text-gray-800"
+              }`}
+            >
+              <i className="fas fa-briefcase mr-2"></i>
+              Work
             </button>
             <button
               onClick={() => setActiveView("plans")}
@@ -626,7 +638,7 @@ function RetirementPlanning(): React.ReactElement {
             </div>
           )}
 
-          {activeView === "settings" && <IndependenceSettingsPanel />}
+          {activeView === "profile" && <IndependenceSettingsPanel />}
 
           {!isLoading && plans.length > 0 && activeView === "plans" && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -644,6 +656,8 @@ function RetirementPlanning(): React.ReactElement {
               ))}
             </div>
           )}
+
+          {activeView === "work" && <ScenarioList />}
 
           {!isLoading && plans.length > 1 && activeView === "composite" && (
             <CompositeTab plans={plans} settings={settings} />

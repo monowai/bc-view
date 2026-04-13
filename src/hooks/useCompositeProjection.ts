@@ -24,6 +24,9 @@ export interface UseCompositeProjectionResult {
   /** Free-form narrative describing the overarching composite-plan goal. */
   compositeNarrative: string
   setCompositeNarrative: (narrative: string) => void
+  /** Work scenario ID to use for composite projections. */
+  compositeWorkScenarioId: string | undefined
+  setCompositeWorkScenarioId: (id: string | undefined) => void
   projection: CompositeProjectionResult | undefined
   scenarios: CompositeScenarioComparison | undefined
   isLoading: boolean
@@ -100,6 +103,9 @@ export function useCompositeProjection(
   const [phases, setPhases] = useState<CompositePhase[]>([])
   const [displayCurrency, setDisplayCurrency] = useState(defaultCurrency)
   const [compositeNarrative, setCompositeNarrative] = useState<string>("")
+  const [compositeWorkScenarioId, setCompositeWorkScenarioId] = useState<
+    string | undefined
+  >(undefined)
   const [initialized, setInitialized] = useState(false)
   const [projection, setProjection] = useState<
     CompositeProjectionResult | undefined
@@ -122,10 +128,13 @@ export function useCompositeProjection(
     const savedPhases = parseSavedPhases(settings.compositePhases)
     const savedCurrency = settings.compositeDisplayCurrency
     const savedNarrative = settings.compositeNarrative
+    const savedWorkScenarioId = settings.compositeWorkScenarioId
 
     if (savedExclusions) setExcludedPlanIds(savedExclusions)
     if (savedCurrency) setDisplayCurrency(savedCurrency)
     if (savedNarrative != null) setCompositeNarrative(savedNarrative)
+    if (savedWorkScenarioId != null)
+      setCompositeWorkScenarioId(savedWorkScenarioId)
 
     // Validate saved phases — all planIds must still exist
     const planIds = new Set(plans.map((p) => p.id))
@@ -160,6 +169,7 @@ export function useCompositeProjection(
         compositePhases: JSON.stringify(phases),
         compositeExcludedPlanIds: JSON.stringify(Array.from(excludedPlanIds)),
         compositeNarrative: compositeNarrative,
+        compositeWorkScenarioId: compositeWorkScenarioId,
       }).catch(() => {
         // Silent save failure — not critical
       })
@@ -174,6 +184,7 @@ export function useCompositeProjection(
     displayCurrency,
     excludedPlanIds,
     compositeNarrative,
+    compositeWorkScenarioId,
     initialized,
   ])
 
@@ -217,6 +228,9 @@ export function useCompositeProjection(
       const request: CompositeProjectionRequest = {
         displayCurrency,
         phases,
+        ...(compositeWorkScenarioId
+          ? { workScenarioId: compositeWorkScenarioId }
+          : {}),
       }
 
       // Reset result state to an error with the given message. Used for
@@ -277,7 +291,7 @@ export function useCompositeProjection(
         clearTimeout(debounceTimer.current)
       }
     }
-  }, [phases, displayCurrency])
+  }, [phases, displayCurrency, compositeWorkScenarioId])
 
   return {
     phases,
@@ -288,6 +302,8 @@ export function useCompositeProjection(
     toggleExclusion,
     compositeNarrative,
     setCompositeNarrative,
+    compositeWorkScenarioId,
+    setCompositeWorkScenarioId,
     projection,
     scenarios,
     isLoading,

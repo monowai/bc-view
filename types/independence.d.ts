@@ -1,3 +1,47 @@
+// ============ Work Scenario Types ============
+export interface WorkScenario {
+  id: string
+  ownerId: string
+  name: string
+  isCurrent: boolean
+  workingIncomeMonthly: number
+  workingExpensesMonthly: number
+  taxesMonthly: number
+  bonusMonthly: number
+  investmentAllocationPercent: number
+  currency: string
+  createdDate: string
+  updatedDate: string
+  computedMonthlyContribution: number
+}
+
+export interface WorkScenarioRequest {
+  name: string
+  workingIncomeMonthly?: number
+  workingExpensesMonthly?: number
+  taxesMonthly?: number
+  bonusMonthly?: number
+  investmentAllocationPercent?: number
+  currency?: string
+}
+
+export interface WorkScenarioDetail {
+  scenario: WorkScenario
+  expenses: PlanExpense[]
+  contributions: PlanContribution[]
+  totalMonthlyExpenses: number
+  totalMonthlyContributions: number
+  computedMonthlyContribution: number
+}
+
+export interface WorkScenarioResponse {
+  data: WorkScenarioDetail
+}
+
+export interface WorkScenariosResponse {
+  data: WorkScenario[]
+}
+
 // ============ Manual Asset Categories ============
 // Asset categories for users without portfolios
 export type ManualAssetCategory =
@@ -224,6 +268,8 @@ export interface ProjectionRequest {
   displayCurrency?: string
   /** Portfolio IDs to fetch values from (optional - auto-resolves totalAssets) */
   portfolioIds?: string[]
+  /** Optional work scenario ID — overrides current scenario for projection */
+  workScenarioId?: string
 
   // ========== Plan Value Overrides (for What-If scenarios) ==========
   /** Override monthly expenses (default: use plan value) */
@@ -805,6 +851,7 @@ export interface UserIndependenceSettings {
    * cross-plan context.
    */
   compositeNarrative?: string
+  compositeWorkScenarioId?: string
   createdDate: string
   updatedDate: string
 }
@@ -819,6 +866,7 @@ export interface UpdateSettingsRequest {
   compositeExcludedPlanIds?: string
   /** Free-form composite-level narrative. Empty string clears it. */
   compositeNarrative?: string
+  compositeWorkScenarioId?: string
 }
 
 // ============ Composite Projection Types ============
@@ -831,6 +879,8 @@ export interface CompositePhase {
 export interface CompositeProjectionRequest {
   displayCurrency: string
   phases: CompositePhase[]
+  /** Optional work scenario ID — overrides persisted/current scenario */
+  workScenarioId?: string
 }
 
 export interface CompositeYearlyProjection {
