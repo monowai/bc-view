@@ -53,6 +53,7 @@ const navSections: NavSection[] = [
   {
     title: "Tools",
     items: [
+      { href: "/chat", label: "Chat", icon: "fa-robot" },
       { href: "/fx", label: "FX Rates", icon: "fa-exchange-alt" },
       { href: "/fx/calculator", label: "FX Calculator", icon: "fa-calculator" },
       { href: "/tax-rates", label: "Tax Rates", icon: "fa-percent" },

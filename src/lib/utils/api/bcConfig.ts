@@ -50,6 +50,10 @@ export function getRebalanceActuatorUrl(path: string = ""): string {
   return `${process.env.BC_REBALANCE_ACTUATOR || process.env.BC_REBALANCE}${path}`
 }
 
+export function getAgentUrl(path: string = ""): string {
+  return `${process.env.BC_AGENT}${path}`
+}
+
 export function getTrnTopic(): string {
   return `${process.env.KAFKA_TOPIC_TRN}`
 }
@@ -108,5 +112,6 @@ export function getTracePropagationTargets(): (string | RegExp)[] {
   if (process.env.BC_EVENT) targets.push(process.env.BC_EVENT)
   if (process.env.BC_RETIRE) targets.push(process.env.BC_RETIRE)
   if (process.env.BC_REBALANCE) targets.push(process.env.BC_REBALANCE)
+  if (process.env.BC_AGENT) targets.push(process.env.BC_AGENT)
   return targets
 }
