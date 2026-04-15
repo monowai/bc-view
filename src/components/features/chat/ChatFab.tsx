@@ -25,6 +25,11 @@ export default function ChatFab(): React.ReactElement {
 
   const close = useCallback(() => setIsOpen(false), [])
 
+  const expand = useCallback((): void => {
+    setIsOpen(false)
+    router.push("/chat")
+  }, [router])
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent): void => {
       if (e.key === "Escape" && isOpen) {
@@ -34,6 +39,9 @@ export default function ChatFab(): React.ReactElement {
     document.addEventListener("keydown", handleKeyDown)
     return () => document.removeEventListener("keydown", handleKeyDown)
   }, [isOpen, close])
+
+  // Hide FAB on the /chat page — it's redundant there
+  if (router.pathname === "/chat") return <></>
 
   return (
     <>
@@ -49,6 +57,7 @@ export default function ChatFab(): React.ReactElement {
           isLoading={isLoading}
           onSend={sendMessage}
           onClear={clearMessages}
+          onExpand={expand}
           placeholder={pageContext.placeholder}
           suggestions={pageContext.suggestions}
           className="h-full"

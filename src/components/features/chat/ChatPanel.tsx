@@ -11,6 +11,7 @@ interface ChatPanelProps {
   className?: string
   placeholder?: string
   suggestions?: string[]
+  onExpand?: () => void
 }
 
 export default function ChatPanel({
@@ -21,6 +22,7 @@ export default function ChatPanel({
   className = "",
   placeholder = "Ask about your portfolios...",
   suggestions = [],
+  onExpand,
 }: ChatPanelProps): React.ReactElement {
   const [input, setInput] = useState("")
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -51,15 +53,27 @@ export default function ChatPanel({
             Holdsworth Assistant
           </span>
         </div>
-        {messages.length > 0 && (
-          <button
-            onClick={onClear}
-            className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
-            aria-label="Clear chat"
-          >
-            Clear
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {onExpand && (
+            <button
+              onClick={onExpand}
+              className="text-xs text-gray-400 hover:text-blue-600 transition-colors"
+              aria-label="Expand chat"
+              title="Open full chat"
+            >
+              <i className="fas fa-expand-alt"></i>
+            </button>
+          )}
+          {messages.length > 0 && (
+            <button
+              onClick={onClear}
+              className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+              aria-label="Clear chat"
+            >
+              Clear
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Messages */}

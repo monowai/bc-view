@@ -12,7 +12,7 @@ function ChatPage(): React.ReactElement {
       <Head>
         <title>Chat - Holdsworth</title>
       </Head>
-      <div className="max-w-4xl mx-auto h-[calc(100vh-8rem)]">
+      <div className="mx-auto h-[calc(100vh-5rem)] max-w-5xl">
         <ChatPanel
           messages={messages}
           isLoading={isLoading}
