@@ -135,6 +135,17 @@ const routeContextMap: Record<string, PageContext> = {
       "Show corporate events for an asset",
     ],
   },
+  "/news": {
+    page: "News & Sentiment",
+    description:
+      "The user is viewing news and market sentiment for their portfolio holdings",
+    placeholder: "Ask about news and sentiment...",
+    suggestions: [
+      "What's the sentiment on my holdings?",
+      "Any news affecting my portfolio?",
+      "Show recent market news",
+    ],
+  },
   "/settings": {
     page: "Settings",
     description: "The user is viewing their account settings",

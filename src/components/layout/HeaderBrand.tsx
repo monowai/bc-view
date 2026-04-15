@@ -38,6 +38,7 @@ const navSections: NavSection[] = [
         icon: "fa-exchange-alt",
       },
       { href: "/assets/lookup", label: "Asset Lookup", icon: "fa-search" },
+      { href: "/news", label: "News", icon: "fa-newspaper" },
     ],
   },
   {

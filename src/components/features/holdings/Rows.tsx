@@ -29,6 +29,7 @@ import {
 } from "@lib/assets/assetUtils"
 import Link from "next/link"
 import { useRouter } from "next/router"
+import NewsSentimentPopup from "./NewsSentimentPopup"
 import { AlphaProgress } from "@components/ui/ProgressBar"
 import { useDisplayCurrencyConversion } from "@lib/hooks/useDisplayCurrencyConversion"
 import { getCellClasses } from "@lib/holdings/cellClasses"
@@ -521,6 +522,7 @@ export default function Rows({
   onRecordExpense,
 }: RowsProps): React.ReactElement {
   const router = useRouter()
+  const [newsTicker, setNewsTicker] = useState<string | null>(null)
 
   // Source currency based on valueIn selection
   const sourceCurrency = useMemo(() => {
@@ -589,10 +591,25 @@ export default function Rows({
               <div className="flex items-start gap-1">
                 <div className="flex-1 min-w-0">
                   <div
-                    className="font-semibold text-sm sm:text-base text-slate-900"
+                    className="font-semibold text-sm sm:text-base text-slate-900 flex items-center gap-1"
                     title={stripOwnerPrefix(asset.code)}
                   >
                     {isCash(asset) ? asset.name : stripOwnerPrefix(asset.code)}
+                    {!isCashRelated(asset) &&
+                      asset.market?.code !== "PRIVATE" && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setNewsTicker(stripOwnerPrefix(asset.code))
+                          }}
+                          className="text-gray-400 hover:text-blue-600 transition-colors"
+                          title={`News for ${stripOwnerPrefix(asset.code)}`}
+                          aria-label={`News ${stripOwnerPrefix(asset.code)}`}
+                        >
+                          <i className="fas fa-newspaper text-[10px]"></i>
+                        </button>
+                      )}
                   </div>
                   {!isCash(asset) && asset.name && (
                     <div
@@ -872,6 +889,16 @@ export default function Rows({
             </td>
           </tr>
         ),
+      )}
+      {newsTicker && (
+        <tr>
+          <td>
+            <NewsSentimentPopup
+              ticker={newsTicker}
+              onClose={() => setNewsTicker(null)}
+            />
+          </td>
+        </tr>
       )}
     </tbody>
   )

@@ -5,6 +5,14 @@ import Rows from "../Rows"
 import { Position, Portfolio, HoldingGroup } from "types/beancounter"
 import { ValueIn } from "@components/features/holdings/GroupByOptions"
 
+// Mock react-markdown (transitively imported via NewsSentimentPopup)
+jest.mock("react-markdown", () => {
+  return function MockMarkdown({ children }: { children: string }) {
+    return <div>{children}</div>
+  }
+})
+jest.mock("remark-gfm", () => () => {})
+
 // Mock Next.js Link component
 jest.mock("next/link", () => {
   return function Link({
