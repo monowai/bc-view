@@ -522,7 +522,11 @@ export default function Rows({
   onRecordExpense,
 }: RowsProps): React.ReactElement {
   const router = useRouter()
-  const [newsTicker, setNewsTicker] = useState<string | null>(null)
+  const [newsAsset, setNewsAsset] = useState<{
+    ticker: string
+    market: string
+    assetName: string
+  } | null>(null)
 
   // Source currency based on valueIn selection
   const sourceCurrency = useMemo(() => {
@@ -601,7 +605,11 @@ export default function Rows({
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation()
-                            setNewsTicker(stripOwnerPrefix(asset.code))
+                            setNewsAsset({
+                              ticker: stripOwnerPrefix(asset.code),
+                              market: asset.market.code,
+                              assetName: asset.name || "",
+                            })
                           }}
                           className="text-gray-400 hover:text-blue-600 transition-colors"
                           title={`News for ${stripOwnerPrefix(asset.code)}`}
@@ -890,12 +898,14 @@ export default function Rows({
           </tr>
         ),
       )}
-      {newsTicker && (
+      {newsAsset && (
         <tr>
           <td>
             <NewsSentimentPopup
-              ticker={newsTicker}
-              onClose={() => setNewsTicker(null)}
+              ticker={newsAsset.ticker}
+              market={newsAsset.market}
+              assetName={newsAsset.assetName}
+              onClose={() => setNewsAsset(null)}
             />
           </td>
         </tr>

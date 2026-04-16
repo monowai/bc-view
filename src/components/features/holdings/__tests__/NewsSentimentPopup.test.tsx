@@ -31,6 +31,20 @@ describe("NewsSentimentPopup", () => {
     expect(screen.getByText(/AAPL/)).toBeInTheDocument()
   })
 
+  it("renders market code in the title when provided", () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          response: "NZX news",
+          timestamp: "2026-04-15T00:00:00Z",
+        }),
+    })
+    render(<NewsSentimentPopup ticker="GNE" market="NZX" onClose={jest.fn()} />)
+    expect(screen.getByText(/GNE/)).toBeInTheDocument()
+    expect(screen.getByText("(NZX)")).toBeInTheDocument()
+  })
+
   it("shows loading spinner while fetching", () => {
     mockFetch.mockReturnValue(new Promise(() => {})) // never resolves
     render(<NewsSentimentPopup ticker="AAPL" onClose={jest.fn()} />)
@@ -90,5 +104,58 @@ describe("NewsSentimentPopup", () => {
     })
     // Still only 1 fetch call
     expect(mockFetch).toHaveBeenCalledTimes(1)
+  })
+
+  it("uses separate cache entries for same ticker on different markets", async () => {
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            response: "US GNE news",
+            timestamp: "2026-04-15T00:00:00Z",
+          }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            response: "NZX GNE news",
+            timestamp: "2026-04-15T00:00:00Z",
+          }),
+      })
+    const onClose = jest.fn()
+
+    const { unmount } = render(
+      <NewsSentimentPopup ticker="GNE" onClose={onClose} />,
+    )
+    await waitFor(() => {
+      expect(screen.getByText("US GNE news")).toBeInTheDocument()
+    })
+    unmount()
+
+    render(<NewsSentimentPopup ticker="GNE" market="NZX" onClose={onClose} />)
+    await waitFor(() => {
+      expect(screen.getByText("NZX GNE news")).toBeInTheDocument()
+    })
+    expect(mockFetch).toHaveBeenCalledTimes(2)
+  })
+
+  it("includes market in the fetch query", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          response: "NZX data",
+          timestamp: "2026-04-15T00:00:00Z",
+        }),
+    })
+    render(<NewsSentimentPopup ticker="GNE" market="NZX" onClose={jest.fn()} />)
+    await waitFor(() => {
+      expect(screen.getByText("NZX data")).toBeInTheDocument()
+    })
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body)
+    expect(body.query).toContain("NZX")
+    expect(body.context.market).toBe("NZX")
   })
 })

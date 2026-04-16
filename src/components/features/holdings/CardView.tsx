@@ -148,7 +148,11 @@ const PositionCard: React.FC<PositionCardProps> = ({
   onRecordExpense,
 }) => {
   const router = useRouter()
-  const [newsTicker, setNewsTicker] = useState<string | null>(null)
+  const [newsAsset, setNewsAsset] = useState<{
+    ticker: string
+    market: string
+    assetName: string
+  } | null>(null)
   const { asset, moneyValues, quantityValues } = position
   const values = moneyValues[valueIn]
   const hasMenu = !isCashRelated(asset) && (onRecordIncome || onRecordExpense)
@@ -193,7 +197,11 @@ const PositionCard: React.FC<PositionCardProps> = ({
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation()
-                    setNewsTicker(stripOwnerPrefix(asset.code))
+                    setNewsAsset({
+                      ticker: stripOwnerPrefix(asset.code),
+                      market: asset.market.code,
+                      assetName: asset.name || "",
+                    })
                   }}
                   className="text-gray-400 hover:text-blue-600 transition-colors"
                   title={`News for ${stripOwnerPrefix(asset.code)}`}
@@ -284,10 +292,12 @@ const PositionCard: React.FC<PositionCardProps> = ({
             </span>
           </div>
         )}
-        {newsTicker && (
+        {newsAsset && (
           <NewsSentimentPopup
-            ticker={newsTicker}
-            onClose={() => setNewsTicker(null)}
+            ticker={newsAsset.ticker}
+            market={newsAsset.market}
+            assetName={newsAsset.assetName}
+            onClose={() => setNewsAsset(null)}
           />
         )}
       </div>
@@ -297,10 +307,12 @@ const PositionCard: React.FC<PositionCardProps> = ({
   // No menu — use a simple Link wrapper
   return (
     <>
-      {newsTicker && (
+      {newsAsset && (
         <NewsSentimentPopup
-          ticker={newsTicker}
-          onClose={() => setNewsTicker(null)}
+          ticker={newsAsset.ticker}
+          market={newsAsset.market}
+          assetName={newsAsset.assetName}
+          onClose={() => setNewsAsset(null)}
         />
       )}
       <Link
@@ -318,7 +330,11 @@ const PositionCard: React.FC<PositionCardProps> = ({
                   onClick={(e) => {
                     e.preventDefault()
                     e.stopPropagation()
-                    setNewsTicker(stripOwnerPrefix(asset.code))
+                    setNewsAsset({
+                      ticker: stripOwnerPrefix(asset.code),
+                      market: asset.market.code,
+                      assetName: asset.name || "",
+                    })
                   }}
                   className="text-gray-400 hover:text-blue-600 transition-colors"
                   title={`News for ${stripOwnerPrefix(asset.code)}`}
