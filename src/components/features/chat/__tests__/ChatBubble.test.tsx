@@ -1,5 +1,5 @@
 import React from "react"
-import { render, screen } from "@testing-library/react"
+import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import ChatBubble from "../ChatBubble"
 import { ChatMessage } from "types/agent"
 
@@ -27,15 +27,59 @@ describe("ChatBubble", () => {
     timestamp: "2026-04-14T00:00:01Z",
   }
 
+  beforeEach(() => {
+    Object.assign(navigator, {
+      clipboard: { writeText: jest.fn().mockResolvedValue(undefined) },
+    })
+  })
+
   it("renders user message as plain text", () => {
     render(<ChatBubble message={userMessage} />)
     expect(screen.getByText("Show my portfolios")).toBeInTheDocument()
     expect(screen.queryByTestId("markdown")).not.toBeInTheDocument()
   })
 
+  it("shows copy and retry buttons on user messages when onRetry provided", () => {
+    render(<ChatBubble message={userMessage} onRetry={jest.fn()} />)
+    expect(screen.getByLabelText("Copy message")).toBeInTheDocument()
+    expect(screen.getByLabelText("Retry message")).toBeInTheDocument()
+  })
+
+  it("retry button re-sends the user message", () => {
+    const onRetry = jest.fn()
+    render(<ChatBubble message={userMessage} onRetry={onRetry} />)
+    fireEvent.click(screen.getByLabelText("Retry message"))
+    expect(onRetry).toHaveBeenCalledWith("Show my portfolios")
+  })
+
+  it("copies user message content to clipboard", async () => {
+    render(<ChatBubble message={userMessage} onRetry={jest.fn()} />)
+    fireEvent.click(screen.getByLabelText("Copy message"))
+    await waitFor(() => {
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        userMessage.content,
+      )
+    })
+  })
+
   it("renders assistant message with markdown", () => {
     render(<ChatBubble message={assistantMessage} />)
     expect(screen.getByTestId("markdown")).toBeInTheDocument()
+  })
+
+  it("shows copy button on assistant messages", () => {
+    render(<ChatBubble message={assistantMessage} />)
+    expect(screen.getByLabelText("Copy message")).toBeInTheDocument()
+  })
+
+  it("copies message content to clipboard on click", async () => {
+    render(<ChatBubble message={assistantMessage} />)
+    fireEvent.click(screen.getByLabelText("Copy message"))
+    await waitFor(() => {
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        assistantMessage.content,
+      )
+    })
   })
 
   it("renders error indicator for assistant errors", () => {

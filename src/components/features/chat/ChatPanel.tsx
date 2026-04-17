@@ -100,7 +100,7 @@ export default function ChatPanel({
           </div>
         )}
         {messages.map((msg) => (
-          <ChatBubble key={msg.id} message={msg} />
+          <ChatBubble key={msg.id} message={msg} onRetry={onSend} />
         ))}
         {isLoading && (
           <div className="flex items-center gap-2 text-gray-400 text-sm">

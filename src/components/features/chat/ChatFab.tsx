@@ -6,6 +6,7 @@ import { getPageContext } from "./pageContext"
 
 export default function ChatFab(): React.ReactElement {
   const [isOpen, setIsOpen] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false)
   const router = useRouter()
   const pageContext = getPageContext(router.pathname)
   const routeParams = router.query
@@ -23,12 +24,14 @@ export default function ChatFab(): React.ReactElement {
   }, [pageContext.page, pageContext.description, routeParams])
   const { messages, isLoading, sendMessage, clearMessages } = useChat(context)
 
-  const close = useCallback(() => setIsOpen(false), [])
+  const close = useCallback(() => {
+    setIsOpen(false)
+    setIsExpanded(false)
+  }, [])
 
   const expand = useCallback((): void => {
-    setIsOpen(false)
-    router.push("/chat")
-  }, [router])
+    setIsExpanded((prev) => !prev)
+  }, [])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent): void => {
@@ -48,9 +51,11 @@ export default function ChatFab(): React.ReactElement {
       {/* Slide-out panel */}
       <div
         data-testid="chat-panel-container"
-        className={`fixed bottom-24 right-6 z-40 w-96 max-w-[calc(100vw-2rem)] h-[600px] max-h-[80vh] transition-transform duration-300 ease-in-out ${
-          isOpen ? "translate-x-0" : "translate-x-full"
-        }`}
+        className={`fixed z-40 transition-all duration-300 ease-in-out ${
+          isExpanded
+            ? "bottom-6 right-6 w-[48rem] max-w-[calc(100vw-2rem)] h-[calc(100vh-5rem)]"
+            : "bottom-24 right-6 w-96 max-w-[calc(100vw-2rem)] h-[600px] max-h-[80vh]"
+        } ${isOpen ? "translate-x-0" : "translate-x-full"}`}
       >
         <ChatPanel
           messages={messages}

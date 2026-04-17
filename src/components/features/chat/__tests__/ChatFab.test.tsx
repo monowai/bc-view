@@ -52,10 +52,18 @@ describe("ChatFab", () => {
     expect(panel.className).toContain("translate-x-full")
   })
 
-  it("expand button navigates to /chat", () => {
+  it("expand button toggles expanded panel size", () => {
     render(<ChatFab />)
     fireEvent.click(screen.getByLabelText("Chat"))
+    const panel = screen.getByTestId("chat-panel-container")
+    expect(panel.className).toContain("w-96")
+
     fireEvent.click(screen.getByLabelText("Expand chat"))
-    expect(mockPush).toHaveBeenCalledWith("/chat")
+    expect(panel.className).toContain("w-[48rem]")
+    expect(mockPush).not.toHaveBeenCalled()
+
+    // Toggle back to compact
+    fireEvent.click(screen.getByLabelText("Expand chat"))
+    expect(panel.className).toContain("w-96")
   })
 })
