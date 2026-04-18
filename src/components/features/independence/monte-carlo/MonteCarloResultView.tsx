@@ -72,6 +72,7 @@ export function MonteCarloResultView({
       <FanChart
         yearlyBands={result.yearlyBands}
         deterministicProjection={deterministicProjection}
+        medianLiquidationAge={result.medianLiquidationAge}
         currency={currency}
         hideValues={hideValues}
       />

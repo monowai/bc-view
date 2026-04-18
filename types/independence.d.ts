@@ -773,6 +773,8 @@ export interface MonteCarloResult {
   deterministicDepletionAge?: number
   currency: string
   parameters: MonteCarloParameters
+  /** Median age at which illiquid assets were sold across iterations that liquidated */
+  medianLiquidationAge?: number
 }
 
 export interface PercentileValues {

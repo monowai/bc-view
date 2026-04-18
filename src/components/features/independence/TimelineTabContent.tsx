@@ -90,6 +90,15 @@ export default function TimelineTabContent({
     return events
   }, [projection])
 
+  // Age at which illiquid assets (property) were liquidated
+  const liquidationAge = useMemo(() => {
+    if (!projection) return null
+    const year = projection.yearlyProjections.find(
+      (y) => y.propertyLiquidated,
+    )
+    return year?.age ?? null
+  }, [projection])
+
   // Determine if what-if changes are active
   const hasActiveWhatIf =
     hasScenarioChanges(combinedAdjustments) || baselineProjection !== null
@@ -364,6 +373,22 @@ export default function TimelineTabContent({
                   }}
                 />
               ))}
+              {/* Property liquidation marker */}
+              {liquidationAge && (
+                <ReferenceLine
+                  x={liquidationAge}
+                  stroke="#7c3aed"
+                  strokeDasharray="4 4"
+                  strokeWidth={1.5}
+                  label={{
+                    value: `Property sold (${liquidationAge})`,
+                    position: "top",
+                    fill: "#7c3aed",
+                    fontSize: 11,
+                    fontWeight: 500,
+                  }}
+                />
+              )}
               {/* Total Wealth line - show in traditional view when non-spendable assets exist */}
               {timelineViewMode === "traditional" &&
                 projection.nonSpendableAtRetirement > 0 && (

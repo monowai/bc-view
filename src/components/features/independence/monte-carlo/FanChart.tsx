@@ -9,6 +9,7 @@ import {
   Tooltip as ChartTooltip,
   ResponsiveContainer,
   Legend,
+  ReferenceLine,
 } from "recharts"
 import { MonteCarloResult, RetirementProjection } from "types/independence"
 
@@ -17,6 +18,8 @@ const HIDDEN_VALUE = "****"
 interface FanChartProps {
   yearlyBands: MonteCarloResult["yearlyBands"]
   deterministicProjection?: RetirementProjection
+  /** Fallback liquidation age when no deterministic projection is available (e.g. composite view) */
+  medianLiquidationAge?: number
   currency: string
   hideValues: boolean
 }
@@ -24,10 +27,21 @@ interface FanChartProps {
 export function FanChart({
   yearlyBands,
   deterministicProjection,
+  medianLiquidationAge,
   currency,
   hideValues,
 }: FanChartProps): React.ReactElement | null {
   const [fanTooltipEnabled, setFanTooltipEnabled] = useState(true)
+
+  // Prefer the deterministic liquidation age (single-plan view); fall back to
+  // the Monte Carlo median (composite view, where no deterministic overlay exists).
+  const deterministicLiquidationAge =
+    deterministicProjection?.yearlyProjections?.find(
+      (y) => y.propertyLiquidated,
+    )?.age
+  const liquidationAge = deterministicLiquidationAge ?? medianLiquidationAge
+  const liquidationIsMedian =
+    deterministicLiquidationAge == null && medianLiquidationAge != null
 
   const fanChartData = yearlyBands.map((band) => {
     const deterministicYear = deterministicProjection?.yearlyProjections?.find(
@@ -237,6 +251,24 @@ export function FanChart({
               name="deterministic"
               connectNulls={false}
             />
+            {/* Property liquidation marker */}
+            {liquidationAge && (
+              <ReferenceLine
+                x={liquidationAge}
+                stroke="#7c3aed"
+                strokeDasharray="4 4"
+                strokeWidth={1.5}
+                label={{
+                  value: liquidationIsMedian
+                    ? `Property sold (median ${liquidationAge})`
+                    : `Property sold (${liquidationAge})`,
+                  position: "top",
+                  fill: "#7c3aed",
+                  fontSize: 11,
+                  fontWeight: 500,
+                }}
+              />
+            )}
           </ComposedChart>
         </ResponsiveContainer>
       </div>
