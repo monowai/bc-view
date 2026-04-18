@@ -94,6 +94,8 @@ const fixtureResult: MonteCarloResult = {
     equityCashCorrelation: 0.0,
     investmentTaxRate: 0.0,
   },
+  nonSpendableAtStart: 0,
+  liquidatedCount: 0,
 }
 
 const defaultPhases: CompositePhase[] = [

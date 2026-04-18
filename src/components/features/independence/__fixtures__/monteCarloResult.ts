@@ -164,4 +164,6 @@ export const fixtureMonteCarloResult: MonteCarloResult = {
     equityCashCorrelation: 0.05,
     investmentTaxRate: 0.0,
   },
+  nonSpendableAtStart: 0,
+  liquidatedCount: 0,
 }

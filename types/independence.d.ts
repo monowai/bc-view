@@ -775,6 +775,10 @@ export interface MonteCarloResult {
   parameters: MonteCarloParameters
   /** Median age at which illiquid assets were sold across iterations that liquidated */
   medianLiquidationAge?: number
+  /** Starting value of illiquid (non-spendable) assets, in the result's currency */
+  nonSpendableAtStart: number
+  /** Number of iterations that sold illiquid assets during the run */
+  liquidatedCount: number
 }
 
 export interface PercentileValues {

@@ -144,7 +144,7 @@ exports[`MonteCarloTab snapshot baseline matches snapshot with fixture result 1`
       </div>
     </div>
     <div
-      class="grid grid-cols-1 lg:grid-cols-3 gap-6"
+      class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6"
     >
       <div
         class="bg-white rounded-xl shadow-md p-6"
@@ -227,6 +227,41 @@ exports[`MonteCarloTab snapshot baseline matches snapshot with fixture result 1`
               S$0
             </span>
           </div>
+        </div>
+      </div>
+      <div
+        class="bg-white rounded-xl shadow-md p-6"
+      >
+        <h3
+          class="text-sm font-semibold text-gray-900 mb-3"
+        >
+          <i
+            class="fas fa-home text-purple-500 mr-2"
+          />
+          Illiquid Assets
+        </h3>
+        <div
+          class="space-y-2 text-sm"
+        >
+          <div
+            class="flex justify-between items-center"
+          >
+            <span
+              class="text-gray-600"
+            >
+              Starting value
+            </span>
+            <span
+              class="font-medium text-gray-900"
+            >
+              S$0
+            </span>
+          </div>
+          <p
+            class="text-xs text-gray-500 italic pt-1"
+          >
+            No illiquid assets in this plan, so depletion reflects liquid assets only.
+          </p>
         </div>
       </div>
       <div

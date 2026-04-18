@@ -15,6 +15,8 @@ interface MonteCarloResultViewProps {
   hideValues: boolean
 }
 
+const HIDDEN_VALUE = "****"
+
 function successRateColor(rate: number): string {
   if (rate >= 80) return "text-green-600"
   if (rate >= 50) return "text-amber-600"
@@ -78,13 +80,63 @@ export function MonteCarloResultView({
       />
 
       {/* Summary Statistics */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
         {/* Terminal Balance Percentiles */}
         <PercentileTable
           percentiles={result.terminalBalancePercentiles}
           currency={currency}
           hideValues={hideValues}
         />
+
+        {/* Illiquid Assets */}
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <h3 className="text-sm font-semibold text-gray-900 mb-3">
+            <i className="fas fa-home text-purple-500 mr-2"></i>
+            Illiquid Assets
+          </h3>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Starting value</span>
+              <span
+                className={`font-medium ${hideValues ? "text-gray-400" : "text-gray-900"}`}
+              >
+                {hideValues
+                  ? HIDDEN_VALUE
+                  : `${currency}${Math.round(result.nonSpendableAtStart).toLocaleString()}`}
+              </span>
+            </div>
+            {result.nonSpendableAtStart > 0 ? (
+              <>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Iterations that sold</span>
+                  <span className="font-medium text-gray-900">
+                    {result.liquidatedCount.toLocaleString()} /{" "}
+                    {result.iterations.toLocaleString()}
+                  </span>
+                </div>
+                {result.medianLiquidationAge && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Median sale age</span>
+                    <span className="font-medium text-purple-600">
+                      {result.medianLiquidationAge}
+                    </span>
+                  </div>
+                )}
+                {result.liquidatedCount === 0 && (
+                  <p className="text-xs text-gray-500 italic pt-1">
+                    Liquid assets never dropped below the sell threshold — no
+                    iteration needed to sell.
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="text-xs text-gray-500 italic pt-1">
+                No illiquid assets in this plan, so depletion reflects liquid
+                assets only.
+              </p>
+            )}
+          </div>
+        </div>
 
         {/* Depletion Distribution */}
         <div className="bg-white rounded-xl shadow-md p-6">
