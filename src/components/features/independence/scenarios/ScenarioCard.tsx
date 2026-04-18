@@ -6,6 +6,7 @@ const HIDDEN_VALUE = "****"
 
 interface ScenarioCardProps {
   scenario: WorkScenario
+  currentCount: number
   onEdit: (scenario: WorkScenario) => void
   onDelete: (scenario: WorkScenario) => void
   onSetCurrent: (scenarioId: string) => void
@@ -13,6 +14,7 @@ interface ScenarioCardProps {
 
 export default function ScenarioCard({
   scenario,
+  currentCount,
   onEdit,
   onDelete,
   onSetCurrent,
@@ -56,7 +58,7 @@ export default function ScenarioCard({
           >
             <i className="fas fa-edit text-xs"></i>
           </button>
-          {!scenario.isCurrent && (
+          {(!scenario.isCurrent || currentCount > 1) && (
             <button
               onClick={() => onDelete(scenario)}
               className="text-red-600 hover:text-red-900 p-1.5"

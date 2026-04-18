@@ -28,6 +28,7 @@ export default function ScenarioList(): React.ReactElement {
   )
 
   const scenarios = data?.data || []
+  const currentCount = scenarios.filter((s) => s.isCurrent).length
 
   const handleCreate = useCallback(() => {
     setEditingScenario(null)
@@ -148,6 +149,7 @@ export default function ScenarioList(): React.ReactElement {
             <ScenarioCard
               key={scenario.id}
               scenario={scenario}
+              currentCount={currentCount}
               onEdit={handleEdit}
               onDelete={setDeleteTarget}
               onSetCurrent={handleSetCurrent}
