@@ -140,10 +140,15 @@ exports[`MonteCarloTab snapshot baseline matches snapshot with fixture result 1`
         class="bg-white rounded-xl shadow-md p-6"
       >
         <h3
-          class="text-sm font-semibold text-gray-900 mb-3"
+          class="text-sm font-semibold text-gray-900 mb-1"
         >
           Terminal Balance Percentiles
         </h3>
+        <p
+          class="text-xs text-gray-500 mb-3"
+        >
+          Share of scenarios ending with at least this balance
+        </p>
         <div
           class="space-y-2 text-sm"
         >
@@ -151,9 +156,10 @@ exports[`MonteCarloTab snapshot baseline matches snapshot with fixture result 1`
             class="flex justify-between items-center"
           >
             <span
-              class="text-gray-600"
+              class="text-gray-600 cursor-help underline decoration-dotted decoration-gray-300 underline-offset-2"
+              title="Top 5% of outcomes — only 5% of scenarios ended higher"
             >
-              p95
+              5% reached ≥
             </span>
             <span
               class="font-medium text-gray-900"
@@ -165,9 +171,10 @@ exports[`MonteCarloTab snapshot baseline matches snapshot with fixture result 1`
             class="flex justify-between items-center"
           >
             <span
-              class="text-gray-600"
+              class="text-gray-600 cursor-help underline decoration-dotted decoration-gray-300 underline-offset-2"
+              title="Top 25% of outcomes"
             >
-              p75
+              25% reached ≥
             </span>
             <span
               class="font-medium text-gray-900"
@@ -179,9 +186,10 @@ exports[`MonteCarloTab snapshot baseline matches snapshot with fixture result 1`
             class="flex justify-between items-center"
           >
             <span
-              class="text-gray-600"
+              class="text-gray-600 cursor-help underline decoration-dotted decoration-gray-300 underline-offset-2"
+              title="Median — half of scenarios ended at or above this balance"
             >
-              p50
+              50% reached ≥
             </span>
             <span
               class="font-medium text-gray-900"
@@ -193,9 +201,10 @@ exports[`MonteCarloTab snapshot baseline matches snapshot with fixture result 1`
             class="flex justify-between items-center"
           >
             <span
-              class="text-gray-600"
+              class="text-gray-600 cursor-help underline decoration-dotted decoration-gray-300 underline-offset-2"
+              title="Bottom 25% (lower quartile)"
             >
-              p25
+              75% reached ≥
             </span>
             <span
               class="font-medium text-gray-900"
@@ -207,9 +216,10 @@ exports[`MonteCarloTab snapshot baseline matches snapshot with fixture result 1`
             class="flex justify-between items-center"
           >
             <span
-              class="text-gray-600"
+              class="text-gray-600 cursor-help underline decoration-dotted decoration-gray-300 underline-offset-2"
+              title="Worst 5% — even the bottom 5% of scenarios cleared this balance"
             >
-              p5
+              95% reached ≥
             </span>
             <span
               class="font-medium text-gray-900"
@@ -237,9 +247,10 @@ exports[`MonteCarloTab snapshot baseline matches snapshot with fixture result 1`
             class="flex justify-between items-center"
           >
             <span
-              class="text-gray-600"
+              class="text-gray-600 cursor-help underline decoration-dotted decoration-gray-300 underline-offset-2"
+              title="Current value of illiquid assets (e.g. property) that may be sold if liquid runs low"
             >
-              Starting value
+              Start value
             </span>
             <span
               class="font-medium text-gray-900"
@@ -250,7 +261,7 @@ exports[`MonteCarloTab snapshot baseline matches snapshot with fixture result 1`
           <p
             class="text-xs text-gray-500 italic pt-1"
           >
-            No illiquid assets in this plan, so depletion reflects liquid assets only.
+            No illiquid assets; depletion reflects liquid only.
           </p>
         </div>
       </div>

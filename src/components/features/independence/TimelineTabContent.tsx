@@ -93,9 +93,7 @@ export default function TimelineTabContent({
   // Age at which illiquid assets (property) were liquidated
   const liquidationAge = useMemo(() => {
     if (!projection) return null
-    const year = projection.yearlyProjections.find(
-      (y) => y.propertyLiquidated,
-    )
+    const year = projection.yearlyProjections.find((y) => y.propertyLiquidated)
     return year?.age ?? null
   }, [projection])
 

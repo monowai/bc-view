@@ -9,8 +9,9 @@ interface MonteCarloResultViewProps {
   deterministicProjection?: RetirementProjection
   currency: string
   /**
-   * When true, dollar values are masked. Percentages, counts, ages and years
-   * remain visible — privacy mode hides money, not the shape of the result.
+
+* When true, dollar values are masked. Percentages, counts, ages and years
+* remain visible — privacy mode hides money, not the shape of the result.
    */
   hideValues: boolean
 }
@@ -37,7 +38,7 @@ export function MonteCarloResultView({
 }: MonteCarloResultViewProps): React.ReactElement {
   return (
     <>
-      {/* Success Rate */}
+      {/*Success Rate*/}
       <div
         className={`rounded-xl shadow-md p-6 border ${successRateBg(result.successRate)}`}
       >
@@ -96,7 +97,12 @@ export function MonteCarloResultView({
           </h3>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between items-center">
-              <span className="text-gray-600">Starting value</span>
+              <span
+                className="text-gray-600 cursor-help underline decoration-dotted decoration-gray-300 underline-offset-2"
+                title="Current value of illiquid assets (e.g. property) that may be sold if liquid runs low"
+              >
+                Start value
+              </span>
               <span
                 className={`font-medium ${hideValues ? "text-gray-400" : "text-gray-900"}`}
               >
@@ -107,32 +113,53 @@ export function MonteCarloResultView({
             </div>
             {result.nonSpendableAtStart > 0 ? (
               <>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Iterations that sold</span>
-                  <span className="font-medium text-gray-900">
-                    {result.liquidatedCount.toLocaleString()} /{" "}
-                    {result.iterations.toLocaleString()}
-                  </span>
-                </div>
-                {result.medianLiquidationAge && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Median sale age</span>
-                    <span className="font-medium text-purple-600">
-                      {result.medianLiquidationAge}
-                    </span>
-                  </div>
-                )}
-                {result.liquidatedCount === 0 && (
-                  <p className="text-xs text-gray-500 italic pt-1">
-                    Liquid assets never dropped below the sell threshold — no
-                    iteration needed to sell.
-                  </p>
-                )}
+                {(() => {
+                  const soldPct =
+                    result.iterations > 0
+                      ? (result.liquidatedCount / result.iterations) * 100
+                      : 0
+                  const neverSoldCount =
+                    result.iterations - result.liquidatedCount
+                  return (
+                    <>
+                      <div className="flex justify-between items-center">
+                        <span
+                          className="text-gray-600 cursor-help underline decoration-dotted decoration-gray-300 underline-offset-2"
+                          title="Share of stress scenarios that liquidated illiquid assets before horizon end"
+                        >
+                          Sold
+                        </span>
+                        <span className="font-medium text-gray-900">
+                          {soldPct.toFixed(1)}% (
+                          {result.liquidatedCount.toLocaleString()}/
+                          {result.iterations.toLocaleString()})
+                        </span>
+                      </div>
+                      {result.medianLiquidationAge && (
+                        <div className="flex justify-between items-center">
+                          <span
+                            className="text-gray-600 cursor-help underline decoration-dotted decoration-gray-300 underline-offset-2"
+                            title={`Median age among the ${result.liquidatedCount.toLocaleString()} scenarios that sold; ${neverSoldCount.toLocaleString()} never needed to`}
+                          >
+                            Median sale age
+                          </span>
+                          <span className="font-medium text-purple-600">
+                            {result.medianLiquidationAge}
+                          </span>
+                        </div>
+                      )}
+                      {result.liquidatedCount === 0 && (
+                        <p className="text-xs text-gray-500 italic pt-1">
+                          Liquid stayed above sell threshold in every scenario.
+                        </p>
+                      )}
+                    </>
+                  )
+                })()}
               </>
             ) : (
               <p className="text-xs text-gray-500 italic pt-1">
-                No illiquid assets in this plan, so depletion reflects liquid
-                assets only.
+                No illiquid assets; depletion reflects liquid only.
               </p>
             )}
           </div>
