@@ -112,23 +112,13 @@ exports[`MonteCarloTab snapshot baseline matches snapshot with fixture result 1`
       class="bg-white rounded-xl shadow-md p-6"
     >
       <div
-        class="flex items-center justify-between mb-4"
+        class="mb-4"
       >
         <h3
           class="text-lg font-semibold text-gray-900"
         >
           Projected Balance Range
         </h3>
-        <button
-          class="text-xs px-2 py-1 rounded transition-colors bg-gray-100 text-gray-600 hover:bg-gray-200"
-          title="Hide tooltip"
-          type="button"
-        >
-          <i
-            class="fas fa-eye-slash mr-1"
-          />
-          Tooltip
-        </button>
       </div>
       <div
         class="h-72"

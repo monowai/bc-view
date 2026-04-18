@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React from "react"
 import {
   ComposedChart,
   Area,
@@ -31,8 +31,6 @@ export function FanChart({
   currency,
   hideValues,
 }: FanChartProps): React.ReactElement | null {
-  const [fanTooltipEnabled, setFanTooltipEnabled] = useState(true)
-
   // Prefer the deterministic liquidation age (single-plan view); fall back to
   // the Monte Carlo median (composite view, where no deterministic overlay exists).
   const deterministicLiquidationAge =
@@ -70,31 +68,16 @@ export function FanChart({
 
   return (
     <div className="bg-white rounded-xl shadow-md p-6">
-      <div className="flex items-center justify-between mb-4">
+      <div className="mb-4">
         <h3 className="text-lg font-semibold text-gray-900">
           Projected Balance Range
         </h3>
-        <button
-          type="button"
-          onClick={() => setFanTooltipEnabled((v) => !v)}
-          className={`text-xs px-2 py-1 rounded transition-colors ${
-            fanTooltipEnabled
-              ? "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              : "bg-independence-100 text-independence-700 hover:bg-independence-200"
-          }`}
-          title={fanTooltipEnabled ? "Hide tooltip" : "Show tooltip"}
-        >
-          <i
-            className={`fas ${fanTooltipEnabled ? "fa-eye-slash" : "fa-eye"} mr-1`}
-          ></i>
-          Tooltip
-        </button>
       </div>
       <div className="h-72">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart
             data={fanChartData}
-            margin={{ top: 10, right: 30, left: 20, bottom: 20 }}
+            margin={{ top: 30, right: 30, left: 20, bottom: 40 }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
             <XAxis
@@ -114,81 +97,73 @@ export function FanChart({
               }
               tick={{ fontSize: 12 }}
             />
-            {fanTooltipEnabled && (
-              <ChartTooltip
-                content={({ active, payload, label }) => {
-                  if (!active || !payload?.length) return null
-                  // Hide tooltip when p50, p75, and p95 are all 0
-                  const p50 = payload.find((p) => p.dataKey === "p50")?.value
-                  const p75 = payload.find((p) => p.dataKey === "p75")?.value
-                  const p95 = payload.find((p) => p.dataKey === "p95")?.value
-                  if (
-                    Number(p50 ?? 0) === 0 &&
-                    Number(p75 ?? 0) === 0 &&
-                    Number(p95 ?? 0) === 0
-                  ) {
-                    return null
-                  }
-                  const labels: Record<string, string> = {
-                    p95: "95th percentile",
-                    p90: "90th percentile",
-                    p75: "75th percentile",
-                    p50: "Median",
-                    p25: "25th percentile",
-                    p10: "10th percentile",
-                    p5: "5th percentile",
-                    deterministic: "Deterministic",
-                  }
-                  return (
-                    <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-xs max-w-xs">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-semibold text-gray-700">
-                          Age {label}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setFanTooltipEnabled(false)}
-                          className="text-gray-400 hover:text-gray-600 ml-3 -mr-1"
-                          title="Close tooltip"
-                        >
-                          <i className="fas fa-times"></i>
-                        </button>
-                      </div>
-                      <div className="space-y-1">
-                        {payload
-                          .filter((p) => p.value != null)
-                          .map((p) => {
-                            const key = String(p.dataKey ?? "")
-                            const isDeterministic = key === "deterministic"
-                            return (
-                              <div
-                                key={key}
-                                className="flex justify-between gap-3"
-                              >
-                                <span
-                                  className={
-                                    isDeterministic
-                                      ? "text-blue-600"
-                                      : "text-gray-600"
-                                  }
-                                >
-                                  {labels[key] ?? key}
-                                </span>
-                                <span
-                                  className={`font-medium ${isDeterministic ? "text-blue-700" : "text-gray-900"}`}
-                                >
-                                  {formatFullCurrency(Number(p.value ?? 0))}
-                                </span>
-                              </div>
-                            )
-                          })}
-                      </div>
+            <ChartTooltip
+              content={({ active, payload, label }) => {
+                if (!active || !payload?.length) return null
+                // Hide tooltip when p50, p75, and p95 are all 0
+                const p50 = payload.find((p) => p.dataKey === "p50")?.value
+                const p75 = payload.find((p) => p.dataKey === "p75")?.value
+                const p95 = payload.find((p) => p.dataKey === "p95")?.value
+                if (
+                  Number(p50 ?? 0) === 0 &&
+                  Number(p75 ?? 0) === 0 &&
+                  Number(p95 ?? 0) === 0
+                ) {
+                  return null
+                }
+                const labels: Record<string, string> = {
+                  p95: "95th percentile",
+                  p90: "90th percentile",
+                  p75: "75th percentile",
+                  p50: "Median",
+                  p25: "25th percentile",
+                  p10: "10th percentile",
+                  p5: "5th percentile",
+                  deterministic: "Deterministic",
+                }
+                return (
+                  <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-xs max-w-xs">
+                    <div className="mb-2">
+                      <span className="font-semibold text-gray-700">
+                        Age {label}
+                      </span>
                     </div>
-                  )
-                }}
-              />
-            )}
+                    <div className="space-y-1">
+                      {payload
+                        .filter((p) => p.value != null)
+                        .map((p) => {
+                          const key = String(p.dataKey ?? "")
+                          const isDeterministic = key === "deterministic"
+                          return (
+                            <div
+                              key={key}
+                              className="flex justify-between gap-3"
+                            >
+                              <span
+                                className={
+                                  isDeterministic
+                                    ? "text-blue-600"
+                                    : "text-gray-600"
+                                }
+                              >
+                                {labels[key] ?? key}
+                              </span>
+                              <span
+                                className={`font-medium ${isDeterministic ? "text-blue-700" : "text-gray-900"}`}
+                              >
+                                {formatFullCurrency(Number(p.value ?? 0))}
+                              </span>
+                            </div>
+                          )
+                        })}
+                    </div>
+                  </div>
+                )
+              }}
+            />
             <Legend
+              verticalAlign="bottom"
+              wrapperStyle={{ paddingTop: "20px" }}
               formatter={(value: string) => {
                 const labels: Record<string, string> = {
                   p95: "p5-p95 Band",
