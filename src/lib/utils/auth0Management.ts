@@ -49,15 +49,19 @@ export async function writeSystemUserId(
 ): Promise<boolean> {
   try {
     const mgmt = getManagementClient()
-    await mgmt.users.update(userId, {
-      app_metadata: { system_user_id: systemUserId },
-    })
+    await mgmt.users.update(
+      userId,
+      { app_metadata: { system_user_id: systemUserId } },
+      // Bound the best-effort write so an Auth0 outage doesn't hold the
+      // registration response open. v5 defaults to a 60s timeout with 2
+      // automatic retries on 408/429/5xx; we explicitly opt out of both.
+      { timeoutInSeconds: 5, maxRetries: 0 },
+    )
     return true
   } catch (err) {
-    console.error(
-      `[auth0Management] failed to write system_user_id for ${userId}:`,
-      err,
-    )
+    // Intentionally omit userId from the log — Auth0 user_id is a stable
+    // identifier; the error object carries enough context to debug.
+    console.error("[auth0Management] failed to write system_user_id:", err)
     return false
   }
 }
