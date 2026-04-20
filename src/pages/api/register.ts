@@ -18,8 +18,12 @@ function tokenHasSystemUserIdClaim(accessToken: string | undefined): boolean {
   try {
     const [, payload] = accessToken.split(".")
     if (!payload) return false
+    // JWT segments are base64url-encoded (RFC 7515): convert to standard
+    // base64 before decoding (swap chars + pad length to a multiple of 4).
+    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/")
+    const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4)
     const decoded = JSON.parse(
-      Buffer.from(payload, "base64").toString("utf8"),
+      Buffer.from(padded, "base64").toString("utf8"),
     ) as Record<string, unknown>
     const claim = decoded[SYSTEM_USER_ID_CLAIM]
     return typeof claim === "string" && claim.length > 0
