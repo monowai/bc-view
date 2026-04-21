@@ -5,6 +5,7 @@ import { Portfolio, Currency } from "types/beancounter"
 import { FormatValue } from "@components/ui/MoneyUtils"
 import { QuickTooltip } from "@components/ui/Tooltip"
 import PortfolioActions from "./PortfolioActions"
+import PortfolioAIOverview from "./PortfolioAIOverview"
 import { getSortIcon, SortConfig } from "@lib/sortIcon"
 
 interface PortfoliosListProps {
@@ -145,6 +146,22 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
   const [selectedPortfolios, setSelectedPortfolios] = useState<Set<string>>(
     new Set(),
   )
+
+  const [expandedPortfolios, setExpandedPortfolios] = useState<Set<string>>(
+    new Set(),
+  )
+
+  const toggleExpand = useCallback((code: string) => {
+    setExpandedPortfolios((prev) => {
+      const newSet = new Set(prev)
+      if (newSet.has(code)) {
+        newSet.delete(code)
+      } else {
+        newSet.add(code)
+      }
+      return newSet
+    })
+  }, [])
 
   const sortedPortfolios = useMemo(
     () => sortPortfolios(portfolios, sortConfig),
@@ -432,6 +449,14 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                   onClick={(e) => e.stopPropagation()}
                 >
                   <button
+                    onClick={() => toggleExpand(portfolio.code)}
+                    className={`p-1 ${expandedPortfolios.has(portfolio.code) ? "text-purple-700" : "text-purple-500 hover:text-purple-700"}`}
+                    title={"AI Overview"}
+                    aria-expanded={expandedPortfolios.has(portfolio.code)}
+                  >
+                    <i className="fas fa-wand-magic-sparkles"></i>
+                  </button>
+                  <button
                     onClick={() => onShareClick(portfolio.id)}
                     className="text-blue-500 hover:text-blue-700 p-1"
                     title={"Share"}
@@ -467,6 +492,11 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                 </div>
               </div>
             </div>
+            {expandedPortfolios.has(portfolio.code) && (
+              <div className="px-4 pb-4" onClick={(e) => e.stopPropagation()}>
+                <PortfolioAIOverview portfolio={portfolio} />
+              </div>
+            )}
           </div>
         ))}
 
@@ -581,155 +611,182 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
             </thead>
             <tbody className="divide-y divide-slate-100">
               {sortedPortfolios.map((portfolio, index) => (
-                <tr
-                  key={portfolio.id}
-                  className={`transition-colors duration-150 cursor-pointer ${
-                    selectedPortfolios.has(portfolio.code)
-                      ? "bg-wealth-50 hover:bg-wealth-100"
-                      : index % 2 === 0
-                        ? "bg-white hover:bg-sky-50"
-                        : "bg-slate-50/40 hover:bg-sky-50"
-                  }`}
-                  onClick={(e) => {
-                    if (
-                      !(e.target as HTMLElement).closest(".action-buttons") &&
-                      !(e.target as HTMLElement).closest(".selection-checkbox")
-                    ) {
-                      router.push(`/holdings/${portfolio.code}`)
-                    }
-                  }}
-                >
-                  <td className="px-4 py-3 text-center selection-checkbox">
-                    <input
-                      type="checkbox"
-                      checked={selectedPortfolios.has(portfolio.code)}
-                      onChange={() => togglePortfolioSelection(portfolio.code)}
-                      onClick={(e) => e.stopPropagation()}
-                      className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
-                    />
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="text-wealth-600 font-semibold">
-                      {portfolio.code}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-slate-900 font-medium">
-                    {portfolio.name}
-                  </td>
-                  <td className="px-4 py-3 text-right font-semibold text-slate-900 tabular-nums">
-                    <FormatValue
-                      value={
-                        (portfolio.marketValue ? portfolio.marketValue : 0) *
-                        (fxRates[portfolio.base.code] || 1)
+                <React.Fragment key={portfolio.id}>
+                  <tr
+                    className={`transition-colors duration-150 cursor-pointer ${
+                      selectedPortfolios.has(portfolio.code)
+                        ? "bg-wealth-50 hover:bg-wealth-100"
+                        : index % 2 === 0
+                          ? "bg-white hover:bg-sky-50"
+                          : "bg-slate-50/40 hover:bg-sky-50"
+                    }`}
+                    onClick={(e) => {
+                      if (
+                        !(e.target as HTMLElement).closest(".action-buttons") &&
+                        !(e.target as HTMLElement).closest(
+                          ".selection-checkbox",
+                        )
+                      ) {
+                        router.push(`/holdings/${portfolio.code}`)
                       }
-                    />
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    {portfolio.gainOnDay !== undefined &&
-                    portfolio.gainOnDay !== 0 &&
-                    portfolio.marketValue ? (
-                      <QuickTooltip
-                        text={`${portfolio.gainOnDay >= 0 ? "+" : ""}${displayCurrency?.code || ""} ${(portfolio.gainOnDay * (fxRates[portfolio.base.code] || 1)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                      >
-                        <span
-                          className={`font-semibold tabular-nums ${
-                            portfolio.gainOnDay >= 0
-                              ? "text-emerald-600"
-                              : "text-red-600"
-                          }`}
-                        >
-                          {gainOnDayPercent(
-                            portfolio.gainOnDay,
-                            portfolio.marketValue,
-                          ) ?? "0.00"}
-                          %
-                        </span>
-                      </QuickTooltip>
-                    ) : (
-                      <span className="text-slate-400">-</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <span
-                      className={`font-semibold tabular-nums ${
-                        (portfolio.irr || 0) >= 0
-                          ? "text-emerald-600"
-                          : "text-red-600"
-                      }`}
-                    >
-                      <FormatValue
-                        value={portfolio.irr}
-                        multiplier={100}
-                        isPublic
-                      />
-                      %
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-center hidden xl:table-cell">
-                    <span
-                      className={
-                        isStale(portfolio.valuedAt)
-                          ? "text-amber-500"
-                          : "text-slate-600"
-                      }
-                      title={
-                        portfolio.valuedAt
-                          ? `Valued: ${portfolio.valuedAt}${portfolio.lastUpdated ? ` (Updated: ${formatLastUpdated(portfolio.lastUpdated)})` : ""}`
-                          : "Not yet valued"
-                      }
-                    >
-                      {formatValuedAt(portfolio.valuedAt)}
-                      {isStale(portfolio.valuedAt) && (
-                        <i className="fas fa-clock ml-1 text-xs"></i>
-                      )}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="action-buttons flex items-center justify-center space-x-3">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onShareClick(portfolio.id)
-                        }}
-                        className="text-slate-400 hover:text-blue-600 transition-colors"
-                        title={"Share"}
-                      >
-                        <i className="fas fa-share-alt text-lg"></i>
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onCorporateActions(portfolio)
-                        }}
-                        className="text-slate-400 hover:text-blue-600 transition-colors"
-                        title={"Scan Corporate Actions"}
-                      >
-                        <i className="fas fa-calendar-check text-lg"></i>
-                      </button>
-                      <Link
-                        href={`/portfolios/${portfolio.id}`}
-                        className="text-slate-400 hover:text-blue-600 transition-colors"
-                        title={"Edit Portfolio"}
+                    }}
+                  >
+                    <td className="px-4 py-3 text-center selection-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={selectedPortfolios.has(portfolio.code)}
+                        onChange={() =>
+                          togglePortfolioSelection(portfolio.code)
+                        }
                         onClick={(e) => e.stopPropagation()}
+                        className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-wealth-600 font-semibold">
+                        {portfolio.code}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-slate-900 font-medium">
+                      {portfolio.name}
+                    </td>
+                    <td className="px-4 py-3 text-right font-semibold text-slate-900 tabular-nums">
+                      <FormatValue
+                        value={
+                          (portfolio.marketValue ? portfolio.marketValue : 0) *
+                          (fxRates[portfolio.base.code] || 1)
+                        }
+                      />
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {portfolio.gainOnDay !== undefined &&
+                      portfolio.gainOnDay !== 0 &&
+                      portfolio.marketValue ? (
+                        <QuickTooltip
+                          text={`${portfolio.gainOnDay >= 0 ? "+" : ""}${displayCurrency?.code || ""} ${(portfolio.gainOnDay * (fxRates[portfolio.base.code] || 1)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                        >
+                          <span
+                            className={`font-semibold tabular-nums ${
+                              portfolio.gainOnDay >= 0
+                                ? "text-emerald-600"
+                                : "text-red-600"
+                            }`}
+                          >
+                            {gainOnDayPercent(
+                              portfolio.gainOnDay,
+                              portfolio.marketValue,
+                            ) ?? "0.00"}
+                            %
+                          </span>
+                        </QuickTooltip>
+                      ) : (
+                        <span className="text-slate-400">-</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <span
+                        className={`font-semibold tabular-nums ${
+                          (portfolio.irr || 0) >= 0
+                            ? "text-emerald-600"
+                            : "text-red-600"
+                        }`}
                       >
-                        <i className="far fa-edit text-lg"></i>
-                      </Link>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onDelete({
-                            id: portfolio.id,
-                            code: portfolio.code,
-                          })
-                        }}
-                        className="text-slate-400 hover:text-red-600 transition-colors"
-                        title={"Delete Portfolio"}
+                        <FormatValue
+                          value={portfolio.irr}
+                          multiplier={100}
+                          isPublic
+                        />
+                        %
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center hidden xl:table-cell">
+                      <span
+                        className={
+                          isStale(portfolio.valuedAt)
+                            ? "text-amber-500"
+                            : "text-slate-600"
+                        }
+                        title={
+                          portfolio.valuedAt
+                            ? `Valued: ${portfolio.valuedAt}${portfolio.lastUpdated ? ` (Updated: ${formatLastUpdated(portfolio.lastUpdated)})` : ""}`
+                            : "Not yet valued"
+                        }
                       >
-                        <i className="far fa-trash-alt text-lg"></i>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                        {formatValuedAt(portfolio.valuedAt)}
+                        {isStale(portfolio.valuedAt) && (
+                          <i className="fas fa-clock ml-1 text-xs"></i>
+                        )}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="action-buttons flex items-center justify-center space-x-3">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            toggleExpand(portfolio.code)
+                          }}
+                          className={`transition-colors ${expandedPortfolios.has(portfolio.code) ? "text-purple-700" : "text-slate-400 hover:text-purple-600"}`}
+                          title={"AI Overview"}
+                          aria-expanded={expandedPortfolios.has(portfolio.code)}
+                        >
+                          <i className="fas fa-wand-magic-sparkles text-lg"></i>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onShareClick(portfolio.id)
+                          }}
+                          className="text-slate-400 hover:text-blue-600 transition-colors"
+                          title={"Share"}
+                        >
+                          <i className="fas fa-share-alt text-lg"></i>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onCorporateActions(portfolio)
+                          }}
+                          className="text-slate-400 hover:text-blue-600 transition-colors"
+                          title={"Scan Corporate Actions"}
+                        >
+                          <i className="fas fa-calendar-check text-lg"></i>
+                        </button>
+                        <Link
+                          href={`/portfolios/${portfolio.id}`}
+                          className="text-slate-400 hover:text-blue-600 transition-colors"
+                          title={"Edit Portfolio"}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <i className="far fa-edit text-lg"></i>
+                        </Link>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onDelete({
+                              id: portfolio.id,
+                              code: portfolio.code,
+                            })
+                          }}
+                          className="text-slate-400 hover:text-red-600 transition-colors"
+                          title={"Delete Portfolio"}
+                        >
+                          <i className="far fa-trash-alt text-lg"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  {expandedPortfolios.has(portfolio.code) && (
+                    <tr
+                      className={
+                        index % 2 === 0 ? "bg-white" : "bg-slate-50/40"
+                      }
+                    >
+                      <td colSpan={8} className="px-4 py-3">
+                        <PortfolioAIOverview portfolio={portfolio} />
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               ))}
             </tbody>
             <tfoot className="bg-gradient-to-r from-wealth-500 to-wealth-600 text-white border-t-2 border-wealth-500">

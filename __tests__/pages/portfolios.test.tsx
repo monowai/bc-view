@@ -1,6 +1,14 @@
 import React from "react"
 import { render, screen, waitFor } from "@testing-library/react"
 import "@testing-library/jest-dom"
+
+jest.mock("react-markdown", () => {
+  return function MockMarkdown({ children }: { children: string }) {
+    return <div data-testid="markdown">{children}</div>
+  }
+})
+jest.mock("remark-gfm", () => () => {})
+
 import Portfolios from "@pages/portfolios"
 import useSWR from "swr"
 import { beforeEach, afterEach, describe, it } from "@jest/globals"
