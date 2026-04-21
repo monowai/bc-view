@@ -64,9 +64,9 @@ AUTH0_DOMAIN='beancounter.eu.auth0.com'
 # AUTH0_AUDIENCE is configured in src/lib/utils/auth0.ts (not an env var in v4)
 
 # Backend services (point to local or remote)
-BC_DATA='http://localhost:9610'      # or kauri.monowai.com:30610
-BC_POSITION='http://localhost:9600'  # or kauri.monowai.com:30600
-BC_EVENT='http://localhost:9630'     # or kauri.monowai.com:30630
+BC_DATA='http://localhost:9510'      # or kauri.monowai.com:30610
+BC_POSITION='http://localhost:9500'  # or kauri.monowai.com:30600
+BC_EVENT='http://localhost:9520'     # or kauri.monowai.com:30630
 
 # Message broker (choose one)
 BROKER_TYPE='RABBIT'                 # or 'KAFKA'
@@ -139,7 +139,16 @@ import { HoldingType } from "@types/holdings"
 
 ## API Routes
 
-All routes use `withApiAuthRequired` and proxy to backend services:
+Most API routes go through a centralised handler (`src/lib/api/createApiHandler.ts`)
+that applies Auth0 v4 session handling and proxies to the backend. ~11 routes import
+`@auth0/nextjs-auth0` directly (register, admin-check, trns/import, assets/_,
+portfolios/_, holdings/weights, admin/services).
+
+The v3 helper `withApiAuthRequired` has been removed — use `auth0.getSession(req)`
+
+- `auth0.getAccessToken(req, res)` for manual access-token handling.
+
+Common proxy routes:
 
 | Endpoint                  | Backend     | Purpose                |
 | ------------------------- | ----------- | ---------------------- |

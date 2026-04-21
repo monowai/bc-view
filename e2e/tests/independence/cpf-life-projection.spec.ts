@@ -67,6 +67,19 @@ test.describe("CPF LIFE Projection Flow", () => {
           }
         }
       })
+
+      // Seed Independence settings (moved out of the plan wizard)
+      await page.evaluate(async () => {
+        await fetch("/api/independence/settings", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            yearOfBirth: 1980,
+            targetIndependenceAge: 55,
+            lifeExpectancy: 85,
+          }),
+        })
+      })
     })
 
     // ─── Phase 2: Complete Onboarding Wizard ────────────────────
@@ -129,28 +142,10 @@ test.describe("CPF LIFE Projection Flow", () => {
     await test.step("Step 1 - Personal Info", async () => {
       await page.locator("#planName").fill("CPF LIFE Test Plan")
       await page.locator("#expensesCurrency").selectOption("SGD")
-      // Born 1980 → current age 46, retirement at 55
-      await page.locator("#yearOfBirth").fill("1980")
-      await page.locator("#targetRetirementAge").fill("55")
-      await page.locator("#lifeExpectancy").fill("85")
       await page.getByRole("button", { name: "Next", exact: true }).click()
     })
 
-    await test.step("Step 2 - Working Expenses", async () => {
-      const expenseInputs = page.locator(
-        'input[type="number"][min="0"][step="50"]',
-      )
-      await expect(expenseInputs.first()).toBeVisible({ timeout: 10_000 })
-      await expenseInputs.nth(0).fill("500")
-      await page.getByRole("button", { name: "Next", exact: true }).click()
-    })
-
-    await test.step("Step 3 - Contributions: skip", async () => {
-      await page.waitForTimeout(500)
-      await page.getByRole("button", { name: "Next", exact: true }).click()
-    })
-
-    await test.step("Step 4 - Assets: create CPF with CPF LIFE Standard", async () => {
+    await test.step("Step 2 - Assets: create CPF with CPF LIFE Standard", async () => {
       const addButton = page.getByRole("button", {
         name: /add retirement account/i,
       })
@@ -225,17 +220,17 @@ test.describe("CPF LIFE Projection Flow", () => {
       await page.getByRole("button", { name: "Next", exact: true }).click()
     })
 
-    await test.step("Steps 5-6: Assumptions and Income", async () => {
-      // Step 5 - Assumptions
+    await test.step("Steps 3-4: Assumptions and Income", async () => {
+      // Step 3 - Assumptions
       await page.waitForTimeout(500)
       await page.getByRole("button", { name: "Next", exact: true }).click()
 
-      // Step 6 - Income
+      // Step 4 - Income
       await page.waitForTimeout(500)
       await page.getByRole("button", { name: "Next", exact: true }).click()
     })
 
-    await test.step("Step 7 - Retirement Expenses", async () => {
+    await test.step("Step 5 - Retirement Expenses", async () => {
       const expenseInputs = page.locator(
         'input[type="number"][min="0"][step="50"]',
       )
@@ -244,7 +239,7 @@ test.describe("CPF LIFE Projection Flow", () => {
       await page.getByRole("button", { name: "Next", exact: true }).click()
     })
 
-    await test.step("Step 8 - Save plan", async () => {
+    await test.step("Step 6 - Save plan", async () => {
       const saveBtn = page.getByRole("button", { name: /save plan/i })
       await expect(saveBtn).toBeVisible({ timeout: 5_000 })
       await saveBtn.click()
@@ -273,14 +268,17 @@ test.describe("CPF LIFE Projection Flow", () => {
       })
     })
 
-    await test.step("Expand Income Breakdown and verify Private Pension column", async () => {
-      // The Income Breakdown is in a CollapsibleSection — click to expand
-      const incomeBreakdownHeader = page.getByText("Income Breakdown")
-      await expect(incomeBreakdownHeader).toBeVisible({ timeout: 10_000 })
-      await incomeBreakdownHeader.click()
+    await test.step("Verify Private Pension column in Income Breakdown", async () => {
+      // The Income Breakdown CollapsibleSection is open by default — clicking
+      // its header would TOGGLE it closed. Just scroll it into view and check.
+      const incomeBreakdownButton = page.getByRole("button", {
+        name: /income breakdown/i,
+      })
+      await expect(incomeBreakdownButton).toBeVisible({ timeout: 10_000 })
+      await incomeBreakdownButton.scrollIntoViewIfNeeded()
 
-      // Wait for the table to render and check for "Private Pension" column header
-      // This column only appears when the backend computes non-zero assetPensions
+      // The Private Pension column only appears when assetPensions > 0 in the
+      // projection, which requires CPF LIFE to produce payouts.
       await expect(page.getByText("Private Pension").first()).toBeVisible({
         timeout: 15_000,
       })

@@ -19,8 +19,12 @@ test.describe("Portfolio Management", () => {
   test("should navigate to create portfolio page", async ({ page }) => {
     await page.goto(PAGES.newPortfolio)
 
-    // Should show portfolio form
-    await expect(page.locator("form")).toBeVisible()
+    // Should show portfolio form. Target the portfolio form specifically —
+    // the chat panel now renders its own <form>, so a bare "form" locator
+    // matches two elements and trips strict mode.
+    await expect(
+      page.locator('form:has(input[name="code"])'),
+    ).toBeVisible()
 
     // Should have code, name, currency fields
     await expect(page.locator('input[name="code"]')).toBeVisible()

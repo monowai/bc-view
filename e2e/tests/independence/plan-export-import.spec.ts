@@ -49,6 +49,27 @@ test.describe("Plan Export / Import Round-Trip", () => {
           planId,
         )
       }
+
+      // Seed Independence settings (moved out of the plan wizard).
+      // The wizard derives planningHorizonYears from these settings.
+      await page.evaluate(
+        async ({ yearOfBirth, targetAge, lifeExp }) => {
+          await fetch("/api/independence/settings", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              yearOfBirth,
+              targetIndependenceAge: targetAge,
+              lifeExpectancy: lifeExp,
+            }),
+          })
+        },
+        {
+          yearOfBirth: Number(yearOfBirth),
+          targetAge: Number(retirementAge),
+          lifeExp: Number(lifeExpectancy),
+        },
+      )
     })
 
     // ─── Phase 2: Create a plan via the wizard ───────────────────
@@ -67,20 +88,17 @@ test.describe("Plan Export / Import Round-Trip", () => {
     await test.step("Step 1 - Personal Info", async () => {
       await page.locator("#planName").fill(planName)
       await page.locator("#expensesCurrency").selectOption(currency)
-      await page.locator("#yearOfBirth").fill(yearOfBirth)
-      await page.locator("#targetRetirementAge").fill(retirementAge)
-      await page.locator("#lifeExpectancy").fill(lifeExpectancy)
       await page.getByRole("button", { name: "Next", exact: true }).click()
     })
 
-    await test.step("Steps 2-7 - Advance through defaults", async () => {
-      for (let step = 2; step <= 7; step++) {
+    await test.step("Steps 2-5 - Advance through defaults", async () => {
+      for (let step = 2; step <= 5; step++) {
         await page.waitForTimeout(500)
         await page.getByRole("button", { name: "Next", exact: true }).click()
       }
     })
 
-    await test.step("Step 8 - Save Plan", async () => {
+    await test.step("Step 6 - Save Plan", async () => {
       const saveBtn = page.getByRole("button", { name: /save plan/i })
       await expect(saveBtn).toBeVisible({ timeout: 5_000 })
       await saveBtn.click()
@@ -117,12 +135,13 @@ test.describe("Plan Export / Import Round-Trip", () => {
       expect(suggestedName).toContain("_retirement_plan.json")
 
       // Parse and validate exported JSON
+      // yearOfBirth / lifeExpectancy now live on user Independence settings,
+      // not the plan itself — plan carries planningHorizonYears instead.
       const content = fs.readFileSync(downloadedFilePath, "utf-8")
       exportedJson = JSON.parse(content)
       expect(exportedJson.name).toBe(planName)
       expect(exportedJson.planningHorizonYears).toBe(expectedHorizon)
       expect(exportedJson.expensesCurrency).toBe(currency)
-      expect(exportedJson.yearOfBirth).toBe(Number(yearOfBirth))
     })
 
     // ─── Phase 4: Delete the plan ────────────────────────────────
@@ -177,11 +196,11 @@ test.describe("Plan Export / Import Round-Trip", () => {
         return json.data
       }, newPlanId)
 
+      // yearOfBirth / lifeExpectancy now live on user Independence settings,
+      // not the plan itself.
       expect(planData.name).toBe(planName)
       expect(planData.planningHorizonYears).toBe(expectedHorizon)
       expect(planData.expensesCurrency).toBe(currency)
-      expect(planData.yearOfBirth).toBe(Number(yearOfBirth))
-      expect(planData.lifeExpectancy).toBe(Number(lifeExpectancy))
     })
   })
 })

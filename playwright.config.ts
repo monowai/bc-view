@@ -10,10 +10,15 @@ const baseURL = process.env.E2E_BASE_URL || "http://localhost:3000"
 
 export default defineConfig({
   testDir: "./e2e/tests",
-  fullyParallel: true,
+  // All specs mutate the same shared test user (me2e@monowai.com): each test
+  // cleans up portfolios/plans/settings, seeds data, creates new ones, and
+  // verifies. Running in parallel causes cross-worker collisions (duplicate
+  // SGD portfolio unique constraints, stomped independence settings, etc).
+  // Keep tests serial within a project and use a single worker.
+  fullyParallel: false,
   forbidOnly: isCI,
   retries: isCI ? 2 : 0,
-  workers: isCI ? 1 : undefined,
+  workers: 1,
   reporter: isCI
     ? [["html"], ["junit", { outputFile: "reports/e2e-junit.xml" }]]
     : [["html"]],
