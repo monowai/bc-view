@@ -4,7 +4,7 @@ import "@testing-library/jest-dom"
 import Portfolios from "@pages/portfolios"
 import useSWR from "swr"
 import { beforeEach, afterEach, describe, it } from "@jest/globals"
-import { portfolioResult, mockUserProfile } from "../../__fixtures__/fixtures"
+import { portfolioResult, mockUserProfile } from "../fixtures"
 
 // Cast to any since withPageAuthRequired HOC strips prop types in v4
 const PortfoliosPage = Portfolios as React.ComponentType<any>

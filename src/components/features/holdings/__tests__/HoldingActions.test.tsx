@@ -34,14 +34,18 @@ function setupMatchMedia(width: number, height: number): void {
   })
 }
 
-// Mock the modal components
-jest.mock("@pages/trns/trade", () => {
+// Mock the modal components.
+// HoldingActions imports TradeInputForm / CashInputForm from
+// @components/features/transactions/* (the legacy @pages/trns/* paths don't
+// match and left the real components rendering, producing async state
+// updates outside act()).
+jest.mock("@components/features/transactions/TradeInputForm", () => {
   return function TradeInputForm() {
     return <div data-testid="trade-modal" />
   }
 })
 
-jest.mock("@pages/trns/cash", () => {
+jest.mock("@components/features/transactions/CashInputForm", () => {
   return function CashInputForm() {
     return <div data-testid="cash-modal" />
   }

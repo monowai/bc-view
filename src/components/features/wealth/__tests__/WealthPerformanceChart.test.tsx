@@ -11,21 +11,24 @@ const mockUseAggregatedPerformance = jest.requireMock<
   typeof import("@hooks/useAggregatedPerformance")
 >("@hooks/useAggregatedPerformance")
 
-// Mock recharts to avoid canvas/SVG issues in JSDOM
+// Mock recharts to avoid canvas/SVG issues in JSDOM.
+// AreaChart is rendered as an <svg> so that recharts' SVG-only children
+// (<defs>, <linearGradient>, <stop>, <ReferenceLine>) sit in a valid SVG
+// context and React doesn't warn about their camelCase tag names.
 jest.mock("recharts", () => ({
   AreaChart: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="area-chart">{children}</div>
+    <svg data-testid="area-chart">{children}</svg>
   ),
   Area: ({ dataKey }: { dataKey: string }) => (
-    <div data-testid={`area-${dataKey}`} />
+    <g data-testid={`area-${dataKey}`} />
   ),
-  XAxis: () => <div />,
-  YAxis: () => <div />,
-  Tooltip: () => <div />,
+  XAxis: () => <g />,
+  YAxis: () => <g />,
+  Tooltip: () => <g />,
   ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
     <div>{children}</div>
   ),
-  ReferenceLine: () => <div />,
+  ReferenceLine: () => <g />,
 }))
 
 const makeCurrency = (code: string): Currency => ({

@@ -36,20 +36,24 @@ const { useUserPreferences } = jest.requireMock(
 )
 
 // Mock recharts to avoid canvas/SVG issues in JSDOM
+// AreaChart renders as <svg> so the real component's SVG-only children
+// (<defs>, <linearGradient>, <stop>) sit in a valid SVG context and React
+// doesn't warn about their camelCase tag names. Other recharts children
+// render as <g> to stay valid inside the SVG.
 jest.mock("recharts", () => ({
   AreaChart: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="area-chart">{children}</div>
+    <svg data-testid="area-chart">{children}</svg>
   ),
   Area: ({ dataKey }: { dataKey: string }) => (
-    <div data-testid={`area-${dataKey}`} />
+    <g data-testid={`area-${dataKey}`} />
   ),
-  XAxis: () => <div />,
-  YAxis: () => <div />,
-  Tooltip: () => <div />,
+  XAxis: () => <g />,
+  YAxis: () => <g />,
+  Tooltip: () => <g />,
   ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
     <div>{children}</div>
   ),
-  ReferenceLine: () => <div />,
+  ReferenceLine: () => <g />,
 }))
 
 const mockPerformanceData: PerformanceResponse = {

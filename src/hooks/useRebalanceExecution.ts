@@ -431,11 +431,11 @@ export function useRebalanceExecution(
         return undefined
       }
 
-      const result = await response.json()
-      console.log(
-        `Created ${result.data.transactionsCreated} transactions`,
-        result.data.transactionIds,
-      )
+      // const result = await response.json()
+      // console.log(
+      //   `Created ${result.data.transactionsCreated} transactions`,
+      //   result.data.transactionIds,
+      // )
 
       return { portfolioId }
     } catch (err) {

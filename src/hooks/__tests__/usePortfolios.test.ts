@@ -50,7 +50,12 @@ describe("usePortfolios", () => {
     jest.restoreAllMocks()
   })
 
-  it("returns loading state initially", () => {
+  // usePortfolios fires an async `/api/currencies` fetch inside a useEffect
+  // on mount and calls setCurrencies after the response. Each test flushes
+  // that pending microtask with `await act(async () => {})` to keep the
+  // setState inside act() scope.
+
+  it("returns loading state initially", async () => {
     mockUseSwr.mockReturnValue({
       data: undefined,
       mutate: jest.fn(),
@@ -63,9 +68,11 @@ describe("usePortfolios", () => {
 
     expect(result.current.isLoading).toBe(true)
     expect(result.current.portfolios).toEqual([])
+
+    await act(async () => {})
   })
 
-  it("returns portfolios from SWR", () => {
+  it("returns portfolios from SWR", async () => {
     const portfolios = [makePortfolio("P1", "USD"), makePortfolio("P2", "NZD")]
     mockUseSwr.mockReturnValue({
       data: { data: portfolios },
@@ -86,9 +93,11 @@ describe("usePortfolios", () => {
 
     expect(result.current.portfolios).toEqual(portfolios)
     expect(result.current.fxRatesReady).toBe(true)
+
+    await act(async () => {})
   })
 
-  it("returns error from SWR", () => {
+  it("returns error from SWR", async () => {
     const err = new Error("Network failure")
     mockUseSwr.mockReturnValue({
       data: undefined,
@@ -101,9 +110,11 @@ describe("usePortfolios", () => {
     const { result } = renderHook(() => usePortfolios())
 
     expect(result.current.error).toBe(err)
+
+    await act(async () => {})
   })
 
-  it("fetches currencies on mount", () => {
+  it("fetches currencies on mount", async () => {
     const currencies = [makeCurrency("USD"), makeCurrency("NZD")]
     ;(global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
@@ -121,9 +132,11 @@ describe("usePortfolios", () => {
     renderHook(() => usePortfolios())
 
     expect(global.fetch).toHaveBeenCalledWith("/api/currencies")
+
+    await act(async () => {})
   })
 
-  it("computes sourceCurrencyCodes from portfolios", () => {
+  it("computes sourceCurrencyCodes from portfolios", async () => {
     const portfolios = [makePortfolio("P1", "USD"), makePortfolio("P2", "NZD")]
     mockUseSwr.mockReturnValue({
       data: { data: portfolios },
@@ -139,6 +152,8 @@ describe("usePortfolios", () => {
       "USD",
       "NZD",
     ])
+
+    await act(async () => {})
   })
 
   it("deletePortfolio calls API and mutates", async () => {
@@ -172,7 +187,7 @@ describe("usePortfolios", () => {
     expect(mutateFn).toHaveBeenCalled()
   })
 
-  it("passes fxRates through from useFxRates", () => {
+  it("passes fxRates through from useFxRates", async () => {
     mockUseSwr.mockReturnValue({
       data: { data: [] },
       mutate: jest.fn(),
@@ -194,5 +209,7 @@ describe("usePortfolios", () => {
     expect(result.current.displayCurrency).toEqual(makeCurrency("USD"))
     expect(result.current.fxRates).toEqual({ USD: 1 })
     expect(result.current.setDisplayCurrency).toBe(setDisplayCurrency)
+
+    await act(async () => {})
   })
 })

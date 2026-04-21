@@ -6,7 +6,6 @@ import { yupResolver } from "@hookform/resolvers/yup"
 import AssetsStep from "../steps/AssetsStep"
 import { goalsSchema, defaultWizardValues } from "@lib/independence/schema"
 import { WizardFormData } from "types/independence"
-import { SWRConfig } from "swr"
 
 // Mock portfolios data
 const mockPortfolios = {
@@ -28,6 +27,31 @@ const mockPortfolios = {
   ],
 }
 
+// AssetsStep calls multiple SWR hooks plus direct fetch() calls. Both
+// produce async state updates that fall outside React Testing Library's
+// implicit act() window and trigger "An update to AssetsStep was not
+// wrapped in act(...)". Mock SWR to resolve synchronously and stub fetch
+// so nothing queues a microtask.
+jest.mock("swr", () => ({
+  __esModule: true,
+  default: (key: string) => ({
+    data: key.includes("portfolios") ? mockPortfolios : { data: [] },
+    error: undefined,
+    isLoading: false,
+    mutate: jest.fn(),
+  }),
+  mutate: jest.fn(),
+  SWRConfig: ({ children }: { children: React.ReactNode }) => children,
+}))
+
+beforeAll(() => {
+  global.fetch = jest.fn().mockResolvedValue({
+    ok: true,
+    json: () => Promise.resolve({ data: [] }),
+    text: () => Promise.resolve(""),
+  }) as unknown as typeof fetch
+})
+
 const TestWrapper: React.FC<{ children: React.ReactNode }> = () => {
   const methods = useForm<WizardFormData>({
     resolver: yupResolver(goalsSchema) as any,
@@ -36,43 +60,39 @@ const TestWrapper: React.FC<{ children: React.ReactNode }> = () => {
   })
 
   return (
-    <SWRConfig
-      value={{
-        fetcher: () => Promise.resolve(mockPortfolios),
-        dedupingInterval: 0,
-      }}
-    >
-      <FormProvider {...methods}>
-        <form>
-          <AssetsStep control={methods.control} setValue={methods.setValue} />
-        </form>
-      </FormProvider>
-    </SWRConfig>
+    <FormProvider {...methods}>
+      <form>
+        <AssetsStep control={methods.control} setValue={methods.setValue} />
+      </form>
+    </FormProvider>
   )
 }
 
 describe("AssetsStep", () => {
-  it("renders the assets step header", () => {
+  // AssetsStep has a useEffect that awaits multiple fetches and calls
+  // setState after the microtask hops. Using async tests + findBy* flushes
+  // those effects inside act().
+  it("renders the assets step header", async () => {
     render(
       <TestWrapper>
         <div />
       </TestWrapper>,
     )
 
-    expect(screen.getByText(/your wealth/i)).toBeInTheDocument()
+    expect(await screen.findByText(/your wealth/i)).toBeInTheDocument()
   })
 
-  it("shows portfolio selection section", () => {
+  it("shows portfolio selection section", async () => {
     render(
       <TestWrapper>
         <div />
       </TestWrapper>,
     )
 
-    expect(screen.getByText(/select portfolios/i)).toBeInTheDocument()
+    expect(await screen.findByText(/select portfolios/i)).toBeInTheDocument()
   })
 
-  it("shows description text", () => {
+  it("shows description text", async () => {
     render(
       <TestWrapper>
         <div />
@@ -80,7 +100,7 @@ describe("AssetsStep", () => {
     )
 
     expect(
-      screen.getByText(/we've selected your portfolios automatically/i),
+      await screen.findByText(/we've selected your portfolios automatically/i),
     ).toBeInTheDocument()
   })
 })

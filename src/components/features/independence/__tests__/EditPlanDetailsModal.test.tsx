@@ -4,6 +4,31 @@ import "@testing-library/jest-dom"
 import EditPlanDetailsModal from "../EditPlanDetailsModal"
 import { RetirementPlan } from "types/independence"
 
+// Mock SWR + the asset-configs hook so the modal's portfolio + asset-config
+// fetches resolve synchronously. Without this, SWR schedules a microtask
+// that triggers setState after the initial render completes — outside any
+// act() scope — producing "An update to EditPlanDetailsModal inside a test
+// was not wrapped in act(...)" warnings.
+jest.mock("swr", () => ({
+  __esModule: true,
+  default: () => ({
+    data: { data: [] },
+    error: undefined,
+    isLoading: false,
+    mutate: jest.fn(),
+  }),
+  mutate: jest.fn(),
+  SWRConfig: ({ children }: { children: React.ReactNode }) => children,
+}))
+
+jest.mock("@utils/assets/usePrivateAssetConfigs", () => ({
+  usePrivateAssetConfigs: () => ({
+    configs: [],
+    assetNames: {},
+    isLoading: false,
+  }),
+}))
+
 const mockPlan: RetirementPlan = {
   id: "test-plan-1",
   name: "Test Plan",

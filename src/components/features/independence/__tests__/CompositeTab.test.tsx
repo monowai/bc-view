@@ -9,6 +9,29 @@ import type {
   UserIndependenceSettings,
 } from "types/independence"
 
+// Mock recharts: in JSDOM the real ResponsiveContainer has width/height 0
+// and logs "The width(-1) and height(-1) of chart should be greater than 0".
+// Rendering the chart as <svg> with <g> children also keeps the camelCase
+// SVG tags (<defs>, <linearGradient>, <stop>) in a valid SVG context so
+// React doesn't warn about their casing.
+jest.mock("recharts", () => ({
+  ComposedChart: ({ children }: { children: React.ReactNode }) => (
+    <svg data-testid="composed-chart">{children}</svg>
+  ),
+  Area: () => <g />,
+  Line: () => <g />,
+  XAxis: () => <g />,
+  YAxis: () => <g />,
+  CartesianGrid: () => <g />,
+  Tooltip: () => <g />,
+  Legend: () => <g />,
+  ReferenceLine: () => <g />,
+  ReferenceArea: () => <g />,
+  ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
+    <div style={{ width: 800, height: 400 }}>{children}</div>
+  ),
+}))
+
 // Mock the hooks
 jest.mock("@hooks/useCompositeProjection", () => ({
   useCompositeProjection: jest.fn(() => ({

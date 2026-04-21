@@ -56,6 +56,13 @@ describe("useIndependencePlanCurrency", () => {
   })
 
   it("falls back to plan currency when FX rate fetch fails", async () => {
+    // The hook logs the underlying error via console.error before falling
+    // back. That's expected runtime behaviour, but it pollutes test output,
+    // so silence it for this case only.
+    const consoleErrorSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {})
+
     ;(global.fetch as jest.Mock).mockRejectedValue(new Error("Network error"))
 
     const { result } = renderHook(() => useIndependencePlanCurrency("NZD"))
@@ -71,6 +78,13 @@ describe("useIndependencePlanCurrency", () => {
     // Should fall back to plan currency
     expect(result.current.effectiveCurrency).toBe("NZD")
     expect(result.current.effectiveFxRate).toBe(1)
+
+    // Sanity-check the fallback was triggered by a logged failure.
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      "Failed to fetch FX rate:",
+      expect.any(Error),
+    )
+    consoleErrorSpy.mockRestore()
   })
 
   it("falls back when rate not found in response", async () => {

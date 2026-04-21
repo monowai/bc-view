@@ -18,7 +18,10 @@ describe("NewsSentimentPopup", () => {
     clearNewsCache()
   })
 
-  it("renders with the ticker in the title", () => {
+  // These tests cover sync render output, but the component kicks off an
+  // async fetch inside useEffect — `findBy*` waits for the resolved state
+  // so the setState lands inside act() and no warning fires.
+  it("renders with the ticker in the title", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: () =>
@@ -28,10 +31,10 @@ describe("NewsSentimentPopup", () => {
         }),
     })
     render(<NewsSentimentPopup ticker="AAPL" onClose={jest.fn()} />)
-    expect(screen.getByText(/AAPL/)).toBeInTheDocument()
+    expect(await screen.findByText(/AAPL/)).toBeInTheDocument()
   })
 
-  it("renders market code in the title when provided", () => {
+  it("renders market code in the title when provided", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: () =>
@@ -41,14 +44,14 @@ describe("NewsSentimentPopup", () => {
         }),
     })
     render(<NewsSentimentPopup ticker="GNE" market="NZX" onClose={jest.fn()} />)
-    expect(screen.getByText(/GNE/)).toBeInTheDocument()
+    expect(await screen.findByText(/GNE/)).toBeInTheDocument()
     expect(screen.getByText("(NZX)")).toBeInTheDocument()
   })
 
-  it("shows loading spinner while fetching", () => {
+  it("shows loading spinner while fetching", async () => {
     mockFetch.mockReturnValue(new Promise(() => {})) // never resolves
     render(<NewsSentimentPopup ticker="AAPL" onClose={jest.fn()} />)
-    expect(screen.getByText("Fetching news...")).toBeInTheDocument()
+    expect(await screen.findByText("Fetching news...")).toBeInTheDocument()
   })
 
   it("renders the agent response as markdown", async () => {

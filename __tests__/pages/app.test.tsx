@@ -1,17 +1,14 @@
 import Home from "@pages/index"
 import React from "react"
 import { render, screen, waitFor } from "@testing-library/react"
-import {
-  registrationSuccess,
-  portfolioResult,
-} from "../../__fixtures__/fixtures"
+import { registrationSuccess, portfolioResult } from "../fixtures"
 import { enableFetchMocks } from "jest-fetch-mock"
-import simpleGit from "../../../__mocks__/simple-git"
+import simpleGit from "../../__mocks__/simple-git"
 
 enableFetchMocks()
 
 // Mock RegistrationContext to return registered state immediately
-jest.mock("../../contexts/RegistrationContext", () => ({
+jest.mock("../../src/contexts/RegistrationContext", () => ({
   useRegistration: () => ({
     isChecking: false,
     isRegistered: true,
@@ -25,7 +22,7 @@ jest.mock("../../contexts/RegistrationContext", () => ({
 }))
 
 // Mock UserPreferencesContext to avoid loading state
-jest.mock("../../contexts/UserPreferencesContext", () => ({
+jest.mock("../../src/contexts/UserPreferencesContext", () => ({
   useUserPreferences: () => ({
     preferences: {
       baseCurrencyCode: "USD",
