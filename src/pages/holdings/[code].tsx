@@ -26,9 +26,11 @@ import HoldingMenu from "@components/features/holdings/HoldingMenu"
 import HoldingsHeader from "@components/features/holdings/HoldingsHeader"
 import Rows, {
   CorporateActionsData,
+  PriceChartData,
   SectorWeightingsData,
 } from "@components/features/holdings/Rows"
 import SectorWeightingsPopup from "@components/features/holdings/SectorWeightingsPopup"
+import PriceChartPopup from "@components/features/holdings/PriceChartPopup"
 import SubTotal from "@components/features/holdings/SubTotal"
 import Header from "@components/features/holdings/Header"
 import GrandTotal from "@components/features/holdings/GrandTotal"
@@ -97,6 +99,9 @@ function HoldingsPage(): React.ReactElement {
   >(undefined)
   const [sectorWeightingsAsset, setSectorWeightingsAsset] = useState<
     Asset | undefined
+  >(undefined)
+  const [priceChartData, setPriceChartData] = useState<
+    PriceChartData | undefined
   >(undefined)
   const [cashTransferData, setCashTransferData] = useState<
     CashTransferData | undefined
@@ -214,6 +219,15 @@ function HoldingsPage(): React.ReactElement {
   // Close sector weightings popup
   const handleSectorWeightingsClose = useCallback(() => {
     setSectorWeightingsAsset(undefined)
+  }, [])
+
+  // Handle price chart popup for equity/ETF assets
+  const handlePriceChart = useCallback((data: PriceChartData) => {
+    setPriceChartData(data)
+  }, [])
+
+  const handlePriceChartClose = useCallback(() => {
+    setPriceChartData(undefined)
   }, [])
 
   // Handle cash transfer from cash row
@@ -486,6 +500,7 @@ function HoldingsPage(): React.ReactElement {
                           onSetPrice={handleSetPrice}
                           onSetBalance={handleSetBalance}
                           onSectorWeightings={handleSectorWeightings}
+                          onPriceChart={handlePriceChart}
                           onCashTransfer={handleCashTransfer}
                           onCashTransaction={handleCashTransaction}
                           onCostAdjust={handleCostAdjust}
@@ -618,6 +633,14 @@ function HoldingsPage(): React.ReactElement {
           asset={sectorWeightingsAsset}
           modalOpen={!!sectorWeightingsAsset}
           onClose={handleSectorWeightingsClose}
+        />
+      )}
+      {priceChartData && (
+        <PriceChartPopup
+          asset={priceChartData.asset}
+          currencySymbol={priceChartData.currencySymbol}
+          portfolioId={priceChartData.portfolioId}
+          onClose={handlePriceChartClose}
         />
       )}
       {cashTransferData && (

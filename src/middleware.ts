@@ -1,6 +1,6 @@
 import { auth0 } from "@lib/auth0"
 
-export function proxy(request: Request): Promise<Response> {
+export function middleware(request: Request): Promise<Response> {
   return auth0.middleware(request)
 }
 

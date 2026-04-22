@@ -45,6 +45,12 @@ export interface SectorWeightingsData {
   asset: Asset
 }
 
+export interface PriceChartData {
+  asset: Asset
+  currencySymbol: string
+  portfolioId: string
+}
+
 interface RowsProps extends HoldingValues {
   onColumnsChange: (columns: string[]) => void
   onQuickSell?: (data: QuickSellData) => void
@@ -60,6 +66,7 @@ interface RowsProps extends HoldingValues {
   onMovePosition?: (data: MovePositionData) => void
   onRecordIncome?: (data: QuickSellData) => void
   onRecordExpense?: (data: QuickSellData) => void
+  onPriceChart?: (data: PriceChartData) => void
 }
 
 // Helper function to truncate text with ellipsis
@@ -520,6 +527,7 @@ export default function Rows({
   onMovePosition,
   onRecordIncome,
   onRecordExpense,
+  onPriceChart,
 }: RowsProps): React.ReactElement {
   const router = useRouter()
   const [newsAsset, setNewsAsset] = useState<{
@@ -692,22 +700,48 @@ export default function Rows({
             </td>
             <td className={getCellClasses(0)}>
               {hideValue(moneyValues[valueIn].priceData) ||
-              !moneyValues[valueIn].priceData?.close ? (
-                " "
-              ) : (
-                <span className="relative group">
-                  <span className="text-xs text-slate-500">
-                    {moneyValues[valueIn].currency.symbol}
-                  </span>
-                  <FormatValue
-                    value={moneyValues[valueIn].priceData.close}
-                    isPublic
-                  />
-                  <span className="absolute right-0 transform -translate-y-full mb-1 bg-slate-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none whitespace-nowrap z-50 shadow-lg">
-                    {moneyValues[valueIn].priceData.priceDate}
-                  </span>
-                </span>
-              )}
+              !moneyValues[valueIn].priceData?.close
+                ? " "
+                : (() => {
+                    const categoryId = asset.assetCategory?.id
+                    const isChartable =
+                      !!onPriceChart &&
+                      (categoryId === "EQUITY" || categoryId === "ETF")
+                    const priceContent = (
+                      <>
+                        <span className="text-xs text-slate-500">
+                          {moneyValues[valueIn].currency.symbol}
+                        </span>
+                        <FormatValue
+                          value={moneyValues[valueIn].priceData.close}
+                          isPublic
+                        />
+                        <span className="absolute right-0 transform -translate-y-full mb-1 bg-slate-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none whitespace-nowrap z-50 shadow-lg">
+                          {moneyValues[valueIn].priceData.priceDate}
+                        </span>
+                      </>
+                    )
+                    return isChartable ? (
+                      <button
+                        type="button"
+                        aria-label={`Show price chart for ${stripOwnerPrefix(asset.code)}`}
+                        className="relative group text-left cursor-pointer hover:text-wealth-700 hover:underline underline-offset-2 decoration-dotted"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onPriceChart({
+                            asset,
+                            currencySymbol:
+                              moneyValues[valueIn].currency.symbol,
+                            portfolioId: portfolio.id,
+                          })
+                        }}
+                      >
+                        {priceContent}
+                      </button>
+                    ) : (
+                      <span className="relative group">{priceContent}</span>
+                    )
+                  })()}
             </td>
             <td className={getCellClasses(1)}>
               {hideValue(moneyValues[valueIn].priceData?.changePercent) ? (
