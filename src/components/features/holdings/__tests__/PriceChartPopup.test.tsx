@@ -12,8 +12,10 @@ jest.mock("swr", () => ({
 const mockUseSwr = useSwr as jest.MockedFunction<typeof useSwr>
 
 jest.mock("recharts", () => ({
-  ComposedChart: ({ children }: { children: React.ReactNode }) => (
-    <svg data-testid="chart">{children}</svg>
+  ComposedChart: ({ children, data }: { children: React.ReactNode; data: unknown[] }) => (
+    <svg data-testid="chart" data-series={JSON.stringify(data)}>
+      {children}
+    </svg>
   ),
   Area: ({ dataKey }: { dataKey: string }) => (
     <g data-testid={`area-${dataKey}`} />
@@ -23,6 +25,9 @@ jest.mock("recharts", () => ({
   ),
   Scatter: ({ dataKey }: { dataKey: string }) => (
     <g data-testid={`scatter-${dataKey}`} />
+  ),
+  ReferenceLine: ({ x }: { x: string }) => (
+    <g data-testid={`refline-${x}`} />
   ),
   XAxis: () => <g />,
   YAxis: () => <g />,
@@ -190,6 +195,65 @@ describe("PriceChartPopup", () => {
 
     expect(screen.getByTestId("scatter-buyPrice")).toBeInTheDocument()
     expect(screen.getByTestId("scatter-sellPrice")).toBeInTheDocument()
+  })
+
+  it("split-adjusts prices and trade markers around a split event", () => {
+    mockUseSwr.mockImplementation(
+      makeRouter({
+        pricesResult: {
+          data: {
+            asset: history.asset,
+            prices: [
+              { priceDate: "2026-04-03", close: 5000, split: 1 },
+              { priceDate: "2026-04-06", close: 200, split: 25 },
+              { priceDate: "2026-04-07", close: 205, split: 1 },
+            ],
+          },
+          isLoading: false,
+          error: undefined,
+        } as unknown as ReturnType<typeof useSwr>,
+        tradesResult: {
+          data: {
+            data: [
+              {
+                id: "t1",
+                trnType: "BUY",
+                tradeDate: "2026-04-03",
+                quantity: 1,
+                price: 5000,
+              },
+            ],
+          },
+          isLoading: false,
+          error: undefined,
+        } as unknown as ReturnType<typeof useSwr>,
+      }) as typeof useSwr,
+    )
+
+    renderPopup()
+
+    const chart = screen.getByTestId("chart")
+    const rows = JSON.parse(
+      chart.getAttribute("data-series") as string,
+    ) as Array<{
+      priceDate: string
+      close: number
+      closeRaw: number
+      splitFactor: number
+      buyPrice: number | null
+      buyPriceRaw?: number
+      split?: number
+    }>
+    expect(rows[0].splitFactor).toBe(25)
+    expect(rows[0].close).toBe(200)
+    expect(rows[0].closeRaw).toBe(5000)
+    expect(rows[0].buyPrice).toBe(200)
+    expect(rows[0].buyPriceRaw).toBe(5000)
+    expect(rows[1].close).toBe(200)
+    expect(rows[1].split).toBe(25)
+    expect(rows[2].splitFactor).toBe(1)
+    expect(rows[2].close).toBe(205)
+    expect(screen.getByTestId("refline-2026-04-06")).toBeInTheDocument()
   })
 
   it("shows an empty message when the range has no prices", () => {

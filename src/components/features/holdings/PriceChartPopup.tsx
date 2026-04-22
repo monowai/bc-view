@@ -10,6 +10,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   CartesianGrid,
+  ReferenceLine,
 } from "recharts"
 import {
   Asset,
@@ -40,6 +41,8 @@ interface PricePoint {
   change?: number
   changePercent?: number
   volume?: number
+  split?: number | string
+  dividend?: number | string
 }
 
 interface ResolvedAsset {
@@ -58,9 +61,14 @@ interface PriceHistoryResponse {
 interface ChartPoint {
   priceDate: string
   close: number
+  closeRaw: number
+  splitFactor: number
+  split?: number
   sma?: number
   buyPrice?: number | null
   sellPrice?: number | null
+  buyPriceRaw?: number
+  sellPriceRaw?: number
   buyQty?: number
   sellQty?: number
 }
@@ -123,13 +131,30 @@ const ChartTooltip: React.FC<TooltipPayload> = ({
 }) => {
   if (!active || !payload || payload.length === 0) return null
   const point = payload[0].payload
+  const adjusted = point.splitFactor !== 1
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-sm">
       <div className="text-gray-500 mb-1">{point.priceDate}</div>
       <div className="font-semibold text-gray-900 tabular-nums">
         {currencySymbol}
         <FormatValue value={point.close} />
+        {adjusted && (
+          <span className="ml-1 text-[10px] font-normal text-gray-400">
+            adj
+          </span>
+        )}
       </div>
+      {adjusted && (
+        <div className="text-[11px] text-gray-400 tabular-nums">
+          Raw: {currencySymbol}
+          <FormatValue value={point.closeRaw} />
+        </div>
+      )}
+      {point.split && (
+        <div className="text-[11px] text-amber-600">
+          Split {point.split}:1
+        </div>
+      )}
       {typeof point.sma === "number" && (
         <div className="text-xs text-indigo-600 tabular-nums">
           SMA: {currencySymbol}
@@ -140,12 +165,24 @@ const ChartTooltip: React.FC<TooltipPayload> = ({
         <div className="text-xs text-emerald-600 tabular-nums">
           Buy {point.buyQty} @ {currencySymbol}
           <FormatValue value={point.buyPrice} />
+          {point.buyPriceRaw !== point.buyPrice && (
+            <span className="ml-1 text-gray-400">
+              (raw {currencySymbol}
+              <FormatValue value={point.buyPriceRaw ?? 0} />)
+            </span>
+          )}
         </div>
       )}
       {typeof point.sellPrice === "number" && (
         <div className="text-xs text-red-600 tabular-nums">
           Sell {point.sellQty} @ {currencySymbol}
           <FormatValue value={point.sellPrice} />
+          {point.sellPriceRaw !== point.sellPrice && (
+            <span className="ml-1 text-gray-400">
+              (raw {currencySymbol}
+              <FormatValue value={point.sellPriceRaw ?? 0} />)
+            </span>
+          )}
         </div>
       )}
     </div>
@@ -218,18 +255,33 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
 
   const series: ChartPoint[] = useMemo(() => {
     const raw = priceData?.prices ?? []
-    const closes = raw.map((p) => Number(p.close))
-    const smaSeries = computeSma(closes, smaWindow)
+    // Walk in reverse, accumulating split factors so pre-split rows are
+    // scaled onto the current share basis (e.g. 25:1 => /25 before the ex-date).
+    const factors = new Array<number>(raw.length).fill(1)
+    let cumulative = 1
+    for (let i = raw.length - 1; i >= 0; i--) {
+      factors[i] = cumulative
+      const split = Number(raw[i].split ?? 1)
+      if (split && split !== 1) cumulative *= split
+    }
+    const adjustedCloses = raw.map((p, i) => Number(p.close) / factors[i])
+    const smaSeries = computeSma(adjustedCloses, smaWindow)
     return raw.map((p, i) => {
       const trades = tradesByDate.get(p.priceDate) ?? []
       const buy = trades.find((t) => t.type === "BUY")
       const sell = trades.find((t) => t.type === "SELL")
+      const splitNum = Number(p.split ?? 1)
       return {
         priceDate: p.priceDate,
-        close: closes[i],
+        close: adjustedCloses[i],
+        closeRaw: Number(p.close),
+        splitFactor: factors[i],
+        split: splitNum !== 1 ? splitNum : undefined,
         sma: smaSeries[i],
-        buyPrice: buy ? buy.price : null,
-        sellPrice: sell ? sell.price : null,
+        buyPrice: buy ? buy.price / factors[i] : null,
+        sellPrice: sell ? sell.price / factors[i] : null,
+        buyPriceRaw: buy?.price,
+        sellPriceRaw: sell?.price,
         buyQty: buy?.quantity,
         sellQty: sell?.quantity,
       }
@@ -264,6 +316,11 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
       ? ((last.close - first.close) / first.close) * 100
       : 0
   const positive = changePct >= 0
+
+  const splitEvents = useMemo(
+    () => series.filter((p) => typeof p.split === "number"),
+    [series],
+  )
 
   return (
     <Dialog
@@ -423,6 +480,21 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
                 fill="url(#priceFill)"
                 isAnimationActive={false}
               />
+              {splitEvents.map((p) => (
+                <ReferenceLine
+                  key={`split-${p.priceDate}`}
+                  x={p.priceDate}
+                  stroke="#F59E0B"
+                  strokeDasharray="3 3"
+                  strokeWidth={1}
+                  label={{
+                    value: `${p.split}:1`,
+                    position: "top",
+                    fontSize: 10,
+                    fill: "#B45309",
+                  }}
+                />
+              ))}
               {smaWindow > 0 && (
                 <Line
                   key={`sma-${smaWindow}`}
