@@ -1,144 +1,70 @@
-import React, { useMemo, useState, useCallback, useEffect, useRef } from "react"
+import React, { useCallback, useEffect, useMemo, useState } from "react"
 import {
+  CashTransferData,
+  CostAdjustData,
+  Currency,
   Holdings,
+  MovePositionData,
   Portfolio,
   Position,
-  Currency,
   QuickSellData,
+  SetBalanceData,
+  SetCashBalanceData,
+  SetPriceData,
 } from "types/beancounter"
 import { FormatValue, PrivateQuantity } from "@components/ui/MoneyUtils"
 import {
   buildTradesHref,
   getPositionDisplayName,
   isCashRelated,
+  isConstantPrice,
   isNonTradeable,
   stripOwnerPrefix,
+  supportsBalanceSetting,
 } from "@lib/assets/assetUtils"
 import { useDisplayCurrencyConversion } from "@lib/hooks/useDisplayCurrencyConversion"
 import { compareByReportCategory, compareBySector } from "@lib/categoryMapping"
 import { GroupBy } from "@components/features/holdings/GroupByOptions"
 import { useRouter } from "next/router"
-import Link from "next/link"
 import AssetNewsButton from "./AssetNewsButton"
 import { useNewsAsset } from "./useNewsAsset"
+import { PriceChartData } from "./Rows"
+import {
+  ActionsMenu,
+  CashActionsMenu,
+  CorporateActionsData,
+  SectorWeightingsData,
+} from "./ActionsMenus"
 
-interface CardViewProps {
+interface SharedActionHandlers {
+  onQuickSell?: (data: QuickSellData) => void
+  onCorporateActions?: (data: CorporateActionsData) => void
+  onSetPrice?: (data: SetPriceData) => void
+  onSetBalance?: (data: SetBalanceData) => void
+  onSectorWeightings?: (data: SectorWeightingsData) => void
+  onCostAdjust?: (data: CostAdjustData) => void
+  onMovePosition?: (data: MovePositionData) => void
+  onRecordIncome?: (data: QuickSellData) => void
+  onRecordExpense?: (data: QuickSellData) => void
+  onSetCashBalance?: (data: SetCashBalanceData) => void
+  onCashTransfer?: (data: CashTransferData) => void
+  onCashTransaction?: (assetCode: string) => void
+  onPriceChart?: (data: PriceChartData) => void
+}
+
+interface CardViewProps extends SharedActionHandlers {
   holdings: Holdings
   portfolio: Portfolio
   valueIn: string
   groupBy?: string
   isMixedCurrencies?: boolean
-  onRecordIncome?: (data: QuickSellData) => void
-  onRecordExpense?: (data: QuickSellData) => void
 }
 
-interface PositionCardProps {
+interface PositionCardProps extends SharedActionHandlers {
   position: Position
   portfolio: Portfolio
   valueIn: string
   sourceCurrency: Currency | undefined
-  onRecordIncome?: (data: QuickSellData) => void
-  onRecordExpense?: (data: QuickSellData) => void
-}
-
-// Context menu for card actions (income/expense/trades)
-interface CardActionsMenuProps {
-  asset: Position["asset"]
-  portfolioId: string
-  onRecordIncome?: (data: QuickSellData) => void
-  onRecordExpense?: (data: QuickSellData) => void
-}
-
-const CardActionsMenu: React.FC<CardActionsMenuProps> = ({
-  asset,
-  portfolioId,
-  onRecordIncome,
-  onRecordExpense,
-}) => {
-  const [isOpen, setIsOpen] = useState(false)
-  const menuRef = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent): void => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsOpen(false)
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
-
-  const assetCode = stripOwnerPrefix(asset.code)
-
-  const handleAction = (type: "INCOME" | "EXPENSE"): void => {
-    const callback = type === "INCOME" ? onRecordIncome : onRecordExpense
-    callback?.({
-      asset: assetCode,
-      market: asset.market.code,
-      quantity: 0,
-      price: 0,
-      type,
-    })
-    setIsOpen(false)
-  }
-
-  return (
-    <div className="relative" ref={menuRef}>
-      <button
-        type="button"
-        aria-label={`${"Actions"} ${assetCode}`}
-        className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-        onClick={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          setIsOpen(!isOpen)
-        }}
-      >
-        <i className="fas fa-ellipsis-vertical text-xs"></i>
-      </button>
-      {isOpen && (
-        <div className="absolute right-0 mt-1 w-44 bg-white rounded-lg shadow-xl z-50 border border-gray-200">
-          <div className="py-1">
-            {onRecordIncome && (
-              <button
-                type="button"
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  handleAction("INCOME")
-                }}
-              >
-                <i className="fas fa-arrow-down text-green-500 w-4"></i>
-                {"Record Income"}
-              </button>
-            )}
-            {onRecordExpense && (
-              <button
-                type="button"
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  handleAction("EXPENSE")
-                }}
-              >
-                <i className="fas fa-arrow-up text-red-500 w-4"></i>
-                {"Record Expense"}
-              </button>
-            )}
-            <Link
-              href={`/trns/trades/${portfolioId}/${asset.id}`}
-              className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <i className="fas fa-list text-blue-500 w-4"></i>
-              {"View Trades"}
-            </Link>
-          </div>
-        </div>
-      )}
-    </div>
-  )
 }
 
 // === Card subcomponents ===========================================
@@ -155,11 +81,7 @@ const PositionMetric: React.FC<PositionMetricProps> = ({
   align = "left",
 }) => {
   const alignClass =
-    align === "right"
-      ? "text-right"
-      : align === "center"
-        ? "text-center"
-        : ""
+    align === "right" ? "text-right" : align === "center" ? "text-center" : ""
   return (
     <div className={alignClass}>
       <div className="text-gray-900 font-medium">{value}</div>
@@ -174,6 +96,8 @@ interface PositionFooterProps {
   price: number | undefined
   weight: number
   currencySymbol: string
+  onPriceClick?: (e: React.MouseEvent) => void
+  priceAriaLabel?: string
 }
 
 const PositionFooter: React.FC<PositionFooterProps> = ({
@@ -182,33 +106,46 @@ const PositionFooter: React.FC<PositionFooterProps> = ({
   price,
   weight,
   currencySymbol,
-}) => (
-  <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-3 gap-2 text-sm">
-    <PositionMetric
-      label="Quantity"
-      value={<PrivateQuantity value={quantity} precision={precision} />}
-    />
-    <PositionMetric
-      label="Price"
-      align="center"
-      value={
-        <>
-          {currencySymbol}
-          {price?.toFixed(2) || "-"}
-        </>
-      }
-    />
-    <PositionMetric
-      label="Weight"
-      align="right"
-      value={
-        <>
-          <FormatValue value={weight} multiplier={100} isPublic />%
-        </>
-      }
-    />
-  </div>
-)
+  onPriceClick,
+  priceAriaLabel,
+}) => {
+  const priceText = (
+    <>
+      {currencySymbol}
+      {price?.toFixed(2) || "-"}
+    </>
+  )
+  const priceValue = onPriceClick ? (
+    <button
+      type="button"
+      aria-label={priceAriaLabel}
+      className="cursor-pointer hover:text-wealth-700 hover:underline underline-offset-2 decoration-dotted"
+      onClick={onPriceClick}
+    >
+      {priceText}
+    </button>
+  ) : (
+    priceText
+  )
+  return (
+    <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-3 gap-2 text-sm">
+      <PositionMetric
+        label="Quantity"
+        value={<PrivateQuantity value={quantity} precision={precision} />}
+      />
+      <PositionMetric label="Price" align="center" value={priceValue} />
+      <PositionMetric
+        label="Weight"
+        align="right"
+        value={
+          <>
+            <FormatValue value={weight} multiplier={100} isPublic />%
+          </>
+        }
+      />
+    </div>
+  )
+}
 
 interface PositionHeaderProps {
   asset: Position["asset"]
@@ -308,16 +245,25 @@ const PositionCard: React.FC<PositionCardProps> = ({
   portfolio,
   valueIn,
   sourceCurrency,
+  onQuickSell,
+  onCorporateActions,
+  onSetPrice,
+  onSetBalance,
+  onSectorWeightings,
+  onCostAdjust,
+  onMovePosition,
   onRecordIncome,
   onRecordExpense,
+  onSetCashBalance,
+  onCashTransfer,
+  onCashTransaction,
+  onPriceChart,
 }) => {
   const router = useRouter()
   const { popup, showNews } = useNewsAsset()
   const { asset, moneyValues, quantityValues } = position
   const values = moneyValues[valueIn]
-  const hasMenu = !isCashRelated(asset) && (onRecordIncome || onRecordExpense)
 
-  // For TRADE view, use the position's own trade currency, not the passed sourceCurrency
   const positionCurrency =
     valueIn === "TRADE" ? moneyValues.TRADE?.currency : sourceCurrency
 
@@ -339,9 +285,80 @@ const PositionCard: React.FC<PositionCardProps> = ({
   const truncatedName = name.length > 30 ? name.substring(0, 30) + "..." : name
 
   const tradesHref = buildTradesHref(portfolio.id, asset.id)
+  const cashLadderHref = `/trns/cash-ladder/${portfolio.id}/${asset.id}`
 
-  const body = (
-    <>
+  const hasActions =
+    (!isCashRelated(asset) &&
+      (!!onQuickSell ||
+        !!onCorporateActions ||
+        !!onCostAdjust ||
+        !!onMovePosition ||
+        !!onRecordIncome ||
+        !!onRecordExpense ||
+        (!!onSetPrice && asset.market?.code === "PRIVATE") ||
+        (!!onSetBalance &&
+          asset.market?.code === "PRIVATE" &&
+          isConstantPrice(asset)) ||
+        (!!onSectorWeightings && asset.assetCategory?.id === "ETF"))) ||
+    (asset.assetCategory?.id === "RE" && (!!onRecordIncome || !!onRecordExpense))
+
+  const hasCashActions =
+    supportsBalanceSetting(asset) &&
+    (!!onSetCashBalance || !!onCashTransfer || !!onCashTransaction)
+
+  const tradeMoney = moneyValues["TRADE"]
+  const tradeCurrency = tradeMoney?.currency || portfolio.currency
+
+  const actionsNode =
+    hasActions || hasCashActions ? (
+      <div className="flex items-center gap-1">
+        {hasActions && (
+          <ActionsMenu
+            asset={asset}
+            portfolioId={portfolio.id}
+            portfolioCode={portfolio.code}
+            quantity={quantityValues.total}
+            price={values.priceData?.close || 0}
+            costBasis={tradeMoney?.costBasis || 0}
+            tradeCurrency={tradeCurrency}
+            valueIn={valueIn}
+            onQuickSell={isCashRelated(asset) ? undefined : onQuickSell}
+            onCorporateActions={
+              isCashRelated(asset) ? undefined : onCorporateActions
+            }
+            onSetPrice={onSetPrice}
+            onSetBalance={onSetBalance}
+            onSectorWeightings={onSectorWeightings}
+            onCostAdjust={isCashRelated(asset) ? undefined : onCostAdjust}
+            onMovePosition={isCashRelated(asset) ? undefined : onMovePosition}
+            onRecordIncome={onRecordIncome}
+            onRecordExpense={onRecordExpense}
+          />
+        )}
+        {hasCashActions && (
+          <CashActionsMenu
+            asset={asset}
+            portfolio={portfolio}
+            marketValue={tradeMoney?.marketValue || 0}
+            onSetCashBalance={onSetCashBalance}
+            onCashTransfer={onCashTransfer}
+            onCashTransaction={onCashTransaction}
+          />
+        )}
+      </div>
+    ) : undefined
+
+  const handleDoubleClick = useCallback(() => {
+    router.push(supportsBalanceSetting(asset) ? cashLadderHref : tradesHref)
+  }, [router, asset, cashLadderHref, tradesHref])
+
+  return (
+    <div
+      className={`${CARD_CLASSNAME} cursor-pointer`}
+      onDoubleClick={handleDoubleClick}
+      title="Double-click to open"
+    >
+      {popup}
       <PositionHeader
         asset={asset}
         displayName={displayName}
@@ -350,16 +367,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
         changePercent={values.priceData?.changePercent}
         isDayPositive={isDayPositive}
         onShowNews={() => showNews(asset)}
-        actionsMenu={
-          hasMenu ? (
-            <CardActionsMenu
-              asset={asset}
-              portfolioId={portfolio.id}
-              onRecordIncome={onRecordIncome}
-              onRecordExpense={onRecordExpense}
-            />
-          ) : undefined
-        }
+        actionsMenu={actionsNode}
       />
 
       <div className="mb-3">
@@ -378,36 +386,41 @@ const PositionCard: React.FC<PositionCardProps> = ({
         currencySymbol={currencySymbol}
       />
 
-      {!isCashRelated(asset) && (
-        <PositionFooter
-          quantity={quantityValues.total}
-          precision={quantityValues.precision}
-          price={values.priceData?.close}
-          weight={values.weight}
-          currencySymbol={currencySymbol}
-        />
-      )}
-    </>
-  )
-
-  if (hasMenu) {
-    return (
-      <div
-        className={`${CARD_CLASSNAME} cursor-pointer`}
-        onClick={() => router.push(tradesHref)}
-      >
-        {body}
-        {popup}
-      </div>
-    )
-  }
-  return (
-    <>
-      {popup}
-      <Link href={tradesHref} className={CARD_CLASSNAME}>
-        {body}
-      </Link>
-    </>
+      {!isCashRelated(asset) &&
+        (() => {
+          const categoryId = asset.assetCategory?.id
+          const isChartable =
+            !!onPriceChart &&
+            !!values.priceData?.close &&
+            (categoryId === "EQUITY" || categoryId === "ETF")
+          const handlePriceClick = isChartable
+            ? (e: React.MouseEvent) => {
+                e.preventDefault()
+                e.stopPropagation()
+                onPriceChart!({
+                  asset,
+                  currencySymbol: values.currency.symbol,
+                  portfolioId: portfolio.id,
+                })
+              }
+            : undefined
+          return (
+            <PositionFooter
+              quantity={quantityValues.total}
+              precision={quantityValues.precision}
+              price={values.priceData?.close}
+              weight={values.weight}
+              currencySymbol={currencySymbol}
+              onPriceClick={handlePriceClick}
+              priceAriaLabel={
+                isChartable
+                  ? `Show price chart for ${stripOwnerPrefix(asset.code)}`
+                  : undefined
+              }
+            />
+          )
+        })()}
+    </div>
   )
 }
 
@@ -442,8 +455,19 @@ const CardView: React.FC<CardViewProps> = ({
   valueIn,
   groupBy,
   isMixedCurrencies = false,
+  onQuickSell,
+  onCorporateActions,
+  onSetPrice,
+  onSetBalance,
+  onSectorWeightings,
+  onCostAdjust,
+  onMovePosition,
   onRecordIncome,
   onRecordExpense,
+  onSetCashBalance,
+  onCashTransfer,
+  onCashTransaction,
+  onPriceChart,
 }) => {
   // Group positions by holdingGroups, sorted by group comparator
   const groupedPositions = useMemo((): GroupedPositions[] => {
@@ -665,8 +689,19 @@ const CardView: React.FC<CardViewProps> = ({
                     portfolio={portfolio}
                     valueIn={valueIn}
                     sourceCurrency={sourceCurrency}
+                    onQuickSell={onQuickSell}
+                    onCorporateActions={onCorporateActions}
+                    onSetPrice={onSetPrice}
+                    onSetBalance={onSetBalance}
+                    onSectorWeightings={onSectorWeightings}
+                    onCostAdjust={onCostAdjust}
+                    onMovePosition={onMovePosition}
                     onRecordIncome={onRecordIncome}
                     onRecordExpense={onRecordExpense}
+                    onSetCashBalance={onSetCashBalance}
+                    onCashTransfer={onCashTransfer}
+                    onCashTransaction={onCashTransaction}
+                    onPriceChart={onPriceChart}
                   />
                 ))}
               </div>

@@ -1,10 +1,11 @@
 import React from "react"
-import { render, screen } from "@testing-library/react"
+import { render, screen, fireEvent } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import CardView from "../CardView"
 import { ValueIn } from "@components/features/holdings/GroupByOptions"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import {
+  makeAsset,
   makeHoldingGroup,
   makeHoldings,
   makePortfolio,
@@ -89,6 +90,64 @@ describe("CardView footer (Quantity / Price / Weight)", () => {
       // At least one **** in summary card area
       const masked = screen.getAllByText("****")
       expect(masked.length).toBeGreaterThan(0)
+    })
+  })
+
+  describe("price chart click", () => {
+    const renderWithChart = (
+      onPriceChart?: jest.Mock,
+      categoryId = "EQUITY",
+    ): { portfolio: ReturnType<typeof makePortfolio> } => {
+      const portfolio = makePortfolio()
+      const asset = makeAsset({
+        assetCategory: { id: categoryId, name: categoryId },
+      })
+      const position = makePosition({
+        asset,
+        moneyValues: { weight: 0.25 },
+        price: 150,
+        quantityValues: { total: 100 },
+      })
+      const holdings = makeHoldings({
+        portfolio,
+        holdingGroups: { Equity: makeHoldingGroup({ positions: [position] }) },
+      })
+      render(
+        <CardView
+          holdings={holdings}
+          portfolio={portfolio}
+          valueIn={ValueIn.PORTFOLIO}
+          onPriceChart={onPriceChart}
+        />,
+      )
+      return { portfolio }
+    }
+
+    it("renders price as a button and invokes onPriceChart for EQUITY", () => {
+      const onPriceChart = jest.fn()
+      const { portfolio } = renderWithChart(onPriceChart, "EQUITY")
+      const button = screen.getByRole("button", {
+        name: /Show price chart for AAPL/i,
+      })
+      fireEvent.click(button)
+      expect(onPriceChart).toHaveBeenCalledWith(
+        expect.objectContaining({ portfolioId: portfolio.id }),
+      )
+    })
+
+    it("does not render a price button when onPriceChart is omitted", () => {
+      renderWithChart(undefined, "EQUITY")
+      expect(
+        screen.queryByRole("button", { name: /Show price chart/i }),
+      ).not.toBeInTheDocument()
+    })
+
+    it("does not render a price button for non-chartable categories", () => {
+      const onPriceChart = jest.fn()
+      renderWithChart(onPriceChart, "BOND")
+      expect(
+        screen.queryByRole("button", { name: /Show price chart/i }),
+      ).not.toBeInTheDocument()
     })
   })
 })
