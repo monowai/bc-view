@@ -153,7 +153,6 @@ interface PositionHeaderProps {
   hasDistinctName: boolean
   truncatedName: string
   changePercent: number | undefined
-  isDayPositive: boolean
   onShowNews: () => void
   actionsMenu?: React.ReactNode
 }
@@ -164,11 +163,10 @@ const PositionHeader: React.FC<PositionHeaderProps> = ({
   hasDistinctName,
   truncatedName,
   changePercent,
-  isDayPositive,
   onShowNews,
   actionsMenu,
 }) => (
-  <div className="flex justify-between items-start mb-3">
+  <div className="flex justify-between items-center gap-2 mb-3">
     <div className="flex-1 min-w-0">
       <h3 className="font-semibold text-gray-900 text-lg flex items-center gap-1.5">
         {displayName}
@@ -178,17 +176,16 @@ const PositionHeader: React.FC<PositionHeaderProps> = ({
         <p className="text-sm text-gray-500 truncate">{truncatedName}</p>
       )}
     </div>
-    <div className="flex items-start gap-1">
+    <div className="flex items-center gap-2 shrink-0">
       {changePercent !== undefined && (
-        <div
-          className={`text-right ${isDayPositive ? "text-green-600" : "text-red-600"}`}
+        <span
+          className={`text-sm font-medium tabular-nums ${
+            changePercent >= 0 ? "text-emerald-600" : "text-red-600"
+          }`}
         >
-          <div className="text-sm font-medium">
-            {isDayPositive ? "+" : ""}
-            {(changePercent * 100).toFixed(2)}%
-          </div>
-          <div className="text-xs">today</div>
-        </div>
+          {changePercent > 0 ? "+" : ""}
+          {(changePercent * 100).toFixed(2)}%
+        </span>
       )}
       {actionsMenu}
     </div>
@@ -274,9 +271,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
 
   const marketValue = convert(values.marketValue)
   const totalGain = convert(values.totalGain)
-  const gainOnDay = convert(values.gainOnDay)
   const isPositive = totalGain >= 0
-  const isDayPositive = gainOnDay >= 0
 
   const displayName = getPositionDisplayName(asset)
 
@@ -367,7 +362,6 @@ const PositionCard: React.FC<PositionCardProps> = ({
         hasDistinctName={hasDistinctName}
         truncatedName={truncatedName}
         changePercent={values.priceData?.changePercent}
-        isDayPositive={isDayPositive}
         onShowNews={() => showNews(asset)}
         actionsMenu={actionsNode}
       />
