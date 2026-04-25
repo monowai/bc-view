@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import PriceChartPopup from "../PriceChartPopup"
 import useSwr from "swr"
-import { Asset } from "types/beancounter"
+import { makeAsset } from "@test-fixtures/beancounter"
 
 jest.mock("swr", () => ({
   __esModule: true,
@@ -42,30 +42,15 @@ jest.mock("recharts", () => ({
   ),
 }))
 
-const asset: Asset = {
+const asset = makeAsset({
   id: "msft-id",
   code: "MSFT",
   name: "Microsoft",
   assetCategory: { id: "EQUITY", name: "Equity" },
-  market: {
-    code: "NASDAQ",
-    name: "NASDAQ",
-    currency: { code: "USD", symbol: "$", name: "US Dollar" },
-  },
-}
+})
 
 const history = {
-  asset: {
-    id: "msft-id",
-    code: "MSFT",
-    name: "Microsoft",
-    market: {
-      code: "NASDAQ",
-      name: "NASDAQ",
-      currency: { code: "USD", symbol: "$", name: "US Dollar" },
-    },
-    assetCategory: { id: "EQUITY", name: "Equity" },
-  },
+  asset,
   prices: [
     { priceDate: "2026-03-21", close: 400 },
     { priceDate: "2026-04-01", close: 410 },
