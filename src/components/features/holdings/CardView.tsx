@@ -153,7 +153,6 @@ interface PositionHeaderProps {
   hasDistinctName: boolean
   truncatedName: string
   changePercent: number | undefined
-  isDayPositive: boolean
   onShowNews: () => void
   actionsMenu?: React.ReactNode
 }
@@ -164,7 +163,6 @@ const PositionHeader: React.FC<PositionHeaderProps> = ({
   hasDistinctName,
   truncatedName,
   changePercent,
-  isDayPositive,
   onShowNews,
   actionsMenu,
 }) => (
@@ -182,10 +180,10 @@ const PositionHeader: React.FC<PositionHeaderProps> = ({
       {changePercent !== undefined && (
         <span
           className={`text-sm font-medium tabular-nums ${
-            isDayPositive ? "text-emerald-600" : "text-red-600"
+            changePercent >= 0 ? "text-emerald-600" : "text-red-600"
           }`}
         >
-          {isDayPositive && changePercent > 0 ? "+" : ""}
+          {changePercent > 0 ? "+" : ""}
           {(changePercent * 100).toFixed(2)}%
         </span>
       )}
@@ -273,9 +271,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
 
   const marketValue = convert(values.marketValue)
   const totalGain = convert(values.totalGain)
-  const gainOnDay = convert(values.gainOnDay)
   const isPositive = totalGain >= 0
-  const isDayPositive = gainOnDay >= 0
 
   const displayName = getPositionDisplayName(asset)
 
@@ -366,7 +362,6 @@ const PositionCard: React.FC<PositionCardProps> = ({
         hasDistinctName={hasDistinctName}
         truncatedName={truncatedName}
         changePercent={values.priceData?.changePercent}
-        isDayPositive={isDayPositive}
         onShowNews={() => showNews(asset)}
         actionsMenu={actionsNode}
       />
