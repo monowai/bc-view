@@ -26,15 +26,15 @@ import { useDisplayCurrencyConversion } from "@lib/hooks/useDisplayCurrencyConve
 import { compareByReportCategory, compareBySector } from "@lib/categoryMapping"
 import { GroupBy } from "@components/features/holdings/GroupByOptions"
 import { useRouter } from "next/router"
-import AssetNewsButton from "./AssetNewsButton"
-import { useNewsAsset } from "./useNewsAsset"
-import { PriceChartData } from "./Rows"
+import AssetNewsButton from "@components/features/holdings/AssetNewsButton"
+import { useNewsAsset } from "@components/features/holdings/useNewsAsset"
+import { PriceChartData } from "@components/features/holdings/Rows"
 import {
   ActionsMenu,
   CashActionsMenu,
   CorporateActionsData,
   SectorWeightingsData,
-} from "./ActionsMenus"
+} from "@components/features/holdings/ActionsMenus"
 
 interface SharedActionHandlers {
   onQuickSell?: (data: QuickSellData) => void
@@ -261,7 +261,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
 }) => {
   const router = useRouter()
   const { popup, showNews } = useNewsAsset()
-  const { asset, moneyValues, quantityValues } = position
+  const { asset, moneyValues, quantityValues, dateValues } = position
   const values = moneyValues[valueIn]
 
   const positionCurrency =
@@ -317,6 +317,8 @@ const PositionCard: React.FC<PositionCardProps> = ({
             asset={asset}
             portfolioId={portfolio.id}
             portfolioCode={portfolio.code}
+            fromDate={dateValues?.opened}
+            closedDate={dateValues?.closed}
             quantity={quantityValues.total}
             price={values.priceData?.close || 0}
             costBasis={tradeMoney?.costBasis || 0}

@@ -150,4 +150,87 @@ describe("CardView footer (Quantity / Price / Weight)", () => {
       ).not.toBeInTheDocument()
     })
   })
+
+  describe("actions menu parity with table view", () => {
+    it("invokes onQuickSell with the same payload as the row menu", () => {
+      const onQuickSell = jest.fn()
+      const portfolio = makePortfolio()
+      const asset = makeAsset({
+        assetCategory: { id: "EQUITY", name: "Equity" },
+      })
+      const position = makePosition({
+        asset,
+        moneyValues: { weight: 0.25 },
+        price: 150,
+        quantityValues: { total: 100 },
+      })
+      const holdings = makeHoldings({
+        portfolio,
+        holdingGroups: { Equity: makeHoldingGroup({ positions: [position] }) },
+      })
+      render(
+        <CardView
+          holdings={holdings}
+          portfolio={portfolio}
+          valueIn={ValueIn.PORTFOLIO}
+          onQuickSell={onQuickSell}
+        />,
+      )
+
+      fireEvent.click(screen.getByRole("button", { name: /Actions AAPL/i }))
+      fireEvent.click(screen.getByRole("button", { name: "Quick Sell" }))
+
+      expect(onQuickSell).toHaveBeenCalledWith({
+        asset: "AAPL",
+        market: "NASDAQ",
+        quantity: 100,
+        price: 150,
+        held: undefined,
+      })
+    })
+
+    it("invokes onSetCashBalance for cash positions via CashActionsMenu", () => {
+      const onSetCashBalance = jest.fn()
+      const portfolio = makePortfolio()
+      const cashAsset = makeAsset({
+        id: "cash-usd",
+        code: "USD",
+        name: "US Dollar Cash",
+        assetCategory: { id: "CASH", name: "Cash" },
+        market: {
+          code: "CASH",
+          name: "Cash",
+          currency: { code: "USD", symbol: "$", name: "US Dollar" },
+        },
+      })
+      const cashPosition = makePosition({
+        asset: cashAsset,
+        moneyValues: { weight: 0.1, marketValue: 5000 },
+        buckets: [ValueIn.PORTFOLIO, ValueIn.TRADE],
+      })
+      const holdings = makeHoldings({
+        portfolio,
+        holdingGroups: { Cash: makeHoldingGroup({ positions: [cashPosition] }) },
+      })
+      render(
+        <CardView
+          holdings={holdings}
+          portfolio={portfolio}
+          valueIn={ValueIn.PORTFOLIO}
+          onSetCashBalance={onSetCashBalance}
+        />,
+      )
+
+      fireEvent.click(screen.getByRole("button", { name: /Actions USD/i }))
+      fireEvent.click(screen.getByRole("button", { name: "Set Balance" }))
+
+      expect(onSetCashBalance).toHaveBeenCalledWith(
+        expect.objectContaining({
+          currency: "USD",
+          market: "CASH",
+          currentBalance: 5000,
+        }),
+      )
+    })
+  })
 })

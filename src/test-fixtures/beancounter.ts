@@ -232,6 +232,9 @@ export function makeHoldings(options: MakeHoldingsOptions = {}): Holdings {
     currency: portfolio.currency,
     portfolio,
     valueIn,
+    // Passing null intentionally produces a Holdings with no viewTotals so
+    // tests can exercise the missing-totals branch. The outer
+    // `as unknown as Holdings` cast covers this deliberate type bypass.
     viewTotals:
       viewTotals === null
         ? undefined

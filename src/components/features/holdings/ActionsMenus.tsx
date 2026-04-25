@@ -42,6 +42,10 @@ interface UseDropdownMenuResult {
   close: () => void
 }
 
+// Matches Tailwind w-48 (12rem ≈ 192px) on the menu panel below.
+const MENU_WIDTH = 192
+const VIEWPORT_MARGIN = 8
+
 const useDropdownMenu = (): UseDropdownMenuResult => {
   const [isOpen, setIsOpen] = useState(false)
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -51,7 +55,9 @@ const useDropdownMenu = (): UseDropdownMenuResult => {
   const updatePosition = useCallback(() => {
     if (buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect()
-      setMenuPos({ top: rect.bottom + 4, left: rect.left })
+      const maxLeft = window.innerWidth - MENU_WIDTH - VIEWPORT_MARGIN
+      const left = Math.max(VIEWPORT_MARGIN, Math.min(rect.left, maxLeft))
+      setMenuPos({ top: rect.bottom + 4, left })
     }
   }, [])
 
