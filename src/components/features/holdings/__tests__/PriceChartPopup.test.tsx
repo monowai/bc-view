@@ -12,7 +12,13 @@ jest.mock("swr", () => ({
 const mockUseSwr = useSwr as jest.MockedFunction<typeof useSwr>
 
 jest.mock("recharts", () => ({
-  ComposedChart: ({ children, data }: { children: React.ReactNode; data: unknown[] }) => (
+  ComposedChart: ({
+    children,
+    data,
+  }: {
+    children: React.ReactNode
+    data: unknown[]
+  }) => (
     <svg data-testid="chart" data-series={JSON.stringify(data)}>
       {children}
     </svg>
@@ -26,9 +32,7 @@ jest.mock("recharts", () => ({
   Scatter: ({ dataKey }: { dataKey: string }) => (
     <g data-testid={`scatter-${dataKey}`} />
   ),
-  ReferenceLine: ({ x }: { x: string }) => (
-    <g data-testid={`refline-${x}`} />
-  ),
+  ReferenceLine: ({ x }: { x: string }) => <g data-testid={`refline-${x}`} />,
   XAxis: () => <g />,
   YAxis: () => <g />,
   Tooltip: () => <g />,

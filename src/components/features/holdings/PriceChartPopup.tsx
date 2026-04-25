@@ -151,9 +151,7 @@ const ChartTooltip: React.FC<TooltipPayload> = ({
         </div>
       )}
       {point.split && (
-        <div className="text-[11px] text-amber-600">
-          Split {point.split}:1
-        </div>
+        <div className="text-[11px] text-amber-600">Split {point.split}:1</div>
       )}
       {typeof point.sma === "number" && (
         <div className="text-xs text-indigo-600 tabular-nums">

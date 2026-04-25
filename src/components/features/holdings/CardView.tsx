@@ -276,20 +276,31 @@ const PositionCard: React.FC<PositionCardProps> = ({
           )}
         </div>
 
-        {/* Quantity for non-cash assets */}
+        {/* Quantity / Price / Weight for non-cash assets */}
         {!isCashRelated(asset) && (
-          <div className="mt-3 pt-3 border-t border-gray-100 flex justify-between text-sm text-gray-500">
-            <span>
-              <PrivateQuantity
-                value={quantityValues.total}
-                precision={quantityValues.precision}
-              />{" "}
-              shares
-            </span>
-            <span>
-              {currencySymbol}
-              {values.priceData?.close?.toFixed(2) || "-"} each
-            </span>
+          <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-3 gap-2 text-sm">
+            <div>
+              <div className="text-gray-900 font-medium">
+                <PrivateQuantity
+                  value={quantityValues.total}
+                  precision={quantityValues.precision}
+                />
+              </div>
+              <div className="text-xs text-gray-500">Quantity</div>
+            </div>
+            <div className="text-center">
+              <div className="text-gray-900 font-medium">
+                {currencySymbol}
+                {values.priceData?.close?.toFixed(2) || "-"}
+              </div>
+              <div className="text-xs text-gray-500">Price</div>
+            </div>
+            <div className="text-right">
+              <div className="text-gray-900 font-medium">
+                <FormatValue value={values.weight} multiplier={100} isPublic />%
+              </div>
+              <div className="text-xs text-gray-500">Weight</div>
+            </div>
           </div>
         )}
         {newsAsset && (
@@ -399,20 +410,31 @@ const PositionCard: React.FC<PositionCardProps> = ({
           )}
         </div>
 
-        {/* Quantity for non-cash assets */}
+        {/* Quantity / Price / Weight for non-cash assets */}
         {!isCashRelated(asset) && (
-          <div className="mt-3 pt-3 border-t border-gray-100 flex justify-between text-sm text-gray-500">
-            <span>
-              <PrivateQuantity
-                value={quantityValues.total}
-                precision={quantityValues.precision}
-              />{" "}
-              shares
-            </span>
-            <span>
-              {currencySymbol}
-              {values.priceData?.close?.toFixed(2) || "-"} each
-            </span>
+          <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-3 gap-2 text-sm">
+            <div>
+              <div className="text-gray-900 font-medium">
+                <PrivateQuantity
+                  value={quantityValues.total}
+                  precision={quantityValues.precision}
+                />
+              </div>
+              <div className="text-xs text-gray-500">Quantity</div>
+            </div>
+            <div className="text-center">
+              <div className="text-gray-900 font-medium">
+                {currencySymbol}
+                {values.priceData?.close?.toFixed(2) || "-"}
+              </div>
+              <div className="text-xs text-gray-500">Price</div>
+            </div>
+            <div className="text-right">
+              <div className="text-gray-900 font-medium">
+                <FormatValue value={values.weight} multiplier={100} isPublic />%
+              </div>
+              <div className="text-xs text-gray-500">Weight</div>
+            </div>
           </div>
         )}
       </Link>
