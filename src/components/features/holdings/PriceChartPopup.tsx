@@ -253,17 +253,11 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
 
   const series: ChartPoint[] = useMemo(() => {
     const raw = priceData?.prices ?? []
-    // Walk in reverse, accumulating split factors so pre-split rows are
-    // scaled onto the current share basis (e.g. 25:1 => /25 before the ex-date).
-    const factors = new Array<number>(raw.length).fill(1)
-    let cumulative = 1
-    for (let i = raw.length - 1; i >= 0; i--) {
-      factors[i] = cumulative
-      const split = Number(raw[i].split ?? 1)
-      if (split && split !== 1) cumulative *= split
-    }
-    const adjustedCloses = raw.map((p, i) => Number(p.close) / factors[i])
-    const smaSeries = computeSma(adjustedCloses, smaWindow)
+    // svc-data's PriceService returns split-adjusted prices and normalises the
+    // `split` column so only the canonical ex-date row carries a non-1 value.
+    // The chart renders the response as-is.
+    const closes = raw.map((p) => Number(p.close))
+    const smaSeries = computeSma(closes, smaWindow)
     return raw.map((p, i) => {
       const trades = tradesByDate.get(p.priceDate) ?? []
       const buy = trades.find((t) => t.type === "BUY")
@@ -271,13 +265,13 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
       const splitNum = Number(p.split ?? 1)
       return {
         priceDate: p.priceDate,
-        close: adjustedCloses[i],
-        closeRaw: Number(p.close),
-        splitFactor: factors[i],
+        close: closes[i],
+        closeRaw: closes[i],
+        splitFactor: 1,
         split: splitNum !== 1 ? splitNum : undefined,
         sma: smaSeries[i],
-        buyPrice: buy ? buy.price / factors[i] : null,
-        sellPrice: sell ? sell.price / factors[i] : null,
+        buyPrice: buy ? buy.price : null,
+        sellPrice: sell ? sell.price : null,
         buyPriceRaw: buy?.price,
         sellPriceRaw: sell?.price,
         buyQty: buy?.quantity,

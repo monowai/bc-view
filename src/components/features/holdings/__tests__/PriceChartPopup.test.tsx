@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import PriceChartPopup from "../PriceChartPopup"
 import useSwr from "swr"
-import { Asset } from "types/beancounter"
+import { makeAsset } from "@test-fixtures/beancounter"
 
 jest.mock("swr", () => ({
   __esModule: true,
@@ -42,30 +42,15 @@ jest.mock("recharts", () => ({
   ),
 }))
 
-const asset: Asset = {
+const asset = makeAsset({
   id: "msft-id",
   code: "MSFT",
   name: "Microsoft",
   assetCategory: { id: "EQUITY", name: "Equity" },
-  market: {
-    code: "NASDAQ",
-    name: "NASDAQ",
-    currency: { code: "USD", symbol: "$", name: "US Dollar" },
-  },
-}
+})
 
 const history = {
-  asset: {
-    id: "msft-id",
-    code: "MSFT",
-    name: "Microsoft",
-    market: {
-      code: "NASDAQ",
-      name: "NASDAQ",
-      currency: { code: "USD", symbol: "$", name: "US Dollar" },
-    },
-    assetCategory: { id: "EQUITY", name: "Equity" },
-  },
+  asset,
   prices: [
     { priceDate: "2026-03-21", close: 400 },
     { priceDate: "2026-04-01", close: 410 },
@@ -201,31 +186,19 @@ describe("PriceChartPopup", () => {
     expect(screen.getByTestId("scatter-sellPrice")).toBeInTheDocument()
   })
 
-  it("split-adjusts prices and trade markers around a split event", () => {
+  it("renders backend split-adjusted prices and marks the ex-date", () => {
+    // svc-data adjusts pre-split closes server-side and normalises the
+    // `split` column so only the canonical ex-date carries a non-1 value.
+    // The chart renders the response verbatim.
     mockUseSwr.mockImplementation(
       makeRouter({
         pricesResult: {
           data: {
             asset: history.asset,
             prices: [
-              { priceDate: "2026-04-03", close: 5000, split: 1 },
+              { priceDate: "2026-04-03", close: 200, split: 1 },
               { priceDate: "2026-04-06", close: 200, split: 25 },
               { priceDate: "2026-04-07", close: 205, split: 1 },
-            ],
-          },
-          isLoading: false,
-          error: undefined,
-        } as unknown as ReturnType<typeof useSwr>,
-        tradesResult: {
-          data: {
-            data: [
-              {
-                id: "t1",
-                trnType: "BUY",
-                tradeDate: "2026-04-03",
-                quantity: 1,
-                price: 5000,
-              },
             ],
           },
           isLoading: false,
@@ -242,21 +215,18 @@ describe("PriceChartPopup", () => {
     ) as Array<{
       priceDate: string
       close: number
-      closeRaw: number
       splitFactor: number
-      buyPrice: number | null
-      buyPriceRaw?: number
       split?: number
     }>
-    expect(rows[0].splitFactor).toBe(25)
     expect(rows[0].close).toBe(200)
-    expect(rows[0].closeRaw).toBe(5000)
-    expect(rows[0].buyPrice).toBe(200)
-    expect(rows[0].buyPriceRaw).toBe(5000)
+    expect(rows[0].splitFactor).toBe(1)
+    expect(rows[0].split).toBeUndefined()
     expect(rows[1].close).toBe(200)
     expect(rows[1].split).toBe(25)
-    expect(rows[2].splitFactor).toBe(1)
     expect(rows[2].close).toBe(205)
+    expect(rows[2].split).toBeUndefined()
+    // Backend normalises the split column so only one row keeps the marker.
+    expect(rows.filter((r) => r.split !== undefined)).toHaveLength(1)
     expect(screen.getByTestId("refline-2026-04-06")).toBeInTheDocument()
   })
 
