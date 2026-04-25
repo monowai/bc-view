@@ -220,10 +220,13 @@ describe("PriceChartPopup", () => {
     }>
     expect(rows[0].close).toBe(200)
     expect(rows[0].splitFactor).toBe(1)
+    expect(rows[0].split).toBeUndefined()
     expect(rows[1].close).toBe(200)
     expect(rows[1].split).toBe(25)
     expect(rows[2].close).toBe(205)
     expect(rows[2].split).toBeUndefined()
+    // Backend normalises the split column so only one row keeps the marker.
+    expect(rows.filter((r) => r.split !== undefined)).toHaveLength(1)
     expect(screen.getByTestId("refline-2026-04-06")).toBeInTheDocument()
   })
 
