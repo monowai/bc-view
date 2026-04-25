@@ -8,6 +8,20 @@ export type ViewMode =
   | "income"
   | "chart"
 
+/**
+ * Canonical order of holdings view modes for toolbar display.
+ * Single source — both `HoldingActions` and `HoldingsToolbar` consume this so
+ * tab ordering can't drift between mobile / desktop / tablet renders.
+ */
+export const VIEW_MODES: { value: ViewMode; label: string }[] = [
+  { value: "summary", label: "Summary" },
+  { value: "cards", label: "Cards" },
+  { value: "table", label: "Table" },
+  { value: "heatmap", label: "Heatmap" },
+  { value: "income", label: "Income" },
+  { value: "chart", label: "Growth" },
+]
+
 interface ViewToggleProps {
   viewMode: ViewMode
   onViewModeChange: (mode: ViewMode) => void

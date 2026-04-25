@@ -92,3 +92,37 @@ export function displayName(asset: Asset): string {
   const displayCode = getDisplayCode(asset)
   return `${displayCode}: ${asset.name}`
 }
+
+/**
+ * Title displayed on a holding card / row: cash uses asset.name, everything
+ * else uses the owner-prefix-stripped ticker. Pulled out of CardView/Rows so
+ * both views can't drift.
+ */
+export function getPositionDisplayName(asset: Asset): string {
+  return isCash(asset) ? asset.name : stripOwnerPrefix(asset.code)
+}
+
+/**
+ * Canonical href for a position's trade history.
+ */
+export function buildTradesHref(portfolioId: string, assetId: string): string {
+  return `/trns/trades/${portfolioId}/${assetId}`
+}
+
+export interface NewsAssetRef {
+  ticker: string
+  market: string
+  assetName: string
+}
+
+/**
+ * Shape consumed by NewsSentimentPopup. Centralized so card / row build it
+ * the same way.
+ */
+export function buildNewsAsset(asset: Asset): NewsAssetRef {
+  return {
+    ticker: stripOwnerPrefix(asset.code),
+    market: asset.market.code,
+    assetName: asset.name || "",
+  }
+}

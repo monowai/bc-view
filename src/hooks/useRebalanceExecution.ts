@@ -431,12 +431,6 @@ export function useRebalanceExecution(
         return undefined
       }
 
-      // const result = await response.json()
-      // console.log(
-      //   `Created ${result.data.transactionsCreated} transactions`,
-      //   result.data.transactionIds,
-      // )
-
       return { portfolioId }
     } catch (err) {
       console.error("Failed to commit execution:", err)

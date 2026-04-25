@@ -4,7 +4,7 @@ import TradeInputForm from "@components/features/transactions/TradeInputForm"
 import CashInputForm from "@components/features/transactions/CashInputForm"
 import CopyPopup from "@components/ui/CopyPopup"
 import { HoldingContract, Holdings, QuickSellData } from "types/beancounter"
-import { ViewMode } from "./ViewToggle"
+import { ViewMode, VIEW_MODES } from "./ViewToggle"
 import { AllocationSlice } from "@lib/allocation/aggregateHoldings"
 import { useIsAdmin } from "@hooks/useIsAdmin"
 import {
@@ -305,14 +305,7 @@ const GroupByIcon: React.FC<{ groupBy: string; className?: string }> = ({
   }
 }
 
-const viewModes: { value: ViewMode; label: string }[] = [
-  { value: "summary", label: "Summary" },
-  { value: "cards", label: "Cards" },
-  { value: "heatmap", label: "Heatmap" },
-  { value: "income", label: "Income" },
-  { value: "chart", label: "Growth" },
-  { value: "table", label: "Table" },
-]
+const viewModes = VIEW_MODES
 
 const HoldingActions: React.FC<HoldingActionsProps> = ({
   holdingResults,

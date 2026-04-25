@@ -19,6 +19,8 @@ import {
   PrivateQuantity,
 } from "@components/ui/MoneyUtils"
 import {
+  buildTradesHref,
+  getPositionDisplayName,
   isCash,
   isCashRelated,
   isAccount,
@@ -29,7 +31,8 @@ import {
 } from "@lib/assets/assetUtils"
 import Link from "next/link"
 import { useRouter } from "next/router"
-import NewsSentimentPopup from "./NewsSentimentPopup"
+import AssetNewsButton from "./AssetNewsButton"
+import { useNewsAsset } from "./useNewsAsset"
 import { AlphaProgress } from "@components/ui/ProgressBar"
 import { useDisplayCurrencyConversion } from "@lib/hooks/useDisplayCurrencyConversion"
 import { getCellClasses } from "@lib/holdings/cellClasses"
@@ -530,11 +533,7 @@ export default function Rows({
   onPriceChart,
 }: RowsProps): React.ReactElement {
   const router = useRouter()
-  const [newsAsset, setNewsAsset] = useState<{
-    ticker: string
-    market: string
-    assetName: string
-  } | null>(null)
+  const { popup: newsPopup, showNews } = useNewsAsset()
 
   // Source currency based on valueIn selection
   const sourceCurrency = useMemo(() => {
@@ -594,7 +593,7 @@ export default function Rows({
             onDoubleClick={() =>
               supportsBalanceSetting(asset)
                 ? router.push(`/trns/cash-ladder/${portfolio.id}/${asset.id}`)
-                : router.push(`/trns/trades/${portfolio.id}/${asset.id}`)
+                : router.push(buildTradesHref(portfolio.id, asset.id))
             }
             title={"Double-click to open"}
           >
@@ -606,26 +605,13 @@ export default function Rows({
                     className="font-semibold text-sm sm:text-base text-slate-900 flex items-center gap-1"
                     title={stripOwnerPrefix(asset.code)}
                   >
-                    {isCash(asset) ? asset.name : stripOwnerPrefix(asset.code)}
-                    {!isCashRelated(asset) &&
-                      asset.market?.code !== "PRIVATE" && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setNewsAsset({
-                              ticker: stripOwnerPrefix(asset.code),
-                              market: asset.market.code,
-                              assetName: asset.name || "",
-                            })
-                          }}
-                          className="text-gray-400 hover:text-blue-600 transition-colors"
-                          title={`News for ${stripOwnerPrefix(asset.code)}`}
-                          aria-label={`News ${stripOwnerPrefix(asset.code)}`}
-                        >
-                          <i className="fas fa-newspaper text-[10px]"></i>
-                        </button>
-                      )}
+                    {getPositionDisplayName(asset)}
+                    <AssetNewsButton
+                      asset={asset}
+                      onShow={() => showNews(asset)}
+                      iconClassName="text-[10px]"
+                    />
+
                   </div>
                   {!isCash(asset) && asset.name && (
                     <div
@@ -932,16 +918,9 @@ export default function Rows({
           </tr>
         ),
       )}
-      {newsAsset && (
+      {newsPopup && (
         <tr>
-          <td>
-            <NewsSentimentPopup
-              ticker={newsAsset.ticker}
-              market={newsAsset.market}
-              assetName={newsAsset.assetName}
-              onClose={() => setNewsAsset(null)}
-            />
-          </td>
+          <td>{newsPopup}</td>
         </tr>
       )}
     </tbody>

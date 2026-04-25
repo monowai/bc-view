@@ -3,7 +3,11 @@ import {
   getDisplayCode,
   isCashRelated,
   isNonTradeable,
+  getPositionDisplayName,
+  buildTradesHref,
+  buildNewsAsset,
 } from "../assetUtils"
+import { makeAsset, makeCashAsset } from "@test-fixtures/beancounter"
 
 describe("stripOwnerPrefix", () => {
   it("returns code after last dot", () => {
@@ -86,5 +90,51 @@ describe("getDisplayCode", () => {
 
   it("returns empty string for undefined asset", () => {
     expect(getDisplayCode(undefined)).toBe("")
+  })
+})
+
+describe("getPositionDisplayName", () => {
+  it("returns asset.name for cash assets", () => {
+    const cash = makeCashAsset()
+    cash.name = "USD Cash"
+    expect(getPositionDisplayName(cash)).toBe("USD Cash")
+  })
+
+  it("returns stripped code for non-cash assets", () => {
+    expect(getPositionDisplayName(makeAsset({ code: "userId.AAPL" }))).toBe(
+      "AAPL",
+    )
+  })
+
+  it("returns code unchanged when no owner prefix", () => {
+    expect(getPositionDisplayName(makeAsset({ code: "MSFT" }))).toBe("MSFT")
+  })
+})
+
+describe("buildTradesHref", () => {
+  it("returns canonical trades route", () => {
+    expect(buildTradesHref("p-1", "asset-aapl")).toBe(
+      "/trns/trades/p-1/asset-aapl",
+    )
+  })
+})
+
+describe("buildNewsAsset", () => {
+  it("strips owner prefix from ticker, takes market.code, defaults assetName to empty", () => {
+    const asset = makeAsset({ code: "userId.AAPL", name: "" })
+    expect(buildNewsAsset(asset)).toEqual({
+      ticker: "AAPL",
+      market: "NASDAQ",
+      assetName: "",
+    })
+  })
+
+  it("preserves asset.name when present", () => {
+    const asset = makeAsset({ code: "AAPL", name: "Apple Inc." })
+    expect(buildNewsAsset(asset)).toEqual({
+      ticker: "AAPL",
+      market: "NASDAQ",
+      assetName: "Apple Inc.",
+    })
   })
 })

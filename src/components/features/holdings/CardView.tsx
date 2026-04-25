@@ -8,7 +8,8 @@ import {
 } from "types/beancounter"
 import { FormatValue, PrivateQuantity } from "@components/ui/MoneyUtils"
 import {
-  isCash,
+  buildTradesHref,
+  getPositionDisplayName,
   isCashRelated,
   isNonTradeable,
   stripOwnerPrefix,
@@ -18,7 +19,8 @@ import { compareByReportCategory, compareBySector } from "@lib/categoryMapping"
 import { GroupBy } from "@components/features/holdings/GroupByOptions"
 import { useRouter } from "next/router"
 import Link from "next/link"
-import NewsSentimentPopup from "./NewsSentimentPopup"
+import AssetNewsButton from "./AssetNewsButton"
+import { useNewsAsset } from "./useNewsAsset"
 
 interface CardViewProps {
   holdings: Holdings
@@ -139,6 +141,168 @@ const CardActionsMenu: React.FC<CardActionsMenuProps> = ({
   )
 }
 
+// === Card subcomponents ===========================================
+
+interface PositionMetricProps {
+  label: string
+  value: React.ReactNode
+  align?: "left" | "center" | "right"
+}
+
+const PositionMetric: React.FC<PositionMetricProps> = ({
+  label,
+  value,
+  align = "left",
+}) => {
+  const alignClass =
+    align === "right"
+      ? "text-right"
+      : align === "center"
+        ? "text-center"
+        : ""
+  return (
+    <div className={alignClass}>
+      <div className="text-gray-900 font-medium">{value}</div>
+      <div className="text-xs text-gray-500">{label}</div>
+    </div>
+  )
+}
+
+interface PositionFooterProps {
+  quantity: number
+  precision: number
+  price: number | undefined
+  weight: number
+  currencySymbol: string
+}
+
+const PositionFooter: React.FC<PositionFooterProps> = ({
+  quantity,
+  precision,
+  price,
+  weight,
+  currencySymbol,
+}) => (
+  <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-3 gap-2 text-sm">
+    <PositionMetric
+      label="Quantity"
+      value={<PrivateQuantity value={quantity} precision={precision} />}
+    />
+    <PositionMetric
+      label="Price"
+      align="center"
+      value={
+        <>
+          {currencySymbol}
+          {price?.toFixed(2) || "-"}
+        </>
+      }
+    />
+    <PositionMetric
+      label="Weight"
+      align="right"
+      value={
+        <>
+          <FormatValue value={weight} multiplier={100} isPublic />%
+        </>
+      }
+    />
+  </div>
+)
+
+interface PositionHeaderProps {
+  asset: Position["asset"]
+  displayName: string
+  hasDistinctName: boolean
+  truncatedName: string
+  changePercent: number | undefined
+  isDayPositive: boolean
+  onShowNews: () => void
+  actionsMenu?: React.ReactNode
+}
+
+const PositionHeader: React.FC<PositionHeaderProps> = ({
+  asset,
+  displayName,
+  hasDistinctName,
+  truncatedName,
+  changePercent,
+  isDayPositive,
+  onShowNews,
+  actionsMenu,
+}) => (
+  <div className="flex justify-between items-start mb-3">
+    <div className="flex-1 min-w-0">
+      <h3 className="font-semibold text-gray-900 text-lg flex items-center gap-1.5">
+        {displayName}
+        <AssetNewsButton asset={asset} onShow={onShowNews} />
+      </h3>
+      {hasDistinctName && (
+        <p className="text-sm text-gray-500 truncate">{truncatedName}</p>
+      )}
+    </div>
+    <div className="flex items-start gap-1">
+      {changePercent !== undefined && (
+        <div
+          className={`text-right ${isDayPositive ? "text-green-600" : "text-red-600"}`}
+        >
+          <div className="text-sm font-medium">
+            {isDayPositive ? "+" : ""}
+            {(changePercent * 100).toFixed(2)}%
+          </div>
+          <div className="text-xs">today</div>
+        </div>
+      )}
+      {actionsMenu}
+    </div>
+  </div>
+)
+
+interface PositionPnLProps {
+  asset: Position["asset"]
+  totalGain: number
+  isPositive: boolean
+  irr: number
+  currencySymbol: string
+}
+
+const PositionPnL: React.FC<PositionPnLProps> = ({
+  asset,
+  totalGain,
+  isPositive,
+  irr,
+  currencySymbol,
+}) => (
+  <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+    <div>
+      <div
+        className={`text-lg font-semibold ${isPositive ? "text-green-600" : "text-red-600"}`}
+      >
+        {isPositive && totalGain > 0 ? "+" : ""}
+        {currencySymbol}
+        <FormatValue value={totalGain} />
+      </div>
+      <div className="text-sm text-gray-500">
+        {isPositive ? "Your Profit" : "Your Loss"}
+      </div>
+    </div>
+    {!isCashRelated(asset) && (
+      <div className="text-right">
+        <div
+          className={`text-lg font-semibold ${irr >= 0 ? "text-green-600" : "text-red-600"}`}
+        >
+          {irr >= 0 ? "+" : ""}
+          {(irr * 100).toFixed(1)}%
+        </div>
+        <div className="text-sm text-gray-500">Growth</div>
+      </div>
+    )}
+  </div>
+)
+
+const CARD_CLASSNAME =
+  "block bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow"
+
 const PositionCard: React.FC<PositionCardProps> = ({
   position,
   portfolio,
@@ -148,11 +312,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
   onRecordExpense,
 }) => {
   const router = useRouter()
-  const [newsAsset, setNewsAsset] = useState<{
-    ticker: string
-    market: string
-    assetName: string
-  } | null>(null)
+  const { popup, showNews } = useNewsAsset()
   const { asset, moneyValues, quantityValues } = position
   const values = moneyValues[valueIn]
   const hasMenu = !isCashRelated(asset) && (onRecordIncome || onRecordExpense)
@@ -172,271 +332,80 @@ const PositionCard: React.FC<PositionCardProps> = ({
   const isPositive = totalGain >= 0
   const isDayPositive = gainOnDay >= 0
 
-  // Simple display name - show code for stocks, name for cash
-  const displayName = isCash(asset) ? asset.name : stripOwnerPrefix(asset.code)
+  const displayName = getPositionDisplayName(asset)
 
-  // Show the asset name as subtitle when it exists and differs from the code
   const name = asset.name || ""
   const hasDistinctName = name.length > 0 && name !== asset.code
   const truncatedName = name.length > 30 ? name.substring(0, 30) + "..." : name
 
-  // Use div with onClick when we have interactive menu, otherwise use Link
+  const tradesHref = buildTradesHref(portfolio.id, asset.id)
+
+  const body = (
+    <>
+      <PositionHeader
+        asset={asset}
+        displayName={displayName}
+        hasDistinctName={hasDistinctName}
+        truncatedName={truncatedName}
+        changePercent={values.priceData?.changePercent}
+        isDayPositive={isDayPositive}
+        onShowNews={() => showNews(asset)}
+        actionsMenu={
+          hasMenu ? (
+            <CardActionsMenu
+              asset={asset}
+              portfolioId={portfolio.id}
+              onRecordIncome={onRecordIncome}
+              onRecordExpense={onRecordExpense}
+            />
+          ) : undefined
+        }
+      />
+
+      <div className="mb-3">
+        <div className="text-2xl font-bold text-gray-900">
+          {currencySymbol}
+          <FormatValue value={marketValue} />
+        </div>
+        <div className="text-sm text-gray-500">Current Value</div>
+      </div>
+
+      <PositionPnL
+        asset={asset}
+        totalGain={totalGain}
+        isPositive={isPositive}
+        irr={values.irr}
+        currencySymbol={currencySymbol}
+      />
+
+      {!isCashRelated(asset) && (
+        <PositionFooter
+          quantity={quantityValues.total}
+          precision={quantityValues.precision}
+          price={values.priceData?.close}
+          weight={values.weight}
+          currencySymbol={currencySymbol}
+        />
+      )}
+    </>
+  )
+
   if (hasMenu) {
     return (
       <div
-        className="block bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
-        onClick={() => router.push(`/trns/trades/${portfolio.id}/${asset.id}`)}
+        className={`${CARD_CLASSNAME} cursor-pointer`}
+        onClick={() => router.push(tradesHref)}
       >
-        {/* Header: Asset code, today's change, and actions menu */}
-        <div className="flex justify-between items-start mb-3">
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-gray-900 text-lg flex items-center gap-1.5">
-              {displayName}
-              {!isCashRelated(asset) && asset.market?.code !== "PRIVATE" && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setNewsAsset({
-                      ticker: stripOwnerPrefix(asset.code),
-                      market: asset.market.code,
-                      assetName: asset.name || "",
-                    })
-                  }}
-                  className="text-gray-400 hover:text-blue-600 transition-colors"
-                  title={`News for ${stripOwnerPrefix(asset.code)}`}
-                  aria-label={`News ${stripOwnerPrefix(asset.code)}`}
-                >
-                  <i className="fas fa-newspaper text-xs"></i>
-                </button>
-              )}
-            </h3>
-            {hasDistinctName && (
-              <p className="text-sm text-gray-500 truncate">{truncatedName}</p>
-            )}
-          </div>
-          <div className="flex items-start gap-1">
-            {values.priceData?.changePercent !== undefined && (
-              <div
-                className={`text-right ${isDayPositive ? "text-green-600" : "text-red-600"}`}
-              >
-                <div className="text-sm font-medium">
-                  {isDayPositive ? "+" : ""}
-                  {(values.priceData.changePercent * 100).toFixed(2)}%
-                </div>
-                <div className="text-xs">today</div>
-              </div>
-            )}
-            {!isCashRelated(asset) && (onRecordIncome || onRecordExpense) && (
-              <CardActionsMenu
-                asset={asset}
-                portfolioId={portfolio.id}
-                onRecordIncome={onRecordIncome}
-                onRecordExpense={onRecordExpense}
-              />
-            )}
-          </div>
-        </div>
-
-        {/* Main value */}
-        <div className="mb-3">
-          <div className="text-2xl font-bold text-gray-900">
-            {currencySymbol}
-            <FormatValue value={marketValue} />
-          </div>
-          <div className="text-sm text-gray-500">Current Value</div>
-        </div>
-
-        {/* Profit/Loss section */}
-        <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-          <div>
-            <div
-              className={`text-lg font-semibold ${isPositive ? "text-green-600" : "text-red-600"}`}
-            >
-              {isPositive && totalGain > 0 ? "+" : ""}
-              {currencySymbol}
-              <FormatValue value={totalGain} />
-            </div>
-            <div className="text-sm text-gray-500">
-              {isPositive ? "Your Profit" : "Your Loss"}
-            </div>
-          </div>
-
-          {/* Growth rate - simple language */}
-          {!isCashRelated(asset) && (
-            <div className="text-right">
-              <div
-                className={`text-lg font-semibold ${values.irr >= 0 ? "text-green-600" : "text-red-600"}`}
-              >
-                {values.irr >= 0 ? "+" : ""}
-                {(values.irr * 100).toFixed(1)}%
-              </div>
-              <div className="text-sm text-gray-500">Growth</div>
-            </div>
-          )}
-        </div>
-
-        {/* Quantity / Price / Weight for non-cash assets */}
-        {!isCashRelated(asset) && (
-          <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-3 gap-2 text-sm">
-            <div>
-              <div className="text-gray-900 font-medium">
-                <PrivateQuantity
-                  value={quantityValues.total}
-                  precision={quantityValues.precision}
-                />
-              </div>
-              <div className="text-xs text-gray-500">Quantity</div>
-            </div>
-            <div className="text-center">
-              <div className="text-gray-900 font-medium">
-                {currencySymbol}
-                {values.priceData?.close?.toFixed(2) || "-"}
-              </div>
-              <div className="text-xs text-gray-500">Price</div>
-            </div>
-            <div className="text-right">
-              <div className="text-gray-900 font-medium">
-                <FormatValue value={values.weight} multiplier={100} isPublic />%
-              </div>
-              <div className="text-xs text-gray-500">Weight</div>
-            </div>
-          </div>
-        )}
-        {newsAsset && (
-          <NewsSentimentPopup
-            ticker={newsAsset.ticker}
-            market={newsAsset.market}
-            assetName={newsAsset.assetName}
-            onClose={() => setNewsAsset(null)}
-          />
-        )}
+        {body}
+        {popup}
       </div>
     )
   }
-
-  // No menu — use a simple Link wrapper
   return (
     <>
-      {newsAsset && (
-        <NewsSentimentPopup
-          ticker={newsAsset.ticker}
-          market={newsAsset.market}
-          assetName={newsAsset.assetName}
-          onClose={() => setNewsAsset(null)}
-        />
-      )}
-      <Link
-        href={`/trns/trades/${portfolio.id}/${asset.id}`}
-        className="block bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow"
-      >
-        {/* Header: Asset code and today's change */}
-        <div className="flex justify-between items-start mb-3">
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-gray-900 text-lg flex items-center gap-1.5">
-              {displayName}
-              {!isCashRelated(asset) && asset.market?.code !== "PRIVATE" && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    setNewsAsset({
-                      ticker: stripOwnerPrefix(asset.code),
-                      market: asset.market.code,
-                      assetName: asset.name || "",
-                    })
-                  }}
-                  className="text-gray-400 hover:text-blue-600 transition-colors"
-                  title={`News for ${stripOwnerPrefix(asset.code)}`}
-                  aria-label={`News ${stripOwnerPrefix(asset.code)}`}
-                >
-                  <i className="fas fa-newspaper text-xs"></i>
-                </button>
-              )}
-            </h3>
-            {hasDistinctName && (
-              <p className="text-sm text-gray-500 truncate">{truncatedName}</p>
-            )}
-          </div>
-          {values.priceData?.changePercent !== undefined && (
-            <div
-              className={`text-right ${isDayPositive ? "text-green-600" : "text-red-600"}`}
-            >
-              <div className="text-sm font-medium">
-                {isDayPositive ? "+" : ""}
-                {(values.priceData.changePercent * 100).toFixed(2)}%
-              </div>
-              <div className="text-xs">today</div>
-            </div>
-          )}
-        </div>
-
-        {/* Main value */}
-        <div className="mb-3">
-          <div className="text-2xl font-bold text-gray-900">
-            {currencySymbol}
-            <FormatValue value={marketValue} />
-          </div>
-          <div className="text-sm text-gray-500">Current Value</div>
-        </div>
-
-        {/* Profit/Loss section */}
-        <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-          <div>
-            <div
-              className={`text-lg font-semibold ${isPositive ? "text-green-600" : "text-red-600"}`}
-            >
-              {isPositive && totalGain > 0 ? "+" : ""}
-              {currencySymbol}
-              <FormatValue value={totalGain} />
-            </div>
-            <div className="text-sm text-gray-500">
-              {isPositive ? "Your Profit" : "Your Loss"}
-            </div>
-          </div>
-
-          {/* Growth rate - simple language */}
-          {!isCashRelated(asset) && (
-            <div className="text-right">
-              <div
-                className={`text-lg font-semibold ${values.irr >= 0 ? "text-green-600" : "text-red-600"}`}
-              >
-                {values.irr >= 0 ? "+" : ""}
-                {(values.irr * 100).toFixed(1)}%
-              </div>
-              <div className="text-sm text-gray-500">Growth</div>
-            </div>
-          )}
-        </div>
-
-        {/* Quantity / Price / Weight for non-cash assets */}
-        {!isCashRelated(asset) && (
-          <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-3 gap-2 text-sm">
-            <div>
-              <div className="text-gray-900 font-medium">
-                <PrivateQuantity
-                  value={quantityValues.total}
-                  precision={quantityValues.precision}
-                />
-              </div>
-              <div className="text-xs text-gray-500">Quantity</div>
-            </div>
-            <div className="text-center">
-              <div className="text-gray-900 font-medium">
-                {currencySymbol}
-                {values.priceData?.close?.toFixed(2) || "-"}
-              </div>
-              <div className="text-xs text-gray-500">Price</div>
-            </div>
-            <div className="text-right">
-              <div className="text-gray-900 font-medium">
-                <FormatValue value={values.weight} multiplier={100} isPublic />%
-              </div>
-              <div className="text-xs text-gray-500">Weight</div>
-            </div>
-          </div>
-        )}
+      {popup}
+      <Link href={tradesHref} className={CARD_CLASSNAME}>
+        {body}
       </Link>
     </>
   )
