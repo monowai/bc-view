@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react"
 import { useRouter } from "next/router"
 import "@testing-library/jest-dom"
 import HoldingMenu from "@components/features/holdings/HoldingMenu"
-import { Portfolio } from "types/beancounter"
+import { makePortfolio } from "@test-fixtures/beancounter"
 
 jest.mock("next/router", () => ({
   useRouter: jest.fn(),
@@ -93,15 +93,13 @@ describe("<HoldingOptions />", () => {
       push: mockPush,
     })
   })
-  const portfolio = {
+  const portfolio = makePortfolio({
     id: "123",
     code: "CODE",
     name: "Portfolio A",
-    currency: { code: "USD", name: "USD", symbol: "$" },
-    base: { code: "USD", name: "USD", symbol: "$" },
     irr: 0,
     marketValue: 0,
-  } as Portfolio
+  })
 
   it("renders correctly with provided portfolio", () => {
     render(<HoldingMenu portfolio={portfolio} />)

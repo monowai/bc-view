@@ -3,14 +3,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import ChatBubble from "../ChatBubble"
 import { ChatMessage } from "types/agent"
 
-// Mock react-markdown to avoid ESM issues in Jest
-jest.mock("react-markdown", () => {
-  return function MockMarkdown({ children }: { children: string }) {
-    return <div data-testid="markdown">{children}</div>
-  }
-})
-
-jest.mock("remark-gfm", () => () => {})
+// react-markdown / remark-gfm mocked globally in jest.setup.js
 
 describe("ChatBubble", () => {
   const userMessage: ChatMessage = {

@@ -2,12 +2,7 @@ import React from "react"
 import { render, screen, waitFor } from "@testing-library/react"
 import NewsSentimentPopup, { clearNewsCache } from "../NewsSentimentPopup"
 
-jest.mock("react-markdown", () => {
-  return function MockMarkdown({ children }: { children: string }) {
-    return <div data-testid="markdown">{children}</div>
-  }
-})
-jest.mock("remark-gfm", () => () => {})
+// react-markdown / remark-gfm are mocked globally in jest.setup.js
 
 const mockFetch = jest.fn()
 global.fetch = mockFetch

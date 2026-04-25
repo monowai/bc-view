@@ -3,28 +3,22 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import TargetWeightDialog from "../TargetWeightDialog"
 import { Asset, Portfolio } from "types/beancounter"
+import { makeAsset, makePortfolio } from "@test-fixtures/beancounter"
 
-const mockPortfolio: Portfolio = {
+const mockPortfolio: Portfolio = makePortfolio({
   id: "test-portfolio-id",
-  code: "TEST",
-  name: "Test Portfolio",
-  currency: { code: "USD", name: "US Dollar", symbol: "$" },
-  base: { code: "USD", name: "US Dollar", symbol: "$" },
   marketValue: 100000,
-  irr: 0.1,
-}
+})
 
-const mockAsset: Asset = {
-  id: "asset-aapl",
+const mockAsset: Asset = makeAsset({
   code: "NASDAQ.AAPL",
   name: "Apple Inc",
-  assetCategory: { id: "equity", name: "Equity" },
   market: {
     code: "NASDAQ",
     name: "NASDAQ Stock Exchange",
     currency: { code: "USD", name: "US Dollar", symbol: "$" },
   },
-}
+})
 
 describe("TargetWeightDialog Component", () => {
   const mockOnClose = jest.fn()

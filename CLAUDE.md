@@ -197,6 +197,53 @@ yarn test src/components/features/holdings/__tests__/Summary.test.tsx
 
 Test files are colocated with source in `__tests__` directories.
 
+### Shared Fixtures
+
+Domain-type builders live at `src/test-fixtures/beancounter.ts`, exposed via
+the `@test-fixtures/*` path alias (wired into both `tsconfig.json` and
+`jest.config.js`). Use these instead of hand-rolling `Portfolio` / `Position` /
+`Holdings` shapes — keeps fixtures consistent as types evolve.
+
+```ts
+import {
+  makePortfolio,
+  makePosition,
+  makeHoldingGroup,
+  makeHoldings,
+  makeAsset,
+  makeCashAsset,
+  USD,
+  NZD,
+  SGD,
+} from "@test-fixtures/beancounter"
+
+const position = makePosition({ price: 150, quantityValues: { total: 100 } })
+const holdings = makeHoldings({
+  holdingGroups: { Equity: makeHoldingGroup({ positions: [position] }) },
+})
+```
+
+Each builder accepts a `Partial<T>` overrides object. `makePosition` also
+accepts a top-level `price` shortcut that sets `priceData.close`.
+
+### Global Jest Mocks
+
+Common cross-cutting mocks live in `jest.setup.js` — **don't re-mock these
+locally** unless you need per-test overrides:
+
+| Module                       | Behavior                                               |
+| ---------------------------- | ------------------------------------------------------ |
+| `next/router`                | `useRouter` returns fixed shape with `push: jest.fn()` |
+| `next/link`                  | Renders as plain `<a href>`                            |
+| `react-markdown`             | Renders `<div data-testid="markdown">{children}</div>` |
+| `remark-gfm`                 | No-op                                                  |
+| `@auth0/nextjs-auth0/client` | `useUser` returns mock user, providers pass through    |
+| `global.fetch`               | Returns `{ data: [] }`                                 |
+
+Override locally only when the test asserts on a specific call (e.g.
+`expect(mockPush).toHaveBeenCalledWith(...)`) or stubs different state per
+test (`(useRouter as jest.Mock).mockReturnValue(...)`).
+
 ## TDD Workflow
 
 Follow Red-Green-Refactor:

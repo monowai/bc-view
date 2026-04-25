@@ -1,118 +1,59 @@
 import React from "react"
 import { render, screen, fireEvent } from "@testing-library/react"
+import type { Position } from "types/beancounter"
 import "@testing-library/jest-dom"
 import Rows from "../Rows"
-import { Position, Portfolio, HoldingGroup } from "types/beancounter"
 import { ValueIn } from "@components/features/holdings/GroupByOptions"
+import {
+  makeAsset,
+  makeCashAsset,
+  makeHoldingGroup,
+  makePortfolio,
+  makePosition,
+} from "@test-fixtures/beancounter"
 
-// Mock react-markdown (transitively imported via NewsSentimentPopup)
-jest.mock("react-markdown", () => {
-  return function MockMarkdown({ children }: { children: string }) {
-    return <div>{children}</div>
-  }
-})
-jest.mock("remark-gfm", () => () => {})
-
-// Mock Next.js Link component
-jest.mock("next/link", () => {
-  return function Link({
-    children,
-    href,
-  }: {
-    children: React.ReactNode
-    href: string
-  }) {
-    return <a href={href}>{children}</a>
-  }
-})
-
-// Mock dependencies
+// AlphaProgress depends on layout measurements that aren't useful here.
 jest.mock("@components/ui/ProgressBar", () => ({
   AlphaProgress: () => <div data-testid="alpha-progress" />,
 }))
 
-const mockPortfolio: Portfolio = {
+const mockPortfolio = makePortfolio({
   id: "test-portfolio-id",
-  code: "TEST",
-  name: "Test Portfolio",
-  currency: { code: "USD", name: "US Dollar", symbol: "$" },
-  base: { code: "USD", name: "US Dollar", symbol: "$" },
   marketValue: 10000,
-  irr: 0.1,
-}
+})
 
-const createMockPosition = (
+const tradedPosition = (
   code: string,
   marketCode: string,
   quantity: number,
   price: number,
 ): Position =>
-  ({
-    asset: {
+  makePosition({
+    asset: makeAsset({
       id: `asset-${code}`,
       code: `${marketCode}.${code}`,
       name: `${code} Company`,
-      assetCategory: { id: "equity", name: "Equity" },
       market: {
         code: marketCode,
+        name: marketCode,
         currency: { code: "USD", name: "US Dollar", symbol: "$" },
       },
-    },
+    }),
     moneyValues: {
-      PORTFOLIO: {
-        currency: { code: "USD", name: "US Dollar", symbol: "$" },
-        costValue: quantity * (price - 10),
-        marketValue: quantity * price,
-        unrealisedGain: quantity * 10,
-        realisedGain: 0,
-        dividends: 100,
-        irr: 0.15,
-        roi: 0.12,
-        weight: 0.5,
-        totalGain: quantity * 10 + 100,
-        averageCost: price - 10,
-        priceData: {
-          close: price,
-          previousClose: price - 1,
-          change: 1,
-          changePercent: 0.01,
-          priceDate: "2024-01-15",
-        },
-        gainOnDay: quantity,
-      },
-    },
-    quantityValues: {
-      total: quantity,
-      purchased: quantity,
-      sold: 0,
-      precision: 0,
-    },
-    dateValues: {
-      opened: "2023-01-01",
-      last: "2024-01-15",
-      closed: null,
-      lastDividend: "2024-01-01",
-    },
-    lastTradeDate: "2024-01-15",
-    roi: 0.12,
-  }) as Position
-
-const createMockHoldingGroup = (positions: Position[]): HoldingGroup => ({
-  positions,
-  subTotals: {
-    PORTFOLIO: {
-      marketValue: 50000,
-      costValue: 40000,
-      unrealisedGain: 10000,
-      realisedGain: 0,
-      dividends: 500,
-      weight: 1,
-      totalGain: 10500,
+      marketValue: quantity * price,
+      costValue: quantity * (price - 10),
+      unrealisedGain: quantity * 10,
+      totalGain: quantity * 10 + 100,
+      gainOnDay: quantity,
+      averageCost: price - 10,
+      weight: 0.5,
       irr: 0.15,
-      currency: { code: "USD", name: "US Dollar", symbol: "$" },
+      roi: 0.12,
+      dividends: 100,
     },
-  },
-})
+    price,
+    quantityValues: { total: quantity, purchased: quantity },
+  })
 
 describe("Quick Sell Feature via Actions Menu", () => {
   const mockOnColumnsChange = jest.fn()
@@ -133,8 +74,8 @@ describe("Quick Sell Feature via Actions Menu", () => {
 
     it("should render an actions menu button for each position when onQuickSell is provided", () => {
       const positions = [
-        createMockPosition("AAPL", "NASDAQ", 100, 150),
-        createMockPosition("GOOGL", "NASDAQ", 50, 140),
+        tradedPosition("AAPL", "NASDAQ", 100, 150),
+        tradedPosition("GOOGL", "NASDAQ", 50, 140),
       ]
 
       render(
@@ -142,7 +83,7 @@ describe("Quick Sell Feature via Actions Menu", () => {
           <Rows
             portfolio={mockPortfolio}
             groupBy="Equity"
-            holdingGroup={createMockHoldingGroup(positions)}
+            holdingGroup={makeHoldingGroup({ positions })}
             valueIn={ValueIn.PORTFOLIO}
             onColumnsChange={mockOnColumnsChange}
             onQuickSell={mockOnQuickSell}
@@ -155,14 +96,14 @@ describe("Quick Sell Feature via Actions Menu", () => {
     })
 
     it("should call onQuickSell with correct asset details when Quick Sell menu item is clicked", () => {
-      const positions = [createMockPosition("AAPL", "NASDAQ", 100, 150)]
+      const positions = [tradedPosition("AAPL", "NASDAQ", 100, 150)]
 
       render(
         <table>
           <Rows
             portfolio={mockPortfolio}
             groupBy="Equity"
-            holdingGroup={createMockHoldingGroup(positions)}
+            holdingGroup={makeHoldingGroup({ positions })}
             valueIn={ValueIn.PORTFOLIO}
             onColumnsChange={mockOnColumnsChange}
             onQuickSell={mockOnQuickSell}
@@ -170,11 +111,9 @@ describe("Quick Sell Feature via Actions Menu", () => {
         </table>,
       )
 
-      // First click the actions menu button
       const actionsButton = screen.getByRole("button", { name: /actions/i })
       fireEvent.click(actionsButton)
 
-      // Then click the Quick Sell menu item
       const sellMenuItem = screen.getByRole("button", { name: /quick sell/i })
       fireEvent.click(sellMenuItem)
 
@@ -188,14 +127,14 @@ describe("Quick Sell Feature via Actions Menu", () => {
     })
 
     it("should have hidden class for mobile portrait mode on actions menu container", () => {
-      const positions = [createMockPosition("AAPL", "NASDAQ", 100, 150)]
+      const positions = [tradedPosition("AAPL", "NASDAQ", 100, 150)]
 
       render(
         <table>
           <Rows
             portfolio={mockPortfolio}
             groupBy="Equity"
-            holdingGroup={createMockHoldingGroup(positions)}
+            holdingGroup={makeHoldingGroup({ positions })}
             valueIn={ValueIn.PORTFOLIO}
             onColumnsChange={mockOnColumnsChange}
             onQuickSell={mockOnQuickSell}
@@ -204,8 +143,6 @@ describe("Quick Sell Feature via Actions Menu", () => {
       )
 
       const actionsButton = screen.getByRole("button", { name: /actions/i })
-      // The outer container div should be visible on all screen sizes
-      // Structure: container (flex) > ActionsMenu wrapper (relative) > button
       const outerContainer = actionsButton.parentElement?.parentElement
       expect(outerContainer).toHaveClass("flex")
       expect(outerContainer).toHaveClass("items-center")
@@ -214,14 +151,14 @@ describe("Quick Sell Feature via Actions Menu", () => {
 
   describe("Without onQuickSell callback", () => {
     it("should not render actions menu when onQuickSell is not provided", () => {
-      const positions = [createMockPosition("AAPL", "NASDAQ", 100, 150)]
+      const positions = [tradedPosition("AAPL", "NASDAQ", 100, 150)]
 
       render(
         <table>
           <Rows
             portfolio={mockPortfolio}
             groupBy="Equity"
-            holdingGroup={createMockHoldingGroup(positions)}
+            holdingGroup={makeHoldingGroup({ positions })}
             valueIn={ValueIn.PORTFOLIO}
             onColumnsChange={mockOnColumnsChange}
           />
@@ -237,56 +174,23 @@ describe("Quick Sell Feature via Actions Menu", () => {
 
   describe("Cash positions", () => {
     it("should not render actions menu for cash positions", () => {
-      const cashPosition = {
-        asset: {
-          id: "cash-usd",
-          code: "USD",
-          name: "US Dollar",
-          assetCategory: { id: "CASH", name: "Cash" },
-          market: {
-            code: "CASH",
-            currency: { code: "USD", name: "US Dollar", symbol: "$" },
-          },
-        },
+      const cashPosition = makePosition({
+        asset: makeCashAsset(),
         moneyValues: {
-          PORTFOLIO: {
-            currency: { code: "USD", name: "US Dollar", symbol: "$" },
-            costValue: 5000,
-            marketValue: 5000,
-            unrealisedGain: 0,
-            realisedGain: 0,
-            dividends: 0,
-            irr: 0,
-            roi: 0,
-            weight: 0.1,
-            totalGain: 0,
-            averageCost: 1,
-            priceData: undefined,
-            gainOnDay: 0,
-          },
+          marketValue: 5000,
+          costValue: 5000,
+          weight: 0.1,
+          averageCost: 1,
         },
-        quantityValues: {
-          total: 5000,
-          purchased: 5000,
-          sold: 0,
-          precision: 2,
-        },
-        dateValues: {
-          opened: "2023-01-01",
-          last: "2024-01-15",
-          closed: null,
-          lastDividend: null,
-        },
-        lastTradeDate: "2024-01-15",
-        roi: 0,
-      } as Position
+        quantityValues: { total: 5000, purchased: 5000, precision: 2 },
+      })
 
       render(
         <table>
           <Rows
             portfolio={mockPortfolio}
             groupBy="Cash"
-            holdingGroup={createMockHoldingGroup([cashPosition])}
+            holdingGroup={makeHoldingGroup({ positions: [cashPosition] })}
             valueIn={ValueIn.PORTFOLIO}
             onColumnsChange={mockOnColumnsChange}
             onQuickSell={mockOnQuickSell}
@@ -303,14 +207,14 @@ describe("Quick Sell Feature via Actions Menu", () => {
 
   describe("Asset code parsing", () => {
     it("should extract asset code without market prefix", () => {
-      const positions = [createMockPosition("MSFT", "NYSE", 75, 400)]
+      const positions = [tradedPosition("MSFT", "NYSE", 75, 400)]
 
       render(
         <table>
           <Rows
             portfolio={mockPortfolio}
             groupBy="Equity"
-            holdingGroup={createMockHoldingGroup(positions)}
+            holdingGroup={makeHoldingGroup({ positions })}
             valueIn={ValueIn.PORTFOLIO}
             onColumnsChange={mockOnColumnsChange}
             onQuickSell={mockOnQuickSell}
@@ -318,11 +222,9 @@ describe("Quick Sell Feature via Actions Menu", () => {
         </table>,
       )
 
-      // First click the actions menu button
       const actionsButton = screen.getByRole("button", { name: /actions/i })
       fireEvent.click(actionsButton)
 
-      // Then click the Quick Sell menu item
       const sellMenuItem = screen.getByRole("button", { name: /quick sell/i })
       fireEvent.click(sellMenuItem)
 

@@ -2,13 +2,7 @@ import React from "react"
 import { render, screen, fireEvent } from "@testing-library/react"
 import ChatFab from "../ChatFab"
 
-jest.mock("react-markdown", () => {
-  return function MockMarkdown({ children }: { children: string }) {
-    return <div data-testid="markdown">{children}</div>
-  }
-})
-
-jest.mock("remark-gfm", () => () => {})
+// react-markdown / remark-gfm mocked globally in jest.setup.js
 
 const mockPush = jest.fn()
 jest.mock("next/router", () => ({

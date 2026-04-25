@@ -3,13 +3,7 @@ import { render, screen, fireEvent } from "@testing-library/react"
 import ChatPanel from "../ChatPanel"
 import { ChatMessage } from "types/agent"
 
-jest.mock("react-markdown", () => {
-  return function MockMarkdown({ children }: { children: string }) {
-    return <div data-testid="markdown">{children}</div>
-  }
-})
-
-jest.mock("remark-gfm", () => () => {})
+// react-markdown / remark-gfm mocked globally in jest.setup.js
 
 describe("ChatPanel", () => {
   const defaultProps = {

@@ -1,6 +1,7 @@
 import { submitEditMode, submitExpense } from "./tradeSubmit"
 import { TradeFormValues } from "./tradeFormHelpers"
 import { Portfolio } from "types/beancounter"
+import { makePortfolio } from "@test-fixtures/beancounter"
 
 // Mock dependencies
 jest.mock("./apiHelper", () => ({
@@ -31,15 +32,11 @@ const baseFormData: TradeFormValues = {
   brokerId: "b1",
 }
 
-const mockPortfolio: Portfolio = {
+const mockPortfolio: Portfolio = makePortfolio({
   id: "p1",
-  code: "TEST",
-  name: "Test Portfolio",
-  currency: { code: "USD", name: "US Dollar", symbol: "$" },
-  base: { code: "USD", name: "US Dollar", symbol: "$" },
   marketValue: 100000,
   irr: 0,
-}
+})
 
 describe("tradeSubmit", () => {
   let consoleErrorSpy: jest.SpyInstance

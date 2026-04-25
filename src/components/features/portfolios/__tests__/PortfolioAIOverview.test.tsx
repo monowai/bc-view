@@ -2,29 +2,19 @@ import React from "react"
 import { render, screen, waitFor } from "@testing-library/react"
 import PortfolioAIOverview, { clearOverviewCache } from "../PortfolioAIOverview"
 import { Portfolio } from "types/beancounter"
+import { makePortfolio } from "@test-fixtures/beancounter"
 
-jest.mock("react-markdown", () => {
-  return function MockMarkdown({ children }: { children: string }) {
-    return <div data-testid="markdown">{children}</div>
-  }
-})
-jest.mock("remark-gfm", () => () => {})
+// react-markdown / remark-gfm mocked globally in jest.setup.js
 
 const mockFetch = jest.fn()
 global.fetch = mockFetch
 
-const usd = { code: "USD", name: "US Dollar", symbol: "$" }
-
-const basePortfolio: Portfolio = {
+const basePortfolio: Portfolio = makePortfolio({
   id: "p1",
-  code: "TEST",
-  name: "Test Portfolio",
-  currency: usd,
-  base: usd,
   marketValue: 100_000,
   irr: 0.12,
   gainOnDay: 1_250,
-}
+})
 
 interface MockResponse {
   ok: boolean

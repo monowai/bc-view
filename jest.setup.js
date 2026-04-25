@@ -27,6 +27,23 @@ jest.mock("next/router", () => ({
   },
 }))
 
+// Mock next/link as a plain anchor — keeps tests independent of the Next.js
+// router prefetching behavior.
+jest.mock("next/link", () => {
+  return function Link({ children, href, ...rest }) {
+    return React.createElement("a", { href, ...rest }, children)
+  }
+})
+
+// react-markdown / remark-gfm are ESM-only packages that fail to parse in Jest.
+// Components like NewsSentimentPopup pull them in transitively.
+jest.mock("react-markdown", () => {
+  return function MockMarkdown({ children }) {
+    return React.createElement("div", { "data-testid": "markdown" }, children)
+  }
+})
+jest.mock("remark-gfm", () => () => {})
+
 // Mock Auth0 client modules (v4)
 jest.mock("@auth0/nextjs-auth0/client", () => {
   const mockUser = {

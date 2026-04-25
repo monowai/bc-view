@@ -4,18 +4,7 @@ import "@testing-library/jest-dom"
 import CompleteStep from "../steps/CompleteStep"
 import { OffboardingResult } from "types/beancounter"
 
-// Mock next/link
-jest.mock("next/link", () => {
-  const MockLink = ({
-    children,
-    href,
-  }: {
-    children: React.ReactNode
-    href: string
-  }): React.ReactElement => <a href={href}>{children}</a>
-  MockLink.displayName = "MockLink"
-  return MockLink
-})
+// next/link mocked globally in jest.setup.js
 
 describe("CompleteStep", () => {
   const mockResults: OffboardingResult[] = [

@@ -2,38 +2,34 @@ import React from "react"
 import { render, screen, fireEvent } from "@testing-library/react"
 import NewsPage from "@pages/news"
 
-jest.mock("react-markdown", () => {
-  return function MockMarkdown({ children }: { children: string }) {
-    return <div data-testid="markdown">{children}</div>
-  }
-})
-jest.mock("remark-gfm", () => () => {})
+// react-markdown / remark-gfm mocked globally in jest.setup.js
 
 const mockPush = jest.fn()
 jest.mock("next/router", () => ({
   useRouter: () => ({ pathname: "/news", query: {}, push: mockPush }),
 }))
 
-// Mock usePortfolios
+import { makePortfolio, NZD, USD } from "@test-fixtures/beancounter"
+
 const mockPortfolios = [
-  {
+  makePortfolio({
     id: "p1",
     code: "TEST",
     name: "Test Portfolio",
-    currency: { code: "USD", symbol: "$", name: "US Dollar" },
-    base: { code: "USD", symbol: "$", name: "US Dollar" },
+    currency: USD,
+    base: USD,
     marketValue: 10000,
     irr: 0.05,
-  },
-  {
+  }),
+  makePortfolio({
     id: "p2",
     code: "NZD",
     name: "NZ Portfolio",
-    currency: { code: "NZD", symbol: "$", name: "NZ Dollar" },
-    base: { code: "NZD", symbol: "$", name: "NZ Dollar" },
+    currency: NZD,
+    base: NZD,
     marketValue: 5000,
     irr: 0.03,
-  },
+  }),
 ]
 
 jest.mock("@hooks/usePortfolios", () => ({
