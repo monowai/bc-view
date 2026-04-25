@@ -96,6 +96,8 @@ interface PositionFooterProps {
   price: number | undefined
   weight: number
   currencySymbol: string
+  changePercent: number | undefined
+  isDayPositive: boolean
   onPriceClick?: (e: React.MouseEvent) => void
   priceAriaLabel?: string
 }
@@ -106,29 +108,46 @@ const PositionFooter: React.FC<PositionFooterProps> = ({
   price,
   weight,
   currencySymbol,
+  changePercent,
+  isDayPositive,
   onPriceClick,
   priceAriaLabel,
 }) => {
-  const priceText = (
-    <>
+  const priceContent = (
+    <span className="block leading-tight tabular-nums">
       {currencySymbol}
       {price?.toFixed(2) || "-"}
-    </>
+    </span>
   )
-  const priceValue = onPriceClick ? (
+  const priceCore = onPriceClick ? (
     <button
       type="button"
       aria-label={priceAriaLabel}
       className="cursor-pointer hover:text-wealth-700 hover:underline underline-offset-2 decoration-dotted"
       onClick={onPriceClick}
     >
-      {priceText}
+      {priceContent}
     </button>
   ) : (
-    priceText
+    priceContent
+  )
+  const priceValue = (
+    <div className="flex flex-col items-center leading-tight">
+      {priceCore}
+      {changePercent !== undefined && (
+        <span
+          className={`text-[11px] font-medium tabular-nums ${
+            isDayPositive ? "text-emerald-600" : "text-red-600"
+          }`}
+        >
+          {isDayPositive && changePercent > 0 ? "+" : ""}
+          {(changePercent * 100).toFixed(2)}%
+        </span>
+      )}
+    </div>
   )
   return (
-    <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-3 gap-2 text-sm">
+    <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-3 gap-2 text-sm items-end">
       <PositionMetric
         label="Quantity"
         value={<PrivateQuantity value={quantity} precision={precision} />}
@@ -152,8 +171,6 @@ interface PositionHeaderProps {
   displayName: string
   hasDistinctName: boolean
   truncatedName: string
-  changePercent: number | undefined
-  isDayPositive: boolean
   onShowNews: () => void
   actionsMenu?: React.ReactNode
 }
@@ -163,8 +180,6 @@ const PositionHeader: React.FC<PositionHeaderProps> = ({
   displayName,
   hasDistinctName,
   truncatedName,
-  changePercent,
-  isDayPositive,
   onShowNews,
   actionsMenu,
 }) => (
@@ -178,20 +193,7 @@ const PositionHeader: React.FC<PositionHeaderProps> = ({
         <p className="text-sm text-gray-500 truncate">{truncatedName}</p>
       )}
     </div>
-    <div className="flex items-start gap-1">
-      {changePercent !== undefined && (
-        <div
-          className={`text-right ${isDayPositive ? "text-green-600" : "text-red-600"}`}
-        >
-          <div className="text-sm font-medium">
-            {isDayPositive ? "+" : ""}
-            {(changePercent * 100).toFixed(2)}%
-          </div>
-          <div className="text-xs">today</div>
-        </div>
-      )}
-      {actionsMenu}
-    </div>
+    {actionsMenu && <div className="flex items-start">{actionsMenu}</div>}
   </div>
 )
 
@@ -366,8 +368,6 @@ const PositionCard: React.FC<PositionCardProps> = ({
         displayName={displayName}
         hasDistinctName={hasDistinctName}
         truncatedName={truncatedName}
-        changePercent={values.priceData?.changePercent}
-        isDayPositive={isDayPositive}
         onShowNews={() => showNews(asset)}
         actionsMenu={actionsNode}
       />
@@ -413,6 +413,8 @@ const PositionCard: React.FC<PositionCardProps> = ({
               price={values.priceData?.close}
               weight={values.weight}
               currencySymbol={currencySymbol}
+              changePercent={values.priceData?.changePercent}
+              isDayPositive={isDayPositive}
               onPriceClick={handlePriceClick}
               priceAriaLabel={
                 isChartable
