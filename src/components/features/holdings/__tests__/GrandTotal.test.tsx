@@ -1,9 +1,8 @@
 import { screen } from "@testing-library/react"
 import "./testSetup"
 import { HEADER_INDICES } from "../Header"
-import { mockHoldings } from "../__mocks__/testData"
 import { GRANDTOTAL_LAYOUT, TEST_VALUES } from "../constants"
-import { renderGrandTotal } from "./testHelpers"
+import { grandTotalHoldings, renderGrandTotal } from "./testHelpers"
 
 describe("GrandTotal Component", () => {
   beforeEach(() => {
@@ -142,10 +141,9 @@ describe("GrandTotal Component", () => {
     })
 
     it("applies correct color coding for gainOnDay", () => {
-      const positiveGainHoldings = {
-        ...mockHoldings,
-        viewTotals: { ...mockHoldings.viewTotals!, gainOnDay: 72.76 },
-      }
+      const positiveGainHoldings = grandTotalHoldings({
+        viewTotals: { gainOnDay: 72.76 },
+      })
 
       renderGrandTotal({ holdings: positiveGainHoldings })
 
@@ -346,10 +344,7 @@ describe("GrandTotal Component", () => {
 
   describe("Error Handling", () => {
     it("handles missing viewTotals gracefully", () => {
-      const holdingsWithoutTotals = {
-        ...mockHoldings,
-        viewTotals: undefined,
-      } as any
+      const holdingsWithoutTotals = grandTotalHoldings({ viewTotals: null })
 
       const { container } = renderGrandTotal({
         holdings: holdingsWithoutTotals,
@@ -362,13 +357,9 @@ describe("GrandTotal Component", () => {
     })
 
     it("handles null gainOnDay value", () => {
-      const holdingsWithNullGain = {
-        ...mockHoldings,
-        viewTotals: {
-          ...mockHoldings.viewTotals!,
-          gainOnDay: null as any,
-        },
-      }
+      const holdingsWithNullGain = grandTotalHoldings({
+        viewTotals: { gainOnDay: null as unknown as number },
+      })
 
       renderGrandTotal({ holdings: holdingsWithNullGain })
 

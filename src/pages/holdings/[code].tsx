@@ -535,8 +535,19 @@ function HoldingsPage(): React.ReactElement {
             valueIn={holdingState.valueIn.value}
             groupBy={holdingState.groupBy.value}
             isMixedCurrencies={holdingResults.isMixedCurrencies}
+            onQuickSell={handleQuickSell}
+            onCorporateActions={handleCorporateActions}
+            onSetPrice={handleSetPrice}
+            onSetBalance={handleSetBalance}
+            onSectorWeightings={handleSectorWeightings}
+            onCostAdjust={handleCostAdjust}
+            onMovePosition={handleMovePosition}
             onRecordIncome={handleRecordIncome}
             onRecordExpense={handleRecordExpense}
+            onSetCashBalance={handleSetCashBalance}
+            onCashTransfer={handleCashTransfer}
+            onCashTransaction={handleCashTransaction}
+            onPriceChart={handlePriceChart}
           />
         </div>
       ) : viewMode === "heatmap" ? (
