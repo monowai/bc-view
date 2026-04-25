@@ -210,6 +210,11 @@ export interface MakeHoldingsOptions {
   portfolio?: Portfolio
   holdingGroups?: Record<string, HoldingGroup>
   totals?: Partial<Holdings["totals"]>
+  /**
+   * Per-portfolio aggregate row consumed by `GrandTotal`. Pass `null` to
+   * simulate the missing-totals branch.
+   */
+  viewTotals?: Partial<Money> | null
   valueIn?: ValueIn
 }
 
@@ -218,6 +223,7 @@ export function makeHoldings(options: MakeHoldingsOptions = {}): Holdings {
     portfolio = makePortfolio(),
     holdingGroups = { Equity: makeHoldingGroup() },
     totals = {},
+    viewTotals,
     valueIn = ValueIn.PORTFOLIO,
   } = options
 
@@ -226,7 +232,10 @@ export function makeHoldings(options: MakeHoldingsOptions = {}): Holdings {
     currency: portfolio.currency,
     portfolio,
     valueIn,
-    viewTotals: {} as never,
+    viewTotals:
+      viewTotals === null
+        ? undefined
+        : makeMoneyValues({ currency: portfolio.currency, ...viewTotals }),
     totals: {
       marketValue: 15000,
       purchases: 10000,

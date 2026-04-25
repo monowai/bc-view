@@ -1,5 +1,11 @@
 import React from "react"
-import { render, screen, fireEvent, renderHook, act } from "@testing-library/react"
+import {
+  render,
+  screen,
+  fireEvent,
+  renderHook,
+  act,
+} from "@testing-library/react"
 import "@testing-library/jest-dom"
 import AssetNewsButton from "../AssetNewsButton"
 import { useNewsAsset } from "../useNewsAsset"
@@ -8,7 +14,9 @@ import { makeAsset, makeCashAsset } from "@test-fixtures/beancounter"
 describe("AssetNewsButton", () => {
   it("renders for tradeable non-cash assets", () => {
     const onShow = jest.fn()
-    render(<AssetNewsButton asset={makeAsset({ code: "AAPL" })} onShow={onShow} />)
+    render(
+      <AssetNewsButton asset={makeAsset({ code: "AAPL" })} onShow={onShow} />,
+    )
     expect(screen.getByLabelText("News AAPL")).toBeInTheDocument()
   })
 
@@ -22,7 +30,11 @@ describe("AssetNewsButton", () => {
   it("returns null for PRIVATE market", () => {
     const asset = makeAsset({
       code: "MYHOUSE",
-      market: { code: "PRIVATE", name: "Private", currency: { code: "USD", name: "US Dollar", symbol: "$" } },
+      market: {
+        code: "PRIVATE",
+        name: "Private",
+        currency: { code: "USD", name: "US Dollar", symbol: "$" },
+      },
     })
     const { container } = render(
       <AssetNewsButton asset={asset} onShow={jest.fn()} />,
