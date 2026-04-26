@@ -28,14 +28,17 @@ describe("ChatFab", () => {
     expect(screen.getByText("Holdsworth Assistant")).toBeInTheDocument()
   })
 
-  it("closes panel when FAB is clicked again", () => {
+  it("FAB unmounts while the panel is open and the header Close X dismisses it", () => {
     render(<ChatFab />)
     fireEvent.click(screen.getByLabelText("Chat"))
     expect(screen.getByText("Holdsworth Assistant")).toBeInTheDocument()
-    fireEvent.click(screen.getByLabelText("Chat"))
+    expect(screen.queryByLabelText("Chat")).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByLabelText("Close chat"))
     const panel = screen.getByTestId("chat-panel-container")
     expect(panel.className).toContain("translate-x-[calc(100%+1.5rem)]")
     expect(panel.className).toContain("pointer-events-none")
+    expect(screen.getByLabelText("Chat")).toBeInTheDocument()
   })
 
   it("closes panel on Escape key", () => {

@@ -78,6 +78,38 @@ describe("ChatPanel", () => {
     expect(screen.getByText("Thinking...")).toBeInTheDocument()
   })
 
+  it("Clear button is disabled with no messages and enabled with messages", () => {
+    const onClear = jest.fn()
+    const { rerender } = render(
+      <ChatPanel {...defaultProps} onClear={onClear} />,
+    )
+    const clearBtn = screen.getByRole("button", { name: /clear chat/i })
+    expect(clearBtn).toBeDisabled()
+    fireEvent.click(clearBtn)
+    expect(onClear).not.toHaveBeenCalled()
+
+    const messages: ChatMessage[] = [
+      { id: "1", role: "user", content: "hi", timestamp: "t" },
+    ]
+    rerender(
+      <ChatPanel {...defaultProps} onClear={onClear} messages={messages} />,
+    )
+    const enabled = screen.getByRole("button", { name: /clear chat/i })
+    expect(enabled).not.toBeDisabled()
+    fireEvent.click(enabled)
+    expect(onClear).toHaveBeenCalledTimes(1)
+  })
+
+  it("renders Close icon only when onClose provided and calls it", () => {
+    const onClose = jest.fn()
+    const { rerender } = render(<ChatPanel {...defaultProps} />)
+    expect(screen.queryByLabelText("Close chat")).not.toBeInTheDocument()
+
+    rerender(<ChatPanel {...defaultProps} onClose={onClose} />)
+    fireEvent.click(screen.getByLabelText("Close chat"))
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
   it("renders the move icon and corner picker only when corner+onMove provided", () => {
     const { rerender } = render(<ChatPanel {...defaultProps} />)
     expect(screen.queryByLabelText("Move chat panel")).not.toBeInTheDocument()
