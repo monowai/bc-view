@@ -34,7 +34,8 @@ describe("ChatFab", () => {
     expect(screen.getByText("Holdsworth Assistant")).toBeInTheDocument()
     fireEvent.click(screen.getByLabelText("Chat"))
     const panel = screen.getByTestId("chat-panel-container")
-    expect(panel.className).toContain("translate-x-full")
+    expect(panel.className).toContain("translate-x-[calc(100%+1.5rem)]")
+    expect(panel.className).toContain("pointer-events-none")
   })
 
   it("closes panel on Escape key", () => {
@@ -43,7 +44,8 @@ describe("ChatFab", () => {
     expect(screen.getByText("Holdsworth Assistant")).toBeInTheDocument()
     fireEvent.keyDown(document, { key: "Escape" })
     const panel = screen.getByTestId("chat-panel-container")
-    expect(panel.className).toContain("translate-x-full")
+    expect(panel.className).toContain("translate-x-[calc(100%+1.5rem)]")
+    expect(panel.className).toContain("pointer-events-none")
   })
 
   it("expand button toggles expanded panel size", () => {

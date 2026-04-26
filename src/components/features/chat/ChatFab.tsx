@@ -55,7 +55,11 @@ export default function ChatFab(): React.ReactElement {
           isExpanded
             ? "bottom-6 right-6 w-[48rem] max-w-[calc(100vw-2rem)] h-[calc(100vh-5rem)]"
             : "bottom-24 right-6 w-96 max-w-[calc(100vw-2rem)] h-[600px] max-h-[80vh]"
-        } ${isOpen ? "translate-x-0" : "translate-x-full"}`}
+        } ${
+          isOpen
+            ? "translate-x-0"
+            : "translate-x-[calc(100%+1.5rem)] pointer-events-none"
+        }`}
       >
         <ChatPanel
           messages={messages}
