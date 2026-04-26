@@ -77,4 +77,15 @@ describe("ChatPanel", () => {
     render(<ChatPanel {...defaultProps} isLoading={true} />)
     expect(screen.getByText("Thinking...")).toBeInTheDocument()
   })
+
+  it("renders the move icon and corner picker only when corner+onMove provided", () => {
+    const { rerender } = render(<ChatPanel {...defaultProps} />)
+    expect(screen.queryByLabelText("Move chat panel")).not.toBeInTheDocument()
+
+    const onMove = jest.fn()
+    rerender(<ChatPanel {...defaultProps} corner="BR" onMove={onMove} />)
+    fireEvent.click(screen.getByLabelText("Move chat panel"))
+    fireEvent.click(screen.getByLabelText("Top-left"))
+    expect(onMove).toHaveBeenCalledWith("TL")
+  })
 })
