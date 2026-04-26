@@ -5,6 +5,30 @@ import { useChat } from "../useChat"
 const mockFetch = jest.fn()
 global.fetch = mockFetch
 
+/**
+ * Build a `Response`-shaped object whose `body` is a `ReadableStream` that
+ * emits the given SSE events (in order) as a single concatenated chunk.
+ * Real svc-agent emissions arrive in multiple chunks; we test the parser's
+ * single-chunk path here and the multi-chunk path in the dedicated test.
+ */
+function sseResponse(events: Array<{ event: string; data: string }>): {
+  ok: true
+  status: number
+  body: ReadableStream<Uint8Array>
+} {
+  const encoder = new TextEncoder()
+  const body = new ReadableStream<Uint8Array>({
+    start(controller) {
+      const blob = events
+        .map((e) => `event: ${e.event}\ndata: ${e.data}\n\n`)
+        .join("")
+      controller.enqueue(encoder.encode(blob))
+      controller.close()
+    },
+  })
+  return { ok: true, status: 200, body }
+}
+
 describe("useChat", () => {
   beforeEach(() => {
     mockFetch.mockReset()
@@ -17,17 +41,14 @@ describe("useChat", () => {
     expect(result.current.isLoading).toBe(false)
   })
 
-  it("adds user message and assistant response on sendMessage", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          query: "hello",
-          response: "Hi there!",
-          timestamp: "2026-04-14T00:00:00Z",
-          error: null,
-        }),
-    })
+  it("appends user + assistant message and concatenates token chunks", async () => {
+    mockFetch.mockResolvedValueOnce(
+      sseResponse([
+        { event: "token", data: "Hi" },
+        { event: "token", data: " there!" },
+        { event: "done", data: '{"chars":9}' },
+      ]),
+    )
 
     const { result } = renderHook(() => useChat())
 
@@ -36,19 +57,43 @@ describe("useChat", () => {
     })
 
     expect(result.current.messages).toHaveLength(2)
-    expect(result.current.messages[0].role).toBe("user")
-    expect(result.current.messages[0].content).toBe("hello")
-    expect(result.current.messages[1].role).toBe("assistant")
-    expect(result.current.messages[1].content).toBe("Hi there!")
+    expect(result.current.messages[0]).toMatchObject({
+      role: "user",
+      content: "hello",
+    })
+    expect(result.current.messages[1]).toMatchObject({
+      role: "assistant",
+      content: "Hi there!",
+    })
     expect(result.current.isLoading).toBe(false)
   })
 
-  it("appends error message on fetch failure", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: false,
-      status: 500,
-      json: () => Promise.resolve({ message: "Server error" }),
+  it("handles SSE events split across multiple chunks", async () => {
+    const encoder = new TextEncoder()
+    const body = new ReadableStream<Uint8Array>({
+      start(c) {
+        // Split mid-event to exercise the buffered parser.
+        c.enqueue(encoder.encode("event: token\ndata: He"))
+        c.enqueue(encoder.encode("llo\n\nevent: token\ndata: , wo"))
+        c.enqueue(encoder.encode("rld\n\nevent: done\ndata: {}\n\n"))
+        c.close()
+      },
     })
+    mockFetch.mockResolvedValueOnce({ ok: true, status: 200, body })
+
+    const { result } = renderHook(() => useChat())
+
+    await act(async () => {
+      await result.current.sendMessage("hi")
+    })
+
+    expect(result.current.messages[1].content).toBe("Hello, world")
+  })
+
+  it("surfaces an error event from the stream", async () => {
+    mockFetch.mockResolvedValueOnce(
+      sseResponse([{ event: "error", data: "boom" }]),
+    )
 
     const { result } = renderHook(() => useChat())
 
@@ -56,10 +101,21 @@ describe("useChat", () => {
       await result.current.sendMessage("hello")
     })
 
-    expect(result.current.messages).toHaveLength(2)
-    expect(result.current.messages[1].role).toBe("assistant")
-    expect(result.current.messages[1].content).toContain("error")
-    expect(result.current.messages[1].error).toBe("Server error")
+    expect(result.current.messages[1].error).toBe("boom")
+    expect(result.current.messages[1].content).toContain("boom")
+  })
+
+  it("appends error message on non-OK HTTP", async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 500, body: null })
+
+    const { result } = renderHook(() => useChat())
+
+    await act(async () => {
+      await result.current.sendMessage("hello")
+    })
+
+    expect(result.current.messages[1].content).toContain("HTTP 500")
+    expect(result.current.messages[1].error).toBe("HTTP 500")
   })
 
   it("appends error message on network failure", async () => {
@@ -71,21 +127,13 @@ describe("useChat", () => {
       await result.current.sendMessage("hello")
     })
 
-    expect(result.current.messages).toHaveLength(2)
     expect(result.current.messages[1].error).toBe("Network error")
   })
 
   it("clears messages", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          query: "hello",
-          response: "Hi!",
-          timestamp: "2026-04-14T00:00:00Z",
-          error: null,
-        }),
-    })
+    mockFetch.mockResolvedValueOnce(
+      sseResponse([{ event: "token", data: "Hi!" }]),
+    )
 
     const { result } = renderHook(() => useChat())
 
@@ -100,17 +148,10 @@ describe("useChat", () => {
     expect(result.current.messages).toEqual([])
   })
 
-  it("sends POST to /api/agent/query with correct body", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          query: "test",
-          response: "ok",
-          timestamp: "2026-04-14T00:00:00Z",
-          error: null,
-        }),
-    })
+  it("POSTs to /api/agent/query/stream with the SSE accept header", async () => {
+    mockFetch.mockResolvedValueOnce(
+      sseResponse([{ event: "token", data: "ok" }]),
+    )
 
     const { result } = renderHook(() => useChat())
 
@@ -118,25 +159,20 @@ describe("useChat", () => {
       await result.current.sendMessage("test query")
     })
 
-    expect(mockFetch).toHaveBeenCalledWith("/api/agent/query", {
+    expect(mockFetch).toHaveBeenCalledWith("/api/agent/query/stream", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "text/event-stream",
+      },
       body: JSON.stringify({ query: "test query", context: undefined }),
     })
   })
 
-  it("includes page context in API request when provided", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          query: "help",
-          response: "ok",
-          timestamp: "2026-04-14T00:00:00Z",
-          error: null,
-        }),
-    })
-
+  it("includes page context in the request body", async () => {
+    mockFetch.mockResolvedValueOnce(
+      sseResponse([{ event: "token", data: "ok" }]),
+    )
     const ctx = { page: "Holdings", description: "Viewing holdings" }
     const { result } = renderHook(() => useChat(ctx))
 
@@ -144,10 +180,11 @@ describe("useChat", () => {
       await result.current.sendMessage("help")
     })
 
-    expect(mockFetch).toHaveBeenCalledWith("/api/agent/query", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query: "help", context: ctx }),
-    })
+    expect(mockFetch).toHaveBeenCalledWith(
+      "/api/agent/query/stream",
+      expect.objectContaining({
+        body: JSON.stringify({ query: "help", context: ctx }),
+      }),
+    )
   })
 })
