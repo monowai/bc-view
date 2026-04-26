@@ -72,7 +72,6 @@ const truncateText = (text: string, maxLength: number): string => {
   return text.substring(0, maxLength) + "..."
 }
 
-
 export default function Rows({
   portfolio,
   holdingGroup,

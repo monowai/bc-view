@@ -210,7 +210,9 @@ describe("CardView footer (Quantity / Price / Weight)", () => {
       })
       const holdings = makeHoldings({
         portfolio,
-        holdingGroups: { Cash: makeHoldingGroup({ positions: [cashPosition] }) },
+        holdingGroups: {
+          Cash: makeHoldingGroup({ positions: [cashPosition] }),
+        },
       })
       render(
         <CardView

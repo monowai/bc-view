@@ -295,7 +295,8 @@ const PositionCard: React.FC<PositionCardProps> = ({
           asset.market?.code === "PRIVATE" &&
           isConstantPrice(asset)) ||
         (!!onSectorWeightings && asset.assetCategory?.id === "ETF"))) ||
-    (asset.assetCategory?.id === "RE" && (!!onRecordIncome || !!onRecordExpense))
+    (asset.assetCategory?.id === "RE" &&
+      (!!onRecordIncome || !!onRecordExpense))
 
   const hasCashActions =
     supportsBalanceSetting(asset) &&
