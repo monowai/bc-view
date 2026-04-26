@@ -15,6 +15,7 @@ global.fetch = jest.fn()
 describe("ChatFab", () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    window.localStorage.removeItem("bc-chat-corner")
   })
 
   it("renders the FAB button", () => {

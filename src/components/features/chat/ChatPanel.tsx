@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react"
 import { ChatMessage } from "types/agent"
 import ChatBubble from "./ChatBubble"
 import Spinner from "@components/ui/Spinner"
-import { ChatCorner } from "./chatPosition"
+import { ChatCorner } from "@components/features/chat/chatPosition"
 
 interface ChatPanelProps {
   messages: ChatMessage[]
@@ -137,7 +137,10 @@ export default function ChatPanel({
           </button>
           {onClose && (
             <button
-              onClick={onClose}
+              onClick={() => {
+                setShowPicker(false)
+                onClose()
+              }}
               className="text-xs text-blue-600 hover:text-blue-700 transition-colors"
               aria-label="Close chat"
               title="Close chat"

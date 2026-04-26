@@ -8,7 +8,7 @@ import {
   ChatCorner,
   loadChatCorner,
   saveChatCorner,
-} from "./chatPosition"
+} from "@components/features/chat/chatPosition"
 
 export default function ChatFab(): React.ReactElement {
   const [isOpen, setIsOpen] = useState(false)
