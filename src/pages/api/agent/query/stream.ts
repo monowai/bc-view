@@ -33,6 +33,10 @@ export default async function handler(
       return
     }
     const { token: accessToken } = await auth0.getAccessToken(req, res)
+    if (!accessToken) {
+      res.status(401).json({ error: "Unauthorized" })
+      return
+    }
 
     const upstream = await fetch(getAgentUrl("/agent/query/stream"), {
       method: "POST",
