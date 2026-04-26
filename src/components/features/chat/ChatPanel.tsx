@@ -13,6 +13,8 @@ interface ChatPanelProps {
   placeholder?: string
   suggestions?: string[]
   onExpand?: () => void
+  /** When provided, the header shows a small blue X next to Clear that calls this. */
+  onClose?: () => void
   /** Current FAB corner; pass with onMove to enable the picker. */
   corner?: ChatCorner
   /** Move callback — pairs with corner; opens a 2x2 picker in the header. */
@@ -35,6 +37,7 @@ export default function ChatPanel({
   placeholder = "Ask about your portfolios...",
   suggestions = [],
   onExpand,
+  onClose,
   corner,
   onMove,
 }: ChatPanelProps): React.ReactElement {
@@ -124,13 +127,22 @@ export default function ChatPanel({
               <i className="fas fa-expand-alt"></i>
             </button>
           )}
-          {messages.length > 0 && (
+          <button
+            onClick={onClear}
+            disabled={messages.length === 0}
+            className="text-xs text-gray-400 hover:text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-gray-400 transition-colors"
+            aria-label="Clear chat"
+          >
+            Clear
+          </button>
+          {onClose && (
             <button
-              onClick={onClear}
-              className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
-              aria-label="Clear chat"
+              onClick={onClose}
+              className="text-xs text-blue-600 hover:text-blue-700 transition-colors"
+              aria-label="Close chat"
+              title="Close chat"
             >
-              Clear
+              <i className="fas fa-times"></i>
             </button>
           )}
         </div>

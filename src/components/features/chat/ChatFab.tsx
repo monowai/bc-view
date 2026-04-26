@@ -81,6 +81,7 @@ export default function ChatFab(): React.ReactElement {
           onSend={sendMessage}
           onClear={clearMessages}
           onExpand={expand}
+          onClose={close}
           placeholder={pageContext.placeholder}
           suggestions={pageContext.suggestions}
           corner={corner}
@@ -89,14 +90,16 @@ export default function ChatFab(): React.ReactElement {
         />
       </div>
 
-      {/* FAB button */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        aria-label="Chat"
-        className={`fixed ${layout.fab} z-40 w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center justify-center transition-colors`}
-      >
-        <i className={`fas ${isOpen ? "fa-times" : "fa-robot"} text-xl`}></i>
-      </button>
+      {/* FAB button — only when closed; the in-panel header X handles closing. */}
+      {!isOpen && (
+        <button
+          onClick={() => setIsOpen(true)}
+          aria-label="Chat"
+          className={`fixed ${layout.fab} z-40 w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center justify-center transition-colors`}
+        >
+          <i className="fas fa-robot text-xl"></i>
+        </button>
+      )}
     </>
   )
 }
