@@ -5,6 +5,31 @@
 import "@testing-library/jest-dom"
 import React from "react"
 
+// jsdom doesn't expose Web Streams / TextEncoder globally — polyfill from
+// Node built-ins so SSE-streaming tests (e.g. useChat) can mock a real
+// ReadableStream response body.
+import { TextEncoder, TextDecoder } from "node:util"
+import {
+  ReadableStream,
+  TransformStream,
+  TextDecoderStream,
+} from "node:stream/web"
+if (typeof globalThis.TextEncoder === "undefined") {
+  globalThis.TextEncoder = TextEncoder
+}
+if (typeof globalThis.TextDecoder === "undefined") {
+  globalThis.TextDecoder = TextDecoder
+}
+if (typeof globalThis.ReadableStream === "undefined") {
+  globalThis.ReadableStream = ReadableStream
+}
+if (typeof globalThis.TransformStream === "undefined") {
+  globalThis.TransformStream = TransformStream
+}
+if (typeof globalThis.TextDecoderStream === "undefined") {
+  globalThis.TextDecoderStream = TextDecoderStream
+}
+
 module.exports = {
   setupFilesAfterEnv: ["./jest.setup.js"],
 }
