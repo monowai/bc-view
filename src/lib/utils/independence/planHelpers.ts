@@ -1,5 +1,20 @@
 import { AllocationSlice } from "@lib/allocation/aggregateHoldings"
-import { ManualAssetCategory } from "types/independence"
+import { LifeEvent, ManualAssetCategory } from "types/independence"
+
+/**
+ * Serialise the wizard's life-events array for the plan-update payload.
+ *
+ * Always emits a JSON string — even for an empty list — so svc-retire can
+ * distinguish "user cleared all events" (`"[]"`) from "field not sent"
+ * (`null`, which PATCH treats as "leave existing alone"). Without this,
+ * deleting the last life event silently re-instated the old list on the
+ * next refresh.
+ */
+export function serializeLifeEvents(
+  events: LifeEvent[] | undefined,
+): string {
+  return JSON.stringify(events ?? [])
+}
 
 export const HIDDEN_VALUE = "****"
 
