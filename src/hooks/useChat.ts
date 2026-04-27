@@ -1,6 +1,26 @@
 import { useState, useCallback } from "react"
 import { ChatMessage } from "types/agent"
 
+/**
+ * Human-readable rendering of svc-agent's opaque SSE error codes. Codes are
+ * stable contracts emitted by AgentController.classifyError; the message
+ * text is UI copy and may evolve.
+ */
+function describeError(code: string): string {
+  switch (code) {
+    case "provider-quota":
+      return "the AI provider has run out of credit. Please ask the site owner to top up the Anthropic billing balance."
+    case "provider-rate":
+      return "the AI provider is rate-limiting requests. Please wait a moment and try again."
+    case "provider-timeout":
+      return "the AI provider took too long to respond. Please try again — heavy queries may need a second attempt."
+    case "agent-error":
+      return "the agent failed to process your request. Please try again or simplify the question."
+    default:
+      return code
+  }
+}
+
 interface UseChatReturn {
   messages: ChatMessage[]
   isLoading: boolean
@@ -105,12 +125,13 @@ export function useChat(context?: Record<string, unknown>): UseChatReturn {
               ),
             )
           } else if (event === "error") {
+            const code = data || "stream-error"
             finalize((m) => ({
               content:
                 m.content.length > 0
                   ? m.content
-                  : `Sorry, I encountered an error: ${data || "stream error"}`,
-              error: data || "stream-error",
+                  : `Sorry, I encountered an error: ${describeError(code)}`,
+              error: code,
             }))
           }
           // `done` carries metadata only; nothing to render right now.
