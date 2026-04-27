@@ -19,8 +19,11 @@ function sseResponse(events: Array<{ event: string; data: string }>): {
   const encoder = new TextEncoder()
   const body = new ReadableStream<Uint8Array>({
     start(controller) {
+      // Spring's ServerSentEvent writer emits `data:<value>` with NO space
+      // between the colon and the value — match that exact wire format so
+      // the parser exercises the same bytes it sees in production.
       const blob = events
-        .map((e) => `event: ${e.event}\ndata: ${e.data}\n\n`)
+        .map((e) => `event:${e.event}\ndata:${e.data}\n\n`)
         .join("")
       controller.enqueue(encoder.encode(blob))
       controller.close()
@@ -72,10 +75,11 @@ describe("useChat", () => {
     const encoder = new TextEncoder()
     const body = new ReadableStream<Uint8Array>({
       start(c) {
-        // Split mid-event to exercise the buffered parser.
-        c.enqueue(encoder.encode("event: token\ndata: He"))
-        c.enqueue(encoder.encode("llo\n\nevent: token\ndata: , wo"))
-        c.enqueue(encoder.encode("rld\n\nevent: done\ndata: {}\n\n"))
+        // Split mid-event to exercise the buffered parser. Use Spring's
+        // no-space `data:` form to match production wire bytes.
+        c.enqueue(encoder.encode("event:token\ndata:He"))
+        c.enqueue(encoder.encode("llo\n\nevent:token\ndata:, wo"))
+        c.enqueue(encoder.encode("rld\n\nevent:done\ndata:{}\n\n"))
         c.close()
       },
     })
@@ -88,6 +92,33 @@ describe("useChat", () => {
     })
 
     expect(result.current.messages[1].content).toBe("Hello, world")
+  })
+
+  it("preserves leading whitespace in token chunks (Spring SSE writer omits the protocol space)", async () => {
+    // Regression test for the "Theplan / fortwo / verylean" rendering bug:
+    // Spring's ServerSentEvent writer emits `data:<value>` with no space
+    // between the colon and the value, so any leading space on a chunk is
+    // payload and must reach the rendered message verbatim.
+    const encoder = new TextEncoder()
+    const body = new ReadableStream<Uint8Array>({
+      start(c) {
+        c.enqueue(encoder.encode("event: token\ndata:The\n\n"))
+        c.enqueue(encoder.encode("event: token\ndata: plan\n\n"))
+        c.enqueue(encoder.encode("event: token\ndata: is\n\n"))
+        c.enqueue(encoder.encode("event: token\ndata: realistic\n\n"))
+        c.enqueue(encoder.encode("event: done\ndata: {}\n\n"))
+        c.close()
+      },
+    })
+    mockFetch.mockResolvedValueOnce({ ok: true, status: 200, body })
+
+    const { result } = renderHook(() => useChat())
+
+    await act(async () => {
+      await result.current.sendMessage("hi")
+    })
+
+    expect(result.current.messages[1].content).toBe("The plan is realistic")
   })
 
   it("surfaces an error event from the stream", async () => {

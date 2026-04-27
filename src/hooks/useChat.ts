@@ -79,6 +79,13 @@ export function useChat(context?: Record<string, unknown>): UseChatReturn {
         // SSE event blocks are delimited by a blank line. Inside each block
         // we look for `event: <type>` and `data: <body>` lines. We accept
         // multi-`data:` events by joining their bodies with newlines.
+        //
+        // We deliberately don't strip a leading space from `data:` lines.
+        // The SSE spec lets a server write either `data:foo` or `data: foo`
+        // for content `foo` — Spring's `ServerSentEvent` writer chooses the
+        // first form, so any leading space on a `data:` line IS part of the
+        // payload. Stripping it dropped spaces between adjacent token chunks
+        // and produced run-on words like "Theplan", "fortwo".
         const flush = (block: string): void => {
           let event = "message"
           const dataLines: string[] = []
@@ -87,7 +94,7 @@ export function useChat(context?: Record<string, unknown>): UseChatReturn {
             if (raw.startsWith("event:")) {
               event = raw.slice(6).trim()
             } else if (raw.startsWith("data:")) {
-              dataLines.push(raw.slice(5).replace(/^ /, ""))
+              dataLines.push(raw.slice(5))
             }
           }
           const data = dataLines.join("\n")
