@@ -136,6 +136,25 @@ describe("useChat", () => {
     expect(result.current.messages[1].content).toContain("boom")
   })
 
+  it("renders friendly copy for known agent error codes", async () => {
+    mockFetch.mockResolvedValueOnce(
+      sseResponse([{ event: "error", data: "provider-quota" }]),
+    )
+    const { result } = renderHook(() => useChat())
+
+    await act(async () => {
+      await result.current.sendMessage("hello")
+    })
+
+    expect(result.current.messages[1].error).toBe("provider-quota")
+    // The user should see actionable copy, not the raw opaque code.
+    expect(result.current.messages[1].content).toContain("AI provider")
+    expect(result.current.messages[1].content).toContain("credit")
+    expect(result.current.messages[1].content).not.toBe(
+      "Sorry, I encountered an error: provider-quota",
+    )
+  })
+
   it("appends error message on non-OK HTTP", async () => {
     mockFetch.mockResolvedValueOnce({ ok: false, status: 500, body: null })
 
