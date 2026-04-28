@@ -17,8 +17,20 @@ import {
   AllocationSlice,
   GroupingMode,
 } from "@lib/allocation/aggregateHoldings"
-import { compareByReportCategory, compareBySector } from "@lib/categoryMapping"
+import {
+  compareByMarket,
+  compareByReportCategory,
+  compareBySector,
+} from "@lib/categoryMapping"
 import { useDisplayCurrencyConversion } from "@lib/hooks/useDisplayCurrencyConversion"
+
+function pickGroupComparator(
+  groupBy: GroupingMode,
+): (a: string, b: string) => number {
+  if (groupBy === "sector") return compareBySector
+  if (groupBy === "market") return compareByMarket
+  return compareByReportCategory
+}
 
 // Color palette for report categories
 const CATEGORY_COLORS: Record<string, string> = {
@@ -183,8 +195,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({
 
   // Filter allocation data and sort by predefined order
   const filteredAllocation = useMemo(() => {
-    const sorter =
-      groupBy === "sector" ? compareBySector : compareByReportCategory
+    const sorter = pickGroupComparator(groupBy)
     return allocationData
       .filter((slice) => !excludedCategories.has(slice.key))
       .sort((a, b) => sorter(a.key, b.key))
@@ -461,9 +472,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({
             <tbody>
               {[...allocationData]
                 .sort((a, b) =>
-                  (groupBy === "sector"
-                    ? compareBySector
-                    : compareByReportCategory)(a.key, b.key),
+                  pickGroupComparator(groupBy)(a.key, b.key),
                 )
                 .map((slice, index) => {
                   const isExcluded = excludedCategories.has(slice.key)

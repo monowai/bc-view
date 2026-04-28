@@ -113,3 +113,17 @@ export function compareBySector(a: string, b: string): number {
   // Everything else alphabetically
   return a.localeCompare(b)
 }
+
+/**
+ * Comparator for grouping options that key by raw market/currency code
+ * (e.g. MARKET, MARKET_CURRENCY). Cash collapses into a single "CASH"
+ * group (see calculateHoldings.getGroupKey) which should always render
+ * last; remaining keys sort alphabetically.
+ */
+export function compareByMarket(a: string, b: string): number {
+  const aIsCash = a.toUpperCase() === "CASH"
+  const bIsCash = b.toUpperCase() === "CASH"
+  if (aIsCash && !bIsCash) return 1
+  if (!aIsCash && bIsCash) return -1
+  return a.localeCompare(b)
+}
