@@ -36,6 +36,13 @@ export function usePermissions(): PermissionsResult {
             preview: !!data.preview,
             admin: !!data.admin,
           })
+        } else {
+          console.error(
+            "Failed to fetch permissions:",
+            response.status,
+            response.statusText,
+          )
+          setPerms(EMPTY)
         }
       } catch (error) {
         console.error("Failed to fetch permissions:", error)
