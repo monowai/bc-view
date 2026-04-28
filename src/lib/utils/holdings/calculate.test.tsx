@@ -1,4 +1,9 @@
-import { HoldingContract, HoldingGroup, Holdings } from "types/beancounter"
+import {
+  HoldingContract,
+  HoldingGroup,
+  Holdings,
+  Position,
+} from "types/beancounter"
 import * as path from "node:path"
 import * as fs from "node:fs"
 import { GroupBy, ValueIn } from "@components/features/holdings/GroupByOptions"
@@ -250,5 +255,50 @@ describe("Cash grouping behavior", () => {
       (p) => p.asset.assetCategory.id === "EQUITY",
     )
     expect(equityPositions.length).toEqual(2) // BKNG and MCD
+  })
+
+  it("should group ACCOUNT/TRADE assets under CASH market regardless of market.code", () => {
+    // Bank/trade accounts use the PRIVATE market in the backend, but for MARKET
+    // grouping users expect them to sit alongside cash currencies, not under PRIVATE.
+    const contractWithAccount: HoldingContract = JSON.parse(data).data
+    const cashTemplate = contractWithAccount.positions["USD:CASH"]
+    contractWithAccount.positions["BANK:PRIVATE"] = {
+      ...cashTemplate,
+      asset: {
+        ...cashTemplate.asset,
+        code: "user.BANK",
+        id: "bank-account-id",
+        name: "Bank Account",
+        market: { ...cashTemplate.asset.market, code: "PRIVATE" },
+        assetCategory: { id: "ACCOUNT", name: "Bank Account" },
+      },
+    } as unknown as Position
+    contractWithAccount.positions["IBKR:PRIVATE"] = {
+      ...cashTemplate,
+      asset: {
+        ...cashTemplate.asset,
+        code: "user.IBKR",
+        id: "trade-account-id",
+        name: "Trade Account",
+        market: { ...cashTemplate.asset.market, code: "PRIVATE" },
+        assetCategory: { id: "TRADE", name: "Trade Account" },
+      },
+    } as unknown as Position
+
+    const holdings = calculateHoldings(
+      contractWithAccount,
+      hideEmpty,
+      valueIn,
+      GroupBy.MARKET,
+    )
+
+    expect(holdings.holdingGroups["CASH"]).toBeDefined()
+    const cashCategories = holdings.holdingGroups["CASH"].positions.map(
+      (p) => p.asset.assetCategory.id,
+    )
+    expect(cashCategories).toEqual(
+      expect.arrayContaining(["CASH", "ACCOUNT", "TRADE"]),
+    )
+    expect(holdings.holdingGroups["PRIVATE"]).toBeUndefined()
   })
 })
