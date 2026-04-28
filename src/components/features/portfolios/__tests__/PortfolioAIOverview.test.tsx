@@ -2,7 +2,13 @@ import React from "react"
 import { render, screen, waitFor } from "@testing-library/react"
 import PortfolioAIOverview, { clearOverviewCache } from "../PortfolioAIOverview"
 import { Portfolio } from "types/beancounter"
-import { makePortfolio } from "@test-fixtures/beancounter"
+import {
+  makeAsset,
+  makeHoldingGroup,
+  makeHoldings,
+  makePortfolio,
+  makePosition,
+} from "@test-fixtures/beancounter"
 
 // react-markdown / remark-gfm mocked globally in jest.setup.js
 
@@ -206,44 +212,32 @@ describe("PortfolioAIOverview", () => {
   it("caps gainers and losers at 5 per side", async () => {
     // 12 holdings: 7 winners with rising % moves, 5 losers with falling % moves.
     const positions = [
-      ...Array.from({ length: 7 }, (_, i) => ({
-        asset: {
-          code: `WIN${i}`,
-          name: `Winner ${i}`,
-          market: { code: "NASDAQ" },
-          sector: "Technology",
-        },
-        moneyValues: {
-          PORTFOLIO: {
-            marketValue: 1000,
-            gainOnDay: 10 + i, // larger gain → larger %
-            weight: 0.05,
-          },
-        },
-      })),
-      ...Array.from({ length: 5 }, (_, i) => ({
-        asset: {
-          code: `LOSE${i}`,
-          name: `Loser ${i}`,
-          market: { code: "NASDAQ" },
-          sector: "Technology",
-        },
-        moneyValues: {
-          PORTFOLIO: {
+      ...Array.from({ length: 7 }, (_, i) =>
+        makePosition({
+          asset: makeAsset({ code: `WIN${i}`, name: `Winner ${i}` }),
+          moneyValues: { marketValue: 1000, gainOnDay: 10 + i, weight: 0.05 },
+        }),
+      ),
+      ...Array.from({ length: 5 }, (_, i) =>
+        makePosition({
+          asset: makeAsset({ code: `LOSE${i}`, name: `Loser ${i}` }),
+          moneyValues: {
             marketValue: 1000,
             gainOnDay: -(10 + i),
             weight: 0.05,
           },
-        },
-      })),
+        }),
+      ),
     ]
     mockFetch
       .mockResolvedValueOnce({
         ok: true,
         json: () =>
-          Promise.resolve({
-            holdingGroups: { EQUITY: { positions } },
-          }),
+          Promise.resolve(
+            makeHoldings({
+              holdingGroups: { EQUITY: makeHoldingGroup({ positions }) },
+            }),
+          ),
       })
       .mockResolvedValueOnce(agentResponse("Capped movers"))
     render(<PortfolioAIOverview portfolio={basePortfolio} />)
