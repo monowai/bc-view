@@ -3,6 +3,7 @@ import {
   getReportCategory,
   REPORT_CATEGORIES,
   compareByReportCategory,
+  compareByMarket,
 } from "./categoryMapping"
 import { Asset } from "types/beancounter"
 
@@ -140,6 +141,31 @@ describe("categoryMapping", () => {
 
     it("returns 0 for same category", () => {
       expect(compareByReportCategory("Equity", "Equity")).toBe(0)
+    })
+  })
+
+  describe("compareByMarket", () => {
+    it("sorts CASH after market codes", () => {
+      expect(compareByMarket("CASH", "US")).toBeGreaterThan(0)
+      expect(compareByMarket("US", "CASH")).toBeLessThan(0)
+    })
+
+    it("treats Cash and CASH the same", () => {
+      expect(compareByMarket("Cash", "US")).toBeGreaterThan(0)
+    })
+
+    it("sorts non-cash market codes alphabetically", () => {
+      const sorted = ["US", "ASX", "NASDAQ"].sort(compareByMarket)
+      expect(sorted).toEqual(["ASX", "NASDAQ", "US"])
+    })
+
+    it("places CASH last in a mixed list", () => {
+      const sorted = ["US", "CASH", "ASX"].sort(compareByMarket)
+      expect(sorted).toEqual(["ASX", "US", "CASH"])
+    })
+
+    it("returns 0 for same key", () => {
+      expect(compareByMarket("US", "US")).toBe(0)
     })
   })
 })
