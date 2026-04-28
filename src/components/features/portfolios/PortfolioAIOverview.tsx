@@ -3,7 +3,7 @@ import Markdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import Spinner from "@components/ui/Spinner"
 import { AgentResponse } from "types/agent"
-import { Holdings, Portfolio, Position } from "types/beancounter"
+import { HoldingContract, Portfolio, Position } from "types/beancounter"
 
 interface PortfolioAIOverviewProps {
   portfolio: Portfolio
@@ -47,11 +47,11 @@ interface BiggestMovers {
   losers: TopHolding[]
 }
 
-function buildBiggestMovers(holdings: Holdings | null): BiggestMovers {
-  if (!holdings?.holdingGroups) return { gainers: [], losers: [] }
-  const positions: Position[] = Object.values(holdings.holdingGroups).flatMap(
-    (g) => g.positions,
-  )
+function buildBiggestMovers(holdings: HoldingContract | null): BiggestMovers {
+  if (!holdings?.positions) return { gainers: [], losers: [] }
+  // The svc-position contract returns positions as a Record keyed by
+  // owner.asset:bucket — flatten to Position[] before ranking.
+  const positions: Position[] = Object.values(holdings.positions)
   const movers = positions
     .map<TopHolding>((p) => {
       const marketValue = p.moneyValues?.PORTFOLIO?.marketValue ?? 0
@@ -147,13 +147,15 @@ function buildQuery(portfolio: Portfolio, movers: BiggestMovers): string {
 async function fetchHoldings(
   code: string,
   asAt: string,
-): Promise<Holdings | null> {
+): Promise<HoldingContract | null> {
   try {
     const res = await fetch(
       `/api/holdings/${encodeURIComponent(code)}?asAt=${asAt}`,
     )
     if (!res.ok) return null
-    return (await res.json()) as Holdings
+    // svc-position wraps the contract in `{ data: HoldingContract }`.
+    const body = (await res.json()) as { data?: HoldingContract }
+    return body.data ?? null
   } catch {
     return null
   }
