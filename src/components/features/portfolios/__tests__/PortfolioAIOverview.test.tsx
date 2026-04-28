@@ -2,7 +2,13 @@ import React from "react"
 import { render, screen, waitFor } from "@testing-library/react"
 import PortfolioAIOverview, { clearOverviewCache } from "../PortfolioAIOverview"
 import { Portfolio } from "types/beancounter"
-import { makePortfolio } from "@test-fixtures/beancounter"
+import {
+  makeAsset,
+  makeHoldingGroup,
+  makeHoldings,
+  makePortfolio,
+  makePosition,
+} from "@test-fixtures/beancounter"
 
 // react-markdown / remark-gfm mocked globally in jest.setup.js
 
@@ -132,7 +138,8 @@ describe("PortfolioAIOverview", () => {
       expect(screen.getByText("Overview without holdings")).toBeInTheDocument()
     })
     const agentBody = JSON.parse(mockFetch.mock.calls[1][1].body)
-    expect(agentBody.context.topHoldings).toEqual([])
+    expect(agentBody.context.topGainers).toEqual([])
+    expect(agentBody.context.topLosers).toEqual([])
   })
 
   it("reuses cached response on second mount for the same portfolio", async () => {
@@ -180,55 +187,69 @@ describe("PortfolioAIOverview", () => {
     expect(mockFetch).toHaveBeenCalledTimes(4)
   })
 
-  it("sends top holdings ordered by market value to the agent", async () => {
+  it("splits holdings into top gainers and losers by % move", async () => {
     mockFetch
       .mockResolvedValueOnce(holdingsResponse())
-      .mockResolvedValueOnce(agentResponse("Ranked overview"))
+      .mockResolvedValueOnce(agentResponse("Movers overview"))
     render(<PortfolioAIOverview portfolio={basePortfolio} />)
     await waitFor(() => {
-      expect(screen.getByText("Ranked overview")).toBeInTheDocument()
+      expect(screen.getByText("Movers overview")).toBeInTheDocument()
     })
     const agentCall = mockFetch.mock.calls[1]
     expect(agentCall[0]).toBe("/api/agent/query")
     const body = JSON.parse(agentCall[1].body)
     expect(body.context.portfolioCode).toBe("TEST")
-    expect(body.context.topHoldings[0].code).toBe("AAPL")
-    expect(body.context.topHoldings[1].code).toBe("MSFT")
+    // AAPL up, MSFT down — one of each.
+    expect(body.context.topGainers).toHaveLength(1)
+    expect(body.context.topGainers[0].code).toBe("AAPL")
+    expect(body.context.topLosers).toHaveLength(1)
+    expect(body.context.topLosers[0].code).toBe("MSFT")
     expect(body.query).toContain("TEST")
-    expect(body.query).toContain("AAPL")
+    expect(body.query).toContain("Top gainers")
+    expect(body.query).toContain("Top losers")
   })
 
-  it("caps the prompt at 10 holdings", async () => {
-    const manyPositions = Array.from({ length: 15 }, (_, i) => ({
-      asset: {
-        code: `SYM${i}`,
-        name: `Symbol ${i}`,
-        market: { code: "NASDAQ" },
-        sector: "Technology",
-      },
-      moneyValues: {
-        PORTFOLIO: {
-          marketValue: 1000 * (15 - i),
-          gainOnDay: 10,
-          weight: 0.05,
-        },
-      },
-    }))
+  it("caps gainers and losers at 5 per side", async () => {
+    // 12 holdings: 7 winners with rising % moves, 5 losers with falling % moves.
+    const positions = [
+      ...Array.from({ length: 7 }, (_, i) =>
+        makePosition({
+          asset: makeAsset({ code: `WIN${i}`, name: `Winner ${i}` }),
+          moneyValues: { marketValue: 1000, gainOnDay: 10 + i, weight: 0.05 },
+        }),
+      ),
+      ...Array.from({ length: 5 }, (_, i) =>
+        makePosition({
+          asset: makeAsset({ code: `LOSE${i}`, name: `Loser ${i}` }),
+          moneyValues: {
+            marketValue: 1000,
+            gainOnDay: -(10 + i),
+            weight: 0.05,
+          },
+        }),
+      ),
+    ]
     mockFetch
       .mockResolvedValueOnce({
         ok: true,
         json: () =>
-          Promise.resolve({
-            holdingGroups: { EQUITY: { positions: manyPositions } },
-          }),
+          Promise.resolve(
+            makeHoldings({
+              holdingGroups: { EQUITY: makeHoldingGroup({ positions }) },
+            }),
+          ),
       })
-      .mockResolvedValueOnce(agentResponse("Top 10 overview"))
+      .mockResolvedValueOnce(agentResponse("Capped movers"))
     render(<PortfolioAIOverview portfolio={basePortfolio} />)
     await waitFor(() => {
-      expect(screen.getByText("Top 10 overview")).toBeInTheDocument()
+      expect(screen.getByText("Capped movers")).toBeInTheDocument()
     })
     const body = JSON.parse(mockFetch.mock.calls[1][1].body)
-    expect(body.context.topHoldings).toHaveLength(10)
-    expect(body.context.topHoldings[0].code).toBe("SYM0")
+    expect(body.context.topGainers).toHaveLength(5)
+    expect(body.context.topLosers).toHaveLength(5)
+    // Biggest gainer (largest % move) leads the gainers list.
+    expect(body.context.topGainers[0].code).toBe("WIN6")
+    // Biggest loser (most negative % move) leads the losers list.
+    expect(body.context.topLosers[0].code).toBe("LOSE4")
   })
 })
