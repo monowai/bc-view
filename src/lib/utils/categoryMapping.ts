@@ -127,3 +127,17 @@ export function compareByMarket(a: string, b: string): number {
   if (!aIsCash && bIsCash) return -1
   return a.localeCompare(b)
 }
+
+/**
+ * Resolve the right group comparator for a given groupBy. Accepts both
+ * frontend property paths (e.g. "asset.market.code") and shorter mode
+ * tokens (e.g. "market", "sector") used by allocation views.
+ */
+export function getGroupComparator(
+  groupBy: string,
+): (a: string, b: string) => number {
+  const key = groupBy.toLowerCase()
+  if (key.includes("sector")) return compareBySector
+  if (key.includes("market") || key.includes("currency")) return compareByMarket
+  return compareByReportCategory
+}

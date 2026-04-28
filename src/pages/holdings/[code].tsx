@@ -38,8 +38,7 @@ import HoldingActions from "@components/features/holdings/HoldingActions"
 import PerformanceHeatmap from "@components/ui/PerformanceHeatmap"
 import SummaryView from "@components/features/holdings/SummaryView"
 import CardView from "@components/features/holdings/CardView"
-import { compareByReportCategory, compareBySector } from "@lib/categoryMapping"
-import { GroupBy } from "@components/features/holdings/GroupByOptions"
+import { getGroupComparator } from "@lib/categoryMapping"
 import CorporateActionsPopup from "@components/features/holdings/CorporateActionsPopup"
 import TargetWeightDialog from "@components/features/holdings/TargetWeightDialog"
 import SetCashBalanceDialog from "@components/features/holdings/SetCashBalanceDialog"
@@ -469,11 +468,7 @@ function HoldingsPage(): React.ReactElement {
               {(() => {
                 let cumulativeCount = 0
                 return Object.keys(holdings.holdingGroups)
-                  .sort(
-                    holdingState.groupBy.value === GroupBy.SECTOR
-                      ? compareBySector
-                      : compareByReportCategory,
-                  )
+                  .sort(getGroupComparator(holdingState.groupBy.value))
                   .map((groupKey, index) => {
                     const currentCumulative = cumulativeCount
                     cumulativeCount +=

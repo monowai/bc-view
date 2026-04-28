@@ -23,12 +23,7 @@ import {
   supportsBalanceSetting,
 } from "@lib/assets/assetUtils"
 import { useDisplayCurrencyConversion } from "@lib/hooks/useDisplayCurrencyConversion"
-import {
-  compareByMarket,
-  compareByReportCategory,
-  compareBySector,
-} from "@lib/categoryMapping"
-import { GroupBy } from "@components/features/holdings/GroupByOptions"
+import { getGroupComparator } from "@lib/categoryMapping"
 import { useRouter } from "next/router"
 import AssetNewsButton from "@components/features/holdings/AssetNewsButton"
 import { useNewsAsset } from "@components/features/holdings/useNewsAsset"
@@ -472,16 +467,8 @@ const CardView: React.FC<CardViewProps> = ({
 }) => {
   // Group positions by holdingGroups, sorted by group comparator
   const groupedPositions = useMemo((): GroupedPositions[] => {
-    let sorter: (a: string, b: string) => number = compareByReportCategory
-    if (groupBy === GroupBy.SECTOR) sorter = compareBySector
-    else if (
-      groupBy === GroupBy.MARKET ||
-      groupBy === GroupBy.MARKET_CURRENCY
-    )
-      sorter = compareByMarket
-
     return Object.keys(holdings.holdingGroups)
-      .sort(sorter)
+      .sort(getGroupComparator(groupBy ?? ""))
       .map((groupKey) => ({
         groupKey,
         positions: sortPositionsWithinGroup(
