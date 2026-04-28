@@ -7,7 +7,8 @@ export const auth0 = new Auth0Client({
   authorizationParameters: {
     scope:
       "openid profile email offline_access " +
-      "beancounter beancounter:user beancounter:admin",
+      "beancounter beancounter:user beancounter:admin " +
+      "beancounter:ai beancounter:preview",
     audience: "https://holdsworth.app",
     prompt: "login",
   },

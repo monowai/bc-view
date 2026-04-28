@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/router"
 import { useChat } from "@hooks/useChat"
+import { usePermissions } from "@hooks/usePermissions"
 import ChatPanel from "./ChatPanel"
 import { getPageContext } from "./pageContext"
 import {
@@ -57,8 +58,12 @@ export default function ChatFab(): React.ReactElement {
     return () => document.removeEventListener("keydown", handleKeyDown)
   }, [isOpen, close])
 
+  const { ai: canRunAi, isLoading: permsLoading } = usePermissions()
+
   // Hide FAB on the /chat page — it's redundant there
   if (router.pathname === "/chat") return <></>
+  // Hide entirely until permissions resolve, then only render if user has AI access.
+  if (permsLoading || !canRunAi) return <></>
 
   return (
     <>

@@ -9,6 +9,7 @@ import { ModelsContainingAssetResponse } from "types/rebalance"
 import AssetSearch from "@components/features/assets/AssetSearch"
 import { useAssetReview } from "@components/features/assets/useAssetReview"
 import Spinner from "@components/ui/Spinner"
+import { usePermissions } from "@hooks/usePermissions"
 
 interface AssetPosition {
   portfolio: Portfolio
@@ -25,6 +26,8 @@ function AssetLookupPage(): React.ReactElement {
     preferences?.defaultMarket || "",
   )
   const { popup: reviewPopup, showReview } = useAssetReview()
+  const { ai: canRunAi, preview: canPreview } = usePermissions()
+  const canReviewAsset = canRunAi || canPreview
 
   // Fetch available markets
   const { data: marketsData } = useSWR<{ data: Market[] }>(
@@ -155,16 +158,18 @@ function AssetLookupPage(): React.ReactElement {
                 )}
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => showReview(selectedAsset)}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1"
-              aria-label={`Open AI Asset Review for ${selectedAsset.symbol}`}
-              title="AI Asset Review"
-            >
-              <i className="fas fa-microscope"></i>
-              <span>AI Review</span>
-            </button>
+            {canReviewAsset && (
+              <button
+                type="button"
+                onClick={() => showReview(selectedAsset)}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1"
+                aria-label={`Open AI Asset Review for ${selectedAsset.symbol}`}
+                title="AI Asset Review"
+              >
+                <i className="fas fa-microscope"></i>
+                <span>AI Review</span>
+              </button>
+            )}
           </div>
         </div>
       )}

@@ -97,9 +97,31 @@ jest.mock("@auth0/nextjs-auth0/client", () => {
 // Mock Auth0 types module (v4)
 jest.mock("@auth0/nextjs-auth0/types", () => ({}))
 
-// Mock fetch globally for API calls
-global.fetch = jest.fn(() =>
-  Promise.resolve({
+// Default to permissive Beancounter permissions in tests so AI-gated
+// surfaces render. Tests that exercise denial paths can override via
+// `jest.spyOn(usePermissions, ...)` or `jest.mock(...)` per-suite.
+jest.mock("@hooks/usePermissions", () => ({
+  usePermissions: jest.fn(() => ({
+    ai: true,
+    preview: true,
+    admin: true,
+    isLoading: false,
+  })),
+}))
+
+// Mock fetch globally for API calls. /api/auth/permissions returns a
+// permissive default so component tests don't have to mock the hook
+// individually; tests that care about denial can override per-call.
+global.fetch = jest.fn((input) => {
+  const url = typeof input === "string" ? input : input?.url || ""
+  if (url.includes("/api/auth/permissions")) {
+    return Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({ ai: true, preview: true, admin: true }),
+    })
+  }
+  return Promise.resolve({
+    ok: true,
     json: () => Promise.resolve({ data: [] }),
-  }),
-)
+  })
+})

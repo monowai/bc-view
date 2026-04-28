@@ -7,6 +7,7 @@ import { QuickTooltip } from "@components/ui/Tooltip"
 import PortfolioActions from "./PortfolioActions"
 import PortfolioAIOverview from "./PortfolioAIOverview"
 import { getSortIcon, SortConfig } from "@lib/sortIcon"
+import { usePermissions } from "@hooks/usePermissions"
 
 interface PortfoliosListProps {
   portfolios: Portfolio[]
@@ -137,6 +138,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
   isInactiveTab = false,
 }) => {
   const router = useRouter()
+  const { ai: canRunAi } = usePermissions()
 
   const [sortConfig, setSortConfig] = useState<SortConfig>({
     key: "code",
@@ -448,14 +450,16 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                   className="flex items-center space-x-4"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <button
-                    onClick={() => toggleExpand(portfolio.code)}
-                    className={`p-1 ${expandedPortfolios.has(portfolio.code) ? "text-purple-700" : "text-purple-500 hover:text-purple-700"}`}
-                    title={"AI Overview"}
-                    aria-expanded={expandedPortfolios.has(portfolio.code)}
-                  >
-                    <i className="fas fa-wand-magic-sparkles"></i>
-                  </button>
+                  {canRunAi && (
+                    <button
+                      onClick={() => toggleExpand(portfolio.code)}
+                      className={`p-1 ${expandedPortfolios.has(portfolio.code) ? "text-purple-700" : "text-purple-500 hover:text-purple-700"}`}
+                      title={"AI Overview"}
+                      aria-expanded={expandedPortfolios.has(portfolio.code)}
+                    >
+                      <i className="fas fa-wand-magic-sparkles"></i>
+                    </button>
+                  )}
                   <button
                     onClick={() => onShareClick(portfolio.id)}
                     className="text-blue-500 hover:text-blue-700 p-1"
@@ -492,7 +496,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                 </div>
               </div>
             </div>
-            {expandedPortfolios.has(portfolio.code) && (
+            {canRunAi && expandedPortfolios.has(portfolio.code) && (
               <div className="px-4 pb-4" onClick={(e) => e.stopPropagation()}>
                 <PortfolioAIOverview portfolio={portfolio} />
               </div>
@@ -720,17 +724,21 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                     </td>
                     <td className="px-4 py-3">
                       <div className="action-buttons flex items-center justify-center space-x-3">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            toggleExpand(portfolio.code)
-                          }}
-                          className={`transition-colors ${expandedPortfolios.has(portfolio.code) ? "text-purple-700" : "text-slate-400 hover:text-purple-600"}`}
-                          title={"AI Overview"}
-                          aria-expanded={expandedPortfolios.has(portfolio.code)}
-                        >
-                          <i className="fas fa-wand-magic-sparkles text-lg"></i>
-                        </button>
+                        {canRunAi && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              toggleExpand(portfolio.code)
+                            }}
+                            className={`transition-colors ${expandedPortfolios.has(portfolio.code) ? "text-purple-700" : "text-slate-400 hover:text-purple-600"}`}
+                            title={"AI Overview"}
+                            aria-expanded={expandedPortfolios.has(
+                              portfolio.code,
+                            )}
+                          >
+                            <i className="fas fa-wand-magic-sparkles text-lg"></i>
+                          </button>
+                        )}
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
@@ -775,7 +783,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                       </div>
                     </td>
                   </tr>
-                  {expandedPortfolios.has(portfolio.code) && (
+                  {canRunAi && expandedPortfolios.has(portfolio.code) && (
                     <tr
                       className={
                         index % 2 === 0 ? "bg-white" : "bg-slate-50/40"
