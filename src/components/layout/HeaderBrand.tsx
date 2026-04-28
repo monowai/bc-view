@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react"
 import { useRouter } from "next/router"
 import Link from "next/link"
 import { useIsAdmin } from "@hooks/useIsAdmin"
+import { usePermissions } from "@hooks/usePermissions"
 
 interface NavItem {
   href: string
@@ -9,6 +10,7 @@ interface NavItem {
   icon: string
   description?: string
   adminOnly?: boolean
+  aiOnly?: boolean
 }
 
 interface NavSection {
@@ -54,7 +56,7 @@ const navSections: NavSection[] = [
   {
     title: "Tools",
     items: [
-      { href: "/chat", label: "Chat", icon: "fa-robot" },
+      { href: "/chat", label: "Chat", icon: "fa-robot", aiOnly: true },
       { href: "/fx", label: "FX Rates", icon: "fa-exchange-alt" },
       { href: "/fx/calculator", label: "FX Calculator", icon: "fa-calculator" },
       { href: "/tax-rates", label: "Tax Rates", icon: "fa-percent" },
@@ -98,10 +100,12 @@ const defaultSectionColor = {
 function DesktopDropdown({
   section,
   isAdmin,
+  canRunAi,
   router,
 }: {
   section: NavSection
   isAdmin: boolean
+  canRunAi: boolean
   router: ReturnType<typeof useRouter>
 }): React.ReactElement {
   const [isOpen, setIsOpen] = useState(false)
@@ -140,7 +144,7 @@ function DesktopDropdown({
   }, [isOpen])
 
   const filteredItems = section.items.filter(
-    (item) => !item.adminOnly || isAdmin,
+    (item) => (!item.adminOnly || isAdmin) && (!item.aiOnly || canRunAi),
   )
   const isActive = filteredItems.some((item) =>
     isActiveRoute(router.pathname, item.href),
@@ -210,6 +214,7 @@ function DesktopDropdown({
 function HeaderBrand(): React.ReactElement {
   const router = useRouter()
   const { isAdmin } = useIsAdmin()
+  const { ai: canRunAi } = usePermissions()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const mobileMenuRef = useRef<HTMLDivElement>(null)
 
@@ -264,7 +269,8 @@ function HeaderBrand(): React.ReactElement {
             <div className="py-2 max-h-[75vh] overflow-y-auto">
               {navSections.map((section, sectionIdx) => {
                 const filteredItems = section.items.filter(
-                  (item) => !item.adminOnly || isAdmin,
+                  (item) =>
+                    (!item.adminOnly || isAdmin) && (!item.aiOnly || canRunAi),
                 )
                 if (filteredItems.length === 0) return null
                 return (
@@ -332,6 +338,7 @@ function HeaderBrand(): React.ReactElement {
             key={section.title}
             section={section}
             isAdmin={isAdmin}
+            canRunAi={canRunAi}
             router={router}
           />
         ))}
