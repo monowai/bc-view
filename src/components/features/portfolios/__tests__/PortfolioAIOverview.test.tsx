@@ -4,8 +4,6 @@ import PortfolioAIOverview, { clearOverviewCache } from "../PortfolioAIOverview"
 import { Portfolio } from "types/beancounter"
 import {
   makeAsset,
-  makeHoldingGroup,
-  makeHoldings,
   makePortfolio,
   makePosition,
 } from "@test-fixtures/beancounter"
@@ -29,44 +27,46 @@ interface MockResponse {
 }
 
 function holdingsResponse(): MockResponse {
+  // svc-position contract: { data: { positions: Record<string, Position> } }.
+  // We hand-build a couple of positions because the shared makePosition
+  // fixture defaults to a single bucket with no daily move, and these tests
+  // need explicit gainOnDay values per holding.
   return {
     ok: true,
     json: () =>
       Promise.resolve({
-        holdingGroups: {
-          EQUITY: {
-            positions: [
-              {
-                asset: {
-                  code: "AAPL",
-                  name: "Apple",
-                  market: { code: "NASDAQ" },
-                  sector: "Technology",
-                },
-                moneyValues: {
-                  PORTFOLIO: {
-                    marketValue: 50000,
-                    gainOnDay: 500,
-                    weight: 0.5,
-                  },
+        data: {
+          positions: {
+            "owner.AAPL:PORTFOLIO": {
+              asset: {
+                code: "AAPL",
+                name: "Apple",
+                market: { code: "NASDAQ" },
+                sector: "Technology",
+              },
+              moneyValues: {
+                PORTFOLIO: {
+                  marketValue: 50000,
+                  gainOnDay: 500,
+                  weight: 0.5,
                 },
               },
-              {
-                asset: {
-                  code: "MSFT",
-                  name: "Microsoft",
-                  market: { code: "NASDAQ" },
-                  sector: "Technology",
-                },
-                moneyValues: {
-                  PORTFOLIO: {
-                    marketValue: 30000,
-                    gainOnDay: -100,
-                    weight: 0.3,
-                  },
+            },
+            "owner.MSFT:PORTFOLIO": {
+              asset: {
+                code: "MSFT",
+                name: "Microsoft",
+                market: { code: "NASDAQ" },
+                sector: "Technology",
+              },
+              moneyValues: {
+                PORTFOLIO: {
+                  marketValue: 30000,
+                  gainOnDay: -100,
+                  weight: 0.3,
                 },
               },
-            ],
+            },
           },
         },
       }),
@@ -211,7 +211,7 @@ describe("PortfolioAIOverview", () => {
 
   it("caps gainers and losers at 5 per side", async () => {
     // 12 holdings: 7 winners with rising % moves, 5 losers with falling % moves.
-    const positions = [
+    const positionList = [
       ...Array.from({ length: 7 }, (_, i) =>
         makePosition({
           asset: makeAsset({ code: `WIN${i}`, name: `Winner ${i}` }),
@@ -229,15 +229,13 @@ describe("PortfolioAIOverview", () => {
         }),
       ),
     ]
+    const positions = Object.fromEntries(
+      positionList.map((p) => [`owner.${p.asset.code}:PORTFOLIO`, p]),
+    )
     mockFetch
       .mockResolvedValueOnce({
         ok: true,
-        json: () =>
-          Promise.resolve(
-            makeHoldings({
-              holdingGroups: { EQUITY: makeHoldingGroup({ positions }) },
-            }),
-          ),
+        json: () => Promise.resolve({ data: { positions } }),
       })
       .mockResolvedValueOnce(agentResponse("Capped movers"))
     render(<PortfolioAIOverview portfolio={basePortfolio} />)
