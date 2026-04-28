@@ -19,7 +19,7 @@ interface TopHolding {
   gainOnDayPercent: number | null
 }
 
-const MAX_HOLDINGS_IN_PROMPT = 10
+const MAX_MOVERS_PER_SIDE = 5
 const CACHE_TTL_MS = 15 * 60 * 1000
 
 const overviewCache = new Map<string, { response: string; fetchedAt: number }>()
@@ -42,12 +42,17 @@ function safePct(numerator: number, denominator: number): number | null {
   return (numerator / denominator) * 100
 }
 
-function buildTopHoldings(holdings: Holdings | null): TopHolding[] {
-  if (!holdings?.holdingGroups) return []
+interface BiggestMovers {
+  gainers: TopHolding[]
+  losers: TopHolding[]
+}
+
+function buildBiggestMovers(holdings: Holdings | null): BiggestMovers {
+  if (!holdings?.holdingGroups) return { gainers: [], losers: [] }
   const positions: Position[] = Object.values(holdings.holdingGroups).flatMap(
     (g) => g.positions,
   )
-  return positions
+  const movers = positions
     .map<TopHolding>((p) => {
       const marketValue = p.moneyValues?.PORTFOLIO?.marketValue ?? 0
       const gainOnDay = p.moneyValues?.PORTFOLIO?.gainOnDay ?? 0
@@ -61,12 +66,37 @@ function buildTopHoldings(holdings: Holdings | null): TopHolding[] {
         gainOnDayPercent: safePct(gainOnDay, marketValue - gainOnDay),
       }
     })
-    .filter((h) => h.marketValue > 0)
-    .sort((a, b) => b.marketValue - a.marketValue)
-    .slice(0, MAX_HOLDINGS_IN_PROMPT)
+    .filter(
+      (h): h is TopHolding & { gainOnDayPercent: number } =>
+        h.marketValue > 0 && h.gainOnDayPercent !== null,
+    )
+
+  const gainers = [...movers]
+    .filter((h) => h.gainOnDayPercent > 0)
+    .sort((a, b) => b.gainOnDayPercent - a.gainOnDayPercent)
+    .slice(0, MAX_MOVERS_PER_SIDE)
+
+  const losers = [...movers]
+    .filter((h) => h.gainOnDayPercent < 0)
+    .sort((a, b) => a.gainOnDayPercent - b.gainOnDayPercent)
+    .slice(0, MAX_MOVERS_PER_SIDE)
+
+  return { gainers, losers }
 }
 
-function buildQuery(portfolio: Portfolio, top: TopHolding[]): string {
+function formatHolding(h: TopHolding, i: number): string {
+  const marketLabel = h.market ? `.${h.market}` : ""
+  const sectorLabel = h.sector ? ` [${h.sector}]` : ""
+  const dayLabel =
+    h.gainOnDayPercent !== null ? `, day ${h.gainOnDayPercent.toFixed(2)}%` : ""
+  return (
+    `${i + 1}. ${h.code}${marketLabel}${sectorLabel}` +
+    ` — weight ${(h.weight * 100).toFixed(1)}%${dayLabel}` +
+    (h.name ? ` (${h.name})` : "")
+  )
+}
+
+function buildQuery(portfolio: Portfolio, movers: BiggestMovers): string {
   const lines: string[] = []
   lines.push(
     `Provide an AI overview for portfolio ${portfolio.code} (${portfolio.name}).`,
@@ -91,28 +121,25 @@ function buildQuery(portfolio: Portfolio, top: TopHolding[]): string {
         ".",
     )
   }
-  if (top.length) {
-    lines.push(`Top ${top.length} holdings by market value:`)
-    top.forEach((h, i) => {
-      const marketLabel = h.market ? `.${h.market}` : ""
-      const sectorLabel = h.sector ? ` [${h.sector}]` : ""
-      const dayLabel =
-        h.gainOnDayPercent !== null
-          ? `, day ${h.gainOnDayPercent.toFixed(2)}%`
-          : ""
-      lines.push(
-        `${i + 1}. ${h.code}${marketLabel}${sectorLabel}` +
-          ` — weight ${(h.weight * 100).toFixed(1)}%${dayLabel}` +
-          (h.name ? ` (${h.name})` : ""),
-      )
-    })
+  if (movers.gainers.length) {
+    lines.push(`Top gainers today (by % move):`)
+    movers.gainers.forEach((h, i) => lines.push(formatHolding(h, i)))
+  }
+  if (movers.losers.length) {
+    lines.push(`Top losers today (by % move):`)
+    movers.losers.forEach((h, i) => lines.push(formatHolding(h, i)))
+  }
+  if (!movers.gainers.length && !movers.losers.length) {
+    lines.push("(No daily price moves available for the current holdings.)")
   }
   lines.push(
-    "Summarise: (1) key movers today and recent notable news/sentiment across the top holdings, " +
-      "(2) macro-economic factors (rates, inflation, FX, geopolitical themes) that could affect this mix, " +
-      "(3) concentration or sector-exposure observations worth the holder's attention. " +
-      "Where live news is unavailable, clearly label output as general knowledge rather than live news. " +
-      "Use concise markdown with headings.",
+    "Focus on news and corporate events driving today's biggest movers above " +
+      "(both gainers and losers). For each named mover, surface the specific " +
+      "story or event that explains the move where possible. Then briefly note " +
+      "any macro-economic factors (rates, inflation, FX, geopolitical) that " +
+      "tie the movers together. Where live news is unavailable for a ticker, " +
+      "label that section as general knowledge rather than live news. Use " +
+      "concise markdown with one heading per mover.",
   )
   return lines.join("\n")
 }
@@ -138,8 +165,8 @@ async function performFetch(
   asAt: string,
 ): Promise<string> {
   const holdings = await fetchHoldings(portfolio.code, asAt)
-  const top = buildTopHoldings(holdings)
-  const query = buildQuery(portfolio, top)
+  const movers = buildBiggestMovers(holdings)
+  const query = buildQuery(portfolio, movers)
 
   const res = await fetch("/api/agent/query", {
     method: "POST",
@@ -149,13 +176,14 @@ async function performFetch(
       context: {
         page: "Portfolio AI Overview",
         description:
-          "Holistic summary of a user's portfolio — key movers, news, sentiment, macro impact.",
+          "News and events behind today's biggest gainers and losers in the portfolio.",
         portfolioCode: portfolio.code,
         portfolioName: portfolio.name,
         baseCurrency: portfolio.base.code,
         reportingCurrency: portfolio.currency.code,
         asAt,
-        topHoldings: top,
+        topGainers: movers.gainers,
+        topLosers: movers.losers,
       },
     }),
   })
