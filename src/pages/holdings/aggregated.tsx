@@ -20,7 +20,7 @@ import PerformanceHeatmap from "@components/ui/PerformanceHeatmap"
 import SummaryView from "@components/features/holdings/SummaryView"
 import CardView from "@components/features/holdings/CardView"
 import AllocationChart from "@components/features/allocation/AllocationChart"
-import { compareByReportCategory, compareBySector } from "@lib/categoryMapping"
+import { getGroupComparator } from "@lib/categoryMapping"
 import {
   GroupBy,
   useGroupOptions,
@@ -389,11 +389,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
                 {(() => {
                   let cumulativeCount = 0
                   return Object.keys(holdings.holdingGroups)
-                    .sort(
-                      holdingState.groupBy.value === GroupBy.SECTOR
-                        ? compareBySector
-                        : compareByReportCategory,
-                    )
+                    .sort(getGroupComparator(holdingState.groupBy.value))
                     .map((groupKey, index) => {
                       const currentCumulative = cumulativeCount
                       cumulativeCount +=
