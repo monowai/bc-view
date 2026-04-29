@@ -48,7 +48,9 @@ function AssetLookupPage(): React.ReactElement {
   const [selectedMarket, setSelectedMarket] = useState<string>(
     preferences?.defaultMarket || "",
   )
-  const [showChart, setShowChart] = useState(false)
+  const [chartAsset, setChartAsset] = useState<Asset | null>(null)
+  const [resolvingChart, setResolvingChart] = useState(false)
+  const [resolveError, setResolveError] = useState<string | null>(null)
   const { popup: reviewPopup, showReview } = useAssetReview()
   const { ai: canRunAi, preview: canPreview } = usePermissions()
   const canReviewAsset = canRunAi || canPreview
@@ -86,6 +88,55 @@ function AssetLookupPage(): React.ReactElement {
 
   const handleAssetSelect = (option: AssetOption | null): void => {
     setSelectedAsset(option)
+    setResolveError(null)
+  }
+
+  const openChartFor = async (option: AssetOption): Promise<void> => {
+    setResolveError(null)
+    if (option.assetId) {
+      setChartAsset(assetOptionToAsset(option))
+      return
+    }
+    if (!option.market || !option.symbol) {
+      setResolveError("Cannot chart this asset — missing market or symbol")
+      return
+    }
+    setResolvingChart(true)
+    try {
+      const code = option.symbol.toUpperCase()
+      const response = await fetch("/api/assets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          data: {
+            [code]: {
+              market: option.market,
+              code,
+              name: option.name || code,
+              currency: option.currency,
+              category: option.type || "EQUITY",
+              owner: "",
+            },
+          },
+        }),
+      })
+      if (!response.ok) {
+        setResolveError(`Could not resolve asset (${response.status})`)
+        return
+      }
+      const body = (await response.json()) as { data: Record<string, Asset> }
+      const created = body.data?.[code]
+      if (!created?.id) {
+        setResolveError("Asset response missing id")
+        return
+      }
+      setSelectedAsset({ ...option, assetId: created.id })
+      setChartAsset(created)
+    } catch (e) {
+      setResolveError(e instanceof Error ? e.message : "Failed to load chart")
+    } finally {
+      setResolvingChart(false)
+    }
   }
 
   // Navigate to transactions on double-click
@@ -183,16 +234,17 @@ function AssetLookupPage(): React.ReactElement {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              {selectedAsset.assetId && (
+              {selectedAsset.market && selectedAsset.symbol && (
                 <button
                   type="button"
-                  onClick={() => setShowChart(true)}
-                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                  onClick={() => openChartFor(selectedAsset)}
+                  disabled={resolvingChart}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:opacity-60 disabled:cursor-not-allowed"
                   aria-label={`Show price chart for ${selectedAsset.symbol}`}
                   title="Price Chart"
                 >
                   <i className="fas fa-chart-line"></i>
-                  <span>Chart</span>
+                  <span>{resolvingChart ? "Loading..." : "Chart"}</span>
                 </button>
               )}
               {canReviewAsset && (
@@ -212,11 +264,16 @@ function AssetLookupPage(): React.ReactElement {
         </div>
       )}
       {reviewPopup}
-      {showChart && selectedAsset?.assetId && (
+      {resolveError && (
+        <div className="mb-4 px-4 py-2 rounded-md bg-red-50 border border-red-200 text-sm text-red-700">
+          {resolveError}
+        </div>
+      )}
+      {chartAsset && (
         <PriceChartPopup
-          asset={assetOptionToAsset(selectedAsset)}
+          asset={chartAsset}
           currencySymbol=""
-          onClose={() => setShowChart(false)}
+          onClose={() => setChartAsset(null)}
         />
       )}
 
