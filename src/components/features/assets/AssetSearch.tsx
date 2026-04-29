@@ -18,6 +18,14 @@ interface AssetSearchProps {
   filterResults?: (results: AssetOption[]) => AssetOption[]
   noResultsHref?: string
   inputId?: string
+  /**
+   * Render the dropdown via a fixed-position body portal. Required when the
+   * search lives inside an element with `overflow: hidden` (e.g. a Dialog).
+   * Avoid in plain page layouts on mobile — iOS Safari positions
+   * `position: fixed` against the layout viewport, so when the keyboard
+   * shrinks the visual viewport the menu drifts up over the input.
+   */
+  usePortal?: boolean
 }
 
 function toOption(result: AssetSearchResult): AssetOption {
@@ -60,6 +68,7 @@ export default function AssetSearch({
   filterResults,
   noResultsHref,
   inputId,
+  usePortal = false,
 }: AssetSearchProps): React.ReactElement {
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
   const [inputText, setInputText] = useState("")
@@ -174,8 +183,9 @@ export default function AssetSearch({
     isClearable,
     inputValue: inputText,
     onInputChange: handleInputChange,
-    menuPortalTarget: typeof document !== "undefined" ? document.body : null,
-    menuPosition: "fixed" as const,
+    menuPortalTarget:
+      usePortal && typeof document !== "undefined" ? document.body : null,
+    menuPosition: (usePortal ? "fixed" : "absolute") as "fixed" | "absolute",
     menuPlacement: "bottom" as const,
     menuShouldScrollIntoView: false,
     styles: {
