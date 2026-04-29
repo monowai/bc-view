@@ -10,9 +10,7 @@ import { LifeEvent, ManualAssetCategory } from "types/independence"
  * deleting the last life event silently re-instated the old list on the
  * next refresh.
  */
-export function serializeLifeEvents(
-  events: LifeEvent[] | undefined,
-): string {
+export function serializeLifeEvents(events: LifeEvent[] | undefined): string {
   return JSON.stringify(events ?? [])
 }
 

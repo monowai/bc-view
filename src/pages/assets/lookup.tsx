@@ -4,10 +4,18 @@ import { useRouter } from "next/router"
 import useSWR from "swr"
 import { marketsKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
-import { AssetOption, Market, Portfolio, Position } from "types/beancounter"
+import {
+  Asset,
+  AssetCategory,
+  AssetOption,
+  Market,
+  Portfolio,
+  Position,
+} from "types/beancounter"
 import { ModelsContainingAssetResponse } from "types/rebalance"
 import AssetSearch from "@components/features/assets/AssetSearch"
 import { useAssetReview } from "@components/features/assets/useAssetReview"
+import PriceChartPopup from "@components/features/holdings/PriceChartPopup"
 import Spinner from "@components/ui/Spinner"
 import { usePermissions } from "@hooks/usePermissions"
 
@@ -15,6 +23,21 @@ interface AssetPosition {
   portfolio: Portfolio
   position: Position | null
   balance: number
+}
+
+function assetOptionToAsset(option: AssetOption): Asset {
+  const marketCode = option.market || ""
+  const category: AssetCategory = {
+    id: option.type || "EQUITY",
+    name: option.type || "EQUITY",
+  }
+  return {
+    id: option.assetId || option.value,
+    code: option.symbol,
+    name: option.name || option.symbol,
+    assetCategory: category,
+    market: { code: marketCode } as Market,
+  }
 }
 
 function AssetLookupPage(): React.ReactElement {
@@ -25,6 +48,7 @@ function AssetLookupPage(): React.ReactElement {
   const [selectedMarket, setSelectedMarket] = useState<string>(
     preferences?.defaultMarket || "",
   )
+  const [showChart, setShowChart] = useState(false)
   const { popup: reviewPopup, showReview } = useAssetReview()
   const { ai: canRunAi, preview: canPreview } = usePermissions()
   const canReviewAsset = canRunAi || canPreview
@@ -107,14 +131,14 @@ function AssetLookupPage(): React.ReactElement {
         <label className="block text-sm font-medium text-gray-700 mb-2">
           {"Search Asset"}
         </label>
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           <select
             value={selectedMarket}
             onChange={(e) => {
               setSelectedMarket(e.target.value)
               setSelectedAsset(null)
             }}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full sm:w-auto border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="">{"All Markets"}</option>
             {(marketsData?.data || []).map((market) => (
@@ -140,7 +164,7 @@ function AssetLookupPage(): React.ReactElement {
       {/* Selected Asset Info */}
       {selectedAsset && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-gray-900">
                 {selectedAsset.label}
@@ -158,22 +182,43 @@ function AssetLookupPage(): React.ReactElement {
                 )}
               </div>
             </div>
-            {canReviewAsset && (
-              <button
-                type="button"
-                onClick={() => showReview(selectedAsset)}
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1"
-                aria-label={`Open AI Asset Review for ${selectedAsset.symbol}`}
-                title="AI Asset Review"
-              >
-                <i className="fas fa-microscope"></i>
-                <span>AI Review</span>
-              </button>
-            )}
+            <div className="flex flex-wrap gap-2">
+              {selectedAsset.assetId && (
+                <button
+                  type="button"
+                  onClick={() => setShowChart(true)}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                  aria-label={`Show price chart for ${selectedAsset.symbol}`}
+                  title="Price Chart"
+                >
+                  <i className="fas fa-chart-line"></i>
+                  <span>Chart</span>
+                </button>
+              )}
+              {canReviewAsset && (
+                <button
+                  type="button"
+                  onClick={() => showReview(selectedAsset)}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1"
+                  aria-label={`Open AI Asset Review for ${selectedAsset.symbol}`}
+                  title="AI Asset Review"
+                >
+                  <i className="fas fa-microscope"></i>
+                  <span>AI Review</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
       {reviewPopup}
+      {showChart && selectedAsset?.assetId && (
+        <PriceChartPopup
+          asset={assetOptionToAsset(selectedAsset)}
+          currencySymbol=""
+          onClose={() => setShowChart(false)}
+        />
+      )}
 
       {/* Positions Table */}
       {selectedAsset && (

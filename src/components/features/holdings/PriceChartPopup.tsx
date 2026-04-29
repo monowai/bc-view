@@ -27,7 +27,7 @@ import { FormatValue } from "@components/ui/MoneyUtils"
 interface PriceChartPopupProps {
   asset: Asset
   currencySymbol?: string
-  portfolioId: string
+  portfolioId?: string
   onClose: () => void
 }
 
@@ -225,10 +225,12 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
     isLoading: pricesLoading,
   } = useSwr<PriceHistoryResponse>(priceUrl, simpleFetcher(priceUrl))
 
-  const tradesUrl = `/api/trns/trades/${portfolioId}/${asset.id}`
+  const tradesUrl = portfolioId
+    ? `/api/trns/trades/${portfolioId}/${asset.id}`
+    : null
   const { data: tradesData } = useSwr<{ data: Transaction[] }>(
     tradesUrl,
-    simpleFetcher(tradesUrl),
+    tradesUrl ? simpleFetcher(tradesUrl) : null,
   )
 
   const tradesByDate = useMemo(() => {

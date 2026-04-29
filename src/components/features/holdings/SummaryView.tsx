@@ -6,7 +6,6 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
-  Cell,
   PieChart,
   Pie,
 } from "recharts"
@@ -390,9 +389,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({
                           ? [0, 4, 4, 0]
                           : [0, 0, 0, 0]
                     }
-                  >
-                    <Cell fill={getColor(slice.key, index)} />
-                  </Bar>
+                  />
                 ))}
               </BarChart>
             </ResponsiveContainer>
@@ -414,11 +411,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({
                   paddingAngle={2}
                   dataKey="value"
                   nameKey="label"
-                >
-                  {filteredAllocation.map((slice, index) => (
-                    <Cell key={slice.key} fill={getColor(slice.key, index)} />
-                  ))}
-                </Pie>
+                />
                 <Tooltip
                   content={
                     <CustomBarTooltip
@@ -459,9 +452,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({
             </thead>
             <tbody>
               {[...allocationData]
-                .sort((a, b) =>
-                  getGroupComparator(groupBy)(a.key, b.key),
-                )
+                .sort((a, b) => getGroupComparator(groupBy)(a.key, b.key))
                 .map((slice, index) => {
                   const isExcluded = excludedCategories.has(slice.key)
                   const convertedValue = convert(slice.value)
@@ -483,7 +474,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({
                       <td className="py-2 px-2">
                         <div className="flex items-center">
                           <div
-                            className={`w-3 h-3 rounded-sm mr-2 flex-shrink-0 ${isExcluded ? "bg-gray-300" : ""}`}
+                            className={`w-3 h-3 rounded-sm mr-2 shrink-0 ${isExcluded ? "bg-gray-300" : ""}`}
                             style={{
                               backgroundColor: isExcluded
                                 ? undefined

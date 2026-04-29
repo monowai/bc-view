@@ -91,9 +91,7 @@ export function useChat(context?: Record<string, unknown>): UseChatReturn {
           return
         }
 
-        const reader = res.body
-          .pipeThrough(new TextDecoderStream())
-          .getReader()
+        const reader = res.body.pipeThrough(new TextDecoderStream()).getReader()
         let buffer = ""
 
         // SSE event blocks are delimited by a blank line. Inside each block
