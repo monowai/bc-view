@@ -13,7 +13,7 @@ import {
   sharesPendingKey,
 } from "@utils/api/fetchHelper"
 import { usePermissions } from "@hooks/usePermissions"
-import PortfolioAIOverview from "./PortfolioAIOverview"
+import PortfolioAIOverview from "@components/features/portfolios/PortfolioAIOverview"
 
 interface ManagedSharesResponse {
   data: PortfolioShare[]
