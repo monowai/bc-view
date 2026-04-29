@@ -103,8 +103,14 @@ export default function ManagedPortfolios(): React.ReactElement {
               key={share.id}
               className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 cursor-pointer hover:border-wealth-200 hover:shadow-md transition-all"
               onClick={() => {
-                if (share.portfolio?.code) {
-                  router.push(`/holdings/${share.portfolio.code}`)
+                // Route via portfolio.id (?byId=1) — code is only unique
+                // within an owner, so an adviser opening a managed portfolio
+                // could otherwise collide with one of their own with the
+                // same code.
+                if (share.portfolio?.id) {
+                  router.push(
+                    `/holdings/${share.portfolio.id}?byId=1`,
+                  )
                 }
               }}
             >

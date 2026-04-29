@@ -18,7 +18,11 @@ import {
 import { useRouter } from "next/router"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import useSwr from "swr"
-import { holdingKey, simpleFetcher } from "@utils/api/fetchHelper"
+import {
+  holdingByIdKey,
+  holdingKey,
+  simpleFetcher,
+} from "@utils/api/fetchHelper"
 import { errorOut } from "@components/errors/ErrorOut"
 import { useHoldingState } from "@lib/holdings/holdingState"
 import { useHoldingsView } from "@lib/holdings/useHoldingsView"
@@ -60,10 +64,16 @@ import { ModelDto, PlanDto } from "types/rebalance"
 function HoldingsPage(): React.ReactElement {
   const router = useRouter()
   const holdingState = useHoldingState()
-  const { data, error, isLoading, mutate } = useSwr(
-    holdingKey(`${router.query.code}`, `${holdingState.asAt}`),
-    simpleFetcher(holdingKey(`${router.query.code}`, `${holdingState.asAt}`)),
-  )
+  // Managed (shared) portfolios route here with `?byId=1` and pass the
+  // portfolio's id in the path slot, because portfolio code is unique only
+  // within an owner — an adviser may also own a portfolio with the same
+  // code as one shared with them.
+  const ref = `${router.query.code}`
+  const url =
+    router.query.byId === "1"
+      ? holdingByIdKey(ref, `${holdingState.asAt}`)
+      : holdingKey(ref, `${holdingState.asAt}`)
+  const { data, error, isLoading, mutate } = useSwr(url, simpleFetcher(url))
 
   // Use shared hook for view state and calculations
   const {
