@@ -95,6 +95,9 @@ export const eventKey = (portfolioId: string, assetId: string): string =>
 export const holdingKey = (portfolioCode: string, asAt: string): string =>
   `${apiRoot}/holdings/${portfolioCode}?asAt=${asAt}`
 
+export const holdingByIdKey = (portfolioId: string, asAt: string): string =>
+  `${apiRoot}/holdings/id/${portfolioId}?asAt=${asAt}`
+
 export const portfolioKey = (portfolioId: string): string =>
   `${portfoliosBase}/${portfolioId}`
 
