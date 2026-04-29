@@ -176,6 +176,8 @@ export default function AssetSearch({
     onInputChange: handleInputChange,
     menuPortalTarget: typeof document !== "undefined" ? document.body : null,
     menuPosition: "fixed" as const,
+    menuPlacement: "bottom" as const,
+    menuShouldScrollIntoView: false,
     styles: {
       control: (base: Record<string, unknown>) => ({
         ...base,

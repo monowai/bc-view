@@ -202,6 +202,54 @@ describe("AssetSearch", () => {
       )
     })
 
+    it("renders and selects an option whose assetId is null (uncached asset)", async () => {
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            data: [
+              {
+                symbol: "COWZ",
+                name: "PACER US CASH COWS 100 ETF",
+                market: "US",
+                region: "US",
+                assetId: null,
+                currency: null,
+                type: "Mutual Fund",
+              },
+            ],
+          }),
+      })
+
+      render(<AssetSearch onSelect={mockOnSelect} market="US" />)
+
+      const input = screen.getByRole("combobox")
+      await user.type(input, "COWZ")
+      await flushAsync()
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(
+            "COWZ - PACER US CASH COWS 100 ETF (US, Mutual Fund)",
+          ),
+        ).toBeInTheDocument()
+      })
+
+      await user.click(
+        screen.getByText("COWZ - PACER US CASH COWS 100 ETF (US, Mutual Fund)"),
+      )
+
+      expect(mockOnSelect).toHaveBeenCalledWith(
+        expect.objectContaining({
+          symbol: "COWZ",
+          market: "US",
+          assetId: null,
+        }),
+      )
+    })
+
     it("calls onSelect with null when cleared", async () => {
       const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
 
