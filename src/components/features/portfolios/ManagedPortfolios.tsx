@@ -1,13 +1,19 @@
 import React, { useState } from "react"
 import useSwr from "swr"
 import { useRouter } from "next/router"
-import { PortfolioShare, PendingSharesResponse } from "types/beancounter"
+import {
+  Portfolio,
+  PortfolioShare,
+  PendingSharesResponse,
+} from "types/beancounter"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 import {
   fetcher,
   sharesManagedKey,
   sharesPendingKey,
 } from "@utils/api/fetchHelper"
+import { usePermissions } from "@hooks/usePermissions"
+import PortfolioAIOverview from "@components/features/portfolios/PortfolioAIOverview"
 
 interface ManagedSharesResponse {
   data: PortfolioShare[]
@@ -16,9 +22,27 @@ import { rootLoader } from "@components/ui/PageLoader"
 import PendingSharesPanel from "./PendingSharesPanel"
 import RequestAccessDialog from "./RequestAccessDialog"
 
-export default function ManagedPortfolios(): React.ReactElement {
+interface ManagedPortfoliosProps {
+  /** Open the Portfolio Corporate Actions popup for the chosen portfolio. */
+  onCorporateActions?: (portfolio: Portfolio) => void
+}
+
+export default function ManagedPortfolios({
+  onCorporateActions,
+}: ManagedPortfoliosProps = {}): React.ReactElement {
   const router = useRouter()
+  const { ai: canRunAi } = usePermissions()
   const [showRequestDialog, setShowRequestDialog] = useState(false)
+  const [expandedShares, setExpandedShares] = useState<Set<string>>(new Set())
+
+  const toggleAiExpand = (shareId: string): void => {
+    setExpandedShares((prev) => {
+      const next = new Set(prev)
+      if (next.has(shareId)) next.delete(shareId)
+      else next.add(shareId)
+      return next
+    })
+  }
 
   const {
     data: managedResponse,
@@ -136,7 +160,33 @@ export default function ManagedPortfolios(): React.ReactElement {
                       : "Owner"}
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div
+                  className="flex items-center space-x-2"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {canRunAi && share.portfolio && (
+                    <button
+                      onClick={() => toggleAiExpand(share.id)}
+                      className={`p-1 ${
+                        expandedShares.has(share.id)
+                          ? "text-purple-700"
+                          : "text-purple-500 hover:text-purple-700"
+                      }`}
+                      title={"AI Overview"}
+                      aria-expanded={expandedShares.has(share.id)}
+                    >
+                      <i className="fas fa-wand-magic-sparkles"></i>
+                    </button>
+                  )}
+                  {onCorporateActions && share.portfolio && (
+                    <button
+                      onClick={() => onCorporateActions(share.portfolio!)}
+                      className="text-blue-500 hover:text-blue-700 p-1"
+                      title={"Scan Corporate Actions"}
+                    >
+                      <i className="fas fa-calendar-check"></i>
+                    </button>
+                  )}
                   {share.acceptedAt && (
                     <span className="text-xs text-gray-400">
                       {"Since"}{" "}
@@ -152,6 +202,16 @@ export default function ManagedPortfolios(): React.ReactElement {
                   />
                 </div>
               </div>
+              {canRunAi &&
+                share.portfolio &&
+                expandedShares.has(share.id) && (
+                  <div
+                    className="pt-4"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <PortfolioAIOverview portfolio={share.portfolio} />
+                  </div>
+                )}
             </div>
           ))}
         </div>

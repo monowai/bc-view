@@ -145,12 +145,14 @@ function buildQuery(portfolio: Portfolio, movers: BiggestMovers): string {
 }
 
 async function fetchHoldings(
-  code: string,
+  portfolioId: string,
   asAt: string,
 ): Promise<HoldingContract | null> {
   try {
+    // Use the id-based route so the AI Overview also works for managed
+    // (shared) portfolios — code is unique only within an owner.
     const res = await fetch(
-      `/api/holdings/${encodeURIComponent(code)}?asAt=${asAt}`,
+      `/api/holdings/id/${encodeURIComponent(portfolioId)}?asAt=${asAt}`,
     )
     if (!res.ok) return null
     // svc-position wraps the contract in `{ data: HoldingContract }`.
@@ -166,7 +168,7 @@ async function performFetch(
   portfolio: Portfolio,
   asAt: string,
 ): Promise<string> {
-  const holdings = await fetchHoldings(portfolio.code, asAt)
+  const holdings = await fetchHoldings(portfolio.id, asAt)
   const movers = buildBiggestMovers(holdings)
   const query = buildQuery(portfolio, movers)
 

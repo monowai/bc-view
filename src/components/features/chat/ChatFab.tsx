@@ -30,9 +30,18 @@ export default function ChatFab(): React.ReactElement {
       page: pageContext.page,
       description: pageContext.description,
     }
-    // Include dynamic route params for specificity
-    // e.g., /holdings/[code] -> code: "DBS"
-    if (routeParams.code) ctx.portfolioCode = routeParams.code
+    // Include dynamic route params for specificity. Managed (shared)
+    // portfolios are routed as /holdings/{portfolio.id}?byId=1 — in that
+    // case the dynamic [code] segment is actually the portfolio id, so
+    // expose it as portfolioId for the agent's by-id tools rather than
+    // the by-code ones (which 404 for shared portfolios).
+    if (routeParams.code) {
+      if (routeParams.byId === "1") {
+        ctx.portfolioId = routeParams.code
+      } else {
+        ctx.portfolioCode = routeParams.code
+      }
+    }
     if (routeParams.id) ctx.entityId = routeParams.id
     if (routeParams.modelId) ctx.modelId = routeParams.modelId
     return ctx
