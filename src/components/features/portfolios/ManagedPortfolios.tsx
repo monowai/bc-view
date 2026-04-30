@@ -173,6 +173,7 @@ export default function ManagedPortfolios({
                           : "text-purple-500 hover:text-purple-700"
                       }`}
                       title={"AI Overview"}
+                      aria-label={"AI Overview"}
                       aria-expanded={expandedShares.has(share.id)}
                     >
                       <i className="fas fa-wand-magic-sparkles"></i>
@@ -183,6 +184,7 @@ export default function ManagedPortfolios({
                       onClick={() => onCorporateActions(share.portfolio!)}
                       className="text-blue-500 hover:text-blue-700 p-1"
                       title={"Scan Corporate Actions"}
+                      aria-label={"Scan Corporate Actions"}
                     >
                       <i className="fas fa-calendar-check"></i>
                     </button>
