@@ -10,6 +10,7 @@ import {
   loadChatCorner,
   saveChatCorner,
 } from "@components/features/chat/chatPosition"
+import { onChatOpen } from "@components/features/chat/chatBus"
 
 export default function ChatFab(): React.ReactElement {
   const [isOpen, setIsOpen] = useState(false)
@@ -66,6 +67,16 @@ export default function ChatFab(): React.ReactElement {
     document.addEventListener("keydown", handleKeyDown)
     return () => document.removeEventListener("keydown", handleKeyDown)
   }, [isOpen, close])
+
+  useEffect(
+    () =>
+      onChatOpen(({ prompt, expanded }) => {
+        setIsOpen(true)
+        if (expanded) setIsExpanded(true)
+        if (prompt) void sendMessage(prompt)
+      }),
+    [sendMessage],
+  )
 
   const { ai: canRunAi, isLoading: permsLoading } = usePermissions()
 
