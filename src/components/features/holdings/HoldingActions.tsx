@@ -332,7 +332,7 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
 }) => {
   const router = useRouter()
   const { isAdmin } = useIsAdmin()
-  const { ai: canRunAi } = usePermissions()
+  const { ai: canRunAi, isLoading: permsLoading } = usePermissions()
   const holdingState = useHoldingState()
   const groupOptions = useGroupOptions()
   const [tradeModalOpen, setTradeModalOpen] = useState(false)
@@ -593,7 +593,7 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
 
         {/* Right side: Action buttons - hidden on mobile portrait */}
         <div className="mobile-portrait:hidden flex items-center gap-2 flex-shrink-0">
-          {canRunAi && !emptyHoldings && (
+          {!permsLoading && canRunAi && !emptyHoldings && (
             <button
               type="button"
               className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1.5 shadow-sm bg-white hover:bg-slate-50 text-slate-700 ring-1 ring-slate-200/80 hover:ring-slate-300"
