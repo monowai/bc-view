@@ -24,7 +24,14 @@ function describeError(code: string): string {
 interface UseChatReturn {
   messages: ChatMessage[]
   isLoading: boolean
-  sendMessage: (query: string) => Promise<void>
+  /**
+   * Send a query to svc-agent. `deepThink` (default `false`) escalates the
+   * agent to its DEEP tier — see `AgentQuery.deepThink` in svc-agent. The
+   * caller is responsible for collecting the toggle from the UI; the hook
+   * forwards it verbatim and persists it on the user message via the
+   * `deepThink` field on `ChatMessage` so chat history can render a badge.
+   */
+  sendMessage: (query: string, deepThink?: boolean) => Promise<void>
   clearMessages: () => void
 }
 
@@ -41,12 +48,13 @@ export function useChat(context?: Record<string, unknown>): UseChatReturn {
   const [isLoading, setIsLoading] = useState(false)
 
   const sendMessage = useCallback(
-    async (query: string) => {
+    async (query: string, deepThink: boolean = false) => {
       const userMsg: ChatMessage = {
         id: crypto.randomUUID(),
         role: "user",
         content: query,
         timestamp: new Date().toISOString(),
+        deepThink: deepThink || undefined,
       }
       setMessages((prev) => [...prev, userMsg])
       setIsLoading(true)
@@ -80,7 +88,7 @@ export function useChat(context?: Record<string, unknown>): UseChatReturn {
             "Content-Type": "application/json",
             Accept: "text/event-stream",
           },
-          body: JSON.stringify({ query, context }),
+          body: JSON.stringify({ query, context, deepThink }),
         })
         if (!res.ok || !res.body) {
           const message = `HTTP ${res.status}`

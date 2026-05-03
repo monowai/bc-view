@@ -35,12 +35,37 @@ describe("ChatPanel", () => {
     expect(screen.getByRole("button", { name: /send/i })).toBeDisabled()
   })
 
-  it("calls onSend when form is submitted", () => {
+  it("calls onSend when form is submitted (deepThink defaults false)", () => {
     render(<ChatPanel {...defaultProps} />)
     const input = screen.getByRole("textbox")
     fireEvent.change(input, { target: { value: "show portfolios" } })
     fireEvent.submit(input.closest("form")!)
-    expect(defaultProps.onSend).toHaveBeenCalledWith("show portfolios")
+    expect(defaultProps.onSend).toHaveBeenCalledWith("show portfolios", false)
+  })
+
+  it("forwards deepThink=true to onSend when the toggle is on", () => {
+    render(<ChatPanel {...defaultProps} />)
+    const toggle = screen.getByRole("button", { name: /deep think/i })
+    fireEvent.click(toggle)
+    expect(toggle).toHaveAttribute("aria-pressed", "true")
+
+    const input = screen.getByRole("textbox")
+    fireEvent.change(input, { target: { value: "analyse my retirement plan" } })
+    fireEvent.submit(input.closest("form")!)
+    expect(defaultProps.onSend).toHaveBeenCalledWith(
+      "analyse my retirement plan",
+      true,
+    )
+  })
+
+  it("toggle starts aria-pressed=false and flips on click", () => {
+    render(<ChatPanel {...defaultProps} />)
+    const toggle = screen.getByRole("button", { name: /deep think/i })
+    expect(toggle).toHaveAttribute("aria-pressed", "false")
+    fireEvent.click(toggle)
+    expect(toggle).toHaveAttribute("aria-pressed", "true")
+    fireEvent.click(toggle)
+    expect(toggle).toHaveAttribute("aria-pressed", "false")
   })
 
   it("clears input after sending", () => {

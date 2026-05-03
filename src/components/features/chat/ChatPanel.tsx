@@ -7,7 +7,14 @@ import { ChatCorner } from "@components/features/chat/chatPosition"
 interface ChatPanelProps {
   messages: ChatMessage[]
   isLoading: boolean
-  onSend: (query: string) => void
+  /**
+   * Submitter receives the trimmed query plus the deep-think toggle state.
+   * `deepThink=true` asks svc-agent to escalate to its DEEP tier (slower,
+   * more analytical, higher cost). The toggle is local to this panel — the
+   * parent does not need to plumb state through unless it wants to persist
+   * the preference across mounts.
+   */
+  onSend: (query: string, deepThink: boolean) => void
   onClear: () => void
   className?: string
   placeholder?: string
@@ -43,6 +50,7 @@ export default function ChatPanel({
 }: ChatPanelProps): React.ReactElement {
   const [input, setInput] = useState("")
   const [showPicker, setShowPicker] = useState(false)
+  const [deepThink, setDeepThink] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -55,7 +63,7 @@ export default function ChatPanel({
     e.preventDefault()
     const trimmed = input.trim()
     if (!trimmed || isLoading) return
-    onSend(trimmed)
+    onSend(trimmed, deepThink)
     setInput("")
   }
 
@@ -164,7 +172,7 @@ export default function ChatPanel({
                 {suggestions.map((suggestion) => (
                   <button
                     key={suggestion}
-                    onClick={() => onSend(suggestion)}
+                    onClick={() => onSend(suggestion, deepThink)}
                     className="text-left text-xs px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 hover:border-blue-300 text-gray-500 hover:text-blue-600 transition-colors"
                   >
                     {suggestion}
@@ -189,6 +197,24 @@ export default function ChatPanel({
       {/* Input */}
       <form onSubmit={handleSubmit} className="border-t border-gray-200 p-3">
         <div className="flex gap-2">
+          <button
+            type="button"
+            aria-label="Deep think"
+            aria-pressed={deepThink}
+            title={
+              deepThink
+                ? "Deep think on — slower, more analytical"
+                : "Deep think off — fast tier"
+            }
+            onClick={() => setDeepThink((v) => !v)}
+            className={`px-3 py-2 text-sm border rounded-lg transition-colors ${
+              deepThink
+                ? "border-purple-600 bg-purple-50 text-purple-700"
+                : "border-gray-300 text-gray-500 hover:text-purple-600 hover:border-purple-400"
+            }`}
+          >
+            <i className="fas fa-brain"></i>
+          </button>
           <input
             type="text"
             value={input}

@@ -1,6 +1,8 @@
 export interface AgentQuery {
   query: string
   context?: Record<string, unknown>
+  /** Caller-driven escalation to svc-agent's DEEP tier. Default false. */
+  deepThink?: boolean
 }
 
 export interface AgentResponse {
@@ -29,4 +31,6 @@ export interface ChatMessage {
   content: string
   timestamp: string
   error?: string | null
+  /** True when the user message was sent with the deep-think toggle on. */
+  deepThink?: boolean
 }
