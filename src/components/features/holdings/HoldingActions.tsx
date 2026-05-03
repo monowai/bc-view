@@ -15,10 +15,17 @@ import { useHoldingState } from "@lib/holdings/holdingState"
 import { usePermissions } from "@hooks/usePermissions"
 import { requestChatOpen } from "@components/features/chat/chatBus"
 
+// Daily-read prompt. Three things only:
+//   1. headwinds / tailwinds moving the portfolio right now
+//   2. key news on the biggest winners and biggest losers
+//   3. macro issues to keep an eye on
+// Deliberately excludes daily XIRR (noise on a day-by-day basis) and
+// concentration / weighting analysis (a structural concern, not a daily one).
 const HOLDINGS_AI_PROMPT =
-  "Summarise the macro news affecting this portfolio, the biggest movers " +
-  "and shakers in my holdings, and the portfolio construction (allocations, " +
-  "weights, sector and currency concentration)."
+  "What are the headwinds and tailwinds moving this portfolio right now? " +
+  "Pull the key news hitting the biggest winners and biggest losers in my " +
+  "holdings. Flag macro-level issues to keep an eye on. Skip daily XIRR and " +
+  "concentration / weighting analysis — neither is meaningful on a daily basis."
 
 // Dropdown Menu Component
 interface DropdownMenuProps {
@@ -605,7 +612,7 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
               })
             }
             aria-label="AI summary of this portfolio"
-            title="AI summary: macro news, movers and shakers, portfolio construction"
+            title="AI summary: headwinds, tailwinds, key news on winners and losers"
           >
             <i className="fas fa-robot text-[10px] text-blue-500"></i>
             <span className="hidden sm:inline">AI Summary</span>
