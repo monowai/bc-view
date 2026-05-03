@@ -38,11 +38,34 @@ describe("ChatBubble", () => {
     expect(screen.getByLabelText("Retry message")).toBeInTheDocument()
   })
 
-  it("retry button re-sends the user message", () => {
+  it("retry button re-sends the user message preserving deepThink state", () => {
     const onRetry = jest.fn()
     render(<ChatBubble message={userMessage} onRetry={onRetry} />)
     fireEvent.click(screen.getByLabelText("Retry message"))
-    expect(onRetry).toHaveBeenCalledWith("Show my portfolios")
+    // userMessage has no deepThink → forwarded as false
+    expect(onRetry).toHaveBeenCalledWith("Show my portfolios", false)
+  })
+
+  it("retry preserves deepThink=true when the original message had it", () => {
+    const onRetry = jest.fn()
+    render(
+      <ChatBubble
+        message={{ ...userMessage, deepThink: true }}
+        onRetry={onRetry}
+      />,
+    )
+    fireEvent.click(screen.getByLabelText("Retry message"))
+    expect(onRetry).toHaveBeenCalledWith("Show my portfolios", true)
+  })
+
+  it("renders a deep-think badge on user messages with deepThink=true", () => {
+    render(
+      <ChatBubble
+        message={{ ...userMessage, deepThink: true }}
+        onRetry={jest.fn()}
+      />,
+    )
+    expect(screen.getByText(/deep/i)).toBeInTheDocument()
   })
 
   it("copies user message content to clipboard", async () => {

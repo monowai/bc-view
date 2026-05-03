@@ -5,7 +5,8 @@ import { ChatMessage } from "types/agent"
 
 interface ChatBubbleProps {
   message: ChatMessage
-  onRetry?: (content: string) => void
+  /** Resends the message; preserves the original deep-think state. */
+  onRetry?: (content: string, deepThink: boolean) => void
 }
 
 export default function ChatBubble({
@@ -25,11 +26,21 @@ export default function ChatBubble({
     return (
       <div className="group flex justify-end">
         <div className="max-w-[80%] px-4 py-2 rounded-lg bg-blue-500 text-white text-sm">
+          {message.deepThink && (
+            <span
+              className="inline-block mr-2 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide bg-purple-200 text-purple-800"
+              title="Sent with deep think enabled"
+            >
+              <i className="fas fa-brain mr-1"></i>deep
+            </span>
+          )}
           {message.content}
           <div className="flex justify-end gap-2 mt-1">
             {onRetry && (
               <button
-                onClick={() => onRetry(message.content)}
+                onClick={() =>
+                  onRetry(message.content, message.deepThink ?? false)
+                }
                 className="text-blue-200 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity text-xs"
                 aria-label="Retry message"
                 title="Send again"

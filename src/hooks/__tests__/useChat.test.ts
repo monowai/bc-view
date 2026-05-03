@@ -215,7 +215,11 @@ describe("useChat", () => {
         "Content-Type": "application/json",
         Accept: "text/event-stream",
       },
-      body: JSON.stringify({ query: "test query", context: undefined }),
+      body: JSON.stringify({
+        query: "test query",
+        context: undefined,
+        deepThink: false,
+      }),
     })
   })
 
@@ -233,7 +237,29 @@ describe("useChat", () => {
     expect(mockFetch).toHaveBeenCalledWith(
       "/api/agent/query/stream",
       expect.objectContaining({
-        body: JSON.stringify({ query: "help", context: ctx }),
+        body: JSON.stringify({ query: "help", context: ctx, deepThink: false }),
+      }),
+    )
+  })
+
+  it("forwards the deepThink flag in the request body when set", async () => {
+    mockFetch.mockResolvedValueOnce(
+      sseResponse([{ event: "token", data: "ok" }]),
+    )
+    const { result } = renderHook(() => useChat())
+
+    await act(async () => {
+      await result.current.sendMessage("explain", true)
+    })
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      "/api/agent/query/stream",
+      expect.objectContaining({
+        body: JSON.stringify({
+          query: "explain",
+          context: undefined,
+          deepThink: true,
+        }),
       }),
     )
   })
