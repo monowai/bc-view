@@ -83,6 +83,21 @@ jest.mock("@hooks/useIsAdmin", () => ({
   useIsAdmin: () => ({ isAdmin: false, isLoading: false }),
 }))
 
+// Permissions: grant `ai` so the AI Summary button renders. Mobile-visibility
+// tests don't care about the chat bus side-effect, only the DOM placement.
+jest.mock("@hooks/usePermissions", () => ({
+  usePermissions: () => ({
+    ai: true,
+    preview: true,
+    admin: false,
+    isLoading: false,
+  }),
+}))
+
+jest.mock("@components/features/chat/chatBus", () => ({
+  requestChatOpen: jest.fn(),
+}))
+
 // Mock HoldingContract data
 const mockHoldingResults: HoldingContract = {
   portfolio: {
@@ -192,6 +207,27 @@ describe("HoldingActions Mobile Portrait Tests (TDD)", () => {
       const rebalanceButton = screen.getByText("Rebalance")
       const button = rebalanceButton.closest("button")
       expect(button).toHaveClass("mobile-portrait:hidden")
+    })
+
+    it("should keep the AI Summary button visible (not in a mobile-portrait:hidden ancestor)", () => {
+      render(
+        <HoldingActions
+          holdingResults={mockHoldingResults}
+          columns={mockColumns}
+          valueIn={mockValueIn}
+        />,
+      )
+
+      // Button uses two labels for breakpoints; on portrait it renders both
+      // children but only "AI" is visible. Locate by aria-label which is stable.
+      const aiButton = screen.getByLabelText("AI summary of this portfolio")
+      expect(aiButton).toBeInTheDocument()
+      // Walk ancestors and assert none carry the hide-on-portrait class.
+      let node: HTMLElement | null = aiButton
+      while (node) {
+        expect(node).not.toHaveClass("mobile-portrait:hidden")
+        node = node.parentElement
+      }
     })
   })
 

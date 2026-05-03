@@ -15,10 +15,17 @@ import { useHoldingState } from "@lib/holdings/holdingState"
 import { usePermissions } from "@hooks/usePermissions"
 import { requestChatOpen } from "@components/features/chat/chatBus"
 
+// Daily-read prompt. Three things only:
+//   1. headwinds / tailwinds moving the portfolio right now
+//   2. key news on the biggest winners and biggest losers
+//   3. macro issues to keep an eye on
+// Deliberately excludes daily XIRR (noise on a day-by-day basis) and
+// concentration / weighting analysis (a structural concern, not a daily one).
 const HOLDINGS_AI_PROMPT =
-  "Summarise the macro news affecting this portfolio, the biggest movers " +
-  "and shakers in my holdings, and the portfolio construction (allocations, " +
-  "weights, sector and currency concentration)."
+  "What are the headwinds and tailwinds moving this portfolio right now? " +
+  "Pull the key news hitting the biggest winners and biggest losers in my " +
+  "holdings. Flag macro-level issues to keep an eye on. Skip daily XIRR and " +
+  "concentration / weighting analysis — neither is meaningful on a daily basis."
 
 // Dropdown Menu Component
 interface DropdownMenuProps {
@@ -591,26 +598,30 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
           </div>
         )}
 
-        {/* Right side: Action buttons - hidden on mobile portrait */}
+        {/* AI Summary stays visible on mobile portrait — Share / Copy / Trade
+            do not, since they need wider tap targets and clutter the small
+            viewport. */}
+        {!permsLoading && canRunAi && !emptyHoldings && (
+          <button
+            type="button"
+            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1.5 shadow-sm bg-white hover:bg-slate-50 text-slate-700 ring-1 ring-slate-200/80 hover:ring-slate-300 flex-shrink-0"
+            onClick={() =>
+              requestChatOpen({
+                prompt: HOLDINGS_AI_PROMPT,
+                expanded: true,
+              })
+            }
+            aria-label="AI summary of this portfolio"
+            title="AI summary: headwinds, tailwinds, key news on winners and losers"
+          >
+            <i className="fas fa-robot text-[10px] text-blue-500"></i>
+            <span className="hidden sm:inline">AI Summary</span>
+            <span className="sm:hidden">AI</span>
+          </button>
+        )}
+
+        {/* Right side: secondary action buttons - hidden on mobile portrait */}
         <div className="mobile-portrait:hidden flex items-center gap-2 flex-shrink-0">
-          {!permsLoading && canRunAi && !emptyHoldings && (
-            <button
-              type="button"
-              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1.5 shadow-sm bg-white hover:bg-slate-50 text-slate-700 ring-1 ring-slate-200/80 hover:ring-slate-300"
-              onClick={() =>
-                requestChatOpen({
-                  prompt: HOLDINGS_AI_PROMPT,
-                  expanded: true,
-                })
-              }
-              aria-label="AI summary of this portfolio"
-              title="AI summary: macro news, movers and shakers, portfolio construction"
-            >
-              <i className="fas fa-robot text-[10px] text-blue-500"></i>
-              <span className="hidden sm:inline">AI Summary</span>
-              <span className="sm:hidden">AI</span>
-            </button>
-          )}
           {onShare && (
             <button
               className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1.5 shadow-sm bg-white hover:bg-slate-50 text-slate-700 ring-1 ring-slate-200/80 hover:ring-slate-300"
