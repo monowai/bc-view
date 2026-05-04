@@ -65,14 +65,26 @@ export default function ChatBubble({
   return (
     <div className="group flex justify-start">
       <div
-        className={`max-w-[80%] px-4 py-2 rounded-lg text-sm border ${
+        className={`max-w-[92%] sm:max-w-[80%] px-4 py-2 rounded-lg text-sm border ${
           message.error
             ? "bg-red-50 border-red-200"
             : "bg-white border-gray-200"
         }`}
       >
-        <div className="prose prose-sm max-w-none">
-          <Markdown remarkPlugins={[remarkGfm]}>{message.content}</Markdown>
+        <div className="prose prose-sm max-w-none prose-table:my-2 prose-th:px-2 prose-th:py-1 prose-td:px-2 prose-td:py-1">
+          <Markdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              table: (props) => (
+                <div className="overflow-x-auto -mx-2 my-2">
+                  <table {...props} className="text-xs" />
+                </div>
+              ),
+              th: (props) => <th {...props} className="whitespace-nowrap" />,
+            }}
+          >
+            {message.content}
+          </Markdown>
         </div>
         <div className="flex justify-end mt-1">
           <button
