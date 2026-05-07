@@ -132,9 +132,7 @@ export default function ManagedPortfolios({
                 // could otherwise collide with one of their own with the
                 // same code.
                 if (share.portfolio?.id) {
-                  router.push(
-                    `/holdings/${share.portfolio.id}?byId=1`,
-                  )
+                  router.push(`/holdings/${share.portfolio.id}?byId=1`)
                 }
               }}
             >
@@ -204,16 +202,11 @@ export default function ManagedPortfolios({
                   />
                 </div>
               </div>
-              {canRunAi &&
-                share.portfolio &&
-                expandedShares.has(share.id) && (
-                  <div
-                    className="pt-4"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <PortfolioAIOverview portfolio={share.portfolio} />
-                  </div>
-                )}
+              {canRunAi && share.portfolio && expandedShares.has(share.id) && (
+                <div className="pt-4" onClick={(e) => e.stopPropagation()}>
+                  <PortfolioAIOverview portfolio={share.portfolio} />
+                </div>
+              )}
             </div>
           ))}
         </div>
