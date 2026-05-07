@@ -62,25 +62,32 @@ export function usePlan(planId: string | undefined): UsePlanResult {
     key ? simpleFetcher(key) : null,
   )
 
+  // Enriched plan is only needed when the SWR result has items to enrich.
+  // The "no items" branch derives plan directly from data — no setState in
+  // effect required.
   const [enrichedPlan, setEnrichedPlan] = useState<
     RebalancePlanDto | undefined
   >(undefined)
 
   useEffect(() => {
-    if (data?.data?.items) {
-      enrichPlanItems(data.data.items).then((enrichedItems) => {
-        setEnrichedPlan({
-          ...data.data,
-          items: enrichedItems,
-        })
+    if (!data?.data?.items) return () => {}
+    let cancelled = false
+    enrichPlanItems(data.data.items).then((enrichedItems) => {
+      if (cancelled) return
+      setEnrichedPlan({
+        ...data.data,
+        items: enrichedItems,
       })
-    } else {
-      setEnrichedPlan(data?.data)
+    })
+    return () => {
+      cancelled = true
     }
   }, [data])
 
+  const plan = data?.data?.items ? enrichedPlan : data?.data
+
   return {
-    plan: enrichedPlan,
+    plan,
     error,
     isLoading,
     mutate,
