@@ -21,7 +21,7 @@ import { requestChatOpen } from "@components/features/chat/chatBus"
 //   3. macro issues to keep an eye on
 // Deliberately excludes daily XIRR (noise on a day-by-day basis) and
 // concentration / weighting analysis (a structural concern, not a daily one).
-const HOLDINGS_AI_PROMPT =
+export const HOLDINGS_AI_PROMPT =
   "What are the headwinds and tailwinds moving this portfolio right now? " +
   "Pull the key news hitting the biggest winners and biggest losers in my " +
   "holdings. Flag macro-level issues to keep an eye on. Skip daily XIRR and " +
