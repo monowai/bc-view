@@ -17,7 +17,11 @@ const mockUseHoldingState = useHoldingState as jest.MockedFunction<
 const mockFetch = jest.fn()
 global.fetch = mockFetch
 
-const USD: Currency = { code: "USD", name: "US Dollar", symbol: "$" } as Currency
+const USD: Currency = {
+  code: "USD",
+  name: "US Dollar",
+  symbol: "$",
+} as Currency
 const NZD: Currency = {
   code: "NZD",
   name: "NZ Dollar",

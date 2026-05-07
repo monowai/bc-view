@@ -72,9 +72,8 @@ export function useFxRates(
     return null
   })()
 
-  const [asyncRates, setAsyncRates] = useState<Record<string, number>>(
-    EMPTY_RATES,
-  )
+  const [asyncRates, setAsyncRates] =
+    useState<Record<string, number>>(EMPTY_RATES)
   const [asyncFetchKey, setAsyncFetchKey] = useState<string | null>(null)
 
   // Async fetch path. Only runs when trivialRates is null.
