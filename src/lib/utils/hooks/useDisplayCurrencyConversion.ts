@@ -203,9 +203,7 @@ export function useDisplayCurrencyConversion({
   // Loading is derived: pending iff we expect an async result we don't yet
   // have. No setIsLoading(true) / setIsLoading(false) inside an effect.
   const customFetchPending =
-    mode === "CUSTOM" &&
-    !!customCode &&
-    asyncCustom?.code !== customCode
+    mode === "CUSTOM" && !!customCode && asyncCustom?.code !== customCode
   const fxFetchPending =
     syncFxRate === null &&
     !!sourceCurrency &&

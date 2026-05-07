@@ -7,13 +7,18 @@ jest.mock("@contexts/UserPreferencesContext", () => ({
 }))
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 
-const mockUseUserPreferences =
-  useUserPreferences as jest.MockedFunction<typeof useUserPreferences>
+const mockUseUserPreferences = useUserPreferences as jest.MockedFunction<
+  typeof useUserPreferences
+>
 
 const mockFetch = jest.fn()
 global.fetch = mockFetch
 
-const USD: Currency = { code: "USD", name: "US Dollar", symbol: "$" } as Currency
+const USD: Currency = {
+  code: "USD",
+  name: "US Dollar",
+  symbol: "$",
+} as Currency
 const NZD: Currency = {
   code: "NZD",
   name: "NZ Dollar",
@@ -25,9 +30,7 @@ const GBP: Currency = {
   symbol: "£",
 } as Currency
 
-function withPreferences(
-  baseCurrencyCode: string | undefined,
-): void {
+function withPreferences(baseCurrencyCode: string | undefined): void {
   mockUseUserPreferences.mockReturnValue({
     preferences: baseCurrencyCode ? { baseCurrencyCode } : null,
   } as ReturnType<typeof useUserPreferences>)
@@ -61,7 +64,9 @@ describe("useFxRates", () => {
     it("returns null displayCurrency when currencies is empty", () => {
       withPreferences(undefined)
 
-      const { result } = renderHook(() => useFxRates(EMPTY_CURRENCIES, EMPTY_CODES))
+      const { result } = renderHook(() =>
+        useFxRates(EMPTY_CURRENCIES, EMPTY_CODES),
+      )
 
       expect(result.current.displayCurrency).toBeNull()
     })
@@ -69,7 +74,9 @@ describe("useFxRates", () => {
     it("uses preferred baseCurrencyCode when present in currencies", async () => {
       withPreferences("NZD")
 
-      const { result } = renderHook(() => useFxRates(CCY_USD_NZD_GBP, EMPTY_CODES))
+      const { result } = renderHook(() =>
+        useFxRates(CCY_USD_NZD_GBP, EMPTY_CODES),
+      )
 
       await waitFor(() => {
         expect(result.current.displayCurrency).toEqual(NZD)
@@ -99,7 +106,9 @@ describe("useFxRates", () => {
     it("user override via setDisplayCurrency wins over default", async () => {
       withPreferences("USD")
 
-      const { result } = renderHook(() => useFxRates(CCY_USD_NZD_GBP, EMPTY_CODES))
+      const { result } = renderHook(() =>
+        useFxRates(CCY_USD_NZD_GBP, EMPTY_CODES),
+      )
 
       await waitFor(() => {
         expect(result.current.displayCurrency).toEqual(USD)

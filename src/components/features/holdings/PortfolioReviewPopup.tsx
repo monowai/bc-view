@@ -188,9 +188,7 @@ export default function PortfolioReviewPopup({
           if (lf === -1 && crlf === -1) return null
           if (lf === -1) return { index: crlf, len: 4 }
           if (crlf === -1) return { index: lf, len: 2 }
-          return crlf < lf
-            ? { index: crlf, len: 4 }
-            : { index: lf, len: 2 }
+          return crlf < lf ? { index: crlf, len: 4 } : { index: lf, len: 2 }
         }
 
         for (;;) {

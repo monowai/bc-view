@@ -80,7 +80,8 @@ describe("usePlan", () => {
 
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: () => Promise.resolve({ data: { code: "MSFT", name: "Microsoft" } }),
+      json: () =>
+        Promise.resolve({ data: { code: "MSFT", name: "Microsoft" } }),
     })
 
     const { result } = renderHook(() => usePlan("p3"))

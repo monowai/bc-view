@@ -1,3 +1,4 @@
+import { useCallback } from "react"
 import useSwr from "swr"
 import type { KeyedMutator } from "swr"
 import {
@@ -24,19 +25,24 @@ export function useIndependenceSettings(): UseIndependenceSettingsResult {
     simpleFetcher(settingsKey),
   )
 
-  const updateSettings = async (
-    request: UpdateSettingsRequest,
-  ): Promise<UserIndependenceSettings> => {
-    const response = await fetch(settingsKey, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(request),
-    })
-    if (!response.ok) throw new Error("Failed to update settings")
-    const updated = await response.json()
-    mutate(updated, false)
-    return updated
-  }
+  // Stable identity so consumers can list updateSettings in effect deps
+  // without re-firing every render (mutate from SWR is itself stable).
+  const updateSettings = useCallback(
+    async (
+      request: UpdateSettingsRequest,
+    ): Promise<UserIndependenceSettings> => {
+      const response = await fetch(settingsKey, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(request),
+      })
+      if (!response.ok) throw new Error("Failed to update settings")
+      const updated = await response.json()
+      mutate(updated, false)
+      return updated
+    },
+    [mutate],
+  )
 
   return {
     settings: data,

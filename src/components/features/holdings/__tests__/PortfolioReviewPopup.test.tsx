@@ -148,9 +148,7 @@ describe("PortfolioReviewPopup", () => {
         onClose={jest.fn()}
       />,
     )
-    await waitFor(() =>
-      expect(screen.getByText(/error/i)).toBeInTheDocument(),
-    )
+    await waitFor(() => expect(screen.getByText(/error/i)).toBeInTheDocument())
     expect(screen.getByText(/run out of credit/i)).toBeInTheDocument()
   })
 
@@ -192,9 +190,7 @@ describe("PortfolioReviewPopup", () => {
     const { unmount } = render(
       <PortfolioReviewPopup target={target} onClose={jest.fn()} />,
     )
-    await waitFor(() =>
-      expect(screen.getByText("Cached")).toBeInTheDocument(),
-    )
+    await waitFor(() => expect(screen.getByText("Cached")).toBeInTheDocument())
     unmount()
     render(<PortfolioReviewPopup target={target} onClose={jest.fn()} />)
     await waitFor(() =>
