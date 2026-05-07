@@ -334,9 +334,13 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
   const [tradeModalOpen, setTradeModalOpen] = useState(false)
   const [cashModalOpen, setCashModalOpen] = useState(false)
 
-  // Open trade/cash modal via ?action= query parameter (used by mobile header)
+  // Open trade/cash modal via ?action= query parameter (used by mobile
+  // header). Reading router.query during render and rewriting the URL is
+  // the side effect this component is meant to perform — it's not derived
+  // state, so the compiler warning is intentional behaviour.
   useEffect(() => {
     if (router.query.action === "trade") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTradeModalOpen(true)
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { action, ...rest } = router.query
@@ -359,9 +363,12 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
   >(DEFAULT_SUMMARY_COLUMNS)
   const [copied, setCopied] = useState(false)
 
-  // Open trade modal when quick sell data is provided
+  // Open trade modal when quick sell data is provided. quickSellData is an
+  // external trigger from the parent — opening the modal is the side
+  // effect, not derived state.
   useEffect(() => {
     if (quickSellData) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTradeModalOpen(true)
     }
   }, [quickSellData])

@@ -211,9 +211,13 @@ const CashInputForm: React.FC<{
   const [fxRateLoading, setFxRateLoading] = useState(false)
   const [manualBuyAmount, setManualBuyAmount] = useState(false)
 
-  // Fetch FX rate when currencies change (for FX transactions)
+  // Fetch FX rate when currencies change (for FX transactions). The sync
+  // setFxRate(null) early returns are deliberate "clear stale rate" steps;
+  // refactoring to derived state would couple FX results into render and
+  // is out of scope for the compiler-warning sweep.
   useEffect(() => {
     if (type.value !== "FX" || !asset || !cashCurrency?.value) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFxRate(null)
       return
     }
@@ -243,15 +247,19 @@ const CashInputForm: React.FC<{
       .finally(() => setFxRateLoading(false))
   }, [type.value, asset, cashCurrency?.value, combinedOptions])
 
-  // Auto-calculate buy amount when sell amount or rate changes
+  // Auto-calculate buy amount when sell amount or rate changes. setValue
+  // here pushes derived FX output back into the form so other watchers see
+  // it; this *is* the intended side-effect.
   useEffect(() => {
     if (type.value === "FX" && fxRate && qty > 0 && !manualBuyAmount) {
       setValue("cashAmount", calculateFxBuyAmount(qty, fxRate))
     }
   }, [type.value, fxRate, qty, manualBuyAmount, setValue])
 
-  // Reset manual override when currencies change
+  // Reset the manual-override flag when the user changes currencies so the
+  // auto-calc effect above re-engages. Form coordination, not derived state.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setManualBuyAmount(false)
   }, [asset, cashCurrency?.value])
 
@@ -264,11 +272,14 @@ const CashInputForm: React.FC<{
     [setValue],
   )
 
-  // Update market and currency when asset changes
+  // Update market and currency when asset changes. setSelectedMarket and
+  // the form setValue calls are the intended side effects of an asset
+  // selection — same form-coordination class as the FX rate effect above.
   useEffect(() => {
     if (asset) {
       const resolved = resolveAssetSelection(asset, combinedOptions)
       if (resolved) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setSelectedMarket(resolved.market)
         setValue("tradeCurrency", {
           value: resolved.currency,
