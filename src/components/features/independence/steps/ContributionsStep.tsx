@@ -13,7 +13,7 @@ import { usePrivateAssetConfigs } from "@lib/assets/usePrivateAssetConfigs"
 import { useExcludedAssetIds } from "@hooks/useExcludedAssetIds"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import { WizardFormData, ContributionFormEntry } from "types/independence"
-import { Asset } from "types/beancounter"
+import { Asset, PrivateAssetConfig } from "types/beancounter"
 import { wizardMessages } from "@lib/independence/messages"
 import Spinner from "@components/ui/Spinner"
 import { useDefinedContribution } from "../useDefinedContribution"
@@ -29,6 +29,22 @@ const msg = wizardMessages.steps.contributions
 
 interface AssetsResponse {
   data: Record<string, Asset>
+}
+
+// Pure helper — hoisted out of the component so the useMemo below can list
+// it as a dependency without churn (its identity is stable across renders).
+function getNetRentalIncome(config: PrivateAssetConfig): number {
+  const percentFee = config.monthlyRentalIncome * config.managementFeePercent
+  const effectiveMgmtFee = Math.max(config.monthlyManagementFee, percentFee)
+  const monthlyPropertyTax = (config.annualPropertyTax || 0) / 12
+  const monthlyInsurance = (config.annualInsurance || 0) / 12
+  const totalExpenses =
+    effectiveMgmtFee +
+    (config.monthlyBodyCorporateFee || 0) +
+    monthlyPropertyTax +
+    monthlyInsurance +
+    (config.monthlyOtherExpenses || 0)
+  return Math.max(0, config.monthlyRentalIncome - totalExpenses)
 }
 
 interface ContributionsStepProps {
@@ -169,21 +185,6 @@ export default function ContributionsStep({
     return rates
   }, [fxData])
 
-  // Calculate net rental income per property (in property currency)
-  const getNetRentalIncome = (config: (typeof rentalProperties)[0]): number => {
-    const percentFee = config.monthlyRentalIncome * config.managementFeePercent
-    const effectiveMgmtFee = Math.max(config.monthlyManagementFee, percentFee)
-    const monthlyPropertyTax = (config.annualPropertyTax || 0) / 12
-    const monthlyInsurance = (config.annualInsurance || 0) / 12
-    const totalExpenses =
-      effectiveMgmtFee +
-      (config.monthlyBodyCorporateFee || 0) +
-      monthlyPropertyTax +
-      monthlyInsurance +
-      (config.monthlyOtherExpenses || 0)
-    return Math.max(0, config.monthlyRentalIncome - totalExpenses)
-  }
-
   // Total rental income converted to plan currency
   const totalRentalIncome = useMemo(() => {
     return rentalProperties
@@ -197,7 +198,7 @@ export default function ContributionsStep({
         const rate = fxRates[rateKey] || 1
         return sum + netIncome * rate
       }, 0)
-  }, [rentalProperties, excludedRentalIds, planCurrency, fxRates]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [rentalProperties, excludedRentalIds, planCurrency, fxRates])
 
   // Watch income-related fields for summary
   const workingIncomeMonthly =
