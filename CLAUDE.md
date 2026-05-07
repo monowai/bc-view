@@ -259,6 +259,37 @@ yarn test:watch  # Keep running in terminal
 # Write test -> Watch fail -> Implement -> Watch pass -> Refactor
 ```
 
+## React Compiler
+
+React Compiler is enabled (Next 16 / `eslint-plugin-react-hooks` v7). All
+`react-hooks/*` rules are at **error** level in `eslint.config.mjs` — CI
+blocks any new compiler bailout. `yarn lint` is the gate.
+
+**Don't add `"use no memo"` or `@ts-expect-error react-compiler`.** Fix the
+bailout instead. Intentional bailouts are scoped via
+`// eslint-disable-next-line` at the call site, with a comment explaining
+why. Acceptable patterns (currently allowed):
+
+- **External-trigger effects** — modal-open reset, URL `?action=...`
+  side effects, `phases/displayCurrency` mark-stale (`MovePositionDialog`,
+  `HoldingActions`, `StressTestTab`). Listing the omitted dep changes
+  behaviour (re-fires on every state tick), not just shuts the linter up.
+
+**Common false bailouts and how to clear them:**
+
+- **Pure helper inside component** — hoist to module scope, type the arg
+  directly instead of `(typeof someState)[0]`. See `getNetRentalIncome` in
+  `ContributionsStep.tsx`.
+- **Effect dep is a fresh fn from a hook** — wrap the function in
+  `useCallback` inside the source hook (deps must themselves be stable —
+  SWR's `mutate` is). Then the consumer can list it honestly. See
+  `useIndependenceSettings.updateSettings`.
+- **Inline object/array prop causing child re-render** — `useMemo` at the
+  call site or hoist a constant if truly static.
+
+When in doubt: prefer refactoring the *source* (hook author) over
+suppressing at the *consumer* — one fix removes N suppressions.
+
 ## Debugging
 
 ```bash
