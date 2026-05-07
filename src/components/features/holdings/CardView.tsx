@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react"
+import React, { useCallback, useMemo, useState } from "react"
 import {
   CashTransferData,
   CostAdjustData,
@@ -486,17 +486,13 @@ const CardView: React.FC<CardViewProps> = ({
     )
   }, [groupedPositions])
 
-  // Track collapsed groups - start with first group expanded
+  // Track collapsed groups - start with first group expanded.
+  // Parent passes `key={groupBy}` so this component remounts (and the
+  // initial state below re-runs) whenever groupBy changes — no manual
+  // reset effect needed.
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
     () => new Set(groupedPositions.slice(1).map((g) => g.groupKey)),
   )
-
-  // Collapse all except first group when groupBy changes
-  useEffect(() => {
-    setCollapsedGroups(
-      new Set(groupedPositions.slice(1).map((g) => g.groupKey)),
-    )
-  }, [groupBy]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleGroup = useCallback((groupKey: string) => {
     setCollapsedGroups((prev) => {

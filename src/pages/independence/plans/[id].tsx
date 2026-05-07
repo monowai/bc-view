@@ -971,14 +971,16 @@ function PlanView(): React.ReactElement {
         isSaving={isSaving}
       />
 
-      {/* Edit Details Modal - key forces remount after save */}
-      <EditPlanDetailsModal
-        key={`edit-modal-v${planVersion}`}
-        isOpen={showEditDetailsModal}
-        onClose={() => setShowEditDetailsModal(false)}
-        onApply={handleApplyDetails}
-        plan={plan}
-      />
+      {/* Edit Details Modal - conditionally mounted so each open starts
+          with fresh form state derived from the current plan. */}
+      {showEditDetailsModal && (
+        <EditPlanDetailsModal
+          key={`edit-modal-v${planVersion}`}
+          onClose={() => setShowEditDetailsModal(false)}
+          onApply={handleApplyDetails}
+          plan={plan}
+        />
+      )}
 
       {/* What-If Analysis Modal */}
       <WhatIfModal
