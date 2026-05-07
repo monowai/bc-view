@@ -13,7 +13,7 @@ import {
   sharesPendingKey,
 } from "@utils/api/fetchHelper"
 import { usePermissions } from "@hooks/usePermissions"
-import PortfolioAIOverview from "@components/features/portfolios/PortfolioAIOverview"
+import { usePortfolioReview } from "@components/features/holdings/usePortfolioReview"
 
 interface ManagedSharesResponse {
   data: PortfolioShare[]
@@ -32,17 +32,8 @@ export default function ManagedPortfolios({
 }: ManagedPortfoliosProps = {}): React.ReactElement {
   const router = useRouter()
   const { ai: canRunAi } = usePermissions()
+  const { popup: reviewPopup, showReview } = usePortfolioReview()
   const [showRequestDialog, setShowRequestDialog] = useState(false)
-  const [expandedShares, setExpandedShares] = useState<Set<string>>(new Set())
-
-  const toggleAiExpand = (shareId: string): void => {
-    setExpandedShares((prev) => {
-      const next = new Set(prev)
-      if (next.has(shareId)) next.delete(shareId)
-      else next.add(shareId)
-      return next
-    })
-  }
 
   const {
     data: managedResponse,
@@ -164,15 +155,17 @@ export default function ManagedPortfolios({
                 >
                   {canRunAi && share.portfolio && (
                     <button
-                      onClick={() => toggleAiExpand(share.id)}
-                      className={`p-1 ${
-                        expandedShares.has(share.id)
-                          ? "text-purple-700"
-                          : "text-purple-500 hover:text-purple-700"
-                      }`}
-                      title={"AI Overview"}
-                      aria-label={"AI Overview"}
-                      aria-expanded={expandedShares.has(share.id)}
+                      onClick={() =>
+                        showReview({
+                          kind: "portfolio",
+                          id: share.portfolio!.id,
+                          code: share.portfolio!.code,
+                          name: share.portfolio!.name,
+                        })
+                      }
+                      className="p-1 text-purple-500 hover:text-purple-700"
+                      title={"AI Summary"}
+                      aria-label={"AI Summary"}
                     >
                       <i className="fas fa-wand-magic-sparkles"></i>
                     </button>
@@ -202,14 +195,6 @@ export default function ManagedPortfolios({
                   />
                 </div>
               </div>
-              {canRunAi && share.portfolio && expandedShares.has(share.id) && (
-                <div className="pt-4" onClick={(e) => e.stopPropagation()}>
-                  <PortfolioAIOverview
-                    key={share.portfolio.id}
-                    portfolio={share.portfolio}
-                  />
-                </div>
-              )}
             </div>
           ))}
         </div>
@@ -221,6 +206,7 @@ export default function ManagedPortfolios({
           onSuccess={handleRequestSuccess}
         />
       )}
+      {reviewPopup}
     </div>
   )
 }
