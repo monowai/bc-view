@@ -498,7 +498,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
             </div>
             {canRunAi && expandedPortfolios.has(portfolio.code) && (
               <div className="px-4 pb-4" onClick={(e) => e.stopPropagation()}>
-                <PortfolioAIOverview portfolio={portfolio} />
+                <PortfolioAIOverview key={portfolio.id} portfolio={portfolio} />
               </div>
             )}
           </div>
@@ -790,7 +790,10 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                       }
                     >
                       <td colSpan={8} className="px-4 py-3">
-                        <PortfolioAIOverview portfolio={portfolio} />
+                        <PortfolioAIOverview
+                          key={portfolio.id}
+                          portfolio={portfolio}
+                        />
                       </td>
                     </tr>
                   )}

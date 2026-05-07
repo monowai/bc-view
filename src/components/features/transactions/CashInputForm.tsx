@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useRef, useCallback } from "react"
-import { Controller, useForm } from "react-hook-form"
+import { Controller, useForm, useWatch } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
 import * as yup from "yup"
 import { FxResponse, Portfolio } from "types/beancounter"
@@ -110,7 +110,6 @@ const CashInputForm: React.FC<{
     control,
     handleSubmit,
     setValue,
-    watch,
     getValues,
     reset,
     formState: { errors, isDirty },
@@ -174,12 +173,17 @@ const CashInputForm: React.FC<{
       console.log("Failed to fetch accounts:", accountsError)
     }
   }, [accountsData, accountsError])
-  const tax = watch("tax")
-  const fees = watch("fees")
-  const type = watch("type")
-  const qty = watch("quantity")
-  const asset = watch("asset")
-  const cashCurrency = watch("cashCurrency")
+  // Use useWatch (a hook) rather than the watch() function returned from
+  // useForm. The function form returns a fresh closure each render, which the
+  // React Compiler can't memoize safely; useWatch is the React-friendly
+  // subscription path and lets the compiler optimize this component.
+  const tax = useWatch({ control, name: "tax" })
+  const fees = useWatch({ control, name: "fees" })
+  const type = useWatch({ control, name: "type" })
+  const qty = useWatch({ control, name: "quantity" })
+  const asset = useWatch({ control, name: "asset" })
+  const cashCurrency = useWatch({ control, name: "cashCurrency" })
+  const cashAmount = useWatch({ control, name: "cashAmount" })
 
   const { showEscapeConfirm, onEscapeConfirm, onEscapeCancel } =
     useEscapeHandler(isDirty, setModalOpen)
@@ -410,8 +414,8 @@ const CashInputForm: React.FC<{
                         Buy
                       </div>
                       <div className="font-bold text-lg text-gray-900">
-                        {(watch("cashAmount") ?? 0) > 0
-                          ? (watch("cashAmount") ?? 0).toLocaleString()
+                        {(cashAmount ?? 0) > 0
+                          ? (cashAmount ?? 0).toLocaleString()
                           : "—"}
                       </div>
                       <div className="text-xs text-gray-500">

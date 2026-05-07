@@ -81,27 +81,36 @@ function fetchReviewOnce(
   return promise
 }
 
+function readCachedReview(
+  ticker: string,
+  market: string | undefined,
+): string | null {
+  const cached = reviewCache.get(cacheKey(ticker, market))
+  if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
+    return cached.response
+  }
+  return null
+}
+
 export default function AssetReviewPopup({
   ticker,
   market,
   assetName,
   onClose,
 }: AssetReviewPopupProps): React.ReactElement {
-  const [response, setResponse] = useState<string | null>(null)
+  // Parent passes key={ticker|market} so prop changes force a remount and
+  // re-run this lazy initializer. That keeps the cache lookup out of the
+  // useEffect body — only the async fetch on a cache miss runs there.
+  const initial = useState(() => readCachedReview(ticker, market))[0]
+  const [response, setResponse] = useState<string | null>(initial)
   const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(initial === null)
 
   useEffect(() => {
-    const key = cacheKey(ticker, market)
-    const cached = reviewCache.get(key)
-    if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
-      setResponse(cached.response)
-      setIsLoading(false)
-      return () => {}
-    }
+    if (initial !== null) return () => {}
 
     let cancelled = false
-    fetchReviewOnce(key, ticker, market, assetName)
+    fetchReviewOnce(cacheKey(ticker, market), ticker, market, assetName)
       .then((text) => {
         if (!cancelled) setResponse(text)
       })
@@ -116,7 +125,7 @@ export default function AssetReviewPopup({
     return () => {
       cancelled = true
     }
-  }, [ticker, market, assetName])
+  }, [initial, ticker, market, assetName])
 
   return (
     <Dialog
