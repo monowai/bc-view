@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react"
+import React, { useState, useCallback } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import useSwr, { mutate } from "swr"
 import { simpleFetcher, ccyKey, categoriesKey } from "@utils/api/fetchHelper"
@@ -60,24 +60,22 @@ function AccountsPage(): React.ReactElement {
   )
 
   // Convert backend categories to select options, filtering to user asset types
-  const categoryOptions = useMemo((): CategoryOption[] => {
-    if (!categoriesData?.data) return []
-    return categoriesData.data
-      .filter((cat: AssetCategory) => USER_ASSET_CATEGORIES.includes(cat.id))
-      .map((cat: AssetCategory) => ({
-        value: cat.id,
-        label: cat.name,
-      }))
-  }, [categoriesData?.data])
+  const categoryOptions: CategoryOption[] = categoriesData?.data
+    ? categoriesData.data
+        .filter((cat: AssetCategory) => USER_ASSET_CATEGORIES.includes(cat.id))
+        .map((cat: AssetCategory) => ({
+          value: cat.id,
+          label: cat.name,
+        }))
+    : []
 
   // Convert sectors to select options
-  const sectorOptions = useMemo((): SectorOption[] => {
-    if (!sectorsData?.data) return []
-    return sectorsData.data.map((sector: SectorInfo) => ({
-      value: sector.name,
-      label: sector.name,
-    }))
-  }, [sectorsData?.data])
+  const sectorOptions: SectorOption[] = sectorsData?.data
+    ? sectorsData.data.map((sector: SectorInfo) => ({
+        value: sector.name,
+        label: sector.name,
+      }))
+    : []
 
   const [editData, setEditData] = useState<EditAccountData | undefined>(
     undefined,
@@ -249,33 +247,31 @@ function AccountsPage(): React.ReactElement {
   }, [])
 
   // Convert accounts data to array
-  const accounts = useMemo(() => {
-    if (!accountsData?.data) return []
-    return Object.values(accountsData.data as Record<string, Asset>)
-  }, [accountsData?.data])
+  const accounts: Asset[] = accountsData?.data
+    ? Object.values(accountsData.data as Record<string, Asset>)
+    : []
 
   // Currency options
-  const ccyOptions = useMemo(() => {
-    if (!ccyData?.data) return []
-    return currencyOptions(ccyData.data)
-  }, [ccyData?.data])
+  const ccyOptions = ccyData?.data ? currencyOptions(ccyData.data) : []
 
   // Filter accounts based on active tab
-  const filteredAccounts = useMemo(() => {
-    if (activeTab === "overview") return []
-    if (activeTab === "all") return accounts
-    return accounts.filter((account) => account.assetCategory?.id === activeTab)
-  }, [accounts, activeTab])
+  let filteredAccounts: Asset[]
+  if (activeTab === "overview") {
+    filteredAccounts = []
+  } else if (activeTab === "all") {
+    filteredAccounts = accounts
+  } else {
+    filteredAccounts = accounts.filter(
+      (account) => account.assetCategory?.id === activeTab,
+    )
+  }
 
   // Tab definitions
-  const tabs = useMemo(
-    (): { id: TabType; label: string }[] => [
-      { id: "overview", label: "Overview" },
-      { id: "all", label: "All" },
-      ...categoryOptions.map((cat) => ({ id: cat.value, label: cat.label })),
-    ],
-    [categoryOptions],
-  )
+  const tabs: { id: TabType; label: string }[] = [
+    { id: "overview", label: "Overview" },
+    { id: "all", label: "All" },
+    ...categoryOptions.map((cat) => ({ id: cat.value, label: cat.label })),
+  ]
 
   if (isLoading || ccyLoading || categoriesLoading || sectorsLoading) {
     return rootLoader("Loading...")
