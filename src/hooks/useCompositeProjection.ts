@@ -178,7 +178,6 @@ export function useCompositeProjection(
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     phases,
     displayCurrency,
@@ -186,6 +185,7 @@ export function useCompositeProjection(
     compositeNarrative,
     compositeWorkScenarioId,
     initialized,
+    updateSettings,
   ])
 
   const toggleExclusion = useCallback(
