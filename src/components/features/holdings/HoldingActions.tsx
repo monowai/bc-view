@@ -13,19 +13,7 @@ import {
 } from "@components/features/holdings/GroupByOptions"
 import { useHoldingState } from "@lib/holdings/holdingState"
 import { usePermissions } from "@hooks/usePermissions"
-import { requestChatOpen } from "@components/features/chat/chatBus"
-
-// Daily-read prompt. Three things only:
-//   1. headwinds / tailwinds moving the portfolio right now
-//   2. key news on the biggest winners and biggest losers
-//   3. macro issues to keep an eye on
-// Deliberately excludes daily XIRR (noise on a day-by-day basis) and
-// concentration / weighting analysis (a structural concern, not a daily one).
-export const HOLDINGS_AI_PROMPT =
-  "What are the headwinds and tailwinds moving this portfolio right now? " +
-  "Pull the key news hitting the biggest winners and biggest losers in my " +
-  "holdings. Flag macro-level issues to keep an eye on. Skip daily XIRR and " +
-  "concentration / weighting analysis — neither is meaningful on a daily basis."
+import { usePortfolioReview } from "@components/features/holdings/usePortfolioReview"
 
 // Dropdown Menu Component
 interface DropdownMenuProps {
@@ -342,6 +330,7 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
   const { ai: canRunAi, isLoading: permsLoading } = usePermissions()
   const holdingState = useHoldingState()
   const groupOptions = useGroupOptions()
+  const { popup: reviewPopup, showReview } = usePortfolioReview()
   const [tradeModalOpen, setTradeModalOpen] = useState(false)
   const [cashModalOpen, setCashModalOpen] = useState(false)
 
@@ -606,9 +595,11 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
             type="button"
             className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1.5 shadow-sm bg-white hover:bg-slate-50 text-slate-700 ring-1 ring-slate-200/80 hover:ring-slate-300 flex-shrink-0"
             onClick={() =>
-              requestChatOpen({
-                prompt: HOLDINGS_AI_PROMPT,
-                expanded: true,
+              showReview({
+                kind: "portfolio",
+                id: holdingResults.portfolio.id,
+                code: holdingResults.portfolio.code,
+                name: holdingResults.portfolio.name,
               })
             }
             aria-label="AI summary of this portfolio"
@@ -723,6 +714,7 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
           </div>
         </div>
       )}
+      {reviewPopup}
     </>
   )
 }

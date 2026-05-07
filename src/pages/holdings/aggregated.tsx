@@ -28,9 +28,8 @@ import {
 import CopyPopup from "@components/ui/CopyPopup"
 import IncomeView from "@components/features/holdings/IncomeView"
 import { ViewMode } from "@components/features/holdings/ViewToggle"
-import { HOLDINGS_AI_PROMPT } from "@components/features/holdings/HoldingActions"
-import { requestChatOpen } from "@components/features/chat/chatBus"
 import { usePermissions } from "@hooks/usePermissions"
+import { usePortfolioReview } from "@components/features/holdings/usePortfolioReview"
 
 /** View mode icon component */
 const ViewModeIcon: React.FC<{ mode: string; className?: string }> = ({
@@ -217,6 +216,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
   const holdingState = useHoldingState()
   const groupOptions = useGroupOptions()
   const { ai: canRunAi, isLoading: permsLoading } = usePermissions()
+  const { popup: reviewPopup, showReview } = usePortfolioReview()
   // Get portfolio codes from URL query parameter
   const codes = router.query.codes as string | undefined
   const portfolioCodes = useMemo(() => (codes ? codes.split(",") : []), [codes])
@@ -350,10 +350,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
               type="button"
               className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1.5 shadow-sm bg-white hover:bg-slate-50 text-slate-700 ring-1 ring-slate-200/80 hover:ring-slate-300 flex-shrink-0"
               onClick={() =>
-                requestChatOpen({
-                  prompt: HOLDINGS_AI_PROMPT,
-                  expanded: true,
-                })
+                showReview({ kind: "aggregated", codes: portfolioCodes })
               }
               aria-label="AI summary of aggregated holdings"
               title="AI summary: headwinds, tailwinds, key news on winners and losers"
@@ -526,6 +523,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
           modalOpen={copyModalOpen}
           onClose={() => setCopyModalOpen(false)}
         />
+        {reviewPopup}
       </div>
     </>
   )
