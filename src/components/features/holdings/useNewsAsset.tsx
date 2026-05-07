@@ -26,6 +26,7 @@ export function useNewsAsset(): UseNewsAssetReturn {
   )
   const popup = newsAsset ? (
     <NewsSentimentPopup
+      key={`${newsAsset.ticker}|${newsAsset.market || ""}`}
       ticker={newsAsset.ticker}
       market={newsAsset.market}
       assetName={newsAsset.assetName}

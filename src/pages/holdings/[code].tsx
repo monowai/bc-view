@@ -535,6 +535,7 @@ function HoldingsPage(): React.ReactElement {
       ) : viewMode === "cards" ? (
         <div className="grid grid-cols-1 gap-3">
           <CardView
+            key={holdingState.groupBy.value}
             holdings={holdings}
             portfolio={holdingResults.portfolio}
             valueIn={holdingState.valueIn.value}

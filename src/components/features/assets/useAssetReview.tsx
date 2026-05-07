@@ -34,6 +34,7 @@ export function useAssetReview(): UseAssetReviewReturn {
   }, [])
   const popup = target ? (
     <AssetReviewPopup
+      key={`${target.ticker}|${target.market || ""}`}
       ticker={target.ticker}
       market={target.market}
       assetName={target.assetName}

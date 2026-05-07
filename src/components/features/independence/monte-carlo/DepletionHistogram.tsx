@@ -24,9 +24,14 @@ export function DepletionHistogram({
       .map(([age, count]) => ({ age: Number(age), count }))
       .sort((a, b) => a.age - b.age)
     const depletedCount = distribution.depletedCount
-    let cumulative = 0
-    return sorted.map((entry) => {
-      cumulative += entry.count
+    // Build a prefix-sum array first so the row map() doesn't close over a
+    // reassigned `let` — keeps the compiler from bailing on this component.
+    const cumulatives: number[] = sorted.reduce<number[]>((acc, entry) => {
+      const next = (acc[acc.length - 1] ?? 0) + entry.count
+      return [...acc, next]
+    }, [])
+    return sorted.map((entry, i) => {
+      const cumulative = cumulatives[i]
       return {
         ...entry,
         pctOfTotal: (entry.count / iterations) * 100,

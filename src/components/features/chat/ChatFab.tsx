@@ -16,8 +16,14 @@ export default function ChatFab(): React.ReactElement {
   const [isOpen, setIsOpen] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
   const [corner, setCornerState] = useState<ChatCorner>("BR")
-  // Hydrate from localStorage post-mount to avoid SSR/CSR mismatch.
-  useEffect(() => setCornerState(loadChatCorner()), [])
+  // Hydrate from localStorage post-mount to avoid SSR/CSR mismatch. Reading
+  // localStorage during render (or a lazy useState initializer) would diverge
+  // server/client output. The post-mount setState is the canonical pattern.
+  useEffect(
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    () => setCornerState(loadChatCorner()),
+    [],
+  )
   const setCorner = useCallback((next: ChatCorner) => {
     setCornerState(next)
     saveChatCorner(next)

@@ -233,10 +233,14 @@ function HeaderBrand(): React.ReactElement {
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [mobileMenuOpen])
 
-  // Close mobile menu on route change
+  // Close mobile menu on route change. Subscribe to the router event rather
+  // than calling setState synchronously inside an effect body — the event
+  // callback runs only when the route actually changes.
   useEffect(() => {
-    setMobileMenuOpen(false)
-  }, [router.pathname])
+    const close = (): void => setMobileMenuOpen(false)
+    router.events.on("routeChangeStart", close)
+    return () => router.events.off("routeChangeStart", close)
+  }, [router.events])
 
   const handleKeyDown = (e: React.KeyboardEvent): void => {
     if (e.key === "Escape") {

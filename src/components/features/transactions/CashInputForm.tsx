@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useRef, useCallback } from "react"
-import { Controller, useForm } from "react-hook-form"
+import { Controller, useForm, useWatch } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
 import * as yup from "yup"
 import { FxResponse, Portfolio } from "types/beancounter"
@@ -110,7 +110,6 @@ const CashInputForm: React.FC<{
     control,
     handleSubmit,
     setValue,
-    watch,
     getValues,
     reset,
     formState: { errors, isDirty },
@@ -174,12 +173,17 @@ const CashInputForm: React.FC<{
       console.log("Failed to fetch accounts:", accountsError)
     }
   }, [accountsData, accountsError])
-  const tax = watch("tax")
-  const fees = watch("fees")
-  const type = watch("type")
-  const qty = watch("quantity")
-  const asset = watch("asset")
-  const cashCurrency = watch("cashCurrency")
+  // Use useWatch (a hook) rather than the watch() function returned from
+  // useForm. The function form returns a fresh closure each render, which the
+  // React Compiler can't memoize safely; useWatch is the React-friendly
+  // subscription path and lets the compiler optimize this component.
+  const tax = useWatch({ control, name: "tax" })
+  const fees = useWatch({ control, name: "fees" })
+  const type = useWatch({ control, name: "type" })
+  const qty = useWatch({ control, name: "quantity" })
+  const asset = useWatch({ control, name: "asset" })
+  const cashCurrency = useWatch({ control, name: "cashCurrency" })
+  const cashAmount = useWatch({ control, name: "cashAmount" })
 
   const { showEscapeConfirm, onEscapeConfirm, onEscapeCancel } =
     useEscapeHandler(isDirty, setModalOpen)
@@ -207,9 +211,13 @@ const CashInputForm: React.FC<{
   const [fxRateLoading, setFxRateLoading] = useState(false)
   const [manualBuyAmount, setManualBuyAmount] = useState(false)
 
-  // Fetch FX rate when currencies change (for FX transactions)
+  // Fetch FX rate when currencies change (for FX transactions). The sync
+  // setFxRate(null) early returns are deliberate "clear stale rate" steps;
+  // refactoring to derived state would couple FX results into render and
+  // is out of scope for the compiler-warning sweep.
   useEffect(() => {
     if (type.value !== "FX" || !asset || !cashCurrency?.value) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFxRate(null)
       return
     }
@@ -239,15 +247,19 @@ const CashInputForm: React.FC<{
       .finally(() => setFxRateLoading(false))
   }, [type.value, asset, cashCurrency?.value, combinedOptions])
 
-  // Auto-calculate buy amount when sell amount or rate changes
+  // Auto-calculate buy amount when sell amount or rate changes. setValue
+  // here pushes derived FX output back into the form so other watchers see
+  // it; this *is* the intended side-effect.
   useEffect(() => {
     if (type.value === "FX" && fxRate && qty > 0 && !manualBuyAmount) {
       setValue("cashAmount", calculateFxBuyAmount(qty, fxRate))
     }
   }, [type.value, fxRate, qty, manualBuyAmount, setValue])
 
-  // Reset manual override when currencies change
+  // Reset the manual-override flag when the user changes currencies so the
+  // auto-calc effect above re-engages. Form coordination, not derived state.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setManualBuyAmount(false)
   }, [asset, cashCurrency?.value])
 
@@ -260,11 +272,14 @@ const CashInputForm: React.FC<{
     [setValue],
   )
 
-  // Update market and currency when asset changes
+  // Update market and currency when asset changes. setSelectedMarket and
+  // the form setValue calls are the intended side effects of an asset
+  // selection — same form-coordination class as the FX rate effect above.
   useEffect(() => {
     if (asset) {
       const resolved = resolveAssetSelection(asset, combinedOptions)
       if (resolved) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setSelectedMarket(resolved.market)
         setValue("tradeCurrency", {
           value: resolved.currency,
@@ -410,8 +425,8 @@ const CashInputForm: React.FC<{
                         Buy
                       </div>
                       <div className="font-bold text-lg text-gray-900">
-                        {(watch("cashAmount") ?? 0) > 0
-                          ? (watch("cashAmount") ?? 0).toLocaleString()
+                        {(cashAmount ?? 0) > 0
+                          ? (cashAmount ?? 0).toLocaleString()
                           : "—"}
                       </div>
                       <div className="text-xs text-gray-500">

@@ -61,7 +61,6 @@ const mockPlan: RetirementPlan = {
 
 describe("EditPlanDetailsModal", () => {
   const defaultProps = {
-    isOpen: true,
     onClose: jest.fn(),
     onApply: jest.fn(),
     plan: mockPlan,
@@ -71,13 +70,9 @@ describe("EditPlanDetailsModal", () => {
     jest.clearAllMocks()
   })
 
-  it("renders nothing when closed", () => {
-    const { container } = render(
-      <EditPlanDetailsModal {...defaultProps} isOpen={false} />,
-    )
-
-    expect(container.firstChild).toBeNull()
-  })
+  // Open/closed lifecycle is now controlled by the parent via conditional
+  // mounting, so the previous "renders nothing when closed" assertion is no
+  // longer meaningful at this level.
 
   it("renders dialog title when open", () => {
     render(<EditPlanDetailsModal {...defaultProps} />)

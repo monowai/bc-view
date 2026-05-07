@@ -204,7 +204,10 @@ export default function ManagedPortfolios({
               </div>
               {canRunAi && share.portfolio && expandedShares.has(share.id) && (
                 <div className="pt-4" onClick={(e) => e.stopPropagation()}>
-                  <PortfolioAIOverview portfolio={share.portfolio} />
+                  <PortfolioAIOverview
+                    key={share.portfolio.id}
+                    portfolio={share.portfolio}
+                  />
                 </div>
               )}
             </div>

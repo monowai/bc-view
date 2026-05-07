@@ -215,28 +215,30 @@ function fetchOverviewOnce(
   return promise
 }
 
+function readCachedOverview(portfolioCode: string, asAt: string): string | null {
+  const cached = overviewCache.get(cacheKey(portfolioCode, asAt))
+  if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
+    return cached.response
+  }
+  return null
+}
+
 export default function PortfolioAIOverview({
   portfolio,
 }: PortfolioAIOverviewProps): React.ReactElement {
-  const [response, setResponse] = useState<string | null>(null)
+  // Parent passes key={portfolio.id} so portfolio swaps force a remount
+  // and re-run this lazy initializer. Cache lookup stays out of useEffect.
+  const asAt = todayIso()
+  const initial = useState(() => readCachedOverview(portfolio.code, asAt))[0]
+  const [response, setResponse] = useState<string | null>(initial)
   const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(initial === null)
 
   useEffect(() => {
-    const asAt = todayIso()
-    const key = cacheKey(portfolio.code, asAt)
-    const cached = overviewCache.get(key)
-    if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
-      setResponse(cached.response)
-      setIsLoading(false)
-      return () => {}
-    }
+    if (initial !== null) return () => {}
 
     let cancelled = false
-    setIsLoading(true)
-    setError(null)
-    setResponse(null)
-    fetchOverviewOnce(key, portfolio, asAt)
+    fetchOverviewOnce(cacheKey(portfolio.code, asAt), portfolio, asAt)
       .then((text) => {
         if (!cancelled) setResponse(text)
       })
@@ -253,7 +255,7 @@ export default function PortfolioAIOverview({
     return () => {
       cancelled = true
     }
-  }, [portfolio])
+  }, [initial, portfolio, asAt])
 
   return (
     <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
