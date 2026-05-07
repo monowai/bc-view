@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useEffect, useState } from "react"
 import { Currency, Portfolio, FxResponse } from "types/beancounter"
 import { useHoldingState } from "@lib/holdings/holdingState"
 
@@ -81,13 +81,25 @@ interface UseDisplayCurrencyConversionProps {
   portfolio: Portfolio
 }
 
-/**
+interface AsyncCustom {
+  code: string
+  currency: Currency
+}
 
-* Hook to handle display currency conversion.
-* Centralizes FX rate fetching and caching for consistent behavior across components.
-*
-* Uses synchronous calculation for same-currency cases to prevent "click behind" issues
-* where values show stale rates during React's effect cycle.
+interface AsyncFx {
+  fromCode: string
+  toCode: string
+  rate: number
+}
+
+/**
+ * Hook to handle display currency conversion.
+ * Centralizes FX rate fetching and caching for consistent behavior across
+ * components.
+ *
+ * Uses synchronous calculation for same-currency cases to prevent
+ * "click behind" issues where values show stale rates during React's
+ * effect cycle.
  */
 export function useDisplayCurrencyConversion({
   sourceCurrency,
@@ -95,117 +107,166 @@ export function useDisplayCurrencyConversion({
 }: UseDisplayCurrencyConversionProps): DisplayCurrencyConversion {
   const holdingState = useHoldingState()
   const displayCurrencyOption = holdingState.displayCurrency
+  const mode = displayCurrencyOption.mode
+  const customCode = displayCurrencyOption.customCode
 
-  // State for async operations (CUSTOM mode currency lookup, FX rate fetch)
-  const [customCurrency, setCustomCurrency] = useState<Currency | null>(null)
-  const [asyncFxRate, setAsyncFxRate] = useState<number>(1)
-  const [isLoading, setIsLoading] = useState(false)
+  // Async-fetched currency for CUSTOM mode. We track which code it was
+  // fetched for so a stale value doesn't leak when customCode changes.
+  const [asyncCustom, setAsyncCustom] = useState<AsyncCustom | null>(null)
 
-  // Determine target currency synchronously for non-CUSTOM modes
-  // This prevents "click behind" issues where useEffect runs after render
-  const targetCurrency = useMemo((): Currency | null => {
-    const { mode, customCode } = displayCurrencyOption
+  // Async-fetched FX rate keyed by from/to pair, for the same reason.
+  const [asyncFx, setAsyncFx] = useState<AsyncFx | null>(null)
 
-    if (mode === "TRADE") {
-      return sourceCurrency || null
-    } else if (mode === "PORTFOLIO") {
-      return portfolio.currency
-    } else if (mode === "BASE") {
-      return portfolio.base
-    } else if (mode === "CUSTOM" && customCode) {
-      // For CUSTOM, we need to use the async-fetched currency
-      return customCurrency
-    }
-    return sourceCurrency || null
-  }, [displayCurrencyOption, sourceCurrency, portfolio, customCurrency])
+  const customCurrency =
+    mode === "CUSTOM" && customCode && asyncCustom?.code === customCode
+      ? asyncCustom.currency
+      : null
 
-  // Only fetch custom currency when needed (CUSTOM mode)
+  // Determine target currency synchronously for non-CUSTOM modes.
+  let targetCurrency: Currency | null
+  if (mode === "TRADE") {
+    targetCurrency = sourceCurrency || null
+  } else if (mode === "PORTFOLIO") {
+    targetCurrency = portfolio.currency
+  } else if (mode === "BASE") {
+    targetCurrency = portfolio.base
+  } else if (mode === "CUSTOM" && customCode) {
+    targetCurrency = customCurrency
+  } else {
+    targetCurrency = sourceCurrency || null
+  }
+
+  // Sync FX path: same currency or unresolvable target → rate of 1.
+  // Different currencies → null, signalling that an async fetch is needed.
+  let syncFxRate: number | null
+  if (!sourceCurrency || !targetCurrency) {
+    syncFxRate = 1
+  } else if (sourceCurrency.code === targetCurrency.code) {
+    syncFxRate = 1
+  } else {
+    syncFxRate = null
+  }
+
+  // Fetch CUSTOM-mode currency only when in that mode and we don't already
+  // have a fresh result for the requested code.
   useEffect(() => {
-    const { mode, customCode } = displayCurrencyOption
-
-    if (mode !== "CUSTOM" || !customCode) {
-      setCustomCurrency(null)
-      return
+    if (mode !== "CUSTOM" || !customCode) return () => {}
+    if (asyncCustom?.code === customCode) return () => {}
+    let cancelled = false
+    fetchCurrencies().then((currencies) => {
+      if (cancelled) return
+      const found = currencies.find((c) => c.code === customCode)
+      if (found) setAsyncCustom({ code: customCode, currency: found })
+    })
+    return () => {
+      cancelled = true
     }
+  }, [mode, customCode, asyncCustom])
 
-    setIsLoading(true)
-    fetchCurrencies()
-      .then((currencies) => {
-        const found = currencies.find((c) => c.code === customCode)
-        if (found) setCustomCurrency(found)
-      })
-      .finally(() => setIsLoading(false))
-  }, [displayCurrencyOption])
-
-  // Compute FX rate synchronously when possible (same currency = 1)
-  // Only fetch async when currencies differ
-  const syncFxRate = useMemo((): number | null => {
-    if (!sourceCurrency || !targetCurrency) return 1
-    if (sourceCurrency.code === targetCurrency.code) return 1
-    return null // Need async fetch
-  }, [sourceCurrency, targetCurrency])
-
-  // Fetch FX rate only when currencies differ
+  // Fetch FX rate only when sync path can't satisfy the request.
   useEffect(() => {
-    // If sync rate is available, no async fetch needed
-    if (syncFxRate !== null) {
-      setAsyncFxRate(1)
-      return
+    if (syncFxRate !== null) return () => {}
+    if (!sourceCurrency || !targetCurrency) return () => {}
+    const fromCode = sourceCurrency.code
+    const toCode = targetCurrency.code
+    if (asyncFx?.fromCode === fromCode && asyncFx?.toCode === toCode) {
+      return () => {}
     }
+    let cancelled = false
+    fetchFxRate(fromCode, toCode).then((rate) => {
+      if (cancelled) return
+      setAsyncFx({ fromCode, toCode, rate })
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [syncFxRate, sourceCurrency, targetCurrency, asyncFx])
 
-    if (!sourceCurrency || !targetCurrency) return
+  // Resolved FX rate: prefer the synchronous answer; otherwise use the
+  // async result iff it matches the currently-requested pair, else 1 while
+  // the fetch is in flight (preserves existing "no flicker to wrong rate"
+  // semantics).
+  let fxRate: number
+  if (syncFxRate !== null) {
+    fxRate = syncFxRate
+  } else if (
+    sourceCurrency &&
+    targetCurrency &&
+    asyncFx?.fromCode === sourceCurrency.code &&
+    asyncFx?.toCode === targetCurrency.code
+  ) {
+    fxRate = asyncFx.rate
+  } else {
+    fxRate = 1
+  }
 
-    setIsLoading(true)
-    fetchFxRate(sourceCurrency.code, targetCurrency.code)
-      .then(setAsyncFxRate)
-      .finally(() => setIsLoading(false))
-  }, [syncFxRate, sourceCurrency, targetCurrency])
+  // Loading is derived: pending iff we expect an async result we don't yet
+  // have. No setIsLoading(true) / setIsLoading(false) inside an effect.
+  const customFetchPending =
+    mode === "CUSTOM" &&
+    !!customCode &&
+    asyncCustom?.code !== customCode
+  const fxFetchPending =
+    syncFxRate === null &&
+    !!sourceCurrency &&
+    !!targetCurrency &&
+    !(
+      asyncFx?.fromCode === sourceCurrency.code &&
+      asyncFx?.toCode === targetCurrency.code
+    )
+  const isLoading = customFetchPending || fxFetchPending
 
-  // Use sync rate if available, otherwise async rate
-  const fxRate = syncFxRate ?? asyncFxRate
-
-  const convert = useCallback((value: number) => value * fxRate, [fxRate])
+  const convert = (value: number): number => value * fxRate
 
   const currencySymbol = targetCurrency?.symbol || sourceCurrency?.symbol || "$"
   const currencyCode = targetCurrency?.code || sourceCurrency?.code || ""
-  const isCustomCurrency = displayCurrencyOption.mode === "CUSTOM"
+  const isCustomCurrency = mode === "CUSTOM"
 
-  return useMemo(
-    () => ({
-      convert,
-      currencySymbol,
-      currencyCode,
-      isCustomCurrency,
-      isLoading,
-    }),
-    [convert, currencySymbol, currencyCode, isCustomCurrency, isLoading],
-  )
+  return {
+    convert,
+    currencySymbol,
+    currencyCode,
+    isCustomCurrency,
+    isLoading,
+  }
 }
 
 /**
-
-* Get cached currencies list (for use in components that just need the list)
+ * Get cached currencies list (for use in components that just need the list)
  */
 export function useCurrencies(): {
   currencies: Currency[]
   isLoading: boolean
 } {
-  const [currencies, setCurrencies] = useState<Currency[]>(
-    currenciesCache || [],
+  // Lazy initial state: if the module cache is already populated we expose
+  // it immediately and skip the effect entirely. The "no cache yet" path
+  // initialises with [] + isLoading=true and is filled by the effect's
+  // async .then() callback.
+  const [state, setState] = useState<{
+    currencies: Currency[]
+    isLoading: boolean
+  }>(() =>
+    currenciesCache
+      ? { currencies: currenciesCache, isLoading: false }
+      : { currencies: [], isLoading: true },
   )
-  const [isLoading, setIsLoading] = useState(!currenciesCache)
 
   useEffect(() => {
-    if (currenciesCache) {
-      setCurrencies(currenciesCache)
-      return
-    }
-
-    setIsLoading(true)
+    if (currenciesCache) return () => {}
+    let cancelled = false
     fetchCurrencies()
-      .then(setCurrencies)
-      .finally(() => setIsLoading(false))
+      .then((currencies) => {
+        if (cancelled) return
+        setState({ currencies, isLoading: false })
+      })
+      .catch(() => {
+        if (cancelled) return
+        setState({ currencies: [], isLoading: false })
+      })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
-  return { currencies, isLoading }
+  return state
 }
