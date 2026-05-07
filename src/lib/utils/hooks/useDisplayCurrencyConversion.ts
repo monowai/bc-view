@@ -242,15 +242,14 @@ export function useCurrencies(): {
   // it immediately and skip the effect entirely. The "no cache yet" path
   // initialises with [] + isLoading=true and is filled by the effect's
   // async .then() callback.
-  const initial = useState<{
+  const [state, setState] = useState<{
     currencies: Currency[]
     isLoading: boolean
   }>(() =>
     currenciesCache
       ? { currencies: currenciesCache, isLoading: false }
       : { currencies: [], isLoading: true },
-  )[0]
-  const [state, setState] = useState(initial)
+  )
 
   useEffect(() => {
     if (currenciesCache) return () => {}
