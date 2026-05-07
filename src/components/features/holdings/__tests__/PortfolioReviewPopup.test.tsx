@@ -3,7 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import PortfolioReviewPopup, {
   clearPortfolioReviewCache,
-} from "../PortfolioReviewPopup"
+} from "@components/features/holdings/PortfolioReviewPopup"
 
 // react-markdown / remark-gfm are mocked globally in jest.setup.js
 
@@ -152,6 +152,28 @@ describe("PortfolioReviewPopup", () => {
       expect(screen.getByText(/error/i)).toBeInTheDocument(),
     )
     expect(screen.getByText(/run out of credit/i)).toBeInTheDocument()
+  })
+
+  it("parses SSE frames using \\r\\n\\r\\n separators (proxy-normalised line endings)", async () => {
+    const encoder = new TextEncoder()
+    const body = new ReadableStream<Uint8Array>({
+      start(c) {
+        c.enqueue(encoder.encode("event:token\r\ndata:Hi\r\n\r\n"))
+        c.enqueue(encoder.encode("event:token\r\ndata: there\r\n\r\n"))
+        c.enqueue(encoder.encode("event:done\r\ndata:{}\r\n\r\n"))
+        c.close()
+      },
+    })
+    mockFetch.mockResolvedValueOnce({ ok: true, status: 200, body })
+    render(
+      <PortfolioReviewPopup
+        target={{ kind: "portfolio", id: "p-1", code: "X", name: "X" }}
+        onClose={jest.fn()}
+      />,
+    )
+    await waitFor(() =>
+      expect(screen.getByText("Hi there")).toBeInTheDocument(),
+    )
   })
 
   it("caches by target so reopening the same portfolio does not re-fetch", async () => {

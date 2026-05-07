@@ -1,7 +1,7 @@
 import React, { ReactElement, useCallback, useState } from "react"
 import PortfolioReviewPopup, {
   PortfolioReviewTarget,
-} from "./PortfolioReviewPopup"
+} from "@components/features/holdings/PortfolioReviewPopup"
 
 export interface UsePortfolioReviewReturn {
   popup: ReactElement | null

@@ -13,7 +13,7 @@ import {
 } from "@components/features/holdings/GroupByOptions"
 import { useHoldingState } from "@lib/holdings/holdingState"
 import { usePermissions } from "@hooks/usePermissions"
-import { usePortfolioReview } from "./usePortfolioReview"
+import { usePortfolioReview } from "@components/features/holdings/usePortfolioReview"
 
 // Dropdown Menu Component
 interface DropdownMenuProps {

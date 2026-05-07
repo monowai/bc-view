@@ -156,13 +156,14 @@ export default function PortfolioReviewPopup({
         let buffer = ""
 
         // SSE event blocks delimited by blank line; each block carries an
-        // `event:` line and one or more `data:` lines. Don't strip leading
-        // space from `data:` payloads — Spring's SSE writer treats the space
-        // as content (matches useChat parsing).
+        // `event:` line and one or more `data:` lines. Accept both `\n\n`
+        // and `\r\n\r\n` separators — proxies (CDN / load balancer) may
+        // normalise line endings. Don't strip leading space from `data:`
+        // payloads — Spring's SSE writer treats the space as content.
         const flush = (block: string): void => {
           let event = "message"
           const dataLines: string[] = []
-          for (const raw of block.split("\n")) {
+          for (const raw of block.split(/\r?\n/)) {
             if (raw.startsWith(":")) continue
             if (raw.startsWith("event:")) {
               event = raw.slice(6).trim()
@@ -179,16 +180,29 @@ export default function PortfolioReviewPopup({
           }
         }
 
+        const findSeparator = (
+          buf: string,
+        ): { index: number; len: number } | null => {
+          const lf = buf.indexOf("\n\n")
+          const crlf = buf.indexOf("\r\n\r\n")
+          if (lf === -1 && crlf === -1) return null
+          if (lf === -1) return { index: crlf, len: 4 }
+          if (crlf === -1) return { index: lf, len: 2 }
+          return crlf < lf
+            ? { index: crlf, len: 4 }
+            : { index: lf, len: 2 }
+        }
+
         for (;;) {
           const { value, done } = await reader.read()
           if (done) break
           buffer += value
-          let sep = buffer.indexOf("\n\n")
-          while (sep !== -1) {
-            const block = buffer.slice(0, sep)
-            buffer = buffer.slice(sep + 2)
+          let sep = findSeparator(buffer)
+          while (sep !== null) {
+            const block = buffer.slice(0, sep.index)
+            buffer = buffer.slice(sep.index + sep.len)
             if (block.length > 0) flush(block)
-            sep = buffer.indexOf("\n\n")
+            sep = findSeparator(buffer)
           }
         }
         if (buffer.trim().length > 0) flush(buffer)
