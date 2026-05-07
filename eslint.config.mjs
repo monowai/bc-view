@@ -121,6 +121,23 @@ export default [
       "@typescript-eslint/ban-ts-ignore": "off",
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
+      // React Compiler rules (eslint-plugin-react-hooks v7).
+      // Surface compiler bailouts so manual memoization can be pruned safely.
+      // Start at "warn" to avoid blocking CI; promote to "error" after cleanup.
+      "react-hooks/preserve-manual-memoization": "warn",
+      "react-hooks/immutability": "warn",
+      "react-hooks/purity": "warn",
+      "react-hooks/refs": "warn",
+      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/set-state-in-render": "warn",
+      "react-hooks/static-components": "warn",
+      "react-hooks/use-memo": "warn",
+      "react-hooks/error-boundaries": "warn",
+      "react-hooks/gating": "warn",
+      "react-hooks/globals": "warn",
+      "react-hooks/config": "warn",
+      "react-hooks/unsupported-syntax": "warn",
+      "react-hooks/incompatible-library": "warn",
       // Next.js rules
       ...nextPlugin.configs.recommended.rules,
       ...nextPlugin.configs["core-web-vitals"].rules,
