@@ -94,10 +94,6 @@ jest.mock("@hooks/usePermissions", () => ({
   }),
 }))
 
-jest.mock("@components/features/chat/chatBus", () => ({
-  requestChatOpen: jest.fn(),
-}))
-
 // Mock HoldingContract data
 const mockHoldingResults: HoldingContract = {
   portfolio: {
