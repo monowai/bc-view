@@ -47,6 +47,13 @@ jest.mock("recharts", () => ({
   Area: ({ dataKey }: { dataKey: string }) => (
     <g data-testid={`area-${dataKey}`} />
   ),
+  LineChart: ({ children }: { children: React.ReactNode }) => (
+    <svg data-testid="line-chart">{children}</svg>
+  ),
+  Line: ({ dataKey }: { dataKey: string }) => (
+    <g data-testid={`line-${dataKey}`} />
+  ),
+  Legend: () => <g data-testid="legend" />,
   XAxis: () => <g />,
   YAxis: () => <g />,
   Tooltip: () => <g />,
@@ -546,6 +553,141 @@ describe("PerformanceChart", () => {
       expect(
         screen.queryByText(/Portfolio data starts/),
       ).not.toBeInTheDocument()
+    })
+  })
+
+  describe("benchmark overlay", () => {
+    const indexListResponse = {
+      data: {
+        "^GSPC": {
+          id: "^GSPC",
+          code: "^GSPC",
+          name: "S&P 500",
+          marketCode: "INDEX",
+        },
+        "^FTSE": {
+          id: "^FTSE",
+          code: "^FTSE",
+          name: "FTSE 100",
+          marketCode: "INDEX",
+        },
+      },
+    }
+
+    /**
+     * Route useSwr by URL so the perf, index-list, and benchmark calls each
+     * get the right payload. Null keys (lazy fetches) get undefined.
+     */
+    function mockSwrByUrl(benchmarkData?: PerformanceResponse): void {
+      mockUseSwr.mockImplementation((key) => {
+        if (key === null || typeof key !== "string") {
+          return {
+            data: undefined,
+            isLoading: false,
+            error: undefined,
+          } as ReturnType<typeof useSwr>
+        }
+        if (key.startsWith("/api/performance/") && key.includes("benchmark")) {
+          return {
+            data: benchmarkData,
+            isLoading: false,
+            error: undefined,
+          } as ReturnType<typeof useSwr>
+        }
+        if (key === "/api/assets/market/INDEX") {
+          return {
+            data: indexListResponse,
+            isLoading: false,
+            error: undefined,
+          } as ReturnType<typeof useSwr>
+        }
+        return {
+          data: mockPerformanceData,
+          isLoading: false,
+          error: undefined,
+        } as ReturnType<typeof useSwr>
+      })
+    }
+
+    it("renders the vs Benchmark tab", () => {
+      mockSwrByUrl()
+      render(<PerformanceChart portfolioCode="TEST" />)
+      expect(
+        screen.getByRole("tab", { name: "vs Benchmark" }),
+      ).toBeInTheDocument()
+    })
+
+    it("shows index dropdown options when benchmark tab is opened", () => {
+      mockSwrByUrl()
+      render(<PerformanceChart portfolioCode="TEST" />)
+
+      fireEvent.click(screen.getByRole("tab", { name: "vs Benchmark" }))
+
+      const select = screen.getByLabelText("Compare against:")
+      expect(select).toBeInTheDocument()
+      expect(
+        screen.getByRole("option", { name: /S&P 500/ }),
+      ).toBeInTheDocument()
+      expect(
+        screen.getByRole("option", { name: /FTSE 100/ }),
+      ).toBeInTheDocument()
+    })
+
+    it("does not fetch the index list until benchmark tab is opened", () => {
+      mockSwrByUrl()
+      render(<PerformanceChart portfolioCode="TEST" />)
+
+      const initialKeys = mockUseSwr.mock.calls.map((c) => c[0])
+      expect(initialKeys).toContain("/api/performance/TEST?months=12")
+      expect(initialKeys).not.toContain("/api/assets/market/INDEX")
+
+      fireEvent.click(screen.getByRole("tab", { name: "vs Benchmark" }))
+
+      const afterKeys = mockUseSwr.mock.calls.map((c) => c[0])
+      expect(afterKeys).toContain("/api/assets/market/INDEX")
+    })
+
+    it("requests benchmark series with selected indexAssetId", async () => {
+      const benchmark: PerformanceResponse = {
+        data: {
+          currency: { code: "USD", symbol: "$", name: "US Dollar" },
+          series: [
+            {
+              date: "2024-01-01",
+              growthOf1000: 1000,
+              marketValue: 0,
+              netContributions: 0,
+              cumulativeReturn: 0,
+              cumulativeDividends: 0,
+            },
+            {
+              date: "2024-12-01",
+              growthOf1000: 1120,
+              marketValue: 0,
+              netContributions: 0,
+              cumulativeReturn: 0.12,
+              cumulativeDividends: 0,
+            },
+          ],
+        },
+      }
+      mockSwrByUrl(benchmark)
+      render(<PerformanceChart portfolioCode="TEST" />)
+
+      fireEvent.click(screen.getByRole("tab", { name: "vs Benchmark" }))
+      fireEvent.change(screen.getByLabelText("Compare against:"), {
+        target: { value: "^GSPC" },
+      })
+
+      await waitFor(() => {
+        const keys = mockUseSwr.mock.calls.map((c) => c[0])
+        expect(keys).toContain(
+          "/api/performance/TEST/benchmark?indexAssetId=%5EGSPC&months=12",
+        )
+      })
+
+      expect(screen.getByTestId("line-portfolio")).toBeInTheDocument()
+      expect(screen.getByTestId("line-benchmark")).toBeInTheDocument()
     })
   })
 })

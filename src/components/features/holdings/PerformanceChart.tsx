@@ -1,13 +1,16 @@
 import React, { useState, useMemo, useCallback } from "react"
 import useSwr, { useSWRConfig } from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
-import { PerformanceResponse } from "types/beancounter"
+import { Asset, PerformanceResponse } from "types/beancounter"
 import {
   AreaChart,
   Area,
+  Line,
+  LineChart,
   XAxis,
   YAxis,
   Tooltip,
+  Legend,
   ResponsiveContainer,
   ReferenceLine,
 } from "recharts"
@@ -25,7 +28,11 @@ import {
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 
-type ChartTab = "gain" | "guide"
+type ChartTab = "gain" | "benchmark" | "guide"
+
+interface AssetUpdateResponse {
+  data: Record<string, Asset>
+}
 
 interface PerformanceChartProps {
   portfolioCode: string
@@ -40,6 +47,7 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
 }) => {
   const [months, setMonths] = useState(12)
   const [activeChart, setActiveChart] = useState<ChartTab>("gain")
+  const [selectedIndexId, setSelectedIndexId] = useState<string>("")
   const [resetState, setResetState] = useState<"idle" | "resetting" | "done">(
     "idle",
   )
@@ -56,6 +64,27 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
     apiUrl,
     simpleFetcher(apiUrl),
   )
+
+  // Lazy: only fetch index list when benchmark tab is active
+  const indexListUrl =
+    activeChart === "benchmark" ? "/api/assets/market/INDEX" : null
+  const { data: indexListData } = useSwr<AssetUpdateResponse>(
+    indexListUrl,
+    indexListUrl ? simpleFetcher(indexListUrl) : null,
+  )
+
+  // Lazy: only fetch benchmark series once an index is picked
+  const benchmarkUrl =
+    activeChart === "benchmark" && selectedIndexId
+      ? `/api/performance/${portfolioCode}/benchmark?indexAssetId=${encodeURIComponent(
+          selectedIndexId,
+        )}&months=${months}`
+      : null
+  const { data: benchmarkData, isLoading: benchmarkLoading } =
+    useSwr<PerformanceResponse>(
+      benchmarkUrl,
+      benchmarkUrl ? simpleFetcher(benchmarkUrl) : null,
+    )
 
   const handleResetCache = useCallback(async () => {
     setResetState("resetting")
@@ -95,6 +124,35 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
   }, [portfolioCode, apiUrl, mutate])
 
   const series = useMemo(() => data?.data?.series || [], [data?.data?.series])
+
+  const indexOptions = useMemo(() => {
+    const map = indexListData?.data
+    if (!map) return [] as Asset[]
+    return Object.values(map)
+  }, [indexListData])
+
+  // Merge portfolio + benchmark series by date for the comparison chart.
+  // Portfolio series is rebased here too (Growth-of-1000 already supplied by API).
+  const benchmarkChartData = useMemo(() => {
+    if (series.length === 0) return []
+    const benchmarkSeries = benchmarkData?.data?.series || []
+    const benchmarkByDate = new Map(
+      benchmarkSeries.map((p) => [p.date, p.growthOf1000]),
+    )
+    return series.map((p) => ({
+      date: p.date,
+      portfolio: p.growthOf1000,
+      benchmark: benchmarkByDate.get(p.date) ?? null,
+    }))
+  }, [series, benchmarkData?.data?.series])
+
+  const selectedIndexName = useMemo(() => {
+    if (!selectedIndexId) return ""
+    return (
+      indexOptions.find((a) => a.id === selectedIndexId)?.name ||
+      selectedIndexId
+    )
+  }, [selectedIndexId, indexOptions])
   const firstTradeDate = data?.data?.firstTradeDate
   const currency = data?.data?.currency
   const sym = currency?.symbol || currencySymbol
@@ -454,6 +512,21 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
           </button>
           <button
             role="tab"
+            aria-selected={activeChart === "benchmark"}
+            onClick={() => setActiveChart("benchmark")}
+            className={`relative px-3 py-2.5 text-xs font-medium transition-colors ${
+              activeChart === "benchmark"
+                ? "text-gray-900"
+                : "text-gray-400 hover:text-gray-600"
+            }`}
+          >
+            vs Benchmark
+            {activeChart === "benchmark" && (
+              <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-wealth-600 rounded-full" />
+            )}
+          </button>
+          <button
+            role="tab"
             aria-selected={activeChart === "guide"}
             onClick={() => setActiveChart("guide")}
             className={`relative px-3 py-2.5 text-xs font-medium transition-colors ${
@@ -471,7 +544,114 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
 
         {/* Chart / Guide area */}
         <div className="p-4">
-          {activeChart === "gain" ? (
+          {activeChart === "benchmark" ? (
+            <div>
+              <div className="flex items-center gap-3 mb-3">
+                <label
+                  htmlFor="benchmark-index"
+                  className="text-xs text-gray-500"
+                >
+                  Compare against:
+                </label>
+                <select
+                  id="benchmark-index"
+                  value={selectedIndexId}
+                  onChange={(e) => setSelectedIndexId(e.target.value)}
+                  className="text-xs border border-gray-200 rounded px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-wealth-500"
+                >
+                  <option value="">— Select index —</option>
+                  {indexOptions.map((idx) => (
+                    <option key={idx.id} value={idx.id}>
+                      {idx.code} — {idx.name || idx.code}
+                    </option>
+                  ))}
+                </select>
+                {selectedIndexId && benchmarkLoading && (
+                  <span className="text-[10px] text-gray-400">loading…</span>
+                )}
+              </div>
+              <div className="h-72">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={benchmarkChartData}>
+                    <XAxis
+                      dataKey="date"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={AXIS_TICK}
+                      tickFormatter={formatAxisDate}
+                      interval="preserveStartEnd"
+                      dy={4}
+                    />
+                    <YAxis
+                      domain={["auto", "auto"]}
+                      axisLine={false}
+                      tickLine={false}
+                      tick={AXIS_TICK}
+                      tickFormatter={(v: number) => v.toFixed(0)}
+                      width={55}
+                    />
+                    <Tooltip
+                      contentStyle={tooltipStyle}
+                      labelFormatter={(label) =>
+                        formatTooltipDate(String(label))
+                      }
+                      formatter={(value, name) => [
+                        value == null ? "—" : Number(value).toFixed(2),
+                        String(name) === "portfolio"
+                          ? "Portfolio"
+                          : selectedIndexName || "Benchmark",
+                      ]}
+                    />
+                    <ReferenceLine
+                      y={1000}
+                      stroke={CHART_COLORS.axis}
+                      strokeDasharray="2 4"
+                      label={{
+                        value: "Start (1000)",
+                        position: "insideTopLeft",
+                        fill: CHART_COLORS.axis,
+                        fontSize: 10,
+                        fontFamily: "var(--font-dm-sans)",
+                      }}
+                    />
+                    <Legend
+                      verticalAlign="top"
+                      height={24}
+                      iconType="plainline"
+                      formatter={(value: string) =>
+                        value === "portfolio"
+                          ? "Portfolio"
+                          : selectedIndexName || "Benchmark"
+                      }
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="portfolio"
+                      stroke={CHART_COLORS.accent}
+                      strokeWidth={2}
+                      dot={false}
+                      activeDot={ACTIVE_DOT}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="benchmark"
+                      stroke={CHART_COLORS.benchmark}
+                      strokeWidth={2}
+                      strokeDasharray="4 3"
+                      dot={false}
+                      connectNulls
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              {!selectedIndexId && (
+                <p className="text-[11px] text-gray-400 mt-2">
+                  Pick an index to overlay its Growth-of-1000 against your
+                  portfolio.
+                </p>
+              )}
+            </div>
+          ) : activeChart === "gain" ? (
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={gainSeries}>

@@ -287,8 +287,8 @@ why. Acceptable patterns (currently allowed):
 - **Inline object/array prop causing child re-render** — `useMemo` at the
   call site or hoist a constant if truly static.
 
-When in doubt: prefer refactoring the *source* (hook author) over
-suppressing at the *consumer* — one fix removes N suppressions.
+When in doubt: prefer refactoring the _source_ (hook author) over
+suppressing at the _consumer_ — one fix removes N suppressions.
 
 ## Debugging
 
