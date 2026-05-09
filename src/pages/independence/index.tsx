@@ -265,7 +265,7 @@ function RetirementPlanning(): React.ReactElement {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [activeView, setActiveView] = useState<
     "profile" | "work" | "plans" | "composite"
-  >("work")
+  >("plans")
   const [isImporting, setIsImporting] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
   const [showShareDialog, setShowShareDialog] = useState(false)
