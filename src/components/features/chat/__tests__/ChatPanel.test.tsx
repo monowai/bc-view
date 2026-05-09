@@ -135,6 +135,27 @@ describe("ChatPanel", () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
+  it("renders Cancel button while loading when onCancel provided, replacing Send", () => {
+    const onCancel = jest.fn()
+    render(
+      <ChatPanel {...defaultProps} isLoading={true} onCancel={onCancel} />,
+    )
+    expect(
+      screen.queryByRole("button", { name: /send/i }),
+    ).not.toBeInTheDocument()
+    const cancelBtn = screen.getByRole("button", { name: /cancel/i })
+    fireEvent.click(cancelBtn)
+    expect(onCancel).toHaveBeenCalledTimes(1)
+  })
+
+  it("does not render Cancel when onCancel is omitted, even while loading", () => {
+    render(<ChatPanel {...defaultProps} isLoading={true} />)
+    expect(
+      screen.queryByRole("button", { name: /cancel/i }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /send/i })).toBeInTheDocument()
+  })
+
   it("renders the move icon and corner picker only when corner+onMove provided", () => {
     const { rerender } = render(<ChatPanel {...defaultProps} />)
     expect(screen.queryByLabelText("Move chat panel")).not.toBeInTheDocument()

@@ -16,6 +16,12 @@ interface ChatPanelProps {
    */
   onSend: (query: string, deepThink: boolean) => void
   onClear: () => void
+  /**
+   * Aborts an in-flight stream. When provided and `isLoading` is true the
+   * panel renders a Cancel button beside Send. Optional so callers that
+   * don't wire up cancellation still compile.
+   */
+  onCancel?: () => void
   className?: string
   placeholder?: string
   suggestions?: string[]
@@ -27,6 +33,11 @@ interface ChatPanelProps {
   /** Move callback — pairs with corner; opens a 2x2 picker in the header. */
   onMove?: (next: ChatCorner) => void
 }
+
+// How close to the bottom (in pixels) we still consider "stuck to bottom".
+// Browser scroll math has sub-pixel rounding, so anything within ~24px is
+// effectively the bottom for the user.
+const STICK_TO_BOTTOM_THRESHOLD_PX = 24
 
 const CORNER_PICKER: { value: ChatCorner; icon: string; label: string }[] = [
   { value: "TL", icon: "fa-arrow-up", label: "Top-left" },
@@ -40,6 +51,7 @@ export default function ChatPanel({
   isLoading,
   onSend,
   onClear,
+  onCancel,
   className = "",
   placeholder = "Ask about your portfolios...",
   suggestions = [],
@@ -52,8 +64,22 @@ export default function ChatPanel({
   const [showPicker, setShowPicker] = useState(false)
   const [deepThink, setDeepThink] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
+  // Auto-scroll only when the user is already at (or near) the bottom. Once
+  // they scroll up to read earlier output we leave them there even as more
+  // tokens stream in — otherwise the page yanks back down on every chunk
+  // and the user can never read the top of a long answer.
+  const stickToBottomRef = useRef(true)
+
+  const handleScroll = (): void => {
+    const el = messagesContainerRef.current
+    if (!el) return
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
+    stickToBottomRef.current = distanceFromBottom <= STICK_TO_BOTTOM_THRESHOLD_PX
+  }
 
   useEffect(() => {
+    if (!stickToBottomRef.current) return
     if (messagesEndRef.current?.scrollIntoView) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" })
     }
@@ -63,6 +89,10 @@ export default function ChatPanel({
     e.preventDefault()
     const trimmed = input.trim()
     if (!trimmed || isLoading) return
+    // Sending a fresh query — re-stick so the user sees their question and
+    // the streaming answer immediately, even if they were scrolled up
+    // reading earlier output.
+    stickToBottomRef.current = true
     onSend(trimmed, deepThink)
     setInput("")
   }
@@ -160,7 +190,11 @@ export default function ChatPanel({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div
+        ref={messagesContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto p-4 space-y-3"
+      >
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-gray-400 text-sm">
             <i className="fas fa-comments text-3xl mb-2"></i>
@@ -223,14 +257,26 @@ export default function ChatPanel({
             className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             disabled={isLoading}
           />
-          <button
-            type="submit"
-            disabled={!input.trim() || isLoading}
-            aria-label="Send"
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <i className="fas fa-paper-plane"></i>
-          </button>
+          {isLoading && onCancel ? (
+            <button
+              type="button"
+              onClick={onCancel}
+              aria-label="Cancel"
+              title="Cancel"
+              className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+            >
+              <i className="fas fa-stop"></i>
+            </button>
+          ) : (
+            <button
+              type="submit"
+              disabled={!input.trim() || isLoading}
+              aria-label="Send"
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <i className="fas fa-paper-plane"></i>
+            </button>
+          )}
         </div>
       </form>
     </div>

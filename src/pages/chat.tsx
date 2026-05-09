@@ -5,7 +5,7 @@ import { ChatPanel } from "@components/features/chat"
 import { useChat } from "@hooks/useChat"
 
 function ChatPage(): React.ReactElement {
-  const { messages, isLoading, sendMessage, clearMessages } = useChat()
+  const { messages, isLoading, sendMessage, clearMessages, cancel } = useChat()
 
   return (
     <>
@@ -18,6 +18,7 @@ function ChatPage(): React.ReactElement {
           isLoading={isLoading}
           onSend={sendMessage}
           onClear={clearMessages}
+          onCancel={cancel}
           className="h-full"
         />
       </div>
