@@ -26,6 +26,12 @@ describe("WIZARD_STEPS", () => {
     })
   })
 
+  it("should have a Font Awesome icon class for each step", () => {
+    WIZARD_STEPS.forEach((step) => {
+      expect(step.icon).toMatch(/^fa-[\w-]+$/)
+    })
+  })
+
   describe("Step 1 - Personal Info", () => {
     it("should contain expected fields", () => {
       const fields = WIZARD_STEPS[0].fields

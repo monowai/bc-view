@@ -59,7 +59,11 @@ export default function WizardProgress({
                   ) : isCompleted ? (
                     <i className="fas fa-check text-xs"></i>
                   ) : (
-                    step.id
+                    <i
+                      className={`fas ${step.icon} text-xs`}
+                      aria-label={step.name}
+                      title={step.name}
+                    ></i>
                   )}
                 </div>
                 <span
@@ -72,7 +76,6 @@ export default function WizardProgress({
                   `}
                 >
                   <span className="hidden sm:inline">{step.name}</span>
-                  <span className="sm:hidden">{step.id}</span>
                 </span>
               </div>
               {index < WIZARD_STEPS.length - 1 && (
