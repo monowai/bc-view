@@ -53,7 +53,8 @@ export default function ChatFab(): React.ReactElement {
     if (routeParams.modelId) ctx.modelId = routeParams.modelId
     return ctx
   }, [pageContext.page, pageContext.description, routeParams])
-  const { messages, isLoading, sendMessage, clearMessages } = useChat(context)
+  const { messages, isLoading, sendMessage, clearMessages, cancel } =
+    useChat(context)
 
   const close = useCallback(() => {
     setIsOpen(false)
@@ -111,6 +112,7 @@ export default function ChatFab(): React.ReactElement {
           isLoading={isLoading}
           onSend={sendMessage}
           onClear={clearMessages}
+          onCancel={cancel}
           onExpand={expand}
           onClose={close}
           placeholder={pageContext.placeholder}

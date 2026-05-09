@@ -209,18 +209,21 @@ describe("useChat", () => {
       await result.current.sendMessage("test query")
     })
 
-    expect(mockFetch).toHaveBeenCalledWith("/api/agent/query/stream", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "text/event-stream",
-      },
-      body: JSON.stringify({
-        query: "test query",
-        context: undefined,
-        deepThink: false,
+    expect(mockFetch).toHaveBeenCalledWith(
+      "/api/agent/query/stream",
+      expect.objectContaining({
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "text/event-stream",
+        },
+        body: JSON.stringify({
+          query: "test query",
+          context: undefined,
+          deepThink: false,
+        }),
       }),
-    })
+    )
   })
 
   it("includes page context in the request body", async () => {
@@ -240,6 +243,53 @@ describe("useChat", () => {
         body: JSON.stringify({ query: "help", context: ctx, deepThink: false }),
       }),
     )
+  })
+
+  it("cancel() aborts in-flight stream and keeps partial content", async () => {
+    const encoder = new TextEncoder()
+    const captured: { signal: AbortSignal | null } = { signal: null }
+
+    mockFetch.mockImplementationOnce(
+      (_url: string, init: { signal: AbortSignal }) => {
+        captured.signal = init.signal
+        const body = new ReadableStream<Uint8Array>({
+          start(c) {
+            c.enqueue(encoder.encode("event:token\ndata:partial\n\n"))
+            // Browser-style: when the caller aborts the fetch, the underlying
+            // body stream errors with an AbortError. jsdom's fetch polyfill
+            // doesn't wire that up, so we simulate it on the mock stream so
+            // `reader.read()` stops blocking once cancel() fires.
+            init.signal.addEventListener("abort", () => {
+              c.error(
+                Object.assign(new Error("aborted"), { name: "AbortError" }),
+              )
+            })
+          },
+        })
+        return Promise.resolve({ ok: true, status: 200, body })
+      },
+    )
+
+    const { result } = renderHook(() => useChat())
+
+    let send!: Promise<void>
+    await act(async () => {
+      send = result.current.sendMessage("hi")
+      // Yield so the stream pumps the first token out before we abort.
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    await act(async () => {
+      result.current.cancel()
+      await send
+    })
+
+    expect(captured.signal?.aborted).toBe(true)
+    expect(result.current.isLoading).toBe(false)
+    expect(result.current.messages[1].error).toBe("cancelled")
+    // Partial token survives — we don't blow it away on cancel.
+    expect(result.current.messages[1].content).toBe("partial")
   })
 
   it("forwards the deepThink flag in the request body when set", async () => {

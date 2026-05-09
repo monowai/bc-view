@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback, useRef } from "react"
 import { ChatMessage } from "types/agent"
 
 /**
@@ -33,6 +33,11 @@ interface UseChatReturn {
    */
   sendMessage: (query: string, deepThink?: boolean) => Promise<void>
   clearMessages: () => void
+  /**
+   * Aborts the in-flight stream. Any tokens already received remain on the
+   * assistant message; isLoading flips false. No-op when nothing is in flight.
+   */
+  cancel: () => void
 }
 
 /**
@@ -46,6 +51,11 @@ interface UseChatReturn {
 export function useChat(context?: Record<string, unknown>): UseChatReturn {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const abortRef = useRef<AbortController | null>(null)
+
+  const cancel = useCallback(() => {
+    abortRef.current?.abort()
+  }, [])
 
   const sendMessage = useCallback(
     async (query: string, deepThink: boolean = false) => {
@@ -81,6 +91,9 @@ export function useChat(context?: Record<string, unknown>): UseChatReturn {
         )
       }
 
+      const controller = new AbortController()
+      abortRef.current = controller
+
       try {
         const res = await fetch("/api/agent/query/stream", {
           method: "POST",
@@ -89,6 +102,7 @@ export function useChat(context?: Record<string, unknown>): UseChatReturn {
             Accept: "text/event-stream",
           },
           body: JSON.stringify({ query, context, deepThink }),
+          signal: controller.signal,
         })
         if (!res.ok || !res.body) {
           const message = `HTTP ${res.status}`
@@ -157,12 +171,22 @@ export function useChat(context?: Record<string, unknown>): UseChatReturn {
         }
         if (buffer.trim().length > 0) flush(buffer)
       } catch (error: unknown) {
+        if (controller.signal.aborted) {
+          // User cancelled — keep any partial content already streamed and
+          // tag the message so consumers can render a "cancelled" hint.
+          finalize((m) => ({
+            content: m.content.length > 0 ? m.content : "Cancelled.",
+            error: "cancelled",
+          }))
+          return
+        }
         const message = error instanceof Error ? error.message : "Unknown error"
         finalize(() => ({
           content: `Sorry, I encountered an error: ${message}`,
           error: message,
         }))
       } finally {
+        if (abortRef.current === controller) abortRef.current = null
         setIsLoading(false)
       }
     },
@@ -171,5 +195,5 @@ export function useChat(context?: Record<string, unknown>): UseChatReturn {
 
   const clearMessages = useCallback(() => setMessages([]), [])
 
-  return { messages, isLoading, sendMessage, clearMessages }
+  return { messages, isLoading, sendMessage, clearMessages, cancel }
 }
