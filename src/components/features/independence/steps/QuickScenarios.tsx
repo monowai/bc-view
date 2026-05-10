@@ -1,5 +1,6 @@
 import React, { useState } from "react"
 import { LifeEvent } from "types/independence"
+import MathInput from "@components/ui/MathInput"
 
 interface QuickScenariosProps {
   appendEvents: (events: LifeEvent[]) => void
@@ -161,14 +162,17 @@ function SellAndDownsizeForm({
             <span className="absolute left-3 top-2.5 text-gray-500 text-sm">
               $
             </span>
-            <input
-              type="number"
+            <MathInput
               value={currentValue || ""}
-              onChange={(e) => setCurrentValue(parseFloat(e.target.value) || 0)}
+              onChange={(v) => setCurrentValue(v)}
               min={0}
+              placeholder="e.g. 1m or 1000000"
               className="w-full pl-7 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
             />
           </div>
+          <p className="mt-1 text-[10px] text-gray-400">
+            Shorthand: 1m = 1,000,000, 1k = 1,000
+          </p>
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
