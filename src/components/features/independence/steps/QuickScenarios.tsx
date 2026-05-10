@@ -87,7 +87,9 @@ function SellAndDownsizeForm({
     currentValue * ((100 - cashRetainedPct - txCostsPct) / 100),
   )
   const txCostAmount = currentValue * (txCostsPct / 100)
-  const totalsValid = cashRetainedPct + txCostsPct <= 100 && currentValue > 0
+  const ageValid = Number.isFinite(age) && age >= 18 && age <= 120
+  const totalsValid =
+    cashRetainedPct + txCostsPct <= 100 && currentValue > 0 && ageValid
 
   const handleGenerate = (): void => {
     if (!totalsValid) return
@@ -236,12 +238,20 @@ function SellAndDownsizeForm({
         </div>
       )}
 
-      {!totalsValid && currentValue > 0 && (
+      {!ageValid && (
         <div className="text-xs text-red-600">
-          Cash retained + transaction costs must not exceed 100% of property
-          value.
+          Sale age must be between 18 and 120.
         </div>
       )}
+      {ageValid &&
+        !totalsValid &&
+        currentValue > 0 &&
+        cashRetainedPct + txCostsPct > 100 && (
+          <div className="text-xs text-red-600">
+            Cash retained + transaction costs must not exceed 100% of property
+            value.
+          </div>
+        )}
 
       <div className="flex justify-end gap-2">
         <button
