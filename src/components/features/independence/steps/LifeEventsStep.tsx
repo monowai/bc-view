@@ -8,6 +8,7 @@ import {
 import { WizardFormData, LifeEvent } from "types/independence"
 import { StepHeader } from "../form"
 import QuickScenarios from "./QuickScenarios"
+import MathInput from "@components/ui/MathInput"
 
 interface LifeEventsStepProps {
   control: Control<WizardFormData>
@@ -102,16 +103,11 @@ export default function LifeEventsStep({
             </label>
             <div className="relative">
               <span className="absolute left-3 top-2.5 text-gray-500">$</span>
-              <input
-                type="number"
+              <MathInput
                 value={newEvent.amount || ""}
-                onChange={(e) =>
-                  setNewEvent({
-                    ...newEvent,
-                    amount: parseFloat(e.target.value),
-                  })
-                }
+                onChange={(v) => setNewEvent({ ...newEvent, amount: v })}
                 min={0}
+                placeholder="e.g. 100k or 1.5m"
                 className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
               />
             </div>
@@ -243,16 +239,13 @@ export default function LifeEventsStep({
                           <label className="block text-xs text-gray-500 mb-1">
                             Amount
                           </label>
-                          <input
-                            type="number"
+                          <MathInput
                             value={event.amount}
-                            onChange={(e) =>
-                              setValue(
-                                `lifeEvents.${index}.amount`,
-                                parseFloat(e.target.value) || 0,
-                              )
+                            onChange={(v) =>
+                              setValue(`lifeEvents.${index}.amount`, v)
                             }
                             min={0}
+                            placeholder="e.g. 100k or 1.5m"
                             className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-independence-500"
                           />
                         </div>
