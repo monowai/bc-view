@@ -78,10 +78,12 @@ function SellAndDownsizeForm({
   const [cashRetainedPct, setCashRetainedPct] = useState<number>(50)
   const [txCostsPct, setTxCostsPct] = useState<number>(5)
 
-  const cashRetained = Math.max(
-    0,
-    currentValue * ((cashRetainedPct - txCostsPct) / 100),
-  )
+  // Conservation of value across the transaction:
+  //   sale proceeds = cashRetained + replacementProperty + transactionCosts
+  // cashRetainedPct is the user's "free up as cash" share of the sale;
+  // txCostsPct is the share lost to fees / vapour; the remainder buys the
+  // replacement property.
+  const cashRetained = Math.max(0, currentValue * (cashRetainedPct / 100))
   const newPropertyValue = Math.max(
     0,
     currentValue * ((100 - cashRetainedPct - txCostsPct) / 100),
