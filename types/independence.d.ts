@@ -98,13 +98,21 @@ export interface PlanCopyRequest {
   name: string
 }
 
-// Life event type for one-off income/expense at specific age
+// Life event type for one-off income/expense at specific age.
+//
+// `assetType` indicates which pool the cashflow affects:
+//   - "liquid"   (default): adds to / subtracts from spendable balance
+//   - "illiquid": adds to / subtracts from non-spendable pool (e.g., property
+//                 value at sale or replacement-property purchase)
+// Field is optional for backward compatibility — older records and clients
+// that omit it are treated as "liquid".
 export interface LifeEvent {
   id: string
   age: number
   amount: number
   description: string
   eventType: "income" | "expense"
+  assetType?: "liquid" | "illiquid"
 }
 
 export interface PlanRequest {

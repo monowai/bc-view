@@ -7,6 +7,7 @@ import {
 } from "react-hook-form"
 import { WizardFormData, LifeEvent } from "types/independence"
 import { StepHeader } from "../form"
+import QuickScenarios from "./QuickScenarios"
 
 interface LifeEventsStepProps {
   control: Control<WizardFormData>
@@ -32,6 +33,7 @@ export default function LifeEventsStep({
     amount: 0,
     description: "",
     eventType: "income",
+    assetType: "liquid",
   })
 
   const addLifeEvent = (): void => {
@@ -43,9 +45,16 @@ export default function LifeEventsStep({
       amount: newEvent.amount,
       description: newEvent.description,
       eventType: newEvent.eventType || "income",
+      assetType: newEvent.assetType || "liquid",
     }
     append(event)
-    setNewEvent({ age: 70, amount: 0, description: "", eventType: "income" })
+    setNewEvent({
+      age: 70,
+      amount: 0,
+      description: "",
+      eventType: "income",
+      assetType: "liquid",
+    })
   }
 
   return (
@@ -63,6 +72,10 @@ export default function LifeEventsStep({
           </p>
         </div>
       )}
+
+      <QuickScenarios
+        appendEvents={(events) => events.forEach((e) => append(e))}
+      />
 
       {/* Add new event form */}
       <div className="bg-gray-50 rounded-lg p-4 space-y-4">
@@ -118,7 +131,7 @@ export default function LifeEventsStep({
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
           />
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
           <div className="flex gap-2">
             <button
               type="button"
@@ -143,6 +156,34 @@ export default function LifeEventsStep({
             >
               <i className="fas fa-minus-circle mr-2"></i>
               Expense
+            </button>
+          </div>
+          <div className="flex gap-2" title="Which asset pool this cashflow affects">
+            <button
+              type="button"
+              onClick={() => setNewEvent({ ...newEvent, assetType: "liquid" })}
+              className={`px-3 py-2 rounded-lg text-sm font-medium ${
+                (newEvent.assetType ?? "liquid") === "liquid"
+                  ? "bg-blue-500 text-white"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              }`}
+            >
+              <i className="fas fa-tint mr-2"></i>
+              Liquid
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                setNewEvent({ ...newEvent, assetType: "illiquid" })
+              }
+              className={`px-3 py-2 rounded-lg text-sm font-medium ${
+                newEvent.assetType === "illiquid"
+                  ? "bg-amber-600 text-white"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              }`}
+            >
+              <i className="fas fa-home mr-2"></i>
+              Illiquid
             </button>
           </div>
           <button
@@ -227,7 +268,7 @@ export default function LifeEventsStep({
                         }
                         className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-independence-500"
                       />
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex gap-2">
                           <button
                             type="button"
@@ -262,6 +303,40 @@ export default function LifeEventsStep({
                             Expense
                           </button>
                         </div>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setValue(
+                                `lifeEvents.${index}.assetType`,
+                                "liquid",
+                              )
+                            }
+                            className={`px-3 py-1 rounded text-xs font-medium ${
+                              (event.assetType ?? "liquid") === "liquid"
+                                ? "bg-blue-500 text-white"
+                                : "bg-gray-200 text-gray-700"
+                            }`}
+                          >
+                            Liquid
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setValue(
+                                `lifeEvents.${index}.assetType`,
+                                "illiquid",
+                              )
+                            }
+                            className={`px-3 py-1 rounded text-xs font-medium ${
+                              event.assetType === "illiquid"
+                                ? "bg-amber-600 text-white"
+                                : "bg-gray-200 text-gray-700"
+                            }`}
+                          >
+                            Illiquid
+                          </button>
+                        </div>
                         <button
                           type="button"
                           onClick={() => setEditingIndex(null)}
@@ -292,6 +367,25 @@ export default function LifeEventsStep({
                         >
                           {event.eventType === "income" ? "+" : "-"}$
                           {event.amount?.toLocaleString()}
+                        </span>
+                        <span
+                          className={`text-xs px-1.5 py-0.5 rounded ${
+                            (event.assetType ?? "liquid") === "liquid"
+                              ? "bg-blue-100 text-blue-700"
+                              : "bg-amber-100 text-amber-700"
+                          }`}
+                          title={
+                            (event.assetType ?? "liquid") === "liquid"
+                              ? "Affects spendable / liquid balance"
+                              : "Affects non-spendable / illiquid pool"
+                          }
+                        >
+                          <i
+                            className={`fas ${(event.assetType ?? "liquid") === "liquid" ? "fa-tint" : "fa-home"} mr-1`}
+                          ></i>
+                          {(event.assetType ?? "liquid") === "liquid"
+                            ? "Liquid"
+                            : "Illiquid"}
                         </span>
                       </div>
                       <div className="flex items-center gap-1">
