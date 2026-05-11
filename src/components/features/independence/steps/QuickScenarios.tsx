@@ -1,6 +1,7 @@
 import React, { useState } from "react"
 import { AssetDisposal } from "types/independence"
 import MathInput from "@components/ui/MathInput"
+import { usePrivateAssetConfigs } from "@lib/assets/usePrivateAssetConfigs"
 
 interface QuickScenariosProps {
   appendDisposals: (disposals: AssetDisposal[]) => void
@@ -128,21 +129,7 @@ function SellAndDownsizeForm({
           className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
         />
       </div>
-      <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">
-          Asset ID
-        </label>
-        <input
-          type="text"
-          value={assetId}
-          onChange={(e) => setAssetId(e.target.value)}
-          placeholder="The tracked holding being disposed of (e.g. NZ-APT-AKL)"
-          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-        />
-        <p className="mt-1 text-[10px] text-gray-400">
-          Holding-picker UI coming soon — type a stable id for now.
-        </p>
-      </div>
+      <AssetPicker assetId={assetId} onChange={setAssetId} />
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -279,6 +266,69 @@ function SellAndDownsizeForm({
           Add events
         </button>
       </div>
+    </div>
+  )
+}
+
+interface AssetPickerProps {
+  assetId: string
+  onChange: (assetId: string) => void
+}
+
+/**
+ * Asset picker for the Sell & Downsize wizard. Lists the user's tracked
+ * private-asset configs (rental properties, primary residences), filtered
+ * to non-pension assets. Pensions, CPF and composite policies are
+ * disposal-incompatible — different cashflow semantics.
+ */
+function AssetPicker({
+  assetId,
+  onChange,
+}: AssetPickerProps): React.ReactElement {
+  const { configs, assetNames, isLoading } = usePrivateAssetConfigs()
+  const candidates = configs.filter((c) => !c.isPension)
+
+  return (
+    <div>
+      <label className="block text-xs font-medium text-gray-700 mb-1">
+        Asset to dispose of
+      </label>
+      {isLoading ? (
+        <div className="px-3 py-2 text-xs text-gray-500 italic">
+          Loading your assets…
+        </div>
+      ) : candidates.length === 0 ? (
+        <div className="px-3 py-2 text-xs text-amber-700 bg-amber-50 rounded border border-amber-200">
+          No disposable assets configured. Add a property in the Assets tab,
+          or enter an Asset ID manually below.
+        </div>
+      ) : (
+        <select
+          value={assetId}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white"
+        >
+          <option value="">— Pick an asset —</option>
+          {candidates.map((c) => {
+            const name = assetNames[c.assetId] || c.assetId
+            const tag = c.isPrimaryResidence ? " (primary)" : ""
+            return (
+              <option key={c.assetId} value={c.assetId}>
+                {name}
+                {tag}
+              </option>
+            )
+          })}
+        </select>
+      )}
+      {/* Manual override — fallback when no tracked asset exists yet. */}
+      <input
+        type="text"
+        value={assetId}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Or type an asset id"
+        className="mt-1 w-full px-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-400"
+      />
     </div>
   )
 }
