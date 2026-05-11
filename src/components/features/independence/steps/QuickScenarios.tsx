@@ -79,6 +79,11 @@ function SellAndDownsizeForm({
   const [description, setDescription] = useState("Sell and downsize property")
   const [age, setAge] = useState<number>(defaultAge ?? 65)
   const [currentValue, setCurrentValue] = useState<number>(0)
+  // Distinguishes user-typed edits from picker-driven autofills. Once true,
+  // the picker stops overwriting the field on subsequent asset selections —
+  // the user's explicit number wins. Picking a different asset BEFORE any
+  // edit refreshes the autofill (reflecting the new asset's market value).
+  const [isCurrentValueDirty, setIsCurrentValueDirty] = useState(false)
   const [cashRetainedPct, setCashRetainedPct] = useState<number>(50)
   const [txCostsPct, setTxCostsPct] = useState<number>(5)
   // assetId — picker UI lands in a follow-up that introduces a holdings
@@ -134,10 +139,11 @@ function SellAndDownsizeForm({
         assetId={assetId}
         onChange={(id, value) => {
           setAssetId(id)
-          // Autofill currentValue from svc-retire on pick. Only overwrite
-          // when we have a non-zero value AND the user hasn't already typed
-          // a custom one — keeps the field editable after autofill.
-          if (value && value > 0 && currentValue === 0) {
+          // Autofill from svc-retire on pick. Only overwrite when the user
+          // hasn't typed a custom value yet — tracked explicitly via
+          // isCurrentValueDirty so switching assets still refreshes the
+          // autofill as long as the field hasn't been edited.
+          if (value && value > 0 && !isCurrentValueDirty) {
             setCurrentValue(value)
           }
         }}
@@ -166,7 +172,10 @@ function SellAndDownsizeForm({
             </span>
             <MathInput
               value={currentValue || ""}
-              onChange={(v) => setCurrentValue(v)}
+              onChange={(v) => {
+                setCurrentValue(v)
+                setIsCurrentValueDirty(true)
+              }}
               min={0}
               placeholder="e.g. 1m or 1000000"
               className="w-full pl-7 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
@@ -346,11 +355,14 @@ function AssetPicker({
           })}
         </select>
       )}
-      {/* Manual override — fallback when no tracked asset exists yet. */}
+      {/* Manual override — fallback when no tracked asset exists yet.
+          No value lookup here: a manually typed assetId is for unknown
+          / unregistered assets, and the wizard's currentValue field is
+          left for the user to fill. */}
       <input
         type="text"
         value={assetId}
-        onChange={(e) => onChange(e.target.value, assetValues[e.target.value])}
+        onChange={(e) => onChange(e.target.value)}
         placeholder="Or type an asset id"
         className="mt-1 w-full px-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-400"
       />
