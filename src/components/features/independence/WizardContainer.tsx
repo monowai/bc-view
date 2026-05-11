@@ -21,7 +21,10 @@ import {
   WIZARD_STEPS,
 } from "@lib/independence/stepConfig"
 import { toDecimal } from "@lib/independence/conversions"
-import { serializeLifeEvents } from "@lib/independence/planHelpers"
+import {
+  serializeAssetDisposals,
+  serializeLifeEvents,
+} from "@lib/independence/planHelpers"
 import { WizardFormData, PlanRequest } from "types/independence"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
@@ -214,6 +217,7 @@ export default function WizardContainer({
         // Always send the JSON-serialised array (incl. "[]") so the
         // backend distinguishes "list cleared" from "field omitted".
         lifeEvents: serializeLifeEvents(formData.lifeEvents),
+        assetDisposals: serializeAssetDisposals(formData.assetDisposals),
         manualAssets,
         excludedPortfolioIds: formData.excludedPortfolioIds || [],
         excludedRentalAssetIds: formData.excludedRentalAssetIds || [],

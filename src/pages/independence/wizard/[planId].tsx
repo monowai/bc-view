@@ -9,6 +9,7 @@ import Spinner from "@components/ui/Spinner"
 import WizardContainer from "@components/features/independence/WizardContainer"
 import { toPercent } from "@lib/independence/conversions"
 import {
+  AssetDisposal,
   PlanWithExpensesResponse,
   WizardFormData,
   ManualAssets,
@@ -98,6 +99,19 @@ function EditPlanWizard(): React.ReactElement {
     }
   }
 
+  // Parse assetDisposals from JSON string (same contract as lifeEvents).
+  const parseAssetDisposalsForForm = (): AssetDisposal[] => {
+    if (!plan.assetDisposals) return []
+    if (Array.isArray(plan.assetDisposals)) {
+      return plan.assetDisposals
+    }
+    try {
+      return JSON.parse(plan.assetDisposals)
+    } catch {
+      return []
+    }
+  }
+
   const initialData: Partial<WizardFormData> = {
     planName: plan.name,
     expensesCurrency: plan.expensesCurrency || "NZD",
@@ -128,6 +142,7 @@ function EditPlanWizard(): React.ReactElement {
     ),
     manualAssets: parseManualAssets(),
     lifeEvents: parseLifeEvents(),
+    assetDisposals: parseAssetDisposalsForForm(),
   }
 
   return (

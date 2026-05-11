@@ -1,5 +1,9 @@
 import { AllocationSlice } from "@lib/allocation/aggregateHoldings"
-import { LifeEvent, ManualAssetCategory } from "types/independence"
+import {
+  AssetDisposal,
+  LifeEvent,
+  ManualAssetCategory,
+} from "types/independence"
 
 /**
  * Serialise the wizard's life-events array for the plan-update payload.
@@ -12,6 +16,17 @@ import { LifeEvent, ManualAssetCategory } from "types/independence"
  */
 export function serializeLifeEvents(events: LifeEvent[] | undefined): string {
   return JSON.stringify(events ?? [])
+}
+
+/**
+ * Same contract as [serializeLifeEvents] but for the asset-disposal list.
+ * Always emits a JSON string — `"[]"` for an empty list — so the backend
+ * can distinguish "user cleared all disposals" from "field not sent".
+ */
+export function serializeAssetDisposals(
+  disposals: AssetDisposal[] | undefined,
+): string {
+  return JSON.stringify(disposals ?? [])
 }
 
 export const HIDDEN_VALUE = "****"

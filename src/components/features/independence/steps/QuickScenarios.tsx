@@ -1,22 +1,23 @@
 import React, { useState } from "react"
-import { LifeEvent } from "types/independence"
+import { AssetDisposal } from "types/independence"
 import MathInput from "@components/ui/MathInput"
 
 interface QuickScenariosProps {
-  appendEvents: (events: LifeEvent[]) => void
+  appendDisposals: (disposals: AssetDisposal[]) => void
   defaultAge?: number
 }
 
 /**
- * Quick Scenarios — guided wizards that generate combinations of life events
- * to model common what-if cases (e.g., selling and downsizing a property).
+ * Quick Scenarios — guided wizards that generate AssetDisposal records
+ * for common what-if cases (e.g., selling and downsizing a property).
  *
  * The wizard hides the math: user describes the scenario in plain terms,
- * we emit the paired liquid + illiquid life events that represent it
- * accurately in the projection engine.
+ * we emit a holding-bound AssetDisposal record. Backend converts that to
+ * the three illiquid/liquid pool transfers and suppresses the disposed
+ * asset's rental income from the chosen disposalAge onward.
  */
 export default function QuickScenarios({
-  appendEvents,
+  appendDisposals,
   defaultAge,
 }: QuickScenariosProps): React.ReactElement {
   const [openPreset, setOpenPreset] = useState<"downsize" | null>(null)
@@ -52,8 +53,8 @@ export default function QuickScenarios({
         <SellAndDownsizeForm
           defaultAge={defaultAge}
           onCancel={() => setOpenPreset(null)}
-          onGenerate={(events) => {
-            appendEvents(events)
+          onGenerate={(disposals) => {
+            appendDisposals(disposals)
             setOpenPreset(null)
           }}
         />
@@ -65,7 +66,7 @@ export default function QuickScenarios({
 interface SellAndDownsizeFormProps {
   defaultAge?: number
   onCancel: () => void
-  onGenerate: (events: LifeEvent[]) => void
+  onGenerate: (disposals: AssetDisposal[]) => void
 }
 
 function SellAndDownsizeForm({
@@ -78,12 +79,13 @@ function SellAndDownsizeForm({
   const [currentValue, setCurrentValue] = useState<number>(0)
   const [cashRetainedPct, setCashRetainedPct] = useState<number>(50)
   const [txCostsPct, setTxCostsPct] = useState<number>(5)
+  // assetId — picker UI lands in a follow-up that introduces a holdings
+  // dropdown. For now users type a stable identifier so the disposal record
+  // is well-formed and round-trips through the backend cleanly.
+  const [assetId, setAssetId] = useState<string>("")
 
-  // Conservation of value across the transaction:
-  //   sale proceeds = cashRetained + replacementProperty + transactionCosts
-  // cashRetainedPct is the user's "free up as cash" share of the sale;
-  // txCostsPct is the share lost to fees / vapour; the remainder buys the
-  // replacement property.
+  // Preview math (engine derives the same splits server-side). Pure UX —
+  // helps the user see where each fraction of the sale value ends up.
   const cashRetained = Math.max(0, currentValue * (cashRetainedPct / 100))
   const newPropertyValue = Math.max(
     0,
@@ -91,40 +93,26 @@ function SellAndDownsizeForm({
   )
   const txCostAmount = currentValue * (txCostsPct / 100)
   const ageValid = Number.isFinite(age) && age >= 18 && age <= 120
+  const assetIdValid = assetId.trim().length > 0
   const totalsValid =
-    cashRetainedPct + txCostsPct <= 100 && currentValue > 0 && ageValid
+    cashRetainedPct + txCostsPct <= 100 &&
+    currentValue > 0 &&
+    ageValid &&
+    assetIdValid
 
   const handleGenerate = (): void => {
     if (!totalsValid) return
-    const baseId = Date.now()
-    const events: LifeEvent[] = [
+    onGenerate([
       {
-        id: `${baseId}-disposal`,
-        age,
-        amount: currentValue,
-        description: `${description} — sell existing property`,
-        eventType: "expense",
-        assetType: "illiquid",
+        assetId: assetId.trim(),
+        disposalAge: age,
+        currentValue,
+        cashRetainedPct,
+        txCostsPct,
+        description: description.trim() || undefined,
+        enabled: true,
       },
-      {
-        id: `${baseId}-replacement`,
-        age,
-        amount: newPropertyValue,
-        description: `${description} — buy replacement property`,
-        eventType: "income",
-        assetType: "illiquid",
-      },
-      {
-        id: `${baseId}-cash`,
-        age,
-        amount: cashRetained,
-        description: `${description} — cash retained`,
-        eventType: "income",
-        assetType: "liquid",
-      },
-    ]
-    // Skip zero-amount legs (e.g., 100% cash retained → no replacement)
-    onGenerate(events.filter((e) => e.amount > 0))
+    ])
   }
 
   return (
@@ -139,6 +127,21 @@ function SellAndDownsizeForm({
           onChange={(e) => setDescription(e.target.value)}
           className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
         />
+      </div>
+      <div>
+        <label className="block text-xs font-medium text-gray-700 mb-1">
+          Asset ID
+        </label>
+        <input
+          type="text"
+          value={assetId}
+          onChange={(e) => setAssetId(e.target.value)}
+          placeholder="The tracked holding being disposed of (e.g. NZ-APT-AKL)"
+          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+        />
+        <p className="mt-1 text-[10px] text-gray-400">
+          Holding-picker UI coming soon — type a stable id for now.
+        </p>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
