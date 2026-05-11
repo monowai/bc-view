@@ -81,6 +81,7 @@ export interface RetirementPlan {
   bonusMonthly: number
   investmentAllocationPercent: number
   lifeEvents?: string // JSON array of life events
+  assetDisposals?: string // JSON array of asset disposals
   manualAssets?: Record<string, number> // JSON map of category -> value
   excludedPortfolioIds?: string[] | string // JSON array from backend
   excludedRentalAssetIds?: string[] | string // JSON array from backend
@@ -115,6 +116,30 @@ export interface LifeEvent {
   assetType?: "liquid" | "illiquid"
 }
 
+// Asset disposal — holding-bound alternative to the 3-event downsize
+// LifeEvent pattern. Binds to a specific tracked asset by `assetId` and
+// describes the sale + cash-retention + replacement-property math.
+//
+// At `disposalAge` the backend:
+//   - subtracts the asset's projected value from non-spendable
+//   - routes `cashRetainedPct` to liquid
+//   - routes (100 - cashRetainedPct - txCostsPct) back to non-spendable as
+//     the replacement property
+//   - suppresses the asset's rental income from disposalAge onward
+//
+// `enabled = false` is the per-plan "ignore this disposal" switch — same
+// disposal record can fire in one plan and stay dormant in another for
+// what-if scenarios.
+export interface AssetDisposal {
+  assetId: string
+  disposalAge: number
+  currentValue: number
+  cashRetainedPct: number
+  txCostsPct?: number
+  description?: string
+  enabled?: boolean
+}
+
 export interface PlanRequest {
   name: string
   planningHorizonYears?: number
@@ -140,6 +165,7 @@ export interface PlanRequest {
   bonusMonthly?: number
   investmentAllocationPercent?: number
   lifeEvents?: string
+  assetDisposals?: string
   manualAssets?: Record<string, number> | null
   excludedPortfolioIds?: string[]
   excludedRentalAssetIds?: string[]
@@ -674,6 +700,9 @@ export interface WizardFormData {
   // Life Events (one-off income/expense at specific ages)
   lifeEvents: LifeEvent[]
 
+  // Asset disposals (holding-bound sales / downsizes)
+  assetDisposals: AssetDisposal[]
+
   // Pension/Insurance Contributions
   contributions: ContributionFormEntry[]
 }
@@ -715,6 +744,7 @@ export interface PlanExport {
   investmentAllocationPercent: number
   expenses: ExportedExpense[]
   lifeEvents?: string
+  assetDisposals?: string
   manualAssets?: Record<string, number>
   clientId?: string
   /** Optional country whose values this plan targets. */

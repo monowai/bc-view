@@ -28,6 +28,11 @@ export default function LifeEventsStep({
     name: "lifeEvents",
   })
 
+  const { append: appendDisposal } = useFieldArray({
+    control,
+    name: "assetDisposals",
+  })
+
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [newEvent, setNewEvent] = useState<Partial<LifeEvent>>({
     age: 70,
@@ -75,7 +80,9 @@ export default function LifeEventsStep({
       )}
 
       <QuickScenarios
-        appendEvents={(events) => events.forEach((e) => append(e))}
+        appendDisposals={(disposals) =>
+          disposals.forEach((d) => appendDisposal(d))
+        }
       />
 
       {/* Add new event form */}

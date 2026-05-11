@@ -185,5 +185,6 @@ export const defaultWizardValues = {
   excludedRentalAssetIds: [],
   manualAssets: defaultManualAssets,
   lifeEvents: [],
+  assetDisposals: [],
   contributions: [],
 }
