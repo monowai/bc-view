@@ -9,6 +9,7 @@ import { WizardFormData, LifeEvent } from "types/independence"
 import { StepHeader } from "../form"
 import QuickScenarios from "./QuickScenarios"
 import MathInput from "@components/ui/MathInput"
+import AssetDisposalsList from "./AssetDisposalsList"
 
 interface LifeEventsStepProps {
   control: Control<WizardFormData>
@@ -84,6 +85,8 @@ export default function LifeEventsStep({
           disposals.forEach((d) => appendDisposal(d))
         }
       />
+
+      <AssetDisposalsList control={control} setValue={setValue} />
 
       {/* Add new event form */}
       <div className="bg-gray-50 rounded-lg p-4 space-y-4">
