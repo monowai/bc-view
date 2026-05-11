@@ -2,6 +2,7 @@ import React, { useState } from "react"
 import { AssetDisposal } from "types/independence"
 import MathInput from "@components/ui/MathInput"
 import { usePrivateAssetConfigs } from "@lib/assets/usePrivateAssetConfigs"
+import { useAssetValues } from "@lib/assets/useAssetValues"
 
 interface QuickScenariosProps {
   appendDisposals: (disposals: AssetDisposal[]) => void
@@ -78,6 +79,11 @@ function SellAndDownsizeForm({
   const [description, setDescription] = useState("Sell and downsize property")
   const [age, setAge] = useState<number>(defaultAge ?? 65)
   const [currentValue, setCurrentValue] = useState<number>(0)
+  // Distinguishes user-typed edits from picker-driven autofills. Once true,
+  // the picker stops overwriting the field on subsequent asset selections —
+  // the user's explicit number wins. Picking a different asset BEFORE any
+  // edit refreshes the autofill (reflecting the new asset's market value).
+  const [isCurrentValueDirty, setIsCurrentValueDirty] = useState(false)
   const [cashRetainedPct, setCashRetainedPct] = useState<number>(50)
   const [txCostsPct, setTxCostsPct] = useState<number>(5)
   // assetId — picker UI lands in a follow-up that introduces a holdings
@@ -129,7 +135,19 @@ function SellAndDownsizeForm({
           className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
         />
       </div>
-      <AssetPicker assetId={assetId} onChange={setAssetId} />
+      <AssetPicker
+        assetId={assetId}
+        onChange={(id, value) => {
+          setAssetId(id)
+          // Autofill from svc-retire on pick. Only overwrite when the user
+          // hasn't typed a custom value yet — tracked explicitly via
+          // isCurrentValueDirty so switching assets still refreshes the
+          // autofill as long as the field hasn't been edited.
+          if (value && value > 0 && !isCurrentValueDirty) {
+            setCurrentValue(value)
+          }
+        }}
+      />
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -154,7 +172,10 @@ function SellAndDownsizeForm({
             </span>
             <MathInput
               value={currentValue || ""}
-              onChange={(v) => setCurrentValue(v)}
+              onChange={(v) => {
+                setCurrentValue(v)
+                setIsCurrentValueDirty(true)
+              }}
               min={0}
               placeholder="e.g. 1m or 1000000"
               className="w-full pl-7 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
@@ -272,7 +293,13 @@ function SellAndDownsizeForm({
 
 interface AssetPickerProps {
   assetId: string
-  onChange: (assetId: string) => void
+  /**
+   * Fires when the selection changes. `value` is the autofilled current
+   * market value (from svc-retire's `/assets/values`) when available;
+   * `undefined` when no value is known (e.g. manual text entry, asset
+   * not tracked in svc-position).
+   */
+  onChange: (assetId: string, value?: number) => void
 }
 
 /**
@@ -280,12 +307,16 @@ interface AssetPickerProps {
  * private-asset configs (rental properties, primary residences), filtered
  * to non-pension assets. Pensions, CPF and composite policies are
  * disposal-incompatible — different cashflow semantics.
+ *
+ * On selection, looks up the asset's current market value via
+ * `useAssetValues` so the wizard can autofill its currentValue field.
  */
 function AssetPicker({
   assetId,
   onChange,
 }: AssetPickerProps): React.ReactElement {
   const { configs, assetNames, isLoading } = usePrivateAssetConfigs()
+  const { values: assetValues } = useAssetValues()
   const candidates = configs.filter((c) => !c.isPension)
 
   return (
@@ -305,23 +336,29 @@ function AssetPicker({
       ) : (
         <select
           value={assetId}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => onChange(e.target.value, assetValues[e.target.value])}
           className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white"
         >
           <option value="">— Pick an asset —</option>
           {candidates.map((c) => {
             const name = assetNames[c.assetId] || c.assetId
             const tag = c.isPrimaryResidence ? " (primary)" : ""
+            const value = assetValues[c.assetId]
+            const valueLabel = value ? ` — $${Math.round(value).toLocaleString()}` : ""
             return (
               <option key={c.assetId} value={c.assetId}>
                 {name}
                 {tag}
+                {valueLabel}
               </option>
             )
           })}
         </select>
       )}
-      {/* Manual override — fallback when no tracked asset exists yet. */}
+      {/* Manual override — fallback when no tracked asset exists yet.
+          No value lookup here: a manually typed assetId is for unknown
+          / unregistered assets, and the wizard's currentValue field is
+          left for the user to fill. */}
       <input
         type="text"
         value={assetId}
