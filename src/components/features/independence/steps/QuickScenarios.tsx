@@ -2,6 +2,7 @@ import React, { useState } from "react"
 import { AssetDisposal } from "types/independence"
 import MathInput from "@components/ui/MathInput"
 import { usePrivateAssetConfigs } from "@lib/assets/usePrivateAssetConfigs"
+import { useAssetValues } from "@lib/assets/useAssetValues"
 
 interface QuickScenariosProps {
   appendDisposals: (disposals: AssetDisposal[]) => void
@@ -129,7 +130,18 @@ function SellAndDownsizeForm({
           className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
         />
       </div>
-      <AssetPicker assetId={assetId} onChange={setAssetId} />
+      <AssetPicker
+        assetId={assetId}
+        onChange={(id, value) => {
+          setAssetId(id)
+          // Autofill currentValue from svc-retire on pick. Only overwrite
+          // when we have a non-zero value AND the user hasn't already typed
+          // a custom one — keeps the field editable after autofill.
+          if (value && value > 0 && currentValue === 0) {
+            setCurrentValue(value)
+          }
+        }}
+      />
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -272,7 +284,13 @@ function SellAndDownsizeForm({
 
 interface AssetPickerProps {
   assetId: string
-  onChange: (assetId: string) => void
+  /**
+   * Fires when the selection changes. `value` is the autofilled current
+   * market value (from svc-retire's `/assets/values`) when available;
+   * `undefined` when no value is known (e.g. manual text entry, asset
+   * not tracked in svc-position).
+   */
+  onChange: (assetId: string, value?: number) => void
 }
 
 /**
@@ -280,12 +298,16 @@ interface AssetPickerProps {
  * private-asset configs (rental properties, primary residences), filtered
  * to non-pension assets. Pensions, CPF and composite policies are
  * disposal-incompatible — different cashflow semantics.
+ *
+ * On selection, looks up the asset's current market value via
+ * `useAssetValues` so the wizard can autofill its currentValue field.
  */
 function AssetPicker({
   assetId,
   onChange,
 }: AssetPickerProps): React.ReactElement {
   const { configs, assetNames, isLoading } = usePrivateAssetConfigs()
+  const { values: assetValues } = useAssetValues()
   const candidates = configs.filter((c) => !c.isPension)
 
   return (
@@ -305,17 +327,20 @@ function AssetPicker({
       ) : (
         <select
           value={assetId}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => onChange(e.target.value, assetValues[e.target.value])}
           className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white"
         >
           <option value="">— Pick an asset —</option>
           {candidates.map((c) => {
             const name = assetNames[c.assetId] || c.assetId
             const tag = c.isPrimaryResidence ? " (primary)" : ""
+            const value = assetValues[c.assetId]
+            const valueLabel = value ? ` — $${Math.round(value).toLocaleString()}` : ""
             return (
               <option key={c.assetId} value={c.assetId}>
                 {name}
                 {tag}
+                {valueLabel}
               </option>
             )
           })}
@@ -325,7 +350,7 @@ function AssetPicker({
       <input
         type="text"
         value={assetId}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => onChange(e.target.value, assetValues[e.target.value])}
         placeholder="Or type an asset id"
         className="mt-1 w-full px-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-400"
       />
