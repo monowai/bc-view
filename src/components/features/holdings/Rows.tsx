@@ -50,6 +50,7 @@ export interface PriceChartData {
 
 interface RowsProps extends HoldingValues {
   onColumnsChange: (columns: string[]) => void
+  onTrade?: (data: QuickSellData) => void
   onQuickSell?: (data: QuickSellData) => void
   onCorporateActions?: (data: CorporateActionsData) => void
   onWeightClick?: (data: WeightClickData) => void
@@ -78,6 +79,7 @@ export default function Rows({
   groupBy,
   valueIn,
   onColumnsChange,
+  onTrade,
   onQuickSell,
   onCorporateActions,
   onWeightClick,
@@ -183,7 +185,8 @@ export default function Rows({
                   )}
                 </div>
                 {(!isCashRelated(asset) &&
-                  (onQuickSell ||
+                  (onTrade ||
+                    onQuickSell ||
                     onCorporateActions ||
                     onCostAdjust ||
                     onRecordIncome ||
@@ -209,6 +212,7 @@ export default function Rows({
                       }
                       valueIn={valueIn}
                       held={held}
+                      onTrade={isCashRelated(asset) ? undefined : onTrade}
                       onQuickSell={
                         isCashRelated(asset) ? undefined : onQuickSell
                       }

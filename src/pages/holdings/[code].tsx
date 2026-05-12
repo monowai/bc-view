@@ -144,6 +144,11 @@ function HoldingsPage(): React.ReactElement {
     setQuickSellData(data)
   }, [])
 
+  // Trade action — opens trade modal pre-filled, defaulting to BUY
+  const handleTrade = useCallback((data: QuickSellData) => {
+    setQuickSellData({ ...data, type: "BUY" })
+  }, [])
+
   // Clear quick sell data when modal closes
   const handleQuickSellHandled = useCallback(() => {
     setQuickSellData(undefined)
@@ -498,6 +503,7 @@ function HoldingsPage(): React.ReactElement {
                           holdingGroup={holdings.holdingGroups[groupKey]}
                           valueIn={holdingState.valueIn.value}
                           onColumnsChange={setColumns}
+                          onTrade={handleTrade}
                           onQuickSell={handleQuickSell}
                           onCorporateActions={handleCorporateActions}
                           onWeightClick={handleWeightClick}
@@ -541,6 +547,7 @@ function HoldingsPage(): React.ReactElement {
             valueIn={holdingState.valueIn.value}
             groupBy={holdingState.groupBy.value}
             isMixedCurrencies={holdingResults.isMixedCurrencies}
+            onTrade={handleTrade}
             onQuickSell={handleQuickSell}
             onCorporateActions={handleCorporateActions}
             onSetPrice={handleSetPrice}
