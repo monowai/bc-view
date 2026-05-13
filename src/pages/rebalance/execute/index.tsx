@@ -4,7 +4,6 @@ import { useRouter } from "next/router"
 import Link from "next/link"
 import { TableSkeletonLoader } from "@components/ui/SkeletonLoader"
 import CashSummaryPanel from "@components/features/rebalance/execution/CashSummaryPanel"
-import { getAssetCurrency } from "@lib/assets/assetUtils"
 import { useRebalanceExecution } from "@hooks/useRebalanceExecution"
 
 function ExecuteRebalancePage(): React.ReactElement {
@@ -35,10 +34,7 @@ function ExecuteRebalancePage(): React.ReactElement {
     displayItems,
     activeItems,
     cashSummary,
-    settlementAccounts,
     brokers,
-    selectedSettlementAccount,
-    setSelectedSettlementAccount,
     selectedBrokerId,
     setSelectedBrokerId,
     states,
@@ -714,37 +710,6 @@ function ExecuteRebalancePage(): React.ReactElement {
                   ))}
                 </select>
               </div>
-
-              {/* Settlement Account Selection */}
-              {settlementAccounts.length > 0 && (
-                <div>
-                  <h3 className="text-md font-medium text-gray-900 mb-3">
-                    {"Settlement Account"}
-                  </h3>
-                  <p className="text-sm text-gray-500 mb-4">
-                    {
-                      "Select the brokerage account to debit/credit for these transactions"
-                    }
-                  </p>
-                  <select
-                    value={selectedSettlementAccount || ""}
-                    onChange={(e) =>
-                      setSelectedSettlementAccount(e.target.value || undefined)
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-invest-500 focus:border-invest-500"
-                  >
-                    <option value="">
-                      {"No settlement account (use default)"}
-                    </option>
-                    {settlementAccounts.map((account) => (
-                      <option key={account.id} value={account.id}>
-                        {account.name || account.code} (
-                        {getAssetCurrency(account)})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
             </div>
           </div>
 

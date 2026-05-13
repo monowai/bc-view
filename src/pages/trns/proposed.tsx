@@ -20,6 +20,9 @@ import { getToday, getSessionValue, setSessionValue } from "@lib/sessionStorage"
 const SESSION_KEY_INCLUDE_SETTLED = "proposed-include-settled"
 const SESSION_KEY_SETTLED_DATE = "proposed-settled-date"
 const SESSION_KEY_AGGREGATE_VIEW = "proposed-aggregate-view"
+const SESSION_KEY_SCOPE = "proposed-scope"
+
+type ProposedScope = "OWNED" | "MANAGED" | "ALL"
 
 // Get display code for an asset, stripping owner ID prefix for private assets
 const getAssetDisplayCode = (asset: { code: string }): string => {
@@ -42,6 +45,7 @@ export default function ProposedTransactions(): React.JSX.Element {
   const [settledError, setSettledError] = useState<string | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [typeFilter, setTypeFilter] = useState<string>("ALL")
+  const [scope, setScope] = useState<ProposedScope>("ALL")
   const [isSettling, setIsSettling] = useState(false)
   const [aggregateView, setAggregateView] = useState(false)
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
@@ -56,8 +60,22 @@ export default function ProposedTransactions(): React.JSX.Element {
     setIncludeSettled(getSessionValue(SESSION_KEY_INCLUDE_SETTLED, false))
     setSettledDate(getSessionValue(SESSION_KEY_SETTLED_DATE, getToday()))
     setAggregateView(getSessionValue(SESSION_KEY_AGGREGATE_VIEW, false))
+    const storedScope = getSessionValue<ProposedScope>(SESSION_KEY_SCOPE, "ALL")
+    if (
+      storedScope === "OWNED" ||
+      storedScope === "MANAGED" ||
+      storedScope === "ALL"
+    ) {
+      setScope(storedScope)
+    }
     setSessionInitialized(true)
   }, [])
+
+  useEffect(() => {
+    if (sessionInitialized) {
+      setSessionValue(SESSION_KEY_SCOPE, scope)
+    }
+  }, [scope, sessionInitialized])
 
   // Persist filter changes to session storage (only after initialization)
   useEffect(() => {
@@ -82,7 +100,7 @@ export default function ProposedTransactions(): React.JSX.Element {
   >([])
 
   // Fetch proposed transactions across all portfolios
-  const proposedKey = user ? "/api/trns/proposed" : null
+  const proposedKey = user ? `/api/trns/proposed?scope=${scope}` : null
   const { data: proposedData, error: fetchError } = useSwr<{
     data: Transaction[]
   }>(proposedKey, fetcher, { refreshInterval: 0 })
@@ -621,7 +639,28 @@ export default function ProposedTransactions(): React.JSX.Element {
         </p>
 
         {/* Filter options */}
-        <div className="flex items-center gap-4 mb-6 bg-gray-50 p-3 rounded-lg flex-wrap">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4 mb-6 bg-gray-50 p-3 rounded-lg">
+          <div
+            role="group"
+            aria-label="Scope"
+            className="inline-flex rounded-md border border-gray-300 overflow-hidden text-sm self-start"
+          >
+            {(["ALL", "OWNED", "MANAGED"] as ProposedScope[]).map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setScope(s)}
+                className={`px-3 py-1 ${
+                  scope === s
+                    ? "bg-blue-600 text-white"
+                    : "bg-white text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                {s === "ALL" ? "All" : s === "OWNED" ? "Mine" : "Managed"}
+              </button>
+            ))}
+          </div>
+          <div className="hidden sm:block border-l border-gray-300 h-6" />
           <label className="flex items-center gap-2 text-sm">
             <span className="text-gray-700">Type:</span>
             <select
@@ -638,32 +677,34 @@ export default function ProposedTransactions(): React.JSX.Element {
               <option value="REDUCE">REDUCE</option>
             </select>
           </label>
-          <div className="border-l border-gray-300 h-6" />
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={includeSettled}
-              onChange={(e) => setIncludeSettled(e.target.checked)}
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          <div className="hidden sm:block border-l border-gray-300 h-6" />
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={includeSettled}
+                onChange={(e) => setIncludeSettled(e.target.checked)}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-gray-700">Include SETTLED on</span>
+            </label>
+            <DateInput
+              value={settledDate}
+              onChange={setSettledDate}
+              disabled={!includeSettled}
+              className={`px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+                !includeSettled ? "bg-gray-100 text-gray-400" : ""
+              }`}
             />
-            <span className="text-gray-700">Include SETTLED on</span>
-          </label>
-          <DateInput
-            value={settledDate}
-            onChange={setSettledDate}
-            disabled={!includeSettled}
-            className={`px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${
-              !includeSettled ? "bg-gray-100 text-gray-400" : ""
-            }`}
-          />
-          {includeSettled && (
-            <span className="text-xs text-gray-500">
-              {settledLoading
-                ? "(loading...)"
-                : `(${settledTransactions.length} settled)`}
-            </span>
-          )}
-          <div className="border-l border-gray-300 h-6" />
+            {includeSettled && (
+              <span className="text-xs text-gray-500">
+                {settledLoading
+                  ? "(loading...)"
+                  : `(${settledTransactions.length} settled)`}
+              </span>
+            )}
+          </div>
+          <div className="hidden sm:block border-l border-gray-300 h-6" />
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
@@ -702,7 +743,7 @@ export default function ProposedTransactions(): React.JSX.Element {
         {transactions.length > 0 && (
           <>
             {/* Action Bar */}
-            <div className="flex items-center gap-4 mb-4 bg-gray-50 p-4 rounded-lg">
+            <div className="flex flex-wrap items-center gap-3 mb-4 bg-gray-50 p-3 sm:p-4 rounded-lg">
               <button
                 onClick={handleSettleSelected}
                 disabled={selectedProposed.length === 0 || isSettling}
@@ -728,39 +769,43 @@ export default function ProposedTransactions(): React.JSX.Element {
 
             {/* Transactions Table - Detailed View */}
             {!aggregateView && (
-              <DetailedTransactionsTable
-                transactions={transactions}
-                brokers={brokers}
-                selectedIds={selectedIds}
-                allProposedSelected={allProposedSelected}
-                someProposedSelected={someProposedSelected}
-                onSelectAll={handleSelectAll}
-                onSelectOne={handleSelectOne}
-                onPriceChange={handlePriceChange}
-                onFeesChange={handleFeesChange}
-                onStatusChange={handleStatusChange}
-                onTradeDateChange={handleTradeDateChange}
-                onBrokerChange={handleBrokerChange}
-                onEdit={handleEdit}
-                onDelete={setDeleteTargetId}
-              />
+              <div className="-mx-4 sm:mx-0 overflow-x-auto">
+                <DetailedTransactionsTable
+                  transactions={transactions}
+                  brokers={brokers}
+                  selectedIds={selectedIds}
+                  allProposedSelected={allProposedSelected}
+                  someProposedSelected={someProposedSelected}
+                  onSelectAll={handleSelectAll}
+                  onSelectOne={handleSelectOne}
+                  onPriceChange={handlePriceChange}
+                  onFeesChange={handleFeesChange}
+                  onStatusChange={handleStatusChange}
+                  onTradeDateChange={handleTradeDateChange}
+                  onBrokerChange={handleBrokerChange}
+                  onEdit={handleEdit}
+                  onDelete={setDeleteTargetId}
+                />
+              </div>
             )}
 
             {/* Transactions Table - Aggregated View */}
             {aggregateView && (
-              <AggregatedTransactionsTable
-                aggregatedTransactions={aggregatedTransactions}
-                selectedIds={selectedIds}
-                onSelectAggregated={handleSelectAggregated}
-                onPriceChange={handleAggregatedPriceChange}
-                onStatusChange={handleAggregatedStatusChange}
-                onTradeDateChange={handleAggregatedTradeDateChange}
-              />
+              <div className="-mx-4 sm:mx-0 overflow-x-auto">
+                <AggregatedTransactionsTable
+                  aggregatedTransactions={aggregatedTransactions}
+                  selectedIds={selectedIds}
+                  onSelectAggregated={handleSelectAggregated}
+                  onPriceChange={handleAggregatedPriceChange}
+                  onStatusChange={handleAggregatedStatusChange}
+                  onTradeDateChange={handleAggregatedTradeDateChange}
+                />
+              </div>
             )}
 
             {/* Summary */}
-            <div className="mt-4 bg-gray-50 p-4 rounded-lg">
-              <div className="grid grid-cols-4 gap-4 text-sm">
+            <div className="mt-4 bg-gray-50 p-3 sm:p-4 rounded-lg">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3 text-sm">
                 <div>
                   <div className="text-gray-500">
                     {aggregateView ? "Aggregated Groups" : "Total Transactions"}
