@@ -56,8 +56,9 @@ const WealthPerformanceChart: React.FC<WealthPerformanceChartProps> = ({
       returnPct: last.cumulativeReturn * 100,
       growthOf1000: last.growthOf1000,
       marketValue: last.marketValue,
-      contributed: last.netContributions,
-      gain: last.investmentGain,
+      contributed: last.netContributions, // period-only
+      lifetimeContributed: last.lifetimeContributions,
+      gain: last.investmentGain, // period gain
     }
   }, [series])
 
@@ -163,8 +164,11 @@ const WealthPerformanceChart: React.FC<WealthPerformanceChartProps> = ({
                   <div className="text-2xl font-mono font-bold tracking-tight text-gray-900">
                     {fmtCompact(stats.marketValue)}
                   </div>
-                  <div className="text-xs text-gray-400 font-mono mt-0.5">
-                    {fmtCompact(stats.contributed)} contributed
+                  <div
+                    className="text-xs text-gray-400 font-mono mt-0.5"
+                    title={`Lifetime contributed: ${fmtFull(stats.lifetimeContributed)}`}
+                  >
+                    {fmtCompact(stats.contributed)} contributed (period)
                   </div>
                 </div>
 
@@ -180,8 +184,8 @@ const WealthPerformanceChart: React.FC<WealthPerformanceChartProps> = ({
                     {fmtCompact(stats.gain)}
                   </div>
                   <div className="text-xs text-gray-400 font-mono mt-0.5">
-                    {stats.contributed !== 0
-                      ? `${((stats.gain / Math.abs(stats.contributed)) * 100).toFixed(1)}% on cost`
+                    {stats.lifetimeContributed !== 0
+                      ? `${((stats.gain / Math.abs(stats.lifetimeContributed)) * 100).toFixed(1)}% on cost`
                       : "\u00A0"}
                   </div>
                 </div>
