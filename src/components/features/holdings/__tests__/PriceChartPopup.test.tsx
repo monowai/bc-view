@@ -110,18 +110,18 @@ describe("PriceChartPopup", () => {
     expect(screen.getByText(/5\.00%/)).toBeInTheDocument()
   })
 
-  it("defaults to the 1m range and SMA off", () => {
+  it("defaults to the 6m range with SMA 20 on", () => {
     mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
 
     renderPopup()
 
-    expect(screen.getByRole("button", { name: "1m" })).toHaveClass(
+    expect(screen.getByRole("button", { name: "6m" })).toHaveClass(
       "bg-wealth-600",
     )
-    expect(screen.getByRole("button", { name: "Off" })).toHaveClass(
+    expect(screen.getByRole("button", { name: "SMA 20" })).toHaveClass(
       "bg-indigo-600",
     )
-    expect(screen.queryByTestId("line-sma")).not.toBeInTheDocument()
+    expect(screen.getByTestId("line-sma")).toBeInTheDocument()
   })
 
   it("refetches prices with a new range when a period tab is clicked", () => {

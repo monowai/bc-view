@@ -79,6 +79,8 @@ const RANGES: { label: string; months: number }[] = [
   { label: "6m", months: 6 },
   { label: "12m", months: 12 },
   { label: "24m", months: 24 },
+  { label: "5y", months: 60 },
+  { label: "10y", months: 120 },
 ]
 
 const SMA_OPTIONS: { label: string; window: number }[] = [
@@ -86,6 +88,28 @@ const SMA_OPTIONS: { label: string; window: number }[] = [
   { label: "SMA 20", window: 20 },
   { label: "SMA 50", window: 50 },
 ]
+
+function pickDefault<T extends number>(
+  raw: string | undefined,
+  allowed: T[],
+  fallback: T,
+): T {
+  const n = Number(raw)
+  return Number.isFinite(n) && (allowed as number[]).includes(n)
+    ? (n as T)
+    : fallback
+}
+
+const DEFAULT_MONTHS = pickDefault(
+  process.env.NEXT_PUBLIC_CHART_DEFAULT_MONTHS,
+  RANGES.map((r) => r.months),
+  6,
+)
+const DEFAULT_SMA = pickDefault(
+  process.env.NEXT_PUBLIC_CHART_DEFAULT_SMA,
+  SMA_OPTIONS.map((s) => s.window),
+  20,
+)
 
 function subtractMonths(date: Date, months: number): Date {
   const d = new Date(date)
@@ -207,8 +231,8 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
   portfolioId,
   onClose,
 }) => {
-  const [months, setMonths] = useState(1)
-  const [smaWindow, setSmaWindow] = useState(0)
+  const [months, setMonths] = useState(DEFAULT_MONTHS)
+  const [smaWindow, setSmaWindow] = useState(DEFAULT_SMA)
 
   const { from, to } = useMemo(() => {
     const today = new Date()
