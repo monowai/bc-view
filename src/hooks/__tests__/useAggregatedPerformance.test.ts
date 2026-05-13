@@ -539,6 +539,175 @@ describe("useAggregatedPerformance", () => {
       expect(series[0].marketValue).toBe(11000)
     })
 
+    it("forward-fills missing snapshots when portfolios have different date sets", async () => {
+      // Real-world case: P1 cash flow on Feb-15 creates a valuation date that
+      // P2 doesn't have. Without fill, MV at Feb-15 would drop to P2-only,
+      // producing the sawtooth-spike chart artefact.
+      const { ref } = captureFetcher()
+      const seriesP1 = [
+        {
+          date: "2025-01-01",
+          growthOf1000: 1000,
+          marketValue: 100000,
+          netContributions: 100000,
+          cumulativeReturn: 0,
+          cumulativeDividends: 0,
+        },
+        // No Feb-15 snapshot for P1
+        {
+          date: "2025-03-01",
+          growthOf1000: 1100,
+          marketValue: 115000,
+          netContributions: 105000,
+          cumulativeReturn: 0.1,
+          cumulativeDividends: 0,
+        },
+      ]
+      const seriesP2 = [
+        {
+          date: "2025-01-01",
+          growthOf1000: 1000,
+          marketValue: 50000,
+          netContributions: 50000,
+          cumulativeReturn: 0,
+          cumulativeDividends: 0,
+        },
+        {
+          date: "2025-02-15",
+          growthOf1000: 1050,
+          marketValue: 52500,
+          netContributions: 50000,
+          cumulativeReturn: 0.05,
+          cumulativeDividends: 0,
+        },
+        {
+          date: "2025-03-01",
+          growthOf1000: 1080,
+          marketValue: 54000,
+          netContributions: 50000,
+          cumulativeReturn: 0.08,
+          cumulativeDividends: 0,
+        },
+      ]
+
+      global.fetch = jest.fn().mockImplementation((url: string) =>
+        Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              data: {
+                currency: makeCurrency("USD"),
+                series: url.includes("P1") ? seriesP1 : seriesP2,
+              },
+            }),
+        }),
+      ) as unknown as typeof global.fetch
+
+      renderHook(() =>
+        useAggregatedPerformance(
+          [makePortfolio("P1", "USD"), makePortfolio("P2", "USD")],
+          12,
+          { USD: 1 },
+          "USD",
+          true,
+        ),
+      )
+
+      const series = (await ref.current!()) as Array<{
+        date: string
+        marketValue: number
+        growthOf1000: number
+        lifetimeContributions: number
+      }>
+
+      // Union dates: Jan-01, Feb-15, Mar-01
+      expect(series.map((s) => s.date)).toEqual([
+        "2025-01-01",
+        "2025-02-15",
+        "2025-03-01",
+      ])
+      // Jan-01: 100k + 50k = 150k
+      expect(series[0].marketValue).toBe(150000)
+      // Feb-15: P1 missing -> forward-fill 100k; P2 = 52500 -> 152500
+      // NOT 52500 (which would be the sawtooth bug)
+      expect(series[1].marketValue).toBe(152500)
+      // Mar-01: real snapshots both = 115000 + 54000 = 169000
+      expect(series[2].marketValue).toBe(169000)
+
+      // Lifetime contributions also forward-fill: Feb-15 = 100k (P1) + 50k (P2) = 150k
+      expect(series[1].lifetimeContributions).toBe(150000)
+
+      // Composite TWR at Feb-15: P1 carried 1.0, P2 1.05, weights 100/150=0.667 & 50/150=0.333
+      // composite = 0.667*1.0 + 0.333*1.05 = 1.01667
+      expect(series[1].growthOf1000).toBeCloseTo(1016.67, 1)
+    })
+
+    it("handles portfolio first appearing after window start (no negative skew)", async () => {
+      // P2 starts mid-window. Before its first snapshot, only P1 contributes.
+      const { ref } = captureFetcher()
+      const seriesP1 = [
+        {
+          date: "2025-01-01",
+          growthOf1000: 1000,
+          marketValue: 100000,
+          netContributions: 100000,
+          cumulativeReturn: 0,
+          cumulativeDividends: 0,
+        },
+        {
+          date: "2025-06-01",
+          growthOf1000: 1100,
+          marketValue: 110000,
+          netContributions: 100000,
+          cumulativeReturn: 0.1,
+          cumulativeDividends: 0,
+        },
+      ]
+      const seriesP2 = [
+        {
+          date: "2025-06-01",
+          growthOf1000: 1000,
+          marketValue: 20000,
+          netContributions: 20000,
+          cumulativeReturn: 0,
+          cumulativeDividends: 0,
+        },
+      ]
+
+      global.fetch = jest.fn().mockImplementation((url: string) =>
+        Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              data: {
+                currency: makeCurrency("USD"),
+                series: url.includes("P1") ? seriesP1 : seriesP2,
+              },
+            }),
+        }),
+      ) as unknown as typeof global.fetch
+
+      renderHook(() =>
+        useAggregatedPerformance(
+          [makePortfolio("P1", "USD"), makePortfolio("P2", "USD")],
+          12,
+          { USD: 1 },
+          "USD",
+          true,
+        ),
+      )
+
+      const series = (await ref.current!()) as Array<{
+        date: string
+        marketValue: number
+      }>
+
+      // Jan-01: only P1 active -> 100k (not 0)
+      expect(series[0].marketValue).toBe(100000)
+      // Jun-01: both -> 110k + 20k = 130k
+      expect(series[1].marketValue).toBe(130000)
+    })
+
     it("drops failed portfolios silently", async () => {
       const { ref } = captureFetcher()
       global.fetch = jest.fn().mockImplementation((url: string) => {
