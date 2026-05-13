@@ -51,7 +51,8 @@ const mockSeries = [
   {
     date: "2024-01-01",
     marketValue: 100000,
-    netContributions: 100000,
+    netContributions: 0,
+    lifetimeContributions: 100000,
     cumulativeDividends: 0,
     investmentGain: 0,
     growthOf1000: 1000,
@@ -60,7 +61,8 @@ const mockSeries = [
   {
     date: "2024-06-01",
     marketValue: 112000,
-    netContributions: 105000,
+    netContributions: 5000,
+    lifetimeContributions: 105000,
     cumulativeDividends: 500,
     investmentGain: 7000,
     growthOf1000: 1120,
@@ -69,7 +71,8 @@ const mockSeries = [
   {
     date: "2024-12-01",
     marketValue: 125000,
-    netContributions: 110000,
+    netContributions: 10000,
+    lifetimeContributions: 110000,
     cumulativeDividends: 1200,
     investmentGain: 15000,
     growthOf1000: 1250,
