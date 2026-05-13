@@ -37,7 +37,10 @@ const makeCurrency = (code: string): Currency => ({
   symbol: "$",
 })
 
-const makePortfolio = (code: string): Portfolio => ({
+const makePortfolio = (
+  code: string,
+  classification?: Record<string, number>,
+): Portfolio => ({
   id: code,
   code,
   name: code,
@@ -45,6 +48,7 @@ const makePortfolio = (code: string): Portfolio => ({
   base: makeCurrency("USD"),
   marketValue: 50000,
   irr: 0.05,
+  assetClassification: classification,
 })
 
 const mockSeries = [
@@ -203,5 +207,50 @@ describe("WealthPerformanceChart", () => {
     const { container } = render(<>{false}</>)
 
     expect(container.textContent).toBe("")
+  })
+
+  it("passes only liquid portfolios to the aggregation hook", () => {
+    const liquid = makePortfolio("EQT", { Equity: 100000, Cash: 5000 })
+    const property = makePortfolio("HOUSE", { Property: 500000 })
+    const hookSpy = jest.fn().mockReturnValue({
+      series: mockSeries,
+      isLoading: false,
+      error: undefined,
+    })
+    mockUseAggregatedPerformance.useAggregatedPerformance = hookSpy
+
+    render(
+      <WealthPerformanceChart
+        {...defaultProps}
+        portfolios={[liquid, property]}
+      />,
+    )
+
+    const passedPortfolios = hookSpy.mock.calls[0][0] as Portfolio[]
+    expect(passedPortfolios.map((p) => p.code)).toEqual(["EQT"])
+  })
+
+  it("shows '(liquid only)' annotation when property portfolios are excluded", () => {
+    setHookReturn({ series: mockSeries, isLoading: false, error: undefined })
+    const liquid = makePortfolio("EQT", { Equity: 100000 })
+    const property = makePortfolio("HOUSE", { Property: 500000 })
+
+    render(
+      <WealthPerformanceChart
+        {...defaultProps}
+        portfolios={[liquid, property]}
+      />,
+    )
+
+    expect(screen.getByText("(liquid only)")).toBeInTheDocument()
+  })
+
+  it("omits the '(liquid only)' annotation when all portfolios are liquid", () => {
+    setHookReturn({ series: mockSeries, isLoading: false, error: undefined })
+    const liquid = makePortfolio("EQT", { Equity: 100000 })
+
+    render(<WealthPerformanceChart {...defaultProps} portfolios={[liquid]} />)
+
+    expect(screen.queryByText("(liquid only)")).not.toBeInTheDocument()
   })
 })

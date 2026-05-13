@@ -1,3 +1,47 @@
+import type { Portfolio } from "types/beancounter"
+
+/**
+ * Liquidity groups that represent illiquid wealth — excluded from
+ * the Wealth Performance widget which tracks marketable AUM only.
+ *
+ * Mirrors svc-retire's `HOUSING_CATEGORIES` (svc-position
+ * AllocationService.kt) and `NON_SPENDABLE_CATEGORIES` (svc-retire
+ * CalculationService.kt) — RE / Property maps to non-spendable.
+ */
+const ILLIQUID_GROUPS = new Set<string>(["Property"])
+
+/**
+ * Returns true when the portfolio's dominant liquidity group is liquid.
+ *
+ * A portfolio is treated as illiquid (and excluded from Wealth Performance)
+ * when more of its base-currency market value falls into an illiquid group
+ * (Property/RE) than any single liquid group. Portfolios with no
+ * `assetClassification` (legacy / unvalued) are treated as liquid.
+ */
+export function isLiquidPortfolio(portfolio: Portfolio): boolean {
+  const classification = portfolio.assetClassification
+  if (!classification) return true
+  const entries = Object.entries(classification)
+  if (entries.length === 0) return true
+
+  const groupTotals = new Map<string, number>()
+  for (const [category, value] of entries) {
+    const group = mapToLiquidityGroup(category)
+    groupTotals.set(group, (groupTotals.get(group) ?? 0) + value)
+  }
+
+  let dominantGroup = ""
+  let dominantValue = -Infinity
+  for (const [group, value] of groupTotals) {
+    if (value > dominantValue) {
+      dominantGroup = group
+      dominantValue = value
+    }
+  }
+
+  return !ILLIQUID_GROUPS.has(dominantGroup)
+}
+
 export function mapToLiquidityGroup(categoryName: string): string {
   switch (categoryName) {
     case "Equity":
