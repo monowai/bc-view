@@ -26,7 +26,7 @@ describe("isLiquidPortfolio", () => {
     expect(isLiquidPortfolio(makePortfolio("P1", {}))).toBe(true)
   })
 
-  it("excludes portfolio dominated by Property", () => {
+  it("excludes portfolio with any Property exposure", () => {
     expect(
       isLiquidPortfolio(
         makePortfolio("HOUSE", { Property: 500000, Cash: 1000 }),
@@ -34,35 +34,53 @@ describe("isLiquidPortfolio", () => {
     ).toBe(false)
   })
 
-  it("excludes portfolio under raw 'RE' category name", () => {
+  it("excludes portfolio under raw 'RE' category id", () => {
     expect(isLiquidPortfolio(makePortfolio("HOUSE", { RE: 500000 }))).toBe(
       false,
     )
   })
 
-  it("excludes portfolio under 'Real Estate' category name", () => {
+  it("excludes portfolio under 'Real Estate' raw name", () => {
     expect(
       isLiquidPortfolio(makePortfolio("HOUSE", { "Real Estate": 500000 })),
     ).toBe(false)
   })
 
-  it("keeps portfolio when Cash dominates over Property", () => {
+  it("excludes commingled portfolio even when Cash dominates", () => {
+    // Any PRIVATE+RE exposure pollutes aggregate TWR signal.
     expect(
       isLiquidPortfolio(makePortfolio("MIX", { Cash: 5000, Property: 4000 })),
+    ).toBe(false)
+  })
+
+  it("keeps RE-ETF holdings — they classify as ETF, not Property", () => {
+    expect(
+      isLiquidPortfolio(
+        makePortfolio("REIT", {
+          "Exchange Traded Fund": 100000,
+          Cash: 5000,
+        }),
+      ),
     ).toBe(true)
   })
 
-  it("keeps Equity-dominated portfolio", () => {
+  it("keeps Equity-only portfolio", () => {
     expect(
       isLiquidPortfolio(makePortfolio("EQT", { Equity: 100000, Cash: 5000 })),
     ).toBe(true)
   })
 
-  it("keeps Retirement-dominated portfolio (liquid for performance purposes)", () => {
+  it("keeps Retirement-fund portfolio", () => {
     expect(
       isLiquidPortfolio(
         makePortfolio("PEN", { "Retirement Fund": 80000, Cash: 1000 }),
       ),
+    ).toBe(true)
+  })
+
+  it("keeps portfolio when Property entry is present but zero", () => {
+    expect(
+      isLiquidPortfolio(makePortfolio("EDGE", { Property: 0, Equity: 100000 })),
     ).toBe(true)
   })
 })

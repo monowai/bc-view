@@ -1,45 +1,36 @@
 import type { Portfolio } from "types/beancounter"
 
 /**
- * Liquidity groups that represent illiquid wealth — excluded from
- * the Wealth Performance widget which tracks marketable AUM only.
+ * Asset-classification keys representing PRIVATE-market real estate —
+ * the user's own home and similar non-marketable property. Public
+ * RE products (REITs, RE-ETFs) classify as Equity / ETF and stay liquid.
  *
- * Mirrors svc-retire's `HOUSING_CATEGORIES` (svc-position
- * AllocationService.kt) and `NON_SPENDABLE_CATEGORIES` (svc-retire
- * CalculationService.kt) — RE / Property maps to non-spendable.
+ * Mirrors svc-retire's HOUSING_CATEGORIES (svc-position AllocationService)
+ * and NON_SPENDABLE_CATEGORIES (svc-retire CalculationService).
  */
-const ILLIQUID_GROUPS = new Set<string>(["Property"])
+const ILLIQUID_CATEGORY_KEYS = new Set<string>([
+  "Property", // REPORT_PROPERTY (svc-position effectiveReportCategory)
+  "Real Estate", // raw category name fallback
+  "RE", // raw asset category id (AssetCategory.RE)
+])
 
 /**
- * Returns true when the portfolio's dominant liquidity group is liquid.
+ * Returns false when the portfolio has any PRIVATE+RE exposure.
  *
- * A portfolio is treated as illiquid (and excluded from Wealth Performance)
- * when more of its base-currency market value falls into an illiquid group
- * (Property/RE) than any single liquid group. Portfolios with no
+ * Any non-zero entry under an illiquid category key disqualifies the
+ * portfolio from Wealth Performance — illiquid valuations move on
+ * appraisal cycles, not market prices, and pollute aggregate TWR even
+ * when commingled with marketable assets. Portfolios with no
  * `assetClassification` (legacy / unvalued) are treated as liquid.
  */
 export function isLiquidPortfolio(portfolio: Portfolio): boolean {
   const classification = portfolio.assetClassification
   if (!classification) return true
-  const entries = Object.entries(classification)
-  if (entries.length === 0) return true
-
-  const groupTotals = new Map<string, number>()
-  for (const [category, value] of entries) {
-    const group = mapToLiquidityGroup(category)
-    groupTotals.set(group, (groupTotals.get(group) ?? 0) + value)
+  for (const key of ILLIQUID_CATEGORY_KEYS) {
+    const value = classification[key]
+    if (value !== undefined && value > 0) return false
   }
-
-  let dominantGroup = ""
-  let dominantValue = -Infinity
-  for (const [group, value] of groupTotals) {
-    if (value > dominantValue) {
-      dominantGroup = group
-      dominantValue = value
-    }
-  }
-
-  return !ILLIQUID_GROUPS.has(dominantGroup)
+  return true
 }
 
 export function mapToLiquidityGroup(categoryName: string): string {
