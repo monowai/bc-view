@@ -24,18 +24,19 @@ export interface AggregatedPerformance {
   error: Error | undefined
 }
 
+interface PortfolioSnapshot {
+  date: string
+  growthFactor: number // backend growthOf1000 / 1000
+  mv: number // display ccy
+  contrib: number // lifetime, display ccy
+  divs: number // lifetime, display ccy
+}
+
 interface PortfolioSeriesFx {
   /** FX-converted into display currency. */
   startMv: number
-  byDate: Map<
-    string,
-    {
-      growthFactor: number // backend growthOf1000 / 1000
-      mv: number // display ccy
-      contrib: number // lifetime, display ccy
-      divs: number // lifetime, display ccy
-    }
-  >
+  /** Snapshots sorted by date ascending. Used for forward-fill on union dates. */
+  snapshots: PortfolioSnapshot[]
 }
 
 /**
@@ -85,25 +86,22 @@ export function useAggregatedPerformance(
         if (series.length === 0) continue
         const rate = fxRates[portfolio.currency.code] ?? 1
 
-        const byDate = new Map<
-          string,
-          PortfolioSeriesFx["byDate"] extends Map<string, infer V> ? V : never
-        >()
-        for (const point of series) {
-          allDates.add(point.date)
-          byDate.set(point.date, {
-            growthFactor: point.growthOf1000 / 1000,
-            mv: point.marketValue * rate,
-            contrib: point.netContributions * rate,
-            divs: point.cumulativeDividends * rate,
+        const snapshots: PortfolioSnapshot[] = series
+          .map((point) => {
+            allDates.add(point.date)
+            return {
+              date: point.date,
+              growthFactor: point.growthOf1000 / 1000,
+              mv: point.marketValue * rate,
+              contrib: point.netContributions * rate,
+              divs: point.cumulativeDividends * rate,
+            }
           })
-        }
+          .sort((a, b) => a.date.localeCompare(b.date))
 
-        const firstDate = series[0].date
-        const firstEntry = byDate.get(firstDate)
         perPortfolio.push({
-          startMv: firstEntry?.mv ?? 0,
-          byDate,
+          startMv: snapshots[0].mv,
+          snapshots,
         })
       }
 
@@ -114,7 +112,13 @@ export function useAggregatedPerformance(
         a.localeCompare(b),
       )
 
-      // Build aggregated series
+      // Forward-fill state per portfolio: cursor advances as we walk union dates.
+      // When a portfolio has no snapshot on date d, we carry the last-seen snapshot.
+      // Required because each portfolio's valuation dates differ (cash-flow dates
+      // are portfolio-specific) — without fill, the aggregated MV would zigzag
+      // wildly between $0 and full value as portfolios drop in and out.
+      const cursors: number[] = perPortfolio.map(() => 0)
+
       const aggregated: AggregatedDataPoint[] = []
       let baselineMv = 0
       let baselineContrib = 0
@@ -128,9 +132,20 @@ export function useAggregatedPerformance(
         let compositeGrowth = 0
         let weightSumPresent = 0
 
-        for (const p of perPortfolio) {
-          const point = p.byDate.get(date)
-          if (!point) continue
+        for (let pi = 0; pi < perPortfolio.length; pi++) {
+          const p = perPortfolio[pi]
+          // Advance cursor while next snapshot is on/before this date
+          while (
+            cursors[pi] + 1 < p.snapshots.length &&
+            p.snapshots[cursors[pi] + 1].date <= date
+          ) {
+            cursors[pi]++
+          }
+          const point = p.snapshots[cursors[pi]]
+          // Skip portfolios whose first snapshot is later than this date (they
+          // didn't exist yet within the requested window).
+          if (point.date > date) continue
+
           mv += point.mv
           contrib += point.contrib
           divs += point.divs
@@ -141,7 +156,7 @@ export function useAggregatedPerformance(
           }
         }
 
-        // Renormalise composite growth if some portfolios have no data at this date
+        // Renormalise composite growth if some portfolios are not yet active
         const growthFactor =
           weightSumPresent > 0 ? compositeGrowth / weightSumPresent : 1
         const growthOf1000 = 1000 * growthFactor
