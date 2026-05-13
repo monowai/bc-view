@@ -2,8 +2,9 @@ import React from "react"
 import { render, screen, fireEvent } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import WealthPerformanceChart from "../WealthPerformanceChart"
-import { Portfolio, Currency } from "types/beancounter"
+import { Portfolio } from "types/beancounter"
 import { AggregatedPerformance } from "@hooks/useAggregatedPerformance"
+import { USD, makePortfolio } from "@test-fixtures/beancounter"
 
 // Mock the aggregation hook
 jest.mock("@hooks/useAggregatedPerformance")
@@ -30,22 +31,6 @@ jest.mock("recharts", () => ({
   ),
   ReferenceLine: () => <g />,
 }))
-
-const makeCurrency = (code: string): Currency => ({
-  code,
-  name: code,
-  symbol: "$",
-})
-
-const makePortfolio = (code: string): Portfolio => ({
-  id: code,
-  code,
-  name: code,
-  currency: makeCurrency("USD"),
-  base: makeCurrency("USD"),
-  marketValue: 50000,
-  irr: 0.05,
-})
 
 const mockSeries = [
   {
@@ -81,9 +66,12 @@ const mockSeries = [
 ]
 
 const defaultProps = {
-  portfolios: [makePortfolio("P1"), makePortfolio("P2")],
+  portfolios: [
+    makePortfolio({ id: "P1", code: "P1", name: "P1" }),
+    makePortfolio({ id: "P2", code: "P2", name: "P2" }),
+  ],
   fxRates: { USD: 1 },
-  displayCurrency: makeCurrency("USD"),
+  displayCurrency: USD,
   collapsed: false,
   onToggle: jest.fn(),
 }
@@ -203,5 +191,65 @@ describe("WealthPerformanceChart", () => {
     const { container } = render(<>{false}</>)
 
     expect(container.textContent).toBe("")
+  })
+
+  it("passes only liquid portfolios to the aggregation hook", () => {
+    const liquid = makePortfolio({
+      code: "EQT",
+      assetClassification: { Equity: 100000, Cash: 5000 },
+    })
+    const property = makePortfolio({
+      code: "HOUSE",
+      assetClassification: { Property: 500000 },
+    })
+    const hookSpy = jest.fn().mockReturnValue({
+      series: mockSeries,
+      isLoading: false,
+      error: undefined,
+    })
+    mockUseAggregatedPerformance.useAggregatedPerformance = hookSpy
+
+    render(
+      <WealthPerformanceChart
+        {...defaultProps}
+        portfolios={[liquid, property]}
+      />,
+    )
+
+    const passedPortfolios = hookSpy.mock.calls[0][0] as Portfolio[]
+    expect(passedPortfolios.map((p) => p.code)).toEqual(["EQT"])
+  })
+
+  it("shows '(liquid only)' annotation when property portfolios are excluded", () => {
+    setHookReturn({ series: mockSeries, isLoading: false, error: undefined })
+    const liquid = makePortfolio({
+      code: "EQT",
+      assetClassification: { Equity: 100000 },
+    })
+    const property = makePortfolio({
+      code: "HOUSE",
+      assetClassification: { Property: 500000 },
+    })
+
+    render(
+      <WealthPerformanceChart
+        {...defaultProps}
+        portfolios={[liquid, property]}
+      />,
+    )
+
+    expect(screen.getByText("(liquid only)")).toBeInTheDocument()
+  })
+
+  it("omits the '(liquid only)' annotation when all portfolios are liquid", () => {
+    setHookReturn({ series: mockSeries, isLoading: false, error: undefined })
+    const liquid = makePortfolio({
+      code: "EQT",
+      assetClassification: { Equity: 100000 },
+    })
+
+    render(<WealthPerformanceChart {...defaultProps} portfolios={[liquid]} />)
+
+    expect(screen.queryByText("(liquid only)")).not.toBeInTheDocument()
   })
 })

@@ -21,6 +21,7 @@ import {
   formatTooltipDate,
 } from "@lib/chart/performanceConstants"
 import { useAggregatedPerformance } from "@hooks/useAggregatedPerformance"
+import { isLiquidPortfolio } from "@lib/wealth/liquidityGroups"
 
 interface WealthPerformanceChartProps {
   portfolios: Portfolio[]
@@ -40,8 +41,17 @@ const WealthPerformanceChart: React.FC<WealthPerformanceChartProps> = ({
   const [months, setMonths] = useState(12)
   const sym = displayCurrency?.symbol || "$"
 
+  // Restrict to liquid portfolios — Property-dominated portfolios distort TWR
+  // because illiquid valuations move with appraisal cycles, not market prices.
+  // Mirrors svc-retire's housing exclusion (HOUSING_CATEGORIES = {Property}).
+  const liquidPortfolios = useMemo(
+    () => portfolios.filter(isLiquidPortfolio),
+    [portfolios],
+  )
+  const excludedCount = portfolios.length - liquidPortfolios.length
+
   const { series, isLoading, error } = useAggregatedPerformance(
-    portfolios,
+    liquidPortfolios,
     months,
     fxRates,
     displayCurrency?.code ?? null,
@@ -78,6 +88,14 @@ const WealthPerformanceChart: React.FC<WealthPerformanceChartProps> = ({
         ></i>
         <i className="fas fa-chart-line text-gray-400 mr-2"></i>
         Wealth Performance
+        {excludedCount > 0 && (
+          <span
+            className="ml-2 text-xs font-normal text-gray-400"
+            title={`Excludes ${excludedCount} property-dominated portfolio${excludedCount === 1 ? "" : "s"}. Tracking liquid AUM only.`}
+          >
+            (liquid only)
+          </span>
+        )}
       </button>
 
       {!collapsed && (
