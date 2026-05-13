@@ -137,9 +137,7 @@ describe("ChatPanel", () => {
 
   it("renders Cancel button while loading when onCancel provided, replacing Send", () => {
     const onCancel = jest.fn()
-    render(
-      <ChatPanel {...defaultProps} isLoading={true} onCancel={onCancel} />,
-    )
+    render(<ChatPanel {...defaultProps} isLoading={true} onCancel={onCancel} />)
     expect(
       screen.queryByRole("button", { name: /send/i }),
     ).not.toBeInTheDocument()

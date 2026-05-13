@@ -58,9 +58,74 @@ const tradedPosition = (
 describe("Quick Sell Feature via Actions Menu", () => {
   const mockOnColumnsChange = jest.fn()
   const mockOnQuickSell = jest.fn()
+  const mockOnTrade = jest.fn()
 
   beforeEach(() => {
     jest.clearAllMocks()
+  })
+
+  describe("Trade menu item", () => {
+    it("renders Trade above Quick Sell and calls onTrade with position data", () => {
+      const positions = [tradedPosition("AAPL", "NASDAQ", 100, 150)]
+
+      render(
+        <table>
+          <Rows
+            portfolio={mockPortfolio}
+            groupBy="Equity"
+            holdingGroup={makeHoldingGroup({ positions })}
+            valueIn={ValueIn.PORTFOLIO}
+            onColumnsChange={mockOnColumnsChange}
+            onQuickSell={mockOnQuickSell}
+            onTrade={mockOnTrade}
+          />
+        </table>,
+      )
+
+      const actionsButton = screen.getByRole("button", { name: /actions/i })
+      fireEvent.click(actionsButton)
+
+      const tradeItem = screen.getByRole("button", { name: /^trade$/i })
+      const sellItem = screen.getByRole("button", { name: /quick sell/i })
+
+      // Trade rendered before Quick Sell
+      expect(
+        tradeItem.compareDocumentPosition(sellItem) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).not.toBe(0)
+
+      fireEvent.click(tradeItem)
+      expect(mockOnTrade).toHaveBeenCalledTimes(1)
+      // Menu forwards position data only. Caller (handleTrade in
+      // holdings/[code].tsx) applies `type: "BUY"`.
+      expect(mockOnTrade).toHaveBeenCalledWith({
+        asset: "AAPL",
+        market: "NASDAQ",
+        quantity: 100,
+        price: 150,
+        held: undefined,
+      })
+    })
+
+    it("does not render Trade item when onTrade not provided", () => {
+      const positions = [tradedPosition("AAPL", "NASDAQ", 100, 150)]
+
+      render(
+        <table>
+          <Rows
+            portfolio={mockPortfolio}
+            groupBy="Equity"
+            holdingGroup={makeHoldingGroup({ positions })}
+            valueIn={ValueIn.PORTFOLIO}
+            onColumnsChange={mockOnColumnsChange}
+            onQuickSell={mockOnQuickSell}
+          />
+        </table>,
+      )
+
+      fireEvent.click(screen.getByRole("button", { name: /actions/i }))
+      expect(screen.queryByRole("button", { name: /^trade$/i })).toBeNull()
+    })
   })
 
   describe("Desktop/Tablet Mode", () => {

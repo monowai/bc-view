@@ -36,6 +36,7 @@ import {
 } from "@components/features/holdings/ActionsMenus"
 
 interface SharedActionHandlers {
+  onTrade?: (data: QuickSellData) => void
   onQuickSell?: (data: QuickSellData) => void
   onCorporateActions?: (data: CorporateActionsData) => void
   onSetPrice?: (data: SetPriceData) => void
@@ -241,6 +242,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
   portfolio,
   valueIn,
   sourceCurrency,
+  onTrade,
   onQuickSell,
   onCorporateActions,
   onSetPrice,
@@ -283,7 +285,8 @@ const PositionCard: React.FC<PositionCardProps> = ({
 
   const hasActions =
     (!isCashRelated(asset) &&
-      (!!onQuickSell ||
+      (!!onTrade ||
+        !!onQuickSell ||
         !!onCorporateActions ||
         !!onCostAdjust ||
         !!onMovePosition ||
@@ -319,6 +322,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
             costBasis={tradeMoney?.costBasis || 0}
             tradeCurrency={tradeCurrency}
             valueIn={valueIn}
+            onTrade={isCashRelated(asset) ? undefined : onTrade}
             onQuickSell={isCashRelated(asset) ? undefined : onQuickSell}
             onCorporateActions={
               isCashRelated(asset) ? undefined : onCorporateActions
@@ -451,6 +455,7 @@ const CardView: React.FC<CardViewProps> = ({
   valueIn,
   groupBy,
   isMixedCurrencies = false,
+  onTrade,
   onQuickSell,
   onCorporateActions,
   onSetPrice,
@@ -678,6 +683,7 @@ const CardView: React.FC<CardViewProps> = ({
                     portfolio={portfolio}
                     valueIn={valueIn}
                     sourceCurrency={sourceCurrency}
+                    onTrade={onTrade}
                     onQuickSell={onQuickSell}
                     onCorporateActions={onCorporateActions}
                     onSetPrice={onSetPrice}

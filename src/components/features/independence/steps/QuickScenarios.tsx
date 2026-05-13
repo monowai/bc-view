@@ -194,7 +194,9 @@ function SellAndDownsizeForm({
           <input
             type="number"
             value={cashRetainedPct}
-            onChange={(e) => setCashRetainedPct(parseFloat(e.target.value) || 0)}
+            onChange={(e) =>
+              setCashRetainedPct(parseFloat(e.target.value) || 0)
+            }
             min={0}
             max={100}
             step={1}
@@ -224,9 +226,7 @@ function SellAndDownsizeForm({
           </div>
           <div className="flex justify-between">
             <span>Sell existing property (illiquid out)</span>
-            <span className="font-mono">
-              -${currentValue.toLocaleString()}
-            </span>
+            <span className="font-mono">-${currentValue.toLocaleString()}</span>
           </div>
           {newPropertyValue > 0 && (
             <div className="flex justify-between">
@@ -330,13 +330,15 @@ function AssetPicker({
         </div>
       ) : candidates.length === 0 ? (
         <div className="px-3 py-2 text-xs text-amber-700 bg-amber-50 rounded border border-amber-200">
-          No disposable assets configured. Add a property in the Assets tab,
-          or enter an Asset ID manually below.
+          No disposable assets configured. Add a property in the Assets tab, or
+          enter an Asset ID manually below.
         </div>
       ) : (
         <select
           value={assetId}
-          onChange={(e) => onChange(e.target.value, assetValues[e.target.value])}
+          onChange={(e) =>
+            onChange(e.target.value, assetValues[e.target.value])
+          }
           className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white"
         >
           <option value="">— Pick an asset —</option>
@@ -344,7 +346,9 @@ function AssetPicker({
             const name = assetNames[c.assetId] || c.assetId
             const tag = c.isPrimaryResidence ? " (primary)" : ""
             const value = assetValues[c.assetId]
-            const valueLabel = value ? ` — $${Math.round(value).toLocaleString()}` : ""
+            const valueLabel = value
+              ? ` — $${Math.round(value).toLocaleString()}`
+              : ""
             return (
               <option key={c.assetId} value={c.assetId}>
                 {name}

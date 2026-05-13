@@ -75,7 +75,8 @@ export default function ChatPanel({
     const el = messagesContainerRef.current
     if (!el) return
     const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
-    stickToBottomRef.current = distanceFromBottom <= STICK_TO_BOTTOM_THRESHOLD_PX
+    stickToBottomRef.current =
+      distanceFromBottom <= STICK_TO_BOTTOM_THRESHOLD_PX
   }
 
   useEffect(() => {

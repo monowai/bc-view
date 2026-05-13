@@ -164,7 +164,10 @@ export default function LifeEventsStep({
               Expense
             </button>
           </div>
-          <div className="flex gap-2" title="Which asset pool this cashflow affects">
+          <div
+            className="flex gap-2"
+            title="Which asset pool this cashflow affects"
+          >
             <button
               type="button"
               onClick={() => setNewEvent({ ...newEvent, assetType: "liquid" })}

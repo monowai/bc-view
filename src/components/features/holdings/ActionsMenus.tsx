@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useRef, useState } from "react"
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react"
 import { createPortal } from "react-dom"
 import {
   Asset,
@@ -55,6 +61,21 @@ const useDropdownMenu = (): UseDropdownMenuResult => {
       setMenuPos({ top: rect.bottom + 4, left })
     }
   }, [])
+
+  // Flip above the button if menu overflows below. useLayoutEffect avoids
+  // a paint with menu rendered below before reposition (common on mobile
+  // when trigger sits in the last visible row).
+  useLayoutEffect(() => {
+    if (!isOpen || !menuRef.current || !buttonRef.current) return
+    const rect = buttonRef.current.getBoundingClientRect()
+    const menuH = menuRef.current.offsetHeight
+    const spaceBelow = window.innerHeight - rect.bottom - VIEWPORT_MARGIN
+    const spaceAbove = rect.top - VIEWPORT_MARGIN
+    if (menuH > spaceBelow && spaceAbove > spaceBelow) {
+      const top = Math.max(VIEWPORT_MARGIN, rect.top - menuH - 4)
+      setMenuPos((prev) => (prev.top === top ? prev : { ...prev, top }))
+    }
+  }, [isOpen])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent): void => {
@@ -124,6 +145,7 @@ export interface ActionsMenuProps {
   tradeCurrency: { code: string; symbol: string; name: string }
   valueIn: string
   held?: Record<string, number>
+  onTrade?: (data: QuickSellData) => void
   onQuickSell?: (data: QuickSellData) => void
   onCorporateActions?: (data: CorporateActionsData) => void
   onSetPrice?: (data: SetPriceData) => void
@@ -146,6 +168,7 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
   costBasis,
   tradeCurrency,
   held,
+  onTrade,
   onQuickSell,
   onCorporateActions,
   onSetPrice,
@@ -159,6 +182,14 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
   const { isOpen, buttonRef, menuRef, menuPos, toggle, close } =
     useDropdownMenu()
   const assetCode = stripOwnerPrefix(asset.code)
+
+  const tradePayload = (): QuickSellData => ({
+    asset: assetCode,
+    market: asset.market.code,
+    quantity,
+    price,
+    held,
+  })
 
   const handle =
     (fn: () => void): ((e: React.MouseEvent) => void) =>
@@ -185,23 +216,22 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
         createPortal(
           <div
             ref={menuRef}
-            className="fixed w-48 bg-white rounded-lg shadow-xl z-50 border border-slate-200"
+            className="fixed w-48 max-h-[80vh] overflow-y-auto bg-white rounded-lg shadow-xl z-50 border border-slate-200"
             style={{ top: menuPos.top, left: menuPos.left }}
           >
             <div className="py-1">
+              {onTrade && (
+                <MenuItem
+                  iconClass="fas fa-right-left text-emerald-500 w-4"
+                  label="Trade"
+                  onClick={handle(() => onTrade(tradePayload()))}
+                />
+              )}
               {onQuickSell && (
                 <MenuItem
                   iconClass="fas fa-money-bill-transfer text-red-500 w-4"
                   label="Quick Sell"
-                  onClick={handle(() =>
-                    onQuickSell({
-                      asset: assetCode,
-                      market: asset.market.code,
-                      quantity,
-                      price,
-                      held,
-                    }),
-                  )}
+                  onClick={handle(() => onQuickSell(tradePayload()))}
                 />
               )}
               {onCorporateActions && (
@@ -354,7 +384,7 @@ export const CashActionsMenu: React.FC<CashActionsMenuProps> = ({
         createPortal(
           <div
             ref={menuRef}
-            className="fixed w-48 bg-white rounded-lg shadow-xl z-50 border border-slate-200"
+            className="fixed w-48 max-h-[80vh] overflow-y-auto bg-white rounded-lg shadow-xl z-50 border border-slate-200"
             style={{ top: menuPos.top, left: menuPos.left }}
           >
             <div className="py-1">
