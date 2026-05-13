@@ -183,6 +183,14 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
     useDropdownMenu()
   const assetCode = stripOwnerPrefix(asset.code)
 
+  const tradePayload = (): QuickSellData => ({
+    asset: assetCode,
+    market: asset.market.code,
+    quantity,
+    price,
+    held,
+  })
+
   const handle =
     (fn: () => void): ((e: React.MouseEvent) => void) =>
     (e) => {
@@ -216,30 +224,14 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
                 <MenuItem
                   iconClass="fas fa-right-left text-emerald-500 w-4"
                   label="Trade"
-                  onClick={handle(() =>
-                    onTrade({
-                      asset: assetCode,
-                      market: asset.market.code,
-                      quantity,
-                      price,
-                      held,
-                    }),
-                  )}
+                  onClick={handle(() => onTrade(tradePayload()))}
                 />
               )}
               {onQuickSell && (
                 <MenuItem
                   iconClass="fas fa-money-bill-transfer text-red-500 w-4"
                   label="Quick Sell"
-                  onClick={handle(() =>
-                    onQuickSell({
-                      asset: assetCode,
-                      market: asset.market.code,
-                      quantity,
-                      price,
-                      held,
-                    }),
-                  )}
+                  onClick={handle(() => onQuickSell(tradePayload()))}
                 />
               )}
               {onCorporateActions && (
