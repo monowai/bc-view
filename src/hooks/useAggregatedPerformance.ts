@@ -23,6 +23,14 @@ export interface AggregatedDataPoint {
 
 export interface AggregatedPerformance {
   series: AggregatedDataPoint[]
+  /**
+   * Aggregate money-weighted return (XIRR) for the window, annualised
+   * decimal (0.10 = +10% p.a.). Null when the backend couldn't compute
+   * (insufficient flows / solver failure). For windows shorter than ~1y,
+   * the backend returns simple ROI instead — consumers should label
+   * sub-year values as "cumulative", not "p.a."
+   */
+  xirr: number | null
   isLoading: boolean
   error: Error | undefined
 }
@@ -30,6 +38,7 @@ export interface AggregatedPerformance {
 interface AggregateApiResponse {
   data: {
     series: AggregatedDataPoint[]
+    xirr?: number | null
   }
 }
 
@@ -53,7 +62,10 @@ export function useAggregatedPerformance(
       ? `aggregated-perf:${portfolioCodes.join(",")}:${months}:${displayCurrencyCode}`
       : null
 
-  const { data, isLoading, error } = useSwr<AggregatedDataPoint[]>(
+  const { data, isLoading, error } = useSwr<{
+    series: AggregatedDataPoint[]
+    xirr: number | null
+  }>(
     key,
     async () => {
       const res = await fetch(`/api/performance/aggregate`, {
@@ -69,7 +81,10 @@ export function useAggregatedPerformance(
         throw new Error(`Aggregate request failed: ${res.status}`)
       }
       const json: AggregateApiResponse = await res.json()
-      return json.data?.series ?? []
+      return {
+        series: json.data?.series ?? [],
+        xirr: json.data?.xirr ?? null,
+      }
     },
     {
       revalidateOnFocus: false,
@@ -79,7 +94,8 @@ export function useAggregatedPerformance(
   )
 
   return {
-    series: data ?? [],
+    series: data?.series ?? [],
+    xirr: data?.xirr ?? null,
     isLoading,
     error,
   }

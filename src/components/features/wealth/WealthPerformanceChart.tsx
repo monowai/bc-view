@@ -48,7 +48,7 @@ const WealthPerformanceChart: React.FC<WealthPerformanceChartProps> = ({
   )
   const excludedCount = portfolios.length - liquidPortfolios.length
 
-  const { series, isLoading, error } = useAggregatedPerformance(
+  const { series, xirr, isLoading, error } = useAggregatedPerformance(
     liquidPortfolios,
     months,
     displayCurrency?.code ?? null,
@@ -60,7 +60,7 @@ const WealthPerformanceChart: React.FC<WealthPerformanceChartProps> = ({
     if (series.length === 0) return null
     const last = series[series.length - 1]
     return {
-      returnPct: last.cumulativeReturn * 100,
+      twrPct: last.cumulativeReturn * 100,
       growthOf1000: last.growthOf1000,
       marketValue: last.marketValue,
       contributed: last.netContributions, // period-only
@@ -69,7 +69,13 @@ const WealthPerformanceChart: React.FC<WealthPerformanceChartProps> = ({
     }
   }, [series])
 
-  const isPositive = (stats?.returnPct ?? 0) >= 0
+  // XIRR is the headline. >=12M windows are annualised by the solver;
+  // shorter windows return simple ROI (cumulative) per IrrCalculator's
+  // minHoldingDays fallback. Label accordingly so the user can interpret.
+  const xirrPct = xirr != null ? xirr * 100 : null
+  const isAnnualised = months >= 12
+  const headlinePct = xirrPct ?? stats?.twrPct ?? 0
+  const isPositive = headlinePct >= 0
   const fmtCompact = (v: number): string => formatCompact(v, sym)
   const fmtFull = (v: number): string => formatFull(v, sym)
 
@@ -152,22 +158,46 @@ const WealthPerformanceChart: React.FC<WealthPerformanceChartProps> = ({
             <>
               {/* Key metrics row */}
               <div className="grid grid-cols-3 divide-x divide-gray-100 mb-4 py-4 border-y border-gray-100">
-                {/* Aggregate TWR Return */}
-                <div className="px-4">
+                {/* Investment Return — XIRR primary, TWR secondary */}
+                <div
+                  className="px-4"
+                  title={
+                    xirrPct != null
+                      ? "XIRR = money-weighted return on your actual cash flows. " +
+                        "TWR (below) = strategy/market return, ignores when you contributed."
+                      : "TWR cumulative return. XIRR unavailable for this window."
+                  }
+                >
                   <div className="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-1">
-                    Aggregate TWR
+                    Investment Return
                   </div>
                   <div
                     className={`text-2xl font-mono font-bold tracking-tight ${isPositive ? "text-gain" : "text-loss"}`}
                   >
                     {isPositive ? "+" : ""}
-                    {stats.returnPct.toFixed(2)}%
+                    {headlinePct.toFixed(2)}%
+                    <span className="text-xs font-normal text-gray-500 ml-1">
+                      {xirrPct != null
+                        ? isAnnualised
+                          ? "/ yr"
+                          : "cumulative"
+                        : isAnnualised
+                          ? "TWR / yr"
+                          : "TWR"}
+                    </span>
                   </div>
                   <div className="text-xs text-gray-400 font-mono mt-0.5">
-                    {sym}1,000 &rarr; {sym}
-                    {stats.growthOf1000.toLocaleString(undefined, {
-                      maximumFractionDigits: 0,
-                    })}
+                    {xirrPct != null
+                      ? `TWR ${stats.twrPct >= 0 ? "+" : ""}${stats.twrPct.toFixed(2)}% · ${sym}1,000 → ${sym}${stats.growthOf1000.toLocaleString(
+                          undefined,
+                          { maximumFractionDigits: 0 },
+                        )}`
+                      : `${sym}1,000 → ${sym}${stats.growthOf1000.toLocaleString(
+                          undefined,
+                          {
+                            maximumFractionDigits: 0,
+                          },
+                        )}`}
                   </div>
                 </div>
 

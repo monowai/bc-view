@@ -218,16 +218,56 @@ describe("useAggregatedPerformance", () => {
       ),
     )
 
-    const result = (await ref.current!()) as AggregatedDataPoint[]
+    const result = (await ref.current!()) as {
+      series: AggregatedDataPoint[]
+      xirr: number | null
+    }
 
-    expect(result).toEqual(backendSeries)
+    expect(result.series).toEqual(backendSeries)
+    expect(result.xirr).toBeNull()
     // Period-relative invariants the backend guarantees, asserted here so a
     // future hook-side mutation that violates them fails loudly.
-    expect(result[0].netContributions).toBe(0)
-    expect(result[0].investmentGain).toBe(0)
-    expect(result[1].investmentGain).toBe(12000)
+    expect(result.series[0].netContributions).toBe(0)
+    expect(result.series[0].investmentGain).toBe(0)
+    expect(result.series[1].investmentGain).toBe(12000)
     // Bug repro guard: lifetime leak would push this to >= 32000.
-    expect(result[1].investmentGain).toBeLessThan(32000)
+    expect(result.series[1].investmentGain).toBeLessThan(32000)
+  })
+
+  it("surfaces xirr from backend response", async () => {
+    const { ref } = captureFetcher()
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ data: { series: [], xirr: 0.082 } }),
+    }) as unknown as typeof global.fetch
+
+    renderHook(() =>
+      useAggregatedPerformance([makePortfolio("P1", "USD")], 12, "USD", true),
+    )
+
+    const result = (await ref.current!()) as {
+      series: AggregatedDataPoint[]
+      xirr: number | null
+    }
+    expect(result.xirr).toBe(0.082)
+  })
+
+  it("defaults xirr to null when backend omits the field", async () => {
+    const { ref } = captureFetcher()
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ data: { series: [] } }),
+    }) as unknown as typeof global.fetch
+
+    renderHook(() =>
+      useAggregatedPerformance([makePortfolio("P1", "USD")], 12, "USD", true),
+    )
+
+    const result = (await ref.current!()) as {
+      series: AggregatedDataPoint[]
+      xirr: number | null
+    }
+    expect(result.xirr).toBeNull()
   })
 
   it("throws when backend responds with non-ok", async () => {
