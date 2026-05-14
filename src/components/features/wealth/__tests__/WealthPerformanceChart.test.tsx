@@ -75,10 +75,12 @@ const defaultProps = {
   onToggle: jest.fn(),
 }
 
-function setHookReturn(value: AggregatedPerformance): void {
+function setHookReturn(
+  value: Omit<AggregatedPerformance, "xirr"> & { xirr?: number | null },
+): void {
   mockUseAggregatedPerformance.useAggregatedPerformance = jest
     .fn()
-    .mockReturnValue(value)
+    .mockReturnValue({ xirr: null, ...value })
 }
 
 describe("WealthPerformanceChart", () => {
