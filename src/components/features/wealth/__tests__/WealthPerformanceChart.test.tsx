@@ -70,7 +70,6 @@ const defaultProps = {
     makePortfolio({ id: "P1", code: "P1", name: "P1" }),
     makePortfolio({ id: "P2", code: "P2", name: "P2" }),
   ],
-  fxRates: { USD: 1 },
   displayCurrency: USD,
   collapsed: false,
   onToggle: jest.fn(),
