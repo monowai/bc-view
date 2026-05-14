@@ -642,8 +642,130 @@ describe("useAggregatedPerformance", () => {
       expect(series[1].growthOf1000).toBeCloseTo(1016.67, 1)
     })
 
+    it("does not leak pre-window lifetime gain into period investmentGain (regression guard)", async () => {
+      // Original bug (svc-position cache HIT path pre-fix): if the cache was
+      // populated for a longer window, a shorter-window request returned a
+      // per-portfolio series whose series[0] landed mid-window. When the
+      // frontend unioned per-portfolio dates, a portfolio "appearing" at a
+      // mid-window date contributed BOTH its current market value AND its
+      // lifetime netContributions at that moment — leaking (mv - lifetimeContrib),
+      // i.e. the portfolio's pre-window gain, into period investmentGain.
+      // Reported symptom: 3M view showed TWR 1.55% yet investmentGain +$216K.
+      //
+      // Backend fix (PerformanceService.anchorToStartDate) now synthesises an
+      // anchor at the requested startDate for every portfolio. This test pins
+      // the contract from the consumer side: given anchored input where every
+      // series[0].date == window start, period investmentGain reflects only
+      // within-window market change, regardless of how much pre-window
+      // unrealised gain (mv - lifetimeContrib) each portfolio carries in.
+      const { ref } = captureFetcher()
+
+      // P1: existed before window with $20k pre-window unrealised gain locked
+      // in (mv 100k vs lifetime contrib 80k). $10k of further market gain
+      // accrues within the window, no flows.
+      const seriesP1 = [
+        {
+          date: "2025-01-01",
+          growthOf1000: 1000,
+          marketValue: 100000,
+          netContributions: 80000,
+          cumulativeReturn: 0,
+          cumulativeDividends: 0,
+        },
+        {
+          date: "2025-12-01",
+          growthOf1000: 1100,
+          marketValue: 110000,
+          netContributions: 80000,
+          cumulativeReturn: 0.1,
+          cumulativeDividends: 0,
+        },
+      ]
+      // P2: synthesised anchor at startDate (no activity yet). Deposit mid-window,
+      // then $2k of real market gain.
+      const seriesP2 = [
+        {
+          date: "2025-01-01",
+          growthOf1000: 1000,
+          marketValue: 0,
+          netContributions: 0,
+          cumulativeReturn: 0,
+          cumulativeDividends: 0,
+        },
+        {
+          date: "2025-06-01",
+          growthOf1000: 1000,
+          marketValue: 20000,
+          netContributions: 20000,
+          cumulativeReturn: 0,
+          cumulativeDividends: 0,
+        },
+        {
+          date: "2025-12-01",
+          growthOf1000: 1100,
+          marketValue: 22000,
+          netContributions: 20000,
+          cumulativeReturn: 0.1,
+          cumulativeDividends: 0,
+        },
+      ]
+
+      global.fetch = jest.fn().mockImplementation((url: string) =>
+        Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              data: {
+                currency: makeCurrency("USD"),
+                series: url.includes("P1") ? seriesP1 : seriesP2,
+              },
+            }),
+        }),
+      ) as unknown as typeof global.fetch
+
+      renderHook(() =>
+        useAggregatedPerformance(
+          [makePortfolio("P1", "USD"), makePortfolio("P2", "USD")],
+          12,
+          { USD: 1 },
+          "USD",
+          true,
+        ),
+      )
+
+      const series = (await ref.current!()) as Array<{
+        date: string
+        marketValue: number
+        netContributions: number
+        lifetimeContributions: number
+        investmentGain: number
+      }>
+
+      // Baseline t0: only P1 has MV; P2 anchor is zero.
+      expect(series[0].marketValue).toBe(100000)
+      expect(series[0].netContributions).toBe(0)
+      expect(series[0].lifetimeContributions).toBe(80000)
+      expect(series[0].investmentGain).toBe(0)
+
+      // End-of-window: $20k flowed in (P2 deposit); $10k P1 gain + $2k P2 gain.
+      // Period investmentGain = (132k − 100k) − 20k = 12k. NOT 32k (lifetime
+      // leak) and NOT 52k (full mv − period contrib without anchoring).
+      const last = series[series.length - 1]
+      expect(last.marketValue).toBe(132000)
+      expect(last.netContributions).toBe(20000)
+      expect(last.lifetimeContributions).toBe(100000)
+      expect(last.investmentGain).toBe(12000)
+      // Bug repro guard: any leak of P1's pre-window $20k gain would surface
+      // here as investmentGain >= 32000.
+      expect(last.investmentGain).toBeLessThan(32000)
+    })
+
     it("handles portfolio first appearing after window start (no negative skew)", async () => {
-      // P2 starts mid-window. Before its first snapshot, only P1 contributes.
+      // Pre-fix scenario: backend could return P2's series starting mid-window
+      // (no anchor at requested startDate). Post-fix, every portfolio's series
+      // begins at startDate, so this input shape is no longer produced in
+      // production — but the frontend's defensive forward-fill is kept and
+      // pinned here in case of backend regression or third-party data sources.
       const { ref } = captureFetcher()
       const seriesP1 = [
         {
