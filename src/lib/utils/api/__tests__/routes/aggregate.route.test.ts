@@ -1,4 +1,4 @@
-import aggregateHandler from "../aggregate"
+import aggregateHandler from "@pages/api/performance/aggregate"
 
 jest.mock("@lib/auth0", () => ({
   auth0: {
