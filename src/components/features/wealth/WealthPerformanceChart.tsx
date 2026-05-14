@@ -25,7 +25,6 @@ import { isLiquidPortfolio } from "@lib/wealth/liquidityGroups"
 
 interface WealthPerformanceChartProps {
   portfolios: Portfolio[]
-  fxRates: Record<string, number>
   displayCurrency: Currency | null
   collapsed: boolean
   onToggle: () => void
@@ -33,7 +32,6 @@ interface WealthPerformanceChartProps {
 
 const WealthPerformanceChart: React.FC<WealthPerformanceChartProps> = ({
   portfolios,
-  fxRates,
   displayCurrency,
   collapsed,
   onToggle,
@@ -53,7 +51,6 @@ const WealthPerformanceChart: React.FC<WealthPerformanceChartProps> = ({
   const { series, isLoading, error } = useAggregatedPerformance(
     liquidPortfolios,
     months,
-    fxRates,
     displayCurrency?.code ?? null,
     !collapsed,
   )
