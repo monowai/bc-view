@@ -31,7 +31,11 @@ const tradedPosition = (
   makePosition({
     asset: makeAsset({
       id: `asset-${code}`,
-      code: `${marketCode}.${code}`,
+      // Real BC asset.code is just the ticker; market.code is separate. Earlier
+      // tests baked `${marketCode}.${code}` together because stripOwnerPrefix
+      // would peel the prefix back off — that misuse relied on a now-fixed bug
+      // that also amputated public dotted tickers like BRK.B.
+      code,
       name: `${code} Company`,
       market: {
         code: marketCode,

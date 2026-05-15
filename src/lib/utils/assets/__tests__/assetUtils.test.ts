@@ -10,8 +10,10 @@ import {
 import { makeAsset, makeCashAsset } from "@test-fixtures/beancounter"
 
 describe("stripOwnerPrefix", () => {
-  it("returns code after last dot", () => {
-    expect(stripOwnerPrefix("userId.WISE")).toBe("WISE")
+  const USER_ID = "148_OBRVTziEJUdnLKsSlA" // realistic 22-char base64 userId
+
+  it("strips a real userId prefix", () => {
+    expect(stripOwnerPrefix(`${USER_ID}.WISE`)).toBe("WISE")
   })
 
   it("returns full code when no dot present", () => {
@@ -22,16 +24,19 @@ describe("stripOwnerPrefix", () => {
     expect(stripOwnerPrefix("")).toBe("")
   })
 
-  it("handles code with multiple dots (returns after last dot)", () => {
-    expect(stripOwnerPrefix("a.b.c")).toBe("c")
+  it("preserves public dotted tickers (BRK.B regression)", () => {
+    // Berkshire Hathaway Class B — must not collapse to "B".
+    expect(stripOwnerPrefix("BRK.B")).toBe("BRK.B")
+    expect(stripOwnerPrefix("RDS.A")).toBe("RDS.A")
   })
 
-  it("handles dot at start", () => {
-    expect(stripOwnerPrefix(".WISE")).toBe("WISE")
+  it("preserves tickers even when multiple dots are present", () => {
+    // Short prefix segments mean none is long enough to be an owner id.
+    expect(stripOwnerPrefix("a.b.c")).toBe("a.b.c")
   })
 
-  it("handles dot at end", () => {
-    expect(stripOwnerPrefix("userId.")).toBe("")
+  it("strips when prefix is long enough to plausibly be an owner id", () => {
+    expect(stripOwnerPrefix(`${USER_ID}.BRK.B`)).toBe("BRK.B")
   })
 })
 
@@ -74,14 +79,21 @@ describe("isNonTradeable", () => {
 })
 
 describe("getDisplayCode", () => {
+  const USER_ID = "148_OBRVTziEJUdnLKsSlA"
+
   it("returns stripped code for asset with owner prefix", () => {
-    const asset = { code: "userId.SCB-SGD" } as any
+    const asset = { code: `${USER_ID}.SCB-SGD` } as any
     expect(getDisplayCode(asset)).toBe("SCB-SGD")
   })
 
   it("returns code as-is for asset without dot", () => {
     const asset = { code: "AAPL" } as any
     expect(getDisplayCode(asset)).toBe("AAPL")
+  })
+
+  it("preserves dotted public tickers (BRK.B regression)", () => {
+    const asset = { code: "BRK.B" } as any
+    expect(getDisplayCode(asset)).toBe("BRK.B")
   })
 
   it("returns empty string for null asset", () => {
@@ -101,13 +113,19 @@ describe("getPositionDisplayName", () => {
   })
 
   it("returns stripped code for non-cash assets", () => {
-    expect(getPositionDisplayName(makeAsset({ code: "userId.AAPL" }))).toBe(
-      "AAPL",
-    )
+    expect(
+      getPositionDisplayName(
+        makeAsset({ code: "148_OBRVTziEJUdnLKsSlA.AAPL" }),
+      ),
+    ).toBe("AAPL")
   })
 
   it("returns code unchanged when no owner prefix", () => {
     expect(getPositionDisplayName(makeAsset({ code: "MSFT" }))).toBe("MSFT")
+  })
+
+  it("preserves dotted public tickers", () => {
+    expect(getPositionDisplayName(makeAsset({ code: "BRK.B" }))).toBe("BRK.B")
   })
 })
 
@@ -121,7 +139,7 @@ describe("buildTradesHref", () => {
 
 describe("buildNewsAsset", () => {
   it("strips owner prefix from ticker, takes market.code, defaults assetName to empty", () => {
-    const asset = makeAsset({ code: "userId.AAPL", name: "" })
+    const asset = makeAsset({ code: "148_OBRVTziEJUdnLKsSlA.AAPL", name: "" })
     expect(buildNewsAsset(asset)).toEqual({
       ticker: "AAPL",
       market: "NASDAQ",
@@ -135,6 +153,15 @@ describe("buildNewsAsset", () => {
       ticker: "AAPL",
       market: "NASDAQ",
       assetName: "Apple Inc.",
+    })
+  })
+
+  it("preserves dotted public tickers (BRK.B regression)", () => {
+    const asset = makeAsset({ code: "BRK.B", name: "Berkshire Hathaway B" })
+    expect(buildNewsAsset(asset)).toEqual({
+      ticker: "BRK.B",
+      market: "NASDAQ",
+      assetName: "Berkshire Hathaway B",
     })
   })
 })

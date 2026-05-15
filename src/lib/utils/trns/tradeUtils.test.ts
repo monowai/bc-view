@@ -663,7 +663,7 @@ describe("TradeUtils", () => {
     test("returns accountingType currency when available", () => {
       expect(
         getAssetCurrency({
-          code: "owner.SCB-USD",
+          code: "148_OBRVTziEJUdnLKsSlA.SCB-USD",
           accountingType: { currency: { code: "USD" } },
           priceSymbol: "SGD",
           market: { code: "PRIVATE", currency: { code: "SGD" } },
@@ -813,7 +813,7 @@ describe("TradeUtils", () => {
     test("strips owner prefix from private asset code", () => {
       const data: TradeFormData = {
         type: { value: "BUY", label: "Buy" },
-        asset: "userId123.APT",
+        asset: "148_OBRVTziEJUdnLKsSlA.APT",
         market: "PRIVATE",
         tradeDate: "2024-01-15",
         quantity: 1,

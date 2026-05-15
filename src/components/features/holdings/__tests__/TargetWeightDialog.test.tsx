@@ -11,7 +11,7 @@ const mockPortfolio: Portfolio = makePortfolio({
 })
 
 const mockAsset: Asset = makeAsset({
-  code: "NASDAQ.AAPL",
+  code: "AAPL",
   name: "Apple Inc",
   market: {
     code: "NASDAQ",

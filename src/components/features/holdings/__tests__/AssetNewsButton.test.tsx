@@ -58,7 +58,7 @@ describe("AssetNewsButton", () => {
   it("strips owner prefix in aria-label", () => {
     render(
       <AssetNewsButton
-        asset={makeAsset({ code: "userId.MSFT" })}
+        asset={makeAsset({ code: "148_OBRVTziEJUdnLKsSlA.MSFT" })}
         onShow={jest.fn()}
       />,
     )
