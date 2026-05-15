@@ -45,12 +45,27 @@ describe("cashFormHelpers", () => {
     const currencies: Currency[] = [makeCurrency("USD"), makeCurrency("NZD")]
 
     const accounts: Record<string, Asset> = {
-      a1: makeAsset("uuid-1", "owner.SCB-USD", "SCB USD", "USD"),
-      a2: makeAsset("uuid-2", "owner.KiwiBank", "Kiwi Bank", "NZD"),
+      a1: makeAsset(
+        "uuid-1",
+        "148_OBRVTziEJUdnLKsSlA.SCB-USD",
+        "SCB USD",
+        "USD",
+      ),
+      a2: makeAsset(
+        "uuid-2",
+        "148_OBRVTziEJUdnLKsSlA.KiwiBank",
+        "Kiwi Bank",
+        "NZD",
+      ),
     }
 
     const tradeAccounts: Record<string, Asset> = {
-      t1: makeAsset("uuid-3", "owner.IBKR", "Interactive Brokers", "USD"),
+      t1: makeAsset(
+        "uuid-3",
+        "148_OBRVTziEJUdnLKsSlA.IBKR",
+        "Interactive Brokers",
+        "USD",
+      ),
     }
 
     test("builds currency options with market CASH", () => {
@@ -136,7 +151,12 @@ describe("cashFormHelpers", () => {
     test("falls back to market currency when priceSymbol missing", () => {
       const noSymbol: Record<string, Asset> = {
         x: {
-          ...makeAsset("uuid-x", "owner.Test", "Test Acct", ""),
+          ...makeAsset(
+            "uuid-x",
+            "148_OBRVTziEJUdnLKsSlA.Test",
+            "Test Acct",
+            "",
+          ),
           priceSymbol: undefined,
         },
       }
