@@ -87,7 +87,7 @@ export default withPageAuthRequired(function AdminPage(): React.ReactElement {
       description:
         "Spring Boot Admin: live entity counts, JVM, HTTP, DB pool, health.",
       href:
-        process.env.NEXT_PUBLIC_SBA_URL ?? "https://kauri.monowai.com:30530",
+        process.env.NEXT_PUBLIC_SBA_URL ?? "https://bc-admin.monowai.com",
       icon: "fa-gauge-high",
       external: true,
     },
