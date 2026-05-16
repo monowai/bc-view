@@ -58,7 +58,7 @@ export default withPageAuthRequired(function LoggersPage(): React.ReactElement {
     data,
     error,
     isLoading: loadingData,
-  } = useSWR<LoggersResponse>(swrKey, simpleFetcher)
+  } = useSWR<LoggersResponse>(swrKey, swrKey ? simpleFetcher(swrKey) : null)
 
   const rows = useMemo(() => {
     if (!data?.loggers) return []

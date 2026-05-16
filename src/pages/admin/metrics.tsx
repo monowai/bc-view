@@ -90,7 +90,7 @@ export default withPageAuthRequired(function MetricsPage(): React.ReactElement {
     isLoading: loadingData,
   } = useSWR<EntityCountsResponse>(
     isAdmin ? "/api/admin/metrics/entity-counts" : null,
-    simpleFetcher,
+    simpleFetcher("/api/admin/metrics/entity-counts"),
     { refreshInterval: 60_000 },
   )
 
