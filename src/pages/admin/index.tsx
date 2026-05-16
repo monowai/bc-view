@@ -85,11 +85,16 @@ export default withPageAuthRequired(function AdminPage(): React.ReactElement {
     {
       title: "Service Metrics",
       description:
-        "Spring Boot Admin: live entity counts, JVM, HTTP, DB pool, health.",
-      href:
-        process.env.NEXT_PUBLIC_SBA_URL ?? "https://bc-admin.monowai.com",
+        "Live entity counts from bc-data (assets, market data, transactions, news).",
+      href: "/admin/metrics",
       icon: "fa-gauge-high",
-      external: true,
+    },
+    {
+      title: "Loggers",
+      description:
+        "Browse and tweak log levels live across all backend services.",
+      href: "/admin/loggers",
+      icon: "fa-list-ul",
     },
   ]
 

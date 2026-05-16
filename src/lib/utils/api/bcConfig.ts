@@ -54,6 +54,10 @@ export function getAgentUrl(path: string = ""): string {
   return `${process.env.BC_AGENT}${path}`
 }
 
+export function getAgentActuatorUrl(path: string = ""): string {
+  return `${process.env.BC_AGENT_ACTUATOR || process.env.BC_AGENT}${path}`
+}
+
 export function getTrnTopic(): string {
   return `${process.env.KAFKA_TOPIC_TRN}`
 }
