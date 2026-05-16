@@ -186,6 +186,37 @@ describe("PriceChartPopup", () => {
     expect(screen.getByTestId("scatter-sellPrice")).toBeInTheDocument()
   })
 
+  it("anchors a non-trading-day trade to the next available price date", () => {
+    mockUseSwr.mockImplementation(
+      makeRouter({
+        tradesResult: {
+          data: {
+            data: [
+              {
+                id: "t1",
+                trnType: "BUY",
+                tradeDate: "2026-03-28",
+                quantity: 3,
+                price: 405,
+              },
+            ],
+          },
+          isLoading: false,
+          error: undefined,
+        } as unknown as ReturnType<typeof useSwr>,
+      }) as typeof useSwr,
+    )
+
+    renderPopup()
+
+    const chart = screen.getByTestId("chart")
+    const rows = JSON.parse(
+      chart.getAttribute("data-series") as string,
+    ) as Array<{ priceDate: string; buyPrice: number | null }>
+    const anchored = rows.find((r) => r.buyPrice !== null)
+    expect(anchored?.priceDate).toBe("2026-04-01")
+  })
+
   it("renders backend split-adjusted prices and marks the ex-date", () => {
     // svc-data adjusts pre-split closes server-side and normalises the
     // `split` column so only the canonical ex-date carries a non-1 value.
