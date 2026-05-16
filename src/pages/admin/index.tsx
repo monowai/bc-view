@@ -96,6 +96,14 @@ export default withPageAuthRequired(function AdminPage(): React.ReactElement {
       href: "/admin/loggers",
       icon: "fa-list-ul",
     },
+    {
+      title: "Spring Boot Admin",
+      description:
+        "Full SBA console: JVM, HTTP, DB pool, threads, scheduled tasks across all services.",
+      href: process.env.NEXT_PUBLIC_SBA_URL ?? "https://bc-admin.monowai.com",
+      icon: "fa-stethoscope",
+      external: true,
+    },
   ]
 
   return (
