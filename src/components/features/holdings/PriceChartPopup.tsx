@@ -262,20 +262,40 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
       string,
       { type: TrnType; price: number; quantity: number }[]
     >()
+    const priceDates = (priceData?.prices ?? []).map((p) => p.priceDate)
+    if (priceDates.length === 0) return map
     const raw = tradesData?.data ?? []
-    for (const trn of raw) {
-      if (trn.trnType !== "BUY" && trn.trnType !== "SELL") continue
-      if (!trn.tradeDate || trn.tradeDate < from || trn.tradeDate > to) continue
-      const list = map.get(trn.tradeDate) ?? []
+    const sortedTrades = raw
+      .filter(
+        (trn): trn is Transaction =>
+          (trn.trnType === "BUY" || trn.trnType === "SELL") &&
+          !!trn.tradeDate &&
+          trn.tradeDate >= from &&
+          trn.tradeDate <= to,
+      )
+      .sort((a, b) => a.tradeDate.localeCompare(b.tradeDate))
+    let cursor = 0
+    for (const trn of sortedTrades) {
+      while (
+        cursor < priceDates.length &&
+        priceDates[cursor] < trn.tradeDate
+      ) {
+        cursor++
+      }
+      const anchor =
+        cursor < priceDates.length
+          ? priceDates[cursor]
+          : priceDates[priceDates.length - 1]
+      const list = map.get(anchor) ?? []
       list.push({
         type: trn.trnType,
         price: Number(trn.price),
         quantity: Number(trn.quantity),
       })
-      map.set(trn.tradeDate, list)
+      map.set(anchor, list)
     }
     return map
-  }, [tradesData, from, to])
+  }, [tradesData, priceData, from, to])
 
   const series: ChartPoint[] = useMemo(() => {
     const raw = priceData?.prices ?? []
