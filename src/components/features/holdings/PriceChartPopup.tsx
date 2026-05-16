@@ -184,7 +184,7 @@ const ChartTooltip: React.FC<TooltipPayload> = ({
         </div>
       )}
       {typeof point.buyPrice === "number" && (
-        <div className="text-xs text-emerald-600 tabular-nums">
+        <div className="text-xs text-blue-600 tabular-nums">
           Buy {point.buyQty} @ {currencySymbol}
           <FormatValue value={point.buyPrice} />
           {point.buyPriceRaw !== point.buyPrice && (
@@ -419,7 +419,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
         <span className="flex items-center gap-1">
           <span
             aria-hidden
-            className="inline-block w-0 h-0 border-l-[5px] border-r-[5px] border-b-[7px] border-l-transparent border-r-transparent border-b-emerald-600"
+            className="inline-block w-0 h-0 border-l-[5px] border-r-[5px] border-b-[7px] border-l-transparent border-r-transparent border-b-blue-600"
           />
           Buy
         </span>
@@ -529,8 +529,8 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
               )}
               <Scatter
                 dataKey="buyPrice"
-                fill="#10B981"
-                shape={<TradeDot color="#10B981" direction="up" />}
+                fill="#2563EB"
+                shape={<TradeDot color="#2563EB" direction="up" />}
                 isAnimationActive={false}
               />
               <Scatter
