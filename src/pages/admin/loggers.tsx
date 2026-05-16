@@ -50,7 +50,8 @@ export default withPageAuthRequired(function LoggersPage(): React.ReactElement {
   const { isAdmin, isLoading } = useIsAdmin()
   const [service, setService] = useState<Service>("bc-data")
   const [filter, setFilter] = useState("com.beancounter")
-  const [saving, setSaving] = useState<string | null>(null)
+  const [saving, setSaving] = useState<Set<string>>(new Set())
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   const swrKey = isAdmin ? `/api/admin/loggers/${service}` : null
   const {
@@ -70,17 +71,33 @@ export default withPageAuthRequired(function LoggersPage(): React.ReactElement {
     logger: string,
     configuredLevel: Level | null,
   ): Promise<void> {
-    setSaving(logger)
+    setSaving((prev) => {
+      const next = new Set(prev)
+      next.add(logger)
+      return next
+    })
+    setSaveError(null)
     try {
       const res = await fetch(`/api/admin/loggers/${service}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ logger, configuredLevel }),
       })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      if (!res.ok) {
+        const body = await res.text().catch(() => "")
+        throw new Error(`HTTP ${res.status}${body ? `: ${body}` : ""}`)
+      }
       await mutate(swrKey)
+    } catch (e) {
+      setSaveError(
+        `Failed to set ${logger}: ${e instanceof Error ? e.message : String(e)}`,
+      )
     } finally {
-      setSaving(null)
+      setSaving((prev) => {
+        const next = new Set(prev)
+        next.delete(logger)
+        return next
+      })
     }
   }
 
@@ -144,6 +161,19 @@ export default withPageAuthRequired(function LoggersPage(): React.ReactElement {
         </div>
       )}
 
+      {saveError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 text-red-700 text-sm flex justify-between items-center">
+          <span>{saveError}</span>
+          <button
+            onClick={() => setSaveError(null)}
+            className="text-red-500 hover:text-red-700 ml-4"
+            aria-label="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       {loadingData && !data && (
         <div className="text-gray-500 text-sm">Loading...</div>
       )}
@@ -185,7 +215,7 @@ export default withPageAuthRequired(function LoggersPage(): React.ReactElement {
                   <td className="px-4 py-2">
                     <select
                       value={entry.configuredLevel ?? ""}
-                      disabled={saving === name}
+                      disabled={saving.has(name)}
                       onChange={(e) => {
                         const v = e.target.value
                         setLevel(name, v === "" ? null : (v as Level))

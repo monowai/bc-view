@@ -1,4 +1,3 @@
-import { auth0 } from "@lib/auth0"
 import { fetchError } from "@utils/api/responseWriter"
 import {
   getDataActuatorUrl,
@@ -8,6 +7,7 @@ import {
   getRebalanceActuatorUrl,
   getAgentActuatorUrl,
 } from "@utils/api/bcConfig"
+import { requireAdmin } from "@utils/api/requireAdmin"
 import { NextApiRequest, NextApiResponse } from "next"
 
 const ACTUATOR_URLS: Record<string, () => string> = {
@@ -18,6 +18,8 @@ const ACTUATOR_URLS: Record<string, () => string> = {
   "bc-rebalance": getRebalanceActuatorUrl,
   "bc-agent": getAgentActuatorUrl,
 }
+
+const VALID_LEVELS = new Set(["TRACE", "DEBUG", "INFO", "WARN", "ERROR", "OFF"])
 
 /**
  * GET  /api/admin/loggers/{service}              → list loggers
@@ -33,12 +35,6 @@ export default async function loggersHandler(
   res: NextApiResponse,
 ): Promise<void> {
   try {
-    const session = await auth0.getSession(req)
-    if (!session) {
-      res.status(401).json({ error: "Not authenticated" })
-      return
-    }
-
     const service = Array.isArray(req.query.service)
       ? req.query.service[0]
       : req.query.service
@@ -47,11 +43,9 @@ export default async function loggersHandler(
       return
     }
 
-    const { token } = await auth0.getAccessToken(req, res)
-    if (!token) {
-      res.status(401).json({ error: "Unauthorized" })
-      return
-    }
+    const guard = await requireAdmin(req, res)
+    if (!guard.ok) return
+    const token = guard.token!
 
     const base = ACTUATOR_URLS[service]()
 
@@ -75,6 +69,16 @@ export default async function loggersHandler(
       const { logger, configuredLevel } = req.body ?? {}
       if (!logger || typeof logger !== "string") {
         res.status(400).json({ error: "logger required" })
+        return
+      }
+      if (
+        configuredLevel !== null &&
+        (typeof configuredLevel !== "string" ||
+          !VALID_LEVELS.has(configuredLevel))
+      ) {
+        res.status(400).json({
+          error: `configuredLevel must be null or one of ${[...VALID_LEVELS].join(", ")}`,
+        })
         return
       }
       const encodedLogger = encodeURIComponent(logger)

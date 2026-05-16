@@ -1,6 +1,6 @@
-import { auth0 } from "@lib/auth0"
 import { fetchError } from "@utils/api/responseWriter"
 import { getDataActuatorUrl } from "@utils/api/bcConfig"
+import { requireAdmin } from "@utils/api/requireAdmin"
 import { NextApiRequest, NextApiResponse } from "next"
 
 interface MicrometerMeasurement {
@@ -56,28 +56,28 @@ export default async function entityCountsHandler(
   res: NextApiResponse<EntityCountsResponse | { error: string }>,
 ): Promise<void> {
   try {
-    const session = await auth0.getSession(req)
-    if (!session) {
-      res.status(401).json({ error: "Not authenticated" })
-      return
-    }
     if (req.method !== "GET") {
       res.setHeader("Allow", ["GET"])
       res.status(405).end(`Method ${req.method} Not Allowed`)
       return
     }
 
-    const { token } = await auth0.getAccessToken(req, res)
-    if (!token) {
-      res.status(401).json({ error: "Unauthorized" })
-      return
-    }
+    const guard = await requireAdmin(req, res)
+    if (!guard.ok) return
+    const token = guard.token!
 
     const base = getDataActuatorUrl()
 
     // First call returns availableTags so we know which entities exist.
+    // Fail fast if the root call fails — partial data masks auth/actuator outages.
     const root = await fetchMetric(base, "beancounter.entity.count", "", token)
-    const entityTag = root?.availableTags?.find((t) => t.tag === "entity")
+    if (!root) {
+      res
+        .status(502)
+        .json({ error: "Upstream actuator unreachable or unauthorized" })
+      return
+    }
+    const entityTag = root.availableTags?.find((t) => t.tag === "entity")
     const entities = entityTag?.values ?? []
 
     const counts: EntityCount[] = await Promise.all(
