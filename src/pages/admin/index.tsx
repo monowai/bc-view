@@ -9,6 +9,7 @@ interface AdminCard {
   description: string
   href: string
   icon: string
+  external?: boolean
 }
 
 export default withPageAuthRequired(function AdminPage(): React.ReactElement {
@@ -81,6 +82,15 @@ export default withPageAuthRequired(function AdminPage(): React.ReactElement {
       href: "/admin/tasks",
       icon: "fa-clock",
     },
+    {
+      title: "Service Metrics",
+      description:
+        "Spring Boot Admin: live entity counts, JVM, HTTP, DB pool, health.",
+      href:
+        process.env.NEXT_PUBLIC_SBA_URL ?? "https://kauri.monowai.com:30530",
+      icon: "fa-gauge-high",
+      external: true,
+    },
   ]
 
   return (
@@ -93,12 +103,8 @@ export default withPageAuthRequired(function AdminPage(): React.ReactElement {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {adminCards.map((card) => (
-          <Link
-            key={card.href}
-            href={card.href}
-            className="bg-white rounded-lg border border-gray-200 p-6 hover:border-blue-300 hover:shadow-md transition-all group"
-          >
+        {adminCards.map((card) => {
+          const cardBody = (
             <div className="flex items-start space-x-4">
               <div className="flex-shrink-0 w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center group-hover:bg-blue-100 transition-colors">
                 <i className={`fas ${card.icon} text-blue-500 text-xl`}></i>
@@ -106,6 +112,12 @@ export default withPageAuthRequired(function AdminPage(): React.ReactElement {
               <div className="flex-1">
                 <h2 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
                   {card.title}
+                  {card.external && (
+                    <i
+                      className="fas fa-external-link-alt text-xs text-gray-400 ml-2"
+                      aria-hidden="true"
+                    />
+                  )}
                 </h2>
                 <p className="text-gray-600 text-sm mt-1">{card.description}</p>
               </div>
@@ -113,8 +125,25 @@ export default withPageAuthRequired(function AdminPage(): React.ReactElement {
                 <i className="fas fa-chevron-right"></i>
               </div>
             </div>
-          </Link>
-        ))}
+          )
+          const cardClass =
+            "bg-white rounded-lg border border-gray-200 p-6 hover:border-blue-300 hover:shadow-md transition-all group"
+          return card.external ? (
+            <a
+              key={card.href}
+              href={card.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cardClass}
+            >
+              {cardBody}
+            </a>
+          ) : (
+            <Link key={card.href} href={card.href} className={cardClass}>
+              {cardBody}
+            </Link>
+          )
+        })}
       </div>
     </div>
   )
