@@ -82,12 +82,22 @@ function denormalizeTrn(
   const asset = assets[dto.assetId]
   const portfolio = portfolios[dto.portfolioId]
   const tradeCurrency = currencies[dto.tradeCurrencyCode]
-  const cashAsset = dto.cashAssetId ? assets[dto.cashAssetId] : undefined
-  const broker = dto.brokerId ? brokers[dto.brokerId] : undefined
+  if (!asset || !portfolio || !tradeCurrency) {
+    throw new Error(
+      `Invalid TrnPayload refs for trn ${dto.id} ` +
+        `(assetId=${dto.assetId}, portfolioId=${dto.portfolioId}, ` +
+        `tradeCurrencyCode=${dto.tradeCurrencyCode})`,
+    )
+  }
+  const cashAsset = dto.cashAssetId ? lookup(assets, dto.cashAssetId, dto.id, "cashAssetId") : undefined
+  const cashCurrency = dto.cashCurrencyCode
+    ? lookup(currencies, dto.cashCurrencyCode, dto.id, "cashCurrencyCode")
+    : undefined
+  const broker = dto.brokerId ? lookup(brokers, dto.brokerId, dto.id, "brokerId") : undefined
 
   return {
     id: dto.id,
-    callerRef: dto.callerRef!,
+    callerRef: dto.callerRef ?? { provider: "", batch: "", callerId: "" },
     trnType: dto.trnType,
     status: dto.status,
     portfolio,
@@ -100,7 +110,7 @@ function denormalizeTrn(
     tradeAmount: dto.tradeAmount,
     tradeBaseRate: dto.tradeBaseRate,
     tradePortfolioRate: dto.tradePortfolioRate,
-    cashCurrency: dto.cashCurrencyCode ?? "",
+    cashCurrency: cashCurrency?.code ?? "",
     cashAmount: dto.cashAmount,
     tradeCashRate: dto.tradeCashRate,
     fees: dto.fees,
@@ -111,4 +121,17 @@ function denormalizeTrn(
     modelId: dto.modelId ?? undefined,
     subAccounts: dto.subAccounts ?? undefined,
   }
+}
+
+function lookup<T>(
+  map: Record<string, T>,
+  id: string,
+  trnId: string,
+  field: string,
+): T {
+  const value = map[id]
+  if (!value) {
+    throw new Error(`TrnPayload missing ${field}=${id} for trn ${trnId}`)
+  }
+  return value
 }

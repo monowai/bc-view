@@ -1,52 +1,18 @@
-import type { Asset, Portfolio, TrnPayload } from "types/beancounter"
+import type { TrnPayload } from "types/beancounter"
 import {
   denormalizeTrnPayload,
   transformTrnEnvelopeJson,
 } from "@utils/trns/trnsSelectors"
+import {
+  makeAsset,
+  makeCashAsset,
+  makePortfolio,
+  USD,
+} from "@test-fixtures/beancounter"
 
-const usdAsset: Asset = {
-  id: "USD",
-  code: "USD",
-  name: "US Dollar",
-  market: {
-    code: "CASH",
-    currency: { code: "USD", name: "Dollar", symbol: "$" },
-    timezone: "UTC",
-    multiplier: 1,
-  },
-  priceSymbol: "USD",
-  category: "CASH",
-  assetCategory: { id: "CASH", name: "Cash" },
-  status: "Active",
-  version: "1",
-} as unknown as Asset
-
-const aaplAsset: Asset = {
-  id: "AAPL",
-  code: "AAPL",
-  name: "Apple",
-  market: {
-    code: "NASDAQ",
-    currency: { code: "USD", name: "Dollar", symbol: "$" },
-    timezone: "US/Eastern",
-    multiplier: 1,
-  },
-  priceSymbol: "AAPL",
-  category: "EQUITY",
-  assetCategory: { id: "EQUITY", name: "Equity" },
-  status: "Active",
-  version: "1",
-} as unknown as Asset
-
-const portfolio: Portfolio = {
-  id: "USV",
-  code: "USV",
-  name: "Test",
-  marketValue: 0,
-  irr: 0,
-  currency: { code: "USD", name: "Dollar", symbol: "$" },
-  base: { code: "USD", name: "Dollar", symbol: "$" },
-} as unknown as Portfolio
+const aapl = makeAsset()
+const usdCash = makeCashAsset(USD)
+const portfolio = makePortfolio({ id: "USV", code: "USV" })
 
 const envelope: TrnPayload = {
   trns: [
@@ -55,17 +21,17 @@ const envelope: TrnPayload = {
       callerRef: null,
       trnType: "BUY",
       status: "SETTLED",
-      portfolioId: "USV",
-      assetId: "AAPL",
-      cashAssetId: "USD",
+      portfolioId: portfolio.id,
+      assetId: aapl.id,
+      cashAssetId: usdCash.id,
       tradeDate: "2025-01-15",
       quantity: 10,
       price: 200,
-      tradeCurrencyCode: "USD",
+      tradeCurrencyCode: USD.code,
       tradeAmount: 2000,
       tradeBaseRate: 1,
       tradePortfolioRate: 1,
-      cashCurrencyCode: "USD",
+      cashCurrencyCode: USD.code,
       cashAmount: -2000,
       tradeCashRate: 1,
       fees: 0,
@@ -76,9 +42,9 @@ const envelope: TrnPayload = {
       subAccounts: null,
     },
   ],
-  assets: { AAPL: aaplAsset, USD: usdAsset },
-  portfolios: { USV: portfolio },
-  currencies: { USD: { code: "USD", name: "Dollar", symbol: "$" } },
+  assets: { [aapl.id]: aapl, [usdCash.id]: usdCash },
+  portfolios: { [portfolio.id]: portfolio },
+  currencies: { [USD.code]: USD },
   brokers: {},
 }
 
@@ -86,10 +52,15 @@ describe("trnsSelectors", () => {
   describe("denormalizeTrnPayload", () => {
     it("re-attaches asset and portfolio from envelope maps", () => {
       const [trn] = denormalizeTrnPayload(envelope)
-      expect(trn.asset).toEqual(aaplAsset)
+      expect(trn.asset).toEqual(aapl)
       expect(trn.portfolio).toEqual(portfolio)
-      expect(trn.cashAsset).toEqual(usdAsset)
-      expect(trn.tradeCurrency.code).toBe("USD")
+      expect(trn.cashAsset).toEqual(usdCash)
+      expect(trn.tradeCurrency.code).toBe(USD.code)
+    })
+
+    it("falls back to an empty callerRef when the envelope omits it", () => {
+      const [trn] = denormalizeTrnPayload(envelope)
+      expect(trn.callerRef).toEqual({ provider: "", batch: "", callerId: "" })
     })
 
     it("returns an empty array for missing or empty envelopes", () => {
@@ -105,15 +76,32 @@ describe("trnsSelectors", () => {
         }),
       ).toEqual([])
     })
+
+    it("throws when a required envelope reference is missing", () => {
+      const broken: TrnPayload = {
+        ...envelope,
+        assets: {}, // strip AAPL from the envelope
+      }
+      expect(() => denormalizeTrnPayload(broken)).toThrow(/Invalid TrnPayload refs/)
+    })
+
+    it("throws when an optional id is dangling", () => {
+      const broken: TrnPayload = {
+        ...envelope,
+        brokers: {},
+        trns: [{ ...envelope.trns[0], brokerId: "ghost" }],
+      }
+      expect(() => denormalizeTrnPayload(broken)).toThrow(/brokerId=ghost/)
+    })
   })
 
   describe("transformTrnEnvelopeJson", () => {
     it("rewrites envelope to legacy { data: Transaction[] } shape", () => {
       const out = transformTrnEnvelopeJson({ data: envelope }) as {
-        data: Array<{ id: string; asset: Asset }>
+        data: Array<{ id: string; asset: typeof aapl }>
       }
       expect(out.data).toHaveLength(1)
-      expect(out.data[0].asset.code).toBe("AAPL")
+      expect(out.data[0].asset.code).toBe(aapl.code)
     })
 
     it("passes non-envelope payloads through unchanged", () => {
