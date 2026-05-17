@@ -89,11 +89,15 @@ function denormalizeTrn(
         `tradeCurrencyCode=${dto.tradeCurrencyCode})`,
     )
   }
-  const cashAsset = dto.cashAssetId ? lookup(assets, dto.cashAssetId, dto.id, "cashAssetId") : undefined
+  const cashAsset = dto.cashAssetId
+    ? lookup(assets, dto.cashAssetId, dto.id, "cashAssetId")
+    : undefined
   const cashCurrency = dto.cashCurrencyCode
     ? lookup(currencies, dto.cashCurrencyCode, dto.id, "cashCurrencyCode")
     : undefined
-  const broker = dto.brokerId ? lookup(brokers, dto.brokerId, dto.id, "brokerId") : undefined
+  const broker = dto.brokerId
+    ? lookup(brokers, dto.brokerId, dto.id, "brokerId")
+    : undefined
 
   return {
     id: dto.id,

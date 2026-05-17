@@ -82,7 +82,9 @@ describe("trnsSelectors", () => {
         ...envelope,
         assets: {}, // strip AAPL from the envelope
       }
-      expect(() => denormalizeTrnPayload(broken)).toThrow(/Invalid TrnPayload refs/)
+      expect(() => denormalizeTrnPayload(broken)).toThrow(
+        /Invalid TrnPayload refs/,
+      )
     })
 
     it("throws when an optional id is dangling", () => {
