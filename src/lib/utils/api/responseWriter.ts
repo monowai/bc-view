@@ -129,6 +129,7 @@ export function hasError(response: Response): boolean {
 export default async function handleResponse<T>(
   response: Response,
   res: NextApiResponse,
+  transformJson?: (json: unknown) => unknown,
 ): Promise<void> {
   if (hasError(response)) {
     await handleErrors(response)
@@ -137,6 +138,7 @@ export default async function handleResponse<T>(
     res.status(204).end()
   } else {
     const json: T = await response.json()
-    res.status(response.status || 200).json(json)
+    const payload = transformJson ? (transformJson(json) as T) : json
+    res.status(response.status || 200).json(payload)
   }
 }

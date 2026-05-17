@@ -1,5 +1,6 @@
 import { createApiHandler } from "@utils/api/createApiHandler"
 import { getDataUrl } from "@utils/api/bcConfig"
+import { transformTrnEnvelopeJson } from "@utils/trns/trnsSelectors"
 
 export default createApiHandler({
   url: (req) => {
@@ -10,4 +11,5 @@ export default createApiHandler({
     return getDataUrl(`/trns/${trnId}`)
   },
   methods: ["GET", "PATCH", "DELETE"],
+  transformJson: transformTrnEnvelopeJson,
 })

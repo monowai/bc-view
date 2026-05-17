@@ -347,6 +347,58 @@ export interface Transaction {
   subAccounts?: Record<string, number>
 }
 
+/**
+ * Wire-format Trn record matching the backend `TrnDto`. Asset, Portfolio,
+ * Currency, and Broker are referenced by id/code; the actual objects live
+ * in the parent [[TrnPayload]] maps. Re-hydrate via
+ * `denormalizeTrnPayload` when components need the fat [[Transaction]].
+ */
+export interface TrnDto {
+  id: string
+  callerRef: CallerRef | null
+  trnType: TrnType
+  status: TrnStatus
+  portfolioId: string
+  assetId: string
+  cashAssetId: string | null
+  tradeDate: string
+  quantity: number
+  price: number | null
+  tradeCurrencyCode: string
+  tradeAmount: number
+  tradeBaseRate: number
+  tradePortfolioRate: number
+  cashCurrencyCode: string | null
+  cashAmount: number
+  tradeCashRate: number
+  fees: number
+  tax: number
+  comments: string | null
+  brokerId: string | null
+  modelId: string | null
+  subAccounts: Record<string, number> | null
+}
+
+/**
+ * Normalised envelope returned by every `/api/trns/...` endpoint.
+ * De-duplicates Asset / Portfolio / Currency / Broker references across
+ * many trns in a single response.
+ */
+export interface TrnPayload {
+  trns: TrnDto[]
+  assets: Record<string, Asset>
+  portfolios: Record<string, Portfolio>
+  currencies: Record<string, Currency>
+  brokers: Record<string, Broker>
+}
+
+/**
+ * Top-level response envelope from backend trn endpoints.
+ */
+export interface TrnResponse {
+  data: TrnPayload
+}
+
 interface Registration {
   id: string
   email: string
