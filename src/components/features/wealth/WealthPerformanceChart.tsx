@@ -21,10 +21,10 @@ import {
   formatTooltipDate,
 } from "@lib/chart/performanceConstants"
 import { useAggregatedPerformance } from "@hooks/useAggregatedPerformance"
+import { isLiquidPortfolio } from "@lib/wealth/liquidityGroups"
 
 interface WealthPerformanceChartProps {
   portfolios: Portfolio[]
-  fxRates: Record<string, number>
   displayCurrency: Currency | null
   collapsed: boolean
   onToggle: () => void
@@ -32,7 +32,6 @@ interface WealthPerformanceChartProps {
 
 const WealthPerformanceChart: React.FC<WealthPerformanceChartProps> = ({
   portfolios,
-  fxRates,
   displayCurrency,
   collapsed,
   onToggle,
@@ -40,10 +39,18 @@ const WealthPerformanceChart: React.FC<WealthPerformanceChartProps> = ({
   const [months, setMonths] = useState(12)
   const sym = displayCurrency?.symbol || "$"
 
-  const { series, isLoading, error } = useAggregatedPerformance(
-    portfolios,
+  // Restrict to liquid portfolios — Property-dominated portfolios distort TWR
+  // because illiquid valuations move with appraisal cycles, not market prices.
+  // Mirrors svc-retire's housing exclusion (HOUSING_CATEGORIES = {Property}).
+  const liquidPortfolios = useMemo(
+    () => portfolios.filter(isLiquidPortfolio),
+    [portfolios],
+  )
+  const excludedCount = portfolios.length - liquidPortfolios.length
+
+  const { series, xirr, isLoading, error } = useAggregatedPerformance(
+    liquidPortfolios,
     months,
-    fxRates,
     displayCurrency?.code ?? null,
     !collapsed,
   )
@@ -53,15 +60,22 @@ const WealthPerformanceChart: React.FC<WealthPerformanceChartProps> = ({
     if (series.length === 0) return null
     const last = series[series.length - 1]
     return {
-      returnPct: last.cumulativeReturn * 100,
+      twrPct: last.cumulativeReturn * 100,
       growthOf1000: last.growthOf1000,
       marketValue: last.marketValue,
-      contributed: last.netContributions,
-      gain: last.investmentGain,
+      contributed: last.netContributions, // period-only
+      lifetimeContributed: last.lifetimeContributions,
+      gain: last.investmentGain, // period gain
     }
   }, [series])
 
-  const isPositive = (stats?.returnPct ?? 0) >= 0
+  // XIRR is the headline. >=12M windows are annualised by the solver;
+  // shorter windows return simple ROI (cumulative) per IrrCalculator's
+  // minHoldingDays fallback. Label accordingly so the user can interpret.
+  const xirrPct = xirr != null ? xirr * 100 : null
+  const isAnnualised = months >= 12
+  const headlinePct = xirrPct ?? stats?.twrPct ?? 0
+  const isPositive = headlinePct >= 0
   const fmtCompact = (v: number): string => formatCompact(v, sym)
   const fmtFull = (v: number): string => formatFull(v, sym)
 
@@ -77,6 +91,14 @@ const WealthPerformanceChart: React.FC<WealthPerformanceChartProps> = ({
         ></i>
         <i className="fas fa-chart-line text-gray-400 mr-2"></i>
         Wealth Performance
+        {excludedCount > 0 && (
+          <span
+            className="ml-2 text-xs font-normal text-gray-400"
+            title={`Excludes ${excludedCount} property-dominated portfolio${excludedCount === 1 ? "" : "s"}. Tracking liquid AUM only.`}
+          >
+            (liquid only)
+          </span>
+        )}
       </button>
 
       {!collapsed && (
@@ -136,22 +158,46 @@ const WealthPerformanceChart: React.FC<WealthPerformanceChartProps> = ({
             <>
               {/* Key metrics row */}
               <div className="grid grid-cols-3 divide-x divide-gray-100 mb-4 py-4 border-y border-gray-100">
-                {/* Aggregate TWR Return */}
-                <div className="px-4">
+                {/* Investment Return — XIRR primary, TWR secondary */}
+                <div
+                  className="px-4"
+                  title={
+                    xirrPct != null
+                      ? "XIRR = money-weighted return on your actual cash flows. " +
+                        "TWR (below) = strategy/market return, ignores when you contributed."
+                      : "TWR cumulative return. XIRR unavailable for this window."
+                  }
+                >
                   <div className="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-1">
-                    Aggregate TWR
+                    Investment Return
                   </div>
                   <div
                     className={`text-2xl font-mono font-bold tracking-tight ${isPositive ? "text-gain" : "text-loss"}`}
                   >
                     {isPositive ? "+" : ""}
-                    {stats.returnPct.toFixed(2)}%
+                    {headlinePct.toFixed(2)}%
+                    <span className="text-xs font-normal text-gray-500 ml-1">
+                      {xirrPct != null
+                        ? isAnnualised
+                          ? "/ yr"
+                          : "cumulative"
+                        : isAnnualised
+                          ? "TWR / yr"
+                          : "TWR"}
+                    </span>
                   </div>
                   <div className="text-xs text-gray-400 font-mono mt-0.5">
-                    {sym}1,000 &rarr; {sym}
-                    {stats.growthOf1000.toLocaleString(undefined, {
-                      maximumFractionDigits: 0,
-                    })}
+                    {xirrPct != null
+                      ? `TWR ${stats.twrPct >= 0 ? "+" : ""}${stats.twrPct.toFixed(2)}% · ${sym}1,000 → ${sym}${stats.growthOf1000.toLocaleString(
+                          undefined,
+                          { maximumFractionDigits: 0 },
+                        )}`
+                      : `${sym}1,000 → ${sym}${stats.growthOf1000.toLocaleString(
+                          undefined,
+                          {
+                            maximumFractionDigits: 0,
+                          },
+                        )}`}
                   </div>
                 </div>
 
@@ -163,8 +209,11 @@ const WealthPerformanceChart: React.FC<WealthPerformanceChartProps> = ({
                   <div className="text-2xl font-mono font-bold tracking-tight text-gray-900">
                     {fmtCompact(stats.marketValue)}
                   </div>
-                  <div className="text-xs text-gray-400 font-mono mt-0.5">
-                    {fmtCompact(stats.contributed)} contributed
+                  <div
+                    className="text-xs text-gray-400 font-mono mt-0.5"
+                    title={`Lifetime contributed: ${fmtFull(stats.lifetimeContributed)}`}
+                  >
+                    {fmtCompact(stats.contributed)} contributed (period)
                   </div>
                 </div>
 
@@ -180,8 +229,8 @@ const WealthPerformanceChart: React.FC<WealthPerformanceChartProps> = ({
                     {fmtCompact(stats.gain)}
                   </div>
                   <div className="text-xs text-gray-400 font-mono mt-0.5">
-                    {stats.contributed !== 0
-                      ? `${((stats.gain / Math.abs(stats.contributed)) * 100).toFixed(1)}% on cost`
+                    {stats.lifetimeContributed !== 0
+                      ? `${((stats.gain / Math.abs(stats.lifetimeContributed)) * 100).toFixed(1)}% on cost`
                       : "\u00A0"}
                   </div>
                 </div>

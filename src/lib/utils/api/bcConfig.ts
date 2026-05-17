@@ -35,16 +35,27 @@ export function getRebalanceUrl(path: string = ""): string {
 }
 
 // Independence settings
-export const getIndependenceSettingsUrl = (): string => getRetireUrl("/settings")
+export const getIndependenceSettingsUrl = (): string =>
+  getRetireUrl("/settings")
 
 // Composite projection
 export const getCompositeProjectionUrl = (): string =>
   getRetireUrl("/composite/projection")
 export const getCompositeScenariosUrl = (): string =>
   getRetireUrl("/composite/scenarios")
+export const getCompositeMonteCarloUrl = (): string =>
+  getRetireUrl("/composite/monte-carlo")
 
 export function getRebalanceActuatorUrl(path: string = ""): string {
   return `${process.env.BC_REBALANCE_ACTUATOR || process.env.BC_REBALANCE}${path}`
+}
+
+export function getAgentUrl(path: string = ""): string {
+  return `${process.env.BC_AGENT}${path}`
+}
+
+export function getAgentActuatorUrl(path: string = ""): string {
+  return `${process.env.BC_AGENT_ACTUATOR || process.env.BC_AGENT}${path}`
 }
 
 export function getTrnTopic(): string {
@@ -105,5 +116,6 @@ export function getTracePropagationTargets(): (string | RegExp)[] {
   if (process.env.BC_EVENT) targets.push(process.env.BC_EVENT)
   if (process.env.BC_RETIRE) targets.push(process.env.BC_RETIRE)
   if (process.env.BC_REBALANCE) targets.push(process.env.BC_REBALANCE)
+  if (process.env.BC_AGENT) targets.push(process.env.BC_AGENT)
   return targets
 }

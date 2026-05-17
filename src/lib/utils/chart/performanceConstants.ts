@@ -13,7 +13,8 @@ export const TIME_RANGES = [
 
 // Recharts requires inline style values — centralise them here for maintainability
 export const CHART_COLORS = {
-  accent: "#10b981", // emerald-500
+  accent: "#10b981", // emerald-500 — primary portfolio series
+  benchmark: "#6366f1", // indigo-500 — benchmark/index overlay
   axis: "#9ca3af", // gray-400
   tooltipBg: "rgba(15, 23, 42, 0.95)", // slate-900 @ 95%
   tooltipText: "#e2e8f0", // slate-200

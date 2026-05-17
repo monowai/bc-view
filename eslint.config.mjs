@@ -121,6 +121,26 @@ export default [
       "@typescript-eslint/ban-ts-ignore": "off",
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
+      // React Compiler rules (eslint-plugin-react-hooks v7). All clean as of
+      // the batch-2 cleanup, so they're promoted to "error" — CI now blocks
+      // any new compiler bailouts. Intentional bailouts (SSR hydration,
+      // bidirectional input controllers, URL-driven side effects) are
+      // captured with scoped eslint-disable-next-line directives at the
+      // call site.
+      "react-hooks/preserve-manual-memoization": "error",
+      "react-hooks/immutability": "error",
+      "react-hooks/purity": "error",
+      "react-hooks/refs": "error",
+      "react-hooks/set-state-in-effect": "error",
+      "react-hooks/set-state-in-render": "error",
+      "react-hooks/static-components": "error",
+      "react-hooks/use-memo": "error",
+      "react-hooks/error-boundaries": "error",
+      "react-hooks/gating": "error",
+      "react-hooks/globals": "error",
+      "react-hooks/config": "error",
+      "react-hooks/unsupported-syntax": "error",
+      "react-hooks/incompatible-library": "error",
       // Next.js rules
       ...nextPlugin.configs.recommended.rules,
       ...nextPlugin.configs["core-web-vitals"].rules,

@@ -84,10 +84,10 @@ const CorporateActionsPopup: React.FC<CorporateActionsPopupProps> = ({
 
   // Fetch corporate events from bc-event service
   const eventUrl = corporateEventsKey(asset.id, fromDate, toDate)
-  console.log(
-    `[CorporateActions] Fetching events for asset: ${asset.id} (${asset.code}), from: ${fromDate}, to: ${toDate}`,
-  )
-  console.log(`[CorporateActions] Event URL: ${eventUrl}`)
+  // console.log(
+  //   `[CorporateActions] Fetching events for asset: ${asset.id} (${asset.code}), from: ${fromDate}, to: ${toDate}`,
+  // )
+  // console.log(`[CorporateActions] Event URL: ${eventUrl}`)
 
   const { data, error, isLoading, mutate } = useSwr(
     modalOpen ? eventUrl : null,

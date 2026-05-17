@@ -142,12 +142,14 @@ export default function ScenarioImpact({
                   Sell trigger threshold
                 </span>
                 <span className="text-sm font-medium text-gray-900">
-                  {whatIfAdjustments.liquidationThreshold}%
+                  {whatIfAdjustments.liquidationThreshold === 0
+                    ? "Never sell"
+                    : `${whatIfAdjustments.liquidationThreshold}%`}
                 </span>
               </div>
               <input
                 type="range"
-                min={5}
+                min={0}
                 max={50}
                 step={5}
                 value={whatIfAdjustments.liquidationThreshold}
@@ -157,7 +159,9 @@ export default function ScenarioImpact({
                 className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-independence-500"
               />
               <p className="text-xs text-gray-500 mt-1">
-                Sell illiquid assets when liquid drops below this % of initial
+                {whatIfAdjustments.liquidationThreshold === 0
+                  ? "Illiquid assets will not be sold — depletion reflects liquid assets only"
+                  : "Sell illiquid assets when liquid drops below this % of initial"}
               </p>
             </div>
           </>

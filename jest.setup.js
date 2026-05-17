@@ -5,6 +5,31 @@
 import "@testing-library/jest-dom"
 import React from "react"
 
+// jsdom doesn't expose Web Streams / TextEncoder globally — polyfill from
+// Node built-ins so SSE-streaming tests (e.g. useChat) can mock a real
+// ReadableStream response body.
+import { TextEncoder, TextDecoder } from "node:util"
+import {
+  ReadableStream,
+  TransformStream,
+  TextDecoderStream,
+} from "node:stream/web"
+if (typeof globalThis.TextEncoder === "undefined") {
+  globalThis.TextEncoder = TextEncoder
+}
+if (typeof globalThis.TextDecoder === "undefined") {
+  globalThis.TextDecoder = TextDecoder
+}
+if (typeof globalThis.ReadableStream === "undefined") {
+  globalThis.ReadableStream = ReadableStream
+}
+if (typeof globalThis.TransformStream === "undefined") {
+  globalThis.TransformStream = TransformStream
+}
+if (typeof globalThis.TextDecoderStream === "undefined") {
+  globalThis.TextDecoderStream = TextDecoderStream
+}
+
 module.exports = {
   setupFilesAfterEnv: ["./jest.setup.js"],
 }
@@ -26,6 +51,23 @@ jest.mock("next/router", () => ({
     }
   },
 }))
+
+// Mock next/link as a plain anchor — keeps tests independent of the Next.js
+// router prefetching behavior.
+jest.mock("next/link", () => {
+  return function Link({ children, href, ...rest }) {
+    return React.createElement("a", { href, ...rest }, children)
+  }
+})
+
+// react-markdown / remark-gfm are ESM-only packages that fail to parse in Jest.
+// Components like NewsSentimentPopup pull them in transitively.
+jest.mock("react-markdown", () => {
+  return function MockMarkdown({ children }) {
+    return React.createElement("div", { "data-testid": "markdown" }, children)
+  }
+})
+jest.mock("remark-gfm", () => () => {})
 
 // Mock Auth0 client modules (v4)
 jest.mock("@auth0/nextjs-auth0/client", () => {
@@ -55,9 +97,31 @@ jest.mock("@auth0/nextjs-auth0/client", () => {
 // Mock Auth0 types module (v4)
 jest.mock("@auth0/nextjs-auth0/types", () => ({}))
 
-// Mock fetch globally for API calls
-global.fetch = jest.fn(() =>
-  Promise.resolve({
+// Default to permissive Beancounter permissions in tests so AI-gated
+// surfaces render. Tests that exercise denial paths can override via
+// `jest.spyOn(usePermissions, ...)` or `jest.mock(...)` per-suite.
+jest.mock("@hooks/usePermissions", () => ({
+  usePermissions: jest.fn(() => ({
+    ai: true,
+    preview: true,
+    admin: true,
+    isLoading: false,
+  })),
+}))
+
+// Mock fetch globally for API calls. /api/auth/permissions returns a
+// permissive default so component tests don't have to mock the hook
+// individually; tests that care about denial can override per-call.
+global.fetch = jest.fn((input) => {
+  const url = typeof input === "string" ? input : input?.url || ""
+  if (url.includes("/api/auth/permissions")) {
+    return Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({ ai: true, preview: true, admin: true }),
+    })
+  }
+  return Promise.resolve({
+    ok: true,
     json: () => Promise.resolve({ data: [] }),
-  }),
-)
+  })
+})

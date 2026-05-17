@@ -1,157 +1,267 @@
-import React, { useMemo, useState, useCallback, useEffect, useRef } from "react"
+import React, { useCallback, useMemo, useState } from "react"
 import {
+  CashTransferData,
+  CostAdjustData,
+  Currency,
   Holdings,
+  MovePositionData,
   Portfolio,
   Position,
-  Currency,
   QuickSellData,
+  SetBalanceData,
+  SetCashBalanceData,
+  SetPriceData,
 } from "types/beancounter"
 import { FormatValue, PrivateQuantity } from "@components/ui/MoneyUtils"
 import {
-  isCash,
+  buildTradesHref,
+  getPositionDisplayName,
   isCashRelated,
+  isConstantPrice,
   isNonTradeable,
   stripOwnerPrefix,
+  supportsBalanceSetting,
 } from "@lib/assets/assetUtils"
 import { useDisplayCurrencyConversion } from "@lib/hooks/useDisplayCurrencyConversion"
-import { compareByReportCategory, compareBySector } from "@lib/categoryMapping"
-import { GroupBy } from "@components/features/holdings/GroupByOptions"
+import { getGroupComparator } from "@lib/categoryMapping"
 import { useRouter } from "next/router"
-import Link from "next/link"
+import AssetNewsButton from "@components/features/holdings/AssetNewsButton"
+import { useNewsAsset } from "@components/features/holdings/useNewsAsset"
+import { PriceChartData } from "@components/features/holdings/Rows"
+import {
+  ActionsMenu,
+  CashActionsMenu,
+  CorporateActionsData,
+  SectorWeightingsData,
+} from "@components/features/holdings/ActionsMenus"
 
-interface CardViewProps {
+interface SharedActionHandlers {
+  onTrade?: (data: QuickSellData) => void
+  onQuickSell?: (data: QuickSellData) => void
+  onCorporateActions?: (data: CorporateActionsData) => void
+  onSetPrice?: (data: SetPriceData) => void
+  onSetBalance?: (data: SetBalanceData) => void
+  onSectorWeightings?: (data: SectorWeightingsData) => void
+  onCostAdjust?: (data: CostAdjustData) => void
+  onMovePosition?: (data: MovePositionData) => void
+  onRecordIncome?: (data: QuickSellData) => void
+  onRecordExpense?: (data: QuickSellData) => void
+  onSetCashBalance?: (data: SetCashBalanceData) => void
+  onCashTransfer?: (data: CashTransferData) => void
+  onCashTransaction?: (assetCode: string) => void
+  onPriceChart?: (data: PriceChartData) => void
+}
+
+interface CardViewProps extends SharedActionHandlers {
   holdings: Holdings
   portfolio: Portfolio
   valueIn: string
   groupBy?: string
   isMixedCurrencies?: boolean
-  onRecordIncome?: (data: QuickSellData) => void
-  onRecordExpense?: (data: QuickSellData) => void
 }
 
-interface PositionCardProps {
+interface PositionCardProps extends SharedActionHandlers {
   position: Position
   portfolio: Portfolio
   valueIn: string
   sourceCurrency: Currency | undefined
-  onRecordIncome?: (data: QuickSellData) => void
-  onRecordExpense?: (data: QuickSellData) => void
 }
 
-// Context menu for card actions (income/expense/trades)
-interface CardActionsMenuProps {
-  asset: Position["asset"]
-  portfolioId: string
-  onRecordIncome?: (data: QuickSellData) => void
-  onRecordExpense?: (data: QuickSellData) => void
+// === Card subcomponents ===========================================
+
+interface PositionMetricProps {
+  label: string
+  value: React.ReactNode
+  align?: "left" | "center" | "right"
 }
 
-const CardActionsMenu: React.FC<CardActionsMenuProps> = ({
-  asset,
-  portfolioId,
-  onRecordIncome,
-  onRecordExpense,
+const PositionMetric: React.FC<PositionMetricProps> = ({
+  label,
+  value,
+  align = "left",
 }) => {
-  const [isOpen, setIsOpen] = useState(false)
-  const menuRef = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent): void => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsOpen(false)
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
-
-  const assetCode = stripOwnerPrefix(asset.code)
-
-  const handleAction = (type: "INCOME" | "EXPENSE"): void => {
-    const callback = type === "INCOME" ? onRecordIncome : onRecordExpense
-    callback?.({
-      asset: assetCode,
-      market: asset.market.code,
-      quantity: 0,
-      price: 0,
-      type,
-    })
-    setIsOpen(false)
-  }
-
+  const alignClass =
+    align === "right" ? "text-right" : align === "center" ? "text-center" : ""
   return (
-    <div className="relative" ref={menuRef}>
-      <button
-        type="button"
-        aria-label={`${"Actions"} ${assetCode}`}
-        className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-        onClick={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          setIsOpen(!isOpen)
-        }}
-      >
-        <i className="fas fa-ellipsis-vertical text-xs"></i>
-      </button>
-      {isOpen && (
-        <div className="absolute right-0 mt-1 w-44 bg-white rounded-lg shadow-xl z-50 border border-gray-200">
-          <div className="py-1">
-            {onRecordIncome && (
-              <button
-                type="button"
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  handleAction("INCOME")
-                }}
-              >
-                <i className="fas fa-arrow-down text-green-500 w-4"></i>
-                {"Record Income"}
-              </button>
-            )}
-            {onRecordExpense && (
-              <button
-                type="button"
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  handleAction("EXPENSE")
-                }}
-              >
-                <i className="fas fa-arrow-up text-red-500 w-4"></i>
-                {"Record Expense"}
-              </button>
-            )}
-            <Link
-              href={`/trns/trades/${portfolioId}/${asset.id}`}
-              className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <i className="fas fa-list text-blue-500 w-4"></i>
-              {"View Trades"}
-            </Link>
-          </div>
-        </div>
-      )}
+    <div className={alignClass}>
+      <div className="text-gray-900 font-medium">{value}</div>
+      <div className="text-xs text-gray-500">{label}</div>
     </div>
   )
 }
+
+interface PositionFooterProps {
+  quantity: number
+  precision: number
+  price: number | undefined
+  weight: number
+  currencySymbol: string
+  onPriceClick?: (e: React.MouseEvent) => void
+  priceAriaLabel?: string
+}
+
+const PositionFooter: React.FC<PositionFooterProps> = ({
+  quantity,
+  precision,
+  price,
+  weight,
+  currencySymbol,
+  onPriceClick,
+  priceAriaLabel,
+}) => {
+  const priceText = (
+    <>
+      {currencySymbol}
+      {price?.toFixed(2) || "-"}
+    </>
+  )
+  const priceValue = onPriceClick ? (
+    <button
+      type="button"
+      aria-label={priceAriaLabel}
+      className="cursor-pointer hover:text-wealth-700 hover:underline underline-offset-2 decoration-dotted"
+      onClick={onPriceClick}
+    >
+      {priceText}
+    </button>
+  ) : (
+    priceText
+  )
+  return (
+    <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-3 gap-2 text-sm">
+      <PositionMetric
+        label="Quantity"
+        value={<PrivateQuantity value={quantity} precision={precision} />}
+      />
+      <PositionMetric label="Price" align="center" value={priceValue} />
+      <PositionMetric
+        label="Weight"
+        align="right"
+        value={
+          <>
+            <FormatValue value={weight} multiplier={100} isPublic />%
+          </>
+        }
+      />
+    </div>
+  )
+}
+
+interface PositionHeaderProps {
+  asset: Position["asset"]
+  displayName: string
+  hasDistinctName: boolean
+  truncatedName: string
+  changePercent: number | undefined
+  onShowNews: () => void
+  actionsMenu?: React.ReactNode
+}
+
+const PositionHeader: React.FC<PositionHeaderProps> = ({
+  asset,
+  displayName,
+  hasDistinctName,
+  truncatedName,
+  changePercent,
+  onShowNews,
+  actionsMenu,
+}) => (
+  <div className="flex justify-between items-center gap-2 mb-3">
+    <div className="flex-1 min-w-0">
+      <h3 className="font-semibold text-gray-900 text-lg flex items-center gap-1.5">
+        {displayName}
+        <AssetNewsButton asset={asset} onShow={onShowNews} />
+      </h3>
+      {hasDistinctName && (
+        <p className="text-sm text-gray-500 truncate">{truncatedName}</p>
+      )}
+    </div>
+    <div className="flex items-center gap-2 shrink-0">
+      {changePercent !== undefined && (
+        <span
+          className={`text-sm font-medium tabular-nums ${
+            changePercent >= 0 ? "text-emerald-600" : "text-red-600"
+          }`}
+        >
+          {changePercent > 0 ? "+" : ""}
+          {(changePercent * 100).toFixed(2)}%
+        </span>
+      )}
+      {actionsMenu}
+    </div>
+  </div>
+)
+
+interface PositionPnLProps {
+  asset: Position["asset"]
+  totalGain: number
+  isPositive: boolean
+  irr: number
+  currencySymbol: string
+}
+
+const PositionPnL: React.FC<PositionPnLProps> = ({
+  asset,
+  totalGain,
+  isPositive,
+  irr,
+  currencySymbol,
+}) => (
+  <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+    <div>
+      <div
+        className={`text-lg font-semibold ${isPositive ? "text-green-600" : "text-red-600"}`}
+      >
+        {isPositive && totalGain > 0 ? "+" : ""}
+        {currencySymbol}
+        <FormatValue value={totalGain} />
+      </div>
+      <div className="text-sm text-gray-500">
+        {isPositive ? "Your Profit" : "Your Loss"}
+      </div>
+    </div>
+    {!isCashRelated(asset) && (
+      <div className="text-right">
+        <div
+          className={`text-lg font-semibold ${irr >= 0 ? "text-green-600" : "text-red-600"}`}
+        >
+          {irr >= 0 ? "+" : ""}
+          {(irr * 100).toFixed(1)}%
+        </div>
+        <div className="text-sm text-gray-500">Growth</div>
+      </div>
+    )}
+  </div>
+)
+
+const CARD_CLASSNAME =
+  "block bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow"
 
 const PositionCard: React.FC<PositionCardProps> = ({
   position,
   portfolio,
   valueIn,
   sourceCurrency,
+  onTrade,
+  onQuickSell,
+  onCorporateActions,
+  onSetPrice,
+  onSetBalance,
+  onSectorWeightings,
+  onCostAdjust,
+  onMovePosition,
   onRecordIncome,
   onRecordExpense,
+  onSetCashBalance,
+  onCashTransfer,
+  onCashTransaction,
+  onPriceChart,
 }) => {
   const router = useRouter()
-  const { asset, moneyValues, quantityValues } = position
+  const { popup, showNews } = useNewsAsset()
+  const { asset, moneyValues, quantityValues, dateValues } = position
   const values = moneyValues[valueIn]
-  const hasMenu = !isCashRelated(asset) && (onRecordIncome || onRecordExpense)
 
-  // For TRADE view, use the position's own trade currency, not the passed sourceCurrency
   const positionCurrency =
     valueIn === "TRADE" ? moneyValues.TRADE?.currency : sourceCurrency
 
@@ -162,144 +272,104 @@ const PositionCard: React.FC<PositionCardProps> = ({
 
   const marketValue = convert(values.marketValue)
   const totalGain = convert(values.totalGain)
-  const gainOnDay = convert(values.gainOnDay)
   const isPositive = totalGain >= 0
-  const isDayPositive = gainOnDay >= 0
 
-  // Simple display name - show code for stocks, name for cash
-  const displayName = isCash(asset) ? asset.name : stripOwnerPrefix(asset.code)
+  const displayName = getPositionDisplayName(asset)
 
-  // Show the asset name as subtitle when it exists and differs from the code
   const name = asset.name || ""
   const hasDistinctName = name.length > 0 && name !== asset.code
   const truncatedName = name.length > 30 ? name.substring(0, 30) + "..." : name
 
-  // Use div with onClick when we have interactive menu, otherwise use Link
-  if (hasMenu) {
-    return (
-      <div
-        className="block bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
-        onClick={() => router.push(`/trns/trades/${portfolio.id}/${asset.id}`)}
-      >
-        {/* Header: Asset code, today's change, and actions menu */}
-        <div className="flex justify-between items-start mb-3">
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-gray-900 text-lg">
-              {displayName}
-            </h3>
-            {hasDistinctName && (
-              <p className="text-sm text-gray-500 truncate">{truncatedName}</p>
-            )}
-          </div>
-          <div className="flex items-start gap-1">
-            {values.priceData?.changePercent !== undefined && (
-              <div
-                className={`text-right ${isDayPositive ? "text-green-600" : "text-red-600"}`}
-              >
-                <div className="text-sm font-medium">
-                  {isDayPositive ? "+" : ""}
-                  {(values.priceData.changePercent * 100).toFixed(2)}%
-                </div>
-                <div className="text-xs">today</div>
-              </div>
-            )}
-            {!isCashRelated(asset) && (onRecordIncome || onRecordExpense) && (
-              <CardActionsMenu
-                asset={asset}
-                portfolioId={portfolio.id}
-                onRecordIncome={onRecordIncome}
-                onRecordExpense={onRecordExpense}
-              />
-            )}
-          </div>
-        </div>
+  const tradesHref = buildTradesHref(portfolio.id, asset.id)
+  const cashLadderHref = `/trns/cash-ladder/${portfolio.id}/${asset.id}`
 
-        {/* Main value */}
-        <div className="mb-3">
-          <div className="text-2xl font-bold text-gray-900">
-            {currencySymbol}
-            <FormatValue value={marketValue} />
-          </div>
-          <div className="text-sm text-gray-500">Current Value</div>
-        </div>
+  const hasActions =
+    (!isCashRelated(asset) &&
+      (!!onTrade ||
+        !!onQuickSell ||
+        !!onCorporateActions ||
+        !!onCostAdjust ||
+        !!onMovePosition ||
+        !!onRecordIncome ||
+        !!onRecordExpense ||
+        (!!onSetPrice && asset.market?.code === "PRIVATE") ||
+        (!!onSetBalance &&
+          asset.market?.code === "PRIVATE" &&
+          isConstantPrice(asset)) ||
+        (!!onSectorWeightings && asset.assetCategory?.id === "ETF"))) ||
+    (asset.assetCategory?.id === "RE" &&
+      (!!onRecordIncome || !!onRecordExpense))
 
-        {/* Profit/Loss section */}
-        <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-          <div>
-            <div
-              className={`text-lg font-semibold ${isPositive ? "text-green-600" : "text-red-600"}`}
-            >
-              {isPositive && totalGain > 0 ? "+" : ""}
-              {currencySymbol}
-              <FormatValue value={totalGain} />
-            </div>
-            <div className="text-sm text-gray-500">
-              {isPositive ? "Your Profit" : "Your Loss"}
-            </div>
-          </div>
+  const hasCashActions =
+    supportsBalanceSetting(asset) &&
+    (!!onSetCashBalance || !!onCashTransfer || !!onCashTransaction)
 
-          {/* Growth rate - simple language */}
-          {!isCashRelated(asset) && (
-            <div className="text-right">
-              <div
-                className={`text-lg font-semibold ${values.irr >= 0 ? "text-green-600" : "text-red-600"}`}
-              >
-                {values.irr >= 0 ? "+" : ""}
-                {(values.irr * 100).toFixed(1)}%
-              </div>
-              <div className="text-sm text-gray-500">Growth</div>
-            </div>
-          )}
-        </div>
+  const tradeMoney = moneyValues["TRADE"]
+  const tradeCurrency = tradeMoney?.currency || portfolio.currency
 
-        {/* Quantity for non-cash assets */}
-        {!isCashRelated(asset) && (
-          <div className="mt-3 pt-3 border-t border-gray-100 flex justify-between text-sm text-gray-500">
-            <span>
-              <PrivateQuantity
-                value={quantityValues.total}
-                precision={quantityValues.precision}
-              />{" "}
-              shares
-            </span>
-            <span>
-              {currencySymbol}
-              {values.priceData?.close?.toFixed(2) || "-"} each
-            </span>
-          </div>
+  const actionsNode =
+    hasActions || hasCashActions ? (
+      <div className="flex items-center gap-1">
+        {hasActions && (
+          <ActionsMenu
+            asset={asset}
+            portfolioId={portfolio.id}
+            portfolioCode={portfolio.code}
+            fromDate={dateValues?.opened}
+            closedDate={dateValues?.closed}
+            quantity={quantityValues.total}
+            price={values.priceData?.close || 0}
+            costBasis={tradeMoney?.costBasis || 0}
+            tradeCurrency={tradeCurrency}
+            valueIn={valueIn}
+            onTrade={isCashRelated(asset) ? undefined : onTrade}
+            onQuickSell={isCashRelated(asset) ? undefined : onQuickSell}
+            onCorporateActions={
+              isCashRelated(asset) ? undefined : onCorporateActions
+            }
+            onSetPrice={onSetPrice}
+            onSetBalance={onSetBalance}
+            onSectorWeightings={onSectorWeightings}
+            onCostAdjust={isCashRelated(asset) ? undefined : onCostAdjust}
+            onMovePosition={isCashRelated(asset) ? undefined : onMovePosition}
+            onRecordIncome={onRecordIncome}
+            onRecordExpense={onRecordExpense}
+          />
+        )}
+        {hasCashActions && (
+          <CashActionsMenu
+            asset={asset}
+            portfolio={portfolio}
+            marketValue={tradeMoney?.marketValue || 0}
+            onSetCashBalance={onSetCashBalance}
+            onCashTransfer={onCashTransfer}
+            onCashTransaction={onCashTransaction}
+          />
         )}
       </div>
-    )
-  }
+    ) : undefined
 
-  // No menu — use a simple Link wrapper
+  const handleDoubleClick = useCallback(() => {
+    router.push(supportsBalanceSetting(asset) ? cashLadderHref : tradesHref)
+  }, [router, asset, cashLadderHref, tradesHref])
+
   return (
-    <Link
-      href={`/trns/trades/${portfolio.id}/${asset.id}`}
-      className="block bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow"
+    <div
+      className={`${CARD_CLASSNAME} cursor-pointer`}
+      onDoubleClick={handleDoubleClick}
+      title="Double-click to open"
     >
-      {/* Header: Asset code and today's change */}
-      <div className="flex justify-between items-start mb-3">
-        <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-gray-900 text-lg">{displayName}</h3>
-          {hasDistinctName && (
-            <p className="text-sm text-gray-500 truncate">{truncatedName}</p>
-          )}
-        </div>
-        {values.priceData?.changePercent !== undefined && (
-          <div
-            className={`text-right ${isDayPositive ? "text-green-600" : "text-red-600"}`}
-          >
-            <div className="text-sm font-medium">
-              {isDayPositive ? "+" : ""}
-              {(values.priceData.changePercent * 100).toFixed(2)}%
-            </div>
-            <div className="text-xs">today</div>
-          </div>
-        )}
-      </div>
+      {popup}
+      <PositionHeader
+        asset={asset}
+        displayName={displayName}
+        hasDistinctName={hasDistinctName}
+        truncatedName={truncatedName}
+        changePercent={values.priceData?.changePercent}
+        onShowNews={() => showNews(asset)}
+        actionsMenu={actionsNode}
+      />
 
-      {/* Main value */}
       <div className="mb-3">
         <div className="text-2xl font-bold text-gray-900">
           {currencySymbol}
@@ -308,52 +378,49 @@ const PositionCard: React.FC<PositionCardProps> = ({
         <div className="text-sm text-gray-500">Current Value</div>
       </div>
 
-      {/* Profit/Loss section */}
-      <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-        <div>
-          <div
-            className={`text-lg font-semibold ${isPositive ? "text-green-600" : "text-red-600"}`}
-          >
-            {isPositive && totalGain > 0 ? "+" : ""}
-            {currencySymbol}
-            <FormatValue value={totalGain} />
-          </div>
-          <div className="text-sm text-gray-500">
-            {isPositive ? "Your Profit" : "Your Loss"}
-          </div>
-        </div>
+      <PositionPnL
+        asset={asset}
+        totalGain={totalGain}
+        isPositive={isPositive}
+        irr={values.irr}
+        currencySymbol={currencySymbol}
+      />
 
-        {/* Growth rate - simple language */}
-        {!isCashRelated(asset) && (
-          <div className="text-right">
-            <div
-              className={`text-lg font-semibold ${values.irr >= 0 ? "text-green-600" : "text-red-600"}`}
-            >
-              {values.irr >= 0 ? "+" : ""}
-              {(values.irr * 100).toFixed(1)}%
-            </div>
-            <div className="text-sm text-gray-500">Growth</div>
-          </div>
-        )}
-      </div>
-
-      {/* Quantity for non-cash assets */}
-      {!isCashRelated(asset) && (
-        <div className="mt-3 pt-3 border-t border-gray-100 flex justify-between text-sm text-gray-500">
-          <span>
-            <PrivateQuantity
-              value={quantityValues.total}
+      {!isCashRelated(asset) &&
+        (() => {
+          const categoryId = asset.assetCategory?.id
+          const isChartable =
+            !!onPriceChart &&
+            !!values.priceData?.close &&
+            (categoryId === "EQUITY" || categoryId === "ETF")
+          const handlePriceClick = isChartable
+            ? (e: React.MouseEvent) => {
+                e.preventDefault()
+                e.stopPropagation()
+                onPriceChart!({
+                  asset,
+                  currencySymbol: values.currency.symbol,
+                  portfolioId: portfolio.id,
+                })
+              }
+            : undefined
+          return (
+            <PositionFooter
+              quantity={quantityValues.total}
               precision={quantityValues.precision}
-            />{" "}
-            shares
-          </span>
-          <span>
-            {currencySymbol}
-            {values.priceData?.close?.toFixed(2) || "-"} each
-          </span>
-        </div>
-      )}
-    </Link>
+              price={values.priceData?.close}
+              weight={values.weight}
+              currencySymbol={currencySymbol}
+              onPriceClick={handlePriceClick}
+              priceAriaLabel={
+                isChartable
+                  ? `Show price chart for ${stripOwnerPrefix(asset.code)}`
+                  : undefined
+              }
+            />
+          )
+        })()}
+    </div>
   )
 }
 
@@ -388,16 +455,25 @@ const CardView: React.FC<CardViewProps> = ({
   valueIn,
   groupBy,
   isMixedCurrencies = false,
+  onTrade,
+  onQuickSell,
+  onCorporateActions,
+  onSetPrice,
+  onSetBalance,
+  onSectorWeightings,
+  onCostAdjust,
+  onMovePosition,
   onRecordIncome,
   onRecordExpense,
+  onSetCashBalance,
+  onCashTransfer,
+  onCashTransaction,
+  onPriceChart,
 }) => {
   // Group positions by holdingGroups, sorted by group comparator
   const groupedPositions = useMemo((): GroupedPositions[] => {
-    const sorter =
-      groupBy === GroupBy.SECTOR ? compareBySector : compareByReportCategory
-
     return Object.keys(holdings.holdingGroups)
-      .sort(sorter)
+      .sort(getGroupComparator(groupBy ?? ""))
       .map((groupKey) => ({
         groupKey,
         positions: sortPositionsWithinGroup(
@@ -415,17 +491,13 @@ const CardView: React.FC<CardViewProps> = ({
     )
   }, [groupedPositions])
 
-  // Track collapsed groups - start with first group expanded
+  // Track collapsed groups - start with first group expanded.
+  // Parent passes `key={groupBy}` so this component remounts (and the
+  // initial state below re-runs) whenever groupBy changes — no manual
+  // reset effect needed.
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
     () => new Set(groupedPositions.slice(1).map((g) => g.groupKey)),
   )
-
-  // Collapse all except first group when groupBy changes
-  useEffect(() => {
-    setCollapsedGroups(
-      new Set(groupedPositions.slice(1).map((g) => g.groupKey)),
-    )
-  }, [groupBy]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleGroup = useCallback((groupKey: string) => {
     setCollapsedGroups((prev) => {
@@ -611,8 +683,20 @@ const CardView: React.FC<CardViewProps> = ({
                     portfolio={portfolio}
                     valueIn={valueIn}
                     sourceCurrency={sourceCurrency}
+                    onTrade={onTrade}
+                    onQuickSell={onQuickSell}
+                    onCorporateActions={onCorporateActions}
+                    onSetPrice={onSetPrice}
+                    onSetBalance={onSetBalance}
+                    onSectorWeightings={onSectorWeightings}
+                    onCostAdjust={onCostAdjust}
+                    onMovePosition={onMovePosition}
                     onRecordIncome={onRecordIncome}
                     onRecordExpense={onRecordExpense}
+                    onSetCashBalance={onSetCashBalance}
+                    onCashTransfer={onCashTransfer}
+                    onCashTransaction={onCashTransaction}
+                    onPriceChart={onPriceChart}
                   />
                 ))}
               </div>

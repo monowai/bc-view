@@ -123,10 +123,7 @@ describe("PhaseConfigList", () => {
 
   it("shows excluded plan as unchecked with strikethrough", () => {
     render(
-      <PhaseConfigList
-        {...defaultProps}
-        excludedPlanIds={new Set(["p2"])}
-      />,
+      <PhaseConfigList {...defaultProps} excludedPlanIds={new Set(["p2"])} />,
     )
 
     const checkboxes = screen.getAllByRole("checkbox")

@@ -1,7 +1,6 @@
 import "./testSetup"
 import { HEADER_INDICES } from "../Header"
-import { mockHoldings } from "../__mocks__/testData"
-import { renderGrandTotal } from "./testHelpers"
+import { grandTotalHoldings, renderGrandTotal } from "./testHelpers"
 
 describe("GrandTotal Column Positioning Tests", () => {
   describe("Desktop Layout", () => {
@@ -138,10 +137,7 @@ describe("GrandTotal Column Positioning Tests", () => {
 
   describe("Error Handling", () => {
     it("handles missing viewTotals gracefully", () => {
-      const holdingsWithoutTotals = {
-        ...mockHoldings,
-        viewTotals: undefined,
-      } as any
+      const holdingsWithoutTotals = grandTotalHoldings({ viewTotals: null })
 
       const { container } = renderGrandTotal({
         holdings: holdingsWithoutTotals,
@@ -154,13 +150,9 @@ describe("GrandTotal Column Positioning Tests", () => {
     })
 
     it("handles null gainOnDay with fallback to 0", () => {
-      const holdingsWithNullGain = {
-        ...mockHoldings,
-        viewTotals: {
-          ...mockHoldings.viewTotals!,
-          gainOnDay: null as any,
-        },
-      }
+      const holdingsWithNullGain = grandTotalHoldings({
+        viewTotals: { gainOnDay: null as unknown as number },
+      })
 
       const { container } = renderGrandTotal({ holdings: holdingsWithNullGain })
 

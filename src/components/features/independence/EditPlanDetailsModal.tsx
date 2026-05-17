@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react"
+import React, { useState, useMemo } from "react"
 import useSwr from "swr"
 import { RetirementPlan } from "types/independence"
 import { Portfolio } from "types/beancounter"
@@ -33,7 +33,6 @@ interface EditFormData {
 }
 
 interface EditPlanDetailsModalProps {
-  isOpen: boolean
   onClose: () => void
   onApply: (overrides: ScenarioOverrides) => void
   plan: RetirementPlan
@@ -88,35 +87,39 @@ function PrivacyMoneyInput({
 }
 
 export default function EditPlanDetailsModal({
-  isOpen,
   onClose,
   onApply,
   plan,
 }: EditPlanDetailsModalProps): React.ReactElement | null {
   const { hideValues } = usePrivacyMode()
   const { data: portfolioData } = useSwr(
-    isOpen ? portfoliosKey : null,
+    portfoliosKey,
     simpleFetcher(portfoliosKey),
   )
   const portfolios: Portfolio[] = portfolioData?.data || []
 
-  const [formData, setFormData] = useState<EditFormData>({
-    pensionMonthly: 0,
-    socialSecurityMonthly: 0,
-    benefitsStartAge: undefined,
-    otherIncomeMonthly: 0,
-    monthlyExpenses: 0,
-    equityReturnRate: 0,
-    cashReturnRate: 0,
-    housingReturnRate: 0,
-    equityAllocation: 0,
-    cashAllocation: 0,
-    housingAllocation: 0,
-    inflationRate: 0,
-    targetBalance: 0,
-    excludedPortfolioIds: [],
-    excludedRentalAssetIds: [],
-  })
+  // Component is conditionally mounted by the parent, so initial state can
+  // be derived directly from `plan`. Parent uses a `key` tied to plan version
+  // to remount when the plan changes while the modal is already open.
+  const [formData, setFormData] = useState<EditFormData>(() => ({
+    pensionMonthly: plan.pensionMonthly,
+    socialSecurityMonthly: plan.socialSecurityMonthly,
+    benefitsStartAge: plan.benefitsStartAge,
+    otherIncomeMonthly: plan.otherIncomeMonthly ?? 0,
+    monthlyExpenses: plan.monthlyExpenses,
+    equityReturnRate: plan.equityReturnRate * 100,
+    cashReturnRate: plan.cashReturnRate * 100,
+    housingReturnRate: plan.housingReturnRate * 100,
+    equityAllocation: plan.equityAllocation * 100,
+    cashAllocation: plan.cashAllocation * 100,
+    housingAllocation: plan.housingAllocation * 100,
+    inflationRate: plan.inflationRate * 100,
+    targetBalance: plan.targetBalance ?? 0,
+    excludedPortfolioIds: parseExcludedPortfolioIds(plan.excludedPortfolioIds),
+    excludedRentalAssetIds: parseExcludedRentalAssetIds(
+      plan.excludedRentalAssetIds,
+    ),
+  }))
 
   // Fetch rental property configs for per-property checkboxes
   const { configs: assetConfigs, assetNames } = usePrivateAssetConfigs()
@@ -134,37 +137,6 @@ export default function EditPlanDetailsModal({
         !excludedAssetIds.has(c.assetId),
     )
   }, [assetConfigs, excludedAssetIds])
-
-  // Initialize form when modal opens or plan changes
-  // Use plan.updatedDate as stable change indicator to avoid re-init on reference changes
-  const planVersion = `${plan.id}-${plan.updatedDate}`
-  useEffect(() => {
-    if (isOpen) {
-      setFormData({
-        pensionMonthly: plan.pensionMonthly,
-        socialSecurityMonthly: plan.socialSecurityMonthly,
-        benefitsStartAge: plan.benefitsStartAge,
-        otherIncomeMonthly: plan.otherIncomeMonthly ?? 0,
-        monthlyExpenses: plan.monthlyExpenses,
-        equityReturnRate: plan.equityReturnRate * 100,
-        cashReturnRate: plan.cashReturnRate * 100,
-        housingReturnRate: plan.housingReturnRate * 100,
-        equityAllocation: plan.equityAllocation * 100,
-        cashAllocation: plan.cashAllocation * 100,
-        housingAllocation: plan.housingAllocation * 100,
-        inflationRate: plan.inflationRate * 100,
-        targetBalance: plan.targetBalance ?? 0,
-        excludedPortfolioIds: parseExcludedPortfolioIds(
-          plan.excludedPortfolioIds,
-        ),
-        excludedRentalAssetIds: parseExcludedRentalAssetIds(
-          plan.excludedRentalAssetIds,
-        ),
-      })
-    }
-  }, [isOpen, planVersion]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  if (!isOpen) return null
 
   const handleApply = (): void => {
     onApply({

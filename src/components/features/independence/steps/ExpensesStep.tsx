@@ -68,22 +68,35 @@ export default function ExpensesStep({
   const canCopyFromWorking =
     hasWorkingExpenses && allRetirementExpensesZero && showCopyBanner
 
-  // Initialize expenses with all system categories when data loads
-  // Only do this for NEW plans that have no expenses yet
-  // Uses getValues() instead of useWatch to avoid race condition where useWatch returns []
-  // on first render before defaultValues have propagated through the subscription mechanism
+  // Initialize / re-order expenses against the canonical system-category
+  // sequence once the categories endpoint resolves. New plans get one row per
+  // system category at zero. Edit plans get their stored amounts re-merged
+  // into the same order — backend persists rows in insertion / id order, so
+  // without this two plans created in different sessions surfaced their
+  // categories in different orders. Custom rows (categoryLabelId starts with
+  // `custom-`) are appended at the end, preserving their relative order.
+  // Uses getValues() instead of useWatch to avoid a race where useWatch
+  // returns [] on first render before defaultValues have propagated.
   useEffect(() => {
-    if (systemCategories.length > 0 && !hasInitialized.current) {
-      hasInitialized.current = true
-      if ((getValues("expenses") || []).length === 0) {
-        const initialExpenses = systemCategories.map((cat) => ({
-          categoryLabelId: cat.id,
-          categoryName: cat.name,
-          monthlyAmount: 0,
-        }))
-        setValue("expenses", initialExpenses)
-      }
-    }
+    if (systemCategories.length === 0 || hasInitialized.current) return
+    hasInitialized.current = true
+
+    const currentExpenses = getValues("expenses") || []
+    const existingByCategory = new Map(
+      currentExpenses.map((e) => [e.categoryLabelId, e]),
+    )
+
+    const merged = systemCategories.map((cat) => ({
+      categoryLabelId: cat.id,
+      categoryName: cat.name,
+      monthlyAmount: existingByCategory.get(cat.id)?.monthlyAmount ?? 0,
+    }))
+
+    const customExpenses = currentExpenses.filter((e) =>
+      e.categoryLabelId.startsWith("custom-"),
+    )
+
+    setValue("expenses", [...merged, ...customExpenses])
   }, [systemCategories, setValue, getValues])
 
   const totalMonthlyExpenses = expenses.reduce(
@@ -275,9 +288,20 @@ export default function ExpensesStep({
                     {expenses[index]?.categoryName || field.categoryName}
                   </span>
                   {isCustom && (
-                    <span className="ml-2 text-xs bg-independence-100 text-independence-700 px-2 py-0.5 rounded">
-                      Custom
-                    </span>
+                    <>
+                      <span className="ml-2 text-xs bg-independence-100 text-independence-700 px-2 py-0.5 rounded">
+                        Custom
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => remove(index)}
+                        className="ml-2 p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded"
+                        title="Remove custom category"
+                        aria-label="Remove custom category"
+                      >
+                        <i className="fas fa-times text-xs"></i>
+                      </button>
+                    </>
                   )}
                 </div>
                 {description && (
@@ -317,17 +341,6 @@ export default function ExpensesStep({
                   />
                 </div>
               </div>
-
-              {isCustom && (
-                <button
-                  type="button"
-                  onClick={() => remove(index)}
-                  className="ml-2 p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded"
-                  title="Remove custom category"
-                >
-                  <i className="fas fa-times"></i>
-                </button>
-              )}
             </div>
           )
         })}

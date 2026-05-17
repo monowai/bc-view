@@ -68,7 +68,8 @@
   },
   "lockFileMaintenance": {
     "enabled": true,
-    "schedule": ["before 6am on Monday"]
+    "schedule": ["before 6am on Monday"],
+    "automerge": false
   },
   "prConcurrentLimit": 5,
   "prHourlyLimit": 2,

@@ -4,15 +4,40 @@ import { useRouter } from "next/router"
 import useSWR from "swr"
 import { marketsKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
-import { AssetOption, Market, Portfolio, Position } from "types/beancounter"
+import {
+  Asset,
+  AssetCategory,
+  AssetOption,
+  Market,
+  Portfolio,
+  Position,
+} from "types/beancounter"
 import { ModelsContainingAssetResponse } from "types/rebalance"
 import AssetSearch from "@components/features/assets/AssetSearch"
+import { useAssetReview } from "@components/features/assets/useAssetReview"
+import PriceChartPopup from "@components/features/holdings/PriceChartPopup"
 import Spinner from "@components/ui/Spinner"
+import { usePermissions } from "@hooks/usePermissions"
 
 interface AssetPosition {
   portfolio: Portfolio
   position: Position | null
   balance: number
+}
+
+function assetOptionToAsset(option: AssetOption): Asset {
+  const marketCode = option.market || ""
+  const category: AssetCategory = {
+    id: option.type || "EQUITY",
+    name: option.type || "EQUITY",
+  }
+  return {
+    id: option.assetId || option.value,
+    code: option.symbol,
+    name: option.name || option.symbol,
+    assetCategory: category,
+    market: { code: marketCode } as Market,
+  }
 }
 
 function AssetLookupPage(): React.ReactElement {
@@ -23,6 +48,12 @@ function AssetLookupPage(): React.ReactElement {
   const [selectedMarket, setSelectedMarket] = useState<string>(
     preferences?.defaultMarket || "",
   )
+  const [chartAsset, setChartAsset] = useState<Asset | null>(null)
+  const [resolvingChart, setResolvingChart] = useState(false)
+  const [resolveError, setResolveError] = useState<string | null>(null)
+  const { popup: reviewPopup, showReview } = useAssetReview()
+  const { ai: canRunAi, preview: canPreview } = usePermissions()
+  const canReviewAsset = canRunAi || canPreview
 
   // Fetch available markets
   const { data: marketsData } = useSWR<{ data: Market[] }>(
@@ -57,6 +88,55 @@ function AssetLookupPage(): React.ReactElement {
 
   const handleAssetSelect = (option: AssetOption | null): void => {
     setSelectedAsset(option)
+    setResolveError(null)
+  }
+
+  const openChartFor = async (option: AssetOption): Promise<void> => {
+    setResolveError(null)
+    if (option.assetId) {
+      setChartAsset(assetOptionToAsset(option))
+      return
+    }
+    if (!option.market || !option.symbol) {
+      setResolveError("Cannot chart this asset — missing market or symbol")
+      return
+    }
+    setResolvingChart(true)
+    try {
+      const code = option.symbol.toUpperCase()
+      const response = await fetch("/api/assets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          data: {
+            [code]: {
+              market: option.market,
+              code,
+              name: option.name || code,
+              currency: option.currency,
+              category: option.type || "EQUITY",
+              owner: "",
+            },
+          },
+        }),
+      })
+      if (!response.ok) {
+        setResolveError(`Could not resolve asset (${response.status})`)
+        return
+      }
+      const body = (await response.json()) as { data: Record<string, Asset> }
+      const created = body.data?.[code]
+      if (!created?.id) {
+        setResolveError("Asset response missing id")
+        return
+      }
+      setSelectedAsset({ ...option, assetId: created.id })
+      setChartAsset(created)
+    } catch (e) {
+      setResolveError(e instanceof Error ? e.message : "Failed to load chart")
+    } finally {
+      setResolvingChart(false)
+    }
   }
 
   // Navigate to transactions on double-click
@@ -102,14 +182,14 @@ function AssetLookupPage(): React.ReactElement {
         <label className="block text-sm font-medium text-gray-700 mb-2">
           {"Search Asset"}
         </label>
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           <select
             value={selectedMarket}
             onChange={(e) => {
               setSelectedMarket(e.target.value)
               setSelectedAsset(null)
             }}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full sm:w-auto border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="">{"All Markets"}</option>
             {(marketsData?.data || []).map((market) => (
@@ -135,7 +215,7 @@ function AssetLookupPage(): React.ReactElement {
       {/* Selected Asset Info */}
       {selectedAsset && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-gray-900">
                 {selectedAsset.label}
@@ -153,8 +233,48 @@ function AssetLookupPage(): React.ReactElement {
                 )}
               </div>
             </div>
+            <div className="flex flex-wrap gap-2">
+              {selectedAsset.market && selectedAsset.symbol && (
+                <button
+                  type="button"
+                  onClick={() => openChartFor(selectedAsset)}
+                  disabled={resolvingChart}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:opacity-60 disabled:cursor-not-allowed"
+                  aria-label={`Show price chart for ${selectedAsset.symbol}`}
+                  title="Price Chart"
+                >
+                  <i className="fas fa-chart-line"></i>
+                  <span>{resolvingChart ? "Loading..." : "Chart"}</span>
+                </button>
+              )}
+              {canReviewAsset && (
+                <button
+                  type="button"
+                  onClick={() => showReview(selectedAsset)}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1"
+                  aria-label={`Open AI Asset Review for ${selectedAsset.symbol}`}
+                  title="AI Asset Review"
+                >
+                  <i className="fas fa-microscope"></i>
+                  <span>AI Review</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
+      )}
+      {reviewPopup}
+      {resolveError && (
+        <div className="mb-4 px-4 py-2 rounded-md bg-red-50 border border-red-200 text-sm text-red-700">
+          {resolveError}
+        </div>
+      )}
+      {chartAsset && (
+        <PriceChartPopup
+          asset={chartAsset}
+          currencySymbol=""
+          onClose={() => setChartAsset(null)}
+        />
       )}
 
       {/* Positions Table */}

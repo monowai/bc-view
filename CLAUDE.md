@@ -64,9 +64,9 @@ AUTH0_DOMAIN='beancounter.eu.auth0.com'
 # AUTH0_AUDIENCE is configured in src/lib/utils/auth0.ts (not an env var in v4)
 
 # Backend services (point to local or remote)
-BC_DATA='http://localhost:9610'      # or kauri.monowai.com:30610
-BC_POSITION='http://localhost:9600'  # or kauri.monowai.com:30600
-BC_EVENT='http://localhost:9630'     # or kauri.monowai.com:30630
+BC_DATA='http://localhost:9510'      # or kauri.monowai.com:30610
+BC_POSITION='http://localhost:9500'  # or kauri.monowai.com:30600
+BC_EVENT='http://localhost:9520'     # or kauri.monowai.com:30630
 
 # Message broker (choose one)
 BROKER_TYPE='RABBIT'                 # or 'KAFKA'
@@ -139,7 +139,16 @@ import { HoldingType } from "@types/holdings"
 
 ## API Routes
 
-All routes use `withApiAuthRequired` and proxy to backend services:
+Most API routes go through a centralised handler (`src/lib/api/createApiHandler.ts`)
+that applies Auth0 v4 session handling and proxies to the backend. ~11 routes import
+`@auth0/nextjs-auth0` directly (register, admin-check, trns/import, assets/_,
+portfolios/_, holdings/weights, admin/services).
+
+The v3 helper `withApiAuthRequired` has been removed — use `auth0.getSession(req)`
+
+- `auth0.getAccessToken(req, res)` for manual access-token handling.
+
+Common proxy routes:
 
 | Endpoint                  | Backend     | Purpose                |
 | ------------------------- | ----------- | ---------------------- |
@@ -188,6 +197,53 @@ yarn test src/components/features/holdings/__tests__/Summary.test.tsx
 
 Test files are colocated with source in `__tests__` directories.
 
+### Shared Fixtures
+
+Domain-type builders live at `src/test-fixtures/beancounter.ts`, exposed via
+the `@test-fixtures/*` path alias (wired into both `tsconfig.json` and
+`jest.config.js`). Use these instead of hand-rolling `Portfolio` / `Position` /
+`Holdings` shapes — keeps fixtures consistent as types evolve.
+
+```ts
+import {
+  makePortfolio,
+  makePosition,
+  makeHoldingGroup,
+  makeHoldings,
+  makeAsset,
+  makeCashAsset,
+  USD,
+  NZD,
+  SGD,
+} from "@test-fixtures/beancounter"
+
+const position = makePosition({ price: 150, quantityValues: { total: 100 } })
+const holdings = makeHoldings({
+  holdingGroups: { Equity: makeHoldingGroup({ positions: [position] }) },
+})
+```
+
+Each builder accepts a `Partial<T>` overrides object. `makePosition` also
+accepts a top-level `price` shortcut that sets `priceData.close`.
+
+### Global Jest Mocks
+
+Common cross-cutting mocks live in `jest.setup.js` — **don't re-mock these
+locally** unless you need per-test overrides:
+
+| Module                       | Behavior                                               |
+| ---------------------------- | ------------------------------------------------------ |
+| `next/router`                | `useRouter` returns fixed shape with `push: jest.fn()` |
+| `next/link`                  | Renders as plain `<a href>`                            |
+| `react-markdown`             | Renders `<div data-testid="markdown">{children}</div>` |
+| `remark-gfm`                 | No-op                                                  |
+| `@auth0/nextjs-auth0/client` | `useUser` returns mock user, providers pass through    |
+| `global.fetch`               | Returns `{ data: [] }`                                 |
+
+Override locally only when the test asserts on a specific call (e.g.
+`expect(mockPush).toHaveBeenCalledWith(...)`) or stubs different state per
+test (`(useRouter as jest.Mock).mockReturnValue(...)`).
+
 ## TDD Workflow
 
 Follow Red-Green-Refactor:
@@ -202,6 +258,37 @@ Follow Red-Green-Refactor:
 yarn test:watch  # Keep running in terminal
 # Write test -> Watch fail -> Implement -> Watch pass -> Refactor
 ```
+
+## React Compiler
+
+React Compiler is enabled (Next 16 / `eslint-plugin-react-hooks` v7). All
+`react-hooks/*` rules are at **error** level in `eslint.config.mjs` — CI
+blocks any new compiler bailout. `yarn lint` is the gate.
+
+**Don't add `"use no memo"` or `@ts-expect-error react-compiler`.** Fix the
+bailout instead. Intentional bailouts are scoped via
+`// eslint-disable-next-line` at the call site, with a comment explaining
+why. Acceptable patterns (currently allowed):
+
+- **External-trigger effects** — modal-open reset, URL `?action=...`
+  side effects, `phases/displayCurrency` mark-stale (`MovePositionDialog`,
+  `HoldingActions`, `StressTestTab`). Listing the omitted dep changes
+  behaviour (re-fires on every state tick), not just shuts the linter up.
+
+**Common false bailouts and how to clear them:**
+
+- **Pure helper inside component** — hoist to module scope, type the arg
+  directly instead of `(typeof someState)[0]`. See `getNetRentalIncome` in
+  `ContributionsStep.tsx`.
+- **Effect dep is a fresh fn from a hook** — wrap the function in
+  `useCallback` inside the source hook (deps must themselves be stable —
+  SWR's `mutate` is). Then the consumer can list it honestly. See
+  `useIndependenceSettings.updateSettings`.
+- **Inline object/array prop causing child re-render** — `useMemo` at the
+  call site or hoist a constant if truly static.
+
+When in doubt: prefer refactoring the _source_ (hook author) over
+suppressing at the _consumer_ — one fix removes N suppressions.
 
 ## Debugging
 

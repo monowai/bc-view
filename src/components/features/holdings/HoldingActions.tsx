@@ -4,7 +4,7 @@ import TradeInputForm from "@components/features/transactions/TradeInputForm"
 import CashInputForm from "@components/features/transactions/CashInputForm"
 import CopyPopup from "@components/ui/CopyPopup"
 import { HoldingContract, Holdings, QuickSellData } from "types/beancounter"
-import { ViewMode } from "./ViewToggle"
+import { ViewMode, VIEW_MODES } from "./ViewToggle"
 import { AllocationSlice } from "@lib/allocation/aggregateHoldings"
 import { useIsAdmin } from "@hooks/useIsAdmin"
 import {
@@ -12,6 +12,8 @@ import {
   useGroupOptions,
 } from "@components/features/holdings/GroupByOptions"
 import { useHoldingState } from "@lib/holdings/holdingState"
+import { usePermissions } from "@hooks/usePermissions"
+import { usePortfolioReview } from "@components/features/holdings/usePortfolioReview"
 
 // Dropdown Menu Component
 interface DropdownMenuProps {
@@ -305,14 +307,7 @@ const GroupByIcon: React.FC<{ groupBy: string; className?: string }> = ({
   }
 }
 
-const viewModes: { value: ViewMode; label: string }[] = [
-  { value: "summary", label: "Summary" },
-  { value: "cards", label: "Cards" },
-  { value: "heatmap", label: "Heatmap" },
-  { value: "income", label: "Income" },
-  { value: "chart", label: "Growth" },
-  { value: "table", label: "Table" },
-]
+const viewModes = VIEW_MODES
 
 const HoldingActions: React.FC<HoldingActionsProps> = ({
   holdingResults,
@@ -332,14 +327,20 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
 }) => {
   const router = useRouter()
   const { isAdmin } = useIsAdmin()
+  const { ai: canRunAi, isLoading: permsLoading } = usePermissions()
   const holdingState = useHoldingState()
   const groupOptions = useGroupOptions()
+  const { popup: reviewPopup, showReview } = usePortfolioReview()
   const [tradeModalOpen, setTradeModalOpen] = useState(false)
   const [cashModalOpen, setCashModalOpen] = useState(false)
 
-  // Open trade/cash modal via ?action= query parameter (used by mobile header)
+  // Open trade/cash modal via ?action= query parameter (used by mobile
+  // header). Reading router.query during render and rewriting the URL is
+  // the side effect this component is meant to perform — it's not derived
+  // state, so the compiler warning is intentional behaviour.
   useEffect(() => {
     if (router.query.action === "trade") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTradeModalOpen(true)
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { action, ...rest } = router.query
@@ -362,9 +363,12 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
   >(DEFAULT_SUMMARY_COLUMNS)
   const [copied, setCopied] = useState(false)
 
-  // Open trade modal when quick sell data is provided
+  // Open trade modal when quick sell data is provided. quickSellData is an
+  // external trigger from the parent — opening the modal is the side
+  // effect, not derived state.
   useEffect(() => {
     if (quickSellData) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTradeModalOpen(true)
     }
   }, [quickSellData])
@@ -590,7 +594,31 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
           </div>
         )}
 
-        {/* Right side: Action buttons - hidden on mobile portrait */}
+        {/* AI Summary stays visible on mobile portrait — Share / Copy / Trade
+            do not, since they need wider tap targets and clutter the small
+            viewport. */}
+        {!permsLoading && canRunAi && !emptyHoldings && (
+          <button
+            type="button"
+            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1.5 shadow-sm bg-white hover:bg-slate-50 text-slate-700 ring-1 ring-slate-200/80 hover:ring-slate-300 flex-shrink-0"
+            onClick={() =>
+              showReview({
+                kind: "portfolio",
+                id: holdingResults.portfolio.id,
+                code: holdingResults.portfolio.code,
+                name: holdingResults.portfolio.name,
+              })
+            }
+            aria-label="AI summary of this portfolio"
+            title="AI summary: headwinds, tailwinds, key news on winners and losers"
+          >
+            <i className="fas fa-robot text-[10px] text-blue-500"></i>
+            <span className="hidden sm:inline">AI Summary</span>
+            <span className="sm:hidden">AI</span>
+          </button>
+        )}
+
+        {/* Right side: secondary action buttons - hidden on mobile portrait */}
         <div className="mobile-portrait:hidden flex items-center gap-2 flex-shrink-0">
           {onShare && (
             <button
@@ -693,6 +721,7 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
           </div>
         </div>
       )}
+      {reviewPopup}
     </>
   )
 }

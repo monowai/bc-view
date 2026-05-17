@@ -18,7 +18,11 @@ import {
 import { useRouter } from "next/router"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import useSwr from "swr"
-import { holdingKey, simpleFetcher } from "@utils/api/fetchHelper"
+import {
+  holdingByIdKey,
+  holdingKey,
+  simpleFetcher,
+} from "@utils/api/fetchHelper"
 import { errorOut } from "@components/errors/ErrorOut"
 import { useHoldingState } from "@lib/holdings/holdingState"
 import { useHoldingsView } from "@lib/holdings/useHoldingsView"
@@ -26,9 +30,11 @@ import HoldingMenu from "@components/features/holdings/HoldingMenu"
 import HoldingsHeader from "@components/features/holdings/HoldingsHeader"
 import Rows, {
   CorporateActionsData,
+  PriceChartData,
   SectorWeightingsData,
 } from "@components/features/holdings/Rows"
 import SectorWeightingsPopup from "@components/features/holdings/SectorWeightingsPopup"
+import PriceChartPopup from "@components/features/holdings/PriceChartPopup"
 import SubTotal from "@components/features/holdings/SubTotal"
 import Header from "@components/features/holdings/Header"
 import GrandTotal from "@components/features/holdings/GrandTotal"
@@ -36,8 +42,7 @@ import HoldingActions from "@components/features/holdings/HoldingActions"
 import PerformanceHeatmap from "@components/ui/PerformanceHeatmap"
 import SummaryView from "@components/features/holdings/SummaryView"
 import CardView from "@components/features/holdings/CardView"
-import { compareByReportCategory, compareBySector } from "@lib/categoryMapping"
-import { GroupBy } from "@components/features/holdings/GroupByOptions"
+import { getGroupComparator } from "@lib/categoryMapping"
 import CorporateActionsPopup from "@components/features/holdings/CorporateActionsPopup"
 import TargetWeightDialog from "@components/features/holdings/TargetWeightDialog"
 import SetCashBalanceDialog from "@components/features/holdings/SetCashBalanceDialog"
@@ -59,10 +64,16 @@ import { ModelDto, PlanDto } from "types/rebalance"
 function HoldingsPage(): React.ReactElement {
   const router = useRouter()
   const holdingState = useHoldingState()
-  const { data, error, isLoading, mutate } = useSwr(
-    holdingKey(`${router.query.code}`, `${holdingState.asAt}`),
-    simpleFetcher(holdingKey(`${router.query.code}`, `${holdingState.asAt}`)),
-  )
+  // Managed (shared) portfolios route here with `?byId=1` and pass the
+  // portfolio's id in the path slot, because portfolio code is unique only
+  // within an owner — an adviser may also own a portfolio with the same
+  // code as one shared with them.
+  const ref = `${router.query.code}`
+  const url =
+    router.query.byId === "1"
+      ? holdingByIdKey(ref, `${holdingState.asAt}`)
+      : holdingKey(ref, `${holdingState.asAt}`)
+  const { data, error, isLoading, mutate } = useSwr(url, simpleFetcher(url))
 
   // Use shared hook for view state and calculations
   const {
@@ -98,6 +109,9 @@ function HoldingsPage(): React.ReactElement {
   const [sectorWeightingsAsset, setSectorWeightingsAsset] = useState<
     Asset | undefined
   >(undefined)
+  const [priceChartData, setPriceChartData] = useState<
+    PriceChartData | undefined
+  >(undefined)
   const [cashTransferData, setCashTransferData] = useState<
     CashTransferData | undefined
   >(undefined)
@@ -128,6 +142,11 @@ function HoldingsPage(): React.ReactElement {
   // Handle quick sell from position row
   const handleQuickSell = useCallback((data: QuickSellData) => {
     setQuickSellData(data)
+  }, [])
+
+  // Trade action — opens trade modal pre-filled, defaulting to BUY
+  const handleTrade = useCallback((data: QuickSellData) => {
+    setQuickSellData({ ...data, type: "BUY" })
   }, [])
 
   // Clear quick sell data when modal closes
@@ -214,6 +233,15 @@ function HoldingsPage(): React.ReactElement {
   // Close sector weightings popup
   const handleSectorWeightingsClose = useCallback(() => {
     setSectorWeightingsAsset(undefined)
+  }, [])
+
+  // Handle price chart popup for equity/ETF assets
+  const handlePriceChart = useCallback((data: PriceChartData) => {
+    setPriceChartData(data)
+  }, [])
+
+  const handlePriceChartClose = useCallback(() => {
+    setPriceChartData(undefined)
   }, [])
 
   // Handle cash transfer from cash row
@@ -455,11 +483,7 @@ function HoldingsPage(): React.ReactElement {
               {(() => {
                 let cumulativeCount = 0
                 return Object.keys(holdings.holdingGroups)
-                  .sort(
-                    holdingState.groupBy.value === GroupBy.SECTOR
-                      ? compareBySector
-                      : compareByReportCategory,
-                  )
+                  .sort(getGroupComparator(holdingState.groupBy.value))
                   .map((groupKey, index) => {
                     const currentCumulative = cumulativeCount
                     cumulativeCount +=
@@ -479,6 +503,7 @@ function HoldingsPage(): React.ReactElement {
                           holdingGroup={holdings.holdingGroups[groupKey]}
                           valueIn={holdingState.valueIn.value}
                           onColumnsChange={setColumns}
+                          onTrade={handleTrade}
                           onQuickSell={handleQuickSell}
                           onCorporateActions={handleCorporateActions}
                           onWeightClick={handleWeightClick}
@@ -486,6 +511,7 @@ function HoldingsPage(): React.ReactElement {
                           onSetPrice={handleSetPrice}
                           onSetBalance={handleSetBalance}
                           onSectorWeightings={handleSectorWeightings}
+                          onPriceChart={handlePriceChart}
                           onCashTransfer={handleCashTransfer}
                           onCashTransaction={handleCashTransaction}
                           onCostAdjust={handleCostAdjust}
@@ -515,13 +541,26 @@ function HoldingsPage(): React.ReactElement {
       ) : viewMode === "cards" ? (
         <div className="grid grid-cols-1 gap-3">
           <CardView
+            key={holdingState.groupBy.value}
             holdings={holdings}
             portfolio={holdingResults.portfolio}
             valueIn={holdingState.valueIn.value}
             groupBy={holdingState.groupBy.value}
             isMixedCurrencies={holdingResults.isMixedCurrencies}
+            onTrade={handleTrade}
+            onQuickSell={handleQuickSell}
+            onCorporateActions={handleCorporateActions}
+            onSetPrice={handleSetPrice}
+            onSetBalance={handleSetBalance}
+            onSectorWeightings={handleSectorWeightings}
+            onCostAdjust={handleCostAdjust}
+            onMovePosition={handleMovePosition}
             onRecordIncome={handleRecordIncome}
             onRecordExpense={handleRecordExpense}
+            onSetCashBalance={handleSetCashBalance}
+            onCashTransfer={handleCashTransfer}
+            onCashTransaction={handleCashTransaction}
+            onPriceChart={handlePriceChart}
           />
         </div>
       ) : viewMode === "heatmap" ? (
@@ -618,6 +657,14 @@ function HoldingsPage(): React.ReactElement {
           asset={sectorWeightingsAsset}
           modalOpen={!!sectorWeightingsAsset}
           onClose={handleSectorWeightingsClose}
+        />
+      )}
+      {priceChartData && (
+        <PriceChartPopup
+          asset={priceChartData.asset}
+          currencySymbol={priceChartData.currencySymbol}
+          portfolioId={priceChartData.portfolioId}
+          onClose={handlePriceChartClose}
         />
       )}
       {cashTransferData && (

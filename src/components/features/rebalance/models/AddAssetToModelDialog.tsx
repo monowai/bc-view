@@ -169,6 +169,7 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
               onSelect={setSelectedAsset}
               filterResults={filterExisting}
               placeholder={"Type asset symbol or name..."}
+              usePortal
             />
           </div>
         </div>

@@ -199,13 +199,16 @@ export default function MathInput({
   const [isExpression, setIsExpression] = useState(false)
   const isFocusedRef = useRef(false)
 
-  // Sync display value when external value changes (only when not focused)
+  // Sync display value when external value changes (only when not focused).
+  // Skip sync while user is actively typing — their displayValue is authoritative.
+  // Without this, typing "1." triggers onChange(1) which overwrites "1." → "1",
+  // making it impossible to enter decimals. Bidirectional input controllers
+  // cannot be expressed as pure derived state, so the compiler warning is a
+  // false positive here.
   useEffect(() => {
-    // Skip sync while user is actively typing — their displayValue is authoritative.
-    // Without this, typing "1." triggers onChange(1) which overwrites "1." → "1",
-    // making it impossible to enter decimals.
     if (!isExpression && !isFocusedRef.current) {
       // Show empty string for zero values (better UX - cleaner form appearance)
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDisplayValue(value === 0 || value === undefined ? "" : String(value))
     }
   }, [value, isExpression])

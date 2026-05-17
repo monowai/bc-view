@@ -1,3 +1,4 @@
+import { useCallback } from "react"
 import useSwr from "swr"
 import type { KeyedMutator } from "swr"
 import {
@@ -8,40 +9,43 @@ import { simpleFetcher } from "@utils/api/fetchHelper"
 
 const settingsKey = "/api/independence/settings"
 
-interface SettingsResponse {
-  data: UserIndependenceSettings
-}
-
 interface UseIndependenceSettingsResult {
   settings: UserIndependenceSettings | undefined
   settingsError: Error | undefined
   isLoading: boolean
-  updateSettings: (request: UpdateSettingsRequest) => Promise<SettingsResponse>
-  mutateSettings: KeyedMutator<SettingsResponse>
+  updateSettings: (
+    request: UpdateSettingsRequest,
+  ) => Promise<UserIndependenceSettings>
+  mutateSettings: KeyedMutator<UserIndependenceSettings>
 }
 
 export function useIndependenceSettings(): UseIndependenceSettingsResult {
-  const { data, error, mutate } = useSwr<SettingsResponse>(
+  const { data, error, mutate } = useSwr<UserIndependenceSettings>(
     settingsKey,
     simpleFetcher(settingsKey),
   )
 
-  const updateSettings = async (
-    request: UpdateSettingsRequest,
-  ): Promise<SettingsResponse> => {
-    const response = await fetch(settingsKey, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(request),
-    })
-    if (!response.ok) throw new Error("Failed to update settings")
-    const updated = await response.json()
-    mutate(updated, false)
-    return updated
-  }
+  // Stable identity so consumers can list updateSettings in effect deps
+  // without re-firing every render (mutate from SWR is itself stable).
+  const updateSettings = useCallback(
+    async (
+      request: UpdateSettingsRequest,
+    ): Promise<UserIndependenceSettings> => {
+      const response = await fetch(settingsKey, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(request),
+      })
+      if (!response.ok) throw new Error("Failed to update settings")
+      const updated = await response.json()
+      mutate(updated, false)
+      return updated
+    },
+    [mutate],
+  )
 
   return {
-    settings: data?.data,
+    settings: data,
     settingsError: error,
     isLoading: !data && !error,
     updateSettings,

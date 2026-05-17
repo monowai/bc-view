@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import HoldingMenu from "../HoldingMenu"
 import { Portfolio } from "types/beancounter"
+import { makePortfolio } from "@test-fixtures/beancounter"
 
 // Mock child components
 jest.mock("@components/ui/HideEmpty", () => ({
@@ -38,15 +39,10 @@ jest.mock("@components/ui/DisplayCurrencyOption", () => {
   }
 })
 
-const mockPortfolio: Portfolio = {
+const mockPortfolio: Portfolio = makePortfolio({
   id: "test-portfolio",
-  code: "TEST",
-  name: "Test Portfolio",
-  currency: { code: "USD", name: "US Dollar", symbol: "$" },
-  base: { code: "USD", name: "US Dollar", symbol: "$" },
   marketValue: 10000,
-  irr: 0.1,
-}
+})
 
 describe("HoldingMenu Visual Cues and Mobile Support (TDD)", () => {
   it("should display the selected portfolio name in the menu", () => {

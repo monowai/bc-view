@@ -1,3 +1,47 @@
+// ============ Work Scenario Types ============
+export interface WorkScenario {
+  id: string
+  ownerId: string
+  name: string
+  isCurrent: boolean
+  workingIncomeMonthly: number
+  workingExpensesMonthly: number
+  taxesMonthly: number
+  bonusMonthly: number
+  investmentAllocationPercent: number
+  currency: string
+  createdDate: string
+  updatedDate: string
+  computedMonthlyContribution: number
+}
+
+export interface WorkScenarioRequest {
+  name: string
+  workingIncomeMonthly?: number
+  workingExpensesMonthly?: number
+  taxesMonthly?: number
+  bonusMonthly?: number
+  investmentAllocationPercent?: number
+  currency?: string
+}
+
+export interface WorkScenarioDetail {
+  scenario: WorkScenario
+  expenses: PlanExpense[]
+  contributions: PlanContribution[]
+  totalMonthlyExpenses: number
+  totalMonthlyContributions: number
+  computedMonthlyContribution: number
+}
+
+export interface WorkScenarioResponse {
+  data: WorkScenarioDetail
+}
+
+export interface WorkScenariosResponse {
+  data: WorkScenario[]
+}
+
 // ============ Manual Asset Categories ============
 // Asset categories for users without portfolios
 export type ManualAssetCategory =
@@ -37,10 +81,15 @@ export interface RetirementPlan {
   bonusMonthly: number
   investmentAllocationPercent: number
   lifeEvents?: string // JSON array of life events
+  assetDisposals?: string // JSON array of asset disposals
   manualAssets?: Record<string, number> // JSON map of category -> value
   excludedPortfolioIds?: string[] | string // JSON array from backend
   excludedRentalAssetIds?: string[] | string // JSON array from backend
   clientId?: string // When set, plan managed by adviser on behalf of client
+  /** Optional free-text country whose values this plan targets (e.g. "Thailand"). */
+  country?: string
+  /** Optional user-authored narrative describing the plan's context / assumptions. */
+  narrative?: string
   isPrimary: boolean
   createdDate: string
   updatedDate: string
@@ -50,13 +99,45 @@ export interface PlanCopyRequest {
   name: string
 }
 
-// Life event type for one-off income/expense at specific age
+// Life event type for one-off income/expense at specific age.
+//
+// `assetType` indicates which pool the cashflow affects:
+//   - "liquid"   (default): adds to / subtracts from spendable balance
+//   - "illiquid": adds to / subtracts from non-spendable pool (e.g., property
+//                 value at sale or replacement-property purchase)
+// Field is optional for backward compatibility — older records and clients
+// that omit it are treated as "liquid".
 export interface LifeEvent {
   id: string
   age: number
   amount: number
   description: string
   eventType: "income" | "expense"
+  assetType?: "liquid" | "illiquid"
+}
+
+// Asset disposal — holding-bound alternative to the 3-event downsize
+// LifeEvent pattern. Binds to a specific tracked asset by `assetId` and
+// describes the sale + cash-retention + replacement-property math.
+//
+// At `disposalAge` the backend:
+//   - subtracts the asset's projected value from non-spendable
+//   - routes `cashRetainedPct` to liquid
+//   - routes (100 - cashRetainedPct - txCostsPct) back to non-spendable as
+//     the replacement property
+//   - suppresses the asset's rental income from disposalAge onward
+//
+// `enabled = false` is the per-plan "ignore this disposal" switch — same
+// disposal record can fire in one plan and stay dormant in another for
+// what-if scenarios.
+export interface AssetDisposal {
+  assetId: string
+  disposalAge: number
+  currentValue: number
+  cashRetainedPct: number
+  txCostsPct?: number
+  description?: string
+  enabled?: boolean
 }
 
 export interface PlanRequest {
@@ -84,10 +165,15 @@ export interface PlanRequest {
   bonusMonthly?: number
   investmentAllocationPercent?: number
   lifeEvents?: string
+  assetDisposals?: string
   manualAssets?: Record<string, number> | null
   excludedPortfolioIds?: string[]
   excludedRentalAssetIds?: string[]
   clientId?: string
+  /** Optional country whose values this plan targets (e.g. "Thailand"). */
+  country?: string
+  /** Optional user-authored narrative describing the plan. */
+  narrative?: string
 }
 
 export interface PlanResponse {
@@ -216,6 +302,8 @@ export interface ProjectionRequest {
   displayCurrency?: string
   /** Portfolio IDs to fetch values from (optional - auto-resolves totalAssets) */
   portfolioIds?: string[]
+  /** Optional work scenario ID — overrides current scenario for projection */
+  workScenarioId?: string
 
   // ========== Plan Value Overrides (for What-If scenarios) ==========
   /** Override monthly expenses (default: use plan value) */
@@ -562,6 +650,10 @@ export interface ContributionFormEntry {
 export interface WizardFormData {
   // Step 1: Personal Info
   planName: string
+  /** Optional free-text country whose values this plan targets (e.g. "Thailand"). */
+  country?: string
+  /** Optional user-authored narrative describing the plan context / assumptions. */
+  narrative?: string
   yearOfBirth: number
   targetRetirementAge: number
   lifeExpectancy: number
@@ -608,6 +700,9 @@ export interface WizardFormData {
   // Life Events (one-off income/expense at specific ages)
   lifeEvents: LifeEvent[]
 
+  // Asset disposals (holding-bound sales / downsizes)
+  assetDisposals: AssetDisposal[]
+
   // Pension/Insurance Contributions
   contributions: ContributionFormEntry[]
 }
@@ -649,8 +744,13 @@ export interface PlanExport {
   investmentAllocationPercent: number
   expenses: ExportedExpense[]
   lifeEvents?: string
+  assetDisposals?: string
   manualAssets?: Record<string, number>
   clientId?: string
+  /** Optional country whose values this plan targets. */
+  country?: string
+  /** Optional user-authored narrative describing the plan. */
+  narrative?: string
 }
 
 export interface PlanExportResponse {
@@ -711,6 +811,12 @@ export interface MonteCarloResult {
   deterministicDepletionAge?: number
   currency: string
   parameters: MonteCarloParameters
+  /** Median age at which illiquid assets were sold across iterations that liquidated */
+  medianLiquidationAge?: number
+  /** Starting value of illiquid (non-spendable) assets, in the result's currency */
+  nonSpendableAtStart: number
+  /** Number of iterations that sold illiquid assets during the run */
+  liquidatedCount: number
 }
 
 export interface PercentileValues {
@@ -780,6 +886,16 @@ export interface UserIndependenceSettings {
   monthOfBirth?: number
   targetIndependenceAge?: number
   lifeExpectancy: number
+  compositeDisplayCurrency?: string
+  compositePhases?: string
+  compositeExcludedPlanIds?: string
+  /**
+   * Free-form narrative describing the overarching goal of the composite
+   * plan — applies across ALL phases. Surfaced to svc-agent as shared
+   * cross-plan context.
+   */
+  compositeNarrative?: string
+  compositeWorkScenarioId?: string
   createdDate: string
   updatedDate: string
 }
@@ -789,6 +905,12 @@ export interface UpdateSettingsRequest {
   monthOfBirth?: number
   lifeExpectancy?: number
   targetIndependenceAge?: number
+  compositeDisplayCurrency?: string
+  compositePhases?: string
+  compositeExcludedPlanIds?: string
+  /** Free-form composite-level narrative. Empty string clears it. */
+  compositeNarrative?: string
+  compositeWorkScenarioId?: string
 }
 
 // ============ Composite Projection Types ============
@@ -801,6 +923,8 @@ export interface CompositePhase {
 export interface CompositeProjectionRequest {
   displayCurrency: string
   phases: CompositePhase[]
+  /** Optional work scenario ID — overrides persisted/current scenario */
+  workScenarioId?: string
 }
 
 export interface CompositeYearlyProjection {

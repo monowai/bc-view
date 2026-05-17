@@ -265,7 +265,6 @@ function WealthDashboard(): React.ReactElement {
           {preferences?.enableTwr && (
             <WealthPerformanceChart
               portfolios={portfolios}
-              fxRates={fxRates}
               displayCurrency={displayCurrency}
               collapsed={collapsedSections.performance}
               onToggle={() => toggleSection("performance")}

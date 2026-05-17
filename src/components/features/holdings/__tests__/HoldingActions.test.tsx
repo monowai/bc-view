@@ -34,14 +34,18 @@ function setupMatchMedia(width: number, height: number): void {
   })
 }
 
-// Mock the modal components
-jest.mock("@pages/trns/trade", () => {
+// Mock the modal components.
+// HoldingActions imports TradeInputForm / CashInputForm from
+// @components/features/transactions/* (the legacy @pages/trns/* paths don't
+// match and left the real components rendering, producing async state
+// updates outside act()).
+jest.mock("@components/features/transactions/TradeInputForm", () => {
   return function TradeInputForm() {
     return <div data-testid="trade-modal" />
   }
 })
 
-jest.mock("@pages/trns/cash", () => {
+jest.mock("@components/features/transactions/CashInputForm", () => {
   return function CashInputForm() {
     return <div data-testid="cash-modal" />
   }
@@ -77,6 +81,17 @@ jest.mock("@components/features/rebalance/execution/InvestCashDialog", () => {
 // Mock useIsAdmin to prevent async state updates
 jest.mock("@hooks/useIsAdmin", () => ({
   useIsAdmin: () => ({ isAdmin: false, isLoading: false }),
+}))
+
+// Permissions: grant `ai` so the AI Summary button renders. Mobile-visibility
+// tests don't care about the chat bus side-effect, only the DOM placement.
+jest.mock("@hooks/usePermissions", () => ({
+  usePermissions: () => ({
+    ai: true,
+    preview: true,
+    admin: false,
+    isLoading: false,
+  }),
 }))
 
 // Mock HoldingContract data
@@ -188,6 +203,27 @@ describe("HoldingActions Mobile Portrait Tests (TDD)", () => {
       const rebalanceButton = screen.getByText("Rebalance")
       const button = rebalanceButton.closest("button")
       expect(button).toHaveClass("mobile-portrait:hidden")
+    })
+
+    it("should keep the AI Summary button visible (not in a mobile-portrait:hidden ancestor)", () => {
+      render(
+        <HoldingActions
+          holdingResults={mockHoldingResults}
+          columns={mockColumns}
+          valueIn={mockValueIn}
+        />,
+      )
+
+      // Button uses two labels for breakpoints; on portrait it renders both
+      // children but only "AI" is visible. Locate by aria-label which is stable.
+      const aiButton = screen.getByLabelText("AI summary of this portfolio")
+      expect(aiButton).toBeInTheDocument()
+      // Walk ancestors and assert none carry the hide-on-portrait class.
+      let node: HTMLElement | null = aiButton
+      while (node) {
+        expect(node).not.toHaveClass("mobile-portrait:hidden")
+        node = node.parentElement
+      }
     })
   })
 

@@ -7,10 +7,12 @@ import type {
   CompositeProjectionResult,
   CompositeScenarioComparison,
 } from "types/independence"
+import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
 
 const COMPOSITE_PROJECTION_URL = "/api/independence/composite/projection"
 const COMPOSITE_SCENARIOS_URL = "/api/independence/composite/scenarios"
 const DEBOUNCE_MS = 500
+const SAVE_DEBOUNCE_MS = 1000
 
 export interface UseCompositeProjectionResult {
   phases: CompositePhase[]
@@ -19,6 +21,12 @@ export interface UseCompositeProjectionResult {
   setDisplayCurrency: (currency: string) => void
   excludedPlanIds: Set<string>
   toggleExclusion: (planId: string) => void
+  /** Free-form narrative describing the overarching composite-plan goal. */
+  compositeNarrative: string
+  setCompositeNarrative: (narrative: string) => void
+  /** Work scenario ID to use for composite projections. */
+  compositeWorkScenarioId: string | undefined
+  setCompositeWorkScenarioId: (id: string | undefined) => void
   projection: CompositeProjectionResult | undefined
   scenarios: CompositeScenarioComparison | undefined
   isLoading: boolean
@@ -56,6 +64,28 @@ export function buildInitialPhases(
   })
 }
 
+function parseSavedPhases(json: string | undefined): CompositePhase[] | null {
+  if (!json) return null
+  try {
+    const parsed = JSON.parse(json)
+    if (Array.isArray(parsed) && parsed.length > 0) return parsed
+  } catch {
+    // Invalid JSON
+  }
+  return null
+}
+
+function parseSavedExclusions(json: string | undefined): Set<string> | null {
+  if (!json) return null
+  try {
+    const parsed = JSON.parse(json)
+    if (Array.isArray(parsed)) return new Set(parsed)
+  } catch {
+    // Invalid JSON
+  }
+  return null
+}
+
 export function useCompositeProjection(
   plans: RetirementPlan[],
   settings: UserIndependenceSettings | undefined,
@@ -67,9 +97,16 @@ export function useCompositeProjection(
   const currentAge = yearOfBirth ? currentYear - yearOfBirth : 60
   const lifeExpectancy = settings?.lifeExpectancy ?? 90
 
+  const { updateSettings } = useIndependenceSettings()
+
   const [excludedPlanIds, setExcludedPlanIds] = useState<Set<string>>(new Set())
   const [phases, setPhases] = useState<CompositePhase[]>([])
   const [displayCurrency, setDisplayCurrency] = useState(defaultCurrency)
+  const [compositeNarrative, setCompositeNarrative] = useState<string>("")
+  const [compositeWorkScenarioId, setCompositeWorkScenarioId] = useState<
+    string | undefined
+  >(undefined)
+  const [initialized, setInitialized] = useState(false)
   const [projection, setProjection] = useState<
     CompositeProjectionResult | undefined
   >()
@@ -79,19 +116,77 @@ export function useCompositeProjection(
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Initialize phases when plans or settings change
+  // Initialize from saved settings or build defaults
   useEffect(() => {
-    if (plans.length === 0) return
-    const initial = buildInitialPhases(
-      plans,
-      excludedPlanIds,
-      currentAge,
-      lifeExpectancy,
+    if (plans.length === 0 || !settings || initialized) return
+
+    const savedExclusions = parseSavedExclusions(
+      settings.compositeExcludedPlanIds,
     )
-    setPhases(initial)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [plans.length, currentAge, lifeExpectancy])
+    const savedPhases = parseSavedPhases(settings.compositePhases)
+    const savedCurrency = settings.compositeDisplayCurrency
+    const savedNarrative = settings.compositeNarrative
+    const savedWorkScenarioId = settings.compositeWorkScenarioId
+
+    if (savedExclusions) setExcludedPlanIds(savedExclusions)
+    if (savedCurrency) setDisplayCurrency(savedCurrency)
+    if (savedNarrative != null) setCompositeNarrative(savedNarrative)
+    if (savedWorkScenarioId != null)
+      setCompositeWorkScenarioId(savedWorkScenarioId)
+
+    // Validate saved phases — all planIds must still exist
+    const planIds = new Set(plans.map((p) => p.id))
+    if (
+      savedPhases &&
+      savedPhases.every((phase) => planIds.has(phase.planId))
+    ) {
+      setPhases(savedPhases)
+    } else {
+      const exclusions = savedExclusions ?? new Set<string>()
+      const initial = buildInitialPhases(
+        plans,
+        exclusions,
+        currentAge,
+        lifeExpectancy,
+      )
+      setPhases(initial)
+    }
+
+    setInitialized(true)
+  }, [plans, settings, currentAge, lifeExpectancy, initialized])
+
+  // Save composite config to settings (debounced)
+  useEffect(() => {
+    if (!initialized || phases.length === 0) return undefined
+
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+
+    saveTimer.current = setTimeout(() => {
+      updateSettings({
+        compositeDisplayCurrency: displayCurrency,
+        compositePhases: JSON.stringify(phases),
+        compositeExcludedPlanIds: JSON.stringify(Array.from(excludedPlanIds)),
+        compositeNarrative: compositeNarrative,
+        compositeWorkScenarioId: compositeWorkScenarioId,
+      }).catch(() => {
+        // Silent save failure — not critical
+      })
+    }, SAVE_DEBOUNCE_MS)
+
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current)
+    }
+  }, [
+    phases,
+    displayCurrency,
+    excludedPlanIds,
+    compositeNarrative,
+    compositeWorkScenarioId,
+    initialized,
+    updateSettings,
+  ])
 
   const toggleExclusion = useCallback(
     (planId: string) => {
@@ -133,6 +228,18 @@ export function useCompositeProjection(
       const request: CompositeProjectionRequest = {
         displayCurrency,
         phases,
+        ...(compositeWorkScenarioId
+          ? { workScenarioId: compositeWorkScenarioId }
+          : {}),
+      }
+
+      // Reset result state to an error with the given message. Used for
+      // both expected HTTP-non-OK responses and unexpected network errors
+      // so we don't duplicate setter calls in two branches.
+      const reportError = (message: string): void => {
+        setError(message)
+        setProjection(undefined)
+        setScenarios(undefined)
       }
 
       try {
@@ -149,11 +256,15 @@ export function useCompositeProjection(
           }),
         ])
 
+        // Expected-failure path: the projection endpoint returned non-2xx.
+        // Handle it inline instead of throwing-and-catching-locally, which
+        // is an anti-pattern (sonarjs S3696 / similar).
         if (!projRes.ok) {
           const errData = await projRes.json().catch(() => ({}))
-          throw new Error(
+          reportError(
             errData.message || `Projection failed (${projRes.status})`,
           )
+          return
         }
 
         const projData = await projRes.json()
@@ -164,11 +275,12 @@ export function useCompositeProjection(
           setScenarios(scenData.data)
         }
       } catch (err) {
+        // Only genuinely unexpected errors reach here — fetch rejection
+        // (network down, DNS failure, CORS), response.json() parse errors
+        // on a body that claimed to be JSON but wasn't, etc.
         const message =
           err instanceof Error ? err.message : "Failed to fetch projection"
-        setError(message)
-        setProjection(undefined)
-        setScenarios(undefined)
+        reportError(message)
       } finally {
         setIsLoading(false)
       }
@@ -179,7 +291,7 @@ export function useCompositeProjection(
         clearTimeout(debounceTimer.current)
       }
     }
-  }, [phases, displayCurrency])
+  }, [phases, displayCurrency, compositeWorkScenarioId])
 
   return {
     phases,
@@ -188,6 +300,10 @@ export function useCompositeProjection(
     setDisplayCurrency,
     excludedPlanIds,
     toggleExclusion,
+    compositeNarrative,
+    setCompositeNarrative,
+    compositeWorkScenarioId,
+    setCompositeWorkScenarioId,
     projection,
     scenarios,
     isLoading,

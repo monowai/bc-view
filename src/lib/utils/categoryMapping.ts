@@ -113,3 +113,31 @@ export function compareBySector(a: string, b: string): number {
   // Everything else alphabetically
   return a.localeCompare(b)
 }
+
+/**
+ * Comparator for grouping options that key by raw market/currency code
+ * (e.g. MARKET, MARKET_CURRENCY). Cash collapses into a single "CASH"
+ * group (see calculateHoldings.getGroupKey) which should always render
+ * last; remaining keys sort alphabetically.
+ */
+export function compareByMarket(a: string, b: string): number {
+  const aIsCash = a.toUpperCase() === "CASH"
+  const bIsCash = b.toUpperCase() === "CASH"
+  if (aIsCash && !bIsCash) return 1
+  if (!aIsCash && bIsCash) return -1
+  return a.localeCompare(b)
+}
+
+/**
+ * Resolve the right group comparator for a given groupBy. Accepts both
+ * frontend property paths (e.g. "asset.market.code") and shorter mode
+ * tokens (e.g. "market", "sector") used by allocation views.
+ */
+export function getGroupComparator(
+  groupBy: string,
+): (a: string, b: string) => number {
+  const key = groupBy.toLowerCase()
+  if (key.includes("sector")) return compareBySector
+  if (key.includes("market") || key.includes("currency")) return compareByMarket
+  return compareByReportCategory
+}

@@ -52,11 +52,11 @@ export function createBroker(config?: BrokerConfig): MessageBroker {
 
   const brokerConfig = config || getBrokerConfig()
 
-  console.log(`Creating ${brokerConfig.type} broker:`, {
-    hosts: brokerConfig.hosts,
-    clientId: brokerConfig.clientId,
-    topic: brokerConfig.topic,
-  })
+  // console.debug(`Creating ${brokerConfig.type} broker:`, {
+  //   hosts: brokerConfig.hosts,
+  //   clientId: brokerConfig.clientId,
+  //   topic: brokerConfig.topic,
+  // })
 
   switch (brokerConfig.type) {
     case "RABBIT":

@@ -62,12 +62,14 @@ export default function TimelineTabContent({
   // Detect life events from projection data (years with non-zero lifeEventAmount)
   const lifeEventAges = useMemo(() => {
     if (!projection) return []
-    const events: { age: number; amount: number; type: "income" | "expense" }[] =
-      []
+    const events: {
+      age: number
+      amount: number
+      type: "income" | "expense"
+    }[] = []
     for (const y of projection.accumulationProjections || []) {
       // lifeEventAmount may be present in the JSON but not typed on YearlyAccumulation
-      const amt = (y as unknown as { lifeEventAmount?: number })
-        .lifeEventAmount
+      const amt = (y as unknown as { lifeEventAmount?: number }).lifeEventAmount
       if (amt && amt !== 0 && y.age != null) {
         events.push({
           age: y.age,
@@ -86,6 +88,13 @@ export default function TimelineTabContent({
       }
     }
     return events
+  }, [projection])
+
+  // Age at which illiquid assets (property) were liquidated
+  const liquidationAge = useMemo(() => {
+    if (!projection) return null
+    const year = projection.yearlyProjections.find((y) => y.propertyLiquidated)
+    return year?.age ?? null
   }, [projection])
 
   // Determine if what-if changes are active
@@ -357,12 +366,27 @@ export default function TimelineTabContent({
                   label={{
                     value: `${event.type === "expense" ? "-" : "+"}$${Math.abs(Math.round(event.amount / 1000))}k`,
                     position: "insideTopRight",
-                    fill:
-                      event.type === "expense" ? "#ef4444" : "#22c55e",
+                    fill: event.type === "expense" ? "#ef4444" : "#22c55e",
                     fontSize: 10,
                   }}
                 />
               ))}
+              {/* Property liquidation marker */}
+              {liquidationAge && (
+                <ReferenceLine
+                  x={liquidationAge}
+                  stroke="#7c3aed"
+                  strokeDasharray="4 4"
+                  strokeWidth={1.5}
+                  label={{
+                    value: `Property sold (${liquidationAge})`,
+                    position: "top",
+                    fill: "#7c3aed",
+                    fontSize: 11,
+                    fontWeight: 500,
+                  }}
+                />
+              )}
               {/* Total Wealth line - show in traditional view when non-spendable assets exist */}
               {timelineViewMode === "traditional" &&
                 projection.nonSpendableAtRetirement > 0 && (
@@ -468,7 +492,8 @@ export default function TimelineTabContent({
               <ChartTooltip
                 formatter={(value, name) => {
                   if (hideValues) {
-                    if (name === "negWithdrawals") return [HIDDEN_VALUE, "Withdrawals"]
+                    if (name === "negWithdrawals")
+                      return [HIDDEN_VALUE, "Withdrawals"]
                     return [HIDDEN_VALUE, "Returns & Income"]
                   }
                   const absVal = Math.abs(Number(value || 0))

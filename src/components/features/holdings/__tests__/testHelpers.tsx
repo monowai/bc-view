@@ -1,19 +1,54 @@
 // Shared test utilities for GrandTotal tests
 import React from "react"
 import { render } from "@testing-library/react"
+import { Holdings } from "types/beancounter"
 import { ValueIn } from "@components/features/holdings/GroupByOptions"
 import GrandTotal from "../GrandTotal"
-import { mockHoldings } from "../__mocks__/testData"
+import { makeHoldings, makePortfolio } from "@test-fixtures/beancounter"
+
+/**
+ * Default Holdings used by GrandTotal tests. viewTotals values come from
+ * `TEST_VALUES` in `../constants.ts` so assertions and fixture stay in sync.
+ */
+export const grandTotalHoldings = (
+  overrides: Parameters<typeof makeHoldings>[0] = {},
+): Holdings =>
+  makeHoldings({
+    portfolio: makePortfolio({ id: "test-portfolio", marketValue: 12643.74 }),
+    viewTotals: {
+      gainOnDay: 72.76,
+      costValue: 8150.65,
+      marketValue: 12643.74,
+      dividends: 299.02,
+      unrealisedGain: 3503.85,
+      realisedGain: 481.44,
+      irr: 0.15,
+      weight: 1.0,
+      totalGain: 4284.31,
+      averageCost: 45.28,
+    },
+    totals: {
+      marketValue: 12643.74,
+      purchases: 8150.65,
+      sales: 0,
+      cash: 0,
+      income: 299.02,
+      gain: 4284.31,
+      irr: 0.15,
+    },
+    ...overrides,
+  })
 
 export interface GrandTotalRenderOptions {
-  holdings?: typeof mockHoldings
+  holdings?: Holdings
   valueIn?: ValueIn
 }
 
 export const renderGrandTotal = (
   options: GrandTotalRenderOptions = {},
 ): ReturnType<typeof render> => {
-  const { holdings = mockHoldings, valueIn = ValueIn.PORTFOLIO } = options
+  const { holdings = grandTotalHoldings(), valueIn = ValueIn.PORTFOLIO } =
+    options
 
   return render(
     <table>
