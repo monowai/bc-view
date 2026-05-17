@@ -3,6 +3,7 @@ import {
   sanitizePathParam,
 } from "@utils/api/createApiHandler"
 import { getDataUrl } from "@utils/api/bcConfig"
+import { transformTrnEnvelopeJson } from "@utils/trns/trnsSelectors"
 
 export default createApiHandler({
   url: (req) => {
@@ -15,4 +16,5 @@ export default createApiHandler({
     return getDataUrl(`/trns/${portfolioId}/asset/${assetId}/trades`)
   },
   methods: ["GET", "DELETE"],
+  transformJson: transformTrnEnvelopeJson,
 })

@@ -276,10 +276,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
       .sort((a, b) => a.tradeDate.localeCompare(b.tradeDate))
     let cursor = 0
     for (const trn of sortedTrades) {
-      while (
-        cursor < priceDates.length &&
-        priceDates[cursor] < trn.tradeDate
-      ) {
+      while (cursor < priceDates.length && priceDates[cursor] < trn.tradeDate) {
         cursor++
       }
       const anchor =
