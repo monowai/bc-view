@@ -1,5 +1,6 @@
 import { createApiHandler } from "@utils/api/createApiHandler"
 import { getDataUrl } from "@utils/api/bcConfig"
+import { transformTrnEnvelopeJson } from "@utils/trns/trnsSelectors"
 
 export default createApiHandler({
   url: (req) => {
@@ -11,4 +12,5 @@ export default createApiHandler({
       `/trns/investments/monthly/transactions${qs ? `?${qs}` : ""}`,
     )
   },
+  transformJson: transformTrnEnvelopeJson,
 })

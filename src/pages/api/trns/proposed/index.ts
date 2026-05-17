@@ -1,5 +1,6 @@
 import { createApiHandler } from "@utils/api/createApiHandler"
 import { getDataUrl } from "@utils/api/bcConfig"
+import { transformTrnEnvelopeJson } from "@utils/trns/trnsSelectors"
 
 const ALLOWED_SCOPES = new Set(["OWNED", "MANAGED", "ALL"])
 
@@ -14,4 +15,5 @@ export default createApiHandler({
     const scope = resolveScope(req.query.scope)
     return getDataUrl(`/trns/proposed?scope=${scope}`)
   },
+  transformJson: transformTrnEnvelopeJson,
 })

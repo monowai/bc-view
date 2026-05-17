@@ -29,6 +29,13 @@ interface ApiHandlerConfig {
   methods?: HttpMethod[]
   /** Methods that should forward req.body as JSON (default: ["POST", "PATCH", "PUT"]) */
   bodyMethods?: HttpMethod[]
+  /**
+   * Optional transform applied to the JSON response body before it is
+   * forwarded to the browser. Used to denormalise backend envelope
+   * shapes (e.g. `TrnPayload`) into the fat record shape consumed by
+   * existing UI components.
+   */
+  transformJson?: (json: unknown) => unknown
 }
 
 export function createApiHandler(config: ApiHandlerConfig): NextApiHandler {
@@ -61,7 +68,7 @@ export function createApiHandler(config: ApiHandlerConfig): NextApiHandler {
         : requestInit(accessToken, method, req)
 
       const response = await fetch(url, init)
-      await handleResponse(response, res)
+      await handleResponse(response, res, config.transformJson)
     } catch (error: unknown) {
       fetchError(req, res, error)
     }
