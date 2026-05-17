@@ -1,13 +1,19 @@
 import React, { useState } from "react"
 import useSwr from "swr"
 import { useRouter } from "next/router"
-import { PortfolioShare, PendingSharesResponse } from "types/beancounter"
+import {
+  Portfolio,
+  PortfolioShare,
+  PendingSharesResponse,
+} from "types/beancounter"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 import {
   fetcher,
   sharesManagedKey,
   sharesPendingKey,
 } from "@utils/api/fetchHelper"
+import { usePermissions } from "@hooks/usePermissions"
+import { usePortfolioReview } from "@components/features/holdings/usePortfolioReview"
 
 interface ManagedSharesResponse {
   data: PortfolioShare[]
@@ -16,8 +22,17 @@ import { rootLoader } from "@components/ui/PageLoader"
 import PendingSharesPanel from "./PendingSharesPanel"
 import RequestAccessDialog from "./RequestAccessDialog"
 
-export default function ManagedPortfolios(): React.ReactElement {
+interface ManagedPortfoliosProps {
+  /** Open the Portfolio Corporate Actions popup for the chosen portfolio. */
+  onCorporateActions?: (portfolio: Portfolio) => void
+}
+
+export default function ManagedPortfolios({
+  onCorporateActions,
+}: ManagedPortfoliosProps = {}): React.ReactElement {
   const router = useRouter()
+  const { ai: canRunAi } = usePermissions()
+  const { popup: reviewPopup, showReview } = usePortfolioReview()
   const [showRequestDialog, setShowRequestDialog] = useState(false)
 
   const {
@@ -103,8 +118,12 @@ export default function ManagedPortfolios(): React.ReactElement {
               key={share.id}
               className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 cursor-pointer hover:border-wealth-200 hover:shadow-md transition-all"
               onClick={() => {
-                if (share.portfolio?.code) {
-                  router.push(`/holdings/${share.portfolio.code}`)
+                // Route via portfolio.id (?byId=1) — code is only unique
+                // within an owner, so an adviser opening a managed portfolio
+                // could otherwise collide with one of their own with the
+                // same code.
+                if (share.portfolio?.id) {
+                  router.push(`/holdings/${share.portfolio.id}?byId=1`)
                 }
               }}
             >
@@ -130,7 +149,37 @@ export default function ManagedPortfolios(): React.ReactElement {
                       : "Owner"}
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div
+                  className="flex items-center space-x-2"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {canRunAi && share.portfolio && (
+                    <button
+                      onClick={() =>
+                        showReview({
+                          kind: "portfolio",
+                          id: share.portfolio!.id,
+                          code: share.portfolio!.code,
+                          name: share.portfolio!.name,
+                        })
+                      }
+                      className="p-1 text-purple-500 hover:text-purple-700"
+                      title={"AI Summary"}
+                      aria-label={"AI Summary"}
+                    >
+                      <i className="fas fa-wand-magic-sparkles"></i>
+                    </button>
+                  )}
+                  {onCorporateActions && share.portfolio && (
+                    <button
+                      onClick={() => onCorporateActions(share.portfolio!)}
+                      className="text-blue-500 hover:text-blue-700 p-1"
+                      title={"Scan Corporate Actions"}
+                      aria-label={"Scan Corporate Actions"}
+                    >
+                      <i className="fas fa-calendar-check"></i>
+                    </button>
+                  )}
                   {share.acceptedAt && (
                     <span className="text-xs text-gray-400">
                       {"Since"}{" "}
@@ -157,6 +206,7 @@ export default function ManagedPortfolios(): React.ReactElement {
           onSuccess={handleRequestSuccess}
         />
       )}
+      {reviewPopup}
     </div>
   )
 }

@@ -40,7 +40,10 @@ export default function IncomeBreakdownTable({
       if (breakdown.socialSecurity > 0) hasData.socialSecurity = true
       if (breakdown.otherIncome > 0) hasData.otherIncome = true
       if (breakdown.rentalIncome > 0) hasData.rentalIncome = true
-      if ((breakdown.lifeEventIncome ?? 0) > 0 || (breakdown.lifeEventExpense ?? 0) > 0)
+      if (
+        (breakdown.lifeEventIncome ?? 0) > 0 ||
+        (breakdown.lifeEventExpense ?? 0) > 0
+      )
         hasData.lifeEvents = true
     }
 
@@ -258,17 +261,27 @@ export default function IncomeBreakdownTable({
                       {breakdown ? formatCurrency(breakdown.rentalIncome) : "-"}
                     </td>
                   )}
-                  {columnVisibility.lifeEvents && (() => {
-                    const income = breakdown?.lifeEventIncome ?? 0
-                    const expense = breakdown?.lifeEventExpense ?? 0
-                    const net = income - expense
-                    if (net === 0) return <td className="text-right py-2 px-2 text-gray-400">-</td>
-                    return (
-                      <td className={`text-right py-2 px-2 font-medium ${net > 0 ? "text-green-600" : "text-red-600"}`}>
-                        {hideValues ? HIDDEN_VALUE : `${net > 0 ? "+" : "-"}$${Math.abs(Math.round(net)).toLocaleString()}`}
-                      </td>
-                    )
-                  })()}
+                  {columnVisibility.lifeEvents &&
+                    (() => {
+                      const income = breakdown?.lifeEventIncome ?? 0
+                      const expense = breakdown?.lifeEventExpense ?? 0
+                      const net = income - expense
+                      if (net === 0)
+                        return (
+                          <td className="text-right py-2 px-2 text-gray-400">
+                            -
+                          </td>
+                        )
+                      return (
+                        <td
+                          className={`text-right py-2 px-2 font-medium ${net > 0 ? "text-green-600" : "text-red-600"}`}
+                        >
+                          {hideValues
+                            ? HIDDEN_VALUE
+                            : `${net > 0 ? "+" : "-"}$${Math.abs(Math.round(net)).toLocaleString()}`}
+                        </td>
+                      )
+                    })()}
                   <td className="text-right py-2 px-2 font-medium border-l border-gray-200">
                     {breakdown ? formatCurrency(breakdown.totalIncome) : "-"}
                   </td>

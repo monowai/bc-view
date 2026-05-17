@@ -22,9 +22,12 @@ function DecimalInput({
   )
   const focusedRef = useRef(false)
 
-  // Sync from parent when not focused
+  // Sync from parent when not focused. Bidirectional input controller —
+  // user typing and parent value both write `display`, so it can't be pure
+  // derived state. Compiler warning is a false positive.
   useEffect(() => {
     if (!focusedRef.current) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDisplay(value != null && value !== 0 ? String(value) : "")
     }
   }, [value])

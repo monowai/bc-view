@@ -48,38 +48,48 @@ export default function WizardProgress({
                   className={`
                     w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-medium transition-all flex-shrink-0
                     ${hasError ? "bg-red-500 text-white ring-2 ring-red-200" : ""}
-                    ${!hasError && isCompleted ? "bg-independence-600 text-white" : ""}
-                    ${!hasError && isCurrent ? "bg-independence-600 text-white ring-2 ring-independence-200" : ""}
+                    ${!hasError && isCompleted ? "bg-orange-500 text-white" : ""}
+                    ${!hasError && isCurrent ? "bg-gray-200 text-gray-700 ring-2 ring-orange-300" : ""}
                     ${!hasError && isUpcoming ? "bg-gray-200 text-gray-500" : ""}
-                    ${isClickable && !isCurrent ? "hover:ring-2 hover:ring-independence-200" : ""}
+                    ${isClickable && !isCurrent ? "hover:ring-2 hover:ring-orange-200" : ""}
                   `}
+                  aria-label={
+                    hasError
+                      ? `${step.name} — needs attention`
+                      : isCompleted
+                        ? `${step.name} — complete`
+                        : isCurrent
+                          ? `${step.name} — current step (not yet reviewed)`
+                          : `${step.name} — not reviewed`
+                  }
                 >
                   {hasError ? (
                     <i className="fas fa-exclamation text-xs"></i>
-                  ) : isCompleted ? (
-                    <i className="fas fa-check text-xs"></i>
                   ) : (
-                    step.id
+                    <i
+                      className={`fas ${step.icon} text-xs`}
+                      aria-label={step.name}
+                      title={step.name}
+                    ></i>
                   )}
                 </div>
                 <span
                   className={`
                     mt-0.5 sm:mt-1 text-[10px] sm:text-xs font-medium transition-colors text-center truncate max-w-full px-1
                     ${hasError ? "text-red-600" : ""}
-                    ${!hasError && isCurrent ? "text-independence-600" : ""}
+                    ${!hasError && isCurrent ? "text-orange-600" : ""}
                     ${!hasError && !isCurrent ? "text-gray-500" : ""}
-                    ${isClickable ? "hover:text-independence-600" : ""}
+                    ${isClickable ? "hover:text-orange-600" : ""}
                   `}
                 >
                   <span className="hidden sm:inline">{step.name}</span>
-                  <span className="sm:hidden">{step.id}</span>
                 </span>
               </div>
               {index < WIZARD_STEPS.length - 1 && (
                 <div
                   className={`
                     absolute top-3.5 sm:top-4 left-1/2 w-full h-0.5 -translate-y-1/2
-                    ${isCompleted && !stepErrors.has(step.id + 1) ? "bg-independence-600" : "bg-gray-200"}
+                    ${isCompleted && !stepErrors.has(step.id + 1) ? "bg-orange-500" : "bg-gray-200"}
                   `}
                 />
               )}

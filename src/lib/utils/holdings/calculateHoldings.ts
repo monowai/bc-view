@@ -7,7 +7,12 @@ import {
   Position,
   Total,
 } from "types/beancounter"
-import { isNonTradeable, isCash, isAccount } from "@lib/assets/assetUtils"
+import {
+  isNonTradeable,
+  isCash,
+  isAccount,
+  isCashRelated,
+} from "@lib/assets/assetUtils"
 import { GroupBy, ValueIn } from "@components/features/holdings/GroupByOptions"
 import { getReportCategory } from "../categoryMapping"
 
@@ -27,7 +32,9 @@ function getPath(path: string, position: Position): string {
  * For MARKET_CURRENCY grouping, Cash assets are grouped by their asset code; non-cash
  *   assets are grouped by their trade currency (not market currency, which is wrong for
  *   PRIVATE market assets that have no inherent currency).
- * For MARKET grouping, Cash assets are grouped by their market (CASH).
+ * For MARKET grouping, cash-like assets (CASH currencies, ACCOUNT bank accounts,
+ *   TRADE accounts) collapse into the CASH group instead of using their backing
+ *   market.code (which is PRIVATE for ACCOUNT/TRADE).
  */
 function getGroupKey(groupBy: GroupBy, position: Position): string {
   if (groupBy === GroupBy.ASSET_CLASS) {
@@ -49,6 +56,14 @@ function getGroupKey(groupBy: GroupBy, position: Position): string {
       position.moneyValues["TRADE"]?.currency?.code ||
       getPath(groupBy, position)
     )
+  }
+  if (groupBy === GroupBy.MARKET) {
+    if (
+      isCashRelated(position.asset) ||
+      position.asset.assetCategory.id === "TRADE"
+    ) {
+      return "CASH"
+    }
   }
   return getPath(groupBy, position)
 }

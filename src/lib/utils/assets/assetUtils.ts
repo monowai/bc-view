@@ -46,24 +46,41 @@ export function supportsBalanceSetting(asset: Asset): boolean {
   return isCash(asset) || isAccount(asset)
 }
 
-/**
- * Get the display code for an asset, stripping any owner prefix.
- * Private/custom assets often have codes like "userId.SCB-SGD" - this returns just "SCB-SGD".
- */
-export function getDisplayCode(asset: Asset | null | undefined): string {
-  if (!asset) return ""
-  const code = asset.code || ""
-  const dotIndex = code.lastIndexOf(".")
-  return dotIndex >= 0 ? code.substring(dotIndex + 1) : code
+// Owner-prefix detection. Private-asset codes are stored as `${userId}.${CODE}`
+// where the userId is a base64-encoded UUID (22 chars). Public dotted tickers
+// (BRK.B, RDS.A, JK.M, etc.) have short prefixes (≤5 chars). A length threshold
+// cleanly separates the two without needing the caller to pass marketCode.
+const OWNER_PREFIX_MIN_LENGTH = 12
+
+function dropOwnerPrefix(code: string): string {
+  // Split on the FIRST dot — the owner prefix is the userId, and the asset
+  // code itself may carry further dots (BRK.B, RDS.A). lastIndexOf would
+  // amputate the class indicator from a private dotted asset.
+  const dotIndex = code.indexOf(".")
+  if (dotIndex < 0) return code
+  const prefix = code.substring(0, dotIndex)
+  return prefix.length >= OWNER_PREFIX_MIN_LENGTH
+    ? code.substring(dotIndex + 1)
+    : code
 }
 
 /**
- * Get the display code from a raw code string, stripping any owner prefix.
+ * Get the display code for an asset. Strips the owner prefix from PRIVATE-style
+ * codes (e.g. `${userId}.SCB-SGD` → `SCB-SGD`) while preserving public dotted
+ * tickers (`BRK.B` stays `BRK.B`).
+ */
+export function getDisplayCode(asset: Asset | null | undefined): string {
+  if (!asset) return ""
+  return dropOwnerPrefix(asset.code || "")
+}
+
+/**
+ * Strip the owner prefix from a raw code string. See [getDisplayCode] for
+ * the contract — same heuristic; public dotted tickers are left intact.
  */
 export function stripOwnerPrefix(code: string): string {
   if (!code) return ""
-  const dotIndex = code.lastIndexOf(".")
-  return dotIndex >= 0 ? code.substring(dotIndex + 1) : code
+  return dropOwnerPrefix(code)
 }
 
 /**
@@ -91,4 +108,38 @@ export function displayName(asset: Asset): string {
   }
   const displayCode = getDisplayCode(asset)
   return `${displayCode}: ${asset.name}`
+}
+
+/**
+ * Title displayed on a holding card / row: cash uses asset.name, everything
+ * else uses the owner-prefix-stripped ticker. Pulled out of CardView/Rows so
+ * both views can't drift.
+ */
+export function getPositionDisplayName(asset: Asset): string {
+  return isCash(asset) ? asset.name : stripOwnerPrefix(asset.code)
+}
+
+/**
+ * Canonical href for a position's trade history.
+ */
+export function buildTradesHref(portfolioId: string, assetId: string): string {
+  return `/trns/trades/${portfolioId}/${assetId}`
+}
+
+export interface NewsAssetRef {
+  ticker: string
+  market: string
+  assetName: string
+}
+
+/**
+ * Shape consumed by NewsSentimentPopup. Centralized so card / row build it
+ * the same way.
+ */
+export function buildNewsAsset(asset: Asset): NewsAssetRef {
+  return {
+    ticker: stripOwnerPrefix(asset.code),
+    market: asset.market.code,
+    assetName: asset.name || "",
+  }
 }

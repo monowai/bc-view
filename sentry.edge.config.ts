@@ -36,6 +36,23 @@ if (!enabled) {
         return null
       }
 
+      // Drop empty middleware passthroughs. Sentry renames these to
+      // "middleware <METHOD>" before beforeSendTransaction runs, so the
+      // older equality checks below never matched. ~27k/day in production
+      // were sub-1ms Auth0 client polls (/auth/profile, /auth/access-token)
+      // with no child spans — pure noise. Real errors still flow via the
+      // exception channel.
+      const txn = event.transaction || ""
+      const isMiddleware =
+        txn === "middleware" ||
+        txn === "http.server.middleware" ||
+        /^middleware (GET|POST|PUT|DELETE|PATCH|OPTIONS|HEAD)$/.test(txn)
+      const hasChildSpans = (event.spans?.length ?? 0) > 0
+      const hasException = (event.exception?.values?.length ?? 0) > 0
+      if (isMiddleware && !hasChildSpans && !hasException) {
+        return null
+      }
+
       // Rename generic middleware transactions to include the URL path
       if (
         event.transaction === "middleware" ||

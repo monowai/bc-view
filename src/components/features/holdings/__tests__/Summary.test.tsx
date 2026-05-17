@@ -3,6 +3,7 @@ import { render } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import SummaryHeader, { SummaryRow, SummaryRowMobile } from "../Summary"
 import { Portfolio, PortfolioSummary } from "types/beancounter"
+import { makePortfolio } from "@test-fixtures/beancounter"
 
 // Mock the holdingState hook
 jest.mock("@lib/holdings/holdingState", () => ({
@@ -12,15 +13,10 @@ jest.mock("@lib/holdings/holdingState", () => ({
   }),
 }))
 
-const mockPortfolio: Portfolio = {
+const mockPortfolio: Portfolio = makePortfolio({
   id: "test-portfolio",
-  code: "TEST",
-  name: "Test Portfolio",
-  currency: { code: "USD", name: "US Dollar", symbol: "$" },
-  base: { code: "USD", name: "US Dollar", symbol: "$" },
   marketValue: 10000,
-  irr: 0.1,
-}
+})
 
 const mockSummary: PortfolioSummary = {
   totals: {

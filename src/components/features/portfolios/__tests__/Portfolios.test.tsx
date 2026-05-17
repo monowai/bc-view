@@ -3,6 +3,7 @@ import { render, screen, waitFor, fireEvent } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import { Portfolios } from "../Portfolios"
 import { Portfolio } from "types/beancounter"
+import { makePortfolio } from "@test-fixtures/beancounter"
 
 // Mock next/router
 const mockPush = jest.fn()
@@ -27,27 +28,20 @@ import useSwr from "swr"
 
 const mockUseSwr = useSwr as jest.MockedFunction<typeof useSwr>
 
-const mockPortfolio: Portfolio = {
+const mockPortfolio: Portfolio = makePortfolio({
   id: "test-portfolio",
-  code: "TEST",
-  name: "Test Portfolio",
-  currency: { code: "USD", name: "US Dollar", symbol: "$" },
-  base: { code: "USD", name: "US Dollar", symbol: "$" },
   marketValue: 10000,
-  irr: 0.1,
-}
+})
 
 const mockPortfolios = [
   mockPortfolio,
-  {
+  makePortfolio({
     id: "another-portfolio",
     code: "ANOTHER",
     name: "Another Portfolio",
-    currency: { code: "USD", name: "US Dollar", symbol: "$" },
-    base: { code: "USD", name: "US Dollar", symbol: "$" },
     marketValue: 20000,
     irr: 0.15,
-  },
+  }),
 ]
 
 describe("Portfolios Component (TDD)", () => {

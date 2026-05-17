@@ -6,8 +6,7 @@ import {
   isNonTradeable,
   stripOwnerPrefix,
 } from "@lib/assets/assetUtils"
-import { compareByReportCategory, compareBySector } from "@lib/categoryMapping"
-import { GroupBy } from "@components/features/holdings/GroupByOptions"
+import { getGroupComparator } from "@lib/categoryMapping"
 import { ProgressBar } from "@components/ui/ProgressBar"
 import Dialog from "@components/ui/Dialog"
 
@@ -86,8 +85,7 @@ export const PerformanceHeatmap: React.FC<PerformanceHeatmapProps> = ({
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null)
 
   // Build grouped cells
-  const sorter =
-    groupBy === GroupBy.SECTOR ? compareBySector : compareByReportCategory
+  const sorter = getGroupComparator(groupBy ?? "")
 
   const groupedCells: GroupedCells[] = Object.keys(holdingGroups)
     .sort(sorter)

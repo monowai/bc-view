@@ -6,6 +6,7 @@ import { Auth0Provider } from "@auth0/nextjs-auth0/client"
 import "@styles/globals.css"
 import "@fortawesome/fontawesome-free/css/all.min.css"
 import GitInfo from "@components/ui/GitInfo"
+import ChatFab from "@components/features/chat/ChatFab"
 import MilestoneToast from "@components/ui/MilestoneToast"
 import { RegistrationProvider } from "@contexts/RegistrationContext"
 import { UserPreferencesProvider } from "@contexts/UserPreferencesContext"
@@ -43,6 +44,7 @@ const AppContent: React.FC<AppContentProps> = ({ Component, pageProps }) => {
           <Component {...pageProps} />
         </div>
       </div>
+      <ChatFab />
       <GitInfo />
     </div>
   )

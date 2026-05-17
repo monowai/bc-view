@@ -6,7 +6,7 @@ import {
   ExecutionItemDto,
   ExecutionItemUpdate,
 } from "types/rebalance"
-import { Asset, AssetResponse, Broker } from "types/beancounter"
+import { Broker } from "types/beancounter"
 
 // --- Public types ---
 
@@ -38,10 +38,7 @@ export interface UseRebalanceExecutionResult {
   displayItems: DisplayItem[]
   activeItems: DisplayItem[]
   cashSummary: CashSummary
-  settlementAccounts: Asset[]
   brokers: Broker[]
-  selectedSettlementAccount: string | undefined
-  setSelectedSettlementAccount: (id: string | undefined) => void
   selectedBrokerId: string | undefined
   setSelectedBrokerId: (id: string | undefined) => void
   states: {
@@ -95,10 +92,7 @@ export function useRebalanceExecution(
     Record<string, boolean>
   >({})
 
-  // Settlement account + broker selection
-  const [selectedSettlementAccount, setSelectedSettlementAccount] = useState<
-    string | undefined
-  >(undefined)
+  // Broker selection (settlement account auto-defaults on backend)
   const [selectedBrokerId, setSelectedBrokerId] = useState<string | undefined>(
     undefined,
   )
@@ -110,21 +104,11 @@ export function useRebalanceExecution(
 
   // --- SWR data ---
 
-  const { data: accountsData } = useSwr<AssetResponse>(
-    "/api/assets?category=ACCOUNT",
-    simpleFetcher,
-  )
-
   const { data: brokersData } = useSwr(
     "/api/brokers",
     simpleFetcher("/api/brokers"),
   )
   const brokers: Broker[] = brokersData?.data || []
-
-  const settlementAccounts = useMemo((): Asset[] => {
-    if (!accountsData?.data) return []
-    return Object.values(accountsData.data)
-  }, [accountsData])
 
   // --- Operations ---
 
@@ -417,7 +401,6 @@ export function useRebalanceExecution(
           body: JSON.stringify({
             portfolioId,
             transactionStatus: "PROPOSED",
-            cashAssetId: selectedSettlementAccount,
             brokerId: selectedBrokerId,
           }),
         },
@@ -431,12 +414,6 @@ export function useRebalanceExecution(
         return undefined
       }
 
-      const result = await response.json()
-      console.log(
-        `Created ${result.data.transactionsCreated} transactions`,
-        result.data.transactionIds,
-      )
-
       return { portfolioId }
     } catch (err) {
       console.error("Failed to commit execution:", err)
@@ -445,7 +422,7 @@ export function useRebalanceExecution(
     } finally {
       setCommitting(false)
     }
-  }, [execution, selectedSettlementAccount, selectedBrokerId])
+  }, [execution, selectedBrokerId])
 
   // --- Computed values ---
 
@@ -555,10 +532,7 @@ export function useRebalanceExecution(
     displayItems,
     activeItems,
     cashSummary,
-    settlementAccounts,
     brokers,
-    selectedSettlementAccount,
-    setSelectedSettlementAccount,
     selectedBrokerId,
     setSelectedBrokerId,
     states: {

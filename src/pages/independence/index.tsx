@@ -9,12 +9,15 @@ import { PlansResponse, RetirementPlan, PlanExport } from "types/independence"
 import { HoldingContract } from "types/beancounter"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
+import { sortPlansByCompositeOrder } from "@lib/independence/planOrdering"
 import {
   useAssetBreakdown,
   useFiProjectionSimple,
   AssetBreakdown,
 } from "@components/features/independence"
 import CompositeTab from "@components/features/independence/CompositeTab"
+import ScenarioList from "@components/features/independence/scenarios/ScenarioList"
+import IndependenceSettingsPanel from "@components/features/independence/IndependenceSettingsPanel"
 import ResourceShareInviteDialog from "@components/features/shares/ResourceShareInviteDialog"
 import Alert from "@components/ui/Alert"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
@@ -178,9 +181,7 @@ function PlanCard({
                 <div
                   className={`h-full ${getProgressBgColor(fiProgress)} transition-all duration-500`}
                   style={{
-                    width: hideValues
-                      ? "0%"
-                      : `${Math.min(fiProgress, 100)}%`,
+                    width: hideValues ? "0%" : `${Math.min(fiProgress, 100)}%`,
                   }}
                 />
               </div>
@@ -262,7 +263,9 @@ function RetirementPlanning(): React.ReactElement {
   const { hideValues } = usePrivacyMode()
   const { settings } = useIndependenceSettings()
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [activeView, setActiveView] = useState<"plans" | "composite">("plans")
+  const [activeView, setActiveView] = useState<
+    "profile" | "work" | "plans" | "composite"
+  >("plans")
   const [isImporting, setIsImporting] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
   const [showShareDialog, setShowShareDialog] = useState(false)
@@ -291,8 +294,12 @@ function RetirementPlanning(): React.ReactElement {
   const holdingsData = holdingsLoading ? undefined : holdingsResponse?.data
   const assets = useAssetBreakdown(holdingsData)
 
-  // Backend returns plans sorted: primary first, then by name
-  const plans = data?.data || []
+  // Backend returns plans sorted primary-first-then-by-name. Once the user
+  // has configured a composite, we re-order so plans follow the sequence
+  // they've defined on the Composite tab — a timeline like Singapore → NZ →
+  // Thailand should show those cards in that order everywhere. Plans not in
+  // the composite retain their backend order behind the sequenced ones.
+  const plans = sortPlansByCompositeOrder(data?.data || [], settings)
 
   const handleExportPlan = async (plan: RetirementPlan): Promise<void> => {
     try {
@@ -552,19 +559,41 @@ function RetirementPlanning(): React.ReactElement {
           )}
 
           {/* Tab Switcher */}
-          {plans.length > 1 && (
-            <div className="flex gap-1 mb-6 bg-gray-100 rounded-lg p-1 w-fit">
-              <button
-                onClick={() => setActiveView("plans")}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  activeView === "plans"
-                    ? "bg-white text-independence-700 shadow-sm"
-                    : "text-gray-600 hover:text-gray-800"
-                }`}
-              >
-                <i className="fas fa-th-large mr-2"></i>
-                Plans
-              </button>
+          <div className="flex gap-1 mb-6 bg-gray-100 rounded-lg p-1 w-fit">
+            <button
+              onClick={() => setActiveView("profile")}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                activeView === "profile"
+                  ? "bg-white text-independence-700 shadow-sm"
+                  : "text-gray-600 hover:text-gray-800"
+              }`}
+            >
+              <i className="fas fa-cog mr-2"></i>
+              Profile
+            </button>
+            <button
+              onClick={() => setActiveView("work")}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                activeView === "work"
+                  ? "bg-white text-independence-700 shadow-sm"
+                  : "text-gray-600 hover:text-gray-800"
+              }`}
+            >
+              <i className="fas fa-briefcase mr-2"></i>
+              Work
+            </button>
+            <button
+              onClick={() => setActiveView("plans")}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                activeView === "plans"
+                  ? "bg-white text-independence-700 shadow-sm"
+                  : "text-gray-600 hover:text-gray-800"
+              }`}
+            >
+              <i className="fas fa-th-large mr-2"></i>
+              Plans
+            </button>
+            {plans.length > 1 && (
               <button
                 onClick={() => setActiveView("composite")}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -576,8 +605,8 @@ function RetirementPlanning(): React.ReactElement {
                 <i className="fas fa-layer-group mr-2"></i>
                 Composite
               </button>
-            </div>
-          )}
+            )}
+          </div>
 
           {isLoading && (
             <div className="text-center py-12">
@@ -609,6 +638,8 @@ function RetirementPlanning(): React.ReactElement {
             </div>
           )}
 
+          {activeView === "profile" && <IndependenceSettingsPanel />}
+
           {!isLoading && plans.length > 0 && activeView === "plans" && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {plans.map((plan: RetirementPlan) => (
@@ -625,6 +656,8 @@ function RetirementPlanning(): React.ReactElement {
               ))}
             </div>
           )}
+
+          {activeView === "work" && <ScenarioList />}
 
           {!isLoading && plans.length > 1 && activeView === "composite" && (
             <CompositeTab plans={plans} settings={settings} />

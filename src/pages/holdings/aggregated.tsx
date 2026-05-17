@@ -20,7 +20,7 @@ import PerformanceHeatmap from "@components/ui/PerformanceHeatmap"
 import SummaryView from "@components/features/holdings/SummaryView"
 import CardView from "@components/features/holdings/CardView"
 import AllocationChart from "@components/features/allocation/AllocationChart"
-import { compareByReportCategory, compareBySector } from "@lib/categoryMapping"
+import { getGroupComparator } from "@lib/categoryMapping"
 import {
   GroupBy,
   useGroupOptions,
@@ -28,6 +28,8 @@ import {
 import CopyPopup from "@components/ui/CopyPopup"
 import IncomeView from "@components/features/holdings/IncomeView"
 import { ViewMode } from "@components/features/holdings/ViewToggle"
+import { usePermissions } from "@hooks/usePermissions"
+import { usePortfolioReview } from "@components/features/holdings/usePortfolioReview"
 
 /** View mode icon component */
 const ViewModeIcon: React.FC<{ mode: string; className?: string }> = ({
@@ -213,6 +215,8 @@ function AggregatedHoldingsPage(): React.ReactElement {
   const router = useRouter()
   const holdingState = useHoldingState()
   const groupOptions = useGroupOptions()
+  const { ai: canRunAi, isLoading: permsLoading } = usePermissions()
+  const { popup: reviewPopup, showReview } = usePortfolioReview()
   // Get portfolio codes from URL query parameter
   const codes = router.query.codes as string | undefined
   const portfolioCodes = useMemo(() => (codes ? codes.split(",") : []), [codes])
@@ -338,6 +342,25 @@ function AggregatedHoldingsPage(): React.ReactElement {
             ))}
           </div>
 
+          {/* AI Summary stays visible on mobile portrait — Copy / Rebalance
+              do not, since they need wider tap targets and clutter the small
+              viewport. */}
+          {!permsLoading && canRunAi && (
+            <button
+              type="button"
+              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1.5 shadow-sm bg-white hover:bg-slate-50 text-slate-700 ring-1 ring-slate-200/80 hover:ring-slate-300 flex-shrink-0"
+              onClick={() =>
+                showReview({ kind: "aggregated", codes: portfolioCodes })
+              }
+              aria-label="AI summary of aggregated holdings"
+              title="AI summary: headwinds, tailwinds, key news on winners and losers"
+            >
+              <i className="fas fa-robot text-[10px] text-blue-500"></i>
+              <span className="hidden sm:inline">AI Summary</span>
+              <span className="sm:hidden">AI</span>
+            </button>
+          )}
+
           {/* Action buttons - hidden on mobile portrait */}
           <div className="mobile-portrait:hidden flex items-center space-x-2 shrink-0">
             <button
@@ -389,11 +412,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
                 {(() => {
                   let cumulativeCount = 0
                   return Object.keys(holdings.holdingGroups)
-                    .sort(
-                      holdingState.groupBy.value === GroupBy.SECTOR
-                        ? compareBySector
-                        : compareByReportCategory,
-                    )
+                    .sort(getGroupComparator(holdingState.groupBy.value))
                     .map((groupKey, index) => {
                       const currentCumulative = cumulativeCount
                       cumulativeCount +=
@@ -438,6 +457,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
         ) : viewMode === "cards" ? (
           <div className="grid grid-cols-1 gap-3">
             <CardView
+              key={holdingState.groupBy.value}
               holdings={holdings}
               portfolio={holdingResults.portfolio}
               valueIn={holdingState.valueIn.value}
@@ -504,6 +524,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
           modalOpen={copyModalOpen}
           onClose={() => setCopyModalOpen(false)}
         />
+        {reviewPopup}
       </div>
     </>
   )

@@ -23,11 +23,11 @@ const customJestConfig = {
     "^@contexts/(.*)$": "<rootDir>/src/contexts/$1",
     "^@types/(.*)$": "<rootDir>/types/$1",
     "^types/(.*)$": "<rootDir>/types/$1",
+    "^@test-fixtures/(.*)$": "<rootDir>/src/test-fixtures/$1",
   },
   testEnvironment: "jest-environment-jsdom",
   testPathIgnorePatterns: [
     "<rootDir>/e2e/",
-    "<rootDir>/src/__fixtures__/fixtures.tsx",
     "<rootDir>/src/.*/__tests__/testSetup.ts",
     "<rootDir>/src/.*/__tests__/testHelpers.tsx",
   ],

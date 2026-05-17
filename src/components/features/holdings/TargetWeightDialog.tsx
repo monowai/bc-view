@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react"
+import React, { useState, useMemo } from "react"
 import { Asset, Portfolio, RebalanceData } from "types/beancounter"
 import MathInput from "@components/ui/MathInput"
 import Dialog from "@components/ui/Dialog"
@@ -27,14 +27,9 @@ const TargetWeightDialog: React.FC<TargetWeightDialogProps> = ({
   currentQuantity,
   currentPrice,
 }) => {
+  // Parent (pages/holdings/[code].tsx) conditionally mounts this dialog,
+  // so the initial useState already gives fresh state on each open.
   const [targetWeight, setTargetWeight] = useState<number>(currentWeight)
-
-  // Reset target weight when modal opens
-  useEffect(() => {
-    if (modalOpen) {
-      setTargetWeight(currentWeight)
-    }
-  }, [modalOpen, currentWeight])
 
   // Calculate required shares and action type
   const calculation = useMemo(() => {

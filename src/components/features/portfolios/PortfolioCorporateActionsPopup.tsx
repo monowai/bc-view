@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react"
+import React, { useState } from "react"
 import { NumericFormat } from "react-number-format"
 import useSwr from "swr"
 import { stripOwnerPrefix } from "@lib/assets/assetUtils"
@@ -10,7 +10,7 @@ import {
   Asset,
 } from "types/beancounter"
 import {
-  holdingKey,
+  holdingByIdKey,
   simpleFetcher,
   corporateEventsKey,
 } from "@utils/api/fetchHelper"
@@ -57,27 +57,19 @@ const PortfolioCorporateActionsPopup: React.FC<
   const [processError, setProcessError] = useState<string | null>(null)
   const [processedEvents, setProcessedEvents] = useState<Set<string>>(new Set())
 
-  // Fetch holdings for the portfolio
+  // Fetch holdings for the portfolio. Use the id-based route so the popup
+  // works for managed (shared) portfolios — code is unique only within an
+  // owner so the by-code route 404s when the caller is an adviser.
   const { data: holdingsData } = useSwr(
-    modalOpen ? holdingKey(portfolio.code, today) : null,
-    modalOpen ? simpleFetcher(holdingKey(portfolio.code, today)) : null,
+    modalOpen ? holdingByIdKey(portfolio.id, today) : null,
+    modalOpen ? simpleFetcher(holdingByIdKey(portfolio.id, today)) : null,
   )
 
-  // Reset state when modal opens
-  useEffect(() => {
-    if (modalOpen) {
-      setIsScanning(false)
-      setScanComplete(false)
-      setMissingEvents([])
-      setScanProgress(null)
-      setIsBackfilling(false)
-      setBackfillProgress(null)
-      setProcessError(null)
-      setProcessedEvents(new Set())
-    }
-  }, [modalOpen])
+  // Component is conditionally mounted by the parent based on
+  // corporateActionsPortfolio, so a fresh open always remounts with the
+  // initial useState values — no manual reset useEffect needed.
 
-  const scanForMissingEvents = useCallback(async () => {
+  const scanForMissingEvents = async (): Promise<void> => {
     if (!holdingsData?.data?.positions) return
 
     setIsScanning(true)
@@ -143,7 +135,7 @@ const PortfolioCorporateActionsPopup: React.FC<
     setIsScanning(false)
     setScanComplete(true)
     setScanProgress(null)
-  }, [portfolio.id, holdingsData?.data?.positions, today])
+  }
 
   const handleBackfillAll = async (): Promise<void> => {
     if (missingEvents.length === 0) return

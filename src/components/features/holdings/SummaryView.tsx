@@ -6,7 +6,6 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
-  Cell,
   PieChart,
   Pie,
 } from "recharts"
@@ -17,7 +16,7 @@ import {
   AllocationSlice,
   GroupingMode,
 } from "@lib/allocation/aggregateHoldings"
-import { compareByReportCategory, compareBySector } from "@lib/categoryMapping"
+import { getGroupComparator } from "@lib/categoryMapping"
 import { useDisplayCurrencyConversion } from "@lib/hooks/useDisplayCurrencyConversion"
 
 // Color palette for report categories
@@ -183,8 +182,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({
 
   // Filter allocation data and sort by predefined order
   const filteredAllocation = useMemo(() => {
-    const sorter =
-      groupBy === "sector" ? compareBySector : compareByReportCategory
+    const sorter = getGroupComparator(groupBy)
     return allocationData
       .filter((slice) => !excludedCategories.has(slice.key))
       .sort((a, b) => sorter(a.key, b.key))
@@ -391,9 +389,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({
                           ? [0, 4, 4, 0]
                           : [0, 0, 0, 0]
                     }
-                  >
-                    <Cell fill={getColor(slice.key, index)} />
-                  </Bar>
+                  />
                 ))}
               </BarChart>
             </ResponsiveContainer>
@@ -415,11 +411,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({
                   paddingAngle={2}
                   dataKey="value"
                   nameKey="label"
-                >
-                  {filteredAllocation.map((slice, index) => (
-                    <Cell key={slice.key} fill={getColor(slice.key, index)} />
-                  ))}
-                </Pie>
+                />
                 <Tooltip
                   content={
                     <CustomBarTooltip
@@ -460,11 +452,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({
             </thead>
             <tbody>
               {[...allocationData]
-                .sort((a, b) =>
-                  (groupBy === "sector"
-                    ? compareBySector
-                    : compareByReportCategory)(a.key, b.key),
-                )
+                .sort((a, b) => getGroupComparator(groupBy)(a.key, b.key))
                 .map((slice, index) => {
                   const isExcluded = excludedCategories.has(slice.key)
                   const convertedValue = convert(slice.value)
@@ -486,7 +474,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({
                       <td className="py-2 px-2">
                         <div className="flex items-center">
                           <div
-                            className={`w-3 h-3 rounded-sm mr-2 flex-shrink-0 ${isExcluded ? "bg-gray-300" : ""}`}
+                            className={`w-3 h-3 rounded-sm mr-2 shrink-0 ${isExcluded ? "bg-gray-300" : ""}`}
                             style={{
                               backgroundColor: isExcluded
                                 ? undefined

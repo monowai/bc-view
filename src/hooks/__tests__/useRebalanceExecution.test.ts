@@ -619,44 +619,17 @@ describe("useRebalanceExecution", () => {
     expect(result.current.cashSummary.currentCash).toBe(1000)
   })
 
-  // --- Settlement accounts and brokers ---
-
-  it("derives settlement accounts from SWR data", () => {
-    const acct1 = { id: "a1", name: "Account 1", code: "ACC1" }
-    const acct2 = { id: "a2", name: "Account 2", code: "ACC2" }
-
-    mockUseSwr.mockImplementation(((key: string) => {
-      if (key === "/api/assets?category=ACCOUNT") {
-        return {
-          data: { data: { a1: acct1, a2: acct2 } },
-          isLoading: false,
-          error: undefined,
-        }
-      }
-      return { data: { data: [] }, isLoading: false, error: undefined }
-    }) as typeof useSwr)
-
-    const { result } = renderHook(() =>
-      useRebalanceExecution({ portfolioIds: [] }),
-    )
-
-    expect(result.current.settlementAccounts).toEqual([acct1, acct2])
-  })
+  // --- Brokers ---
 
   it("derives brokers from SWR data", () => {
     const broker1 = { id: "b1", name: "IB" }
     const broker2 = { id: "b2", name: "Schwab" }
 
-    mockUseSwr.mockImplementation(((key: string) => {
-      if (key === "/api/assets?category=ACCOUNT") {
-        return { data: { data: {} }, isLoading: false, error: undefined }
-      }
-      return {
-        data: { data: [broker1, broker2] },
-        isLoading: false,
-        error: undefined,
-      }
-    }) as typeof useSwr)
+    mockUseSwr.mockImplementation((() => ({
+      data: { data: [broker1, broker2] },
+      isLoading: false,
+      error: undefined,
+    })) as unknown as typeof useSwr)
 
     const { result } = renderHook(() =>
       useRebalanceExecution({ portfolioIds: [] }),
@@ -666,20 +639,6 @@ describe("useRebalanceExecution", () => {
   })
 
   // --- Selection state ---
-
-  it("manages selectedSettlementAccount state", () => {
-    const { result } = renderHook(() =>
-      useRebalanceExecution({ portfolioIds: [] }),
-    )
-
-    expect(result.current.selectedSettlementAccount).toBeUndefined()
-
-    act(() => {
-      result.current.setSelectedSettlementAccount("acct-1")
-    })
-
-    expect(result.current.selectedSettlementAccount).toBe("acct-1")
-  })
 
   it("manages selectedBrokerId state", () => {
     const { result } = renderHook(() =>

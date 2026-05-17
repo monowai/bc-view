@@ -4,7 +4,7 @@ import {
   useGroupOptions,
 } from "@components/features/holdings/GroupByOptions"
 import { useHoldingState } from "@lib/holdings/holdingState"
-import { ViewMode } from "./ViewToggle"
+import { ViewMode, VIEW_MODES } from "./ViewToggle"
 
 interface HoldingsToolbarProps {
   viewMode: ViewMode
@@ -185,13 +185,7 @@ const ViewModeIcon: React.FC<{ mode: string; className?: string }> = ({
   }
 }
 
-const viewModes: { value: ViewMode; label: string }[] = [
-  { value: "summary", label: "Summary" },
-  { value: "cards", label: "Cards" },
-  { value: "heatmap", label: "Heatmap" },
-  { value: "income", label: "Income" },
-  { value: "table", label: "Table" },
-]
+const viewModes = VIEW_MODES
 
 /**
  * Unified toolbar component for holdings views.

@@ -1,10 +1,20 @@
 import useSwr from "swr"
-import { Portfolio, PerformanceResponse } from "types/beancounter"
+import { Portfolio } from "types/beancounter"
 
+/**
+ * Aggregated performance shape mirroring the backend
+ * `AggregatedPerformanceDataPoint` contract.
+ *
+ * Composite TWR (`growthOf1000`, `cumulativeReturn`) is chained sub-period
+ * with beginning-of-sub-period AUM weights in display currency. Period
+ * metrics (`netContributions`, `cumulativeDividends`, `investmentGain`) are
+ * baselined from `series[0]` — zero at t=0.
+ */
 export interface AggregatedDataPoint {
   date: string
   marketValue: number
   netContributions: number
+  lifetimeContributions: number
   cumulativeDividends: number
   investmentGain: number
   growthOf1000: number
@@ -13,91 +23,68 @@ export interface AggregatedDataPoint {
 
 export interface AggregatedPerformance {
   series: AggregatedDataPoint[]
+  /**
+   * Aggregate money-weighted return (XIRR) for the window, annualised
+   * decimal (0.10 = +10% p.a.). Null when the backend couldn't compute
+   * (insufficient flows / solver failure). For windows shorter than ~1y,
+   * the backend returns simple ROI instead — consumers should label
+   * sub-year values as "cumulative", not "p.a."
+   */
+  xirr: number | null
   isLoading: boolean
   error: Error | undefined
 }
 
+interface AggregateApiResponse {
+  data: {
+    series: AggregatedDataPoint[]
+    xirr?: number | null
+  }
+}
+
 /**
- * Fetch performance data for all portfolios in parallel, FX-convert,
- * and aggregate into a single time series.
+ * Fetches a backend-aggregated composite TWR series.
+ *
+ * The backend (`POST /performance/aggregate`) does all the work: pulls each
+ * portfolio's cached TWR, FX-converts to `displayCurrencyCode`, builds the
+ * union of valuation dates, chains sub-period AUM-weighted composite TWR,
+ * and baselines period-relative metrics.
  */
 export function useAggregatedPerformance(
   portfolios: Portfolio[],
   months: number,
-  fxRates: Record<string, number>,
   displayCurrencyCode: string | null,
   enabled: boolean,
 ): AggregatedPerformance {
-  // Build a stable SWR key — null disables fetching
+  const portfolioCodes = portfolios.map((p) => p.code)
   const key =
-    enabled && portfolios.length > 0 && displayCurrencyCode
-      ? `aggregated-perf:${portfolios.map((p) => p.code).join(",")}:${months}:${displayCurrencyCode}`
+    enabled && portfolioCodes.length > 0 && displayCurrencyCode
+      ? `aggregated-perf:${portfolioCodes.join(",")}:${months}:${displayCurrencyCode}`
       : null
 
-  const { data, isLoading, error } = useSwr<AggregatedDataPoint[]>(
+  const { data, isLoading, error } = useSwr<{
+    series: AggregatedDataPoint[]
+    xirr: number | null
+  }>(
     key,
     async () => {
-      // Fetch all portfolios in parallel
-      const results = await Promise.allSettled(
-        portfolios.map(async (portfolio) => {
-          const res = await fetch(
-            `/api/performance/${portfolio.code}?months=${months}`,
-          )
-          if (!res.ok) throw new Error(`Failed for ${portfolio.code}`)
-          const json: PerformanceResponse = await res.json()
-          return { portfolio, series: json.data?.series || [] }
+      const res = await fetch(`/api/performance/aggregate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          portfolioCodes,
+          months,
+          displayCurrency: displayCurrencyCode,
         }),
-      )
-
-      // Collect successful results with FX conversion
-      const seriesMap = new Map<string, AggregatedDataPoint>()
-
-      for (const result of results) {
-        if (result.status !== "fulfilled") continue
-        const { portfolio, series } = result.value
-        const rate = fxRates[portfolio.currency.code] ?? 1
-
-        for (const point of series) {
-          const existing = seriesMap.get(point.date)
-          const mv = point.marketValue * rate
-          const contrib = point.netContributions * rate
-          const divs = point.cumulativeDividends * rate
-
-          if (existing) {
-            existing.marketValue += mv
-            existing.netContributions += contrib
-            existing.cumulativeDividends += divs
-          } else {
-            seriesMap.set(point.date, {
-              date: point.date,
-              marketValue: mv,
-              netContributions: contrib,
-              cumulativeDividends: divs,
-              investmentGain: 0, // computed below
-              growthOf1000: 0,
-              cumulativeReturn: 0,
-            })
-          }
-        }
+      })
+      if (!res.ok) {
+        throw new Error(`Aggregate request failed: ${res.status}`)
       }
-
-      // Sort by date and compute derived metrics
-      const sorted = Array.from(seriesMap.values()).sort((a, b) =>
-        a.date.localeCompare(b.date),
-      )
-
-      if (sorted.length === 0) return []
-
-      const initialMv = sorted[0].marketValue
-      for (const point of sorted) {
-        point.investmentGain = point.marketValue - point.netContributions
-        if (initialMv !== 0) {
-          point.growthOf1000 = 1000 * (point.marketValue / initialMv)
-          point.cumulativeReturn = point.marketValue / initialMv - 1
-        }
+      const json: AggregateApiResponse = await res.json()
+      return {
+        series: json.data?.series ?? [],
+        xirr: json.data?.xirr ?? null,
       }
-
-      return sorted
     },
     {
       revalidateOnFocus: false,
@@ -107,7 +94,8 @@ export function useAggregatedPerformance(
   )
 
   return {
-    series: data || [],
+    series: data?.series ?? [],
+    xirr: data?.xirr ?? null,
     isLoading,
     error,
   }

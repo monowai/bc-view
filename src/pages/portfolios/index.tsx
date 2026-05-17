@@ -189,7 +189,9 @@ export default withPageAuthRequired(function Portfolios({
           isInactiveTab
         />
       )}
-      {activeTab === "managed" && <ManagedPortfolios />}
+      {activeTab === "managed" && (
+        <ManagedPortfolios onCorporateActions={setCorporateActionsPortfolio} />
+      )}
 
       {corporateActionsPortfolio && (
         <PortfolioCorporateActionsPopup

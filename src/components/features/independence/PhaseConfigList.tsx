@@ -47,7 +47,10 @@ export default function PhaseConfigList({
     const updated = [...phases]
     // Swap plan IDs but keep age ranges
     const prevPlanId = updated[index - 1].planId
-    updated[index - 1] = { ...updated[index - 1], planId: updated[index].planId }
+    updated[index - 1] = {
+      ...updated[index - 1],
+      planId: updated[index].planId,
+    }
     updated[index] = { ...updated[index], planId: prevPlanId }
     onPhaseChange(updated)
   }
@@ -56,7 +59,10 @@ export default function PhaseConfigList({
     if (index === phases.length - 1) return
     const updated = [...phases]
     const nextPlanId = updated[index + 1].planId
-    updated[index + 1] = { ...updated[index + 1], planId: updated[index].planId }
+    updated[index + 1] = {
+      ...updated[index + 1],
+      planId: updated[index].planId,
+    }
     updated[index] = { ...updated[index], planId: nextPlanId }
     onPhaseChange(updated)
   }

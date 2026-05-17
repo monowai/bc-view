@@ -4,6 +4,31 @@ import "@testing-library/jest-dom"
 import EditPlanDetailsModal from "../EditPlanDetailsModal"
 import { RetirementPlan } from "types/independence"
 
+// Mock SWR + the asset-configs hook so the modal's portfolio + asset-config
+// fetches resolve synchronously. Without this, SWR schedules a microtask
+// that triggers setState after the initial render completes — outside any
+// act() scope — producing "An update to EditPlanDetailsModal inside a test
+// was not wrapped in act(...)" warnings.
+jest.mock("swr", () => ({
+  __esModule: true,
+  default: () => ({
+    data: { data: [] },
+    error: undefined,
+    isLoading: false,
+    mutate: jest.fn(),
+  }),
+  mutate: jest.fn(),
+  SWRConfig: ({ children }: { children: React.ReactNode }) => children,
+}))
+
+jest.mock("@utils/assets/usePrivateAssetConfigs", () => ({
+  usePrivateAssetConfigs: () => ({
+    configs: [],
+    assetNames: {},
+    isLoading: false,
+  }),
+}))
+
 const mockPlan: RetirementPlan = {
   id: "test-plan-1",
   name: "Test Plan",
@@ -36,7 +61,6 @@ const mockPlan: RetirementPlan = {
 
 describe("EditPlanDetailsModal", () => {
   const defaultProps = {
-    isOpen: true,
     onClose: jest.fn(),
     onApply: jest.fn(),
     plan: mockPlan,
@@ -46,13 +70,9 @@ describe("EditPlanDetailsModal", () => {
     jest.clearAllMocks()
   })
 
-  it("renders nothing when closed", () => {
-    const { container } = render(
-      <EditPlanDetailsModal {...defaultProps} isOpen={false} />,
-    )
-
-    expect(container.firstChild).toBeNull()
-  })
+  // Open/closed lifecycle is now controlled by the parent via conditional
+  // mounting, so the previous "renders nothing when closed" assertion is no
+  // longer meaningful at this level.
 
   it("renders dialog title when open", () => {
     render(<EditPlanDetailsModal {...defaultProps} />)

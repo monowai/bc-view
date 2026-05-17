@@ -78,13 +78,14 @@ export function useIndependencePlanData(
   // Fetch aggregated holdings to get category breakdown
   // For client plans, skip holdings fetch (adviser's token returns adviser's data)
   // Wait for plan to resolve before deciding
+  const planCurrency = planData?.data?.expensesCurrency
   const holdingsEndpoint = useMemo(() => {
     if (!hasResolvedPlan || isClientPlan) return null
-    const base = "/api/holdings/aggregated?asAt=today"
-    return includedPortfolioCodes
-      ? `${base}&codes=${encodeURIComponent(includedPortfolioCodes)}`
-      : base
-  }, [hasResolvedPlan, isClientPlan, includedPortfolioCodes])
+    const params = new URLSearchParams({ asAt: "today" })
+    if (includedPortfolioCodes) params.set("codes", includedPortfolioCodes)
+    if (planCurrency) params.set("currency", planCurrency)
+    return `/api/holdings/aggregated?${params.toString()}`
+  }, [hasResolvedPlan, isClientPlan, includedPortfolioCodes, planCurrency])
   const {
     data: holdingsResponse,
     isLoading: holdingsLoading,

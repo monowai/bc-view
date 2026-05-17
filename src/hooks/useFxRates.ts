@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 import { Currency, FxResponse } from "types/beancounter"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 
@@ -7,6 +7,19 @@ interface UseFxRatesResult {
   setDisplayCurrency: (currency: Currency) => void
   fxRates: Record<string, number>
   fxReady: boolean
+}
+
+const EMPTY_RATES: Record<string, number> = Object.freeze({})
+
+function uniqueCodes(codes: string[]): string[] {
+  return [...new Set(codes)]
+}
+
+function fetchKeyFor(
+  displayCurrency: Currency,
+  uniqueSourceCodes: string[],
+): string {
+  return `${displayCurrency.code}|${uniqueSourceCodes.join(",")}`
 }
 
 /**
@@ -20,54 +33,60 @@ export function useFxRates(
   sourceCurrencyCodes: string[],
 ): UseFxRatesResult {
   const { preferences } = useUserPreferences()
-  const [displayCurrency, setDisplayCurrency] = useState<Currency | null>(null)
-  const [fxRates, setFxRates] = useState<Record<string, number>>({})
-  const [fxReady, setFxReady] = useState(false)
 
-  // Set default display currency from user preferences
-  useEffect(() => {
-    if (currencies.length === 0 || displayCurrency) return
-
-    if (preferences?.baseCurrencyCode) {
-      const preferred = currencies.find(
-        (c) => c.code === preferences.baseCurrencyCode,
-      )
-      if (preferred) {
-        setDisplayCurrency(preferred)
-        return
-      }
+  // Default display currency derived from currencies + user prefs. Compiler
+  // memoizes this — no manual useMemo (whose optional-chain dep would bail
+  // the compiler from optimizing the rest of the hook).
+  const baseCurrencyCode = preferences?.baseCurrencyCode
+  const defaultDisplayCurrency = ((): Currency | null => {
+    if (currencies.length === 0) return null
+    if (baseCurrencyCode) {
+      const preferred = currencies.find((c) => c.code === baseCurrencyCode)
+      if (preferred) return preferred
     }
+    return currencies.find((c) => c.code === "USD") || currencies[0]
+  })()
 
-    const usd = currencies.find((c) => c.code === "USD")
-    setDisplayCurrency(usd || currencies[0])
-  }, [currencies, displayCurrency, preferences?.baseCurrencyCode])
+  // User can override the default; null means "follow default".
+  const [overrideCurrency, setOverrideCurrency] = useState<Currency | null>(
+    null,
+  )
+  const displayCurrency = overrideCurrency ?? defaultDisplayCurrency
 
-  // Fetch FX rates for source currencies → display currency
-  useEffect(() => {
-    if (!displayCurrency) return
-
-    if (sourceCurrencyCodes.length === 0) {
-      setFxRates({})
-      setFxReady(true)
-      return
+  // Trivial fx rate computation that doesn't require a network call:
+  // - no source currencies → empty map
+  // - every source currency equals displayCurrency → unit rates for each
+  // Returns null when an async fetch is required.
+  const trivialRates = ((): Record<string, number> | null => {
+    if (!displayCurrency) return null
+    if (sourceCurrencyCodes.length === 0) return EMPTY_RATES
+    const unique = uniqueCodes(sourceCurrencyCodes)
+    const pairs = unique.filter((code) => code !== displayCurrency.code)
+    if (pairs.length === 0) {
+      const rates: Record<string, number> = {}
+      unique.forEach((code) => {
+        rates[code] = 1
+      })
+      return rates
     }
+    return null
+  })()
 
-    setFxReady(false)
+  const [asyncRates, setAsyncRates] =
+    useState<Record<string, number>>(EMPTY_RATES)
+  const [asyncFetchKey, setAsyncFetchKey] = useState<string | null>(null)
 
-    const uniqueCurrencies = [...new Set(sourceCurrencyCodes)]
-    const pairs = uniqueCurrencies
+  // Async fetch path. Only runs when trivialRates is null.
+  useEffect(() => {
+    if (!displayCurrency || trivialRates !== null) return () => {}
+
+    const unique = uniqueCodes(sourceCurrencyCodes)
+    const pairs = unique
       .filter((code) => code !== displayCurrency.code)
       .map((code) => ({ from: code, to: displayCurrency.code }))
 
-    if (pairs.length === 0) {
-      const rates: Record<string, number> = {}
-      uniqueCurrencies.forEach((code) => {
-        rates[code] = 1
-      })
-      setFxRates(rates)
-      setFxReady(true)
-      return
-    }
+    const expectedKey = fetchKeyFor(displayCurrency, unique)
+    let cancelled = false
 
     fetch("/api/fx", {
       method: "POST",
@@ -76,20 +95,45 @@ export function useFxRates(
     })
       .then((res) => res.json())
       .then((fxResponse: FxResponse) => {
+        if (cancelled) return
         const rates: Record<string, number> = {}
         rates[displayCurrency.code] = 1
-
         Object.entries(fxResponse.data?.rates || {}).forEach(
           ([key, rateData]) => {
             const [from] = key.split(":")
             rates[from] = rateData.rate
           },
         )
-        setFxRates(rates)
-        setFxReady(true)
+        setAsyncRates(rates)
+        setAsyncFetchKey(expectedKey)
       })
       .catch(console.error)
-  }, [displayCurrency, sourceCurrencyCodes])
 
-  return { displayCurrency, setDisplayCurrency, fxRates, fxReady }
+    return () => {
+      cancelled = true
+    }
+  }, [displayCurrency, sourceCurrencyCodes, trivialRates])
+
+  const fxRates = trivialRates ?? asyncRates
+
+  // Ready iff trivial OR the async result matches the current request key.
+  let fxReady: boolean
+  if (!displayCurrency) {
+    fxReady = false
+  } else if (trivialRates !== null) {
+    fxReady = true
+  } else {
+    const expectedKey = fetchKeyFor(
+      displayCurrency,
+      uniqueCodes(sourceCurrencyCodes),
+    )
+    fxReady = asyncFetchKey === expectedKey
+  }
+
+  return {
+    displayCurrency,
+    setDisplayCurrency: setOverrideCurrency,
+    fxRates,
+    fxReady,
+  }
 }
