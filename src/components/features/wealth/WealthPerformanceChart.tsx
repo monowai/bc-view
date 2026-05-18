@@ -133,7 +133,7 @@ const WealthPerformanceChart: React.FC<WealthPerformanceChartProps> = ({
 
           {isLoading && (
             <div>
-              <div className="grid grid-cols-3 gap-4 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
                 {[0, 1, 2].map((i) => (
                   <div key={i} className="space-y-2">
                     <div className="h-3 w-20 rounded bg-gray-100 animate-pulse" />
@@ -156,11 +156,12 @@ const WealthPerformanceChart: React.FC<WealthPerformanceChartProps> = ({
 
           {!isLoading && !error && series.length > 0 && stats && (
             <>
-              {/* Key metrics row */}
-              <div className="grid grid-cols-3 divide-x divide-gray-100 mb-4 py-4 border-y border-gray-100">
+              {/* Key metrics row — stacks on mobile, 3 columns from sm up.
+                  divide-y on stacked, divide-x once side-by-side. */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-gray-100 mb-4 py-4 border-y border-gray-100">
                 {/* Investment Return — XIRR primary, TWR secondary */}
                 <div
-                  className="px-4"
+                  className="px-4 py-3 sm:py-0"
                   title={
                     xirrPct != null
                       ? "XIRR = money-weighted return on your actual cash flows. " +
@@ -202,7 +203,7 @@ const WealthPerformanceChart: React.FC<WealthPerformanceChartProps> = ({
                 </div>
 
                 {/* Total Value */}
-                <div className="px-4">
+                <div className="px-4 py-3 sm:py-0">
                   <div className="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-1">
                     Total Value
                   </div>
@@ -218,7 +219,7 @@ const WealthPerformanceChart: React.FC<WealthPerformanceChartProps> = ({
                 </div>
 
                 {/* Investment Gain */}
-                <div className="px-4">
+                <div className="px-4 py-3 sm:py-0">
                   <div className="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-1">
                     Investment Gain
                   </div>
