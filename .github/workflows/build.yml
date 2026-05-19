@@ -21,49 +21,9 @@ env:
   IMAGE_NAME: bc-view
 
 jobs:
-  install:
-    name: Install Dependencies
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "yarn"
-
-      - name: Restore node_modules cache
-        id: cache-node-modules
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: node-modules-${{ hashFiles('yarn.lock') }}
-          restore-keys: |
-            node-modules-
-
-      - name: Install dependencies
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
-        run: |
-          yarn config set network-timeout 60000
-          yarn install --frozen-lockfile --prefer-offline --network-concurrency 8
-
-      - name: Verify @types/node
-        run: |
-          if [ ! -d "node_modules/@types/node" ]; then
-            echo "❌ @types/node missing, reinstalling..."
-            rm -rf node_modules
-            yarn cache clean
-            yarn install --frozen-lockfile
-          else
-            echo "✅ @types/node present"
-          fi
-
   test:
     name: Run Tests
     runs-on: ubuntu-latest
-    needs: install
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -74,19 +34,8 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: "yarn"
 
-      - name: Restore node_modules cache
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: node-modules-${{ hashFiles('yarn.lock') }}
-          restore-keys: |
-            node-modules-
-
-      - name: Install dependencies (if cache miss)
-        run: |
-          if [ ! -d "node_modules" ]; then
-            yarn install --frozen-lockfile --prefer-offline
-          fi
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile --prefer-offline --network-concurrency 8
 
       - name: Restore Jest cache
         uses: actions/cache@v4
@@ -133,7 +82,6 @@ jobs:
   build:
     name: Build Application
     runs-on: ubuntu-latest
-    needs: install
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -144,38 +92,20 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: "yarn"
 
-      - name: Restore node_modules cache
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: node-modules-${{ hashFiles('yarn.lock') }}
-          restore-keys: |
-            node-modules-
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile --prefer-offline --network-concurrency 8
 
-      - name: Install dependencies (if cache miss)
-        run: |
-          if [ ! -d "node_modules" ]; then
-            yarn install --frozen-lockfile --prefer-offline
-          fi
-
+      # Key on lockfile + next.config only. Including hashFiles('src/**/*') in
+      # the key minted a fresh ~100 MB cache on every source commit and blew
+      # past the repo cache budget. .next/cache is designed to restore stale —
+      # Next handles incremental compilation from there.
       - name: Restore Next.js build cache
         uses: actions/cache@v4
         with:
-          path: |
-            .next/cache
-          key: nextjs-cache-${{ hashFiles('yarn.lock') }}-${{ hashFiles('next.config.js') }}-${{ hashFiles('src/**/*') }}
+          path: .next/cache
+          key: nextjs-cache-${{ hashFiles('yarn.lock', 'next.config.js') }}
           restore-keys: |
-            nextjs-cache-${{ hashFiles('yarn.lock') }}-${{ hashFiles('next.config.js') }}-
-            nextjs-cache-${{ hashFiles('yarn.lock') }}-
             nextjs-cache-
-
-      - name: Debug Build Environment
-        run: |
-          echo "Node version: $(node --version)"
-          echo "Yarn version: $(yarn --version)"
-          echo "Available memory: $(free -h)"
-          echo "Disk space: $(df -h)"
-          echo "node_modules exists: $([ -d 'node_modules' ] && echo '✅' || echo '❌')"
 
       - name: Build application
         env:
@@ -251,7 +181,9 @@ jobs:
             GIT_COMMIT=${{ steps.prep.outputs.short_sha }}
             BUILD_ID=${{ github.run_number }}
           cache-from: type=gha,scope=${{ matrix.platform }}
-          cache-to: type=gha,scope=${{ matrix.platform }},mode=max
+          # mode=min stores only final-stage layers, not every intermediate
+          # builder layer. mode=max ballooned the GHA cache pool.
+          cache-to: type=gha,scope=${{ matrix.platform }},mode=min
           provenance: false
 
   docker-manifest:
