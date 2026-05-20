@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from "react"
+import React, { useMemo, useState, useCallback, useEffect } from "react"
 import { useRouter } from "next/router"
 import Link from "next/link"
 import { Portfolio, Currency } from "types/beancounter"
@@ -20,6 +20,30 @@ interface PortfoliosListProps {
   onCorporateActions: (portfolio: Portfolio) => void
   onDelete: (target: { id: string; code: string }) => void
   isInactiveTab?: boolean
+}
+
+const SELECTED_STORAGE_KEY = "bc-portfolios-selected"
+
+function loadSelectedCodes(): string[] {
+  if (typeof window === "undefined") return []
+  try {
+    const raw = window.localStorage.getItem(SELECTED_STORAGE_KEY)
+    if (!raw) return []
+    const parsed: unknown = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter((v): v is string => typeof v === "string")
+  } catch {
+    return []
+  }
+}
+
+function saveSelectedCodes(codes: string[]): void {
+  if (typeof window === "undefined") return
+  try {
+    window.localStorage.setItem(SELECTED_STORAGE_KEY, JSON.stringify(codes))
+  } catch {
+    // Quota / private mode — selection just won't persist.
+  }
 }
 
 // Check if valuation date is stale (not today)
@@ -147,13 +171,29 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
   })
 
   const [selectedPortfolios, setSelectedPortfolios] = useState<Set<string>>(
-    new Set(),
+    () => new Set(loadSelectedCodes()),
   )
 
   const sortedPortfolios = useMemo(
     () => sortPortfolios(portfolios, sortConfig),
     [portfolios, sortConfig],
   )
+
+  // Effective selection intersects stored state with currently-visible
+  // portfolios — codes from a prior session that have since been deleted
+  // are silently dropped so the count/UI stays honest.
+  const effectiveSelected = useMemo(() => {
+    const available = new Set(portfolios.map((p) => p.code))
+    const next = new Set<string>()
+    selectedPortfolios.forEach((code) => {
+      if (available.has(code)) next.add(code)
+    })
+    return next
+  }, [portfolios, selectedPortfolios])
+
+  useEffect(() => {
+    saveSelectedCodes(Array.from(effectiveSelected))
+  }, [effectiveSelected])
 
   const handleSort = (key: string): void => {
     setSortConfig((prev) => {
@@ -180,19 +220,18 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
   }, [])
 
   const toggleAllSelection = useCallback(() => {
-    setSelectedPortfolios((prev) => {
-      if (prev.size === portfolios.length) {
-        return new Set()
-      }
-      return new Set(portfolios.map((p) => p.code))
-    })
+    setSelectedPortfolios((prev) =>
+      prev.size === portfolios.length
+        ? new Set<string>()
+        : new Set(portfolios.map((p) => p.code)),
+    )
   }, [portfolios])
 
   const handleViewAggregated = useCallback(() => {
-    if (selectedPortfolios.size === 0) return
-    const codes = Array.from(selectedPortfolios).join(",")
+    if (effectiveSelected.size === 0) return
+    const codes = Array.from(effectiveSelected).join(",")
     router.push(`/holdings/aggregated?codes=${encodeURIComponent(codes)}`)
-  }, [selectedPortfolios, router])
+  }, [effectiveSelected, router])
 
   if (!portfolios || portfolios.length === 0) {
     if (isInactiveTab) {
@@ -262,7 +301,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
   )
 
   const allSelected =
-    portfolios.length > 0 && selectedPortfolios.size === portfolios.length
+    portfolios.length > 0 && effectiveSelected.size === portfolios.length
 
   return (
     <>
@@ -308,10 +347,10 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
               />
             </div>
 
-            {selectedPortfolios.size > 0 && (
+            {effectiveSelected.size > 0 && (
               <div className="flex items-center space-x-2 pt-2 border-t border-gray-100">
                 <span className="text-sm text-gray-600">
-                  {selectedPortfolios.size} {"selected"}
+                  {effectiveSelected.size} {"selected"}
                 </span>
                 <button
                   className="bg-amber-500 text-white py-1.5 px-3 rounded-lg hover:bg-amber-600 transition-colors flex items-center text-sm"
@@ -323,7 +362,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                 <button
                   className="bg-indigo-500 text-white py-1.5 px-3 rounded-lg hover:bg-indigo-600 transition-colors flex items-center text-sm"
                   onClick={() => {
-                    const codes = Array.from(selectedPortfolios).join(",")
+                    const codes = Array.from(effectiveSelected).join(",")
                     router.push(
                       `/rebalance/wizard?portfolios=${encodeURIComponent(codes)}`,
                     )
@@ -339,28 +378,61 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
 
         {/* Mobile: Card layout */}
         <div className="md:hidden px-4 py-4 space-y-3">
+          {/* Mobile select-all toolbar */}
+          <div className="flex items-center justify-between bg-white rounded-xl shadow-sm border border-gray-200 px-3 py-2">
+            <label
+              className="flex items-center space-x-3 py-2 pr-3 -my-2 cursor-pointer select-none"
+              aria-label={"Select all portfolios"}
+            >
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={toggleAllSelection}
+                className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+              />
+              <span className="text-sm font-medium text-gray-700">
+                {allSelected ? "Deselect all" : "Select all"}
+              </span>
+            </label>
+            <span className="text-xs text-gray-500">
+              {effectiveSelected.size}/{portfolios.length} {"selected"}
+            </span>
+          </div>
+
           {sortedPortfolios.map((portfolio) => (
             <div
               key={portfolio.id}
-              className={`bg-white rounded-xl shadow-sm border overflow-hidden ${
-                selectedPortfolios.has(portfolio.code)
+              className={`bg-white rounded-xl shadow-sm border overflow-hidden flex ${
+                effectiveSelected.has(portfolio.code)
                   ? "border-wealth-200 bg-wealth-50"
                   : "border-gray-200"
               }`}
             >
+              {/* Dedicated checkbox tap zone — outside the navigate region.
+                  Wide enough to clear the 44px iOS HIG minimum so users
+                  can toggle without accidentally opening the portfolio. */}
+              <label
+                className="flex items-center justify-center px-4 py-4 cursor-pointer select-none"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  togglePortfolioSelection(portfolio.code)
+                }}
+                aria-label={`Select ${portfolio.code}`}
+              >
+                <input
+                  type="checkbox"
+                  checked={effectiveSelected.has(portfolio.code)}
+                  readOnly
+                  tabIndex={-1}
+                  className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 pointer-events-none"
+                />
+              </label>
               <div
-                className="p-4 cursor-pointer"
+                className="flex-1 p-4 pl-0 cursor-pointer"
                 onClick={() => router.push(`/holdings/${portfolio.code}`)}
               >
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex items-center space-x-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedPortfolios.has(portfolio.code)}
-                      onChange={() => togglePortfolioSelection(portfolio.code)}
-                      onClick={(e) => e.stopPropagation()}
-                      className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
-                    />
                     <div>
                       <div className="font-semibold text-wealth-600">
                         {portfolio.code}
@@ -608,7 +680,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                   <React.Fragment key={portfolio.id}>
                     <tr
                       className={`transition-colors duration-150 cursor-pointer ${
-                        selectedPortfolios.has(portfolio.code)
+                        effectiveSelected.has(portfolio.code)
                           ? "bg-wealth-50 hover:bg-wealth-100"
                           : index % 2 === 0
                             ? "bg-white hover:bg-sky-50"
@@ -630,7 +702,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                       <td className="px-4 py-3 text-center selection-checkbox">
                         <input
                           type="checkbox"
-                          checked={selectedPortfolios.has(portfolio.code)}
+                          checked={effectiveSelected.has(portfolio.code)}
                           onChange={() =>
                             togglePortfolioSelection(portfolio.code)
                           }
