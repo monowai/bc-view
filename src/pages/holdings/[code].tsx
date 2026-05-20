@@ -598,7 +598,7 @@ function HoldingsPage(): React.ReactElement {
             onViewModeChange={setViewMode}
           />
           <PerformanceChart
-            portfolioCode={holdingResults.portfolio.code}
+            portfolioCode={holdingResults.portfolio.id}
             currencySymbol={holdingResults.portfolio.currency.symbol}
           />
         </div>

@@ -410,23 +410,31 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
             >
               {/* Dedicated checkbox tap zone — outside the navigate region.
                   Wide enough to clear the 44px iOS HIG minimum so users
-                  can toggle without accidentally opening the portfolio. */}
-              <label
+                  can toggle without accidentally opening the portfolio.
+                  Uses `button` not `label` — a label wrapping a checkbox
+                  re-dispatches click to the input, firing the handler
+                  twice (toggle then toggle = no-op). The inner checkbox
+                  is purely visual (aria-hidden, no handlers). */}
+              <button
+                type="button"
+                role="checkbox"
+                aria-checked={effectiveSelected.has(portfolio.code)}
+                aria-label={`Select ${portfolio.code}`}
                 className="flex items-center justify-center px-4 py-4 cursor-pointer select-none"
                 onClick={(e) => {
                   e.stopPropagation()
                   togglePortfolioSelection(portfolio.code)
                 }}
-                aria-label={`Select ${portfolio.code}`}
               >
                 <input
                   type="checkbox"
                   checked={effectiveSelected.has(portfolio.code)}
                   readOnly
                   tabIndex={-1}
+                  aria-hidden="true"
                   className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 pointer-events-none"
                 />
-              </label>
+              </button>
               <div
                 className="flex-1 p-4 pl-0 cursor-pointer"
                 onClick={() => router.push(`/holdings/${portfolio.code}`)}
