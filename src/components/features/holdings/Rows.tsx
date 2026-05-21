@@ -361,7 +361,7 @@ export default function Rows({
                 const isBreakdownable =
                   !!onPortfolioBreakdown &&
                   !!portfolioBreakdown &&
-                  portfolioBreakdown.length > 1
+                  portfolioBreakdown.length > 0
                 if (isBreakdownable) {
                   return (
                     <button

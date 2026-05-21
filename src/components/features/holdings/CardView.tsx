@@ -425,7 +425,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
           const isBreakdownable =
             !!onPortfolioBreakdown &&
             !!portfolioBreakdown &&
-            portfolioBreakdown.length > 1
+            portfolioBreakdown.length > 0
           const handleQuantityClick = isBreakdownable
             ? (e: React.MouseEvent) => {
                 e.preventDefault()
