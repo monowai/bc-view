@@ -208,7 +208,8 @@ describe("CardView footer (Quantity / Price / Weight)", () => {
       )
     })
 
-    it("does not render a quantity button when breakdown has only one entry", () => {
+    it("renders a quantity button even when breakdown has a single entry", () => {
+      const onPortfolioBreakdown = jest.fn()
       const portfolio = makePortfolio()
       const position = makePosition({
         moneyValues: { weight: 0.25 },
@@ -224,6 +225,38 @@ describe("CardView footer (Quantity / Price / Weight)", () => {
             },
           ],
         },
+      })
+      const holdings = makeHoldings({
+        portfolio,
+        holdingGroups: { Equity: makeHoldingGroup({ positions: [position] }) },
+      })
+      render(
+        <CardView
+          holdings={holdings}
+          portfolio={portfolio}
+          valueIn={ValueIn.PORTFOLIO}
+          onPortfolioBreakdown={onPortfolioBreakdown}
+        />,
+      )
+      const button = screen.getByRole("button", {
+        name: /Show portfolios holding AAPL/i,
+      })
+      fireEvent.click(button)
+      expect(onPortfolioBreakdown).toHaveBeenCalledWith(
+        expect.objectContaining({
+          breakdown: expect.arrayContaining([
+            expect.objectContaining({ portfolioCode: "MAIN" }),
+          ]),
+        }),
+      )
+    })
+
+    it("does not render a quantity button when breakdown is missing", () => {
+      const portfolio = makePortfolio()
+      const position = makePosition({
+        moneyValues: { weight: 0.25 },
+        price: 150,
+        quantityValues: { total: 100 },
       })
       const holdings = makeHoldings({
         portfolio,
