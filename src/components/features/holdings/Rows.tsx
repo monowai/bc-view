@@ -10,7 +10,8 @@ import {
   CashTransferData,
   CostAdjustData,
   MovePositionData,
-  Asset,
+  PortfolioBreakdownData,
+  PriceChartData,
 } from "types/beancounter"
 import {
   FormatValue,
@@ -42,12 +43,6 @@ import {
 
 export type { CorporateActionsData, SectorWeightingsData }
 
-export interface PriceChartData {
-  asset: Asset
-  currencySymbol: string
-  portfolioId: string
-}
-
 interface RowsProps extends HoldingValues {
   onColumnsChange: (columns: string[]) => void
   onTrade?: (data: QuickSellData) => void
@@ -65,6 +60,7 @@ interface RowsProps extends HoldingValues {
   onRecordIncome?: (data: QuickSellData) => void
   onRecordExpense?: (data: QuickSellData) => void
   onPriceChart?: (data: PriceChartData) => void
+  onPortfolioBreakdown?: (data: PortfolioBreakdownData) => void
 }
 
 // Helper function to truncate text with ellipsis
@@ -94,6 +90,7 @@ export default function Rows({
   onRecordIncome,
   onRecordExpense,
   onPriceChart,
+  onPortfolioBreakdown,
 }: RowsProps): React.ReactElement {
   const router = useRouter()
   const { popup: newsPopup, showNews } = useNewsAsset()
@@ -147,7 +144,17 @@ export default function Rows({
   return (
     <tbody>
       {holdingGroup.positions.map(
-        ({ asset, moneyValues, quantityValues, dateValues, held }, index) => (
+        (
+          {
+            asset,
+            moneyValues,
+            quantityValues,
+            dateValues,
+            held,
+            portfolioBreakdown,
+          },
+          index,
+        ) => (
           <tr
             key={`${groupBy}-${valueIn}-${index}`}
             className={`holding-row text-sm cursor-pointer border-l-2 border-l-transparent ${
@@ -338,29 +345,57 @@ export default function Rows({
             </td>
 
             <td className={getCellClasses(3)}>
-              {isCashRelated(asset) ||
-              hideValue(moneyValues[valueIn].priceData) ? (
-                " "
-              ) : held && Object.keys(held).length > 1 ? (
-                <span className="relative group cursor-help">
+              {(() => {
+                if (
+                  isCashRelated(asset) ||
+                  hideValue(moneyValues[valueIn].priceData)
+                ) {
+                  return " "
+                }
+                const quantity = (
                   <PrivateQuantity
                     value={quantityValues.total}
                     precision={quantityValues.precision}
                   />
-                  <span className="absolute right-0 transform -translate-y-full mb-1 bg-slate-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none whitespace-nowrap z-50 shadow-lg">
-                    {Object.entries(held).map(([broker, qty]) => (
-                      <div key={broker}>
-                        {broker}: {qty.toLocaleString()}
-                      </div>
-                    ))}
-                  </span>
-                </span>
-              ) : (
-                <PrivateQuantity
-                  value={quantityValues.total}
-                  precision={quantityValues.precision}
-                />
-              )}
+                )
+                const isBreakdownable =
+                  !!onPortfolioBreakdown &&
+                  !!portfolioBreakdown &&
+                  portfolioBreakdown.length > 1
+                if (isBreakdownable) {
+                  return (
+                    <button
+                      type="button"
+                      aria-label={`Show portfolios holding ${stripOwnerPrefix(asset.code)}`}
+                      className="cursor-pointer hover:text-wealth-700 hover:underline underline-offset-2 decoration-dotted"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onPortfolioBreakdown!({
+                          asset,
+                          breakdown: portfolioBreakdown!,
+                        })
+                      }}
+                    >
+                      {quantity}
+                    </button>
+                  )
+                }
+                if (held && Object.keys(held).length > 1) {
+                  return (
+                    <span className="relative group cursor-help">
+                      {quantity}
+                      <span className="absolute right-0 transform -translate-y-full mb-1 bg-slate-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none whitespace-nowrap z-50 shadow-lg">
+                        {Object.entries(held).map(([broker, qty]) => (
+                          <div key={broker}>
+                            {broker}: {qty.toLocaleString()}
+                          </div>
+                        ))}
+                      </span>
+                    </span>
+                  )
+                }
+                return quantity
+              })()}
             </td>
             <td className={getCellClasses(4)}>
               <span className="relative group">
