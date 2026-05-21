@@ -2,8 +2,11 @@ import React from "react"
 import { render, screen, fireEvent } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import PortfolioBreakdownPopup from "../PortfolioBreakdownPopup"
-import { Asset, PortfolioBreakdown } from "types/beancounter"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
+import {
+  makeAsset,
+  makePortfolioBreakdown,
+} from "@test-fixtures/beancounter"
 
 jest.mock("@hooks/usePrivacyMode")
 const mockedUsePrivacyMode = usePrivacyMode as jest.MockedFunction<
@@ -15,31 +18,21 @@ jest.mock("next/router", () => ({
   useRouter: () => ({ push }),
 }))
 
-const asset: Asset = {
-  id: "asset-aapl",
-  code: "AAPL",
-  name: "Apple Inc",
-  assetCategory: { id: "EQUITY", name: "Equity" },
-  market: {
-    code: "NASDAQ",
-    name: "NASDAQ",
-    currency: { code: "USD", name: "US Dollar", symbol: "$" },
-  },
-}
+const asset = makeAsset({ code: "AAPL", name: "Apple Inc" })
 
-const breakdown: PortfolioBreakdown[] = [
-  {
+const breakdown = [
+  makePortfolioBreakdown({
     portfolioId: "p1",
     portfolioCode: "MAIN",
     portfolioName: "Main Account",
     quantity: 60,
-  },
-  {
+  }),
+  makePortfolioBreakdown({
     portfolioId: "p2",
     portfolioCode: "ISA",
     portfolioName: "Stocks ISA",
     quantity: 40,
-  },
+  }),
 ]
 
 describe("PortfolioBreakdownPopup", () => {

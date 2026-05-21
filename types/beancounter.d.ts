@@ -173,6 +173,17 @@ export interface PortfolioBreakdown {
   quantity: number
 }
 
+export interface PortfolioBreakdownData {
+  asset: Asset
+  breakdown: PortfolioBreakdown[]
+}
+
+export interface PriceChartData {
+  asset: Asset
+  currencySymbol: string
+  portfolioId: string
+}
+
 export interface Position {
   [index: string]: ValueIn
 

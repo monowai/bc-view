@@ -6,7 +6,9 @@ import {
   Holdings,
   MovePositionData,
   Portfolio,
+  PortfolioBreakdownData,
   Position,
+  PriceChartData,
   QuickSellData,
   SetBalanceData,
   SetCashBalanceData,
@@ -27,10 +29,6 @@ import { getGroupComparator } from "@lib/categoryMapping"
 import { useRouter } from "next/router"
 import AssetNewsButton from "@components/features/holdings/AssetNewsButton"
 import { useNewsAsset } from "@components/features/holdings/useNewsAsset"
-import {
-  PortfolioBreakdownData,
-  PriceChartData,
-} from "@components/features/holdings/Rows"
 import {
   ActionsMenu,
   CashActionsMenu,

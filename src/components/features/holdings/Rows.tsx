@@ -10,8 +10,8 @@ import {
   CashTransferData,
   CostAdjustData,
   MovePositionData,
-  Asset,
-  PortfolioBreakdown,
+  PortfolioBreakdownData,
+  PriceChartData,
 } from "types/beancounter"
 import {
   FormatValue,
@@ -42,17 +42,6 @@ import {
 } from "./ActionsMenus"
 
 export type { CorporateActionsData, SectorWeightingsData }
-
-export interface PriceChartData {
-  asset: Asset
-  currencySymbol: string
-  portfolioId: string
-}
-
-export interface PortfolioBreakdownData {
-  asset: Asset
-  breakdown: PortfolioBreakdown[]
-}
 
 interface RowsProps extends HoldingValues {
   onColumnsChange: (columns: string[]) => void

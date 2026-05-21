@@ -12,12 +12,13 @@ import { useHoldingState } from "@lib/holdings/holdingState"
 import { useHoldingsView } from "@lib/holdings/useHoldingsView"
 import HoldingsHeader from "@components/features/holdings/HoldingsHeader"
 import HoldingMenu from "@components/features/holdings/HoldingMenu"
-import Rows, {
-  PortfolioBreakdownData,
-  PriceChartData,
-} from "@components/features/holdings/Rows"
+import Rows from "@components/features/holdings/Rows"
 import PriceChartPopup from "@components/features/holdings/PriceChartPopup"
 import PortfolioBreakdownPopup from "@components/features/holdings/PortfolioBreakdownPopup"
+import {
+  PortfolioBreakdownData,
+  PriceChartData,
+} from "types/beancounter"
 import SubTotal from "@components/features/holdings/SubTotal"
 import Header from "@components/features/holdings/Header"
 import GrandTotal from "@components/features/holdings/GrandTotal"
