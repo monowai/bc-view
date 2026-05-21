@@ -30,9 +30,9 @@ import HoldingMenu from "@components/features/holdings/HoldingMenu"
 import HoldingsHeader from "@components/features/holdings/HoldingsHeader"
 import Rows, {
   CorporateActionsData,
-  PriceChartData,
   SectorWeightingsData,
 } from "@components/features/holdings/Rows"
+import { PriceChartData } from "types/beancounter"
 import SectorWeightingsPopup from "@components/features/holdings/SectorWeightingsPopup"
 import PriceChartPopup from "@components/features/holdings/PriceChartPopup"
 import SubTotal from "@components/features/holdings/SubTotal"

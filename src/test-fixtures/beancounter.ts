@@ -16,6 +16,7 @@ import {
   HoldingGroup,
   MoneyValues,
   Portfolio,
+  PortfolioBreakdown,
   Position,
   QuantityValues,
 } from "types/beancounter"
@@ -118,7 +119,7 @@ export interface MakePositionOptions {
   /** Build the same MoneyValues for these buckets (default: ["PORTFOLIO"]) */
   buckets?: ValueIn[]
   quantityValues?: Partial<QuantityValues>
-  overrides?: Partial<Position>
+  overrides?: Record<string, unknown>
 }
 
 export function makePosition(options: MakePositionOptions = {}): Position {
@@ -204,6 +205,18 @@ export function makePortfolio(overrides: Partial<Portfolio> = {}): Portfolio {
     irr: 0.1,
     ...overrides,
   } as Portfolio
+}
+
+export function makePortfolioBreakdown(
+  overrides: Partial<PortfolioBreakdown> = {},
+): PortfolioBreakdown {
+  return {
+    portfolioId: "p-1",
+    portfolioCode: "TEST",
+    portfolioName: "Test Portfolio",
+    quantity: 100,
+    ...overrides,
+  }
 }
 
 export interface MakeHoldingsOptions {

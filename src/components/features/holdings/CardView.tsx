@@ -6,7 +6,9 @@ import {
   Holdings,
   MovePositionData,
   Portfolio,
+  PortfolioBreakdownData,
   Position,
+  PriceChartData,
   QuickSellData,
   SetBalanceData,
   SetCashBalanceData,
@@ -27,7 +29,6 @@ import { getGroupComparator } from "@lib/categoryMapping"
 import { useRouter } from "next/router"
 import AssetNewsButton from "@components/features/holdings/AssetNewsButton"
 import { useNewsAsset } from "@components/features/holdings/useNewsAsset"
-import { PriceChartData } from "@components/features/holdings/Rows"
 import {
   ActionsMenu,
   CashActionsMenu,
@@ -50,6 +51,7 @@ interface SharedActionHandlers {
   onCashTransfer?: (data: CashTransferData) => void
   onCashTransaction?: (assetCode: string) => void
   onPriceChart?: (data: PriceChartData) => void
+  onPortfolioBreakdown?: (data: PortfolioBreakdownData) => void
 }
 
 interface CardViewProps extends SharedActionHandlers {
@@ -98,6 +100,8 @@ interface PositionFooterProps {
   currencySymbol: string
   onPriceClick?: (e: React.MouseEvent) => void
   priceAriaLabel?: string
+  onQuantityClick?: (e: React.MouseEvent) => void
+  quantityAriaLabel?: string
 }
 
 const PositionFooter: React.FC<PositionFooterProps> = ({
@@ -108,6 +112,8 @@ const PositionFooter: React.FC<PositionFooterProps> = ({
   currencySymbol,
   onPriceClick,
   priceAriaLabel,
+  onQuantityClick,
+  quantityAriaLabel,
 }) => {
   const priceText = (
     <>
@@ -127,12 +133,22 @@ const PositionFooter: React.FC<PositionFooterProps> = ({
   ) : (
     priceText
   )
+  const quantityText = <PrivateQuantity value={quantity} precision={precision} />
+  const quantityValue = onQuantityClick ? (
+    <button
+      type="button"
+      aria-label={quantityAriaLabel}
+      className="cursor-pointer hover:text-wealth-700 hover:underline underline-offset-2 decoration-dotted"
+      onClick={onQuantityClick}
+    >
+      {quantityText}
+    </button>
+  ) : (
+    quantityText
+  )
   return (
     <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-3 gap-2 text-sm">
-      <PositionMetric
-        label="Quantity"
-        value={<PrivateQuantity value={quantity} precision={precision} />}
-      />
+      <PositionMetric label="Quantity" value={quantityValue} />
       <PositionMetric label="Price" align="center" value={priceValue} />
       <PositionMetric
         label="Weight"
@@ -256,10 +272,12 @@ const PositionCard: React.FC<PositionCardProps> = ({
   onCashTransfer,
   onCashTransaction,
   onPriceChart,
+  onPortfolioBreakdown,
 }) => {
   const router = useRouter()
   const { popup, showNews } = useNewsAsset()
-  const { asset, moneyValues, quantityValues, dateValues } = position
+  const { asset, moneyValues, quantityValues, dateValues, portfolioBreakdown } =
+    position
   const values = moneyValues[valueIn]
 
   const positionCurrency =
@@ -404,6 +422,20 @@ const PositionCard: React.FC<PositionCardProps> = ({
                 })
               }
             : undefined
+          const isBreakdownable =
+            !!onPortfolioBreakdown &&
+            !!portfolioBreakdown &&
+            portfolioBreakdown.length > 1
+          const handleQuantityClick = isBreakdownable
+            ? (e: React.MouseEvent) => {
+                e.preventDefault()
+                e.stopPropagation()
+                onPortfolioBreakdown!({
+                  asset,
+                  breakdown: portfolioBreakdown!,
+                })
+              }
+            : undefined
           return (
             <PositionFooter
               quantity={quantityValues.total}
@@ -415,6 +447,12 @@ const PositionCard: React.FC<PositionCardProps> = ({
               priceAriaLabel={
                 isChartable
                   ? `Show price chart for ${stripOwnerPrefix(asset.code)}`
+                  : undefined
+              }
+              onQuantityClick={handleQuantityClick}
+              quantityAriaLabel={
+                isBreakdownable
+                  ? `Show portfolios holding ${stripOwnerPrefix(asset.code)}`
                   : undefined
               }
             />
@@ -469,6 +507,7 @@ const CardView: React.FC<CardViewProps> = ({
   onCashTransfer,
   onCashTransaction,
   onPriceChart,
+  onPortfolioBreakdown,
 }) => {
   // Group positions by holdingGroups, sorted by group comparator
   const groupedPositions = useMemo((): GroupedPositions[] => {
@@ -697,6 +736,7 @@ const CardView: React.FC<CardViewProps> = ({
                     onCashTransfer={onCashTransfer}
                     onCashTransaction={onCashTransaction}
                     onPriceChart={onPriceChart}
+                    onPortfolioBreakdown={onPortfolioBreakdown}
                   />
                 ))}
               </div>

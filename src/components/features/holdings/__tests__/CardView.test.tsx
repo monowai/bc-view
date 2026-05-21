@@ -151,6 +151,137 @@ describe("CardView footer (Quantity / Price / Weight)", () => {
     })
   })
 
+  describe("portfolio breakdown click", () => {
+    it("renders quantity as a button and invokes onPortfolioBreakdown when breakdown has multiple entries", () => {
+      const onPortfolioBreakdown = jest.fn()
+      const portfolio = makePortfolio()
+      const asset = makeAsset({
+        assetCategory: { id: "EQUITY", name: "Equity" },
+      })
+      const position = makePosition({
+        asset,
+        moneyValues: { weight: 0.25 },
+        price: 150,
+        quantityValues: { total: 100 },
+        overrides: {
+          portfolioBreakdown: [
+            {
+              portfolioId: "p1",
+              portfolioCode: "MAIN",
+              portfolioName: "Main Account",
+              quantity: 60,
+            },
+            {
+              portfolioId: "p2",
+              portfolioCode: "ISA",
+              portfolioName: "ISA",
+              quantity: 40,
+            },
+          ],
+        },
+      })
+      const holdings = makeHoldings({
+        portfolio,
+        holdingGroups: { Equity: makeHoldingGroup({ positions: [position] }) },
+      })
+      render(
+        <CardView
+          holdings={holdings}
+          portfolio={portfolio}
+          valueIn={ValueIn.PORTFOLIO}
+          onPortfolioBreakdown={onPortfolioBreakdown}
+        />,
+      )
+
+      const button = screen.getByRole("button", {
+        name: /Show portfolios holding AAPL/i,
+      })
+      fireEvent.click(button)
+      expect(onPortfolioBreakdown).toHaveBeenCalledWith(
+        expect.objectContaining({
+          asset: expect.objectContaining({ code: "AAPL" }),
+          breakdown: expect.arrayContaining([
+            expect.objectContaining({ portfolioCode: "MAIN" }),
+            expect.objectContaining({ portfolioCode: "ISA" }),
+          ]),
+        }),
+      )
+    })
+
+    it("does not render a quantity button when breakdown has only one entry", () => {
+      const portfolio = makePortfolio()
+      const position = makePosition({
+        moneyValues: { weight: 0.25 },
+        price: 150,
+        quantityValues: { total: 100 },
+        overrides: {
+          portfolioBreakdown: [
+            {
+              portfolioId: "p1",
+              portfolioCode: "MAIN",
+              portfolioName: "Main Account",
+              quantity: 100,
+            },
+          ],
+        },
+      })
+      const holdings = makeHoldings({
+        portfolio,
+        holdingGroups: { Equity: makeHoldingGroup({ positions: [position] }) },
+      })
+      render(
+        <CardView
+          holdings={holdings}
+          portfolio={portfolio}
+          valueIn={ValueIn.PORTFOLIO}
+          onPortfolioBreakdown={jest.fn()}
+        />,
+      )
+      expect(
+        screen.queryByRole("button", { name: /Show portfolios holding/i }),
+      ).not.toBeInTheDocument()
+    })
+
+    it("does not render a quantity button when handler is omitted", () => {
+      const portfolio = makePortfolio()
+      const position = makePosition({
+        moneyValues: { weight: 0.25 },
+        price: 150,
+        quantityValues: { total: 100 },
+        overrides: {
+          portfolioBreakdown: [
+            {
+              portfolioId: "p1",
+              portfolioCode: "MAIN",
+              portfolioName: "Main",
+              quantity: 60,
+            },
+            {
+              portfolioId: "p2",
+              portfolioCode: "ISA",
+              portfolioName: "ISA",
+              quantity: 40,
+            },
+          ],
+        },
+      })
+      const holdings = makeHoldings({
+        portfolio,
+        holdingGroups: { Equity: makeHoldingGroup({ positions: [position] }) },
+      })
+      render(
+        <CardView
+          holdings={holdings}
+          portfolio={portfolio}
+          valueIn={ValueIn.PORTFOLIO}
+        />,
+      )
+      expect(
+        screen.queryByRole("button", { name: /Show portfolios holding/i }),
+      ).not.toBeInTheDocument()
+    })
+  })
+
   describe("actions menu parity with table view", () => {
     it("invokes onQuickSell with the same payload as the row menu", () => {
       const onQuickSell = jest.fn()
