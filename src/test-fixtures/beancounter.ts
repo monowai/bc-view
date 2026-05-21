@@ -118,7 +118,7 @@ export interface MakePositionOptions {
   /** Build the same MoneyValues for these buckets (default: ["PORTFOLIO"]) */
   buckets?: ValueIn[]
   quantityValues?: Partial<QuantityValues>
-  overrides?: Partial<Position>
+  overrides?: Record<string, unknown>
 }
 
 export function makePosition(options: MakePositionOptions = {}): Position {

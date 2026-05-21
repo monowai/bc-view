@@ -166,6 +166,13 @@ export interface QuantityValues {
   precision: number
 }
 
+export interface PortfolioBreakdown {
+  portfolioId: string
+  portfolioCode: string
+  portfolioName: string
+  quantity: number
+}
+
 export interface Position {
   [index: string]: ValueIn
 
@@ -177,6 +184,7 @@ export interface Position {
   roi: number
   held?: Record<string, number> // Broker name -> quantity held
   subAccounts?: Record<string, number>
+  portfolioBreakdown?: PortfolioBreakdown[]
 }
 
 export interface DateValues {

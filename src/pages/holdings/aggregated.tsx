@@ -12,8 +12,12 @@ import { useHoldingState } from "@lib/holdings/holdingState"
 import { useHoldingsView } from "@lib/holdings/useHoldingsView"
 import HoldingsHeader from "@components/features/holdings/HoldingsHeader"
 import HoldingMenu from "@components/features/holdings/HoldingMenu"
-import Rows, { PriceChartData } from "@components/features/holdings/Rows"
+import Rows, {
+  PortfolioBreakdownData,
+  PriceChartData,
+} from "@components/features/holdings/Rows"
 import PriceChartPopup from "@components/features/holdings/PriceChartPopup"
+import PortfolioBreakdownPopup from "@components/features/holdings/PortfolioBreakdownPopup"
 import SubTotal from "@components/features/holdings/SubTotal"
 import Header from "@components/features/holdings/Header"
 import GrandTotal from "@components/features/holdings/GrandTotal"
@@ -252,12 +256,24 @@ function AggregatedHoldingsPage(): React.ReactElement {
   const [priceChartData, setPriceChartData] = useState<
     PriceChartData | undefined
   >(undefined)
+  const [portfolioBreakdownData, setPortfolioBreakdownData] = useState<
+    PortfolioBreakdownData | undefined
+  >(undefined)
 
   const handlePriceChart = useCallback((data: PriceChartData) => {
     setPriceChartData(data)
   }, [])
   const handlePriceChartClose = useCallback(() => {
     setPriceChartData(undefined)
+  }, [])
+  const handlePortfolioBreakdown = useCallback(
+    (data: PortfolioBreakdownData) => {
+      setPortfolioBreakdownData(data)
+    },
+    [],
+  )
+  const handlePortfolioBreakdownClose = useCallback(() => {
+    setPortfolioBreakdownData(undefined)
   }, [])
 
   // Determine the subtitle based on selected portfolios
@@ -444,6 +460,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
                             valueIn={holdingState.valueIn.value}
                             onColumnsChange={setColumns}
                             onPriceChart={handlePriceChart}
+                            onPortfolioBreakdown={handlePortfolioBreakdown}
                           />
                           <SubTotal
                             groupBy={groupKey}
@@ -476,6 +493,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
               groupBy={holdingState.groupBy.value}
               isMixedCurrencies={holdingResults.isMixedCurrencies}
               onPriceChart={handlePriceChart}
+              onPortfolioBreakdown={handlePortfolioBreakdown}
             />
           </div>
         ) : viewMode === "heatmap" ? (
@@ -542,6 +560,13 @@ function AggregatedHoldingsPage(): React.ReactElement {
             asset={priceChartData.asset}
             currencySymbol={priceChartData.currencySymbol}
             onClose={handlePriceChartClose}
+          />
+        )}
+        {portfolioBreakdownData && (
+          <PortfolioBreakdownPopup
+            asset={portfolioBreakdownData.asset}
+            breakdown={portfolioBreakdownData.breakdown}
+            onClose={handlePortfolioBreakdownClose}
           />
         )}
         {reviewPopup}
