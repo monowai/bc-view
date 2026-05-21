@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react"
+import React, { useCallback, useMemo, useState } from "react"
 import {
   TableSkeletonLoader,
   SummarySkeletonLoader,
@@ -12,7 +12,8 @@ import { useHoldingState } from "@lib/holdings/holdingState"
 import { useHoldingsView } from "@lib/holdings/useHoldingsView"
 import HoldingsHeader from "@components/features/holdings/HoldingsHeader"
 import HoldingMenu from "@components/features/holdings/HoldingMenu"
-import Rows from "@components/features/holdings/Rows"
+import Rows, { PriceChartData } from "@components/features/holdings/Rows"
+import PriceChartPopup from "@components/features/holdings/PriceChartPopup"
 import SubTotal from "@components/features/holdings/SubTotal"
 import Header from "@components/features/holdings/Header"
 import GrandTotal from "@components/features/holdings/GrandTotal"
@@ -248,6 +249,16 @@ function AggregatedHoldingsPage(): React.ReactElement {
   // State for copy functionality
   const [columns, setColumns] = useState<string[]>([])
   const [copyModalOpen, setCopyModalOpen] = useState(false)
+  const [priceChartData, setPriceChartData] = useState<
+    PriceChartData | undefined
+  >(undefined)
+
+  const handlePriceChart = useCallback((data: PriceChartData) => {
+    setPriceChartData(data)
+  }, [])
+  const handlePriceChartClose = useCallback(() => {
+    setPriceChartData(undefined)
+  }, [])
 
   // Determine the subtitle based on selected portfolios
   const subtitle = useMemo(() => {
@@ -432,6 +443,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
                             holdingGroup={holdings.holdingGroups[groupKey]}
                             valueIn={holdingState.valueIn.value}
                             onColumnsChange={setColumns}
+                            onPriceChart={handlePriceChart}
                           />
                           <SubTotal
                             groupBy={groupKey}
@@ -463,6 +475,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
               valueIn={holdingState.valueIn.value}
               groupBy={holdingState.groupBy.value}
               isMixedCurrencies={holdingResults.isMixedCurrencies}
+              onPriceChart={handlePriceChart}
             />
           </div>
         ) : viewMode === "heatmap" ? (
@@ -524,6 +537,13 @@ function AggregatedHoldingsPage(): React.ReactElement {
           modalOpen={copyModalOpen}
           onClose={() => setCopyModalOpen(false)}
         />
+        {priceChartData && (
+          <PriceChartPopup
+            asset={priceChartData.asset}
+            currencySymbol={priceChartData.currencySymbol}
+            onClose={handlePriceChartClose}
+          />
+        )}
         {reviewPopup}
       </div>
     </>
