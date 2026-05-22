@@ -9,6 +9,12 @@ on:
   push:
   pull_request:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      build_image:
+        description: "Build and publish docker image"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -19,6 +25,10 @@ env:
   CONTAINER_REGISTRY: ghcr.io
   CONTAINER_ORG: monowai
   IMAGE_NAME: bc-view
+  # Force JS actions still pinned to Node 20 onto Node 24 — Node 20 is
+  # being removed from GHA runners. See:
+  # https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
   test:
@@ -128,7 +138,9 @@ jobs:
     name: Build Docker (${{ matrix.platform }})
     runs-on: ${{ matrix.runner }}
     needs: [test, build]
-    if: github.event_name == 'push'
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && inputs.build_image)
     permissions:
       contents: read
       packages: write
@@ -190,7 +202,9 @@ jobs:
     name: Create Multi-arch Manifest
     runs-on: ubuntu-latest
     needs: docker
-    if: github.event_name == 'push'
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && inputs.build_image)
     permissions:
       contents: read
       packages: write
@@ -203,6 +217,8 @@ jobs:
           password: ${{ secrets.GH_TOKEN }}
 
       - name: Create and push manifest
+        env:
+          GITHUB_REF: ${{ github.ref }}
         run: |
           IMAGE="${{ env.CONTAINER_REGISTRY }}/${{ env.CONTAINER_ORG }}/${{ env.IMAGE_NAME }}"
 
@@ -212,18 +228,24 @@ jobs:
             ${IMAGE}:${{ github.run_number }}-linux-arm64
           docker manifest push ${IMAGE}:${{ github.run_number }}
 
-          # Create manifest for latest tag
-          docker manifest create ${IMAGE}:latest \
-            ${IMAGE}:${{ github.run_number }}-linux-amd64 \
-            ${IMAGE}:${{ github.run_number }}-linux-arm64
-          docker manifest push ${IMAGE}:latest
+          # Only tag :latest from main so branch builds don't clobber the deployed tag
+          if [ "$GITHUB_REF" = "refs/heads/main" ]; then
+            docker manifest create ${IMAGE}:latest \
+              ${IMAGE}:${{ github.run_number }}-linux-amd64 \
+              ${IMAGE}:${{ github.run_number }}-linux-arm64
+            docker manifest push ${IMAGE}:latest
+          fi
 
       - name: Output image tags
+        env:
+          GITHUB_REF: ${{ github.ref }}
         run: |
           echo "## Docker Image Published" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Multi-arch Images (amd64 + arm64):**" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "${{ env.CONTAINER_REGISTRY }}/${{ env.CONTAINER_ORG }}/${{ env.IMAGE_NAME }}:${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
-          echo "${{ env.CONTAINER_REGISTRY }}/${{ env.CONTAINER_ORG }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_STEP_SUMMARY
+          if [ "$GITHUB_REF" = "refs/heads/main" ]; then
+            echo "${{ env.CONTAINER_REGISTRY }}/${{ env.CONTAINER_ORG }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_STEP_SUMMARY
+          fi
           echo '```' >> $GITHUB_STEP_SUMMARY
