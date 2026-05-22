@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from "react"
-import useSwr from "swr"
+import React, { useCallback, useMemo, useState } from "react"
+import useSwr, { mutate } from "swr"
+import { useIsAdmin } from "@hooks/useIsAdmin"
 import {
   ComposedChart,
   Area,
@@ -233,6 +234,12 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
 }) => {
   const [months, setMonths] = useState(DEFAULT_MONTHS)
   const [smaWindow, setSmaWindow] = useState(DEFAULT_SMA)
+  const { isAdmin } = useIsAdmin()
+  const [repairState, setRepairState] = useState<{
+    busy: boolean
+    message: string | null
+    error: boolean
+  }>({ busy: false, message: null, error: false })
 
   const { from, to } = useMemo(() => {
     const today = new Date()
@@ -248,6 +255,46 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
     error: priceError,
     isLoading: pricesLoading,
   } = useSwr<PriceHistoryResponse>(priceUrl, simpleFetcher(priceUrl))
+
+  const handleRepairSplits = useCallback(async () => {
+    setRepairState({ busy: true, message: null, error: false })
+    try {
+      const response = await fetch(`/api/prices/${asset.id}/repair-splits`, {
+        method: "POST",
+      })
+      if (!response.ok) {
+        const detail =
+          response.status === 403
+            ? "Admin scope required"
+            : `HTTP ${response.status}`
+        setRepairState({
+          busy: false,
+          message: `Repair failed: ${detail}`,
+          error: true,
+        })
+        return
+      }
+      const body = (await response.json()) as {
+        stamped: number
+        alreadyStamped: number
+        missingRows: number
+      }
+      setRepairState({
+        busy: false,
+        message: `Repaired: ${body.stamped} stamped, ${body.alreadyStamped} already, ${body.missingRows} missing`,
+        error: false,
+      })
+      // Force a chart refresh against the now-stamped data.
+      await mutate(priceUrl)
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Unknown error"
+      setRepairState({
+        busy: false,
+        message: `Repair failed: ${message}`,
+        error: true,
+      })
+    }
+  }, [asset.id, priceUrl])
 
   const tradesUrl = portfolioId
     ? `/api/trns/trades/${portfolioId}/${asset.id}`
@@ -371,12 +418,36 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
       maxWidth="3xl"
       scrollable
       footer={
-        <button
-          className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 transition-colors"
-          onClick={onClose}
-        >
-          {"Close"}
-        </button>
+        <div className="flex items-center gap-3 w-full justify-between">
+          <div className="flex items-center gap-3">
+            {isAdmin && (
+              <button
+                className="bg-amber-100 text-amber-800 border border-amber-300 px-3 py-2 rounded hover:bg-amber-200 disabled:opacity-50 transition-colors text-sm"
+                onClick={handleRepairSplits}
+                disabled={repairState.busy}
+                title="Stamp split factors on this asset's price history (admin only)"
+              >
+                {repairState.busy ? "Repairing…" : "Repair splits"}
+              </button>
+            )}
+            {repairState.message && (
+              <span
+                className={`text-xs ${
+                  repairState.error ? "text-red-600" : "text-emerald-700"
+                }`}
+                role="status"
+              >
+                {repairState.message}
+              </span>
+            )}
+          </div>
+          <button
+            className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 transition-colors"
+            onClick={onClose}
+          >
+            {"Close"}
+          </button>
+        </div>
       }
     >
       <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
