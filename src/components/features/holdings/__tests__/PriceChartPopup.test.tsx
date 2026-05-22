@@ -8,8 +8,15 @@ import { makeAsset } from "@test-fixtures/beancounter"
 jest.mock("swr", () => ({
   __esModule: true,
   default: jest.fn(),
+  mutate: jest.fn(),
 }))
 const mockUseSwr = useSwr as jest.MockedFunction<typeof useSwr>
+
+const mockUseIsAdmin = jest.fn(() => ({ isAdmin: false, isLoading: false }))
+jest.mock("@hooks/useIsAdmin", () => ({
+  __esModule: true,
+  useIsAdmin: () => mockUseIsAdmin(),
+}))
 
 jest.mock("recharts", () => ({
   ComposedChart: ({
@@ -98,6 +105,7 @@ function renderPopup(
 describe("PriceChartPopup", () => {
   beforeEach(() => {
     mockUseSwr.mockReset()
+    mockUseIsAdmin.mockReturnValue({ isAdmin: false, isLoading: false })
   })
 
   it("renders the chart with the asset name and close price", () => {
@@ -293,5 +301,71 @@ describe("PriceChartPopup", () => {
     renderPopup()
 
     expect(screen.getByText("Failed to load price history")).toBeInTheDocument()
+  })
+
+  describe("Repair splits admin action", () => {
+    it("hides the Repair splits button from non-admin users", () => {
+      mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
+      // default mock: isAdmin = false
+      renderPopup()
+      expect(
+        screen.queryByRole("button", { name: "Repair splits" }),
+      ).not.toBeInTheDocument()
+    })
+
+    it("posts to the repair endpoint and surfaces the response when admin clicks", async () => {
+      mockUseIsAdmin.mockReturnValue({ isAdmin: true, isLoading: false })
+      mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
+
+      const fetchSpy = jest.spyOn(global, "fetch").mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            stamped: 2,
+            alreadyStamped: 0,
+            missingRows: 1,
+          }),
+      } as Response)
+
+      renderPopup()
+
+      const button = screen.getByRole("button", { name: "Repair splits" })
+      fireEvent.click(button)
+
+      // Endpoint hit with the correct asset id and POST method.
+      expect(fetchSpy).toHaveBeenCalledWith(
+        `/api/prices/${asset.id}/repair-splits`,
+        { method: "POST" },
+      )
+
+      // Response counters surface to the user.
+      expect(
+        await screen.findByText("Repaired: 2 stamped, 0 already, 1 missing"),
+      ).toBeInTheDocument()
+
+      fetchSpy.mockRestore()
+    })
+
+    it("surfaces a forbidden error if the server rejects the admin gate", async () => {
+      mockUseIsAdmin.mockReturnValue({ isAdmin: true, isLoading: false })
+      mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
+
+      const fetchSpy = jest.spyOn(global, "fetch").mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: () => Promise.resolve({}),
+      } as Response)
+
+      renderPopup()
+
+      fireEvent.click(screen.getByRole("button", { name: "Repair splits" }))
+
+      expect(
+        await screen.findByText("Repair failed: Admin scope required"),
+      ).toBeInTheDocument()
+
+      fetchSpy.mockRestore()
+    })
   })
 })
