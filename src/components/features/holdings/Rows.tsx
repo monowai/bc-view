@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo } from "react"
 import {
+  Asset,
   HoldingValues,
   PriceData,
   QuickSellData,
@@ -61,7 +62,7 @@ interface RowsProps extends HoldingValues {
   onRecordExpense?: (data: QuickSellData) => void
   onPriceChart?: (data: PriceChartData) => void
   onPortfolioBreakdown?: (data: PortfolioBreakdownData) => void
-  onEditAsset?: (asset: import("types/beancounter").Asset) => void
+  onEditAsset?: (asset: Asset) => void
 }
 
 // Helper function to truncate text with ellipsis

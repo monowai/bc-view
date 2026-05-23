@@ -25,13 +25,17 @@ import {
   holdingKey,
   simpleFetcher,
 } from "@utils/api/fetchHelper"
-import EditAccountDialog from "@components/features/accounts/EditAccountDialog"
+import dynamic from "next/dynamic"
 import {
   USER_ASSET_CATEGORIES,
   type CategoryOption,
   type SectorInfo,
   type SectorOption,
 } from "@components/features/accounts/accountTypes"
+const EditAccountDialog = dynamic(
+  () => import("@components/features/accounts/EditAccountDialog"),
+  { ssr: false },
+)
 import { currencyOptions } from "@lib/currency"
 import { AssetCategory } from "types/beancounter"
 import { errorOut } from "@components/errors/ErrorOut"
@@ -151,14 +155,20 @@ function HoldingsPage(): React.ReactElement {
     simpleFetcher("/api/portfolios"),
   )
 
-  // Edit-asset dialog needs the same reference data as the accounts page
-  const { data: ccyData } = useSwr(ccyKey, simpleFetcher(ccyKey))
+  // Edit-asset dialog needs the same reference data as the accounts page.
+  // Lazy-fetch — only after the user opens the dialog. Holdings is a hot
+  // path; editing is incidental, so we skip the three round-trips on the
+  // common case.
+  const { data: ccyData } = useSwr(
+    editAsset ? ccyKey : null,
+    simpleFetcher(ccyKey),
+  )
   const { data: categoriesData } = useSwr(
-    categoriesKey,
+    editAsset ? categoriesKey : null,
     simpleFetcher(categoriesKey),
   )
   const { data: sectorsData } = useSwr<{ data: SectorInfo[] }>(
-    "/api/classifications/sectors",
+    editAsset ? "/api/classifications/sectors" : null,
     simpleFetcher("/api/classifications/sectors"),
   )
   const ccyOptions = ccyData?.data ? currencyOptions(ccyData.data) : []
@@ -220,7 +230,7 @@ function HoldingsPage(): React.ReactElement {
       }
       // Refresh holdings (this page) and the assets list (accounts page cache)
       await mutate()
-      globalMutate("/api/assets")
+      await globalMutate("/api/assets")
       setEditAsset(undefined)
     },
     [mutate],
