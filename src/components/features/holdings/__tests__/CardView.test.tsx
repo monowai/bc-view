@@ -353,6 +353,77 @@ describe("CardView footer (Quantity / Price / Weight)", () => {
       })
     })
 
+    it("invokes onEditAsset for PRIVATE/POLICY assets", () => {
+      const onEditAsset = jest.fn()
+      const portfolio = makePortfolio()
+      const asset = makeAsset({
+        id: "policy-1",
+        code: "CPF",
+        name: "CPF Composite",
+        assetCategory: { id: "POLICY", name: "Retirement Fund" },
+        market: {
+          code: "PRIVATE",
+          name: "Private",
+          currency: { code: "SGD", symbol: "S$", name: "Singapore Dollar" },
+        },
+      })
+      const position = makePosition({
+        asset,
+        moneyValues: { weight: 0.25, marketValue: 100000 },
+        quantityValues: { total: 1 },
+      })
+      const holdings = makeHoldings({
+        portfolio,
+        holdingGroups: { Policy: makeHoldingGroup({ positions: [position] }) },
+      })
+      render(
+        <CardView
+          holdings={holdings}
+          portfolio={portfolio}
+          valueIn={ValueIn.PORTFOLIO}
+          onEditAsset={onEditAsset}
+        />,
+      )
+
+      fireEvent.click(screen.getByRole("button", { name: /Actions CPF/i }))
+      fireEvent.click(screen.getByRole("button", { name: "Edit Asset" }))
+
+      expect(onEditAsset).toHaveBeenCalledWith(asset)
+    })
+
+    it("hides Edit Asset for public-market holdings", () => {
+      const onEditAsset = jest.fn()
+      const onQuickSell = jest.fn()
+      const portfolio = makePortfolio()
+      const asset = makeAsset({
+        assetCategory: { id: "EQUITY", name: "Equity" },
+      })
+      const position = makePosition({
+        asset,
+        moneyValues: { weight: 0.25 },
+        price: 150,
+        quantityValues: { total: 100 },
+      })
+      const holdings = makeHoldings({
+        portfolio,
+        holdingGroups: { Equity: makeHoldingGroup({ positions: [position] }) },
+      })
+      render(
+        <CardView
+          holdings={holdings}
+          portfolio={portfolio}
+          valueIn={ValueIn.PORTFOLIO}
+          onEditAsset={onEditAsset}
+          onQuickSell={onQuickSell}
+        />,
+      )
+
+      fireEvent.click(screen.getByRole("button", { name: /Actions AAPL/i }))
+      expect(
+        screen.queryByRole("button", { name: "Edit Asset" }),
+      ).not.toBeInTheDocument()
+    })
+
     it("invokes onSetCashBalance for cash positions via CashActionsMenu", () => {
       const onSetCashBalance = jest.fn()
       const portfolio = makePortfolio()

@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState } from "react"
 import {
+  Asset,
   CashTransferData,
   CostAdjustData,
   Currency,
@@ -52,6 +53,7 @@ interface SharedActionHandlers {
   onCashTransaction?: (assetCode: string) => void
   onPriceChart?: (data: PriceChartData) => void
   onPortfolioBreakdown?: (data: PortfolioBreakdownData) => void
+  onEditAsset?: (asset: Asset) => void
 }
 
 interface CardViewProps extends SharedActionHandlers {
@@ -273,6 +275,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
   onCashTransaction,
   onPriceChart,
   onPortfolioBreakdown,
+  onEditAsset,
 }) => {
   const router = useRouter()
   const { popup, showNews } = useNewsAsset()
@@ -316,7 +319,8 @@ const PositionCard: React.FC<PositionCardProps> = ({
           isConstantPrice(asset)) ||
         (!!onSectorWeightings && asset.assetCategory?.id === "ETF"))) ||
     (asset.assetCategory?.id === "RE" &&
-      (!!onRecordIncome || !!onRecordExpense))
+      (!!onRecordIncome || !!onRecordExpense)) ||
+    (!!onEditAsset && asset.market?.code === "PRIVATE")
 
   const hasCashActions =
     supportsBalanceSetting(asset) &&
@@ -352,6 +356,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
             onMovePosition={isCashRelated(asset) ? undefined : onMovePosition}
             onRecordIncome={onRecordIncome}
             onRecordExpense={onRecordExpense}
+            onEditAsset={onEditAsset}
           />
         )}
         {hasCashActions && (
@@ -508,6 +513,7 @@ const CardView: React.FC<CardViewProps> = ({
   onCashTransaction,
   onPriceChart,
   onPortfolioBreakdown,
+  onEditAsset,
 }) => {
   // Group positions by holdingGroups, sorted by group comparator
   const groupedPositions = useMemo((): GroupedPositions[] => {
@@ -737,6 +743,7 @@ const CardView: React.FC<CardViewProps> = ({
                     onCashTransaction={onCashTransaction}
                     onPriceChart={onPriceChart}
                     onPortfolioBreakdown={onPortfolioBreakdown}
+                    onEditAsset={onEditAsset}
                   />
                 ))}
               </div>
