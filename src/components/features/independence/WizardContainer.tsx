@@ -181,18 +181,17 @@ export default function WizardContainer({
         0,
       )
 
-      // Filter out zero-value manual assets before sending
-      const nonZeroManualAssets = formData.manualAssets
+      // Filter out zero-value manual assets before sending. An empty object
+      // is sent explicitly (not null) so the backend distinguishes "user
+      // cleared all categories" from "field omitted" and wipes the stored
+      // value — see PlanService.updatePlan PATCH semantics.
+      const manualAssets = formData.manualAssets
         ? Object.fromEntries(
             Object.entries(formData.manualAssets).filter(
               ([, value]) => value > 0,
             ),
           )
-        : null
-      const manualAssets =
-        nonZeroManualAssets && Object.keys(nonZeroManualAssets).length > 0
-          ? nonZeroManualAssets
-          : null
+        : {}
 
       // Backend stores decimals (0.07 for 7%), so convert from percentage
       // yearOfBirth and lifeExpectancy are now user-level settings, not plan-level
