@@ -25,10 +25,6 @@ env:
   CONTAINER_REGISTRY: ghcr.io
   CONTAINER_ORG: monowai
   IMAGE_NAME: bc-view
-  # Force JS actions still pinned to Node 20 onto Node 24 — Node 20 is
-  # being removed from GHA runners. See:
-  # https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
   test:
@@ -36,10 +32,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "yarn"
@@ -48,7 +44,7 @@ jobs:
         run: yarn install --frozen-lockfile --prefer-offline --network-concurrency 8
 
       - name: Restore Jest cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .jest-cache
           key: jest-cache-${{ hashFiles('yarn.lock') }}
@@ -79,25 +75,15 @@ jobs:
             echo "⚠️  No Codacy token set, skipping coverage upload"
           fi
 
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: |
-            coverage/
-            junit.xml
-          retention-days: 7
-
   build:
     name: Build Application
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "yarn"
@@ -110,7 +96,7 @@ jobs:
       # past the repo cache budget. .next/cache is designed to restore stale —
       # Next handles incremental compilation from there.
       - name: Restore Next.js build cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .next/cache
           key: nextjs-cache-${{ hashFiles('yarn.lock', 'next.config.js') }}
@@ -124,7 +110,7 @@ jobs:
         run: yarn build
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: build-output
           path: |
@@ -153,10 +139,10 @@ jobs:
             runner: ubuntu-24.04-arm
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: build-output
 
