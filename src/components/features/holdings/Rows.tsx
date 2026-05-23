@@ -61,6 +61,7 @@ interface RowsProps extends HoldingValues {
   onRecordExpense?: (data: QuickSellData) => void
   onPriceChart?: (data: PriceChartData) => void
   onPortfolioBreakdown?: (data: PortfolioBreakdownData) => void
+  onEditAsset?: (asset: import("types/beancounter").Asset) => void
 }
 
 // Helper function to truncate text with ellipsis
@@ -91,6 +92,7 @@ export default function Rows({
   onRecordExpense,
   onPriceChart,
   onPortfolioBreakdown,
+  onEditAsset,
 }: RowsProps): React.ReactElement {
   const router = useRouter()
   const { popup: newsPopup, showNews } = useNewsAsset()
@@ -203,7 +205,8 @@ export default function Rows({
                       asset.market?.code === "PRIVATE" &&
                       isConstantPrice(asset)))) ||
                 (asset.assetCategory?.id === "RE" &&
-                  (onRecordIncome || onRecordExpense)) ? (
+                  (onRecordIncome || onRecordExpense)) ||
+                (onEditAsset && asset.market?.code === "PRIVATE") ? (
                   <div className="flex items-center">
                     <ActionsMenu
                       asset={asset}
@@ -237,6 +240,7 @@ export default function Rows({
                       }
                       onRecordIncome={onRecordIncome}
                       onRecordExpense={onRecordExpense}
+                      onEditAsset={onEditAsset}
                     />
                   </div>
                 ) : null}

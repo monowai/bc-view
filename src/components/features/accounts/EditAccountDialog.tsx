@@ -505,7 +505,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
         onClick={onClose}
       ></div>
       <div
-        className="bg-white rounded-lg shadow-lg w-full max-w-md mx-4 p-4 sm:p-6 z-50 max-h-[90vh] overflow-y-auto"
+        className="bg-white rounded-lg shadow-lg w-full max-w-md sm:max-w-2xl lg:max-w-4xl mx-4 p-4 sm:p-6 z-50 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex justify-between items-center border-b pb-2 mb-4">

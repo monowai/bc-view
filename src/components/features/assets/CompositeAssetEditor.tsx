@@ -308,7 +308,7 @@ export default function CompositeAssetEditor({
                           )
                         }
                         placeholder="0"
-                        className="w-full text-right border-gray-300 rounded px-2 py-1 border focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full min-w-[6rem] text-right border-gray-300 rounded px-2 py-1.5 border focus:ring-indigo-500 focus:border-indigo-500"
                       />
                     </td>
                     <td className="px-3 py-2">
@@ -332,7 +332,7 @@ export default function CompositeAssetEditor({
                           )
                         }
                         placeholder="--"
-                        className="w-full text-right border-gray-300 rounded px-2 py-1 border focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full min-w-[4.5rem] text-right border-gray-300 rounded px-2 py-1.5 border focus:ring-indigo-500 focus:border-indigo-500"
                       />
                     </td>
                     <td className="px-3 py-2">
@@ -356,7 +356,7 @@ export default function CompositeAssetEditor({
                           )
                         }
                         placeholder="--"
-                        className="w-full text-right border-gray-300 rounded px-2 py-1 border focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full min-w-[4.5rem] text-right border-gray-300 rounded px-2 py-1.5 border focus:ring-indigo-500 focus:border-indigo-500"
                       />
                     </td>
                     <td className="px-3 py-2 text-center">

@@ -155,6 +155,7 @@ export interface ActionsMenuProps {
   onMovePosition?: (data: MovePositionData) => void
   onRecordIncome?: (data: QuickSellData) => void
   onRecordExpense?: (data: QuickSellData) => void
+  onEditAsset?: (asset: Asset) => void
 }
 
 export const ActionsMenu: React.FC<ActionsMenuProps> = ({
@@ -178,10 +179,12 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
   onMovePosition,
   onRecordIncome,
   onRecordExpense,
+  onEditAsset,
 }) => {
   const { isOpen, buttonRef, menuRef, menuPos, toggle, close } =
     useDropdownMenu()
   const assetCode = stripOwnerPrefix(asset.code)
+  const isPrivateAsset = asset.market?.code === "PRIVATE"
 
   const tradePayload = (): QuickSellData => ({
     asset: assetCode,
@@ -328,6 +331,13 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
                       type: "EXPENSE",
                     }),
                   )}
+                />
+              )}
+              {onEditAsset && isPrivateAsset && (
+                <MenuItem
+                  iconClass="fas fa-pen-to-square text-slate-500 w-4"
+                  label="Edit Asset"
+                  onClick={handle(() => onEditAsset(asset))}
                 />
               )}
             </div>

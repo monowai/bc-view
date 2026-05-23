@@ -17,12 +17,23 @@ import {
 } from "@components/ui/SkeletonLoader"
 import { useRouter } from "next/router"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
-import useSwr from "swr"
+import useSwr, { mutate as globalMutate } from "swr"
 import {
+  ccyKey,
+  categoriesKey,
   holdingByIdKey,
   holdingKey,
   simpleFetcher,
 } from "@utils/api/fetchHelper"
+import EditAccountDialog from "@components/features/accounts/EditAccountDialog"
+import {
+  USER_ASSET_CATEGORIES,
+  type CategoryOption,
+  type SectorInfo,
+  type SectorOption,
+} from "@components/features/accounts/accountTypes"
+import { currencyOptions } from "@lib/currency"
+import { AssetCategory } from "types/beancounter"
 import { errorOut } from "@components/errors/ErrorOut"
 import { useHoldingState } from "@lib/holdings/holdingState"
 import { useHoldingsView } from "@lib/holdings/useHoldingsView"
@@ -124,6 +135,7 @@ function HoldingsPage(): React.ReactElement {
   const [cashTransactionAsset, setCashTransactionAsset] = useState<
     string | undefined
   >(undefined)
+  const [editAsset, setEditAsset] = useState<Asset | undefined>(undefined)
 
   // Share dialog state
   const [showShareDialog, setShowShareDialog] = useState(false)
@@ -137,6 +149,81 @@ function HoldingsPage(): React.ReactElement {
   const { data: portfoliosData } = useSwr(
     "/api/portfolios",
     simpleFetcher("/api/portfolios"),
+  )
+
+  // Edit-asset dialog needs the same reference data as the accounts page
+  const { data: ccyData } = useSwr(ccyKey, simpleFetcher(ccyKey))
+  const { data: categoriesData } = useSwr(
+    categoriesKey,
+    simpleFetcher(categoriesKey),
+  )
+  const { data: sectorsData } = useSwr<{ data: SectorInfo[] }>(
+    "/api/classifications/sectors",
+    simpleFetcher("/api/classifications/sectors"),
+  )
+  const ccyOptions = ccyData?.data ? currencyOptions(ccyData.data) : []
+  const categoryOptions: CategoryOption[] = categoriesData?.data
+    ? categoriesData.data
+        .filter((cat: AssetCategory) => USER_ASSET_CATEGORIES.includes(cat.id))
+        .map((cat: AssetCategory) => ({ value: cat.id, label: cat.name }))
+    : []
+  const sectorOptions: SectorOption[] = sectorsData?.data
+    ? sectorsData.data.map((sector: SectorInfo) => ({
+        value: sector.name,
+        label: sector.name,
+      }))
+    : []
+
+  const handleEditAsset = useCallback((asset: Asset) => {
+    setEditAsset(asset)
+  }, [])
+
+  const handleEditAssetClose = useCallback(() => {
+    setEditAsset(undefined)
+  }, [])
+
+  const handleEditAssetSave = useCallback(
+    async (
+      assetId: string,
+      code: string,
+      name: string,
+      currency: string,
+      category: string,
+      sector?: string,
+      expectedReturnRate?: number,
+    ): Promise<void> => {
+      const response = await fetch(`/api/assets/${assetId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          market: "PRIVATE",
+          code,
+          name,
+          currency,
+          category,
+          expectedReturnRate,
+        }),
+      })
+      if (!response.ok) {
+        throw new Error("Failed to update asset")
+      }
+      if (sector) {
+        try {
+          await fetch(`/api/classifications/${assetId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sector }),
+          })
+        } catch (err) {
+          console.error("Failed to update sector classification:", err)
+        }
+      }
+      // Refresh holdings (this page) and the assets list (accounts page cache)
+      await mutate()
+      globalMutate("/api/assets")
+      setEditAsset(undefined)
+    },
+    [mutate],
   )
 
   // Handle quick sell from position row
@@ -518,6 +605,7 @@ function HoldingsPage(): React.ReactElement {
                           onMovePosition={handleMovePosition}
                           onRecordIncome={handleRecordIncome}
                           onRecordExpense={handleRecordExpense}
+                          onEditAsset={handleEditAsset}
                         />
                         <SubTotal
                           groupBy={groupKey}
@@ -561,6 +649,7 @@ function HoldingsPage(): React.ReactElement {
             onCashTransfer={handleCashTransfer}
             onCashTransaction={handleCashTransaction}
             onPriceChart={handlePriceChart}
+            onEditAsset={handleEditAsset}
           />
         </div>
       ) : viewMode === "heatmap" ? (
@@ -749,6 +838,16 @@ function HoldingsPage(): React.ReactElement {
           preSelectedPortfolioId={holdingResults.portfolio.id}
           onClose={() => setShowShareDialog(false)}
           onSuccess={() => setShowShareDialog(false)}
+        />
+      )}
+      {editAsset && (
+        <EditAccountDialog
+          asset={editAsset}
+          currencies={ccyOptions}
+          categories={categoryOptions}
+          sectors={sectorOptions}
+          onClose={handleEditAssetClose}
+          onSave={handleEditAssetSave}
         />
       )}
     </div>
