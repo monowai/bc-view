@@ -37,14 +37,50 @@ interface PrivateAssetConfigsResponse {
 interface ScenarioContributionsProps {
   scenarioId: string
   currency: string
+  /**
+   * The scenario's monthly working income. When >0 AND we know the user's
+   * age, the row for any CPF asset shows a tooltip with the salary-derived
+   * contribution figure the projection WOULD have applied — so the user
+   * can see what they're overriding (employer + employee combined).
+   */
+  monthlySalary?: number
+  currentAge?: number
+}
+
+interface CpfPreviewResponse {
+  data: {
+    annualContribution: number
+    monthlyContribution: number
+    annualOa: number
+    annualSa: number
+    annualMa: number
+    employeeRate: number
+    employerRate: number
+    cappedSalary: number
+    wageCeiling: number
+  }
 }
 
 export default function ScenarioContributions({
   scenarioId,
   currency,
+  monthlySalary,
+  currentAge,
 }: ScenarioContributionsProps): React.ReactElement | null {
   const configsKey = "/api/assets/config"
   const contributionsKey = `/api/independence/work-scenarios/${scenarioId}/contributions`
+  // Skip the preview fetch if we don't have both salary and age — there's
+  // nothing useful to show. Reuse one preview for all CPF rows; salary
+  // is at the scenario level, so the figure is the same for each asset.
+  const previewKey =
+    monthlySalary && monthlySalary > 0 && currentAge && currentAge > 0
+      ? `/api/independence/cpf/contribution-preview?monthlySalary=${monthlySalary}&age=${currentAge}`
+      : null
+  const { data: previewResp } = useSWR<CpfPreviewResponse>(
+    previewKey,
+    simpleFetcher,
+  )
+  const salaryAnnual = previewResp?.data?.annualContribution
 
   const { data: configsResp } = useSWR<PrivateAssetConfigsResponse>(
     configsKey,
@@ -165,6 +201,15 @@ export default function ScenarioContributions({
                 {asset.policyType && (
                   <span className="ml-2 text-xs text-gray-400">
                     {asset.policyType}
+                  </span>
+                )}
+                {asset.policyType === "CPF" && salaryAnnual != null && (
+                  <span
+                    className="ml-2 text-xs text-gray-500 cursor-help"
+                    title={`Your salary-based CPF contribution would be ${currency} ${salaryAnnual.toLocaleString()}/yr (employer + employee combined at the age-${currentAge} band). Entering an amount here overrides that figure for the projection.`}
+                  >
+                    {" "}ⓘ salary-based: {currency}{" "}
+                    {Math.round(salaryAnnual).toLocaleString()}/yr
                   </span>
                 )}
               </span>
