@@ -1,7 +1,7 @@
 import React from "react"
 import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import "@testing-library/jest-dom"
-import ScenarioContributions from "../ScenarioContributions"
+import ScenarioContributions from "@components/features/independence/scenarios/ScenarioContributions"
 
 // SWR is mocked per-key so we can simulate the asset-configs + contributions
 // fetches independently. Without per-key control, the same data goes to both

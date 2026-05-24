@@ -37,6 +37,26 @@ export default function ScenarioEditor({
   const [form, setForm] = useState<WorkScenarioRequest>(DEFAULT_FORM)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Used by ScenarioContributions to compute the salary-derived CPF
+  // contribution tooltip; the projection picks an age band based on it.
+  const [currentAge, setCurrentAge] = useState<number | undefined>(undefined)
+
+  useEffect(() => {
+    if (!isEditing) return undefined
+    let cancelled = false
+    fetch("/api/independence/plans")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body) => {
+        if (cancelled) return
+        const plan = body?.data?.[0]
+        if (!plan?.yearOfBirth) return
+        setCurrentAge(new Date().getFullYear() - plan.yearOfBirth)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [isEditing])
 
   useEffect(() => {
     if (scenario) {
@@ -231,6 +251,8 @@ export default function ScenarioEditor({
             <ScenarioContributions
               scenarioId={scenario.id}
               currency={form.currency || "NZD"}
+              monthlySalary={form.workingIncomeMonthly}
+              currentAge={currentAge}
             />
           </div>
         )}
