@@ -850,95 +850,8 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                       </div>
                     </div>
 
-                    {/* Projection for lump sum */}
-                    {config.lumpSum && config.payoutAge && (
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-sm space-y-3">
-                        <div className="flex items-center justify-between">
-                          <label className="text-green-700 font-medium">
-                            <i className="fas fa-calculator mr-2"></i>
-                            {"Projected Payout at Independence"}
-                          </label>
-                          {planData && (
-                            <span className="text-green-600 text-xs">
-                              Based on your plan (age {planData.currentAge})
-                            </span>
-                          )}
-                        </div>
-                        {!planData ? (
-                          <p className="text-green-600 text-xs">
-                            <i className="fas fa-info-circle mr-1"></i>
-                            {
-                              "Create an Independence Plan to see projected payout based on your age."
-                            }
-                          </p>
-                        ) : projectionLoading ? (
-                          <div className="flex items-center justify-center py-2">
-                            <Spinner className="mr-2 text-green-600" />
-                            <span className="text-green-600 text-sm">
-                              {"Loading..."}
-                            </span>
-                          </div>
-                        ) : lumpSumProjection ? (
-                          <div className="space-y-2">
-                            <div className="flex justify-between items-center">
-                              <span className="text-green-700">
-                                {`At age ${config.payoutAge}:`}
-                              </span>
-                              <span className="text-green-800 font-bold text-lg">
-                                $
-                                {lumpSumProjection.projectedPayout.toLocaleString(
-                                  undefined,
-                                  {
-                                    minimumFractionDigits: 0,
-                                    maximumFractionDigits: 0,
-                                  },
-                                )}
-                              </span>
-                            </div>
-                            <div className="text-xs text-green-600 space-y-1">
-                              <div className="flex justify-between">
-                                <span>{"Years to maturity:"}</span>
-                                <span>{lumpSumProjection.yearsToMaturity}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span>{"Total contributions:"}</span>
-                                <span>
-                                  $
-                                  {lumpSumProjection.totalContributions.toLocaleString(
-                                    undefined,
-                                    {
-                                      minimumFractionDigits: 0,
-                                      maximumFractionDigits: 0,
-                                    },
-                                  )}
-                                </span>
-                              </div>
-                              {lumpSumProjection.interestEarned > 0 && (
-                                <div className="flex justify-between">
-                                  <span>{"Interest earned:"}</span>
-                                  <span>
-                                    $
-                                    {lumpSumProjection.interestEarned.toLocaleString(
-                                      undefined,
-                                      {
-                                        minimumFractionDigits: 0,
-                                        maximumFractionDigits: 0,
-                                      },
-                                    )}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ) : (
-                          <p className="text-green-600 text-xs">
-                            {parseFloat(config.monthlyContribution || "0") <= 0
-                              ? `Enter ${config.contributionFrequency === "ANNUAL" ? "annual" : "monthly"} contribution to see projected payout.`
-                              : "Calculating projection..."}
-                          </p>
-                        )}
-                      </div>
-                    )}
+                    {/* Lump-sum summary moved to Projections tab — see
+                        showProjectionsTab block below. */}
                   </>
                 )}
 
@@ -1324,7 +1237,96 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
 
         {/* Projections Tab (POLICY only) */}
         {activeTab === "projections" && showProjectionsTab && (
-          <div className="space-y-3">
+          <div className="space-y-4">
+            {/* Lump-sum summary card — shown when the policy pays out as a
+                lump (vs. monthly annuity like CPF Life). Mirrors backend
+                /api/projection/lump-sum already fetched above. */}
+            {config.lumpSum && config.payoutAge && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-green-700 font-medium">
+                    <i className="fas fa-calculator mr-2"></i>
+                    {"Projected Payout at Independence"}
+                  </label>
+                  {planData && (
+                    <span className="text-green-600 text-xs">
+                      Based on your profile (age {planData.currentAge})
+                    </span>
+                  )}
+                </div>
+                {!planData ? (
+                  <p className="text-green-600 text-xs">
+                    <i className="fas fa-info-circle mr-1"></i>
+                    {"Set yearOfBirth in your Profile to see projected payout."}
+                  </p>
+                ) : projectionLoading ? (
+                  <div className="flex items-center justify-center py-2">
+                    <Spinner className="mr-2 text-green-600" />
+                    <span className="text-green-600 text-sm">
+                      {"Loading..."}
+                    </span>
+                  </div>
+                ) : lumpSumProjection ? (
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-green-700">
+                        {`At age ${config.payoutAge}:`}
+                      </span>
+                      <span className="text-green-800 font-bold text-lg">
+                        $
+                        {lumpSumProjection.projectedPayout.toLocaleString(
+                          undefined,
+                          {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0,
+                          },
+                        )}
+                      </span>
+                    </div>
+                    <div className="text-xs text-green-600 space-y-1">
+                      <div className="flex justify-between">
+                        <span>{"Years to maturity:"}</span>
+                        <span>{lumpSumProjection.yearsToMaturity}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>{"Total contributions:"}</span>
+                        <span>
+                          $
+                          {lumpSumProjection.totalContributions.toLocaleString(
+                            undefined,
+                            {
+                              minimumFractionDigits: 0,
+                              maximumFractionDigits: 0,
+                            },
+                          )}
+                        </span>
+                      </div>
+                      {lumpSumProjection.interestEarned > 0 && (
+                        <div className="flex justify-between">
+                          <span>{"Interest earned:"}</span>
+                          <span>
+                            $
+                            {lumpSumProjection.interestEarned.toLocaleString(
+                              undefined,
+                              {
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 0,
+                              },
+                            )}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-green-600 text-xs">
+                    {parseFloat(config.monthlyContribution || "0") <= 0
+                      ? `Enter ${config.contributionFrequency === "ANNUAL" ? "annual" : "monthly"} contribution to see projected payout.`
+                      : "Calculating projection..."}
+                  </p>
+                )}
+              </div>
+            )}
             {planData?.currentAge && config.payoutAge ? (
               <PensionProjectionPanel
                 policyType={config.policyType}
