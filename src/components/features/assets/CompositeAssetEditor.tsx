@@ -243,8 +243,8 @@ export default function CompositeAssetEditor({
                       className="text-xs text-amber-700 mt-1 bg-amber-50 border border-amber-200 rounded px-2 py-1"
                     >
                       <i className="fas fa-triangle-exclamation mr-1"></i>
-                      CPF LIFE Plan required for projected payout — pick
-                      one or pension income stays zero.
+                      CPF LIFE Plan required for projected payout — pick one or
+                      pension income stays zero.
                     </p>
                   )}
                 </div>

@@ -9,6 +9,7 @@ import Alert from "@components/ui/Alert"
 import Spinner from "@components/ui/Spinner"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { currentAgeFromSettings } from "@lib/independence/age"
+import PensionProjectionPanel from "@components/features/independence/scenarios/PensionProjectionPanel"
 
 // Private Asset Config state interface
 interface AssetConfigState {
@@ -85,7 +86,7 @@ const COUNTRY_OPTIONS = [
   { code: "US", name: "United States" },
 ]
 
-type EditTab = "details" | "income"
+type EditTab = "details" | "income" | "projections"
 
 interface EditAccountDialogProps {
   asset: Asset
@@ -152,6 +153,10 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
 
   // Show income/planning tab for RE and POLICY categories
   const showIncomeTab = category === "RE" || category === "POLICY"
+  // Projections tab — only for POLICY assets. CPF gets the year-by-year
+  // OA/SA/MA/RA table; non-CPF lump-sum policies get the balance-vs-age
+  // table. RE has its own projection elsewhere.
+  const showProjectionsTab = category === "POLICY"
 
   // Fetch country tax rates on mount
   useEffect(() => {
@@ -553,6 +558,18 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
               >
                 {"Income & Planning"}
               </button>
+              {showProjectionsTab && (
+                <button
+                  onClick={() => setActiveTab("projections")}
+                  className={`py-2 px-1 border-b-2 text-sm font-medium ${
+                    activeTab === "projections"
+                      ? "border-indigo-500 text-indigo-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  }`}
+                >
+                  {"Projections"}
+                </button>
+              )}
             </nav>
           </div>
         )}
@@ -1301,6 +1318,37 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                   </p>
                 </div>
               </>
+            )}
+          </div>
+        )}
+
+        {/* Projections Tab (POLICY only) */}
+        {activeTab === "projections" && showProjectionsTab && (
+          <div className="space-y-3">
+            {planData?.currentAge && config.payoutAge ? (
+              <PensionProjectionPanel
+                policyType={config.policyType}
+                cpfLifePlan={config.cpfLifePlan}
+                payoutAge={parseInt(config.payoutAge) || undefined}
+                expectedReturnRate={
+                  parseFloat(config.expectedReturnRate) / 100 || undefined
+                }
+                monthlyContribution={
+                  parseFloat(config.monthlyContribution) || undefined
+                }
+                subAccounts={config.subAccounts.map((s) => ({
+                  code: s.code,
+                  balance: s.balance,
+                }))}
+                currency={currency}
+                currentAge={planData.currentAge}
+              />
+            ) : (
+              <p className="text-sm text-gray-500">
+                {
+                  "Set Payout Age + ensure your Profile yearOfBirth is set to view projections."
+                }
+              </p>
             )}
           </div>
         )}
