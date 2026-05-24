@@ -1333,9 +1333,17 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                 expectedReturnRate={
                   parseFloat(config.expectedReturnRate) / 100 || undefined
                 }
-                monthlyContribution={
-                  parseFloat(config.monthlyContribution) || undefined
-                }
+                monthlyContribution={(() => {
+                  // ANNUAL-frequency assets store the per-year figure; the
+                  // projection endpoint takes monthly, so divide by 12.
+                  // Matches the same conversion in the lump-sum projection
+                  // fetch in this dialog.
+                  const raw = parseFloat(config.monthlyContribution) || 0
+                  if (!raw) return undefined
+                  return config.contributionFrequency === "ANNUAL"
+                    ? raw / 12
+                    : raw
+                })()}
                 subAccounts={config.subAccounts.map((s) => ({
                   code: s.code,
                   balance: s.balance,

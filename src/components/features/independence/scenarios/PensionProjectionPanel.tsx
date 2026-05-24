@@ -63,15 +63,23 @@ export default function PensionProjectionPanel({
       `&payoutAge=${payoutAge}` +
       `&oa=${subBalanceFor("OA")}&sa=${subBalanceFor("SA")}` +
       `&ma=${subBalanceFor("MA")}&ra=${subBalanceFor("RA")}` +
-      (scenarioMonthlySalary ? `&monthlySalary=${scenarioMonthlySalary}` : "") +
-      (scenarioAnnualOverride
+      // Use `!== undefined` so an explicit 0 (e.g. "no salary this phase",
+      // "clear the override") is forwarded instead of falling through to
+      // the salary-derived default — the truthy check loses that signal.
+      (scenarioMonthlySalary !== undefined
+        ? `&monthlySalary=${scenarioMonthlySalary}`
+        : "") +
+      (scenarioAnnualOverride !== undefined
         ? `&annualContributionOverride=${scenarioAnnualOverride}`
         : "") +
       (cpfLifePlan ? `&cpfLifePlan=${cpfLifePlan}` : "")
     : null
 
+  // Same semantics as the query-string above: an explicit 0 override means
+  // "this phase contributes nothing" — only fall through to the asset
+  // default when the override isn't supplied at all.
   const policyMonthly =
-    scenarioAnnualOverride && scenarioAnnualOverride > 0
+    scenarioAnnualOverride !== undefined
       ? scenarioAnnualOverride / 12
       : (monthlyContribution ?? 0)
   const policyKey = !isCpf
