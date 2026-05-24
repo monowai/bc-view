@@ -13,6 +13,7 @@ import { wizardMessages } from "@lib/independence/messages"
 import CompositeAssetEditor from "@components/features/assets/CompositeAssetEditor"
 import { buildCashRow } from "@lib/trns/tradeUtils"
 import { postData } from "@components/ui/DropZone"
+import ExistingRetirementAccounts from "@components/features/independence/steps/ExistingRetirementAccounts"
 import Spinner from "@components/ui/Spinner"
 import { getAssetCurrency } from "@lib/assets/assetUtils"
 
@@ -1046,6 +1047,13 @@ export default function AssetsStep({
             </div>
           </div>
         )}
+
+        {/* Existing Retirement Accounts callout — surfaces pension assets the
+            user already has so the page doesn't look like only the portfolio
+            currency block exists when there are CPF / SingLife / SRS rows
+            already configured behind the scenes. Click-through is via
+            Accounts → Edit, intentionally kept light here. */}
+        <ExistingRetirementAccounts />
 
         {/* Add Retirement Account Button and Form */}
         <div className="border-t border-gray-200 pt-4 mt-4">

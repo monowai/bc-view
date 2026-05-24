@@ -175,40 +175,35 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
     fetchCountryTaxRates()
   }, [])
 
-  // Fetch user's independence plan for age data (used for POLICY projections)
+  // Fetch user's age + retirement horizon for POLICY projection. yearOfBirth
+  // and lifeExpectancy live in /api/independence/settings now (user-level),
+  // not on the plan — earlier this read plan.yearOfBirth which is always
+  // undefined post-migration, so the "Create an Independence Plan" message
+  // showed even when both a plan and a yearOfBirth were already set.
   useEffect(() => {
     async function fetchPlanData(): Promise<void> {
-      // Only fetch for POLICY assets
       const categoryId = asset.assetCategory?.id
       if (categoryId !== "POLICY") return
-
       try {
-        const response = await fetch("/api/independence/plans")
-        if (response.ok) {
-          const data = await response.json()
-          const plans = data.data || []
-          if (plans.length > 0) {
-            // Use the first plan's data
-            const plan = plans[0]
-            const currentYear = new Date().getFullYear()
-            const currentAge = plan.yearOfBirth
-              ? currentYear - plan.yearOfBirth
-              : null
-            const lifeExpectancy = plan.lifeExpectancy || 90
-            const retirementAge = plan.planningHorizonYears
-              ? lifeExpectancy - plan.planningHorizonYears
-              : 65
-
-            if (currentAge) {
-              setPlanData({ currentAge, retirementAge })
-              // Also set currentAge in config for projection calculation
-              setConfig((prev) => ({
-                ...prev,
-                currentAge: String(currentAge),
-              }))
-            }
-          }
-        }
+        const [settingsRes, plansRes] = await Promise.all([
+          fetch("/api/independence/settings"),
+          fetch("/api/independence/plans"),
+        ])
+        const settings = settingsRes.ok
+          ? (await settingsRes.json())?.data
+          : null
+        const firstPlan = plansRes.ok
+          ? ((await plansRes.json())?.data || [])[0]
+          : null
+        if (!settings?.yearOfBirth) return
+        const currentAge =
+          new Date().getFullYear() - Number(settings.yearOfBirth)
+        const lifeExpectancy = settings.lifeExpectancy || 90
+        const retirementAge = firstPlan?.planningHorizonYears
+          ? lifeExpectancy - firstPlan.planningHorizonYears
+          : 65
+        setPlanData({ currentAge, retirementAge })
+        setConfig((prev) => ({ ...prev, currentAge: String(currentAge) }))
       } catch (err) {
         console.error("Failed to fetch plan data:", err)
       }

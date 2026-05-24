@@ -146,6 +146,7 @@ describe("IncomeSourcesStep", () => {
         configs: [
           {
             id: "pension-1",
+            assetId: "pension-1",
             isPension: true,
             isPrimaryResidence: false,
             monthlyRentalIncome: 0,
@@ -167,15 +168,15 @@ describe("IncomeSourcesStep", () => {
       // Pension input should not be rendered
       expect(screen.queryByLabelText(/pension/i)).not.toBeInTheDocument()
 
-      // Info box should be shown with header
+      // Info box should be shown with header. Body now lists each pension
+      // asset rather than a 'configured from N assets' summary string, so
+      // assert the new header copy + that the asset id surfaces in a row.
       expect(
-        screen.getByRole("heading", { name: /pension income/i }),
+        screen.getByRole("heading", {
+          name: /income from private retirement plans/i,
+        }),
       ).toBeInTheDocument()
-      expect(
-        screen.getByText(
-          /pension income is calculated from your 1 configured pension asset\./i,
-        ),
-      ).toBeInTheDocument()
+      expect(screen.getByText(/pension-1/)).toBeInTheDocument()
     })
 
     it("shows correct pluralization for multiple pension assets", () => {
@@ -183,6 +184,7 @@ describe("IncomeSourcesStep", () => {
         configs: [
           {
             id: "pension-1",
+            assetId: "pension-1",
             isPension: true,
             isPrimaryResidence: false,
             monthlyRentalIncome: 0,
@@ -191,6 +193,7 @@ describe("IncomeSourcesStep", () => {
           },
           {
             id: "pension-2",
+            assetId: "pension-2",
             isPension: true,
             isPrimaryResidence: false,
             monthlyRentalIncome: 0,
@@ -209,11 +212,9 @@ describe("IncomeSourcesStep", () => {
         </TestWrapper>,
       )
 
-      expect(
-        screen.getByText(
-          /pension income is calculated from your 2 configured pension assets\./i,
-        ),
-      ).toBeInTheDocument()
+      // List renders one row per pension asset; assert both ids show up.
+      expect(screen.getByText(/pension-1/)).toBeInTheDocument()
+      expect(screen.getByText(/pension-2/)).toBeInTheDocument()
     })
   })
 })
