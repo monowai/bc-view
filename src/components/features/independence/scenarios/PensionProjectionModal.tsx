@@ -79,11 +79,20 @@ export default function PensionProjectionModal({
       (asset.cpfLifePlan ? `&cpfLifePlan=${asset.cpfLifePlan}` : "")
     : null
 
+  // Scenario override wins for the non-CPF projection too: the user-entered
+  // amount in this scenario edit should drive the table, not the stale asset
+  // default. Convert the annual override back to a monthly figure (the
+  // endpoint takes monthlyContribution); fall through to asset default when
+  // the user has cleared the row.
+  const policyMonthly =
+    scenarioAnnualOverride && scenarioAnnualOverride > 0
+      ? scenarioAnnualOverride / 12
+      : (asset.monthlyContribution ?? 0)
   const policyKey = !isCpf
     ? `/api/independence/cpf/policy-balance-series?currentAge=${currentAge}` +
       `&payoutAge=${payoutAge}` +
       `&startingBalance=${subBalanceFor("BALANCE") || 0}` +
-      `&monthlyContribution=${asset.monthlyContribution ?? 0}` +
+      `&monthlyContribution=${policyMonthly}` +
       `&expectedReturnRate=${asset.expectedReturnRate ?? 0}`
     : null
 
