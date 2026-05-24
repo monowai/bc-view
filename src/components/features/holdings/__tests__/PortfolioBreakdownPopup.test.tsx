@@ -3,10 +3,7 @@ import { render, screen, fireEvent } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import PortfolioBreakdownPopup from "../PortfolioBreakdownPopup"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
-import {
-  makeAsset,
-  makePortfolioBreakdown,
-} from "@test-fixtures/beancounter"
+import { makeAsset, makePortfolioBreakdown } from "@test-fixtures/beancounter"
 
 jest.mock("@hooks/usePrivacyMode")
 const mockedUsePrivacyMode = usePrivacyMode as jest.MockedFunction<
@@ -84,9 +81,7 @@ describe("PortfolioBreakdownPopup", () => {
         onClose={onClose}
       />,
     )
-    fireEvent.click(
-      screen.getByRole("button", { name: /Open MAIN holdings/i }),
-    )
+    fireEvent.click(screen.getByRole("button", { name: /Open MAIN holdings/i }))
     expect(onClose).toHaveBeenCalled()
     expect(push).toHaveBeenCalledWith("/holdings/MAIN")
   })

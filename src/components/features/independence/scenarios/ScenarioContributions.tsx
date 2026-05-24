@@ -218,10 +218,7 @@ export default function ScenarioContributions({
           const frequencyLabel =
             asset.contributionFrequency === "ANNUAL" ? "per year" : "per month"
           return (
-            <li
-              key={asset.assetId}
-              className="py-2 flex items-center gap-3"
-            >
+            <li key={asset.assetId} className="py-2 flex items-center gap-3">
               <span className="flex-1 text-sm text-gray-700">
                 {asset.assetName}
                 {asset.policyType && (
@@ -234,7 +231,8 @@ export default function ScenarioContributions({
                     className="ml-2 text-xs text-gray-500 cursor-help"
                     title={`Your salary-based CPF contribution would be ${currency} ${salaryAnnual.toLocaleString()}/yr (employer + employee combined at the age-${currentAge} band). Entering an amount here overrides that figure for the projection.`}
                   >
-                    {" "}ⓘ salary-based: {currency}{" "}
+                    {" "}
+                    ⓘ salary-based: {currency}{" "}
                     {Math.round(salaryAnnual).toLocaleString()}/yr
                   </span>
                 )}
