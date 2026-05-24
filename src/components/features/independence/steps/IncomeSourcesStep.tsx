@@ -52,7 +52,10 @@ export default function IncomeSourcesStep({
   // tiny + SWR-cached; falls back to no-projection text if unavailable.
   const { data: settingsResp } = useSWR<{
     data?: { yearOfBirth?: number; lifeExpectancy?: number }
-  }>("/api/independence/settings", simpleFetcher)
+  }>(
+    "/api/independence/settings",
+    simpleFetcher("/api/independence/settings"),
+  )
   const currentAge = settingsResp?.data?.yearOfBirth
     ? new Date().getFullYear() - Number(settingsResp.data.yearOfBirth)
     : null
@@ -128,11 +131,19 @@ export default function IncomeSourcesStep({
                         0,
                       ) ?? 0)
                     : 0
+                // contributionFrequency=ANNUAL stores the raw annual figure
+                // in monthlyContribution (legacy column name). Divide by 12
+                // here so the inline FV matches the projection backend,
+                // which annualises the same way.
+                const monthlyForProjection =
+                  c.contributionFrequency === "ANNUAL"
+                    ? (c.monthlyContribution || 0) / 12
+                    : c.monthlyContribution || 0
                 const projectedLumpSum =
                   c.lumpSum && yearsToMaturity && yearsToMaturity > 0
                     ? projectLumpSum(
                         startingBalance,
-                        c.monthlyContribution || 0,
+                        monthlyForProjection,
                         c.expectedReturnRate || 0,
                         yearsToMaturity,
                       )
