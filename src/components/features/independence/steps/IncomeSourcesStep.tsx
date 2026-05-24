@@ -1,10 +1,10 @@
 import React from "react"
-import useSWR from "swr"
 import { Control, Controller, FieldErrors, useWatch } from "react-hook-form"
 import { WizardFormData } from "types/independence"
 import { StepHeader, CurrencyInputWithPeriod, SummaryBox } from "../form"
 import { usePrivateAssetConfigs } from "@utils/assets/usePrivateAssetConfigs"
-import { simpleFetcher } from "@utils/api/fetchHelper"
+import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
+import { currentAgeFromSettings } from "@lib/independence/age"
 
 /**
  * Future value of an ordinary annuity:
@@ -47,18 +47,12 @@ export default function IncomeSourcesStep({
     useWatch({ control, name: "otherIncomeMonthly" }) || 0
 
   const { configs } = usePrivateAssetConfigs()
-  // yearOfBirth lives in user-level settings (not the plan) — fetch it so we
-  // can derive currentAge for the inline lump-sum projections. Endpoint is
-  // tiny + SWR-cached; falls back to no-projection text if unavailable.
-  const { data: settingsResp } = useSWR<{
-    data?: { yearOfBirth?: number; lifeExpectancy?: number }
-  }>(
-    "/api/independence/settings",
-    simpleFetcher("/api/independence/settings"),
-  )
-  const currentAge = settingsResp?.data?.yearOfBirth
-    ? new Date().getFullYear() - Number(settingsResp.data.yearOfBirth)
-    : null
+  // yearOfBirth lives in user-level UserIndependenceSettings (svc-retire),
+  // not the plan. useIndependenceSettings returns the unwrapped entity —
+  // an earlier inline SWR fetch tried to unwrap a `.data` envelope that
+  // doesn't exist and silently kept currentAge null.
+  const { settings: independenceSettings } = useIndependenceSettings()
+  const currentAge = currentAgeFromSettings(independenceSettings) ?? null
 
   // Filter pension assets (isPension = true), excluding composites
   const pensionAssets = React.useMemo(() => {

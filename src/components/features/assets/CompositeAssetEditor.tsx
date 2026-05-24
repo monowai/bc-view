@@ -224,13 +224,27 @@ export default function CompositeAssetEditor({
                       </option>
                     ))}
                   </select>
-                  {cpfLifePlan && (
+                  {cpfLifePlan ? (
                     <p className="text-xs text-blue-600 mt-1">
                       {
                         CPF_LIFE_PLAN_OPTIONS.find(
                           (o) => o.value === cpfLifePlan,
                         )?.description
                       }
+                    </p>
+                  ) : (
+                    // Surface the silent enrichment skip: svc-retire's
+                    // enrichCpfConfigs only computes monthlyPayoutAmount
+                    // when cpfLifePlan is set, so an unset plan reports
+                    // zero pension income in projections without any
+                    // visible cue. Amber inline; not a save block.
+                    <p
+                      role="alert"
+                      className="text-xs text-amber-700 mt-1 bg-amber-50 border border-amber-200 rounded px-2 py-1"
+                    >
+                      <i className="fas fa-triangle-exclamation mr-1"></i>
+                      CPF LIFE Plan required for projected payout — pick
+                      one or pension income stays zero.
                     </p>
                   )}
                 </div>
