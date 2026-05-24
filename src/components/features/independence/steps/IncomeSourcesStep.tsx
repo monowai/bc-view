@@ -1,8 +1,33 @@
 import React from "react"
+import useSWR from "swr"
 import { Control, Controller, FieldErrors, useWatch } from "react-hook-form"
 import { WizardFormData } from "types/independence"
 import { StepHeader, CurrencyInputWithPeriod, SummaryBox } from "../form"
 import { usePrivateAssetConfigs } from "@utils/assets/usePrivateAssetConfigs"
+import { simpleFetcher } from "@utils/api/fetchHelper"
+
+/**
+ * Future value of an ordinary annuity:
+ *   FV = startingBalance × (1+r)^n + PMT × ((1+r)^n − 1) / r
+ * matches PensionIncomeService.calculatePolicyFutureValue (interest before
+ * contribution per month), so the inline lump-sum estimate here agrees with
+ * the projection-detail modal and the projection itself.
+ */
+function projectLumpSum(
+  startingBalance: number,
+  monthlyContribution: number,
+  annualReturnRate: number,
+  yearsToMaturity: number,
+): number {
+  if (yearsToMaturity <= 0) return startingBalance
+  const r = annualReturnRate / 12
+  const n = yearsToMaturity * 12
+  const growth = Math.pow(1 + r, n)
+  const startFv = startingBalance * growth
+  const pmtFv =
+    r > 0 ? monthlyContribution * ((growth - 1) / r) : monthlyContribution * n
+  return startFv + pmtFv
+}
 
 interface IncomeSourcesStepProps {
   control: Control<WizardFormData>
@@ -22,6 +47,15 @@ export default function IncomeSourcesStep({
     useWatch({ control, name: "otherIncomeMonthly" }) || 0
 
   const { configs } = usePrivateAssetConfigs()
+  // yearOfBirth lives in user-level settings (not the plan) — fetch it so we
+  // can derive currentAge for the inline lump-sum projections. Endpoint is
+  // tiny + SWR-cached; falls back to no-projection text if unavailable.
+  const { data: settingsResp } = useSWR<{
+    data?: { yearOfBirth?: number; lifeExpectancy?: number }
+  }>("/api/independence/settings", simpleFetcher)
+  const currentAge = settingsResp?.data?.yearOfBirth
+    ? new Date().getFullYear() - Number(settingsResp.data.yearOfBirth)
+    : null
 
   // Filter pension assets (isPension = true), excluding composites
   const pensionAssets = React.useMemo(() => {
@@ -76,17 +110,59 @@ export default function IncomeSourcesStep({
             <div className="flex items-center mb-2">
               <i className="fas fa-piggy-bank text-blue-600 mr-2"></i>
               <h3 className="text-sm font-semibold text-blue-800">
-                Pension Income
+                Income from private Retirement plans
               </h3>
             </div>
-            <p className="text-sm text-blue-700">
-              Pension income is calculated from your {pensionAssets.length}{" "}
-              configured pension asset
-              {pensionAssets.length > 1 ? "s" : ""}.
-            </p>
+            <ul className="space-y-1 mt-2">
+              {pensionAssets.map((c) => {
+                const payoutAge = c.payoutAge
+                const yearsToMaturity =
+                  payoutAge && currentAge ? payoutAge - currentAge : null
+                const startingBalance =
+                  (c.subAccounts?.reduce(
+                    (sum, sa) => sum + (sa.balance || 0),
+                    0,
+                  ) || 0) > 0
+                    ? (c.subAccounts?.reduce(
+                        (sum, sa) => sum + (sa.balance || 0),
+                        0,
+                      ) ?? 0)
+                    : 0
+                const projectedLumpSum =
+                  c.lumpSum && yearsToMaturity && yearsToMaturity > 0
+                    ? projectLumpSum(
+                        startingBalance,
+                        c.monthlyContribution || 0,
+                        c.expectedReturnRate || 0,
+                        yearsToMaturity,
+                      )
+                    : null
+                return (
+                  <li
+                    key={c.assetId}
+                    className="flex justify-between text-sm text-blue-700"
+                  >
+                    <span>
+                      {c.assetId}
+                      {payoutAge ? ` — payout at age ${payoutAge}` : ""}
+                    </span>
+                    <span className="font-medium">
+                      {c.monthlyPayoutAmount && c.monthlyPayoutAmount > 0
+                        ? `$${Math.round(c.monthlyPayoutAmount).toLocaleString()}/mo annuity`
+                        : projectedLumpSum != null
+                          ? `~$${Math.round(projectedLumpSum).toLocaleString()} lump sum`
+                          : c.lumpSum
+                            ? "Lump sum (set age to project)"
+                            : "Configured"}
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
             <p className="text-xs text-blue-600 mt-2">
               <i className="fas fa-info-circle mr-1"></i>
-              Configure in Accounts with &apos;Is Pension&apos; enabled.
+              Read-only — figures come from your asset config + Profile age.
+              Edit in Accounts to change.
             </p>
           </div>
         )}
