@@ -30,6 +30,7 @@ interface AssetConfigState {
   payoutAge: string
   monthlyPayoutAmount: string
   monthlyContribution: string
+  contributionFrequency: "MONTHLY" | "ANNUAL"
   lumpSum: boolean
   expectedReturnRate: string
   // Composite policy support
@@ -64,6 +65,7 @@ const defaultConfigState: AssetConfigState = {
   payoutAge: "",
   monthlyPayoutAmount: "0",
   monthlyContribution: "0",
+  contributionFrequency: "MONTHLY",
   lumpSum: false,
   expectedReturnRate: "",
   policyType: undefined,
@@ -295,6 +297,10 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
               monthlyContribution: String(
                 Math.round((data.data.monthlyContribution || 0) * 100) / 100,
               ),
+              contributionFrequency:
+                data.data.contributionFrequency === "ANNUAL"
+                  ? "ANNUAL"
+                  : "MONTHLY",
               lumpSum: data.data.lumpSum || false,
               // Round to 1 decimal place for percentage display (e.g., 3.0%, 5.5%)
               expectedReturnRate: data.data.expectedReturnRate
@@ -457,6 +463,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
             payoutAge: config.payoutAge ? parseInt(config.payoutAge) : null,
             monthlyPayoutAmount: parseFloat(config.monthlyPayoutAmount) || 0,
             monthlyContribution: parseFloat(config.monthlyContribution) || 0,
+            contributionFrequency: config.contributionFrequency,
             lumpSum: config.lumpSum,
             expectedReturnRate: config.expectedReturnRate
               ? parseFloat(config.expectedReturnRate) / 100
@@ -749,24 +756,45 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                      {/* Monthly Contribution */}
+                      {/* Contribution */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          {"Monthly Contribution"}
+                          {"Contribution"}
                         </label>
-                        <MathInput
-                          value={config.monthlyContribution}
-                          onChange={(val) =>
-                            setConfig({
-                              ...config,
-                              monthlyContribution: String(val),
-                            })
-                          }
-                          placeholder="e.g. 500, 1k"
-                          className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
-                        />
+                        <div className="flex gap-2">
+                          <MathInput
+                            value={config.monthlyContribution}
+                            onChange={(val) =>
+                              setConfig({
+                                ...config,
+                                monthlyContribution: String(val),
+                              })
+                            }
+                            placeholder="e.g. 500, 1k"
+                            className="flex-1 border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
+                          />
+                          <select
+                            aria-label="Contribution frequency"
+                            value={config.contributionFrequency}
+                            onChange={(e) =>
+                              setConfig({
+                                ...config,
+                                contributionFrequency:
+                                  e.target.value === "ANNUAL"
+                                    ? "ANNUAL"
+                                    : "MONTHLY",
+                              })
+                            }
+                            className="border-gray-300 rounded-md shadow-sm px-2 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
+                          >
+                            <option value="MONTHLY">Monthly</option>
+                            <option value="ANNUAL">Annual</option>
+                          </select>
+                        </div>
                         <p className="text-xs text-gray-500 mt-1">
-                          {"Your regular contributions"}
+                          {config.contributionFrequency === "ANNUAL"
+                            ? "Total contribution per year (e.g. CPF top-up, SRS)"
+                            : "Regular monthly contribution (e.g. SuperFund)"}
                         </p>
                       </div>
 
