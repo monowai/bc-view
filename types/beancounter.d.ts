@@ -770,6 +770,7 @@ export interface PrivateAssetConfig {
   monthlyPayoutAmount?: number
   lumpSum?: boolean
   monthlyContribution?: number
+  contributionFrequency?: "MONTHLY" | "ANNUAL"
   isPension: boolean
   // Composite policy support
   policyType?: PolicyType
@@ -805,6 +806,7 @@ export interface PrivateAssetConfigRequest {
   monthlyPayoutAmount?: number
   lumpSum?: boolean
   monthlyContribution?: number
+  contributionFrequency?: "MONTHLY" | "ANNUAL"
   isPension?: boolean
   // Composite policy support
   policyType?: PolicyType
