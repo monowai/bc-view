@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback } from "react"
 import useSWR from "swr"
 import { PlanContribution } from "types/independence"
 import { simpleFetcher } from "@utils/api/fetchHelper"
+import PensionProjectionModal from "@components/features/independence/scenarios/PensionProjectionModal"
 
 /**
  * Per-asset pension contribution editor for a Work Scenario.
@@ -20,6 +21,13 @@ interface PensionAsset {
   assetName: string
   contributionFrequency: "MONTHLY" | "ANNUAL"
   policyType?: string
+  payoutAge?: number
+  updatedDate?: string
+  subAccounts?: { code: string; balance: number }[]
+  monthlyPayoutAmount?: number
+  expectedReturnRate?: number
+  monthlyContribution?: number
+  cpfLifePlan?: string
 }
 
 interface PrivateAssetConfig {
@@ -27,6 +35,13 @@ interface PrivateAssetConfig {
   isPension?: boolean
   policyType?: string
   contributionFrequency?: "MONTHLY" | "ANNUAL"
+  payoutAge?: number
+  updatedDate?: string
+  subAccounts?: { code: string; balance: number }[]
+  monthlyPayoutAmount?: number
+  expectedReturnRate?: number
+  monthlyContribution?: number
+  cpfLifePlan?: string
 }
 
 interface PrivateAssetConfigsResponse {
@@ -97,7 +112,18 @@ export default function ScenarioContributions({
       assetName: configsResp?.assetNames?.[c.assetId] || c.assetId,
       contributionFrequency: c.contributionFrequency || "MONTHLY",
       policyType: c.policyType,
+      payoutAge: c.payoutAge,
+      updatedDate: c.updatedDate,
+      subAccounts: c.subAccounts,
+      monthlyPayoutAmount: c.monthlyPayoutAmount,
+      expectedReturnRate: c.expectedReturnRate,
+      monthlyContribution: c.monthlyContribution,
+      cpfLifePlan: c.cpfLifePlan,
     }))
+
+  const [projectionAsset, setProjectionAsset] = useState<PensionAsset | null>(
+    null,
+  )
 
   const contribsByAssetId = useMemo(() => {
     const map: Record<string, PlanContribution> = {}
@@ -232,6 +258,21 @@ export default function ScenarioContributions({
               <span className="text-xs text-gray-500 w-20">
                 {currency} {frequencyLabel}
               </span>
+              <button
+                type="button"
+                onClick={() => setProjectionAsset(asset)}
+                disabled={!asset.payoutAge || !currentAge}
+                title={
+                  !asset.payoutAge
+                    ? "Set a payout age on the asset to view projection"
+                    : !currentAge
+                      ? "Set year of birth on your plan to view projection"
+                      : "Year-by-year balance projection until payout"
+                }
+                className="text-xs text-independence-600 hover:text-independence-800 disabled:text-gray-300 disabled:cursor-not-allowed underline"
+              >
+                Projection
+              </button>
             </li>
           )
         })}
@@ -240,6 +281,19 @@ export default function ScenarioContributions({
         Contributions are saved when you leave the field. Frequency comes from
         the asset itself (Edit Asset → Contribution).
       </p>
+      {projectionAsset && currentAge && (
+        <PensionProjectionModal
+          asset={projectionAsset}
+          currency={currency}
+          currentAge={currentAge}
+          scenarioMonthlySalary={monthlySalary}
+          scenarioAnnualOverride={
+            (parseFloat(edits[projectionAsset.assetId] || "0") || 0) *
+            (projectionAsset.contributionFrequency === "ANNUAL" ? 1 : 12)
+          }
+          onClose={() => setProjectionAsset(null)}
+        />
+      )}
     </div>
   )
 }
