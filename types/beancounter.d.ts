@@ -462,6 +462,12 @@ export interface UserPreferences {
   hideValues?: boolean // Privacy mode - hide monetary values and quantities
   defaultMarket?: string // Default market for asset search (e.g., "US", "NZX")
   milestoneMode?: "ACTIVE" | "SILENT" | "OFF" // Milestone notification mode
+  // Profile demographics mirrored from svc-retire's UserIndependenceSettings
+  // so screens scoped to svc-data (Edit Asset, holdings) can resolve current
+  // age without a runtime call to svc-retire.
+  yearOfBirth?: number
+  monthOfBirth?: number
+  lifeExpectancy?: number
 }
 
 export interface UserPreferencesRequest {
@@ -476,6 +482,9 @@ export interface UserPreferencesRequest {
   hideValues?: boolean
   defaultMarket?: string
   milestoneMode?: "ACTIVE" | "SILENT" | "OFF"
+  yearOfBirth?: number
+  monthOfBirth?: number
+  lifeExpectancy?: number
 }
 
 export interface RegistrationResponse {

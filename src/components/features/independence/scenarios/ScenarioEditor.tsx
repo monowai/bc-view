@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from "react"
 import { WorkScenario, WorkScenarioRequest } from "types/independence"
 import Dialog from "@components/ui/Dialog"
 import ScenarioContributions from "@components/features/independence/scenarios/ScenarioContributions"
+import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
+import { currentAgeFromSettings } from "@lib/independence/age"
 
 interface ScenarioEditorProps {
   scenario?: WorkScenario | null
@@ -37,26 +39,11 @@ export default function ScenarioEditor({
   const [form, setForm] = useState<WorkScenarioRequest>(DEFAULT_FORM)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  // Used by ScenarioContributions to compute the salary-derived CPF
-  // contribution tooltip; the projection picks an age band based on it.
-  const [currentAge, setCurrentAge] = useState<number | undefined>(undefined)
-
-  useEffect(() => {
-    if (!isEditing) return undefined
-    let cancelled = false
-    fetch("/api/independence/plans")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((body) => {
-        if (cancelled) return
-        const plan = body?.data?.[0]
-        if (!plan?.yearOfBirth) return
-        setCurrentAge(new Date().getFullYear() - plan.yearOfBirth)
-      })
-      .catch(() => {})
-    return () => {
-      cancelled = true
-    }
-  }, [isEditing])
+  // yearOfBirth lives in user-level Independence settings (svc-retire) now,
+  // not on the plan — the prior fetch of /api/independence/plans[0].yearOfBirth
+  // was always undefined post-migration and the salary tooltip never fired.
+  const { settings: independenceSettings } = useIndependenceSettings()
+  const currentAge = currentAgeFromSettings(independenceSettings)
 
   useEffect(() => {
     if (scenario) {

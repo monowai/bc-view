@@ -7,6 +7,8 @@ import CompositeAssetEditor from "@components/features/assets/CompositeAssetEdit
 import { CategoryOption, SectorOption } from "./accountTypes"
 import Alert from "@components/ui/Alert"
 import Spinner from "@components/ui/Spinner"
+import { useUserPreferences } from "@contexts/UserPreferencesContext"
+import { currentAgeFromSettings } from "@lib/independence/age"
 
 // Private Asset Config state interface
 interface AssetConfigState {
@@ -175,41 +177,41 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
     fetchCountryTaxRates()
   }, [])
 
-  // Fetch user's age + retirement horizon for POLICY projection. yearOfBirth
-  // and lifeExpectancy live in /api/independence/settings now (user-level),
-  // not on the plan — earlier this read plan.yearOfBirth which is always
-  // undefined post-migration, so the "Create an Independence Plan" message
-  // showed even when both a plan and a yearOfBirth were already set.
+  // Resolve POLICY projection inputs from the user's profile demographics
+  // mirrored onto svc-data's UserPreferences — keeps the Asset screen
+  // self-contained inside svc-data (no runtime svc-retire dependency for
+  // computing age). svc-retire still owns writes via the Profile modal;
+  // a successful settings PATCH there mirrors here.
+  const { preferences } = useUserPreferences()
   useEffect(() => {
-    async function fetchPlanData(): Promise<void> {
-      const categoryId = asset.assetCategory?.id
-      if (categoryId !== "POLICY") return
+    const categoryId = asset.assetCategory?.id
+    if (categoryId !== "POLICY") return undefined
+    const age = currentAgeFromSettings(preferences)
+    if (age === undefined) return undefined
+    let cancelled = false
+    async function deriveRetirementAge(): Promise<number> {
       try {
-        const [settingsRes, plansRes] = await Promise.all([
-          fetch("/api/independence/settings"),
-          fetch("/api/independence/plans"),
-        ])
-        const settings = settingsRes.ok
-          ? (await settingsRes.json())?.data
-          : null
-        const firstPlan = plansRes.ok
-          ? ((await plansRes.json())?.data || [])[0]
-          : null
-        if (!settings?.yearOfBirth) return
-        const currentAge =
-          new Date().getFullYear() - Number(settings.yearOfBirth)
-        const lifeExpectancy = settings.lifeExpectancy || 90
-        const retirementAge = firstPlan?.planningHorizonYears
+        const res = await fetch("/api/independence/plans")
+        if (!res.ok) return 65
+        const body = await res.json()
+        const firstPlan = (body?.data || [])[0]
+        const lifeExpectancy = preferences?.lifeExpectancy || 90
+        return firstPlan?.planningHorizonYears
           ? lifeExpectancy - firstPlan.planningHorizonYears
           : 65
-        setPlanData({ currentAge, retirementAge })
-        setConfig((prev) => ({ ...prev, currentAge: String(currentAge) }))
-      } catch (err) {
-        console.error("Failed to fetch plan data:", err)
+      } catch {
+        return 65
       }
     }
-    fetchPlanData()
-  }, [asset.assetCategory?.id])
+    deriveRetirementAge().then((retirementAge) => {
+      if (cancelled) return
+      setPlanData({ currentAge: age, retirementAge })
+      setConfig((prev) => ({ ...prev, currentAge: String(age) }))
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [asset.assetCategory?.id, preferences])
 
   // Fetch current sector classification on mount
   useEffect(() => {
