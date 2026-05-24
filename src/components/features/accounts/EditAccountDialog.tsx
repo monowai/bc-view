@@ -358,7 +358,13 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
         return
       }
 
-      const monthlyContribution = parseFloat(config.monthlyContribution) || 0
+      const contributionAmount = parseFloat(config.monthlyContribution) || 0
+      // Projection endpoint takes monthly. For ANNUAL-frequency assets the
+      // user enters a per-year figure, so divide by 12 before sending.
+      const monthlyContribution =
+        config.contributionFrequency === "ANNUAL"
+          ? contributionAmount / 12
+          : contributionAmount
       const currentAge = parseInt(config.currentAge) || 0
       const payoutAge = parseInt(config.payoutAge) || 0
       const expectedReturn = (parseFloat(config.expectedReturnRate) || 0) / 100
@@ -407,6 +413,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
     config.payoutAge,
     config.currentAge,
     config.monthlyContribution,
+    config.contributionFrequency,
     config.expectedReturnRate,
   ])
 
@@ -912,7 +919,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                         ) : (
                           <p className="text-green-600 text-xs">
                             {parseFloat(config.monthlyContribution || "0") <= 0
-                              ? "Enter monthly contribution to see projected payout."
+                              ? `Enter ${config.contributionFrequency === "ANNUAL" ? "annual" : "monthly"} contribution to see projected payout.`
                               : "Calculating projection..."}
                           </p>
                         )}

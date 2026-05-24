@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react"
 import { WorkScenario, WorkScenarioRequest } from "types/independence"
 import Dialog from "@components/ui/Dialog"
+import ScenarioContributions from "@components/features/independence/scenarios/ScenarioContributions"
 
 interface ScenarioEditorProps {
   scenario?: WorkScenario | null
@@ -221,6 +222,18 @@ export default function ScenarioEditor({
             />
           </div>
         </div>
+
+        {isEditing && scenario && (
+          <div className="border-t border-gray-200 pt-4">
+            <h4 className="text-sm font-semibold text-gray-700 mb-2">
+              Pension contributions
+            </h4>
+            <ScenarioContributions
+              scenarioId={scenario.id}
+              currency={form.currency || "NZD"}
+            />
+          </div>
+        )}
 
         <div className="bg-gradient-to-r from-independence-50 to-independence-100 rounded-lg p-3 border border-independence-100">
           <div className="flex justify-between items-center">
