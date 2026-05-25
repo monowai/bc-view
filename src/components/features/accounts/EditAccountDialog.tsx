@@ -144,6 +144,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
     yearsToMaturity: number
   } | null>(null)
   const [projectionLoading, setProjectionLoading] = useState(false)
+  const [projectionError, setProjectionError] = useState<string | null>(null)
 
   // User's plan data for age-based calculations
   const [planData, setPlanData] = useState<{
@@ -377,10 +378,12 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
         payoutAge <= currentAge
       ) {
         setLumpSumProjection(null)
+        setProjectionError(null)
         return
       }
 
       setProjectionLoading(true)
+      setProjectionError(null)
       try {
         const response = await fetch("/api/projection/lump-sum", {
           method: "POST",
@@ -395,13 +398,16 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
 
         if (response.ok) {
           const data = await response.json()
-          setLumpSumProjection(data.data)
+          setLumpSumProjection(data.data ?? null)
+          setProjectionError(data.data ? null : "Projection returned no data")
         } else {
           setLumpSumProjection(null)
+          setProjectionError(`Backend ${response.status}: ${response.statusText}`)
         }
       } catch (err) {
         console.error("Failed to fetch lump sum projection:", err)
         setLumpSumProjection(null)
+        setProjectionError(err instanceof Error ? err.message : String(err))
       } finally {
         setProjectionLoading(false)
       }
@@ -556,7 +562,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }`}
               >
-                {"Income & Planning"}
+                {category === "RE" ? "Income" : "Planning"}
               </button>
               {showProjectionsTab && (
                 <button
@@ -1318,11 +1324,16 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                       )}
                     </div>
                   </div>
+                ) : projectionError ? (
+                  <p className="text-red-600 text-xs">
+                    <i className="fas fa-exclamation-triangle mr-1"></i>
+                    {`Projection failed: ${projectionError}. Adjust the contribution or return rate and the projection will retry.`}
+                  </p>
                 ) : (
                   <p className="text-green-600 text-xs">
                     {parseFloat(config.monthlyContribution || "0") <= 0
-                      ? `Enter ${config.contributionFrequency === "ANNUAL" ? "annual" : "monthly"} contribution to see projected payout.`
-                      : "Calculating projection..."}
+                      ? `Enter ${config.contributionFrequency === "ANNUAL" ? "annual" : "monthly"} contribution on the Planning tab to see projected payout.`
+                      : "Adjusting projection inputs on the Planning tab will refresh this view automatically."}
                   </p>
                 )}
               </div>

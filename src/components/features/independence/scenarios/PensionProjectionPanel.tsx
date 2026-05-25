@@ -92,10 +92,10 @@ export default function PensionProjectionPanel({
 
   const { data: cpfData } = useSWR<
     { data: CpfYearlyBalance[] } | CpfYearlyBalance[]
-  >(cpfKey, simpleFetcher)
+  >(cpfKey, cpfKey ? simpleFetcher(cpfKey) : null)
   const { data: policyData } = useSWR<
     { data: PolicyYearlyBalance[] } | PolicyYearlyBalance[]
-  >(policyKey, simpleFetcher)
+  >(policyKey, policyKey ? simpleFetcher(policyKey) : null)
 
   // Endpoints return arrays directly, but SWR-via-proxy may wrap in { data }.
   const cpfSeries: CpfYearlyBalance[] = Array.isArray(cpfData)
