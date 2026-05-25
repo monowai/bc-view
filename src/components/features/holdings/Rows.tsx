@@ -41,6 +41,7 @@ import {
   CorporateActionsData,
   SectorWeightingsData,
 } from "./ActionsMenus"
+import { COPYABLE_HOLDING_COLUMNS } from "./constants"
 
 export type { CorporateActionsData, SectorWeightingsData }
 
@@ -116,30 +117,10 @@ export default function Rows({
       portfolio,
     })
 
-  const columns = useMemo(
-    () => [
-      "Asset Code",
-      "Asset Name",
-      "Classification",
-      "Price",
-      "Change %",
-      "Change on Day",
-      "Quantity",
-      "Cost Value",
-      "Market Value",
-      "Unrealised Gain",
-      "Realised Gain",
-      "Dividends",
-      "IRR",
-      "Alpha",
-      "Weight",
-      "Total Gain",
-    ],
-    [],
-  )
+  const columns = COPYABLE_HOLDING_COLUMNS
 
   useEffect(() => {
-    onColumnsChange(columns)
+    onColumnsChange([...columns])
   }, [columns, onColumnsChange])
 
   const hideValue = (priceData: PriceData | undefined): boolean => !priceData

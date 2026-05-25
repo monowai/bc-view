@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from "react"
+import React, { useState, useEffect, useRef, useMemo } from "react"
 import { useRouter } from "next/router"
 import TradeInputForm from "@components/features/transactions/TradeInputForm"
 import CashInputForm from "@components/features/transactions/CashInputForm"
 import CopyPopup from "@components/ui/CopyPopup"
-import { HoldingContract, Holdings, QuickSellData } from "types/beancounter"
+import { HoldingContract, QuickSellData } from "types/beancounter"
 import { ViewMode, VIEW_MODES } from "./ViewToggle"
-import { AllocationSlice } from "@lib/allocation/aggregateHoldings"
 import { useIsAdmin } from "@hooks/useIsAdmin"
 import {
   GroupBy,
@@ -84,20 +83,6 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({
   )
 }
 
-// Summary columns available for copying
-const SUMMARY_COLUMNS = [
-  "Group",
-  "Market Value",
-  "Change",
-  "IRR",
-  "Alpha",
-  "Weight",
-] as const
-type SummaryColumn = (typeof SUMMARY_COLUMNS)[number]
-
-// Default columns for summary copy
-const DEFAULT_SUMMARY_COLUMNS: SummaryColumn[] = ["Group", "IRR", "Weight"]
-
 interface HoldingActionsProps {
   holdingResults: HoldingContract
   columns: string[]
@@ -107,8 +92,6 @@ interface HoldingActionsProps {
   emptyHoldings?: boolean
   viewMode?: ViewMode
   onViewModeChange?: (mode: ViewMode) => void
-  allocationData?: AllocationSlice[]
-  holdings?: Holdings | null
   /** Hide GroupBy controls */
   hideGroupBy?: boolean
   /** Callback to open share dialog for this portfolio */
@@ -318,8 +301,6 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
   emptyHoldings = false,
   viewMode = "table",
   onViewModeChange,
-  allocationData = [],
-  holdings,
   hideGroupBy = false,
   onShare,
   onSelectPlan,
@@ -357,11 +338,6 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
     }
   }, [router.query.action]) // eslint-disable-line react-hooks/exhaustive-deps
   const [copyModalOpen, setCopyModalOpen] = useState(false)
-  const [summaryCopyModalOpen, setSummaryCopyModalOpen] = useState(false)
-  const [selectedSummaryColumns, setSelectedSummaryColumns] = useState<
-    SummaryColumn[]
-  >(DEFAULT_SUMMARY_COLUMNS)
-  const [copied, setCopied] = useState(false)
 
   // Open trade modal when quick sell data is provided. quickSellData is an
   // external trigger from the parent — opening the modal is the side
@@ -381,114 +357,11 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
     }
   }
 
-  // Toggle summary column selection
-  const handleSummaryColumnChange = useCallback((column: SummaryColumn) => {
-    setSelectedSummaryColumns((prev) =>
-      prev.includes(column)
-        ? prev.filter((col) => col !== column)
-        : [...prev, column],
-    )
-  }, [])
-
-  // Get value for a summary column
-  const getSummaryColumnValue = useCallback(
-    (column: SummaryColumn, slice: AllocationSlice, total: number): string => {
-      const percentage = total > 0 ? (slice.value / total) * 100 : 0
-      switch (column) {
-        case "Group":
-          return slice.label
-        case "Market Value":
-          return slice.value.toFixed(2)
-        case "Change":
-          return slice.gainOnDay.toFixed(2)
-        case "IRR":
-          return (slice.irr * 100).toFixed(2) + "%"
-        case "Alpha":
-          return (slice.irr * 100 - 7).toFixed(2) + "%" // Alpha = IRR - 7% benchmark
-        case "Weight":
-          return percentage.toFixed(1) + "%"
-        default:
-          return ""
-      }
-    },
-    [],
-  )
-
-  // Get total row value for a summary column
-  const getSummaryTotalValue = useCallback(
-    (column: SummaryColumn, total: number, totalGainOnDay: number): string => {
-      if (!holdings) return ""
-      switch (column) {
-        case "Group":
-          return "Total"
-        case "Market Value":
-          return total.toFixed(2)
-        case "Change":
-          return totalGainOnDay.toFixed(2)
-        case "IRR":
-          return (holdings.totals.irr * 100).toFixed(2) + "%"
-        case "Alpha":
-          return "" // No alpha for total
-        case "Weight":
-          return "100%"
-        default:
-          return ""
-      }
-    },
-    [holdings],
-  )
-
-  // Copy summary/allocation data to clipboard with selected columns
-  const handleCopySummary = useCallback(() => {
-    if (!holdings || allocationData.length === 0) return
-    if (selectedSummaryColumns.length === 0) return
-
-    const total = allocationData.reduce((sum, slice) => sum + slice.value, 0)
-    const totalGainOnDay = allocationData.reduce(
-      (sum, slice) => sum + slice.gainOnDay,
-      0,
-    )
-
-    const headers = selectedSummaryColumns.join("\t")
-    const rows = allocationData.map((slice) =>
-      selectedSummaryColumns
-        .map((col) => getSummaryColumnValue(col, slice, total))
-        .join("\t"),
-    )
-    const totalRow = selectedSummaryColumns
-      .map((col) => getSummaryTotalValue(col, total, totalGainOnDay))
-      .join("\t")
-
-    const clipboardData = [headers, ...rows, totalRow].join("\n")
-
-    navigator.clipboard.writeText(clipboardData).then(() => {
-      setCopied(true)
-      setSummaryCopyModalOpen(false)
-      setTimeout(() => setCopied(false), 2000)
-    })
-  }, [
-    allocationData,
-    holdings,
-    selectedSummaryColumns,
-    getSummaryColumnValue,
-    getSummaryTotalValue,
-  ])
-
-  // Handle copy button click based on view mode
   const handleCopyClick = (): void => {
-    if (viewMode === "summary") {
-      setSummaryCopyModalOpen(true)
-    } else {
-      setCopyModalOpen(true)
-    }
+    setCopyModalOpen(true)
   }
 
   // Get button text based on view mode
-  const getCopyButtonText = (): string => {
-    if (copied) return "Copied!"
-    return viewMode === "summary" ? "Copy Summary" : "Copy Holdings"
-  }
-
   // Trade dropdown items
   const tradeItems = [
     {
@@ -631,17 +504,11 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
           )}
           {!emptyHoldings && (
             <button
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1.5 shadow-sm ${
-                copied
-                  ? "bg-emerald-500 hover:bg-emerald-600 text-white"
-                  : "bg-white hover:bg-slate-50 text-slate-700 ring-1 ring-slate-200/80 hover:ring-slate-300"
-              }`}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1.5 shadow-sm bg-white hover:bg-slate-50 text-slate-700 ring-1 ring-slate-200/80 hover:ring-slate-300"
               onClick={handleCopyClick}
             >
-              <i
-                className={`fas ${copied ? "fa-check" : "fa-copy"} text-[10px] ${copied ? "" : "text-blue-500"}`}
-              ></i>
-              <span className="hidden sm:inline">{getCopyButtonText()}</span>
+              <i className="fas fa-copy text-[10px] text-blue-500"></i>
+              <span className="hidden sm:inline">Copy Holdings</span>
               <span className="sm:hidden">Copy</span>
             </button>
           )}
@@ -679,48 +546,6 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
         modalOpen={copyModalOpen}
         onClose={() => setCopyModalOpen(false)}
       />
-      {/* Summary Copy Modal */}
-      {summaryCopyModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div
-            className="fixed inset-0 bg-black opacity-50"
-            onClick={() => setSummaryCopyModalOpen(false)}
-          ></div>
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-md mx-auto p-6 z-50">
-            <h2 className="text-xl font-semibold mb-4">
-              Select Columns to Copy
-            </h2>
-            <div className="mb-4 grid grid-cols-2 gap-2">
-              {SUMMARY_COLUMNS.map((column) => (
-                <label key={column} className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={selectedSummaryColumns.includes(column)}
-                    onChange={() => handleSummaryColumnChange(column)}
-                    className="mr-2"
-                  />
-                  {column}
-                </label>
-              ))}
-            </div>
-            <div className="flex justify-end space-x-2">
-              <button
-                className="bg-gray-300 text-gray-700 px-4 py-2 rounded"
-                onClick={() => setSummaryCopyModalOpen(false)}
-              >
-                Cancel
-              </button>
-              <button
-                className="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50"
-                onClick={handleCopySummary}
-                disabled={selectedSummaryColumns.length === 0}
-              >
-                Copy
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       {reviewPopup}
     </>
   )
