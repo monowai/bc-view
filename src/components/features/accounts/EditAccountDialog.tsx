@@ -152,6 +152,14 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
     retirementAge: number
   } | null>(null)
 
+  // Current asset balance summed across all portfolios holding this asset
+  // — used as the starting point for non-CPF POLICY projections. CPF assets
+  // carry their starting balances on private_asset_sub_account (OA/SA/MA/RA)
+  // and don't need this.
+  const [assetCurrentBalance, setAssetCurrentBalance] = useState<number | null>(
+    null,
+  )
+
   // Show income/planning tab for RE and POLICY categories
   const showIncomeTab = category === "RE" || category === "POLICY"
   // Projections tab — only for POLICY assets. CPF gets the year-by-year
@@ -218,6 +226,34 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
       cancelled = true
     }
   }, [asset.assetCategory?.id, preferences])
+
+  // Fetch the asset's current balance across all portfolios so the
+  // Projections tab can seed the non-CPF policy projection. The balance
+  // lives on positions/transactions (not on private_asset_sub_account)
+  // for non-CPF policies, so the projection panel can't reach it via
+  // config.subAccounts.
+  useEffect(() => {
+    if (asset.assetCategory?.id !== "POLICY") return undefined
+    let cancelled = false
+    async function fetchBalance(): Promise<void> {
+      try {
+        const res = await fetch(
+          `/api/assets/${asset.id}/positions?date=today`,
+        )
+        if (!res.ok) return
+        const body = await res.json()
+        const positions: { balance?: number }[] = body?.data || []
+        const total = positions.reduce((sum, p) => sum + (p.balance || 0), 0)
+        if (!cancelled) setAssetCurrentBalance(total)
+      } catch {
+        // Best-effort; projection still works, just starts from 0.
+      }
+    }
+    fetchBalance()
+    return () => {
+      cancelled = true
+    }
+  }, [asset.id, asset.assetCategory?.id])
 
   // Fetch current sector classification on mount
   useEffect(() => {
@@ -1357,10 +1393,19 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                     ? raw / 12
                     : raw
                 })()}
-                subAccounts={config.subAccounts.map((s) => ({
-                  code: s.code,
-                  balance: s.balance,
-                }))}
+                subAccounts={[
+                  ...config.subAccounts.map((s) => ({
+                    code: s.code,
+                    balance: s.balance,
+                  })),
+                  // Non-CPF policies don't have OA/SA/MA/RA — surface the
+                  // asset's current holding as the "BALANCE" sub-account
+                  // the projection panel reads for startingBalance.
+                  ...(config.policyType !== "CPF" &&
+                  assetCurrentBalance !== null
+                    ? [{ code: "BALANCE", balance: assetCurrentBalance }]
+                    : []),
+                ]}
                 currency={currency}
                 currentAge={planData.currentAge}
               />
