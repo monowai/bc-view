@@ -54,6 +54,7 @@ import SubTotal from "@components/features/holdings/SubTotal"
 import Header from "@components/features/holdings/Header"
 import GrandTotal from "@components/features/holdings/GrandTotal"
 import HoldingActions from "@components/features/holdings/HoldingActions"
+import { COPYABLE_HOLDING_COLUMNS } from "@components/features/holdings/constants"
 import PerformanceHeatmap from "@components/ui/PerformanceHeatmap"
 import SummaryView from "@components/features/holdings/SummaryView"
 import CardView from "@components/features/holdings/CardView"
@@ -102,7 +103,9 @@ function HoldingsPage(): React.ReactElement {
   } = useHoldingsView(data?.data)
 
   // Page-specific state
-  const [columns, setColumns] = useState<string[]>([])
+  const [columns, setColumns] = useState<string[]>([
+    ...COPYABLE_HOLDING_COLUMNS,
+  ])
   const [quickSellData, setQuickSellData] = useState<QuickSellData | undefined>(
     undefined,
   )
@@ -545,8 +548,6 @@ function HoldingsPage(): React.ReactElement {
         onQuickSellHandled={handleQuickSellHandled}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
-        allocationData={allocationData}
-        holdings={holdings}
         onShare={() => setShowShareDialog(true)}
         onSelectPlan={() => setSelectPlanModalOpen(true)}
         onInvestCash={() => setInvestCashModalOpen(true)}

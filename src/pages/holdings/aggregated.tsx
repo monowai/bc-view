@@ -29,6 +29,7 @@ import {
   useGroupOptions,
 } from "@components/features/holdings/GroupByOptions"
 import CopyPopup from "@components/ui/CopyPopup"
+import { COPYABLE_HOLDING_COLUMNS } from "@components/features/holdings/constants"
 import IncomeView from "@components/features/holdings/IncomeView"
 import { ViewMode } from "@components/features/holdings/ViewToggle"
 import { usePermissions } from "@hooks/usePermissions"
@@ -249,7 +250,9 @@ function AggregatedHoldingsPage(): React.ReactElement {
   } = useHoldingsView(data?.data)
 
   // State for copy functionality
-  const [columns, setColumns] = useState<string[]>([])
+  const [columns, setColumns] = useState<string[]>([
+    ...COPYABLE_HOLDING_COLUMNS,
+  ])
   const [copyModalOpen, setCopyModalOpen] = useState(false)
   const [priceChartData, setPriceChartData] = useState<
     PriceChartData | undefined

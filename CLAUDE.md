@@ -133,9 +133,25 @@ Configured in `tsconfig.json`:
 
 ```typescript
 import { Something } from "@components/ui/Something"
-import { fetchHelper } from "@lib/api/fetchHelper"
+import { fetchHelper } from "@utils/api/fetchHelper"
 import { HoldingType } from "@types/holdings"
 ```
+
+**`@lib/*` and `@utils/*` both resolve to `src/lib/utils/*`** at compile
+time (`tsconfig.json`), but **`@lib/api/*` BREAKS at runtime** — the
+Next.js bundler fails to resolve it and returns 500. A pre-commit hook
+(`scripts/check-imports.js`) blocks `@lib/api` imports for this reason.
+
+Rules for new code:
+- API fetch helpers: **must** use `@utils/api/...` (e.g.,
+  `@utils/api/fetchHelper`). Never `@lib/api/...`.
+- Other lib subdirs (assets, independence, broker, etc.): either alias
+  works; prefer `@lib/...` for consistency with newer code.
+- Never `@lib/utils/...` — double-`utils`; the alias already points
+  inside `src/lib/utils/`.
+
+CodeRabbit gets this wrong; reject any suggestion that rewrites
+`@utils/api/*` to `@lib/api/*`.
 
 ## API Routes
 

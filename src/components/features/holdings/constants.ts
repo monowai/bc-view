@@ -1,3 +1,22 @@
+export const COPYABLE_HOLDING_COLUMNS = [
+  "Asset Code",
+  "Asset Name",
+  "Classification",
+  "Price",
+  "Change %",
+  "Change on Day",
+  "Quantity",
+  "Cost Value",
+  "Market Value",
+  "Unrealised Gain",
+  "Realised Gain",
+  "Dividends",
+  "IRR",
+  "Alpha",
+  "Weight",
+  "Total Gain",
+] as const
+
 // Constants for GrandTotal component structure and layout
 
 export const GRANDTOTAL_LAYOUT = {
