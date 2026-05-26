@@ -36,6 +36,10 @@ const EditAccountDialog = dynamic(
   () => import("@components/features/accounts/EditAccountDialog"),
   { ssr: false },
 )
+const AdminAssetEditDialog = dynamic(
+  () => import("@components/features/admin/AdminAssetEditDialog"),
+  { ssr: false },
+)
 import { currencyOptions } from "@lib/currency"
 import { AssetCategory } from "types/beancounter"
 import { errorOut } from "@components/errors/ErrorOut"
@@ -76,6 +80,7 @@ import CreateModelFromHoldingsDialog from "@components/features/rebalance/models
 import SelectPlanDialog from "@components/features/rebalance/execution/SelectPlanDialog"
 import InvestCashDialog from "@components/features/rebalance/execution/InvestCashDialog"
 import { ModelDto, PlanDto } from "types/rebalance"
+import { useIsAdmin } from "@hooks/useIsAdmin"
 
 function HoldingsPage(): React.ReactElement {
   const router = useRouter()
@@ -143,6 +148,10 @@ function HoldingsPage(): React.ReactElement {
     string | undefined
   >(undefined)
   const [editAsset, setEditAsset] = useState<Asset | undefined>(undefined)
+  const [adminEditAsset, setAdminEditAsset] = useState<Asset | undefined>(
+    undefined,
+  )
+  const { isAdmin } = useIsAdmin()
 
   // Share dialog state
   const [showShareDialog, setShowShareDialog] = useState(false)
@@ -187,9 +196,19 @@ function HoldingsPage(): React.ReactElement {
       }))
     : []
 
-  const handleEditAsset = useCallback((asset: Asset) => {
-    setEditAsset(asset)
-  }, [])
+  const handleEditAsset = useCallback(
+    (asset: Asset) => {
+      // PRIVATE assets are user-owned → use the existing owner-scoped dialog.
+      // Non-PRIVATE assets are public; only admins can edit those, and they
+      // go through the slim admin dialog (category / name / sector only).
+      if (asset.market?.code === "PRIVATE") {
+        setEditAsset(asset)
+      } else if (isAdmin) {
+        setAdminEditAsset(asset)
+      }
+    },
+    [isAdmin],
+  )
 
   const handleEditAssetClose = useCallback(() => {
     setEditAsset(undefined)
@@ -859,6 +878,17 @@ function HoldingsPage(): React.ReactElement {
           sectors={sectorOptions}
           onClose={handleEditAssetClose}
           onSave={handleEditAssetSave}
+        />
+      )}
+      {adminEditAsset && (
+        <AdminAssetEditDialog
+          asset={adminEditAsset}
+          onClose={() => setAdminEditAsset(undefined)}
+          onSaved={async () => {
+            setAdminEditAsset(undefined)
+            await mutate()
+            await globalMutate("/api/assets")
+          }}
         />
       )}
     </div>
