@@ -389,26 +389,30 @@ function AggregatedHoldingsPage(): React.ReactElement {
             </button>
           )}
 
-          {/* Action buttons - hidden on mobile portrait */}
-          <div className="mobile-portrait:hidden flex items-center space-x-2 shrink-0">
+          {/* Action buttons. Labels collapse to icons on mobile portrait so
+              the row stays inside the viewport. */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 flex-wrap justify-end">
             <button
-              className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center"
+              className="bg-blue-500 hover:bg-blue-600 text-white px-2.5 sm:px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center"
               onClick={() => setCopyModalOpen(true)}
+              aria-label="Copy Data"
+              title="Copy Data"
             >
-              <i className="fas fa-copy mr-2"></i>
+              <i className="fas fa-copy sm:mr-2"></i>
               <span className="hidden sm:inline">Copy Data</span>
-              <span className="sm:hidden">Copy</span>
             </button>
             <button
-              className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center"
+              className="bg-indigo-500 hover:bg-indigo-600 text-white px-2.5 sm:px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center"
               onClick={() => {
                 const portfolioParams = codes
                   ? `?portfolios=${encodeURIComponent(codes)}`
                   : ""
                 router.push(`/rebalance/wizard${portfolioParams}`)
               }}
+              aria-label="Rebalance"
+              title="Rebalance"
             >
-              <i className="fas fa-balance-scale mr-2"></i>
+              <i className="fas fa-balance-scale sm:mr-2"></i>
               <span className="hidden sm:inline">Rebalance</span>
             </button>
           </div>

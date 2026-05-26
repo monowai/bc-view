@@ -162,47 +162,54 @@ describe("HoldingActions Mobile Portrait Tests (TDD)", () => {
       setupMatchMedia(375, 667)
     })
 
-    it("should have mobile-portrait:hidden class on actions container", () => {
+    // Mobile-portrait parity: Copy / Trade / Rebalance / Share must all render
+    // and must NOT sit inside a `mobile-portrait:hidden` ancestor. Labels may
+    // collapse to icon-only via `hidden sm:inline`, but the actions stay
+    // reachable. Locate by aria-label since the visible text label is
+    // CSS-hidden in this viewport.
+    it.each([
+      ["Copy Holdings"],
+      ["Trade"],
+      ["Rebalance"],
+    ])(
+      "renders %s reachable on mobile portrait (no hidden ancestor)",
+      (label) => {
+        render(
+          <HoldingActions
+            holdingResults={mockHoldingResults}
+            columns={mockColumns}
+            valueIn={mockValueIn}
+            onShare={() => {}}
+          />,
+        )
+
+        const button = screen.getByLabelText(label)
+        expect(button).toBeInTheDocument()
+        let node: HTMLElement | null = button
+        while (node) {
+          expect(node).not.toHaveClass("mobile-portrait:hidden")
+          node = node.parentElement
+        }
+      },
+    )
+
+    it("renders Share reachable on mobile portrait when onShare provided", () => {
       render(
         <HoldingActions
           holdingResults={mockHoldingResults}
           columns={mockColumns}
           valueIn={mockValueIn}
+          onShare={() => {}}
         />,
       )
 
-      // The parent container has mobile-portrait:hidden class
-      const copyButton = screen.getByText("Copy Holdings")
-      const container = copyButton.closest(".mobile-portrait\\:hidden")
-      expect(container).toBeInTheDocument()
-    })
-
-    it("should have mobile-portrait:hidden class on Trade dropdown button", () => {
-      render(
-        <HoldingActions
-          holdingResults={mockHoldingResults}
-          columns={mockColumns}
-          valueIn={mockValueIn}
-        />,
-      )
-
-      const tradeButton = screen.getByText("Trade")
-      const button = tradeButton.closest("button")
-      expect(button).toHaveClass("mobile-portrait:hidden")
-    })
-
-    it("should have mobile-portrait:hidden class on Rebalance dropdown button", () => {
-      render(
-        <HoldingActions
-          holdingResults={mockHoldingResults}
-          columns={mockColumns}
-          valueIn={mockValueIn}
-        />,
-      )
-
-      const rebalanceButton = screen.getByText("Rebalance")
-      const button = rebalanceButton.closest("button")
-      expect(button).toHaveClass("mobile-portrait:hidden")
+      const shareButton = screen.getByLabelText("Share")
+      expect(shareButton).toBeInTheDocument()
+      let node: HTMLElement | null = shareButton
+      while (node) {
+        expect(node).not.toHaveClass("mobile-portrait:hidden")
+        node = node.parentElement
+      }
     })
 
     it("should keep the AI Summary button visible (not in a mobile-portrait:hidden ancestor)", () => {
@@ -227,50 +234,8 @@ describe("HoldingActions Mobile Portrait Tests (TDD)", () => {
     })
   })
 
-  describe("Mobile Landscape Mode (width > height, width < 640px)", () => {
-    beforeEach(() => {
-      // Mock mobile landscape viewport (e.g., iPhone landscape: 667x375)
-      Object.defineProperty(window, "innerWidth", {
-        writable: true,
-        configurable: true,
-        value: 667,
-      })
-      Object.defineProperty(window, "innerHeight", {
-        writable: true,
-        configurable: true,
-        value: 375,
-      })
-      setupMatchMedia(667, 375)
-    })
-
-    it("should still have mobile-portrait:hidden class but not be in portrait mode", () => {
-      render(
-        <HoldingActions
-          holdingResults={mockHoldingResults}
-          columns={mockColumns}
-          valueIn={mockValueIn}
-        />,
-      )
-
-      // The parent container has mobile-portrait:hidden class
-      const copyButton = screen.getByText("Copy Holdings")
-      const container = copyButton.closest(".mobile-portrait\\:hidden")
-      expect(container).toBeInTheDocument()
-
-      // Trade and Rebalance buttons have mobile-portrait:hidden class
-      const tradeButton = screen.getByText("Trade")
-      const tradeButtonElement = tradeButton.closest("button")
-      expect(tradeButtonElement).toHaveClass("mobile-portrait:hidden")
-
-      const rebalanceButton = screen.getByText("Rebalance")
-      const rebalanceButtonElement = rebalanceButton.closest("button")
-      expect(rebalanceButtonElement).toHaveClass("mobile-portrait:hidden")
-    })
-  })
-
   describe("Desktop/Tablet Mode (width >= 640px)", () => {
     beforeEach(() => {
-      // Mock desktop viewport
       Object.defineProperty(window, "innerWidth", {
         writable: true,
         configurable: true,
@@ -284,7 +249,7 @@ describe("HoldingActions Mobile Portrait Tests (TDD)", () => {
       setupMatchMedia(1024, 768)
     })
 
-    it("should have mobile-portrait:hidden class but not be in mobile portrait mode", () => {
+    it("renders Copy / Trade / Rebalance on desktop", () => {
       render(
         <HoldingActions
           holdingResults={mockHoldingResults}
@@ -293,19 +258,9 @@ describe("HoldingActions Mobile Portrait Tests (TDD)", () => {
         />,
       )
 
-      // The parent container has mobile-portrait:hidden class
-      const copyButton = screen.getByText("Copy Holdings")
-      const container = copyButton.closest(".mobile-portrait\\:hidden")
-      expect(container).toBeInTheDocument()
-
-      // Trade and Rebalance buttons have mobile-portrait:hidden class
-      const tradeButton = screen.getByText("Trade")
-      const tradeButtonElement = tradeButton.closest("button")
-      expect(tradeButtonElement).toHaveClass("mobile-portrait:hidden")
-
-      const rebalanceButton = screen.getByText("Rebalance")
-      const rebalanceButtonElement = rebalanceButton.closest("button")
-      expect(rebalanceButtonElement).toHaveClass("mobile-portrait:hidden")
+      expect(screen.getByLabelText("Copy Holdings")).toBeInTheDocument()
+      expect(screen.getByLabelText("Trade")).toBeInTheDocument()
+      expect(screen.getByLabelText("Rebalance")).toBeInTheDocument()
     })
   })
 })
