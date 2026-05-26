@@ -135,7 +135,9 @@ const PositionFooter: React.FC<PositionFooterProps> = ({
   ) : (
     priceText
   )
-  const quantityText = <PrivateQuantity value={quantity} precision={precision} />
+  const quantityText = (
+    <PrivateQuantity value={quantity} precision={precision} />
+  )
   const quantityValue = onQuantityClick ? (
     <button
       type="button"

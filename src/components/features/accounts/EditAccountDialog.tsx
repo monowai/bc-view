@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useMemo } from "react"
+import useSWR from "swr"
 import { Asset, CurrencyOption } from "types/beancounter"
 import { PolicyType, SubAccountRequest } from "types/beancounter"
 import { stripOwnerPrefix, getAssetCurrency } from "@lib/assets/assetUtils"
@@ -9,6 +10,8 @@ import Alert from "@components/ui/Alert"
 import Spinner from "@components/ui/Spinner"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { currentAgeFromSettings } from "@lib/independence/age"
+import { simpleFetcher } from "@utils/api/fetchHelper"
+import PensionProjectionPanel from "@components/features/independence/scenarios/PensionProjectionPanel"
 
 // Private Asset Config state interface
 interface AssetConfigState {
@@ -85,7 +88,7 @@ const COUNTRY_OPTIONS = [
   { code: "US", name: "United States" },
 ]
 
-type EditTab = "details" | "income"
+type EditTab = "details" | "income" | "projections"
 
 interface EditAccountDialogProps {
   asset: Asset
@@ -143,6 +146,7 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
     yearsToMaturity: number
   } | null>(null)
   const [projectionLoading, setProjectionLoading] = useState(false)
+  const [projectionError, setProjectionError] = useState<string | null>(null)
 
   // User's plan data for age-based calculations
   const [planData, setPlanData] = useState<{
@@ -150,8 +154,31 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
     retirementAge: number
   } | null>(null)
 
+  // Current asset balance summed across all portfolios holding this asset
+  // — used as the starting point for non-CPF POLICY projections. CPF assets
+  // carry their starting balances on private_asset_sub_account (OA/SA/MA/RA)
+  // and don't need this. SWR keyed off asset.id so switching assets in a
+  // reused dialog auto-clears the prior balance.
+  const balanceKey =
+    asset.assetCategory?.id === "POLICY" && asset.id
+      ? `/api/assets/${asset.id}/positions?date=today`
+      : null
+  const { data: positionsData } = useSWR<{
+    data?: { balance?: number }[]
+  }>(balanceKey, balanceKey ? simpleFetcher(balanceKey) : null)
+  const assetCurrentBalance: number | null = useMemo(() => {
+    if (!balanceKey) return null
+    if (!positionsData) return null
+    const rows = positionsData.data ?? []
+    return rows.reduce((sum, p) => sum + (p.balance || 0), 0)
+  }, [balanceKey, positionsData])
+
   // Show income/planning tab for RE and POLICY categories
   const showIncomeTab = category === "RE" || category === "POLICY"
+  // Projections tab — only for POLICY assets. CPF gets the year-by-year
+  // OA/SA/MA/RA table; non-CPF lump-sum policies get the balance-vs-age
+  // table. RE has its own projection elsewhere.
+  const showProjectionsTab = category === "POLICY"
 
   // Fetch country tax rates on mount
   useEffect(() => {
@@ -235,6 +262,23 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
     }
     fetchCurrentSector()
   }, [asset.id])
+
+  // Memoize the projection-panel sub-account payload so the panel doesn't
+  // re-render on every parent render. Combines the CPF sub-accounts from
+  // config with a synthetic { code: "BALANCE" } entry derived from the
+  // asset's current holding (non-CPF policies only).
+  const projectionSubAccounts = useMemo(
+    () => [
+      ...config.subAccounts.map((s) => ({
+        code: s.code,
+        balance: s.balance,
+      })),
+      ...(config.policyType !== "CPF" && assetCurrentBalance !== null
+        ? [{ code: "BALANCE", balance: assetCurrentBalance }]
+        : []),
+    ],
+    [config.subAccounts, config.policyType, assetCurrentBalance],
+  )
 
   // Fetch existing private asset config for RE and POLICY assets
   useEffect(() => {
@@ -372,10 +416,12 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
         payoutAge <= currentAge
       ) {
         setLumpSumProjection(null)
+        setProjectionError(null)
         return
       }
 
       setProjectionLoading(true)
+      setProjectionError(null)
       try {
         const response = await fetch("/api/projection/lump-sum", {
           method: "POST",
@@ -390,13 +436,18 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
 
         if (response.ok) {
           const data = await response.json()
-          setLumpSumProjection(data.data)
+          setLumpSumProjection(data.data ?? null)
+          setProjectionError(data.data ? null : "Projection returned no data")
         } else {
           setLumpSumProjection(null)
+          setProjectionError(
+            `Backend ${response.status}: ${response.statusText}`,
+          )
         }
       } catch (err) {
         console.error("Failed to fetch lump sum projection:", err)
         setLumpSumProjection(null)
+        setProjectionError(err instanceof Error ? err.message : String(err))
       } finally {
         setProjectionLoading(false)
       }
@@ -551,8 +602,20 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }`}
               >
-                {"Income & Planning"}
+                {category === "RE" ? "Income" : "Planning"}
               </button>
+              {showProjectionsTab && (
+                <button
+                  onClick={() => setActiveTab("projections")}
+                  className={`py-2 px-1 border-b-2 text-sm font-medium ${
+                    activeTab === "projections"
+                      ? "border-indigo-500 text-indigo-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  }`}
+                >
+                  {"Projections"}
+                </button>
+              )}
             </nav>
           </div>
         )}
@@ -833,95 +896,8 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                       </div>
                     </div>
 
-                    {/* Projection for lump sum */}
-                    {config.lumpSum && config.payoutAge && (
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-sm space-y-3">
-                        <div className="flex items-center justify-between">
-                          <label className="text-green-700 font-medium">
-                            <i className="fas fa-calculator mr-2"></i>
-                            {"Projected Payout at Independence"}
-                          </label>
-                          {planData && (
-                            <span className="text-green-600 text-xs">
-                              Based on your plan (age {planData.currentAge})
-                            </span>
-                          )}
-                        </div>
-                        {!planData ? (
-                          <p className="text-green-600 text-xs">
-                            <i className="fas fa-info-circle mr-1"></i>
-                            {
-                              "Create an Independence Plan to see projected payout based on your age."
-                            }
-                          </p>
-                        ) : projectionLoading ? (
-                          <div className="flex items-center justify-center py-2">
-                            <Spinner className="mr-2 text-green-600" />
-                            <span className="text-green-600 text-sm">
-                              {"Loading..."}
-                            </span>
-                          </div>
-                        ) : lumpSumProjection ? (
-                          <div className="space-y-2">
-                            <div className="flex justify-between items-center">
-                              <span className="text-green-700">
-                                {`At age ${config.payoutAge}:`}
-                              </span>
-                              <span className="text-green-800 font-bold text-lg">
-                                $
-                                {lumpSumProjection.projectedPayout.toLocaleString(
-                                  undefined,
-                                  {
-                                    minimumFractionDigits: 0,
-                                    maximumFractionDigits: 0,
-                                  },
-                                )}
-                              </span>
-                            </div>
-                            <div className="text-xs text-green-600 space-y-1">
-                              <div className="flex justify-between">
-                                <span>{"Years to maturity:"}</span>
-                                <span>{lumpSumProjection.yearsToMaturity}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span>{"Total contributions:"}</span>
-                                <span>
-                                  $
-                                  {lumpSumProjection.totalContributions.toLocaleString(
-                                    undefined,
-                                    {
-                                      minimumFractionDigits: 0,
-                                      maximumFractionDigits: 0,
-                                    },
-                                  )}
-                                </span>
-                              </div>
-                              {lumpSumProjection.interestEarned > 0 && (
-                                <div className="flex justify-between">
-                                  <span>{"Interest earned:"}</span>
-                                  <span>
-                                    $
-                                    {lumpSumProjection.interestEarned.toLocaleString(
-                                      undefined,
-                                      {
-                                        minimumFractionDigits: 0,
-                                        maximumFractionDigits: 0,
-                                      },
-                                    )}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ) : (
-                          <p className="text-green-600 text-xs">
-                            {parseFloat(config.monthlyContribution || "0") <= 0
-                              ? `Enter ${config.contributionFrequency === "ANNUAL" ? "annual" : "monthly"} contribution to see projected payout.`
-                              : "Calculating projection..."}
-                          </p>
-                        )}
-                      </div>
-                    )}
+                    {/* Lump-sum summary moved to Projections tab — see
+                        showProjectionsTab block below. */}
                   </>
                 )}
 
@@ -1301,6 +1277,136 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                   </p>
                 </div>
               </>
+            )}
+          </div>
+        )}
+
+        {/* Projections Tab (POLICY only) */}
+        {activeTab === "projections" && showProjectionsTab && (
+          <div className="space-y-4">
+            {/* Lump-sum summary card — shown when the policy pays out as a
+                lump (vs. monthly annuity like CPF Life). Mirrors backend
+                /api/projection/lump-sum already fetched above. */}
+            {config.lumpSum && config.payoutAge && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-green-700 font-medium">
+                    <i className="fas fa-calculator mr-2"></i>
+                    {"Projected Payout at Independence"}
+                  </label>
+                  {planData && (
+                    <span className="text-green-600 text-xs">
+                      Based on your profile (age {planData.currentAge})
+                    </span>
+                  )}
+                </div>
+                {!planData ? (
+                  <p className="text-green-600 text-xs">
+                    <i className="fas fa-info-circle mr-1"></i>
+                    {"Set yearOfBirth in your Profile to see projected payout."}
+                  </p>
+                ) : projectionLoading ? (
+                  <div className="flex items-center justify-center py-2">
+                    <Spinner className="mr-2 text-green-600" />
+                    <span className="text-green-600 text-sm">
+                      {"Loading..."}
+                    </span>
+                  </div>
+                ) : lumpSumProjection ? (
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-green-700">
+                        {`At age ${config.payoutAge}:`}
+                      </span>
+                      <span className="text-green-800 font-bold text-lg">
+                        $
+                        {lumpSumProjection.projectedPayout.toLocaleString(
+                          undefined,
+                          {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0,
+                          },
+                        )}
+                      </span>
+                    </div>
+                    <div className="text-xs text-green-600 space-y-1">
+                      <div className="flex justify-between">
+                        <span>{"Years to maturity:"}</span>
+                        <span>{lumpSumProjection.yearsToMaturity}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>{"Total contributions:"}</span>
+                        <span>
+                          $
+                          {lumpSumProjection.totalContributions.toLocaleString(
+                            undefined,
+                            {
+                              minimumFractionDigits: 0,
+                              maximumFractionDigits: 0,
+                            },
+                          )}
+                        </span>
+                      </div>
+                      {lumpSumProjection.interestEarned > 0 && (
+                        <div className="flex justify-between">
+                          <span>{"Interest earned:"}</span>
+                          <span>
+                            $
+                            {lumpSumProjection.interestEarned.toLocaleString(
+                              undefined,
+                              {
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 0,
+                              },
+                            )}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : projectionError ? (
+                  <p className="text-red-600 text-xs">
+                    <i className="fas fa-exclamation-triangle mr-1"></i>
+                    {`Projection failed: ${projectionError}. Adjust the contribution or return rate and the projection will retry.`}
+                  </p>
+                ) : (
+                  <p className="text-green-600 text-xs">
+                    {parseFloat(config.monthlyContribution || "0") <= 0
+                      ? `Enter ${config.contributionFrequency === "ANNUAL" ? "annual" : "monthly"} contribution on the Planning tab to see projected payout.`
+                      : "Adjusting projection inputs on the Planning tab will refresh this view automatically."}
+                  </p>
+                )}
+              </div>
+            )}
+            {planData?.currentAge && config.payoutAge ? (
+              <PensionProjectionPanel
+                policyType={config.policyType}
+                cpfLifePlan={config.cpfLifePlan}
+                payoutAge={parseInt(config.payoutAge) || undefined}
+                expectedReturnRate={
+                  parseFloat(config.expectedReturnRate) / 100 || undefined
+                }
+                monthlyContribution={(() => {
+                  // ANNUAL-frequency assets store the per-year figure; the
+                  // projection endpoint takes monthly, so divide by 12.
+                  // Matches the same conversion in the lump-sum projection
+                  // fetch in this dialog.
+                  const raw = parseFloat(config.monthlyContribution) || 0
+                  if (!raw) return undefined
+                  return config.contributionFrequency === "ANNUAL"
+                    ? raw / 12
+                    : raw
+                })()}
+                subAccounts={projectionSubAccounts}
+                currency={currency}
+                currentAge={planData.currentAge}
+              />
+            ) : (
+              <p className="text-sm text-gray-500">
+                {
+                  "Set Payout Age + ensure your Profile yearOfBirth is set to view projections."
+                }
+              </p>
             )}
           </div>
         )}
