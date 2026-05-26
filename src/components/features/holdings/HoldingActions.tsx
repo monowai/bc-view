@@ -50,12 +50,14 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({
   return (
     <div className="relative" ref={dropdownRef}>
       <button
-        className={`mobile-portrait:hidden w-full sm:w-auto ${colorClass} text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center justify-center gap-1.5 ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+        className={`w-auto ${colorClass} text-white px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center justify-center gap-1 sm:gap-1.5 ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
+        aria-label={label}
+        title={label}
       >
         <i className={`fas ${icon} text-[10px]`}></i>
-        <span>{label}</span>
+        <span className="hidden sm:inline">{label}</span>
         <i
           className={`fas fa-chevron-down text-[8px] transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
         ></i>
@@ -491,12 +493,15 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
           </button>
         )}
 
-        {/* Right side: secondary action buttons - hidden on mobile portrait */}
-        <div className="mobile-portrait:hidden flex items-center gap-2 flex-shrink-0">
+        {/* Right side: secondary action buttons. Labels collapse to icons on
+            mobile portrait so the row stays inside the viewport. */}
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 flex-wrap justify-end">
           {onShare && (
             <button
-              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1.5 shadow-sm bg-white hover:bg-slate-50 text-slate-700 ring-1 ring-slate-200/80 hover:ring-slate-300"
+              className="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1 sm:gap-1.5 shadow-sm bg-white hover:bg-slate-50 text-slate-700 ring-1 ring-slate-200/80 hover:ring-slate-300"
               onClick={onShare}
+              aria-label="Share"
+              title="Share"
             >
               <i className="fas fa-share-alt text-[10px] text-blue-500"></i>
               <span className="hidden sm:inline">Share</span>
@@ -504,8 +509,10 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
           )}
           {!emptyHoldings && (
             <button
-              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1.5 shadow-sm bg-white hover:bg-slate-50 text-slate-700 ring-1 ring-slate-200/80 hover:ring-slate-300"
+              className="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1 sm:gap-1.5 shadow-sm bg-white hover:bg-slate-50 text-slate-700 ring-1 ring-slate-200/80 hover:ring-slate-300"
               onClick={handleCopyClick}
+              aria-label="Copy Holdings"
+              title="Copy Holdings"
             >
               <i className="fas fa-copy text-[10px] text-blue-500"></i>
               <span className="hidden sm:inline">Copy Holdings</span>
