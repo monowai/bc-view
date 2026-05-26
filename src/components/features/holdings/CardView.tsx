@@ -307,26 +307,31 @@ const PositionCard: React.FC<PositionCardProps> = ({
   const cashLadderHref = `/trns/cash-ladder/${portfolio.id}/${asset.id}`
 
   const hasActions =
-    (!isCashRelated(asset) &&
-      (!!onTrade ||
-        !!onQuickSell ||
-        !!onCorporateActions ||
-        !!onCostAdjust ||
-        !!onMovePosition ||
-        !!onRecordIncome ||
-        !!onRecordExpense ||
-        (!!onSetPrice && asset.market?.code === "PRIVATE") ||
-        (!!onSetBalance &&
-          asset.market?.code === "PRIVATE" &&
-          isConstantPrice(asset)) ||
-        (!!onSectorWeightings && asset.assetCategory?.id === "ETF"))) ||
-    (asset.assetCategory?.id === "RE" &&
-      (!!onRecordIncome || !!onRecordExpense)) ||
-    (!!onEditAsset && asset.market?.code === "PRIVATE")
+    !isCashRelated(asset) &&
+    ((!!onTrade ||
+      !!onQuickSell ||
+      !!onCorporateActions ||
+      !!onCostAdjust ||
+      !!onMovePosition ||
+      !!onRecordIncome ||
+      !!onRecordExpense ||
+      (!!onSetPrice && asset.market?.code === "PRIVATE") ||
+      (!!onSetBalance &&
+        asset.market?.code === "PRIVATE" &&
+        isConstantPrice(asset)) ||
+      (!!onSectorWeightings && asset.assetCategory?.id === "ETF")) ||
+      (asset.assetCategory?.id === "RE" &&
+        (!!onRecordIncome || !!onRecordExpense)) ||
+      (!!onEditAsset && asset.market?.code === "PRIVATE"))
 
   const hasCashActions =
     supportsBalanceSetting(asset) &&
-    (!!onSetCashBalance || !!onCashTransfer || !!onCashTransaction)
+    (!!onSetCashBalance ||
+      !!onCashTransfer ||
+      !!onCashTransaction ||
+      !!onRecordIncome ||
+      !!onRecordExpense ||
+      (!!onEditAsset && asset.market?.code === "PRIVATE"))
 
   const tradeMoney = moneyValues["TRADE"]
   const tradeCurrency = tradeMoney?.currency || portfolio.currency
@@ -366,6 +371,10 @@ const PositionCard: React.FC<PositionCardProps> = ({
             asset={asset}
             portfolio={portfolio}
             marketValue={tradeMoney?.marketValue || 0}
+            tradeCurrency={tradeCurrency}
+            onRecordIncome={onRecordIncome}
+            onRecordExpense={onRecordExpense}
+            onEditAsset={onEditAsset}
             onSetCashBalance={onSetCashBalance}
             onCashTransfer={onCashTransfer}
             onCashTransaction={onCashTransaction}
