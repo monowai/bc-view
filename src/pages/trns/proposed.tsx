@@ -805,61 +805,86 @@ export default function ProposedTransactions(): React.JSX.Element {
 
             {/* Summary */}
             <div className="mt-4 bg-gray-50 p-3 sm:p-4 rounded-lg">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3 text-sm">
-                <div>
-                  <div className="text-gray-500">
-                    {aggregateView ? "Aggregated Groups" : "Total Transactions"}
-                  </div>
-                  <div className="font-semibold">
-                    {aggregateView
-                      ? aggregatedTransactions.length
-                      : transactions.length}
-                  </div>
-                  {aggregateView && (
-                    <div className="text-xs text-gray-400">
-                      ({transactions.length} underlying)
+              {(() => {
+                const totals = transactions.reduce(
+                  (acc, t) => {
+                    const amt = calculateTradeAmount(
+                      t.quantity,
+                      t.editedPrice || t.price,
+                      0,
+                      t.editedFees || 0,
+                      t.trnType,
+                    )
+                    if (t.trnType === "SELL") acc.sales += amt
+                    else if (t.trnType === "BUY") acc.purchases += amt
+                    acc.fees += t.editedFees || 0
+                    return acc
+                  },
+                  { sales: 0, purchases: 0, fees: 0 },
+                )
+                const balance = totals.sales - totals.purchases
+                return (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-3 text-sm">
+                    <div>
+                      <div className="text-gray-500">
+                        {aggregateView
+                          ? "Aggregated Groups"
+                          : "Total Transactions"}
+                      </div>
+                      <div className="font-semibold">
+                        {aggregateView
+                          ? aggregatedTransactions.length
+                          : transactions.length}
+                      </div>
+                      {aggregateView && (
+                        <div className="text-xs text-gray-400">
+                          ({transactions.length} underlying)
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-                <div>
-                  <div className="text-gray-500">Total Fees</div>
-                  <div className="font-semibold font-mono">
-                    {transactions
-                      .reduce((sum, t) => sum + (t.editedFees || 0), 0)
-                      .toFixed(2)}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-gray-500">Total Amount</div>
-                  <div className="font-semibold font-mono">
-                    {transactions
-                      .reduce(
-                        (sum, t) =>
-                          sum +
-                          calculateTradeAmount(
-                            t.quantity,
-                            t.editedPrice || t.price,
-                            0,
-                            t.editedFees || 0,
-                            t.trnType,
-                          ),
-                        0,
-                      )
-                      .toFixed(2)}
-                  </div>
-                </div>
-                {aggregateView && (
-                  <div>
-                    <div className="text-gray-500">Unique Assets</div>
-                    <div className="font-semibold">
-                      {
-                        new Set(aggregatedTransactions.map((a) => a.assetId))
-                          .size
-                      }
+                    <div>
+                      <div className="text-gray-500">Total Fees</div>
+                      <div className="font-semibold font-mono">
+                        {totals.fees.toFixed(2)}
+                      </div>
                     </div>
+                    <div>
+                      <div className="text-gray-500">Sales</div>
+                      <div className="font-semibold font-mono text-emerald-700">
+                        {totals.sales.toFixed(2)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-gray-500">Purchases</div>
+                      <div className="font-semibold font-mono text-red-700">
+                        {totals.purchases.toFixed(2)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-gray-500">Balance</div>
+                      <div
+                        className={`font-semibold font-mono ${
+                          balance >= 0 ? "text-emerald-700" : "text-red-700"
+                        }`}
+                      >
+                        {balance.toFixed(2)}
+                      </div>
+                    </div>
+                    {aggregateView && (
+                      <div>
+                        <div className="text-gray-500">Unique Assets</div>
+                        <div className="font-semibold">
+                          {
+                            new Set(
+                              aggregatedTransactions.map((a) => a.assetId),
+                            ).size
+                          }
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                )
+              })()}
             </div>
           </>
         )}
