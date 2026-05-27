@@ -62,15 +62,15 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
 
   const handleSubmit: SubmitHandler<PortfolioInput> = (portfolioInput) => {
     setSaveState({ kind: "saving" })
-    validateInput(portfolioInputSchema, portfolioInput)
-      .then(async () => {
+    validateInput<PortfolioInput>(portfolioInputSchema, portfolioInput)
+      .then(async (validated) => {
         const post = router.query.id === "__NEW__"
         const response = await fetch(key, {
           method: post ? "POST" : "PATCH",
           headers: { "Content-Type": "application/json" },
           body: post
-            ? JSON.stringify(toPortfolioRequests(portfolioInput))
-            : JSON.stringify(toPortfolioRequest(portfolioInput)),
+            ? JSON.stringify(toPortfolioRequests(validated))
+            : JSON.stringify(toPortfolioRequest(validated)),
         })
         if (!response.ok) {
           const body = await response.json().catch(() => ({}))
