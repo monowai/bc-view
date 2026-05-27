@@ -26,6 +26,22 @@ interface AssetSearchProps {
    * shrinks the visual viewport the menu drifts up over the input.
    */
   usePortal?: boolean
+  /**
+   * Options to show immediately when the dropdown opens (before the user
+   * types). Used by the header search to surface recent picks on focus.
+   */
+  defaultOptions?: AssetOption[] | boolean
+  /**
+   * Whether AsyncSelect should cache loaded options by input value.
+   * Default false to keep behaviour aligned with the previous implementation.
+   */
+  cacheOptions?: boolean
+  /**
+   * Options surfaced when the user's keyword is too short for a server
+   * search (< 2 chars). Use for recent-search lists so the dropdown
+   * never feels empty.
+   */
+  fallbackOptions?: AssetOption[]
 }
 
 function toOption(result: AssetSearchResult): AssetOption {
@@ -69,6 +85,9 @@ export default function AssetSearch({
   noResultsHref,
   inputId,
   usePortal = false,
+  defaultOptions,
+  cacheOptions = false,
+  fallbackOptions,
 }: AssetSearchProps): React.ReactElement {
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
   const [inputText, setInputText] = useState("")
@@ -109,7 +128,7 @@ export default function AssetSearch({
       )
 
       if (!parsed.validMarket || parsed.keyword.length < 2) {
-        callback([])
+        callback(fallbackOptions && fallbackOptions.length > 0 ? fallbackOptions : [])
         return
       }
 
@@ -126,7 +145,14 @@ export default function AssetSearch({
         }
       }, 300)
     },
-    [market, knownMarkets, isSpecificMarket, doFetch, filterResults],
+    [
+      market,
+      knownMarkets,
+      isSpecificMarket,
+      doFetch,
+      filterResults,
+      fallbackOptions,
+    ],
   )
 
   const handleChange = useCallback(
@@ -193,9 +219,52 @@ export default function AssetSearch({
         ...base,
         minHeight: "38px",
       }),
+      menu: (base: Record<string, unknown>) => ({
+        ...base,
+        backgroundColor: "#ffffff",
+        color: "#111827",
+      }),
+      menuList: (base: Record<string, unknown>) => ({
+        ...base,
+        backgroundColor: "#ffffff",
+      }),
       menuPortal: (base: Record<string, unknown>) => ({
         ...base,
         zIndex: 9999,
+      }),
+      option: (
+        base: Record<string, unknown>,
+        state: { isFocused: boolean; isSelected: boolean },
+      ) => ({
+        ...base,
+        backgroundColor: state.isSelected
+          ? "#2563eb"
+          : state.isFocused
+            ? "#dbeafe"
+            : "#ffffff",
+        color: state.isSelected ? "#ffffff" : "#111827",
+        cursor: "pointer",
+        borderLeft: state.isFocused ? "3px solid #2563eb" : "3px solid transparent",
+      }),
+      singleValue: (base: Record<string, unknown>) => ({
+        ...base,
+        color: "#111827",
+      }),
+      input: (base: Record<string, unknown>) => ({
+        ...base,
+        color: "#111827",
+      }),
+      placeholder: (base: Record<string, unknown>) => ({
+        ...base,
+        color: "#6b7280",
+      }),
+      noOptionsMessage: (base: Record<string, unknown>) => ({
+        ...base,
+        color: "#6b7280",
+      }),
+      loadingMessage: (base: Record<string, unknown>) => ({
+        ...base,
+        color: "#6b7280",
       }),
     },
   }
@@ -209,7 +278,8 @@ export default function AssetSearch({
         render={({ field }) => (
           <AsyncSelect<AssetOption>
             {...sharedProps}
-            cacheOptions={false}
+            cacheOptions={cacheOptions}
+            defaultOptions={defaultOptions}
             loadOptions={loadOptions}
             {...field}
             onChange={(selected: AssetOption | null) => {

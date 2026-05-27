@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useRouter } from "next/router"
 import useSWR from "swr"
@@ -23,6 +23,35 @@ interface AssetPosition {
   portfolio: Portfolio
   position: Position | null
   balance: number
+}
+
+const queryString = (
+  value: string | string[] | undefined,
+): string | undefined =>
+  Array.isArray(value) ? value[0] : value
+
+function assetOptionFromQuery(
+  query: Record<string, string | string[] | undefined>,
+): AssetOption | null {
+  const symbol = queryString(query.symbol)
+  const assetId = queryString(query.assetId)
+  if (!symbol && !assetId) return null
+  const market = queryString(query.market) || ""
+  const name = queryString(query.name)
+  const details = [market, queryString(query.type)].filter(Boolean).join(", ")
+  const label = details
+    ? `${symbol || assetId} - ${name || symbol || assetId} (${details})`
+    : `${symbol || assetId} - ${name || symbol || assetId}`
+  return {
+    value: assetId || symbol || "",
+    label,
+    symbol: symbol || assetId || "",
+    name,
+    market,
+    assetId,
+    currency: queryString(query.currency),
+    type: queryString(query.type),
+  }
 }
 
 function assetOptionToAsset(option: AssetOption): Asset {
@@ -54,6 +83,21 @@ function AssetLookupPage(): React.ReactElement {
   const { popup: reviewPopup, showReview } = useAssetReview()
   const { ai: canRunAi, preview: canPreview } = usePermissions()
   const canReviewAsset = canRunAi || canPreview
+
+  // Hydrate selected asset from query string (header search deep-link).
+  useEffect(() => {
+    if (!router.isReady) return
+    const hydrated = assetOptionFromQuery(router.query)
+    if (!hydrated) return
+    setSelectedAsset((prev) => {
+      const prevId = prev?.assetId || prev?.value
+      const nextId = hydrated.assetId || hydrated.value
+      return prevId === nextId ? prev : hydrated
+    })
+    if (hydrated.market) {
+      setSelectedMarket(hydrated.market)
+    }
+  }, [router.isReady, router.query])
 
   // Fetch available markets
   const { data: marketsData } = useSWR<{ data: Market[] }>(
@@ -343,9 +387,17 @@ function AssetLookupPage(): React.ReactElement {
                       title={"Double-click to edit"}
                     >
                       <td className="px-4 py-3">
-                        <div className="font-medium text-gray-900">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            router.push(`/holdings/${ap.portfolio.code}`)
+                          }}
+                          className="font-medium text-blue-600 hover:text-blue-800 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+                          title={`View holdings for ${ap.portfolio.code}`}
+                        >
                           {ap.portfolio.code}
-                        </div>
+                        </button>
                         <div className="text-xs text-gray-500">
                           {ap.portfolio.name}
                         </div>

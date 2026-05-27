@@ -1,4 +1,5 @@
 import React from "react"
+import HeaderAssetSearch from "@components/layout/HeaderAssetSearch"
 import HeaderBrand from "@components/layout/HeaderBrand"
 import HeaderUserControls from "@components/layout/HeaderUserControls"
 import ProposedBadge from "@components/layout/ProposedBadge"
@@ -20,6 +21,7 @@ export default function Header(): React.ReactElement {
       )}
       <nav className="flex items-center justify-between px-2 py-2 sm:px-3 bg-gray-800 text-white">
         <HeaderBrand />
+        <HeaderAssetSearch />
         <div className="flex items-center gap-2">
           <SharesBadge />
           <ProposedBadge />

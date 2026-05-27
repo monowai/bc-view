@@ -4,6 +4,7 @@ import { yupResolver } from "@hookform/resolvers/yup"
 import { Portfolio, QuickSellData, BrokerWithAccounts } from "types/beancounter"
 import { ModelDto } from "types/rebalance"
 import {
+  acceptsBroker,
   calculateTradeAmount,
   calculateCashAmount,
   hasCashImpact,
@@ -962,7 +963,7 @@ const TradeInputForm: React.FC<{
                   )}
 
                   {/* Broker - hidden for EXPENSE/INCOME */}
-                  {!isSimpleAmount && (
+                  {acceptsBroker(type?.value) && (
                     <div>
                       <div className="flex items-center justify-between mb-1">
                         <label className={labelClass}>{"Broker"}</label>

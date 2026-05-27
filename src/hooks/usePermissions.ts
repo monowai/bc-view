@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useUser } from "@auth0/nextjs-auth0/client"
 
 export interface Permissions {
   ai: boolean
@@ -22,10 +23,19 @@ const EMPTY: Permissions = { ai: false, preview: false, admin: false }
  * use `ai` alone for full-tier surfaces (portfolio overview, chat, etc.).
  */
 export function usePermissions(): PermissionsResult {
+  const { user, isLoading: userLoading } = useUser()
+  const userSub = user?.sub
   const [perms, setPerms] = useState<Permissions>(EMPTY)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
+    if (userLoading) return
+    if (!userSub) {
+      setPerms(EMPTY)
+      setIsLoading(false)
+      return
+    }
+
     async function fetchPermissions(): Promise<void> {
       try {
         const response = await fetch("/api/auth/permissions")
@@ -36,12 +46,15 @@ export function usePermissions(): PermissionsResult {
             preview: !!data.preview,
             admin: !!data.admin,
           })
-        } else {
+        } else if (response.status !== 401) {
+          // 401 just means the session expired; useUser will pick that up.
           console.error(
             "Failed to fetch permissions:",
             response.status,
             response.statusText,
           )
+          setPerms(EMPTY)
+        } else {
           setPerms(EMPTY)
         }
       } catch (error) {
@@ -53,7 +66,7 @@ export function usePermissions(): PermissionsResult {
     }
 
     fetchPermissions()
-  }, [])
+  }, [userSub, userLoading])
 
-  return { ...perms, isLoading }
+  return { ...perms, isLoading: userLoading || isLoading }
 }

@@ -1,35 +1,13 @@
 import React, { useEffect, useState } from "react"
-
-interface GitInfoData {
-  branch: string
-  commit: string
-  build: string
-}
+import { useBuildVersion } from "@hooks/useBuildVersion"
 
 interface GitInfoProps {
   alwaysVisible?: boolean
 }
 
 const GitInfo: React.FC<GitInfoProps> = ({ alwaysVisible = false }) => {
-  const [gitInfo, setGitInfo] = useState<GitInfoData | null>(null)
+  const { info: gitInfo } = useBuildVersion()
   const [visible, setVisible] = useState(alwaysVisible)
-
-  useEffect(() => {
-    const fetchGitInfo = async (): Promise<void> => {
-      try {
-        const response = await fetch("/api/git-info")
-        if (!response.ok) {
-          return
-        }
-        const data: GitInfoData = await response.json()
-        setGitInfo(data)
-      } catch {
-        // Silently ignore git info fetch errors
-      }
-    }
-
-    fetchGitInfo().then()
-  }, [])
 
   useEffect(() => {
     let timeout: NodeJS.Timeout

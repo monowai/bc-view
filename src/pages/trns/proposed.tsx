@@ -444,9 +444,12 @@ export default function ProposedTransactions(): React.JSX.Element {
         return
       }
 
-      // Remove from local state and update badge count
+      // Remove from local state and invalidate every /api/trns/proposed* key
+      // (covers all scopes plus the /count badge).
       setTransactions((prev) => prev.filter((t) => t.id !== id))
-      mutate("/api/trns/proposed/count")
+      mutate(
+        (key) => typeof key === "string" && key.startsWith("/api/trns/proposed"),
+      )
     } catch (err) {
       console.error("Error deleting transaction:", err)
       setError(

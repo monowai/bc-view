@@ -1,7 +1,7 @@
 import React from "react"
 import { Broker, TrnStatus } from "types/beancounter"
 import { ProposedTransaction } from "types/proposed"
-import { calculateTradeAmount } from "@utils/trns/tradeUtils"
+import { acceptsBroker, calculateTradeAmount } from "@utils/trns/tradeUtils"
 import { stripOwnerPrefix } from "@lib/assets/assetUtils"
 import DecimalInput from "@components/ui/DecimalInput"
 import { theadBase, tbodyBase } from "@utils/tableStyles"
@@ -68,6 +68,9 @@ export default function DetailedTransactionsTable({
             <th className="px-2 py-2 text-left font-medium text-gray-500 uppercase">
               Asset
             </th>
+            <th className="px-2 py-2 text-left font-medium text-gray-500 uppercase">
+              Settlement
+            </th>
             <th className="px-2 py-2 text-right font-medium text-gray-500 uppercase">
               Qty
             </th>
@@ -112,7 +115,13 @@ export default function DetailedTransactionsTable({
                 <select
                   value={trn.editedBrokerId || ""}
                   onChange={(e) => onBrokerChange(trn.id, e.target.value)}
-                  className="px-1 py-0.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 max-w-25"
+                  disabled={!acceptsBroker(trn.trnType)}
+                  title={
+                    acceptsBroker(trn.trnType)
+                      ? undefined
+                      : `Broker not applicable for ${trn.trnType}`
+                  }
+                  className="px-1 py-0.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 max-w-25 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                 >
                   <option value="">--</option>
                   {brokers.map((broker) => (
@@ -142,6 +151,9 @@ export default function DetailedTransactionsTable({
                 <div className="font-medium text-gray-900">
                   {stripOwnerPrefix(trn.asset.code)}
                 </div>
+              </td>
+              <td className="px-2 py-1.5 whitespace-nowrap text-gray-600">
+                {trn.cashAsset ? stripOwnerPrefix(trn.cashAsset.code) : "--"}
               </td>
               <td className="px-2 py-1.5 whitespace-nowrap text-right font-mono">
                 {trn.quantity.toFixed(0)}
