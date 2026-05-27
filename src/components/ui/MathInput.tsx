@@ -19,8 +19,10 @@ function expandShorthand(expr: string): string {
  * Supports: +, -, *, /, parentheses, numbers (including decimals), and shorthand (h/k/m).
  */
 export function evaluateMathExpression(expr: string): number | null {
-  // Remove whitespace
-  const cleaned = expr.replace(/\s/g, "")
+  // Remove whitespace and thousands-separator commas (a 4,000 paste from a
+  // formatted spreadsheet should evaluate to 4000, not parseFloat-trip-on-comma
+  // to 4).
+  const cleaned = expr.replace(/[\s,]/g, "")
 
   // Only allow safe characters: digits, operators, parentheses, decimal points, and shorthand (h/k/m)
   if (!/^[\d+\-*/().hkm]+$/i.test(cleaned)) {
@@ -214,7 +216,10 @@ export default function MathInput({
   }, [value, isExpression])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    const newValue = e.target.value
+    // Strip thousands-separator commas before display. Pasted values like
+    // "4,000" or "1,234.56" (FX statements, brokerage CSVs) would otherwise
+    // round-trip through parseFloat as 4 / 1.
+    const newValue = e.target.value.replace(/,/g, "")
     setDisplayValue(newValue)
 
     // Check if it's an expression (contains operators or shorthand h/k/m)
