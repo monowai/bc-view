@@ -322,7 +322,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
       (!!onSectorWeightings && asset.assetCategory?.id === "ETF")) ||
       (asset.assetCategory?.id === "RE" &&
         (!!onRecordIncome || !!onRecordExpense)) ||
-      (!!onEditAsset && asset.market?.code === "PRIVATE"))
+      !!onEditAsset)
 
   const hasCashActions =
     supportsBalanceSetting(asset) &&

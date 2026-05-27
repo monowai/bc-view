@@ -391,8 +391,12 @@ describe("CardView footer (Quantity / Price / Weight)", () => {
       expect(onEditAsset).toHaveBeenCalledWith(asset)
     })
 
-    it("hides Edit Asset for public-market holdings", () => {
-      const onEditAsset = jest.fn()
+    // After the admin-edit feature: the PRIVATE-market gate moved out of
+    // ActionsMenu into the page. Edit Asset shows whenever `onEditAsset` is
+    // wired by the page; pages only wire it for assets the caller can edit
+    // (PRIVATE for the owner, anything for an admin). So the menu-level
+    // invariant is now: no `onEditAsset` prop → no item.
+    it("hides Edit Asset when onEditAsset is not provided", () => {
       const onQuickSell = jest.fn()
       const portfolio = makePortfolio()
       const asset = makeAsset({
@@ -413,7 +417,6 @@ describe("CardView footer (Quantity / Price / Weight)", () => {
           holdings={holdings}
           portfolio={portfolio}
           valueIn={ValueIn.PORTFOLIO}
-          onEditAsset={onEditAsset}
           onQuickSell={onQuickSell}
         />,
       )
