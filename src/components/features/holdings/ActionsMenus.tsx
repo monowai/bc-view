@@ -184,7 +184,6 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
   const { isOpen, buttonRef, menuRef, menuPos, toggle, close } =
     useDropdownMenu()
   const assetCode = stripOwnerPrefix(asset.code)
-  const isPrivateAsset = asset.market?.code === "PRIVATE"
 
   const tradePayload = (): QuickSellData => ({
     asset: assetCode,
@@ -333,7 +332,7 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
                   )}
                 />
               )}
-              {onEditAsset && isPrivateAsset && (
+              {onEditAsset && (
                 <MenuItem
                   iconClass="fas fa-pen-to-square text-slate-500 w-4"
                   label="Edit Asset"

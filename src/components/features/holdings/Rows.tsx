@@ -188,7 +188,7 @@ export default function Rows({
                     isConstantPrice(asset))) ||
                   (asset.assetCategory?.id === "RE" &&
                     (onRecordIncome || onRecordExpense)) ||
-                  (onEditAsset && asset.market?.code === "PRIVATE")) ? (
+                  onEditAsset) ? (
                   <div className="flex items-center">
                     <ActionsMenu
                       asset={asset}
