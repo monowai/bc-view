@@ -60,44 +60,56 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
   const [purgeTrn, setPurgeTrn] = useState(false)
   const [saveState, setSaveState] = useState<SaveState>({ kind: "idle" })
 
-  const handleSubmit: SubmitHandler<PortfolioInput> = (portfolioInput) => {
+  const handleSubmit: SubmitHandler<PortfolioInput> = async (portfolioInput) => {
     setSaveState({ kind: "saving" })
-    validateInput<PortfolioInput>(portfolioInputSchema, portfolioInput)
-      .then(async (validated) => {
-        const post = router.query.id === "__NEW__"
-        const response = await fetch(key, {
-          method: post ? "POST" : "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: post
-            ? JSON.stringify(toPortfolioRequests(validated))
-            : JSON.stringify(toPortfolioRequest(validated)),
-        })
-        if (!response.ok) {
-          const body = await response.json().catch(() => ({}))
-          const message =
-            body?.message || body?.error || `Save failed (${response.status})`
-          setSaveState({ kind: "error", message })
-          return
-        }
-        const body = await response.json()
-        const savedId = post ? body.data[0].id : body.data.id
-        // Invalidate caches so the list and the just-saved portfolio
-        // both refetch with the new values (incl. cashPortfolioId,
-        // marketValue, valuedAt).
-        await Promise.all([
-          globalMutate(portfoliosKey),
-          globalMutate(portfolioKey(savedId)),
-        ])
-        if (post) {
-          await router.push(`/portfolios/${savedId}`)
-        } else {
-          setSaveState({ kind: "success" })
-        }
+    try {
+      const validated = await validateInput<PortfolioInput>(
+        portfolioInputSchema,
+        portfolioInput,
+      )
+      const post = router.query.id === "__NEW__"
+      const response = await fetch(key, {
+        method: post ? "POST" : "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          post
+            ? toPortfolioRequests(validated)
+            : toPortfolioRequest(validated),
+        ),
       })
-      .catch((e) => {
-        console.error(`Some error ${e.message}`)
-        setSaveState({ kind: "error", message: e.message ?? "Save failed" })
-      })
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}))
+        throw new Error(
+          errBody?.message ||
+            errBody?.error ||
+            `Save failed (${response.status})`,
+        )
+      }
+      const body = await response.json()
+      const saved: Portfolio = post ? body.data[0] : body.data
+      // Prime the detail cache directly from the response (svc-data
+      // returns the canonical saved Portfolio), and revalidate the list
+      // since row ordering / aggregates may have shifted. Note that
+      // valuation fields are eventually-consistent: bc-position will
+      // republish marketValue/irr via the bc-pos-mv stream shortly.
+      await Promise.all([
+        globalMutate(
+          portfolioKey(saved.id),
+          { data: saved },
+          { revalidate: false },
+        ),
+        globalMutate(portfoliosKey),
+      ])
+      if (post) {
+        await router.push(`/portfolios/${saved.id}`)
+      } else {
+        setSaveState({ kind: "success" })
+      }
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Save failed"
+      console.error(`Portfolio save failed: ${message}`)
+      setSaveState({ kind: "error", message })
+    }
   }
 
   useEffect(() => {
