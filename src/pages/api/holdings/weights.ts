@@ -71,8 +71,11 @@ export default async function holdingsWeights(
       codes.push(code)
     }
 
-    // Fetch holdings for each portfolio
-    const assetValues: Record<
+    // Fetch holdings for each portfolio.
+    // Use a Map (not a Record) so attacker-controlled assetId values like
+    // "__proto__" / "constructor" can't pollute Object.prototype via
+    // bracket access (CWE-1321).
+    const assetValues = new Map<
       string,
       {
         assetId: string
@@ -82,7 +85,7 @@ export default async function holdingsWeights(
         price?: number
         priceCurrency?: string
       }
-    > = {}
+    >()
     let totalValue = 0
     let currency = "USD"
 
@@ -141,12 +144,13 @@ export default async function holdingsWeights(
         const priceCurrency =
           tradeMoneyValues?.currency?.code || asset.market?.currency?.code
 
-        if (assetValues[assetId]) {
-          assetValues[assetId].value += value
+        const existing = assetValues.get(assetId)
+        if (existing) {
+          existing.value += value
           // Keep the most recent price if already exists
-          if (price && !assetValues[assetId].price) {
-            assetValues[assetId].price = price
-            assetValues[assetId].priceCurrency = priceCurrency
+          if (price && !existing.price) {
+            existing.price = price
+            existing.priceCurrency = priceCurrency
           }
         } else {
           // Build asset code: omit "US:" prefix for US market (default)
@@ -155,21 +159,21 @@ export default async function holdingsWeights(
           const fullCode =
             marketCode && marketCode !== "US" ? `${marketCode}:${code}` : code
 
-          assetValues[assetId] = {
+          assetValues.set(assetId, {
             assetId,
             assetCode: fullCode,
             assetName: asset.name || asset.code || assetId,
             value,
             price,
             priceCurrency,
-          }
+          })
         }
         totalValue += value
       }
     }
 
     // Calculate weights as decimals (0.0 - 1.0)
-    const weights: HoldingWeight[] = Object.values(assetValues)
+    const weights: HoldingWeight[] = Array.from(assetValues.values())
       .map((asset) => ({
         assetId: asset.assetId,
         assetCode: asset.assetCode,
