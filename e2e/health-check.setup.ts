@@ -67,6 +67,6 @@ setup("backends are up", async ({ request }) => {
 
   expect(
     failures,
-    `Required backend services not healthy:\n  - ${failures.join("\n  - ")}\nStart them via ./gradlew bootRun in the relevant repo, or set E2E_SKIP_REBALANCE_CHECK=true to skip svc-rebalance.`,
+    `Required backend services not healthy:\n  - ${failures.join("\n  - ")}\nStart them via ./gradlew bootRun in the relevant repo, or set E2E_SKIP_REBALANCE_CHECK=true to skip bc-rebalance.`,
   ).toHaveLength(0)
 })
