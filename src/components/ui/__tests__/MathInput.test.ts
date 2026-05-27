@@ -91,6 +91,19 @@ describe("evaluateMathExpression", () => {
     })
   })
 
+  describe("thousands-separator commas (e.g. paste from a formatted source)", () => {
+    it("strips commas in plain numbers", () => {
+      expect(evaluateMathExpression("4,000")).toBe(4000)
+      expect(evaluateMathExpression("1,234,567")).toBe(1234567)
+      expect(evaluateMathExpression("1,234.56")).toBeCloseTo(1234.56)
+    })
+
+    it("strips commas inside expressions", () => {
+      expect(evaluateMathExpression("1,000+2,500")).toBe(3500)
+      expect(evaluateMathExpression("10,000/250")).toBe(40)
+    })
+  })
+
   describe("invalid inputs", () => {
     it("returns null for empty string", () => {
       expect(evaluateMathExpression("")).toBe(null)
