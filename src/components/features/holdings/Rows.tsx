@@ -176,7 +176,7 @@ export default function Rows({
                   )}
                 </div>
                 {!isCashRelated(asset) &&
-                ((onTrade ||
+                (onTrade ||
                   onQuickSell ||
                   onCorporateActions ||
                   onCostAdjust ||
@@ -185,7 +185,7 @@ export default function Rows({
                   (onSetPrice && asset.market?.code === "PRIVATE") ||
                   (onSetBalance &&
                     asset.market?.code === "PRIVATE" &&
-                    isConstantPrice(asset))) ||
+                    isConstantPrice(asset)) ||
                   (asset.assetCategory?.id === "RE" &&
                     (onRecordIncome || onRecordExpense)) ||
                   onEditAsset) ? (

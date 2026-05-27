@@ -448,7 +448,8 @@ export default function ProposedTransactions(): React.JSX.Element {
       // (covers all scopes plus the /count badge).
       setTransactions((prev) => prev.filter((t) => t.id !== id))
       mutate(
-        (key) => typeof key === "string" && key.startsWith("/api/trns/proposed"),
+        (key) =>
+          typeof key === "string" && key.startsWith("/api/trns/proposed"),
       )
     } catch (err) {
       console.error("Error deleting transaction:", err)

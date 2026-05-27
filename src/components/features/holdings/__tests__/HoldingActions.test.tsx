@@ -167,11 +167,7 @@ describe("HoldingActions Mobile Portrait Tests (TDD)", () => {
     // collapse to icon-only via `hidden sm:inline`, but the actions stay
     // reachable. Locate by aria-label since the visible text label is
     // CSS-hidden in this viewport.
-    it.each([
-      ["Copy Holdings"],
-      ["Trade"],
-      ["Rebalance"],
-    ])(
+    it.each([["Copy Holdings"], ["Trade"], ["Rebalance"]])(
       "renders %s reachable on mobile portrait (no hidden ancestor)",
       (label) => {
         render(

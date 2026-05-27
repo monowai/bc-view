@@ -3,10 +3,7 @@ import { useRouter } from "next/router"
 import { useUser } from "@auth0/nextjs-auth0/client"
 import { AssetOption } from "types/beancounter"
 import AssetSearch from "@components/features/assets/AssetSearch"
-import {
-  getRecentAssets,
-  pushRecentAsset,
-} from "@lib/assets/recentAssets"
+import { getRecentAssets, pushRecentAsset } from "@lib/assets/recentAssets"
 
 const buildQuery = (option: AssetOption): Record<string, string> => {
   const params: Record<string, string> = { symbol: option.symbol }

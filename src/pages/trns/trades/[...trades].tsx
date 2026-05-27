@@ -17,11 +17,16 @@ import useSwr, { mutate } from "swr"
 import { getDisplayCode } from "@lib/assets/assetUtils"
 import FxEditModal from "@components/features/transactions/FxEditModal"
 import TradeInputForm from "@components/features/transactions/TradeInputForm"
+import { unsettleTrn } from "@utils/trns/apiHelper"
 
 export default withPageAuthRequired(function Trades(): React.ReactElement {
   const router = useRouter()
   const [editModalOpen, setEditModalOpen] = useState(true)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  // After Unsettle, the server returns auto-emitted cash leg ids; we hold
+  // them here and prompt the user to delete via [showSiblingsConfirm].
+  const [siblingsToConfirm, setSiblingsToConfirm] = useState<string[]>([])
+  const [unsettleError, setUnsettleError] = useState<string | null>(null)
   const [listDeleteTarget, setListDeleteTarget] = useState<{
     id: string
     portfolioCode: string
@@ -234,6 +239,63 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
       }
     }
 
+    const handleUnsettle = async (): Promise<void> => {
+      setUnsettleError(null)
+      try {
+        const response = await unsettleTrn(transaction.id)
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}))
+          setUnsettleError(
+            errorData.detail ||
+              errorData.message ||
+              `Failed to unsettle: ${response.statusText}`,
+          )
+          return
+        }
+        const body = await response.json().catch(() => ({}))
+        const siblings: string[] = body?.siblings ?? []
+        // Invalidate holdings cache so the row reflects the new PROPOSED status.
+        setTimeout(() => {
+          mutate(holdingKey(transaction.portfolio.code, "today"))
+          mutate("/api/holdings/aggregated?asAt=today")
+        }, 1500)
+        if (siblings.length > 0) {
+          setSiblingsToConfirm(siblings)
+        } else {
+          router.back()
+        }
+      } catch (err) {
+        console.error("Error unsettling transaction:", err)
+        setUnsettleError(
+          err instanceof Error ? err.message : "Failed to unsettle",
+        )
+      }
+    }
+
+    const handleSiblingsDelete = async (): Promise<void> => {
+      const ids = siblingsToConfirm
+      setSiblingsToConfirm([])
+      const failures: string[] = []
+      for (const id of ids) {
+        try {
+          const r = await fetch(`/api/trns/trades/${id}`, { method: "DELETE" })
+          if (!r.ok) failures.push(id)
+        } catch {
+          failures.push(id)
+        }
+      }
+      if (failures.length > 0) {
+        setUnsettleError(
+          `Failed to delete ${failures.length} of ${ids.length} cash legs`,
+        )
+      }
+      setTimeout(() => {
+        mutate(holdingKey(transaction.portfolio.code, "today"))
+        mutate("/api/holdings/aggregated?asAt=today")
+      }, 1500)
+      router.back()
+    }
+
     // Use FxEditModal for FX transactions (FX, FX_BUY, FX_SELL)
     const isFxType =
       transaction.trnType === "FX" || transaction.trnType.startsWith("FX_")
@@ -258,6 +320,7 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                 transaction,
                 onClose: handleClose,
                 onDelete: () => setShowDeleteConfirm(true),
+                onUnsettle: handleUnsettle,
               }}
             />
           )
@@ -271,6 +334,31 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
             variant="red"
             onConfirm={handleDeleteConfirm}
             onCancel={() => setShowDeleteConfirm(false)}
+          />
+        )}
+        {siblingsToConfirm.length > 0 && (
+          <ConfirmDialog
+            title={"Delete auto-settled cash transactions?"}
+            message={`Unsettling this trade leaves ${siblingsToConfirm.length} auto-emitted cash transaction(s). Delete them?`}
+            confirmLabel={"Delete cash legs"}
+            cancelLabel={"Keep"}
+            variant="red"
+            onConfirm={handleSiblingsDelete}
+            onCancel={() => {
+              setSiblingsToConfirm([])
+              router.back()
+            }}
+          />
+        )}
+        {unsettleError && (
+          <ConfirmDialog
+            title={"Unsettle failed"}
+            message={unsettleError}
+            confirmLabel={"OK"}
+            cancelLabel={"Dismiss"}
+            variant="amber"
+            onConfirm={() => setUnsettleError(null)}
+            onCancel={() => setUnsettleError(null)}
           />
         )}
       </>

@@ -308,7 +308,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
 
   const hasActions =
     !isCashRelated(asset) &&
-    ((!!onTrade ||
+    (!!onTrade ||
       !!onQuickSell ||
       !!onCorporateActions ||
       !!onCostAdjust ||
@@ -319,7 +319,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
       (!!onSetBalance &&
         asset.market?.code === "PRIVATE" &&
         isConstantPrice(asset)) ||
-      (!!onSectorWeightings && asset.assetCategory?.id === "ETF")) ||
+      (!!onSectorWeightings && asset.assetCategory?.id === "ETF") ||
       (asset.assetCategory?.id === "RE" &&
         (!!onRecordIncome || !!onRecordExpense)) ||
       !!onEditAsset)

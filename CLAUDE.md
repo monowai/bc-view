@@ -143,6 +143,7 @@ Next.js bundler fails to resolve it and returns 500. A pre-commit hook
 (`scripts/check-imports.js`) blocks `@lib/api` imports for this reason.
 
 Rules for new code:
+
 - API fetch helpers: **must** use `@utils/api/...` (e.g.,
   `@utils/api/fetchHelper`). Never `@lib/api/...`.
 - Other lib subdirs (assets, independence, broker, etc.): either alias

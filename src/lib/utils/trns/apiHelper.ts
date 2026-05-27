@@ -4,6 +4,19 @@ export function deleteTrn(trnId: string): Promise<Response> {
   })
 }
 
+/**
+ * PATCH /trns/{trnId}/status — Unsettle a SETTLED trn (sets PROPOSED).
+ * Response: { updated, siblings: string[] } — siblings are the auto-emitted
+ * cash legs (WITHDRAWAL + DEPOSIT) the UI prompts the user to delete.
+ */
+export function unsettleTrn(trnId: string): Promise<Response> {
+  return fetch(`/api/trns/status/${trnId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status: "PROPOSED" }),
+  })
+}
+
 export interface TrnUpdatePayload {
   trnType: string
   assetId: string

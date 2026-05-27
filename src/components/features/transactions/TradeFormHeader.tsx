@@ -13,6 +13,12 @@ interface TradeFormHeaderProps {
   portfolio: Portfolio
   onClose: () => void
   onDelete?: () => void
+  // Reverts a SETTLED trade to PROPOSED via PATCH /trns/{trnId}/status. The
+  // handler is responsible for prompting the user to delete any auto-emitted
+  // sibling cash legs (returned by the server). Button is shown only in edit
+  // mode and only when [isSettled] is true.
+  onUnsettle?: () => void
+  isSettled?: boolean
   handleCopy: () => void
   copyStatus: "idle" | "success" | "error"
   control: Control<any>
@@ -27,6 +33,8 @@ const TradeFormHeader: React.FC<TradeFormHeaderProps> = ({
   portfolio,
   onClose,
   onDelete,
+  onUnsettle,
+  isSettled,
   handleCopy,
   copyStatus,
   control,
@@ -79,6 +87,16 @@ const TradeFormHeader: React.FC<TradeFormHeaderProps> = ({
             className={`fas ${copyStatus === "success" ? "fa-check" : copyStatus === "error" ? "fa-times" : "fa-copy"} text-xs`}
           ></i>
         </button>
+        {isEditMode && onUnsettle && isSettled && (
+          <button
+            type="button"
+            className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+            onClick={onUnsettle}
+            title={"Unsettle (move back to PROPOSED)"}
+          >
+            <i className="fas fa-rotate-left text-xs"></i>
+          </button>
+        )}
         {isEditMode && (
           <button
             type="button"

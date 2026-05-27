@@ -225,6 +225,9 @@ export interface Portfolio {
   assetClassification?: Record<string, number>
   valuedAt?: string // ISO date string (YYYY-MM-DD) - market data date
   lastUpdated?: string // ISO timestamp - when system updated the values
+  // Funding portfolio for cash auto-settle. Overrides owner.cashPortfolioId.
+  // undefined (or absent) disables auto-settle for this portfolio.
+  cashPortfolioId?: string
 }
 
 export interface PortfolioResponse {
@@ -241,6 +244,7 @@ export interface PortfolioRequest {
   currency: string
   base: string
   active?: boolean
+  cashPortfolioId?: string
 }
 
 export interface PortfolioRequests {
@@ -258,6 +262,7 @@ export interface PortfolioInput {
   currency: CurrencyOption
   base: CurrencyOption
   active?: boolean
+  cashPortfolioId?: string
 }
 
 export interface CurrencyOption {
@@ -281,6 +286,10 @@ interface SystemUser {
   active: boolean
   email: string | undefined
   since: string
+  // Per-user default funding portfolio for cash auto-settle. undefined
+  // (or absent) means no account-wide default — falls through to per-portfolio
+  // override; if both are unset, auto-settle is disabled.
+  cashPortfolioId?: string
 }
 
 interface TrnInput {
@@ -416,6 +425,37 @@ export interface TrnPayload {
  */
 export interface TrnResponse {
   data: TrnPayload
+  // Non-fatal hints raised while persisting / settling (e.g. auto-settle
+  // skipped because the master funding portfolio has no balance in the
+  // trade's settlement currency). Surfaced to the UI as toasts.
+  warnings?: string[]
+}
+
+/**
+ * Response from DELETE /trns/{id}. Auto-settled cash legs share the
+ * parent's group key (provider=BC-AUTO, batch=parent.callerId) — server
+ * returns their ids in [siblings] so the UI can prompt the user before
+ * issuing follow-up DELETEs.
+ */
+export interface TrnDeleteResponse {
+  data: string[]
+  siblings?: string[]
+}
+
+/**
+ * Request body for PATCH /trns/{trnId}/status (Unsettle action).
+ */
+export interface TrnStatusUpdateRequest {
+  status: TrnStatus
+}
+
+/**
+ * Response from PATCH /trns/{trnId}/status. [siblings] is the auto-settled
+ * cash leg ids; the UI prompts to delete them after a successful Unsettle.
+ */
+export interface TrnStatusUpdateResponse {
+  updated: TrnDto
+  siblings?: string[]
 }
 
 interface Registration {
