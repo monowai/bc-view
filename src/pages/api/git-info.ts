@@ -8,13 +8,14 @@ export default async function handler(
   res: NextApiResponse,
 ): Promise<void> {
   try {
-    console.log("Git Info Handler")
     const branch =
       process.env.GIT_BRANCH || (await git.revparse(["--abbrev-ref", "HEAD"]))
     const commit =
       process.env.GIT_COMMIT || (await git.revparse(["--short", "HEAD"]))
     const build = process.env.BUILD_ID || "dev"
 
+    // No-store so stale-client detection always sees the running container's build.
+    res.setHeader("Cache-Control", "no-store, must-revalidate")
     res.status(200).json({
       branch,
       commit,

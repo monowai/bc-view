@@ -274,6 +274,9 @@ export default function FxEditModal({
       const row = convert(formData)
       await postData(trn.portfolio, false, row.split(","))
       await mutate(trnKey(trn.id))
+      mutate(
+        (key) => typeof key === "string" && key.startsWith("/api/trns/proposed"),
+      )
       invalidateHoldingsCache(trn.portfolio.code)
       onClose()
     } catch (error) {

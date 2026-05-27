@@ -306,6 +306,14 @@ export const isIncomeType = (tradeType: string): boolean =>
 export const isSimpleAmountType = (tradeType: string): boolean =>
   tradeType === "EXPENSE" || tradeType === "INCOME"
 
+/** Returns true if the trade type is a cash-account movement with no broker (DEPOSIT/WITHDRAWAL). */
+export const isCashMovementType = (tradeType: string): boolean =>
+  tradeType === "DEPOSIT" || tradeType === "WITHDRAWAL"
+
+/** Returns true if the trade type accepts a broker (excludes simple-amount and cash-movement types). */
+export const acceptsBroker = (tradeType: string): boolean =>
+  !isSimpleAmountType(tradeType) && !isCashMovementType(tradeType)
+
 /** Returns true if the trade type adds to a position (BUY, ADD, DIVI, INCOME) */
 export const isBuySide = (tradeType: string): boolean =>
   ["BUY", "ADD", "DIVI", "INCOME"].includes(tradeType)

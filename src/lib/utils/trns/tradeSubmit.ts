@@ -1,4 +1,5 @@
 import { Portfolio } from "types/beancounter"
+import { mutate as globalMutate } from "swr"
 import { TradeFormValues } from "./tradeFormHelpers"
 import {
   deriveSettlementCurrency,
@@ -12,6 +13,13 @@ import { holdingKey } from "@utils/api/fetchHelper"
 import { onSubmit } from "./formUtils"
 
 type MutateFn = (key: string) => Promise<any>
+
+// Invalidate any /api/trns/proposed* SWR cache entry (varies by scope)
+const mutateProposedCaches = (): void => {
+  globalMutate(
+    (key) => typeof key === "string" && key.startsWith("/api/trns/proposed"),
+  )
+}
 
 export interface SubmitEditModeParams {
   data: TradeFormValues
@@ -63,6 +71,7 @@ export async function submitEditMode(
       payload,
     )
     if (response.ok) {
+      mutateProposedCaches()
       setTimeout(() => {
         mutate(holdingKey(transaction.portfolio.code, "today"))
         mutate("/api/holdings/aggregated?asAt=today")

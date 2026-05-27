@@ -1,6 +1,7 @@
 import React from "react"
 import type { AppProps } from "next/app"
 import Header from "@components/layout/Header"
+import StaleVersionBanner from "@components/layout/StaleVersionBanner"
 import { Auth0Provider } from "@auth0/nextjs-auth0/client"
 //import "@styles/bc.sass"
 import "@styles/globals.css"
@@ -39,6 +40,7 @@ const AppContent: React.FC<AppContentProps> = ({ Component, pageProps }) => {
   return (
     <div className={`${dmSans.variable} ${jetbrainsMono.variable} font-sans`}>
       <div className="bg-gray-100 min-h-screen">
+        <StaleVersionBanner />
         <Header />
         <div className="px-2 pt-2 pb-2 sm:px-3 sm:pt-3 sm:pb-3 md:px-4 md:pb-4">
           <Component {...pageProps} />
