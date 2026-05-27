@@ -175,20 +175,20 @@ export default function Rows({
                     </div>
                   )}
                 </div>
-                {(!isCashRelated(asset) &&
-                  (onTrade ||
-                    onQuickSell ||
-                    onCorporateActions ||
-                    onCostAdjust ||
-                    onRecordIncome ||
-                    onRecordExpense ||
-                    (onSetPrice && asset.market?.code === "PRIVATE") ||
-                    (onSetBalance &&
-                      asset.market?.code === "PRIVATE" &&
-                      isConstantPrice(asset)))) ||
-                (asset.assetCategory?.id === "RE" &&
-                  (onRecordIncome || onRecordExpense)) ||
-                (onEditAsset && asset.market?.code === "PRIVATE") ? (
+                {!isCashRelated(asset) &&
+                ((onTrade ||
+                  onQuickSell ||
+                  onCorporateActions ||
+                  onCostAdjust ||
+                  onRecordIncome ||
+                  onRecordExpense ||
+                  (onSetPrice && asset.market?.code === "PRIVATE") ||
+                  (onSetBalance &&
+                    asset.market?.code === "PRIVATE" &&
+                    isConstantPrice(asset))) ||
+                  (asset.assetCategory?.id === "RE" &&
+                    (onRecordIncome || onRecordExpense)) ||
+                  (onEditAsset && asset.market?.code === "PRIVATE")) ? (
                   <div className="flex items-center">
                     <ActionsMenu
                       asset={asset}
@@ -227,15 +227,26 @@ export default function Rows({
                   </div>
                 ) : null}
                 {supportsBalanceSetting(asset) &&
-                  (onSetCashBalance || onCashTransfer || onCashTransaction) && (
+                  (onSetCashBalance ||
+                    onCashTransfer ||
+                    onCashTransaction ||
+                    onRecordIncome ||
+                    onRecordExpense ||
+                    (onEditAsset && asset.market?.code === "PRIVATE")) && (
                     <div className="flex items-center">
                       <CashActionsMenu
                         asset={asset}
                         portfolio={portfolio}
                         marketValue={moneyValues["TRADE"].marketValue}
+                        tradeCurrency={
+                          moneyValues["TRADE"]?.currency || portfolio.currency
+                        }
                         onSetCashBalance={onSetCashBalance}
                         onCashTransfer={onCashTransfer}
                         onCashTransaction={onCashTransaction}
+                        onRecordIncome={onRecordIncome}
+                        onRecordExpense={onRecordExpense}
+                        onEditAsset={onEditAsset}
                       />
                     </div>
                   )}
