@@ -30,11 +30,18 @@ export default defineConfig({
   },
 
   projects: [
-    // Auth setup - runs first to establish session
+    // Health check - verify backends are up before anything else
+    {
+      name: "health-check",
+      testMatch: /health-check\.setup\.ts/,
+      testDir: "./e2e",
+    },
+    // Auth setup - runs after health-check to establish session
     {
       name: "auth-setup",
       testMatch: /auth\.setup\.ts/,
       testDir: "./e2e",
+      dependencies: ["health-check"],
     },
     // Desktop Chrome
     {
