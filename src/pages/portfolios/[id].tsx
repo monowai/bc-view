@@ -22,7 +22,6 @@ import useSwr, { useSWRConfig } from "swr"
 import { currencyOptions, toCurrency, toCurrencyOption } from "@lib/currency"
 import ReactSelect from "react-select"
 import { yupResolver } from "@hookform/resolvers/yup"
-import { validateInput } from "@components/errors/validator"
 import { portfolioInputSchema } from "@lib/portfolio/schema"
 import TrnDropZone from "@components/ui/DropZone"
 import Alert from "@components/ui/Alert"
@@ -60,13 +59,12 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
   const [purgeTrn, setPurgeTrn] = useState(false)
   const [saveState, setSaveState] = useState<SaveState>({ kind: "idle" })
 
-  const handleSubmit: SubmitHandler<PortfolioInput> = async (portfolioInput) => {
+  // RHF's handleSubmit runs the yup resolver and only calls onSubmit
+  // with the already-validated, cast value (schema transforms like
+  // `.trim()` applied), so no second validateInput pass is needed.
+  const onSubmit: SubmitHandler<PortfolioInput> = async (validated) => {
     setSaveState({ kind: "saving" })
     try {
-      const validated = await validateInput<PortfolioInput>(
-        portfolioInputSchema,
-        portfolioInput,
-      )
       const post = router.query.id === "__NEW__"
       const response = await fetch(key, {
         method: post ? "POST" : "PATCH",
@@ -124,7 +122,7 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
     formState: { errors },
     control,
     register,
-    getValues,
+    handleSubmit,
   } = useForm<PortfolioInput>({
     resolver: yupResolver(portfolioInputSchema),
     mode: "onChange",
@@ -188,7 +186,10 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
   const cashPortfoliosLoading = portfoliosResponse.isLoading
   return (
     <div className="container mx-auto p-4">
-      <form className="max-w-lg mx-auto bg-white p-6 rounded shadow-md">
+      <form
+        className="max-w-lg mx-auto bg-white p-6 rounded shadow-md"
+        onSubmit={handleSubmit(onSubmit)}
+      >
         {saveState.kind === "success" && (
           <Alert variant="success" className="mb-4">
             {"Portfolio saved."}
@@ -326,20 +327,15 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
         <div className="flex items-center justify-between mt-4">
           <button
             type="submit"
-            value="submit"
             disabled={saveState.kind === "saving"}
             className="bg-blue-500 hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-            onClick={(e) => {
-              e.preventDefault()
-              handleSubmit(getValues() as PortfolioInput)
-            }}
           >
             {saveState.kind === "saving" ? "Saving…" : "Submit"}
           </button>
           <button
+            type="button"
             className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-            onClick={(e) => {
-              e.preventDefault()
+            onClick={() => {
               router.push("/portfolios").then()
             }}
           >
