@@ -104,6 +104,7 @@ const TradeInputForm: React.FC<{
   // Edit mode state
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [submitWarnings, setSubmitWarnings] = useState<string[]>([])
   const [selectedPortfolioId, setSelectedPortfolioId] = useState<string>(
     transaction?.portfolio.id || portfolio.id,
   )
@@ -630,6 +631,8 @@ const TradeInputForm: React.FC<{
                 isEditMode ? editMode?.onClose() : setModalOpen(false)
               }
               onDelete={editMode?.onDelete}
+              onUnsettle={editMode?.onUnsettle}
+              isSettled={transaction?.status === "SETTLED"}
               handleCopy={handleCopy}
               copyStatus={copyStatus}
               control={control as any}
@@ -715,6 +718,7 @@ const TradeInputForm: React.FC<{
                     setModalOpen,
                     setSubmitError,
                     setIsSubmitting,
+                    setSubmitWarnings,
                   })
                 } else if (data.type.value === "INCOME") {
                   await submitIncome({
@@ -724,6 +728,7 @@ const TradeInputForm: React.FC<{
                     setModalOpen,
                     setSubmitError,
                     setIsSubmitting,
+                    setSubmitWarnings,
                   })
                 } else {
                   await submitCreateMode({
@@ -1298,6 +1303,33 @@ const TradeInputForm: React.FC<{
             {submitError && (
               <div className="text-red-500 text-xs bg-red-50 p-2 rounded mx-3 mb-2">
                 {submitError}
+              </div>
+            )}
+
+            {/* Auto-settle warnings: trade saved but compensating cash transfer
+                was skipped (e.g. funding portfolio has no balance in the trade
+                currency). Modal stays open so user can read and dismiss. */}
+            {submitWarnings.length > 0 && (
+              <div className="bg-amber-50 border border-amber-200 rounded mx-3 mb-2 p-3 space-y-2">
+                <div className="flex items-center gap-2 text-amber-800 text-sm font-semibold">
+                  <i className="fas fa-triangle-exclamation"></i>
+                  Saved with warnings
+                </div>
+                <ul className="text-amber-900 text-xs list-disc list-inside space-y-1">
+                  {submitWarnings.map((w, i) => (
+                    <li key={i}>{w}</li>
+                  ))}
+                </ul>
+                <button
+                  type="button"
+                  className="text-amber-800 text-xs font-semibold underline"
+                  onClick={() => {
+                    setSubmitWarnings([])
+                    setModalOpen(false)
+                  }}
+                >
+                  Dismiss & close
+                </button>
               </div>
             )}
 

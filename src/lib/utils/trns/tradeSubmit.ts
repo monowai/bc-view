@@ -14,6 +14,20 @@ import { onSubmit } from "./formUtils"
 
 type MutateFn = (key: string) => Promise<any>
 
+/**
+ * Extract `warnings` array from a successful TrnResponse, tolerating mocks /
+ * responses without a json() method or with no body.
+ */
+async function parseWarnings(response: Response): Promise<string[]> {
+  if (typeof response.json !== "function") return []
+  try {
+    const body = await response.json()
+    return Array.isArray(body?.warnings) ? body.warnings : []
+  } catch {
+    return []
+  }
+}
+
 // Invalidate any /api/trns/proposed* SWR cache entry (varies by scope)
 const mutateProposedCaches = (): void => {
   globalMutate(
@@ -104,6 +118,11 @@ export interface SubmitExpenseParams {
   setModalOpen: (open: boolean) => void
   setSubmitError: (error: string | null) => void
   setIsSubmitting: (submitting: boolean) => void
+  // Surfaces TrnResponse.warnings (e.g. auto-settle skipped because funding
+  // portfolio has no balance in the trade's settlement currency). When the
+  // setter is provided AND the response carries warnings, the modal stays
+  // open so the user can read them; otherwise it closes as before.
+  setSubmitWarnings?: (warnings: string[]) => void
 }
 
 /**
@@ -119,10 +138,12 @@ export async function submitExpense(
     setModalOpen,
     setSubmitError,
     setIsSubmitting,
+    setSubmitWarnings,
   } = params
 
   setIsSubmitting(true)
   setSubmitError(null)
+  setSubmitWarnings?.([])
   try {
     const payload = buildExpensePayload(data, portfolio.id)
     const response = await fetch("/api/trns", {
@@ -131,11 +152,15 @@ export async function submitExpense(
       body: JSON.stringify(payload),
     })
     if (response.ok) {
+      const warnings = await parseWarnings(response)
       setTimeout(() => {
         mutate(holdingKey(portfolio.code, "today"))
         mutate("/api/holdings/aggregated?asAt=today")
       }, 1500)
-      setModalOpen(false)
+      setSubmitWarnings?.(warnings)
+      if (warnings.length === 0) {
+        setModalOpen(false)
+      }
     } else {
       const errorData = await response.json().catch(() => ({}))
       console.error("EXPENSE creation failed:", response.status, errorData)
@@ -162,6 +187,8 @@ export interface SubmitIncomeParams {
   setModalOpen: (open: boolean) => void
   setSubmitError: (error: string | null) => void
   setIsSubmitting: (submitting: boolean) => void
+  // See SubmitExpenseParams.setSubmitWarnings.
+  setSubmitWarnings?: (warnings: string[]) => void
 }
 
 /**
@@ -175,10 +202,12 @@ export async function submitIncome(params: SubmitIncomeParams): Promise<void> {
     setModalOpen,
     setSubmitError,
     setIsSubmitting,
+    setSubmitWarnings,
   } = params
 
   setIsSubmitting(true)
   setSubmitError(null)
+  setSubmitWarnings?.([])
   try {
     const payload = buildIncomePayload(data, portfolio.id)
     const response = await fetch("/api/trns", {
@@ -187,11 +216,15 @@ export async function submitIncome(params: SubmitIncomeParams): Promise<void> {
       body: JSON.stringify(payload),
     })
     if (response.ok) {
+      const warnings = await parseWarnings(response)
       setTimeout(() => {
         mutate(holdingKey(portfolio.code, "today"))
         mutate("/api/holdings/aggregated?asAt=today")
       }, 1500)
-      setModalOpen(false)
+      setSubmitWarnings?.(warnings)
+      if (warnings.length === 0) {
+        setModalOpen(false)
+      }
     } else {
       const errorData = await response.json().catch(() => ({}))
       console.error("INCOME creation failed:", response.status, errorData)

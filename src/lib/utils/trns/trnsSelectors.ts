@@ -60,13 +60,20 @@ export function transformTrnEnvelopeJson(json: unknown): unknown {
     typeof json === "object" &&
     "data" in (json as Record<string, unknown>)
   ) {
-    const data = (json as { data: unknown }).data
+    const envelope = json as Record<string, unknown>
+    const data = envelope.data
     if (
       data !== null &&
       typeof data === "object" &&
       Array.isArray((data as { trns?: unknown }).trns)
     ) {
-      return { data: denormalizeTrnPayload(data as TrnPayload) }
+      // Preserve top-level metadata (e.g. `warnings` raised by auto-settle).
+      const denormalized = denormalizeTrnPayload(data as TrnPayload)
+      const result: Record<string, unknown> = { data: denormalized }
+      if (Array.isArray(envelope.warnings)) {
+        result.warnings = envelope.warnings
+      }
+      return result
     }
   }
   return json

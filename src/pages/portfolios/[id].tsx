@@ -7,7 +7,12 @@ import {
   PortfolioRequest,
   PortfolioRequests,
 } from "types/beancounter"
-import { ccyKey, portfolioKey, simpleFetcher } from "@utils/api/fetchHelper"
+import {
+  ccyKey,
+  portfolioKey,
+  portfoliosKey,
+  simpleFetcher,
+} from "@utils/api/fetchHelper"
 import { useRouter } from "next/router"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import Link from "next/link"
@@ -30,6 +35,7 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
       currency: portfolio.currency.value,
       base: portfolio.base.value,
       active: portfolio.active,
+      cashPortfolioId: portfolio.cashPortfolioId || undefined,
     }
   }
 
@@ -92,6 +98,7 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
     isNewPortfolio ? { fallbackData: defaultPortfolio } : undefined,
   )
   const ccyResponse = useSwr(ccyKey, simpleFetcher(ccyKey))
+  const portfoliosResponse = useSwr(portfoliosKey, simpleFetcher(portfoliosKey))
 
   // Get the default base currency - use user preference for new portfolios
   const defaultBaseCurrency = useMemo((): Currency | undefined => {
@@ -124,6 +131,13 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
   const portfolio: Portfolio = data.data
   const ccyOptions = currencyOptions(ccyResponse.data.data)
   const currencies = ccyResponse.data.data
+  // Cash funding portfolio options — exclude self-funding to avoid loops.
+  const cashPortfolioOptions: { value: string; label: string }[] = (
+    portfoliosResponse.data?.data ?? []
+  )
+    .filter((p: Portfolio) => p.id !== portfolio.id)
+    .map((p: Portfolio) => ({ value: p.id, label: `${p.code} — ${p.name}` }))
+  const cashPortfoliosLoading = portfoliosResponse.isLoading
   return (
     <div className="container mx-auto p-4">
       <form className="max-w-lg mx-auto bg-white p-6 rounded shadow-md">
@@ -199,6 +213,40 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
             />
           )}
         />
+        <label className="block text-gray-700 text-sm font-bold mb-2 mt-4">
+          {"Cash Funding Portfolio"}
+        </label>
+        <Controller
+          name="cashPortfolioId"
+          control={control}
+          defaultValue={portfolio.cashPortfolioId}
+          render={({ field }) => {
+            const current =
+              cashPortfolioOptions.find((o) => o.value === field.value) ?? null
+            return (
+              <ReactSelect
+                isClearable
+                isLoading={cashPortfoliosLoading}
+                isDisabled={cashPortfoliosLoading}
+                placeholder={
+                  cashPortfoliosLoading
+                    ? "Loading portfolios…"
+                    : "Use account default (none)"
+                }
+                options={cashPortfolioOptions}
+                value={current}
+                onChange={(event) => {
+                  field.onChange(event?.value)
+                }}
+              />
+            )
+          }}
+        />
+        <p className="text-gray-500 text-xs mt-1">
+          {
+            "Cash-impacting trades in this portfolio will auto-emit a compensating transfer against the funding portfolio. Leave blank to use your account default."
+          }
+        </p>
         <div className="mt-4">
           <label className="flex items-center cursor-pointer">
             <input

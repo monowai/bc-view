@@ -27,8 +27,7 @@ interface AssetPosition {
 
 const queryString = (
   value: string | string[] | undefined,
-): string | undefined =>
-  Array.isArray(value) ? value[0] : value
+): string | undefined => (Array.isArray(value) ? value[0] : value)
 
 function assetOptionFromQuery(
   query: Record<string, string | string[] | undefined>,

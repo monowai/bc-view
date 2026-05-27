@@ -459,8 +459,7 @@ export const CashActionsMenu: React.FC<CashActionsMenuProps> = ({
                       asset: assetCode,
                       assetId: asset.id,
                       currency:
-                        (tradeCurrency?.code ??
-                          getAssetCurrency(asset)) ||
+                        (tradeCurrency?.code ?? getAssetCurrency(asset)) ||
                         asset.code,
                       market: asset.market.code,
                       quantity: 0,
@@ -479,8 +478,7 @@ export const CashActionsMenu: React.FC<CashActionsMenuProps> = ({
                       asset: assetCode,
                       assetId: asset.id,
                       currency:
-                        (tradeCurrency?.code ??
-                          getAssetCurrency(asset)) ||
+                        (tradeCurrency?.code ?? getAssetCurrency(asset)) ||
                         asset.code,
                       market: asset.market.code,
                       quantity: 0,

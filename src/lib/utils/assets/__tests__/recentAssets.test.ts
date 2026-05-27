@@ -1,8 +1,5 @@
 import { AssetOption } from "types/beancounter"
-import {
-  getRecentAssets,
-  pushRecentAsset,
-} from "@lib/assets/recentAssets"
+import { getRecentAssets, pushRecentAsset } from "@lib/assets/recentAssets"
 
 const makeOption = (id: string, symbol: string = id): AssetOption => ({
   value: id,

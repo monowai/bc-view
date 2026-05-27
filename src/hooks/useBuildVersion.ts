@@ -40,9 +40,7 @@ export function useBuildVersion(): UseBuildVersionResult {
   }, [data?.build, initialBuild])
 
   const current = data?.build
-  const isStale = Boolean(
-    initialBuild && current && initialBuild !== current,
-  )
+  const isStale = Boolean(initialBuild && current && initialBuild !== current)
 
   return { info: data, initialBuild, isStale }
 }

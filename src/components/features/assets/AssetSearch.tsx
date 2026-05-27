@@ -128,7 +128,9 @@ export default function AssetSearch({
       )
 
       if (!parsed.validMarket || parsed.keyword.length < 2) {
-        callback(fallbackOptions && fallbackOptions.length > 0 ? fallbackOptions : [])
+        callback(
+          fallbackOptions && fallbackOptions.length > 0 ? fallbackOptions : [],
+        )
         return
       }
 
@@ -244,7 +246,9 @@ export default function AssetSearch({
             : "#ffffff",
         color: state.isSelected ? "#ffffff" : "#111827",
         cursor: "pointer",
-        borderLeft: state.isFocused ? "3px solid #2563eb" : "3px solid transparent",
+        borderLeft: state.isFocused
+          ? "3px solid #2563eb"
+          : "3px solid transparent",
       }),
       singleValue: (base: Record<string, unknown>) => ({
         ...base,

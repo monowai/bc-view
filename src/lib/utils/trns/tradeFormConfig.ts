@@ -84,4 +84,8 @@ export interface EditModeProps {
   transaction: Transaction
   onClose: () => void
   onDelete: () => void
+  // Revert SETTLED → PROPOSED via PATCH /trns/{trnId}/status. Optional —
+  // surfaces only when the host provides this handler AND the transaction
+  // is currently SETTLED.
+  onUnsettle?: () => void
 }
