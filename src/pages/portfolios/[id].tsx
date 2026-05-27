@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, useEffect } from "react"
 import { Controller, SubmitHandler, useForm } from "react-hook-form"
 import {
   Currency,
@@ -18,14 +18,23 @@ import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import Link from "next/link"
 import { rootLoader } from "@components/ui/PageLoader"
 import { errorOut } from "@components/errors/ErrorOut"
-import useSwr from "swr"
+import useSwr, { useSWRConfig } from "swr"
 import { currencyOptions, toCurrency, toCurrencyOption } from "@lib/currency"
 import ReactSelect from "react-select"
 import { yupResolver } from "@hookform/resolvers/yup"
 import { validateInput } from "@components/errors/validator"
 import { portfolioInputSchema } from "@lib/portfolio/schema"
 import TrnDropZone from "@components/ui/DropZone"
+import Alert from "@components/ui/Alert"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
+
+const SAVE_FEEDBACK_MS = 2500
+
+type SaveState =
+  | { kind: "idle" }
+  | { kind: "saving" }
+  | { kind: "success" }
+  | { kind: "error"; message: string }
 
 export default withPageAuthRequired(function Manage(): React.ReactElement {
   function toPortfolioRequest(portfolio: PortfolioInput): PortfolioRequest {
@@ -45,33 +54,60 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
     }
   }
 
+  const router = useRouter()
+  const { preferences } = useUserPreferences()
+  const { mutate: globalMutate } = useSWRConfig()
+  const [purgeTrn, setPurgeTrn] = useState(false)
+  const [saveState, setSaveState] = useState<SaveState>({ kind: "idle" })
+
   const handleSubmit: SubmitHandler<PortfolioInput> = (portfolioInput) => {
+    setSaveState({ kind: "saving" })
     validateInput(portfolioInputSchema, portfolioInput)
-      .then(() => {
+      .then(async () => {
         const post = router.query.id === "__NEW__"
-        fetch(key, {
+        const response = await fetch(key, {
           method: post ? "POST" : "PATCH",
           headers: { "Content-Type": "application/json" },
           body: post
             ? JSON.stringify(toPortfolioRequests(portfolioInput))
             : JSON.stringify(toPortfolioRequest(portfolioInput)),
         })
-          .then((response) => response.json())
-          .then((data) => {
-            const route = post
-              ? `/portfolios/${data.data[0].id}`
-              : `/portfolios/${data.data.id}`
-            router.push(route).then(() => {})
-          })
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}))
+          const message =
+            body?.message || body?.error || `Save failed (${response.status})`
+          setSaveState({ kind: "error", message })
+          return
+        }
+        const body = await response.json()
+        const savedId = post ? body.data[0].id : body.data.id
+        // Invalidate caches so the list and the just-saved portfolio
+        // both refetch with the new values (incl. cashPortfolioId,
+        // marketValue, valuedAt).
+        await Promise.all([
+          globalMutate(portfoliosKey),
+          globalMutate(portfolioKey(savedId)),
+        ])
+        if (post) {
+          await router.push(`/portfolios/${savedId}`)
+        } else {
+          setSaveState({ kind: "success" })
+        }
       })
       .catch((e) => {
         console.error(`Some error ${e.message}`)
+        setSaveState({ kind: "error", message: e.message ?? "Save failed" })
       })
   }
 
-  const router = useRouter()
-  const { preferences } = useUserPreferences()
-  const [purgeTrn, setPurgeTrn] = useState(false)
+  useEffect(() => {
+    if (saveState.kind !== "success") return undefined
+    const timer = setTimeout(
+      () => setSaveState({ kind: "idle" }),
+      SAVE_FEEDBACK_MS,
+    )
+    return () => clearTimeout(timer)
+  }, [saveState.kind])
   const {
     formState: { errors },
     control,
@@ -141,6 +177,16 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
   return (
     <div className="container mx-auto p-4">
       <form className="max-w-lg mx-auto bg-white p-6 rounded shadow-md">
+        {saveState.kind === "success" && (
+          <Alert variant="success" className="mb-4">
+            {"Portfolio saved."}
+          </Alert>
+        )}
+        {saveState.kind === "error" && (
+          <Alert variant="error" className="mb-4">
+            {saveState.message}
+          </Alert>
+        )}
         <label className="block text-gray-700 text-sm font-bold mb-2">
           {"Code"}
         </label>
@@ -269,13 +315,14 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
           <button
             type="submit"
             value="submit"
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            disabled={saveState.kind === "saving"}
+            className="bg-blue-500 hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
             onClick={(e) => {
               e.preventDefault()
               handleSubmit(getValues() as PortfolioInput)
             }}
           >
-            {"Submit"}
+            {saveState.kind === "saving" ? "Saving…" : "Submit"}
           </button>
           <button
             className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
