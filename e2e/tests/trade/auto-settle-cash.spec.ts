@@ -472,9 +472,9 @@ test.describe("Auto-settle cash to linked funding portfolio", () => {
       await expect(reactSelectInput).toBeAttached({ timeout: 5000 })
 
       // Placeholder text confirms the default "use account default" state.
-      await expect(
-        page.locator("text=Use account default (none)"),
-      ).toBeVisible({ timeout: 5000 })
+      await expect(page.locator("text=Use account default (none)")).toBeVisible(
+        { timeout: 5000 },
+      )
 
       // master reference kept only to document the intended link target;
       // actual persistence is covered by tests 1 and 2 via API round-trip.
