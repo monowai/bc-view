@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, useEffect } from "react"
 import { Controller, SubmitHandler, useForm } from "react-hook-form"
 import {
   Currency,
@@ -18,14 +18,22 @@ import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import Link from "next/link"
 import { rootLoader } from "@components/ui/PageLoader"
 import { errorOut } from "@components/errors/ErrorOut"
-import useSwr from "swr"
+import useSwr, { useSWRConfig } from "swr"
 import { currencyOptions, toCurrency, toCurrencyOption } from "@lib/currency"
 import ReactSelect from "react-select"
 import { yupResolver } from "@hookform/resolvers/yup"
-import { validateInput } from "@components/errors/validator"
 import { portfolioInputSchema } from "@lib/portfolio/schema"
 import TrnDropZone from "@components/ui/DropZone"
+import Alert from "@components/ui/Alert"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
+
+const SAVE_FEEDBACK_MS = 2500
+
+type SaveState =
+  | { kind: "idle" }
+  | { kind: "saving" }
+  | { kind: "success" }
+  | { kind: "error"; message: string }
 
 export default withPageAuthRequired(function Manage(): React.ReactElement {
   function toPortfolioRequest(portfolio: PortfolioInput): PortfolioRequest {
@@ -45,38 +53,76 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
     }
   }
 
-  const handleSubmit: SubmitHandler<PortfolioInput> = (portfolioInput) => {
-    validateInput(portfolioInputSchema, portfolioInput)
-      .then(() => {
-        const post = router.query.id === "__NEW__"
-        fetch(key, {
-          method: post ? "POST" : "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: post
-            ? JSON.stringify(toPortfolioRequests(portfolioInput))
-            : JSON.stringify(toPortfolioRequest(portfolioInput)),
-        })
-          .then((response) => response.json())
-          .then((data) => {
-            const route = post
-              ? `/portfolios/${data.data[0].id}`
-              : `/portfolios/${data.data.id}`
-            router.push(route).then(() => {})
-          })
-      })
-      .catch((e) => {
-        console.error(`Some error ${e.message}`)
-      })
-  }
-
   const router = useRouter()
   const { preferences } = useUserPreferences()
+  const { mutate: globalMutate } = useSWRConfig()
   const [purgeTrn, setPurgeTrn] = useState(false)
+  const [saveState, setSaveState] = useState<SaveState>({ kind: "idle" })
+
+  // RHF's handleSubmit runs the yup resolver and only calls onSubmit
+  // with the already-validated, cast value (schema transforms like
+  // `.trim()` applied), so no second validateInput pass is needed.
+  const onSubmit: SubmitHandler<PortfolioInput> = async (validated) => {
+    setSaveState({ kind: "saving" })
+    try {
+      const post = router.query.id === "__NEW__"
+      const response = await fetch(key, {
+        method: post ? "POST" : "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          post
+            ? toPortfolioRequests(validated)
+            : toPortfolioRequest(validated),
+        ),
+      })
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}))
+        throw new Error(
+          errBody?.message ||
+            errBody?.error ||
+            `Save failed (${response.status})`,
+        )
+      }
+      const body = await response.json()
+      const saved: Portfolio = post ? body.data[0] : body.data
+      // Prime the detail cache directly from the response (svc-data
+      // returns the canonical saved Portfolio), and revalidate the list
+      // since row ordering / aggregates may have shifted. Note that
+      // valuation fields are eventually-consistent: bc-position will
+      // republish marketValue/irr via the bc-pos-mv stream shortly.
+      await Promise.all([
+        globalMutate(
+          portfolioKey(saved.id),
+          { data: saved },
+          { revalidate: false },
+        ),
+        globalMutate(portfoliosKey),
+      ])
+      if (post) {
+        await router.push(`/portfolios/${saved.id}`)
+      } else {
+        setSaveState({ kind: "success" })
+      }
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Save failed"
+      console.error(`Portfolio save failed: ${message}`)
+      setSaveState({ kind: "error", message })
+    }
+  }
+
+  useEffect(() => {
+    if (saveState.kind !== "success") return undefined
+    const timer = setTimeout(
+      () => setSaveState({ kind: "idle" }),
+      SAVE_FEEDBACK_MS,
+    )
+    return () => clearTimeout(timer)
+  }, [saveState.kind])
   const {
     formState: { errors },
     control,
     register,
-    getValues,
+    handleSubmit,
   } = useForm<PortfolioInput>({
     resolver: yupResolver(portfolioInputSchema),
     mode: "onChange",
@@ -140,7 +186,20 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
   const cashPortfoliosLoading = portfoliosResponse.isLoading
   return (
     <div className="container mx-auto p-4">
-      <form className="max-w-lg mx-auto bg-white p-6 rounded shadow-md">
+      <form
+        className="max-w-lg mx-auto bg-white p-6 rounded shadow-md"
+        onSubmit={handleSubmit(onSubmit)}
+      >
+        {saveState.kind === "success" && (
+          <Alert variant="success" className="mb-4">
+            {"Portfolio saved."}
+          </Alert>
+        )}
+        {saveState.kind === "error" && (
+          <Alert variant="error" className="mb-4">
+            {saveState.message}
+          </Alert>
+        )}
         <label className="block text-gray-700 text-sm font-bold mb-2">
           {"Code"}
         </label>
@@ -268,19 +327,15 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
         <div className="flex items-center justify-between mt-4">
           <button
             type="submit"
-            value="submit"
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-            onClick={(e) => {
-              e.preventDefault()
-              handleSubmit(getValues() as PortfolioInput)
-            }}
+            disabled={saveState.kind === "saving"}
+            className="bg-blue-500 hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
           >
-            {"Submit"}
+            {saveState.kind === "saving" ? "Saving…" : "Submit"}
           </button>
           <button
+            type="button"
             className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-            onClick={(e) => {
-              e.preventDefault()
+            onClick={() => {
               router.push("/portfolios").then()
             }}
           >
