@@ -352,18 +352,26 @@ export interface CashActionsMenuProps {
   asset: Asset
   portfolio: { id: string; code: string }
   marketValue: number
+  tradeCurrency?: { code: string; symbol: string; name: string }
   onSetCashBalance?: (data: SetCashBalanceData) => void
   onCashTransfer?: (data: CashTransferData) => void
   onCashTransaction?: (assetCode: string) => void
+  onRecordIncome?: (data: QuickSellData) => void
+  onRecordExpense?: (data: QuickSellData) => void
+  onEditAsset?: (asset: Asset) => void
 }
 
 export const CashActionsMenu: React.FC<CashActionsMenuProps> = ({
   asset,
   portfolio,
   marketValue,
+  tradeCurrency,
   onSetCashBalance,
   onCashTransfer,
   onCashTransaction,
+  onRecordIncome,
+  onRecordExpense,
+  onEditAsset,
 }) => {
   const { isOpen, buttonRef, menuRef, menuPos, toggle, close } =
     useDropdownMenu()
@@ -441,6 +449,53 @@ export const CashActionsMenu: React.FC<CashActionsMenuProps> = ({
                   iconClass="fas fa-dollar-sign text-green-500 w-4"
                   label="Cash Transaction"
                   onClick={handle(() => onCashTransaction(assetCode))}
+                />
+              )}
+              {onRecordIncome && (
+                <MenuItem
+                  iconClass="fas fa-arrow-down text-green-500 w-4"
+                  label="Record Income"
+                  onClick={handle(() =>
+                    onRecordIncome({
+                      asset: assetCode,
+                      assetId: asset.id,
+                      currency:
+                        (tradeCurrency?.code ??
+                          getAssetCurrency(asset)) ||
+                        asset.code,
+                      market: asset.market.code,
+                      quantity: 0,
+                      price: 0,
+                      type: "INCOME",
+                    }),
+                  )}
+                />
+              )}
+              {onRecordExpense && (
+                <MenuItem
+                  iconClass="fas fa-arrow-up text-red-500 w-4"
+                  label="Record Expense"
+                  onClick={handle(() =>
+                    onRecordExpense({
+                      asset: assetCode,
+                      assetId: asset.id,
+                      currency:
+                        (tradeCurrency?.code ??
+                          getAssetCurrency(asset)) ||
+                        asset.code,
+                      market: asset.market.code,
+                      quantity: 0,
+                      price: 0,
+                      type: "EXPENSE",
+                    }),
+                  )}
+                />
+              )}
+              {onEditAsset && asset.market?.code === "PRIVATE" && (
+                <MenuItem
+                  iconClass="fas fa-pen-to-square text-slate-500 w-4"
+                  label="Edit Asset"
+                  onClick={handle(() => onEditAsset(asset))}
                 />
               )}
             </div>
