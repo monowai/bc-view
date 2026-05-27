@@ -38,7 +38,10 @@ function DecimalInput({
       inputMode="decimal"
       value={display}
       onChange={(e) => {
-        const val = e.target.value
+        // Strip thousands-separator commas — pasted values like "4,000" from
+        // a statement or spreadsheet should commit as 4000, not be silently
+        // rejected by the digits-only regex below.
+        const val = e.target.value.replace(/,/g, "")
         if (val === "" || /^[0-9]*\.?[0-9]*$/.test(val)) {
           setDisplay(val)
           const num = parseFloat(val)
@@ -54,7 +57,7 @@ function DecimalInput({
       }}
       onBlur={(e) => {
         focusedRef.current = false
-        const num = parseFloat(e.target.value)
+        const num = parseFloat(e.target.value.replace(/,/g, ""))
         if (!isNaN(num)) {
           onChange(num)
           setDisplay(String(num))
