@@ -95,6 +95,12 @@ export default function AssetSearch({
   const [internalValue, setInternalValue] = useState<AssetOption | null>(null)
   const lastSelectedRef = useRef<AssetOption | null>(null)
   const displayValue = isControlled ? value : internalValue
+  // Explicit search-in-flight flag. AsyncSelect only flips its internal
+  // isLoading while the loadOptions promise is pending, so the 300ms debounce
+  // + backend round-trip (up to ~3s with the per-provider coroutine cap)
+  // would otherwise show no spinner. Drive isLoading from this so the user
+  // sees feedback the moment they type.
+  const [isSearching, setIsSearching] = useState(false)
 
   const isSpecificMarket = market !== undefined && market !== ""
 
@@ -128,12 +134,14 @@ export default function AssetSearch({
       )
 
       if (!parsed.validMarket || parsed.keyword.length < 2) {
+        setIsSearching(false)
         callback(
           fallbackOptions && fallbackOptions.length > 0 ? fallbackOptions : [],
         )
         return
       }
 
+      setIsSearching(true)
       debounceRef.current = setTimeout(async () => {
         try {
           const results = await doFetch(parsed.keyword, parsed.market)
@@ -144,6 +152,8 @@ export default function AssetSearch({
           callback(options)
         } catch {
           callback([])
+        } finally {
+          setIsSearching(false)
         }
       }, 300)
     },
@@ -207,6 +217,9 @@ export default function AssetSearch({
     placeholder: placeholder || "Search for asset...",
     noOptionsMessage,
     loadingMessage: () => "Searching...",
+    // Drive the spinner from our own flag so it shows from the first keystroke
+    // through the debounce window, not just while the fetch promise is alive.
+    isLoading: isSearching,
     onChange: handleChange,
     isClearable,
     inputValue: inputText,
@@ -269,6 +282,14 @@ export default function AssetSearch({
       loadingMessage: (base: Record<string, unknown>) => ({
         ...base,
         color: "#6b7280",
+      }),
+      loadingIndicator: (base: Record<string, unknown>) => ({
+        ...base,
+        // Default DotLoader uses currentColor which inherits the muted control
+        // text — invisible against the white input. Brand-blue makes it stand
+        // out so users know a search is in flight.
+        color: "#2563eb",
+        fontSize: "8px",
       }),
     },
   }
