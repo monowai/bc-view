@@ -456,7 +456,84 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="border rounded-lg overflow-hidden">
+          {/* Mobile: card per buy item */}
+          <div className="sm:hidden space-y-2">
+            {buyItems.map((item) => {
+              const { qty, price, value } = getItemValues(item)
+              const displayCode = formatAssetCode(item.assetCode)
+              return (
+                <div
+                  key={item.assetId}
+                  className="bg-green-50 border border-gray-200 rounded-lg p-3"
+                >
+                  <div
+                    className="flex items-start justify-between gap-2 mb-3"
+                    title={item.rationale || undefined}
+                  >
+                    <div className="min-w-0">
+                      <div className="font-medium text-gray-900">
+                        {displayCode || item.assetId}
+                        {item.rationale && (
+                          <i className="fas fa-info-circle ml-1 text-gray-400 text-xs"></i>
+                        )}
+                      </div>
+                      {item.assetName && (
+                        <div className="text-xs text-gray-500 truncate">
+                          {item.assetName}
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-green-700 font-semibold text-sm whitespace-nowrap">
+                      {formatCurrency(value)}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="block">
+                      <span className="block text-xs text-gray-500 mb-1">
+                        {"Qty"}
+                      </span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        inputMode="numeric"
+                        value={qty}
+                        onChange={(e) =>
+                          handleQuantityChange(
+                            item.assetId,
+                            parseInt(e.target.value) || 0,
+                          )
+                        }
+                        className="w-full px-3 py-2 text-base text-right border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="block text-xs text-gray-500 mb-1">
+                        {"Price"}
+                      </span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        inputMode="decimal"
+                        value={price.toFixed(2)}
+                        onChange={(e) =>
+                          handlePriceChange(
+                            item.assetId,
+                            parseFloat(e.target.value) || 0,
+                          )
+                        }
+                        className="w-full px-3 py-2 text-base text-right border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </label>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Desktop: table */}
+          <div className="hidden sm:block border rounded-lg overflow-hidden">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
@@ -501,6 +578,7 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
                           type="number"
                           min="0"
                           step="1"
+                          inputMode="numeric"
                           value={qty}
                           onChange={(e) =>
                             handleQuantityChange(
@@ -516,6 +594,7 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
                           type="number"
                           min="0"
                           step="0.01"
+                          inputMode="decimal"
                           value={price.toFixed(2)}
                           onChange={(e) =>
                             handlePriceChange(
