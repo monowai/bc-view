@@ -141,6 +141,7 @@ export default function Rows({
         ) => (
           <tr
             key={`${groupBy}-${valueIn}-${index}`}
+            id={`asset-${asset.id}`}
             className={`holding-row text-sm cursor-pointer border-l-2 border-l-transparent ${
               index % 2 === 0 ? "bg-white" : "bg-slate-50/40"
             }`}

@@ -62,6 +62,7 @@ interface CardViewProps extends SharedActionHandlers {
   valueIn: string
   groupBy?: string
   isMixedCurrencies?: boolean
+  targetAssetId?: string
 }
 
 interface PositionCardProps extends SharedActionHandlers {
@@ -389,6 +390,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
 
   return (
     <div
+      id={`asset-${asset.id}`}
       className={`${CARD_CLASSNAME} cursor-pointer`}
       onDoubleClick={handleDoubleClick}
       title="Double-click to open"
@@ -509,6 +511,7 @@ const CardView: React.FC<CardViewProps> = ({
   valueIn,
   groupBy,
   isMixedCurrencies = false,
+  targetAssetId,
   onTrade,
   onQuickSell,
   onCorporateActions,
@@ -547,13 +550,33 @@ const CardView: React.FC<CardViewProps> = ({
     )
   }, [groupedPositions])
 
-  // Track collapsed groups - start with first group expanded.
+  // Track collapsed groups. Expand groups from the top until cumulative
+  // position count crosses ~20, then collapse the rest. First group is
+  // always expanded so the page is never blank, and the target asset's
+  // group is force-expanded so deep-links can scroll to it.
   // Parent passes `key={groupBy}` so this component remounts (and the
   // initial state below re-runs) whenever groupBy changes — no manual
   // reset effect needed.
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
-    () => new Set(groupedPositions.slice(1).map((g) => g.groupKey)),
-  )
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => {
+    const POSITION_THRESHOLD = 20
+    const targetGroupKey = targetAssetId
+      ? groupedPositions.find((g) =>
+          g.positions.some((p) => p.asset.id === targetAssetId),
+        )?.groupKey
+      : undefined
+    const collapsed = new Set<string>()
+    let count = 0
+    groupedPositions.forEach((g, i) => {
+      const keepOpen =
+        i === 0 || g.groupKey === targetGroupKey || count < POSITION_THRESHOLD
+      if (keepOpen) {
+        count += g.positions.length
+      } else {
+        collapsed.add(g.groupKey)
+      }
+    })
+    return collapsed
+  })
 
   const toggleGroup = useCallback((groupKey: string) => {
     setCollapsedGroups((prev) => {
