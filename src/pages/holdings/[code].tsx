@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo } from "react"
+import React, { useState, useCallback, useEffect } from "react"
 import {
   QuickSellData,
   WeightClickData,
@@ -108,14 +108,28 @@ function HoldingsPage(): React.ReactElement {
   } = useHoldingsView(data?.data)
 
   // Deep-link from asset lookup: `/holdings/<code>#asset-<id>` jumps to
-  // the specific holding. Summary view doesn't render rows, so flip to
-  // table when a target is set.
-  const targetAssetId = useMemo<string | undefined>(() => {
-    const hashIdx = router.asPath.indexOf("#")
-    if (hashIdx < 0) return undefined
-    const m = router.asPath.slice(hashIdx).match(/^#asset-(.+)$/)
+  // the specific holding. The hash is captured into state once on mount
+  // (asset lookup is a different route, so this page always mounts
+  // fresh on navigation in) and then stripped from the URL so that
+  // back/forward navigation within the session doesn't keep re-firing
+  // the scroll. A fresh load (bookmark, asset-lookup click) still works.
+  // Summary view doesn't render rows, so flip to table when a target
+  // is set.
+  const [targetAssetId] = useState<string | undefined>(() => {
+    if (typeof window === "undefined") return undefined
+    const m = window.location.hash.match(/^#asset-(.+)$/)
     return m ? decodeURIComponent(m[1]) : undefined
-  }, [router.asPath])
+  })
+  useEffect(() => {
+    if (!targetAssetId) return
+    if (typeof window === "undefined") return
+    if (!window.location.hash) return
+    router.replace(window.location.pathname + window.location.search, undefined, {
+      shallow: true,
+    })
+    // Run once after the hash is captured; router stays stable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     if (targetAssetId && viewMode === "summary") setViewMode("table")
