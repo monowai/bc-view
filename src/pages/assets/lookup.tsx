@@ -390,7 +390,11 @@ function AssetLookupPage(): React.ReactElement {
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation()
-                            router.push(`/holdings/${ap.portfolio.code}`)
+                            const assetId =
+                              selectedAsset.assetId || selectedAsset.value
+                            router.push(
+                              `/holdings/${ap.portfolio.code}#asset-${encodeURIComponent(assetId)}`,
+                            )
                           }}
                           className="font-medium text-blue-600 hover:text-blue-800 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
                           title={`View holdings for ${ap.portfolio.code}`}

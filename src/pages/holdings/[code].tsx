@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react"
+import React, { useState, useCallback, useEffect, useMemo } from "react"
 import {
   QuickSellData,
   WeightClickData,
@@ -106,6 +106,36 @@ function HoldingsPage(): React.ReactElement {
     holdings,
     allocationData,
   } = useHoldingsView(data?.data)
+
+  // Deep-link from asset lookup: `/holdings/<code>#asset-<id>` jumps to
+  // the specific holding. Summary view doesn't render rows, so flip to
+  // table when a target is set.
+  const targetAssetId = useMemo<string | undefined>(() => {
+    const hashIdx = router.asPath.indexOf("#")
+    if (hashIdx < 0) return undefined
+    const m = router.asPath.slice(hashIdx).match(/^#asset-(.+)$/)
+    return m ? decodeURIComponent(m[1]) : undefined
+  }, [router.asPath])
+
+  useEffect(() => {
+    if (targetAssetId && viewMode === "summary") setViewMode("table")
+  }, [targetAssetId, viewMode, setViewMode])
+
+  useEffect(() => {
+    if (!targetAssetId || !holdings) return undefined
+    if (viewMode !== "table" && viewMode !== "cards") return undefined
+    const raf = requestAnimationFrame(() => {
+      const el = document.getElementById(`asset-${targetAssetId}`)
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" })
+        el.classList.remove("asset-target")
+        // force reflow so the animation re-triggers if the same target is revisited
+        void el.offsetWidth
+        el.classList.add("asset-target")
+      }
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [targetAssetId, holdings, viewMode])
 
   // Page-specific state
   const [columns, setColumns] = useState<string[]>([
@@ -665,6 +695,7 @@ function HoldingsPage(): React.ReactElement {
             valueIn={holdingState.valueIn.value}
             groupBy={holdingState.groupBy.value}
             isMixedCurrencies={holdingResults.isMixedCurrencies}
+            targetAssetId={targetAssetId}
             onTrade={handleTrade}
             onQuickSell={handleQuickSell}
             onCorporateActions={handleCorporateActions}

@@ -97,6 +97,17 @@ a {
   border-left: 2px solid #3b82f6; /* wealth-500 */
 }
 
+/* Deep-link target — wealth-100 fade so a row/card jumped to from the
+   asset lookup briefly stands out. */
+@keyframes asset-target-flash {
+  0%   { background-color: #dbeafe; box-shadow: 0 0 0 2px #3b82f6 inset; }
+  100% { background-color: transparent; box-shadow: none; }
+}
+
+.asset-target {
+  animation: asset-target-flash 2.5s ease-out;
+}
+
 .menu-list {
   position: relative;
   list-style: none;
