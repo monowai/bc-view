@@ -374,10 +374,15 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
               currentAge: "",
             })
           } else if (categoryId === "POLICY") {
-            // Set default isPension for POLICY category even if no config exists
+            // POLICY assets (CPF, SingLife, state pension, life policies) are
+            // pension-class by default — they all deliver scheduled income to
+            // the Independence plan. Defaulting false used to drop them out
+            // of svc-retire's PensionIncomeService filter, so a fully
+            // configured CPF or lump-sum policy showed $0 income. Defensive
+            // mirror of the backend widening in svc-retire PR #35.
             setConfig((prev) => ({
               ...prev,
-              isPension: false,
+              isPension: true,
             }))
           }
         }
