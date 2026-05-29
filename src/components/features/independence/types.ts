@@ -1,8 +1,11 @@
 import { RetirementProjection } from "types/independence"
-import { DEFAULT_NON_SPENDABLE_CATEGORIES } from "./useAssetBreakdown"
+import {
+  DEFAULT_NON_SPENDABLE_CATEGORIES,
+  INCOME_STREAM_CATEGORIES,
+} from "./useAssetBreakdown"
 
 // Re-export for backwards compatibility
-export { DEFAULT_NON_SPENDABLE_CATEGORIES }
+export { DEFAULT_NON_SPENDABLE_CATEGORIES, INCOME_STREAM_CATEGORIES }
 
 // What-if adjustments for scenario planning
 export interface WhatIfAdjustments {

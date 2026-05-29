@@ -6,6 +6,7 @@ export {
   useAssetBreakdown,
   calculateAssetBreakdown,
   DEFAULT_NON_SPENDABLE_CATEGORIES,
+  INCOME_STREAM_CATEGORIES,
   type AssetBreakdown,
 } from "./useAssetBreakdown"
 
