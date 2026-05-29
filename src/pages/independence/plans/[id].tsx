@@ -195,20 +195,28 @@ function PlanView(): React.ReactElement {
 
   // Transform holdings into category slices (or use manual assets if no holdings)
   const categorySlices = useMemo(() => {
-    // If user has manual assets and no portfolio holdings, use manual assets
-    if (usingManualAssets) {
-      const parsed = parseManualAssets(plan?.manualAssets)
-      if (parsed) {
-        return manualAssetsToSlices(parsed)
+    const raw = (() => {
+      // If user has manual assets and no portfolio holdings, use manual assets
+      if (usingManualAssets) {
+        const parsed = parseManualAssets(plan?.manualAssets)
+        if (parsed) {
+          return manualAssetsToSlices(parsed)
+        }
       }
-    }
-    // Otherwise use portfolio holdings
-    if (!holdingsData) return []
-    return transformToAllocationSlices(
-      holdingsData,
-      "category",
-      ValueIn.PORTFOLIO,
-    )
+      // Otherwise use portfolio holdings
+      if (!holdingsData) return []
+      return transformToAllocationSlices(
+        holdingsData,
+        "category",
+        ValueIn.PORTFOLIO,
+      )
+    })()
+    // Retirement Fund holdings (CPF, SingLife etc.) already feed the
+    // projection as income streams via svc-retire's PensionIncomeService —
+    // showing them in Assets by Category invites the user to toggle them
+    // spendable, which would double-count against the CPF LIFE annuity +
+    // policy maturity already in the Income column.
+    return raw.filter((s) => s.key !== "Retirement Fund")
   }, [holdingsData, usingManualAssets, plan?.manualAssets])
 
   // Auto-select all portfolios when data first loads

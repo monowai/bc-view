@@ -160,10 +160,10 @@ export default function DetailsTabContent({
           {planInputs?.definedContribution != null &&
             planInputs.definedContribution > 0 && (
               <div className="flex justify-between">
-                <InfoTooltip text="Mandatory defined contribution (e.g., CPF) deducted from your investment allocation. This is invested for you by the government scheme.">
+                <InfoTooltip text="CPF employee contribution deducted from your investable income while you're still working. Stops at retirement age.">
                   <span className="text-gray-500">
                     <i className="fas fa-building text-xs mr-1"></i>
-                    Defined Contribution
+                    CPF Employee Deduction
                   </span>
                 </InfoTooltip>
                 <span
