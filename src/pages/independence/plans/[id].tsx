@@ -12,6 +12,7 @@ import {
   TabId,
   TABS,
   DEFAULT_NON_SPENDABLE_CATEGORIES,
+  INCOME_STREAM_CATEGORIES,
   DEFAULT_WHAT_IF_ADJUSTMENTS,
   hasScenarioChanges,
   useUnifiedProjection,
@@ -228,7 +229,10 @@ function PlanView(): React.ReactElement {
     }
   }, [portfolios])
 
-  // Initialize spendable categories (all except property by default)
+  // Initialize spendable categories. Default = everything that is not
+  // property-style non-spendable AND not an income-stream category whose
+  // balance is already projected as a future income stream (CPF LIFE
+  // annuity, policy maturity).
   useEffect(() => {
     if (
       categorySlices.length > 0 &&
@@ -237,7 +241,9 @@ function PlanView(): React.ReactElement {
     ) {
       const allCategories = categorySlices.map((s) => s.key)
       const spendable = allCategories.filter(
-        (cat) => !DEFAULT_NON_SPENDABLE_CATEGORIES.includes(cat),
+        (cat) =>
+          !DEFAULT_NON_SPENDABLE_CATEGORIES.includes(cat) &&
+          !INCOME_STREAM_CATEGORIES.includes(cat),
       )
       setSpendableCategories(spendable)
       hasCategoriesInitialized.current = true
@@ -257,10 +263,16 @@ function PlanView(): React.ReactElement {
     if (spendableCategories.length > 0) {
       return spendableCategories
     }
-    // Before initialization, use default: all categories except non-spendable ones
+    // Before initialization, use default: everything except property-style
+    // non-spendable AND income-stream categories (those flow to the
+    // projection as scheduled income, not drawable principal).
     return categorySlices
       .map((s) => s.key)
-      .filter((cat) => !DEFAULT_NON_SPENDABLE_CATEGORIES.includes(cat))
+      .filter(
+        (cat) =>
+          !DEFAULT_NON_SPENDABLE_CATEGORIES.includes(cat) &&
+          !INCOME_STREAM_CATEGORIES.includes(cat),
+      )
   }, [spendableCategories, categorySlices])
 
   // Calculate liquid (spendable) assets - only selected categories (for local display)

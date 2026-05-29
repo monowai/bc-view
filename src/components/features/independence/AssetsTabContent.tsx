@@ -4,6 +4,7 @@ import { AllocationSlice } from "@lib/allocation/aggregateHoldings"
 import { HIDDEN_VALUE, PensionProjection } from "@lib/independence/planHelpers"
 import {
   DEFAULT_NON_SPENDABLE_CATEGORIES,
+  INCOME_STREAM_CATEGORIES,
   FiMetrics,
 } from "@components/features/independence"
 import Spinner from "@components/ui/Spinner"
@@ -150,7 +151,8 @@ export default function AssetsTabContent({
               {categorySlices
                 .filter(
                   (slice) =>
-                    !DEFAULT_NON_SPENDABLE_CATEGORIES.includes(slice.key),
+                    !DEFAULT_NON_SPENDABLE_CATEGORIES.includes(slice.key) &&
+                    !INCOME_STREAM_CATEGORIES.includes(slice.key),
                 )
                 .map((slice) => {
                   const isSpendable = spendableCategories.includes(slice.key)
@@ -200,6 +202,43 @@ export default function AssetsTabContent({
                     </div>
                   )
                 })}
+
+              {/* Income-stream categories (CPF, policy assets) — show
+                  read-only because their balance is already projected as
+                  scheduled income (CPF LIFE annuity, policy maturity).
+                  A toggle here would invite double-counting against the
+                  Income column. */}
+              {categorySlices
+                .filter((slice) =>
+                  INCOME_STREAM_CATEGORIES.includes(slice.key),
+                )
+                .map((slice) => (
+                  <div
+                    key={slice.key}
+                    className="p-3 rounded-lg border border-purple-200 bg-purple-50"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: slice.color }}
+                        />
+                        <span className="text-gray-700">{slice.label}</span>
+                        <span
+                          className="text-xs text-purple-700 bg-purple-100 px-2 py-0.5 rounded"
+                          title="Balance pays out as a scheduled income stream (CPF LIFE annuity, policy maturity) — already counted in the Income column."
+                        >
+                          Pays as income
+                        </span>
+                      </div>
+                      <span className="font-medium text-gray-500">
+                        {hideValues
+                          ? HIDDEN_VALUE
+                          : `${effectiveCurrency}${Math.round(slice.value * effectiveFxRate).toLocaleString()}`}
+                      </span>
+                    </div>
+                  </div>
+                ))}
 
               {/* Show non-spendable (Property) separately */}
               {categorySlices
