@@ -165,63 +165,47 @@ export default function AssetsBreakdown({
               })}
 
             {categorySlices
-              .filter((slice) => INCOME_STREAM_CATEGORIES.includes(slice.key))
-              .map((slice) => (
-                <div
-                  key={slice.key}
-                  className="p-3 rounded-lg border border-purple-200 bg-purple-50"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: slice.color }}
-                      />
-                      <span className="text-gray-700">{slice.label}</span>
-                      <span
-                        className="text-xs text-purple-700 bg-purple-100 px-2 py-0.5 rounded"
-                        title="Balance pays out as a scheduled income stream (CPF LIFE annuity, policy maturity) — already counted in the Income column."
-                      >
-                        Pays as income
-                      </span>
-                    </div>
-                    <span className="font-medium text-gray-500">
-                      {hideValues
-                        ? HIDDEN_VALUE
-                        : `${effectiveCurrency}${Math.round(slice.value * effectiveFxRate).toLocaleString()}`}
-                    </span>
-                  </div>
-                </div>
-              ))}
-
-            {categorySlices
-              .filter((slice) =>
-                DEFAULT_NON_SPENDABLE_CATEGORIES.includes(slice.key),
+              .filter(
+                (slice) =>
+                  INCOME_STREAM_CATEGORIES.includes(slice.key) ||
+                  DEFAULT_NON_SPENDABLE_CATEGORIES.includes(slice.key),
               )
-              .map((slice) => (
-                <div
-                  key={slice.key}
-                  className="p-3 rounded-lg border border-amber-200 bg-amber-50"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: slice.color }}
-                      />
-                      <span className="text-gray-700">{slice.label}</span>
-                      <span className="text-xs text-amber-600 bg-amber-100 px-2 py-0.5 rounded">
-                        Non-spendable
+              .map((slice) => {
+                const isIncomeStream = INCOME_STREAM_CATEGORIES.includes(
+                  slice.key,
+                )
+                return (
+                  <div
+                    key={slice.key}
+                    className="p-3 rounded-lg border border-amber-200 bg-amber-50"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: slice.color }}
+                        />
+                        <span className="text-gray-700">{slice.label}</span>
+                        <span
+                          className="text-xs text-amber-600 bg-amber-100 px-2 py-0.5 rounded"
+                          title={
+                            isIncomeStream
+                              ? "Balance pays out as a scheduled income stream (CPF LIFE annuity, policy maturity) — already counted in the Income column."
+                              : undefined
+                          }
+                        >
+                          Non-spendable
+                        </span>
+                      </div>
+                      <span className="font-medium text-gray-500">
+                        {hideValues
+                          ? HIDDEN_VALUE
+                          : `${effectiveCurrency}${Math.round(slice.value * effectiveFxRate).toLocaleString()}`}
                       </span>
                     </div>
-                    <span className="font-medium text-gray-500">
-                      {hideValues
-                        ? HIDDEN_VALUE
-                        : `${effectiveCurrency}${Math.round(slice.value * effectiveFxRate).toLocaleString()}`}
-                    </span>
                   </div>
-                </div>
-              ))}
+                )
+              })}
           </div>
 
           {pensionProjections.length > 0 && (

@@ -191,30 +191,23 @@ function PlanView(): React.ReactElement {
     return holdingsEmpty && hasManualAssets(plan?.manualAssets)
   }, [holdingsData, plan?.manualAssets])
 
-  // Transform holdings into category slices (or use manual assets if no holdings)
+  // Transform holdings into category slices (or use manual assets if no holdings).
+  // Income-stream categories (CPF, policy maturities) are surfaced in the
+  // "Pays as income" read-only section of AssetsBreakdown rather than the
+  // spendable toggles — so we keep them in the slice list and let the
+  // display component split them. Filtering them out at the page level was
+  // the cause of CPF + POLICY disappearing from Ruby's plan.
   const categorySlices = useMemo(() => {
-    const raw = (() => {
-      // If user has manual assets and no portfolio holdings, use manual assets
-      if (usingManualAssets) {
-        const parsed = parseManualAssets(plan?.manualAssets)
-        if (parsed) {
-          return manualAssetsToSlices(parsed)
-        }
-      }
-      // Otherwise use portfolio holdings
-      if (!holdingsData) return []
-      return transformToAllocationSlices(
-        holdingsData,
-        "category",
-        ValueIn.PORTFOLIO,
-      )
-    })()
-    // Retirement Fund holdings (CPF, SingLife etc.) already feed the
-    // projection as income streams via svc-retire's PensionIncomeService —
-    // showing them in Assets by Category invites the user to toggle them
-    // spendable, which would double-count against the CPF LIFE annuity +
-    // policy maturity already in the Income column.
-    return raw.filter((s) => s.key !== "Retirement Fund")
+    if (usingManualAssets) {
+      const parsed = parseManualAssets(plan?.manualAssets)
+      if (parsed) return manualAssetsToSlices(parsed)
+    }
+    if (!holdingsData) return []
+    return transformToAllocationSlices(
+      holdingsData,
+      "category",
+      ValueIn.PORTFOLIO,
+    )
   }, [holdingsData, usingManualAssets, plan?.manualAssets])
 
   // Auto-select all portfolios when data first loads
