@@ -8,7 +8,6 @@ import { transformToAllocationSlices } from "@lib/allocation/aggregateHoldings"
 import { ValueIn } from "@components/features/holdings/GroupByOptions"
 import {
   TabId,
-  TABS,
   DEFAULT_NON_SPENDABLE_CATEGORIES,
   INCOME_STREAM_CATEGORIES,
   useUnifiedProjection,
@@ -798,16 +797,6 @@ function PlanView(): React.ReactElement {
             onTabChange={setActiveTab}
             hasAssets={hasAssets}
           />
-
-          {/* Tab Byline */}
-          {(() => {
-            const activeTabConfig = TABS.find((t) => t.id === activeTab)
-            return activeTabConfig?.byline ? (
-              <p className="text-sm text-gray-500 mb-4">
-                {activeTabConfig.byline}
-              </p>
-            ) : null
-          })()}
 
           {/* Tab Content */}
           {activeTab === "details" && (

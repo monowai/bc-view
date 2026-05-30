@@ -205,7 +205,7 @@ export default function FiMetrics({
   const bridgeActive = effectiveStrategy === "HYBRID"
 
   return (
-    <div className="bg-white rounded-xl shadow-md p-6">
+    <div className="bg-white rounded-xl shadow-md p-4">
       <div className="flex items-center mb-4 gap-3 flex-wrap">
         <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
           Retirement Strategies
@@ -226,69 +226,66 @@ export default function FiMetrics({
             />
 
             {/* FI Number */}
-            <div className="p-4 bg-linear-to-r from-independence-50 to-independence-100 rounded-lg border border-independence-100">
-              <div className="flex justify-between items-center">
-                <div>
-                  <InfoTooltip text="Your FI Number is 25× your annual expenses. At this amount, a 4% annual withdrawal covers your expenses indefinitely.">
-                    <span className="text-sm text-gray-600 flex items-center gap-1">
-                      <i className="fas fa-bullseye text-independence-500"></i>
-                      FI Number (25×)
-                    </span>
-                  </InfoTooltip>
-                </div>
-                <span className="text-xl font-bold text-independence-600">
+            <div className="px-3 py-2 bg-linear-to-r from-independence-50 to-independence-100 rounded-lg border border-independence-100 flex items-center justify-between gap-3 flex-wrap">
+              <InfoTooltip text="Your FI Number is 25× your annual expenses. At this amount, a 4% annual withdrawal covers your expenses indefinitely.">
+                <span className="text-sm text-gray-600 flex items-center gap-1">
+                  <i className="fas fa-bullseye text-independence-500"></i>
+                  FI Number (25×)
+                </span>
+              </InfoTooltip>
+              <span className="text-xs text-gray-500">
+                {hideValues ? (
+                  <>Based on {HIDDEN_VALUE}/mo × 12 × 25</>
+                ) : (
+                  <>
+                    {currency}
+                    {Math.round(
+                      backendNetMonthlyExpenses ?? monthlyExpenses,
+                    ).toLocaleString()}
+                    /mo × 12 × 25
+                  </>
+                )}
+              </span>
+              <span className="text-xl font-bold text-independence-600">
+                <PrivateCurrency
+                  value={fiNumber}
+                  currency={currency}
+                  hideValues={hideValues}
+                />
+              </span>
+            </div>
+
+            {/* FI Progress Bar */}
+            <div>
+              <div className="flex justify-between items-center mb-1 gap-3 flex-wrap">
+                <InfoTooltip text="Progress toward Financial Independence based on liquid (spendable) assets only. The Pension-Saver View below adds gauges that credit locked retirement-fund assets.">
+                  <span className="text-sm text-gray-600">
+                    Early Retirement Progress
+                  </span>
+                </InfoTooltip>
+                <span className="flex items-center gap-2 text-xs text-gray-500">
+                  <PrivateCurrency
+                    value={liquidAssets}
+                    currency={currency}
+                    hideValues={hideValues}
+                  />
+                  <span>/</span>
                   <PrivateCurrency
                     value={fiNumber}
                     currency={currency}
                     hideValues={hideValues}
                   />
                 </span>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                {hideValues ? (
-                  <>Based on {HIDDEN_VALUE}/mo × 12 × 25</>
-                ) : (
-                  <>
-                    Based on {currency}
-                    {Math.round(
-                      backendNetMonthlyExpenses ?? monthlyExpenses,
-                    ).toLocaleString()}
-                    /mo net expenses × 12 × 25
-                  </>
-                )}
-              </p>
-            </div>
-
-            {/* FI Progress Bar */}
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <InfoTooltip text="Progress toward Financial Independence based on liquid (spendable) assets only. The Pension-Saver View below adds gauges that credit locked retirement-fund assets.">
-                  <span className="text-sm text-gray-600">
-                    Early Retirement Progress
-                  </span>
-                </InfoTooltip>
                 <PrivatePercentage
                   value={fiProgress}
                   hideValues={hideValues}
                   className={`font-semibold ${getProgressTextColor(fiProgress)}`}
                 />
               </div>
-              <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div
                   className={`h-full ${getProgressBgColor(fiProgress)} transition-all duration-500`}
                   style={{ width: hideValues ? "0%" : `${fiProgressClamped}%` }}
-                />
-              </div>
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
-                <PrivateCurrency
-                  value={liquidAssets}
-                  currency={currency}
-                  hideValues={hideValues}
-                />
-                <PrivateCurrency
-                  value={fiNumber}
-                  currency={currency}
-                  hideValues={hideValues}
                 />
               </div>
               {/* Gap/Surplus to FI */}

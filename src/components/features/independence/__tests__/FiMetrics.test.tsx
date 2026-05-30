@@ -123,10 +123,9 @@ describe("FiMetrics", () => {
 
   it("displays formula breakdown for FI Number", () => {
     render(<FiMetrics {...defaultProps} />)
-    // Text includes currency code inline with the formula
-    const formulaText = screen.getByText(/Based on/)
+    // Compact form: "NZD5,000/mo × 12 × 25"
+    const formulaText = screen.getByText(/\/mo × 12 × 25/)
     expect(formulaText).toHaveTextContent("5,000")
-    expect(formulaText).toHaveTextContent("/mo net expenses × 12 × 25")
   })
 
   it("shows current assets on progress scale", () => {
