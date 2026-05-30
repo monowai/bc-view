@@ -528,16 +528,85 @@ describe("FiMetrics", () => {
       expect(labels).toEqual(["Retirement-Age FI", "Income Coverage"])
     })
 
-    it("shows retirement-age FI banner inside Pension section", () => {
+    it("shows green funded banner when bridge is covered (bridgeProgress >= 100)", () => {
       render(
         <FiMetrics
           {...defaultProps}
-          backendFiMetrics={mkFi({ retirementAgeFiProgress: 100 })}
+          backendFiMetrics={mkFi({
+            retirementAgeFiProgress: 106.6,
+            bridgeProgress: 120,
+            bridgeYearsNeeded: 13,
+          })}
         />,
       )
       expect(
-        screen.getByText("On Track for FI at Retirement"),
+        screen.getByText("Funded — liquid covers the gap to your pension"),
       ).toBeInTheDocument()
+    })
+
+    it("shows amber banner when lifetime funded but bridge is partial (60-99%)", () => {
+      render(
+        <FiMetrics
+          {...defaultProps}
+          backendFiMetrics={mkFi({
+            retirementAgeFiProgress: 106.6,
+            bridgeProgress: 70,
+            bridgeYearsNeeded: 13,
+          })}
+        />,
+      )
+      expect(
+        screen.getByText(
+          "Lifetime funded — but liquid may run short before pension",
+        ),
+      ).toBeInTheDocument()
+    })
+
+    it("shows orange banner when bridge gap is significant (<60%)", () => {
+      render(
+        <FiMetrics
+          {...defaultProps}
+          backendFiMetrics={mkFi({
+            retirementAgeFiProgress: 106.6,
+            bridgeProgress: 40,
+            bridgeYearsNeeded: 13,
+          })}
+        />,
+      )
+      expect(
+        screen.getByText(
+          "Lifetime funded — bridge gap to pension is significant",
+        ),
+      ).toBeInTheDocument()
+    })
+
+    it("treats missing bridgeProgress as no-bridge-needed (green banner)", () => {
+      render(
+        <FiMetrics
+          {...defaultProps}
+          backendFiMetrics={mkFi({
+            retirementAgeFiProgress: 106.6,
+            // bridgeProgress omitted — user already past pension start
+          })}
+        />,
+      )
+      expect(
+        screen.getByText("Funded — liquid covers the gap to your pension"),
+      ).toBeInTheDocument()
+    })
+
+    it("shows no funded banner when lifetime FI is not yet achieved", () => {
+      render(
+        <FiMetrics
+          {...defaultProps}
+          backendFiMetrics={mkFi({
+            retirementAgeFiProgress: 85,
+            bridgeProgress: 120,
+          })}
+        />,
+      )
+      expect(screen.queryByText(/Funded — /)).not.toBeInTheDocument()
+      expect(screen.queryByText(/Lifetime funded/)).not.toBeInTheDocument()
     })
 
     it("shows Active badge on FIRE Strategy when effective strategy is FIRE", () => {
@@ -602,7 +671,7 @@ describe("FiMetrics", () => {
       expect(screen.queryByText("Bridge Strategy")).not.toBeInTheDocument()
     })
 
-    it("hides retirement-age FI banner when classic FI already achieved", () => {
+    it("hides funded banner when classic FI already achieved", () => {
       render(
         <FiMetrics
           {...defaultProps}
@@ -612,9 +681,8 @@ describe("FiMetrics", () => {
       )
       // Classic banner wins; pension banner stays hidden to avoid duplication
       expect(screen.getByText("Financially Independent!")).toBeInTheDocument()
-      expect(
-        screen.queryByText("On Track for FI at Retirement"),
-      ).not.toBeInTheDocument()
+      expect(screen.queryByText(/Funded — /)).not.toBeInTheDocument()
+      expect(screen.queryByText(/Lifetime funded/)).not.toBeInTheDocument()
     })
   })
 })
