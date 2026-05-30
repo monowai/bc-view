@@ -66,7 +66,7 @@ export const TABS: TabConfig[] = [
   },
   {
     id: "assets",
-    label: "My Assets",
+    label: "Metrics",
     icon: "fa-wallet",
     byline:
       "What you have today, what it could become, and what it means for independence.",

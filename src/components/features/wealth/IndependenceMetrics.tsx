@@ -3,7 +3,8 @@ import Link from "next/link"
 import useSwr from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import { Currency, Transaction } from "types/beancounter"
-import { RetirementPlan, RetirementProjection } from "types/independence"
+import type { RetirementPlan, RetirementProjection } from "types/independence"
+import { pickHeadlineGauge } from "@utils/independence/headlineGauge"
 import Spinner from "@components/ui/Spinner"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 
@@ -145,54 +146,64 @@ export default function IndependenceMetrics({
               })()}
             </div>
 
-            {/* FI Progress - show loading skeleton or data */}
-            {(projectionLoading || projectionData) && (
-              <div className="bg-linear-to-br from-green-50 to-emerald-50 rounded-lg p-4">
-                <p className="text-sm text-gray-600 mb-1">FI Progress</p>
-                {projectionLoading && !projectionData ? (
-                  <>
-                    <div className="h-9 w-20 bg-gray-200 rounded animate-pulse"></div>
-                    <div className="mt-2 bg-gray-200 rounded-full h-2">
-                      <div className="bg-gray-300 h-2 rounded-full w-0"></div>
-                    </div>
-                    <div className="h-4 w-32 bg-gray-200 rounded animate-pulse mt-2"></div>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-baseline gap-2">
-                      {hideValues ? (
-                        <span className="text-3xl font-bold text-gray-400">
-                          ****
-                        </span>
-                      ) : (
-                        <span className="text-3xl font-bold text-green-600">
-                          {projectionData?.fiMetrics?.fiProgress?.toFixed(1) ??
-                            "0"}
-                          %
-                        </span>
-                      )}
-                    </div>
-                    <div className="mt-2 bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-green-500 h-2 rounded-full transition-all"
-                        style={{
-                          width: hideValues
-                            ? "0%"
-                            : `${Math.min(projectionData?.fiMetrics?.fiProgress ?? 0, 100)}%`,
-                        }}
-                      />
-                    </div>
-                    <p className="text-xs text-gray-500 mt-2">
-                      {hideValues
-                        ? ""
-                        : projectionData?.fiMetrics?.isFinanciallyIndependent
-                          ? "Financially Independent!"
-                          : "Progress toward FI Number"}
+            {/* Headline progress — driven by the plan's effective headline
+                metric. Falls back to Early Retirement Progress when the
+                selected metric has no value. */}
+            {(projectionLoading || projectionData) &&
+              (() => {
+                const headline = pickHeadlineGauge(
+                  projectionData?.effectiveHeadlineMetric,
+                  projectionData?.fiMetrics,
+                )
+                return (
+                  <div className="bg-linear-to-br from-green-50 to-emerald-50 rounded-lg p-4">
+                    <p className="text-sm text-gray-600 mb-1">
+                      {headline.label}
                     </p>
-                  </>
-                )}
-              </div>
-            )}
+                    {projectionLoading && !projectionData ? (
+                      <>
+                        <div className="h-9 w-20 bg-gray-200 rounded animate-pulse"></div>
+                        <div className="mt-2 bg-gray-200 rounded-full h-2">
+                          <div className="bg-gray-300 h-2 rounded-full w-0"></div>
+                        </div>
+                        <div className="h-4 w-32 bg-gray-200 rounded animate-pulse mt-2"></div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-baseline gap-2">
+                          {hideValues ? (
+                            <span className="text-3xl font-bold text-gray-400">
+                              ****
+                            </span>
+                          ) : (
+                            <span className="text-3xl font-bold text-green-600">
+                              {headline.display}
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-2 bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-green-500 h-2 rounded-full transition-all"
+                            style={{
+                              width: hideValues
+                                ? "0%"
+                                : `${headline.fillPercent}%`,
+                            }}
+                          />
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2">
+                          {hideValues
+                            ? ""
+                            : projectionData?.fiMetrics
+                                  ?.isFinanciallyIndependent
+                              ? "Financially Independent!"
+                              : headline.byline}
+                        </p>
+                      </>
+                    )}
+                  </div>
+                )
+              })()}
 
             {/* Years to FI */}
             {(projectionLoading || projectionData) && (

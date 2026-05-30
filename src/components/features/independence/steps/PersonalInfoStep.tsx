@@ -177,6 +177,80 @@ export default function PersonalInfoStep({
           </p>
         </div>
 
+        <div>
+          <label
+            htmlFor="primaryStrategy"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Primary Strategy
+            <span className="ml-1 text-xs font-normal text-gray-500">
+              (optional)
+            </span>
+          </label>
+          <Controller
+            name="primaryStrategy"
+            control={control}
+            render={({ field }) => (
+              <select
+                {...field}
+                value={field.value ?? ""}
+                id="primaryStrategy"
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 border-gray-300"
+              >
+                <option value="">Auto-detect from plan</option>
+                <option value="FIRE">FIRE — live off liquid investments</option>
+                <option value="PENSION">
+                  Pension — rely on guaranteed income
+                </option>
+                <option value="HYBRID">
+                  Hybrid — bridge liquid until pensions start
+                </option>
+              </select>
+            )}
+          />
+          <p className="mt-1 text-sm text-gray-500">
+            Pins which section of the Retirement Strategies panel is
+            highlighted. Auto-detect picks the one that best matches your plan
+            inputs.
+          </p>
+        </div>
+
+        <div>
+          <label
+            htmlFor="headlineMetric"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Headline Metric
+            <span className="ml-1 text-xs font-normal text-gray-500">
+              (optional)
+            </span>
+          </label>
+          <Controller
+            name="headlineMetric"
+            control={control}
+            render={({ field }) => (
+              <select
+                {...field}
+                value={field.value ?? ""}
+                id="headlineMetric"
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 border-gray-300"
+              >
+                <option value="">Default (match strategy)</option>
+                <option value="EARLY_RETIREMENT_PROGRESS">
+                  Early Retirement Progress
+                </option>
+                <option value="RETIREMENT_AGE_FI">Retirement-Age FI</option>
+                <option value="INCOME_COVERAGE">Income Coverage</option>
+                <option value="BRIDGE_PROGRESS">Bridge Progress</option>
+              </select>
+            )}
+          />
+          <p className="mt-1 text-sm text-gray-500">
+            Picks the metric featured in the projection header and on the Wealth
+            management tab.
+          </p>
+        </div>
+
         {/* Read-only settings display */}
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">

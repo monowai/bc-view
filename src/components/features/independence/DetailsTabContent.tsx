@@ -1,11 +1,13 @@
 import React from "react"
 import InfoTooltip from "@components/ui/Tooltip"
 import { RetirementPlan, RetirementProjection } from "types/independence"
-import { HIDDEN_VALUE } from "@lib/independence/planHelpers"
+import { AllocationSlice } from "@lib/allocation/aggregateHoldings"
+import { HIDDEN_VALUE, PensionProjection } from "@lib/independence/planHelpers"
 import {
   WhatIfAdjustments,
   ScenarioOverrides,
   RentalIncomeData,
+  AssetsBreakdown,
 } from "@components/features/independence"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 
@@ -18,6 +20,24 @@ interface DetailsTabContentProps {
   effectiveCurrency: string
   planCurrency: string
   onEditDetails: () => void
+  // Props for Assets by Category — swapped in from the Metrics tab.
+  categorySlices: AllocationSlice[]
+  spendableCategories: string[]
+  onToggleCategory: (category: string) => void
+  pensionProjections: PensionProjection[]
+  totalAssets: number
+  liquidAssets: number
+  blendedReturnRate: number
+  currentAge: number | undefined
+  retirementAge: number
+  effectiveFxRate: number
+  isCalculating: boolean
+  holdingsLoaded: boolean
+  usingManualAssets: boolean
+  isRefreshingHoldings: boolean
+  onRefreshHoldings: () => void
+  excludedPensionFV: number
+  includedPensionFvDifferential: number
 }
 
 export default function DetailsTabContent({
@@ -29,6 +49,23 @@ export default function DetailsTabContent({
   effectiveCurrency,
   planCurrency,
   onEditDetails,
+  categorySlices,
+  spendableCategories,
+  onToggleCategory,
+  pensionProjections,
+  totalAssets,
+  liquidAssets,
+  blendedReturnRate,
+  currentAge,
+  retirementAge,
+  effectiveFxRate,
+  isCalculating,
+  holdingsLoaded,
+  usingManualAssets,
+  isRefreshingHoldings,
+  onRefreshHoldings,
+  excludedPensionFV,
+  includedPensionFvDifferential,
 }: DetailsTabContentProps): React.ReactElement {
   const { hideValues } = usePrivacyMode()
 
@@ -233,143 +270,29 @@ export default function DetailsTabContent({
         </div>
       </div>
 
-      {/* Sustainable Spending */}
-      {projection?.sustainableMonthlyExpense != null && (
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Sustainable Spending
-          </h2>
-          <div className="space-y-3">
-            <div>
-              <span className="text-xs text-gray-500 uppercase tracking-wide">
-                Monthly Expense Budget
-              </span>
-              <div
-                className={`text-2xl font-bold ${hideValues ? "text-gray-400" : "text-green-600"}`}
-              >
-                {hideValues
-                  ? HIDDEN_VALUE
-                  : `${detailsCurrency}${Math.round(projection.sustainableMonthlyExpense).toLocaleString()}`}
-              </div>
-            </div>
-            {projection.sustainableTargetBalance != null &&
-              projection.sustainableTargetBalance > 0 && (
-                <div className="text-sm text-gray-500">
-                  Targeting{" "}
-                  {hideValues
-                    ? HIDDEN_VALUE
-                    : `${detailsCurrency}${Math.round(projection.sustainableTargetBalance).toLocaleString()}`}{" "}
-                  ending balance
-                </div>
-              )}
-            <div className="text-xs text-amber-600 bg-amber-50 rounded px-2 py-1">
-              Assumes steady returns with no market volatility. Use Stress Test
-              for a range of outcomes.
-            </div>
-            <hr />
-            {projection.expenseAdjustment != null &&
-              projection.expenseAdjustmentPercent != null && (
-                <div
-                  className={`text-sm font-medium ${
-                    projection.expenseAdjustment >= 0
-                      ? "text-green-600"
-                      : "text-red-600"
-                  }`}
-                >
-                  {hideValues ? (
-                    <span className="text-gray-400">{HIDDEN_VALUE}</span>
-                  ) : projection.expenseAdjustment >= 0 ? (
-                    <>
-                      <i className="fas fa-arrow-up mr-1"></i>
-                      Room to increase +{detailsCurrency}
-                      {Math.round(
-                        projection.expenseAdjustment,
-                      ).toLocaleString()}
-                      /mo (+
-                      {projection.expenseAdjustmentPercent.toFixed(1)}
-                      %)
-                    </>
-                  ) : (
-                    <>
-                      <i className="fas fa-arrow-down mr-1"></i>
-                      Need to reduce {detailsCurrency}
-                      {Math.round(
-                        projection.expenseAdjustment,
-                      ).toLocaleString()}
-                      /mo ({projection.expenseAdjustmentPercent.toFixed(1)}
-                      %)
-                    </>
-                  )}
-                </div>
-              )}
-            {/* With-liquidation figure */}
-            {projection.sustainableWithLiquidation != null &&
-              projection.sustainableWithLiquidation !==
-                projection.sustainableMonthlyExpense && (
-                <>
-                  <hr />
-                  <div>
-                    <span className="text-xs text-gray-500 uppercase tracking-wide">
-                      Including Asset Disposal
-                    </span>
-                    <div
-                      className={`text-xl font-bold ${hideValues ? "text-gray-400" : "text-blue-600"}`}
-                    >
-                      {hideValues
-                        ? HIDDEN_VALUE
-                        : `${detailsCurrency}${Math.round(projection.sustainableWithLiquidation).toLocaleString()}`}
-                      <span className="text-sm font-normal text-gray-500">
-                        /mo
-                      </span>
-                    </div>
-                    {projection.liquidationAge != null && (
-                      <div className="text-sm text-gray-500">
-                        Property disposal from age {projection.liquidationAge}
-                      </div>
-                    )}
-                    {projection.adjustmentWithLiquidation != null &&
-                      projection.adjustmentPercentWithLiquidation != null && (
-                        <div
-                          className={`text-sm font-medium ${
-                            projection.adjustmentWithLiquidation >= 0
-                              ? "text-blue-600"
-                              : "text-red-600"
-                          }`}
-                        >
-                          {!hideValues &&
-                            (projection.adjustmentWithLiquidation >= 0 ? (
-                              <>
-                                +{detailsCurrency}
-                                {Math.round(
-                                  projection.adjustmentWithLiquidation,
-                                ).toLocaleString()}
-                                /mo (+
-                                {projection.adjustmentPercentWithLiquidation.toFixed(
-                                  1,
-                                )}
-                                %)
-                              </>
-                            ) : (
-                              <>
-                                {detailsCurrency}
-                                {Math.round(
-                                  projection.adjustmentWithLiquidation,
-                                ).toLocaleString()}
-                                /mo (
-                                {projection.adjustmentPercentWithLiquidation.toFixed(
-                                  1,
-                                )}
-                                %)
-                              </>
-                            ))}
-                        </div>
-                      )}
-                  </div>
-                </>
-              )}
-          </div>
-        </div>
-      )}
+      {/* Assets by Category — swapped in from the Metrics tab. */}
+      <AssetsBreakdown
+        projection={projection}
+        categorySlices={categorySlices}
+        spendableCategories={spendableCategories}
+        onToggleCategory={onToggleCategory}
+        pensionProjections={pensionProjections}
+        totalAssets={totalAssets}
+        liquidAssets={liquidAssets}
+        blendedReturnRate={blendedReturnRate}
+        currentAge={currentAge}
+        retirementAge={retirementAge}
+        effectiveCurrency={effectiveCurrency}
+        effectiveFxRate={effectiveFxRate}
+        isCalculating={isCalculating}
+        holdingsLoaded={holdingsLoaded}
+        usingManualAssets={usingManualAssets}
+        isRefreshingHoldings={isRefreshingHoldings}
+        onRefreshHoldings={onRefreshHoldings}
+        excludedPensionFV={excludedPensionFV}
+        includedPensionFvDifferential={includedPensionFvDifferential}
+      />
+
       {/* Income Reducing Your FI Target */}
       {projection?.fiMetrics && projection.fiMetrics.totalMonthlyIncome > 0 && (
         <div className="col-span-1 lg:col-span-2 bg-white rounded-xl shadow-md p-6">

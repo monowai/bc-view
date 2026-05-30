@@ -1,22 +1,23 @@
 import React, { useState } from "react"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
-import PrivateCurrency, {
-  PrivatePercentage,
-  HIDDEN_VALUE,
-} from "@components/ui/PrivateCurrency"
+import PrivateCurrency, { HIDDEN_VALUE } from "@components/ui/PrivateCurrency"
 import Tooltip from "@components/ui/Tooltip"
 import {
   calculateFiProgress,
   calculateGapToFi,
   isFinanciallyIndependent,
-  clampFiProgress,
 } from "@utils/independence/fiCalculations"
 import {
   getProgressBgColor,
   getProgressTextColor,
   getGapColorScheme,
 } from "@utils/independence/fiColorThemes"
-import type { ProjectionWarning } from "types/independence"
+import type {
+  FiMetrics as FiMetricsType,
+  HeadlineMetric,
+  ProjectionWarning,
+} from "types/independence"
+import { pickHeadlineGauge } from "@utils/independence/headlineGauge"
 
 /** Warning messages for actual data quality issues */
 const ProjectionWarningMessages: Record<string, string> = {
@@ -52,8 +53,17 @@ interface FiSummaryBarProps {
   currentAge?: number
   /** Real years to FI at current savings rate */
   realYearsToFi?: number
-  /** Pre-calculated FI Progress from backend (overrides local calculation) */
-  backendFiProgress?: number
+  /**
+   * Full backend FiMetrics. Drives the headline gauge (via headlineMetric),
+   * FI Progress fallback, and any other metric-derived display. Optional so
+   * the bar can render before the projection lands.
+   */
+  fiMetrics?: FiMetricsType
+  /**
+   * Effective headline metric — picks which gauge sits in the first slot.
+   * Falls back to EARLY_RETIREMENT_PROGRESS when omitted.
+   */
+  headlineMetric?: HeadlineMetric
   /** Data quality warnings from backend */
   warnings?: ProjectionWarning[]
 }
@@ -71,7 +81,8 @@ export default function FiSummaryBar({
   yearsToRetirement,
   currentAge,
   realYearsToFi,
-  backendFiProgress,
+  fiMetrics,
+  headlineMetric = "EARLY_RETIREMENT_PROGRESS",
   warnings = [],
 }: FiSummaryBarProps): React.ReactElement {
   const { hideValues } = usePrivacyMode()
@@ -80,20 +91,20 @@ export default function FiSummaryBar({
   // Filter warnings to only show actual errors (not valid empty states like "no assets")
   const errorWarnings = warnings.filter((w) => ERROR_WARNINGS.includes(w))
 
-  // Use backend FI Progress if valid and > 0, otherwise calculate locally
-  // Using || ensures we fallback to local calculation when backend returns 0
-  // (e.g., when currency mismatch prevents passing assets to backend)
+  // Use backend FI Progress if valid and > 0, otherwise calculate locally.
+  // The || fallback covers the currency-mismatch case where backend returns 0.
   const localFiProgress = calculateFiProgress(liquidAssets, fiNumber)
-  const fiProgress = backendFiProgress || localFiProgress
-  const fiProgressClamped = clampFiProgress(fiProgress)
+  const fiProgress = fiMetrics?.fiProgress || localFiProgress
   const isFi = isFinanciallyIndependent(fiProgress)
 
-  // Always calculate Gap locally using current liquidAssets
-  // This ensures What-If scenario changes are reflected immediately
+  // Always calculate Gap locally using current liquidAssets so What-If
+  // scenario changes are reflected immediately.
   const gapToFi = calculateGapToFi(fiNumber, liquidAssets)
   const gapColors = getGapColorScheme(gapToFi)
 
   const hasWarnings = errorWarnings.length > 0
+
+  const headlineGauge = pickHeadlineGauge(headlineMetric, fiMetrics)
 
   return (
     <div className="space-y-2 mb-4">
@@ -130,18 +141,26 @@ export default function FiSummaryBar({
       {/* FIRE metrics bar */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
         <div className="flex flex-wrap items-center gap-6">
-          {/* FI Progress */}
+          {/* Headline gauge — picked by the plan's headlineMetric. */}
           <div className="flex items-center gap-3">
             <div className="flex flex-col">
               <span className="text-xs text-gray-500 uppercase tracking-wide">
-                FI Progress
+                {headlineGauge.label}
               </span>
               <div className="flex items-center gap-2">
-                <PrivatePercentage
-                  value={fiProgress}
-                  hideValues={hideValues}
-                  className={`text-lg font-bold ${getProgressTextColor(fiProgress)}`}
-                />
+                {hideValues ? (
+                  <span
+                    className={`text-lg font-bold ${getProgressTextColor(headlineGauge.value)}`}
+                  >
+                    {HIDDEN_VALUE}
+                  </span>
+                ) : (
+                  <span
+                    className={`text-lg font-bold ${getProgressTextColor(headlineGauge.value)}`}
+                  >
+                    {headlineGauge.display}
+                  </span>
+                )}
                 {isFi && !hideValues && (
                   <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
                     FI!
@@ -152,8 +171,10 @@ export default function FiSummaryBar({
             {/* Mini progress bar */}
             <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
               <div
-                className={`h-full ${getProgressBgColor(fiProgress)} transition-all duration-500`}
-                style={{ width: hideValues ? "0%" : `${fiProgressClamped}%` }}
+                className={`h-full ${getProgressBgColor(headlineGauge.value)} transition-all duration-500`}
+                style={{
+                  width: hideValues ? "0%" : `${headlineGauge.fillPercent}%`,
+                }}
               />
             </div>
           </div>
