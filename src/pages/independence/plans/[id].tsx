@@ -7,28 +7,27 @@ import { Position } from "types/beancounter"
 import { transformToAllocationSlices } from "@lib/allocation/aggregateHoldings"
 import { ValueIn } from "@components/features/holdings/GroupByOptions"
 import {
-  WhatIfAdjustments,
-  ScenarioOverrides,
   TabId,
   TABS,
   DEFAULT_NON_SPENDABLE_CATEGORIES,
   INCOME_STREAM_CATEGORIES,
-  DEFAULT_WHAT_IF_ADJUSTMENTS,
-  hasScenarioChanges,
   useUnifiedProjection,
   RentalIncomeData,
-  WhatIfModal,
   SaveScenarioDialog,
   EditPlanDetailsModal,
   MonteCarloTab,
-  FiSummaryBar,
   PlanViewHeader,
   PlanTabNavigation,
-  AnalysisToolbar,
   DetailsTabContent,
   AssetsTabContent,
   TimelineTabContent,
+  ScenarioBar,
 } from "@components/features/independence"
+import { useScenario } from "@components/features/independence/scenario/useScenario"
+import {
+  applyRealReturn,
+  blendedReturnRate as computeBlendedReturnRate,
+} from "@components/features/independence/scenario/scenarioToPayload"
 import { usePrivateAssetConfigs } from "@utils/assets/usePrivateAssetConfigs"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import { useIndependencePlanData } from "@hooks/useIndependencePlanData"
@@ -58,26 +57,12 @@ function PlanView(): React.ReactElement {
   const [selectedPortfolioIds, setSelectedPortfolioIds] = useState<string[]>([])
   const [spendableCategories, setSpendableCategories] = useState<string[]>([])
 
-  // What-If state
-  const [whatIfAdjustments, setWhatIfAdjustments] = useState<WhatIfAdjustments>(
-    DEFAULT_WHAT_IF_ADJUSTMENTS,
-  )
-
-  // Selected quick scenarios (can select multiple)
-  const [selectedScenarioIds, setSelectedScenarioIds] = useState<string[]>([])
-
   // Save dialog state
   const [showSaveDialog, setShowSaveDialog] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
 
-  // Scenario overrides - holds edited values until user decides to save
-  const [scenarioOverrides, setScenarioOverrides] = useState<ScenarioOverrides>(
-    {},
-  )
-
   // Edit details modal state
   const [showEditDetailsModal, setShowEditDetailsModal] = useState(false)
-  const [showWhatIfModal, setShowWhatIfModal] = useState(false)
   // Version counter to force modal re-initialization after save
   const [planVersion, setPlanVersion] = useState(0)
 
@@ -90,10 +75,18 @@ function PlanView(): React.ReactElement {
     holdingsData,
     refreshHoldings,
     isRefreshingHoldings,
-    quickScenarios,
     availableCurrencies,
     mutatePlan,
   } = useIndependencePlanData(id)
+
+  // Unified scenario state — replaces the old WhatIfAdjustments + ScenarioOverrides
+  // split. Drives the projection, Stress Test and Wealth-tab card.
+  const {
+    scenario,
+    setScenario,
+    reset: resetScenario,
+    isDirty: scenarioIsDirty,
+  } = useScenario(plan, independenceSettings)
 
   const [isTransferring, setIsTransferring] = useState(false)
   const [transferError, setTransferError] = useState<string | null>(null)
@@ -105,10 +98,8 @@ function PlanView(): React.ReactElement {
     usePrivateAssetConfigs()
 
   // Resolve asset IDs belonging to excluded portfolios (for rental income filtering)
-  const effectiveExcluded =
-    scenarioOverrides.excludedPortfolioIds ?? plan?.excludedPortfolioIds
   const excludedAssetIds = useExcludedAssetIds(
-    effectiveExcluded,
+    plan?.excludedPortfolioIds,
     portfoliosData?.data,
   )
 
@@ -141,30 +132,28 @@ function PlanView(): React.ReactElement {
     }
   }, [monthlyNetByCurrency])
 
-  // Effective plan values: What-If (scenarioOverrides) takes precedence over plan values
-  // These are the values used for ALL calculations - What-If always overrides plan
+  // Effective plan values: the slider-driven scenario takes precedence over
+  // the saved plan. Used by tabs that need a per-field view of the active
+  // scenario (e.g. DetailsTabContent reading monthlyExpenses).
   const effectivePlanValues = useMemo(() => {
     if (!plan) return null
+    const rates = applyRealReturn(scenario, plan)
     return {
-      monthlyExpenses:
-        scenarioOverrides.monthlyExpenses ?? plan.monthlyExpenses,
-      cashReturnRate: scenarioOverrides.cashReturnRate ?? plan.cashReturnRate,
-      equityReturnRate:
-        scenarioOverrides.equityReturnRate ?? plan.equityReturnRate,
-      housingReturnRate:
-        scenarioOverrides.housingReturnRate ?? plan.housingReturnRate,
-      inflationRate: scenarioOverrides.inflationRate ?? plan.inflationRate,
-      pensionMonthly: scenarioOverrides.pensionMonthly ?? plan.pensionMonthly,
-      socialSecurityMonthly:
-        scenarioOverrides.socialSecurityMonthly ?? plan.socialSecurityMonthly,
-      otherIncomeMonthly:
-        scenarioOverrides.otherIncomeMonthly ?? plan.otherIncomeMonthly,
-      targetBalance: scenarioOverrides.targetBalance ?? plan.targetBalance,
+      monthlyExpenses: scenario.monthlyExpenses,
+      cashReturnRate: rates.cashReturnRate,
+      equityReturnRate: rates.equityReturnRate,
+      housingReturnRate: rates.housingReturnRate,
+      inflationRate: scenario.inflation,
+      pensionMonthly: scenario.pensionMonthly,
+      // Slider-level merge: SS is folded into otherIncomeMonthly.
+      socialSecurityMonthly: 0,
+      otherIncomeMonthly: scenario.otherIncomeMonthly,
+      targetBalance: plan.targetBalance,
       cashAllocation: plan.cashAllocation,
       equityAllocation: plan.equityAllocation,
       housingAllocation: plan.housingAllocation,
     }
-  }, [plan, scenarioOverrides])
+  }, [plan, scenario])
 
   // Check if asset allocation sums to 100% (allowing 1% tolerance for rounding)
   // Note: allocations are stored as decimals (0.20 = 20%), so we compare against 1.0
@@ -421,10 +410,8 @@ function PlanView(): React.ReactElement {
   }, [pensionProjections, effectiveSpendableCategories])
 
   // Calculate pre-retirement contributions (for passing to backend)
-  const effectiveWorkingIncome =
-    scenarioOverrides.workingIncomeMonthly ?? plan?.workingIncomeMonthly ?? 0
   const effectiveNetIncome =
-    effectiveWorkingIncome +
+    (plan?.workingIncomeMonthly ?? 0) +
     (plan?.bonusMonthly ?? 0) -
     (plan?.taxesMonthly ?? 0)
   const monthlySurplus =
@@ -433,59 +420,6 @@ function PlanView(): React.ReactElement {
     monthlySurplus > 0
       ? monthlySurplus * (plan?.investmentAllocationPercent || 0.8)
       : 0
-
-  // Combine What-If adjustments with selected quick scenarios
-  const combinedAdjustments = useMemo((): WhatIfAdjustments => {
-    let result = whatIfAdjustments
-
-    if (selectedScenarioIds.length > 0) {
-      const selected = quickScenarios.filter((s) =>
-        selectedScenarioIds.includes(s.id),
-      )
-
-      result = selected.reduce(
-        (acc, scenario) => ({
-          ...acc,
-          retirementAgeOffset:
-            acc.retirementAgeOffset + scenario.retirementAgeOffset,
-          returnRateOffset: acc.returnRateOffset + scenario.returnRateOffset,
-          inflationOffset: acc.inflationOffset + scenario.inflationOffset,
-          expensesPercent: Math.round(
-            (acc.expensesPercent * scenario.expensesPercent) / 100,
-          ),
-          contributionPercent: Math.round(
-            (acc.contributionPercent * scenario.contributionPercent) / 100,
-          ),
-        }),
-        { ...whatIfAdjustments },
-      )
-    }
-
-    // Ensure retirement age offset doesn't push effective age below current age
-    if (currentAge !== undefined) {
-      const minOffset = currentAge - retirementAge
-      if (result.retirementAgeOffset < minOffset) {
-        result = { ...result, retirementAgeOffset: minOffset }
-      }
-    }
-
-    return result
-  }, [
-    whatIfAdjustments,
-    selectedScenarioIds,
-    quickScenarios,
-    currentAge,
-    retirementAge,
-  ])
-
-  // Toggle a quick scenario selection
-  const toggleScenario = (scenarioId: string): void => {
-    setSelectedScenarioIds((prev) =>
-      prev.includes(scenarioId)
-        ? prev.filter((id) => id !== scenarioId)
-        : [...prev, scenarioId],
-    )
-  }
 
   // Use unified projection hook
   const {
@@ -502,12 +436,9 @@ function PlanView(): React.ReactElement {
       hasAssets,
     },
     selectedPortfolioIds,
-    currentAge,
-    retirementAge,
-    lifeExpectancy,
     monthlyInvestment,
-    whatIfAdjustments: combinedAdjustments,
-    scenarioOverrides,
+    scenario,
+    isAtBaseline: !scenarioIsDirty,
     rentalIncome,
     displayCurrency: displayCurrency ?? undefined,
   })
@@ -614,18 +545,39 @@ function PlanView(): React.ReactElement {
     }
   }
 
-  // Reset what-if adjustments
-  const resetWhatIf = (): void => {
-    setWhatIfAdjustments(DEFAULT_WHAT_IF_ADJUSTMENTS)
-  }
-
-  // Apply edited values to local scenario state (not saved to backend yet)
-  const handleApplyDetails = (overrides: ScenarioOverrides): void => {
-    setScenarioOverrides(overrides)
+  // EditPlanDetailsModal still emits an old ScenarioOverrides shape; bridge
+  // those edits into the unified scenario state so the modal keeps working.
+  const handleApplyDetails = (overrides: {
+    monthlyExpenses?: number
+    pensionMonthly?: number
+    socialSecurityMonthly?: number
+    otherIncomeMonthly?: number
+    inflationRate?: number
+  }): void => {
+    setScenario({
+      ...(overrides.monthlyExpenses != null && {
+        monthlyExpenses: overrides.monthlyExpenses,
+      }),
+      ...(overrides.pensionMonthly != null && {
+        pensionMonthly: overrides.pensionMonthly,
+      }),
+      ...((overrides.socialSecurityMonthly != null ||
+        overrides.otherIncomeMonthly != null) && {
+        otherIncomeMonthly:
+          (overrides.otherIncomeMonthly ?? 0) +
+          (overrides.socialSecurityMonthly ?? 0),
+      }),
+      ...(overrides.inflationRate != null && {
+        inflation: overrides.inflationRate,
+      }),
+    })
     setShowEditDetailsModal(false)
   }
 
-  // Save scenario to backend (update existing or create new plan)
+  // Save scenario to backend (update existing or create new plan). Maps the
+  // unified ScenarioState back into the plan-shaped fields the backend
+  // PlanRequest expects. Liquid assets, currentAge and lifeExpectancy are
+  // NOT persisted via this path — they live on holdings + UserSettings.
   const handleSaveScenario = async (
     mode: "update" | "new",
     newPlanName?: string,
@@ -633,35 +585,30 @@ function PlanView(): React.ReactElement {
     if (!plan) return
     setIsSaving(true)
     try {
+      const rates = applyRealReturn(scenario, plan)
       const updates = {
         name: plan.name,
-        monthlyExpenses:
-          scenarioOverrides.monthlyExpenses ?? plan.monthlyExpenses,
-        pensionMonthly: scenarioOverrides.pensionMonthly ?? plan.pensionMonthly,
-        socialSecurityMonthly:
-          scenarioOverrides.socialSecurityMonthly ?? plan.socialSecurityMonthly,
-        benefitsStartAge:
-          scenarioOverrides.benefitsStartAge ?? plan.benefitsStartAge,
-        otherIncomeMonthly:
-          scenarioOverrides.otherIncomeMonthly ?? plan.otherIncomeMonthly,
-        inflationRate: scenarioOverrides.inflationRate ?? plan.inflationRate,
-        targetBalance: scenarioOverrides.targetBalance ?? plan.targetBalance,
-        equityReturnRate:
-          scenarioOverrides.equityReturnRate ?? plan.equityReturnRate,
-        cashReturnRate: scenarioOverrides.cashReturnRate ?? plan.cashReturnRate,
-        housingReturnRate:
-          scenarioOverrides.housingReturnRate ?? plan.housingReturnRate,
-        equityAllocation:
-          scenarioOverrides.equityAllocation ?? plan.equityAllocation,
-        cashAllocation: scenarioOverrides.cashAllocation ?? plan.cashAllocation,
-        housingAllocation:
-          scenarioOverrides.housingAllocation ?? plan.housingAllocation,
-        excludedPortfolioIds:
-          scenarioOverrides.excludedPortfolioIds ??
-          parseExcludedPortfolioIds(plan.excludedPortfolioIds),
-        excludedRentalAssetIds:
-          scenarioOverrides.excludedRentalAssetIds ??
-          parseExcludedRentalAssetIds(plan.excludedRentalAssetIds),
+        monthlyExpenses: scenario.monthlyExpenses,
+        pensionMonthly: scenario.pensionMonthly,
+        // Slider-level merge: SS is folded into otherIncomeMonthly. We zero
+        // socialSecurityMonthly so the backend sees a single stream.
+        socialSecurityMonthly: 0,
+        benefitsStartAge: plan.benefitsStartAge,
+        otherIncomeMonthly: scenario.otherIncomeMonthly,
+        inflationRate: scenario.inflation,
+        targetBalance: plan.targetBalance,
+        equityReturnRate: rates.equityReturnRate,
+        cashReturnRate: rates.cashReturnRate,
+        housingReturnRate: rates.housingReturnRate,
+        equityAllocation: plan.equityAllocation,
+        cashAllocation: plan.cashAllocation,
+        housingAllocation: plan.housingAllocation,
+        excludedPortfolioIds: parseExcludedPortfolioIds(
+          plan.excludedPortfolioIds,
+        ),
+        excludedRentalAssetIds: parseExcludedRentalAssetIds(
+          plan.excludedRentalAssetIds,
+        ),
       }
 
       if (mode === "update") {
@@ -673,12 +620,11 @@ function PlanView(): React.ReactElement {
         if (response.ok) {
           const updatedPlan = await response.json()
           await mutatePlan(updatedPlan, false)
-          setScenarioOverrides({})
+          resetScenario()
           setShowSaveDialog(false)
           setPlanVersion((v) => v + 1)
         }
       } else {
-        // Deep copy the plan (including expenses and contributions) via backend
         const copyName = newPlanName || `${plan.name} (Scenario)`
         const copyResponse = await fetch(
           `/api/independence/plans/${plan.id}/copy`,
@@ -691,26 +637,18 @@ function PlanView(): React.ReactElement {
         if (copyResponse.ok) {
           const copyResult = await copyResponse.json()
           const newPlanId = copyResult.data.id
-          // Apply scenario overrides to the copied plan
-          const hasOverrides = Object.keys(updates).some(
-            (key) =>
-              updates[key as keyof typeof updates] !==
-              plan[key as keyof typeof plan],
+          const patchResponse = await fetch(
+            `/api/independence/plans/${newPlanId}`,
+            {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(updates),
+            },
           )
-          if (hasOverrides) {
-            const patchResponse = await fetch(
-              `/api/independence/plans/${newPlanId}`,
-              {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(updates),
-              },
-            )
-            if (!patchResponse.ok) {
-              console.error("Failed to apply scenario overrides to copied plan")
-            }
+          if (!patchResponse.ok) {
+            console.error("Failed to apply scenario overrides to copied plan")
           }
-          setScenarioOverrides({})
+          resetScenario()
           setShowSaveDialog(false)
           router.push(`/independence/plans/${newPlanId}`)
         }
@@ -720,11 +658,6 @@ function PlanView(): React.ReactElement {
     } finally {
       setIsSaving(false)
     }
-  }
-
-  // Reset scenario overrides
-  const resetScenarioOverrides = (): void => {
-    setScenarioOverrides({})
   }
 
   if (planError) {
@@ -828,38 +761,21 @@ function PlanView(): React.ReactElement {
             </div>
           )}
 
-          {/* FIRE Summary Bar */}
-          {fireDataReady && adjustedProjection ? (
-            <FiSummaryBar
-              fiNumber={adjustedProjection.fiMetrics!.fiNumber}
-              liquidAssets={
-                adjustedProjection.preRetirementAccumulation
-                  ?.currentLiquidAssets ?? liquidAssets * effectiveFxRate
-              }
-              illiquidAssets={
-                adjustedProjection.preRetirementAccumulation
-                  ?.currentNonSpendableAssets ??
-                nonSpendableAssets * effectiveFxRate
-              }
+          {/* Sticky scenario panel — drives projection, Stress Test and the
+              Wealth-tab card. Replaces the old What-If modal + summary bar. */}
+          {plan && (
+            <ScenarioBar
+              scenario={scenario}
+              onScenarioChange={setScenario}
+              onReset={resetScenario}
+              onSave={() => setShowSaveDialog(true)}
+              isDirty={scenarioIsDirty}
               currency={effectiveCurrency}
-              isCoastFire={adjustedProjection.fiMetrics!.isCoastFire}
-              yearsToRetirement={
-                adjustedProjection.preRetirementAccumulation?.yearsToRetirement
-              }
-              currentAge={currentAge}
-              realYearsToFi={adjustedProjection.fiMetrics!.realYearsToFi}
-              fiMetrics={adjustedProjection.fiMetrics}
-              headlineMetric={adjustedProjection.effectiveHeadlineMetric}
-              warnings={adjustedProjection.warnings}
+              fiMetrics={adjustedProjection?.fiMetrics}
+              derivedLiquidAssets={liquidAssets}
+              planBlendedReturn={computeBlendedReturnRate(plan)}
+              planInflation={plan.inflationRate}
             />
-          ) : (
-            (isCalculating || (plan && !adjustedProjection)) && (
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
-                <div className="flex items-center gap-2 text-gray-500">
-                  <Spinner label="Calculating FI metrics..." />
-                </div>
-              </div>
-            )
           )}
 
           {/* Tab Navigation */}
@@ -879,31 +795,11 @@ function PlanView(): React.ReactElement {
             ) : null
           })()}
 
-          {/* Global What-If toolbar - available on all tabs */}
-          <AnalysisToolbar
-            quickScenarios={quickScenarios}
-            selectedScenarioIds={selectedScenarioIds}
-            hasUnsavedChanges={
-              hasScenarioChanges(whatIfAdjustments) ||
-              Object.keys(scenarioOverrides).length > 0 ||
-              selectedScenarioIds.length > 0
-            }
-            onWhatIfClick={() => setShowWhatIfModal(true)}
-            onScenarioToggle={toggleScenario}
-            onSave={() => handleSaveScenario("update")}
-            onReset={() => {
-              resetWhatIf()
-              resetScenarioOverrides()
-              setSelectedScenarioIds([])
-            }}
-          />
-
           {/* Tab Content */}
           {activeTab === "details" && (
             <DetailsTabContent
               plan={plan}
-              scenarioOverrides={scenarioOverrides}
-              combinedAdjustments={combinedAdjustments}
+              scenario={scenario}
               projection={adjustedProjection}
               rentalIncome={rentalIncome}
               effectiveCurrency={effectiveCurrency}
@@ -947,16 +843,9 @@ function PlanView(): React.ReactElement {
               baselineProjection={baselineProjection}
               retirementAge={retirementAge}
               lifeExpectancy={lifeExpectancy}
-              combinedAdjustments={combinedAdjustments}
               hideValues={hideValues}
               isCalculating={isCalculating}
               effectiveCurrency={effectiveCurrency}
-              onLiquidationThresholdChange={(value) =>
-                setWhatIfAdjustments((prev) => ({
-                  ...prev,
-                  liquidationThreshold: value,
-                }))
-              }
             />
           )}
 
@@ -970,12 +859,8 @@ function PlanView(): React.ReactElement {
                 totalAssets,
                 hasAssets,
               }}
-              currentAge={currentAge}
-              retirementAge={retirementAge}
-              lifeExpectancy={lifeExpectancy}
               monthlyInvestment={monthlyInvestment}
-              whatIfAdjustments={combinedAdjustments}
-              scenarioOverrides={scenarioOverrides}
+              scenario={scenario}
               rentalIncome={rentalIncome}
               displayCurrency={displayCurrency ?? undefined}
               hideValues={hideValues}
@@ -1005,25 +890,6 @@ function PlanView(): React.ReactElement {
           plan={plan}
         />
       )}
-
-      {/* What-If Analysis Modal */}
-      <WhatIfModal
-        isOpen={showWhatIfModal}
-        onClose={() => setShowWhatIfModal(false)}
-        plan={plan}
-        whatIfAdjustments={whatIfAdjustments}
-        onAdjustmentsChange={setWhatIfAdjustments}
-        scenarioOverrides={scenarioOverrides}
-        onScenarioOverridesChange={setScenarioOverrides}
-        onReset={() => {
-          resetWhatIf()
-          resetScenarioOverrides()
-        }}
-        retirementAge={retirementAge}
-        monthlyInvestment={monthlyInvestment}
-        rentalIncome={rentalIncome}
-        currentAge={currentAge}
-      />
     </>
   )
 }

@@ -6,6 +6,7 @@ import PrivateCurrency, {
   HIDDEN_VALUE,
 } from "@components/ui/PrivateCurrency"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
+import PensionGauge from "./PensionGauge"
 import {
   calculateFiProgress,
   calculateGapToFi,
@@ -717,47 +718,9 @@ function BridgeStrategySection({
   )
 }
 
-interface PensionGaugeProps {
-  /** Stable identifier used for React list keys, not consumed by the component itself. */
-  key: string
-  label: string
-  tooltip: string
-  value: number
-  hideValues: boolean
-  format: (value: number) => string
-}
-
-type PensionGaugeRenderProps = Omit<PensionGaugeProps, "key">
-
-function PensionGauge({
-  label,
-  tooltip,
-  value,
-  hideValues,
-  format,
-}: PensionGaugeRenderProps): React.ReactElement {
-  const clamped = Math.max(0, Math.min(100, value))
-  return (
-    <div>
-      <div className="flex justify-between items-center mb-1">
-        <InfoTooltip text={tooltip}>
-          <span className="text-sm text-gray-600">{label}</span>
-        </InfoTooltip>
-        <span
-          className={`text-sm font-semibold ${getProgressTextColor(value)}`}
-        >
-          {hideValues ? HIDDEN_VALUE : format(value)}
-        </span>
-      </div>
-      <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-        <div
-          className={`h-full ${getProgressBgColor(value)} transition-all duration-500`}
-          style={{ width: hideValues ? "0%" : `${clamped}%` }}
-        />
-      </div>
-    </div>
-  )
-}
+// PensionGauge moved to ./PensionGauge.tsx — shared with StrategyGaugesStrip
+// so the ScenarioBar uses the same primitive without code duplication.
+type PensionGaugeProps = import("./PensionGauge").PensionGaugeProps
 
 /**
  * Calculate years to reach FI using binary search with compound interest.
