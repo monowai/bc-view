@@ -96,6 +96,14 @@ function PlanView(): React.ReactElement {
   // FiMetrics section visibility on the Metrics tab.
   const [strategyView, setStrategyView] = useState<StrategyView | null>(null)
 
+  // Pending exclusion edits from EditPlanDetailsModal. Exclusions aren't
+  // part of ScenarioState (they're plan-level filters, not what-if levers),
+  // so we hold them here between modal-apply and save.
+  const [pendingExclusions, setPendingExclusions] = useState<{
+    excludedPortfolioIds?: string[]
+    excludedRentalAssetIds?: string[]
+  } | null>(null)
+
   const [isTransferring, setIsTransferring] = useState(false)
   const [transferError, setTransferError] = useState<string | null>(null)
 
@@ -547,12 +555,21 @@ function PlanView(): React.ReactElement {
 
   // EditPlanDetailsModal still emits an old ScenarioOverrides shape; bridge
   // those edits into the unified scenario state so the modal keeps working.
+  //
+  // Intentionally NOT bridged: equityReturnRate / cashReturnRate /
+  // housingReturnRate / equityAllocation / cashAllocation / housingAllocation.
+  // Return rates live behind the Real Return slider (which adjusts cash+equity
+  // proportionally) and allocations are not exposed in the ScenarioBar at all.
+  // If a user edits those in the modal we drop them on the floor so we don't
+  // mix two competing models.
   const handleApplyDetails = (overrides: {
     monthlyExpenses?: number
     pensionMonthly?: number
     socialSecurityMonthly?: number
     otherIncomeMonthly?: number
     inflationRate?: number
+    excludedPortfolioIds?: string[]
+    excludedRentalAssetIds?: string[]
   }): void => {
     setScenario({
       ...(overrides.monthlyExpenses != null && {
@@ -571,6 +588,19 @@ function PlanView(): React.ReactElement {
         inflation: overrides.inflationRate,
       }),
     })
+    // Exclusion edits land in page state and get written on save — they
+    // aren't part of the projection scenario, just plan-level filters.
+    if (
+      overrides.excludedPortfolioIds != null ||
+      overrides.excludedRentalAssetIds != null
+    ) {
+      setPendingExclusions((prev) => ({
+        excludedPortfolioIds:
+          overrides.excludedPortfolioIds ?? prev?.excludedPortfolioIds,
+        excludedRentalAssetIds:
+          overrides.excludedRentalAssetIds ?? prev?.excludedRentalAssetIds,
+      }))
+    }
     setShowEditDetailsModal(false)
   }
 
@@ -586,6 +616,12 @@ function PlanView(): React.ReactElement {
     setIsSaving(true)
     try {
       const rates = applyRealReturn(scenario, plan)
+      // Allocations come from `plan` (not scenario) because they're not
+      // slider-controlled — the Real Return slider adjusts per-asset return
+      // rates via applyRealReturn, but the cash/equity/housing mix stays
+      // as the user configured it in the plan settings. Exclusions take
+      // pendingExclusions (set by the modal) when present, otherwise carry
+      // forward whatever the plan already has.
       const updates = {
         name: plan.name,
         monthlyExpenses: scenario.monthlyExpenses,
@@ -601,12 +637,12 @@ function PlanView(): React.ReactElement {
         equityAllocation: plan.equityAllocation,
         cashAllocation: plan.cashAllocation,
         housingAllocation: plan.housingAllocation,
-        excludedPortfolioIds: parseExcludedPortfolioIds(
-          plan.excludedPortfolioIds,
-        ),
-        excludedRentalAssetIds: parseExcludedRentalAssetIds(
-          plan.excludedRentalAssetIds,
-        ),
+        excludedPortfolioIds:
+          pendingExclusions?.excludedPortfolioIds ??
+          parseExcludedPortfolioIds(plan.excludedPortfolioIds),
+        excludedRentalAssetIds:
+          pendingExclusions?.excludedRentalAssetIds ??
+          parseExcludedRentalAssetIds(plan.excludedRentalAssetIds),
       }
 
       if (mode === "update") {
@@ -619,6 +655,7 @@ function PlanView(): React.ReactElement {
           const updatedPlan = await response.json()
           await mutatePlan(updatedPlan, false)
           resetScenario()
+          setPendingExclusions(null)
           setShowSaveDialog(false)
           setPlanVersion((v) => v + 1)
         }
@@ -647,6 +684,7 @@ function PlanView(): React.ReactElement {
             console.error("Failed to apply scenario overrides to copied plan")
           }
           resetScenario()
+          setPendingExclusions(null)
           setShowSaveDialog(false)
           router.push(`/independence/plans/${newPlanId}`)
         }
