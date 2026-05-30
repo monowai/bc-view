@@ -40,10 +40,11 @@ beforeEach(() => {
 })
 
 describe("ScenarioBar", () => {
-  it("renders all nine slider labels", () => {
+  it("renders all eight slider labels when expanded", () => {
     render(<ScenarioBar {...baseProps} />)
+    // Expand the slider grid (collapsed by default).
+    fireEvent.click(screen.getByRole("button", { name: /Show sliders/ }))
     for (const label of [
-      "Current Age",
       "Retirement Age",
       "Life Expectancy",
       "Liquid Assets",
@@ -55,6 +56,13 @@ describe("ScenarioBar", () => {
     ]) {
       expect(screen.getByText(label)).toBeInTheDocument()
     }
+  })
+
+  it("collapses the slider grid by default and toggles open", () => {
+    render(<ScenarioBar {...baseProps} />)
+    expect(screen.queryByText("Retirement Age")).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: /Show sliders/ }))
+    expect(screen.getByText("Retirement Age")).toBeInTheDocument()
   })
 
   it("shows a Modified badge when isDirty is true", () => {
@@ -78,6 +86,7 @@ describe("ScenarioBar", () => {
 
   it("writes liquidAssets=number when slider moves away from the derived value", () => {
     render(<ScenarioBar {...baseProps} />)
+    fireEvent.click(screen.getByRole("button", { name: /Show sliders/ }))
     const liquidSlider = screen
       .getByText("Liquid Assets")
       .closest(".space-y-2")
@@ -89,13 +98,12 @@ describe("ScenarioBar", () => {
   })
 
   it("restores liquidAssets=null when the slider returns to the derived value", () => {
-    // Render with a non-null override so moving the slider to the derived
-    // value is an actual change event.
     const props = {
       ...baseProps,
       scenario: { ...baseScenario, liquidAssets: 100_000 },
     }
     render(<ScenarioBar {...props} />)
+    fireEvent.click(screen.getByRole("button", { name: /Show sliders/ }))
     const liquidSlider = screen
       .getByText("Liquid Assets")
       .closest(".space-y-2")
@@ -113,6 +121,7 @@ describe("ScenarioBar", () => {
       scenario: { ...baseScenario, realReturn: 0.05 },
     }
     render(<ScenarioBar {...props} />)
+    fireEvent.click(screen.getByRole("button", { name: /Show sliders/ }))
     const realReturnSlider = screen
       .getByText("Real Return")
       .closest(".space-y-2")

@@ -25,7 +25,7 @@ export default function Tooltip({
       <i className="fas fa-info-circle ml-1 text-gray-400 hover:text-gray-600 cursor-help text-xs"></i>
       {isVisible && (
         <span
-          className={`absolute z-50 left-1/2 transform -translate-x-1/2 px-3 py-2 text-xs text-white bg-gray-800 rounded-lg shadow-lg max-w-xs whitespace-normal text-center ${
+          className={`absolute z-50 left-1/2 transform -translate-x-1/2 px-3 py-2 text-xs text-white bg-gray-800 rounded-lg shadow-lg w-max max-w-md whitespace-normal text-left leading-snug ${
             isBelow ? "top-full mt-2" : "bottom-full mb-2"
           }`}
         >

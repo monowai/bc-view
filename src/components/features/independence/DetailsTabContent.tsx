@@ -283,64 +283,6 @@ export default function DetailsTabContent({
         excludedPensionFV={excludedPensionFV}
         includedPensionFvDifferential={includedPensionFvDifferential}
       />
-
-      {/* Income Reducing Your FI Target */}
-      {projection?.fiMetrics && projection.fiMetrics.totalMonthlyIncome > 0 && (
-        <div className="col-span-1 lg:col-span-2 bg-white rounded-xl shadow-md p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            <i className="fas fa-coins text-green-500 mr-2"></i>
-            Income Reducing Your FI Target
-          </h3>
-          <p className="text-sm text-gray-600 mb-4">
-            Your FI Number is based on <strong>net</strong> expenses - what you
-            need from investments after accounting for other income sources.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <div className="text-sm text-gray-500 mb-1">
-                Monthly Income Sources
-              </div>
-              <div className="text-xl font-bold text-green-600">
-                {hideValues ? (
-                  HIDDEN_VALUE
-                ) : (
-                  <>
-                    {effectiveCurrency}
-                    {Math.round(
-                      projection.fiMetrics.totalMonthlyIncome,
-                    ).toLocaleString()}
-                    /mo
-                  </>
-                )}
-              </div>
-              <div className="text-xs text-gray-500 mt-1">
-                Pension + Benefits + Rental + Other
-              </div>
-            </div>
-            <div className="p-4 bg-independence-50 rounded-lg">
-              <div className="text-sm text-gray-500 mb-1">
-                Net Monthly Need from Investments
-              </div>
-              <div className="text-xl font-bold text-independence-600">
-                {hideValues ? (
-                  HIDDEN_VALUE
-                ) : (
-                  <>
-                    {effectiveCurrency}
-                    {Math.round(
-                      projection.fiMetrics.netMonthlyExpenses,
-                    ).toLocaleString()}
-                    /mo
-                  </>
-                )}
-              </div>
-              <div className="text-xs text-gray-500 mt-1">
-                This determines your FI Number
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
