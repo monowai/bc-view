@@ -214,6 +214,18 @@ export default function ScenarioBar({
               formatValue={(v) => `${currency}${N0(v)}/mo`}
             />
             <WhatIfSlider
+              label="Government Benefits"
+              value={scenario.socialSecurityMonthly}
+              onChange={(socialSecurityMonthly) =>
+                onScenarioChange({ socialSecurityMonthly })
+              }
+              min={0}
+              max={10_000}
+              step={50}
+              unit=""
+              formatValue={(v) => `${currency}${N0(v)}/mo`}
+            />
+            <WhatIfSlider
               label="Other Income"
               value={scenario.otherIncomeMonthly}
               onChange={(otherIncomeMonthly) =>

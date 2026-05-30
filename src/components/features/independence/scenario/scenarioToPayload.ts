@@ -49,9 +49,7 @@ export function scenarioToPayload(
     housingReturnRate,
     inflationRate: scenario.inflation,
     pensionMonthly: scenario.pensionMonthly,
-    // Slider merges SS into "other"; the backend gets one stream. Zero the
-    // other field so we don't double-count plan.socialSecurityMonthly.
-    socialSecurityMonthly: 0,
+    socialSecurityMonthly: scenario.socialSecurityMonthly,
     otherIncomeMonthly: scenario.otherIncomeMonthly,
     targetBalance: ctx.plan.targetBalance,
     liquidAssets: scenario.liquidAssets ?? ctx.derivedLiquidAssets,

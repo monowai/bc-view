@@ -28,14 +28,11 @@ export interface ScenarioState {
   liquidAssets: number | null
   /** Absolute monthly expenses in plan currency. */
   monthlyExpenses: number
-  /** Absolute monthly pension income (combines plan.pensionMonthly). */
+  /** Absolute monthly pension income (plan.pensionMonthly). */
   pensionMonthly: number
-  /**
-   * Absolute monthly "other" income. At the slider level this collapses
-   * `plan.otherIncomeMonthly` and `plan.socialSecurityMonthly` for UX
-   * simplicity; the payload builder writes the value to `otherIncomeMonthly`
-   * and zeros out social security so the backend sees a single bucket.
-   */
+  /** Absolute monthly government benefits (plan.socialSecurityMonthly). */
+  socialSecurityMonthly: number
+  /** Absolute monthly other income (plan.otherIncomeMonthly). */
   otherIncomeMonthly: number
   /**
    * Target blended real return as a decimal (e.g. 0.04 for 4%). `null` keeps
@@ -55,6 +52,7 @@ export const DEFAULT_SCENARIO_STATE: ScenarioState = {
   liquidAssets: null,
   monthlyExpenses: 0,
   pensionMonthly: 0,
+  socialSecurityMonthly: 0,
   otherIncomeMonthly: 0,
   realReturn: null,
   inflation: 0.025,

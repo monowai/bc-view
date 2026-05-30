@@ -43,7 +43,8 @@ const scenario: ScenarioState = {
   liquidAssets: null,
   monthlyExpenses: 5000,
   pensionMonthly: 800,
-  otherIncomeMonthly: 300,
+  socialSecurityMonthly: 200,
+  otherIncomeMonthly: 100,
   realReturn: null,
   inflation: 0.025,
 }
@@ -72,10 +73,11 @@ describe("scenarioToPayload", () => {
     expect(payload.liquidAssets).toBe(400_000)
   })
 
-  it("collapses SS into otherIncomeMonthly and zeroes socialSecurityMonthly", () => {
+  it("passes pension, SS and other income through as separate fields", () => {
     const payload = scenarioToPayload(scenario, ctx)
-    expect(payload.otherIncomeMonthly).toBe(300)
-    expect(payload.socialSecurityMonthly).toBe(0)
+    expect(payload.pensionMonthly).toBe(800)
+    expect(payload.socialSecurityMonthly).toBe(200)
+    expect(payload.otherIncomeMonthly).toBe(100)
   })
 
   it("threads age + lifeExpectancy + retirementAge straight through", () => {

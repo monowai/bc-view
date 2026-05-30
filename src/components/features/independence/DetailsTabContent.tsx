@@ -73,8 +73,7 @@ export default function DetailsTabContent({
   const rates = applyRealReturn(scenario, plan)
   const effectiveExpenses = Math.round(scenario.monthlyExpenses)
   const effectivePension = scenario.pensionMonthly
-  // Slider-level merge: SS is folded into otherIncomeMonthly.
-  const effectiveSocialSecurity = 0
+  const effectiveSocialSecurity = scenario.socialSecurityMonthly
   const effectiveOtherIncome = scenario.otherIncomeMonthly
   const effectiveInflation = scenario.inflation
   const effectiveTarget = plan.targetBalance

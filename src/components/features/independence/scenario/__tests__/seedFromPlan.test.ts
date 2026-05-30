@@ -73,11 +73,11 @@ describe("seedFromPlan", () => {
     expect(seed.currentAge).toBe(0)
   })
 
-  it("combines pension + SS + other into pensionMonthly + otherIncomeMonthly", () => {
+  it("seeds pension, social security and other income as separate fields", () => {
     const seed = seedFromPlan(plan, settings, 2026)
     expect(seed.pensionMonthly).toBe(800)
-    // SS (200) + Other (100) = 300 — slider-level merge
-    expect(seed.otherIncomeMonthly).toBe(300)
+    expect(seed.socialSecurityMonthly).toBe(200)
+    expect(seed.otherIncomeMonthly).toBe(100)
   })
 
   it("leaves liquidAssets and realReturn null to signal 'derive from plan'", () => {

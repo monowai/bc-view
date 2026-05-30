@@ -30,11 +30,8 @@ export function seedFromPlan(
     liquidAssets: null,
     monthlyExpenses: plan.monthlyExpenses,
     pensionMonthly: plan.pensionMonthly ?? 0,
-    // Combine the two pension-shaped income streams at slider level. The
-    // payload builder writes the sum to `otherIncomeMonthly` and zeros out
-    // social security so the backend sees one figure.
-    otherIncomeMonthly:
-      (plan.otherIncomeMonthly ?? 0) + (plan.socialSecurityMonthly ?? 0),
+    socialSecurityMonthly: plan.socialSecurityMonthly ?? 0,
+    otherIncomeMonthly: plan.otherIncomeMonthly ?? 0,
     realReturn: null,
     inflation: plan.inflationRate,
   }
@@ -59,6 +56,7 @@ export function isScenarioDirty(
     scenario.liquidAssets !== null ||
     scenario.monthlyExpenses !== seed.monthlyExpenses ||
     scenario.pensionMonthly !== seed.pensionMonthly ||
+    scenario.socialSecurityMonthly !== seed.socialSecurityMonthly ||
     scenario.otherIncomeMonthly !== seed.otherIncomeMonthly ||
     scenario.realReturn !== null ||
     scenario.inflation !== seed.inflation

@@ -153,8 +153,7 @@ function PlanView(): React.ReactElement {
       housingReturnRate: rates.housingReturnRate,
       inflationRate: scenario.inflation,
       pensionMonthly: scenario.pensionMonthly,
-      // Slider-level merge: SS is folded into otherIncomeMonthly.
-      socialSecurityMonthly: 0,
+      socialSecurityMonthly: scenario.socialSecurityMonthly,
       otherIncomeMonthly: scenario.otherIncomeMonthly,
       targetBalance: plan.targetBalance,
       cashAllocation: plan.cashAllocation,
@@ -562,11 +561,11 @@ function PlanView(): React.ReactElement {
       ...(overrides.pensionMonthly != null && {
         pensionMonthly: overrides.pensionMonthly,
       }),
-      ...((overrides.socialSecurityMonthly != null ||
-        overrides.otherIncomeMonthly != null) && {
-        otherIncomeMonthly:
-          (overrides.otherIncomeMonthly ?? 0) +
-          (overrides.socialSecurityMonthly ?? 0),
+      ...(overrides.socialSecurityMonthly != null && {
+        socialSecurityMonthly: overrides.socialSecurityMonthly,
+      }),
+      ...(overrides.otherIncomeMonthly != null && {
+        otherIncomeMonthly: overrides.otherIncomeMonthly,
       }),
       ...(overrides.inflationRate != null && {
         inflation: overrides.inflationRate,
@@ -591,9 +590,7 @@ function PlanView(): React.ReactElement {
         name: plan.name,
         monthlyExpenses: scenario.monthlyExpenses,
         pensionMonthly: scenario.pensionMonthly,
-        // Slider-level merge: SS is folded into otherIncomeMonthly. We zero
-        // socialSecurityMonthly so the backend sees a single stream.
-        socialSecurityMonthly: 0,
+        socialSecurityMonthly: scenario.socialSecurityMonthly,
         benefitsStartAge: plan.benefitsStartAge,
         otherIncomeMonthly: scenario.otherIncomeMonthly,
         inflationRate: scenario.inflation,
