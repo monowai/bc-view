@@ -4,12 +4,12 @@ import { stripOwnerPrefix, getAssetCurrency } from "@lib/assets/assetUtils"
 import { useDialogSubmit } from "@hooks/useDialogSubmit"
 
 const CATEGORY_LABELS: Record<string, string> = {
-  PENSION: "Retirement Fund",
+  PENSION: "Policies",
   ACCOUNT: "Bank Account",
   TRADE: "Trade Account",
   RE: "Real Estate",
   "MUTUAL FUND": "Mutual Fund",
-  POLICY: "Retirement Fund",
+  POLICY: "Policies",
 }
 import Dialog from "@components/ui/Dialog"
 import Alert from "@components/ui/Alert"

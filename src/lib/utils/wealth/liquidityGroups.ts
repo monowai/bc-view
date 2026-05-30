@@ -53,7 +53,7 @@ export function mapToLiquidityGroup(categoryName: string): string {
     case "Superannuation":
     case "Annuity":
     case "Policy":
-    case "Retirement Fund":
+    case "Policies":
       return "Retirement"
     default:
       return "Other"

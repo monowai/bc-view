@@ -29,12 +29,12 @@ import {
 } from "@components/features/accounts/accountTypes"
 
 const categoryLabels: Record<string, string> = {
-  PENSION: "Retirement Fund",
+  PENSION: "Policies",
   ACCOUNT: "Bank Account",
   TRADE: "Trade Account",
   RE: "Real Estate",
   "MUTUAL FUND": "Mutual Fund",
-  POLICY: "Retirement Fund",
+  POLICY: "Policies",
 }
 
 function AccountsPage(): React.ReactElement {

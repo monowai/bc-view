@@ -7,12 +7,12 @@ import {
 } from "types/beancounter"
 
 const CATEGORY_LABELS: Record<string, string> = {
-  PENSION: "Retirement Fund",
+  PENSION: "Policies",
   ACCOUNT: "Bank Account",
   TRADE: "Trade Account",
   RE: "Real Estate",
   "MUTUAL FUND": "Mutual Fund",
-  POLICY: "Retirement Fund",
+  POLICY: "Policies",
 }
 import useSwr from "swr"
 import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"

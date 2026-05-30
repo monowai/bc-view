@@ -289,7 +289,7 @@ test.describe("CPF Onboarding Flow", () => {
 
       // Default card view groups by Asset Class; the first group is expanded
       // by default, so the CPF asset card should be visible without a toggle.
-      await expect(newPage.getByText("Retirement Fund").first()).toBeVisible()
+      await expect(newPage.getByText("Policies").first()).toBeVisible()
 
       // Verify the CPF asset name appears
       await expect(newPage.getByText("Central Provident Fund")).toBeVisible({

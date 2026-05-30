@@ -13,7 +13,7 @@ import { getAssetCurrency, getDisplayCode } from "@lib/assets/assetUtils"
 
 const EDITABLE_CATEGORIES = [
   { id: "ACCOUNT", name: "Bank Account" },
-  { id: "POLICY", name: "Retirement Fund" },
+  { id: "POLICY", name: "Policies" },
   { id: "RE", name: "Real Estate" },
   { id: "Equity", name: "Equity" },
 ]
