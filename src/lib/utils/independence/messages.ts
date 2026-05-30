@@ -63,12 +63,12 @@ export const wizardMessages = {
       isPension: "This is a pension fund",
       lumpSum: "Lump sum payout (instead of monthly)",
       // Existing assets without balances
-      assetsNeedingBalance: "Retirement Funds Need Balances",
+      assetsNeedingBalance: "Policies Need Balances",
       assetsNeedingBalanceDescription:
-        "The following retirement accounts don't have a balance recorded. Set their current balance to include them in projections.",
+        "The following policies don't have a balance recorded. Set their current balance to include them in projections.",
       setBalance: "Set Balance",
       settingBalance: "Setting...",
-      checkingAssets: "Checking existing retirement funds...",
+      checkingAssets: "Checking existing policies...",
       transactionDate: "As At Date",
       cashAccount: "Credit To",
       cashAccountHint: "Select cash account for withdrawal",

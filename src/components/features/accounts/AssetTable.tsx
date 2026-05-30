@@ -3,12 +3,12 @@ import { Asset } from "types/beancounter"
 import { stripOwnerPrefix, getAssetCurrency } from "@lib/assets/assetUtils"
 
 const CATEGORY_LABELS: Record<string, string> = {
-  PENSION: "Retirement Fund",
+  PENSION: "Policies",
   ACCOUNT: "Bank Account",
   TRADE: "Trade Account",
   RE: "Real Estate",
   "MUTUAL FUND": "Mutual Fund",
-  POLICY: "Retirement Fund",
+  POLICY: "Policies",
 }
 
 interface AssetTableProps {

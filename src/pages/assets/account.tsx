@@ -338,7 +338,7 @@ export default withPageAuthRequired(
             <div className="mt-6 p-4 rounded-lg border bg-blue-50 border-blue-200">
               <h3 className="font-medium text-gray-900 mb-4 flex items-center">
                 <i className="fas fa-piggy-bank text-blue-500 mr-2"></i>
-                {"Retirement Fund Settings"}
+                {"Policy Settings"}
               </h3>
 
               <CompositeAssetEditor

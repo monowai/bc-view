@@ -25,7 +25,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
       "Unlisted mutual funds and unit trusts. Set prices manually as these don't have market data feeds.",
     POLICY:
       "Defined contribution scheme or Investment Linked Insurance that contains sub-accounts.",
-    PENSION: "Retirement Fund",
+    PENSION: "Policies",
   }
   const description = CATEGORY_DESCRIPTIONS[categoryId] || ""
 

@@ -87,7 +87,7 @@ describe("isLiquidPortfolio", () => {
       isLiquidPortfolio(
         makePortfolio({
           code: "PEN",
-          assetClassification: { "Retirement Fund": 80000, Cash: 1000 },
+          assetClassification: { Policies: 80000, Cash: 1000 },
         }),
       ),
     ).toBe(true)
