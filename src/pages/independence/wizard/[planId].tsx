@@ -117,6 +117,8 @@ function EditPlanWizard(): React.ReactElement {
     expensesCurrency: plan.expensesCurrency || "NZD",
     country: plan.country ?? "",
     narrative: plan.narrative ?? "",
+    primaryStrategy: plan.primaryStrategy ?? "",
+    headlineMetric: plan.headlineMetric ?? "",
     pensionMonthly: plan.pensionMonthly || 0,
     socialSecurityMonthly: plan.socialSecurityMonthly || 0,
     benefitsStartAge: plan.benefitsStartAge,

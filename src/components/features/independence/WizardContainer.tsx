@@ -222,6 +222,8 @@ export default function WizardContainer({
         excludedRentalAssetIds: formData.excludedRentalAssetIds || [],
         country: formData.country?.trim() || undefined,
         narrative: formData.narrative?.trim() || undefined,
+        primaryStrategy: formData.primaryStrategy || undefined,
+        headlineMetric: formData.headlineMetric || undefined,
         ...(!isEditMode && { clientId: clientId.trim() || undefined }),
       }
 

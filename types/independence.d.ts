@@ -53,6 +53,23 @@ export type ManualAssetCategory =
 
 export type ManualAssets = Record<ManualAssetCategory, number>
 
+/**
+ * Primary retirement strategy the plan owner is pursuing. When omitted, the
+ * backend auto-detects the effective strategy from plan metrics (income
+ * sources, years-to-retirement).
+ */
+export type PrimaryStrategy = "FIRE" | "PENSION" | "HYBRID"
+
+/**
+ * Which metric the plan owner wants featured in the projection header and on
+ * the Wealth management tab.
+ */
+export type HeadlineMetric =
+  | "EARLY_RETIREMENT_PROGRESS"
+  | "RETIREMENT_AGE_FI"
+  | "INCOME_COVERAGE"
+  | "BRIDGE_PROGRESS"
+
 // ============ Plan Types ============
 export interface RetirementPlan {
   id: string
@@ -90,6 +107,16 @@ export interface RetirementPlan {
   country?: string
   /** Optional user-authored narrative describing the plan's context / assumptions. */
   narrative?: string
+  /**
+   * Explicit primary strategy override. When omitted the backend
+   * auto-detects the effective strategy from plan metrics.
+   */
+  primaryStrategy?: PrimaryStrategy
+  /**
+   * Plan owner's preferred headline metric. When omitted the backend picks
+   * a default that tracks the effective strategy.
+   */
+  headlineMetric?: HeadlineMetric
   isPrimary: boolean
   createdDate: string
   updatedDate: string
@@ -174,6 +201,10 @@ export interface PlanRequest {
   country?: string
   /** Optional user-authored narrative describing the plan. */
   narrative?: string
+  /** Optional explicit primary strategy override. */
+  primaryStrategy?: PrimaryStrategy
+  /** Optional explicit headline metric override. */
+  headlineMetric?: HeadlineMetric
 }
 
 export interface PlanResponse {
@@ -470,6 +501,22 @@ export interface FiMetrics {
   planCurrency?: string
   /** FX rate applied for display conversion (1.0 if same as planCurrency) */
   displayFxRate?: number
+  /**
+   * Retirement-Age FI progress: credits PV of guaranteed pension income discounted
+   * back to today. Lets pension savers see locked-in future income as progress
+   * rather than ignoring it. Null when years-in-retirement is unknown.
+   */
+  retirementAgeFiProgress?: number
+  /** Present value today of the guaranteed income stream used by retirementAgeFiProgress. */
+  pvGuaranteedIncomeToday?: number
+  /** Years of full pre-retirement expenses the current liquid pot covers. */
+  bridgeYears?: number
+  /** Years of bridge cover needed (= yearsToRetirement). */
+  bridgeYearsNeeded?: number
+  /** bridgeYears / bridgeYearsNeeded x 100, capped at 100. */
+  bridgeProgress?: number
+  /** Income coverage at retirement age = totalMonthlyIncome / monthlyExpenses x 100. */
+  incomeCoverageAtRetirement?: number
 }
 
 /**
@@ -589,6 +636,23 @@ export interface RetirementProjection {
   liquidationAge?: number
   /** Data quality warnings - empty means all data fetched successfully */
   warnings?: ProjectionWarning[]
+  /**
+   * Explicit primary strategy set on the plan, or undefined if auto-detected.
+   * Used by the plan-edit dropdown to show which option is currently pinned.
+   */
+  primaryStrategy?: PrimaryStrategy
+  /**
+   * Effective strategy used for UI emphasis: explicit override if set,
+   * otherwise the result of the backend auto-detect rules.
+   */
+  effectiveStrategy?: PrimaryStrategy
+  /** Plan owner's explicit headline metric override (or undefined when defaulting). */
+  headlineMetric?: HeadlineMetric
+  /**
+   * Effective headline metric to display in the projection header and Wealth
+   * tab: explicit override if set, otherwise the default for effectiveStrategy.
+   */
+  effectiveHeadlineMetric?: HeadlineMetric
 }
 
 export interface ProjectionResponse {
@@ -654,6 +718,16 @@ export interface WizardFormData {
   country?: string
   /** Optional user-authored narrative describing the plan context / assumptions. */
   narrative?: string
+  /**
+   * Optional primary strategy override. Empty string means "auto-detect"
+   * (passed to backend as null).
+   */
+  primaryStrategy?: PrimaryStrategy | ""
+  /**
+   * Optional headline-metric override. Empty string means "default for
+   * effective strategy".
+   */
+  headlineMetric?: HeadlineMetric | ""
   yearOfBirth: number
   targetRetirementAge: number
   lifeExpectancy: number

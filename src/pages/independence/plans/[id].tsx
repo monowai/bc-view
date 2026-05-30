@@ -848,7 +848,8 @@ function PlanView(): React.ReactElement {
               }
               currentAge={currentAge}
               realYearsToFi={adjustedProjection.fiMetrics!.realYearsToFi}
-              backendFiProgress={adjustedProjection.fiMetrics!.fiProgress}
+              fiMetrics={adjustedProjection.fiMetrics}
+              headlineMetric={adjustedProjection.effectiveHeadlineMetric}
               warnings={adjustedProjection.warnings}
             />
           ) : (
@@ -908,13 +909,6 @@ function PlanView(): React.ReactElement {
               effectiveCurrency={effectiveCurrency}
               planCurrency={planCurrency}
               onEditDetails={() => setShowEditDetailsModal(true)}
-            />
-          )}
-
-          {activeTab === "assets" && (
-            <AssetsTabContent
-              projection={adjustedProjection}
-              effectivePlanValues={effectivePlanValues}
               categorySlices={categorySlices}
               spendableCategories={spendableCategories}
               onToggleCategory={toggleCategory}
@@ -924,9 +918,7 @@ function PlanView(): React.ReactElement {
               blendedReturnRate={blendedReturnRate}
               currentAge={currentAge}
               retirementAge={retirementAge}
-              effectiveCurrency={effectiveCurrency}
               effectiveFxRate={effectiveFxRate}
-              fireDataReady={fireDataReady}
               isCalculating={isCalculating}
               holdingsLoaded={!!holdingsData}
               usingManualAssets={usingManualAssets}
@@ -934,6 +926,18 @@ function PlanView(): React.ReactElement {
               onRefreshHoldings={() => refreshHoldings()}
               excludedPensionFV={excludedPensionFV}
               includedPensionFvDifferential={includedPensionFvDifferential}
+            />
+          )}
+
+          {activeTab === "assets" && (
+            <AssetsTabContent
+              projection={adjustedProjection}
+              effectivePlanValues={effectivePlanValues}
+              blendedReturnRate={blendedReturnRate}
+              currentAge={currentAge}
+              retirementAge={retirementAge}
+              effectiveCurrency={effectiveCurrency}
+              fireDataReady={fireDataReady}
             />
           )}
 
