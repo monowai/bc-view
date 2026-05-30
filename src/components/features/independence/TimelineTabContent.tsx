@@ -15,12 +15,7 @@ import {
 import CollapsibleSection from "@components/ui/CollapsibleSection"
 import { RetirementProjection } from "types/independence"
 import { HIDDEN_VALUE } from "@lib/independence/planHelpers"
-import {
-  WhatIfAdjustments,
-  hasScenarioChanges,
-  ScenarioImpact,
-  IncomeBreakdownTable,
-} from "@components/features/independence"
+import { IncomeBreakdownTable } from "@components/features/independence"
 import Spinner from "@components/ui/Spinner"
 
 interface TimelineTabContentProps {
@@ -28,11 +23,10 @@ interface TimelineTabContentProps {
   baselineProjection: RetirementProjection | null
   retirementAge: number
   lifeExpectancy: number
-  combinedAdjustments: WhatIfAdjustments
   hideValues: boolean
   isCalculating: boolean
-  effectiveCurrency: string
-  onLiquidationThresholdChange: (value: number) => void
+  /** Currency code passed for any future display use; currently unused. */
+  effectiveCurrency?: string
 }
 
 export default function TimelineTabContent({
@@ -40,11 +34,8 @@ export default function TimelineTabContent({
   baselineProjection,
   retirementAge,
   lifeExpectancy,
-  combinedAdjustments,
   hideValues,
   isCalculating,
-  effectiveCurrency,
-  onLiquidationThresholdChange,
 }: TimelineTabContentProps): React.ReactElement {
   // Timeline view mode - "traditional" shows work-to-retire path, "fire" shows FIRE path
   const [timelineViewMode, setTimelineViewMode] = useState<
@@ -97,9 +88,9 @@ export default function TimelineTabContent({
     return year?.age ?? null
   }, [projection])
 
-  // Determine if what-if changes are active
-  const hasActiveWhatIf =
-    hasScenarioChanges(combinedAdjustments) || baselineProjection !== null
+  // Active scenario = backend captured a baseline overlay alongside the
+  // adjusted projection. Used to gate the "compared to baseline" UI.
+  const hasActiveWhatIf = baselineProjection !== null
 
   // Combine accumulation and drawdown for chart
   const fullJourneyData = useMemo(() => {
@@ -529,21 +520,10 @@ export default function TimelineTabContent({
         </div>
       </CollapsibleSection>
 
-      <CollapsibleSection
-        title="Scenario Impact"
-        icon="fa-calculator"
-        iconColor="text-independence-500"
-        isOpen={openSections["scenarioImpact"]}
-        onToggle={() => toggleSection("scenarioImpact")}
-      >
-        <ScenarioImpact
-          projection={projection}
-          lifeExpectancy={lifeExpectancy}
-          currency={effectiveCurrency}
-          whatIfAdjustments={combinedAdjustments}
-          onLiquidationThresholdChange={onLiquidationThresholdChange}
-        />
-      </CollapsibleSection>
+      {/* ScenarioImpact card removed: its liquidation-threshold slider was
+          part of the old What-If model. The ScenarioBar at the top of the
+          page now owns scenario controls. Re-introduce as a read-only
+          "what changed" comparison view if the need surfaces. */}
 
       <CollapsibleSection
         title="Income Breakdown"

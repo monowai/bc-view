@@ -4,17 +4,17 @@ import { RetirementPlan, RetirementProjection } from "types/independence"
 import { AllocationSlice } from "@lib/allocation/aggregateHoldings"
 import { HIDDEN_VALUE, PensionProjection } from "@lib/independence/planHelpers"
 import {
-  WhatIfAdjustments,
-  ScenarioOverrides,
   RentalIncomeData,
   AssetsBreakdown,
 } from "@components/features/independence"
+import { applyRealReturn } from "@components/features/independence/scenario/scenarioToPayload"
+import type { ScenarioState } from "@components/features/independence/scenario/types"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 
 interface DetailsTabContentProps {
   plan: RetirementPlan
-  scenarioOverrides: ScenarioOverrides
-  combinedAdjustments: WhatIfAdjustments
+  /** Active slider-driven scenario. */
+  scenario: ScenarioState
   projection: RetirementProjection | null
   rentalIncome: RentalIncomeData | undefined
   effectiveCurrency: string
@@ -42,8 +42,7 @@ interface DetailsTabContentProps {
 
 export default function DetailsTabContent({
   plan,
-  scenarioOverrides,
-  combinedAdjustments,
+  scenario,
   projection,
   rentalIncome,
   effectiveCurrency,
@@ -69,27 +68,18 @@ export default function DetailsTabContent({
 }: DetailsTabContentProps): React.ReactElement {
   const { hideValues } = usePrivacyMode()
 
-  // Use in-memory state (scenarioOverrides) with plan as fallback
-  // Apply what-if expensesPercent adjustment (e.g., Frugal = 90%)
-  const baseExpenses = scenarioOverrides.monthlyExpenses ?? plan.monthlyExpenses
-  const effectiveExpenses = Math.round(
-    baseExpenses * (combinedAdjustments.expensesPercent / 100),
-  )
-  const effectivePension =
-    scenarioOverrides.pensionMonthly ?? plan.pensionMonthly ?? 0
-  const effectiveSocialSecurity =
-    scenarioOverrides.socialSecurityMonthly ?? plan.socialSecurityMonthly ?? 0
-  const effectiveOtherIncome =
-    scenarioOverrides.otherIncomeMonthly ?? plan.otherIncomeMonthly ?? 0
-  const effectiveInflation =
-    scenarioOverrides.inflationRate ?? plan.inflationRate
-  const effectiveTarget = scenarioOverrides.targetBalance ?? plan.targetBalance
-  const effectiveEquityReturn =
-    scenarioOverrides.equityReturnRate ?? plan.equityReturnRate
-  const effectiveCashReturn =
-    scenarioOverrides.cashReturnRate ?? plan.cashReturnRate
-  const effectiveHousingReturn =
-    scenarioOverrides.housingReturnRate ?? plan.housingReturnRate
+  // Pull effective values from the unified scenario state. realReturn is
+  // distributed across cash + equity rates via applyRealReturn.
+  const rates = applyRealReturn(scenario, plan)
+  const effectiveExpenses = Math.round(scenario.monthlyExpenses)
+  const effectivePension = scenario.pensionMonthly
+  const effectiveSocialSecurity = scenario.socialSecurityMonthly
+  const effectiveOtherIncome = scenario.otherIncomeMonthly
+  const effectiveInflation = scenario.inflation
+  const effectiveTarget = plan.targetBalance
+  const effectiveEquityReturn = rates.equityReturnRate
+  const effectiveCashReturn = rates.cashReturnRate
+  const effectiveHousingReturn = rates.housingReturnRate
 
   // Display values - always use backend planInputs (already FX-converted)
   const planInputs = projection?.planInputs
@@ -292,64 +282,6 @@ export default function DetailsTabContent({
         excludedPensionFV={excludedPensionFV}
         includedPensionFvDifferential={includedPensionFvDifferential}
       />
-
-      {/* Income Reducing Your FI Target */}
-      {projection?.fiMetrics && projection.fiMetrics.totalMonthlyIncome > 0 && (
-        <div className="col-span-1 lg:col-span-2 bg-white rounded-xl shadow-md p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            <i className="fas fa-coins text-green-500 mr-2"></i>
-            Income Reducing Your FI Target
-          </h3>
-          <p className="text-sm text-gray-600 mb-4">
-            Your FI Number is based on <strong>net</strong> expenses - what you
-            need from investments after accounting for other income sources.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <div className="text-sm text-gray-500 mb-1">
-                Monthly Income Sources
-              </div>
-              <div className="text-xl font-bold text-green-600">
-                {hideValues ? (
-                  HIDDEN_VALUE
-                ) : (
-                  <>
-                    {effectiveCurrency}
-                    {Math.round(
-                      projection.fiMetrics.totalMonthlyIncome,
-                    ).toLocaleString()}
-                    /mo
-                  </>
-                )}
-              </div>
-              <div className="text-xs text-gray-500 mt-1">
-                Pension + Benefits + Rental + Other
-              </div>
-            </div>
-            <div className="p-4 bg-independence-50 rounded-lg">
-              <div className="text-sm text-gray-500 mb-1">
-                Net Monthly Need from Investments
-              </div>
-              <div className="text-xl font-bold text-independence-600">
-                {hideValues ? (
-                  HIDDEN_VALUE
-                ) : (
-                  <>
-                    {effectiveCurrency}
-                    {Math.round(
-                      projection.fiMetrics.netMonthlyExpenses,
-                    ).toLocaleString()}
-                    /mo
-                  </>
-                )}
-              </div>
-              <div className="text-xs text-gray-500 mt-1">
-                This determines your FI Number
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import React, { useState } from "react"
 import { RetirementPlan, RetirementProjection } from "types/independence"
-import { WhatIfAdjustments, ScenarioOverrides } from "./types"
+import type { ScenarioState } from "./scenario/types"
 import { AssetBreakdown } from "./useAssetBreakdown"
 import { RentalIncomeData } from "./useUnifiedProjection"
 import { useMonteCarloSimulation } from "./useMonteCarloSimulation"
@@ -9,12 +9,9 @@ import { MonteCarloResultView } from "./monte-carlo/MonteCarloResultView"
 interface MonteCarloTabProps {
   plan: RetirementPlan
   assets: AssetBreakdown
-  currentAge?: number
-  retirementAge?: number
-  lifeExpectancy?: number
   monthlyInvestment?: number
-  whatIfAdjustments: WhatIfAdjustments
-  scenarioOverrides: ScenarioOverrides
+  /** Same scenario state that drives the deterministic projection. */
+  scenario: ScenarioState
   rentalIncome?: RentalIncomeData
   displayCurrency?: string
   hideValues: boolean
@@ -27,12 +24,8 @@ const ITERATION_OPTIONS = [500, 1000, 2000, 5000]
 export default function MonteCarloTab({
   plan,
   assets,
-  currentAge,
-  retirementAge,
-  lifeExpectancy,
   monthlyInvestment,
-  whatIfAdjustments,
-  scenarioOverrides,
+  scenario,
   rentalIncome,
   displayCurrency,
   hideValues,
@@ -44,12 +37,8 @@ export default function MonteCarloTab({
   const { result, isRunning, error, runSimulation } = useMonteCarloSimulation({
     plan,
     assets,
-    currentAge,
-    retirementAge,
-    lifeExpectancy,
     monthlyInvestment,
-    whatIfAdjustments,
-    scenarioOverrides,
+    scenario,
     rentalIncome,
     displayCurrency,
   })

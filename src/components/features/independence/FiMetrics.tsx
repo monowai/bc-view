@@ -1,11 +1,13 @@
-import React, { useState } from "react"
+import React from "react"
 import type { FiMetrics as FiMetricsType } from "types/independence"
+import type { StrategyView } from "./strategyView"
 import InfoTooltip from "@components/ui/Tooltip"
 import PrivateCurrency, {
   PrivatePercentage,
   HIDDEN_VALUE,
 } from "@components/ui/PrivateCurrency"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
+import PensionGauge from "./PensionGauge"
 import {
   calculateFiProgress,
   calculateGapToFi,
@@ -58,6 +60,11 @@ interface FiMetricsProps {
    * highlighted.
    */
   effectiveStrategy?: "FIRE" | "PENSION" | "HYBRID"
+  /**
+   * Strategy view chosen at the page level. Drives which sections render —
+   * FIRE / Pension / Bridge focus on one; ALL shows every section.
+   */
+  view?: StrategyView
   /** Current inflation rate from plan (as decimal) */
   inflationRate?: number
   /** Current equity return rate from plan (as decimal) */
@@ -89,6 +96,7 @@ export default function FiMetrics({
   retirementAge,
   backendFiMetrics,
   effectiveStrategy,
+  view = "ALL",
   inflationRate = 0.025,
   equityReturnRate = 0.08,
   cashReturnRate = 0.03,
@@ -182,22 +190,13 @@ export default function FiMetrics({
     backendBridgeYearsNeeded != null &&
     backendBridgeYearsNeeded > 0
 
-  // Session-only view override. Lets the user inspect any single strategy or
-  // ALL of them, regardless of the auto-detect rules. Not persisted.
-  const [viewOverride, setViewOverride] = useState<
-    "auto" | "FIRE" | "PENSION" | "HYBRID" | "ALL"
-  >("auto")
-
-  const showFire =
-    viewOverride === "auto" || viewOverride === "ALL" || viewOverride === "FIRE"
+  // Section visibility derived from the page-level view selection. ALL shows
+  // every section; FIRE / PENSION / HYBRID focus on one — but only render
+  // Pension or Bridge when their backend data is actually present.
+  const showFire = view === "ALL" || view === "FIRE"
   const showPension =
-    viewOverride === "ALL" ||
-    viewOverride === "PENSION" ||
-    (viewOverride === "auto" && autoPensionEligible)
-  const showBridge =
-    viewOverride === "ALL" ||
-    viewOverride === "HYBRID" ||
-    (viewOverride === "auto" && autoBridgeEligible)
+    view === "PENSION" || (view === "ALL" && autoPensionEligible)
+  const showBridge = view === "HYBRID" || (view === "ALL" && autoBridgeEligible)
 
   // Active badge tracks the effective (real) strategy, even when the user is
   // peeking at a different view — so the original picture isn't lost.
@@ -206,38 +205,14 @@ export default function FiMetrics({
   const bridgeActive = effectiveStrategy === "HYBRID"
 
   return (
-    <div className="bg-white rounded-xl shadow-md p-6">
-      <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+    <div className="bg-white rounded-xl shadow-md p-4">
+      <div className="flex items-center mb-4 gap-3 flex-wrap">
         <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
           Retirement Strategies
-          <InfoTooltip text="Each user pursues one or more of three paths: FIRE (live off liquid investments), Pension (rely on guaranteed income), or Bridge (use liquid to cover the gap until pensions start). Auto picks based on your plan; override to inspect a different view.">
+          <InfoTooltip text="Each user pursues one or more of three paths: FIRE (live off liquid investments), Pension (rely on guaranteed income), or Bridge (use liquid to cover the gap until pensions start). Pick a view at the top of the page to focus on one.">
             <span></span>
           </InfoTooltip>
         </h2>
-        <label className="flex items-center gap-2 text-sm text-gray-600">
-          <span>View:</span>
-          <select
-            value={viewOverride}
-            onChange={(e) =>
-              setViewOverride(
-                e.target.value as
-                  | "auto"
-                  | "FIRE"
-                  | "PENSION"
-                  | "HYBRID"
-                  | "ALL",
-              )
-            }
-            className="px-2 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-independence-500"
-            aria-label="View strategy"
-          >
-            <option value="auto">Auto</option>
-            <option value="FIRE">FIRE</option>
-            <option value="PENSION">Pension</option>
-            <option value="HYBRID">Bridge</option>
-            <option value="ALL">All</option>
-          </select>
-        </label>
       </div>
 
       <div className="space-y-4">
@@ -251,69 +226,66 @@ export default function FiMetrics({
             />
 
             {/* FI Number */}
-            <div className="p-4 bg-linear-to-r from-independence-50 to-independence-100 rounded-lg border border-independence-100">
-              <div className="flex justify-between items-center">
-                <div>
-                  <InfoTooltip text="Your FI Number is 25× your annual expenses. At this amount, a 4% annual withdrawal covers your expenses indefinitely.">
-                    <span className="text-sm text-gray-600 flex items-center gap-1">
-                      <i className="fas fa-bullseye text-independence-500"></i>
-                      FI Number (25×)
-                    </span>
-                  </InfoTooltip>
-                </div>
-                <span className="text-xl font-bold text-independence-600">
+            <div className="px-3 py-2 bg-linear-to-r from-independence-50 to-independence-100 rounded-lg border border-independence-100 flex items-center justify-between gap-3 flex-wrap">
+              <InfoTooltip text="Your FI Number is 25× your annual expenses. At this amount, a 4% annual withdrawal covers your expenses indefinitely.">
+                <span className="text-sm text-gray-600 flex items-center gap-1">
+                  <i className="fas fa-bullseye text-independence-500"></i>
+                  FI Number (25×)
+                </span>
+              </InfoTooltip>
+              <span className="text-xs text-gray-500">
+                {hideValues ? (
+                  <>Based on {HIDDEN_VALUE}/mo × 12 × 25</>
+                ) : (
+                  <>
+                    {currency}
+                    {Math.round(
+                      backendNetMonthlyExpenses ?? monthlyExpenses,
+                    ).toLocaleString()}
+                    /mo × 12 × 25
+                  </>
+                )}
+              </span>
+              <span className="text-xl font-bold text-independence-600">
+                <PrivateCurrency
+                  value={fiNumber}
+                  currency={currency}
+                  hideValues={hideValues}
+                />
+              </span>
+            </div>
+
+            {/* FI Progress Bar */}
+            <div>
+              <div className="flex justify-between items-center mb-1 gap-3 flex-wrap">
+                <InfoTooltip text="Progress toward Financial Independence based on liquid (spendable) assets only. The Pension-Saver View below adds gauges that credit locked retirement-fund assets.">
+                  <span className="text-sm text-gray-600">
+                    Early Retirement Progress
+                  </span>
+                </InfoTooltip>
+                <span className="flex items-center gap-2 text-xs text-gray-500">
+                  <PrivateCurrency
+                    value={liquidAssets}
+                    currency={currency}
+                    hideValues={hideValues}
+                  />
+                  <span>/</span>
                   <PrivateCurrency
                     value={fiNumber}
                     currency={currency}
                     hideValues={hideValues}
                   />
                 </span>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                {hideValues ? (
-                  <>Based on {HIDDEN_VALUE}/mo × 12 × 25</>
-                ) : (
-                  <>
-                    Based on {currency}
-                    {Math.round(
-                      backendNetMonthlyExpenses ?? monthlyExpenses,
-                    ).toLocaleString()}
-                    /mo net expenses × 12 × 25
-                  </>
-                )}
-              </p>
-            </div>
-
-            {/* FI Progress Bar */}
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <InfoTooltip text="Progress toward Financial Independence based on liquid (spendable) assets only. The Pension-Saver View below adds gauges that credit locked retirement-fund assets.">
-                  <span className="text-sm text-gray-600">
-                    Early Retirement Progress
-                  </span>
-                </InfoTooltip>
                 <PrivatePercentage
                   value={fiProgress}
                   hideValues={hideValues}
                   className={`font-semibold ${getProgressTextColor(fiProgress)}`}
                 />
               </div>
-              <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div
                   className={`h-full ${getProgressBgColor(fiProgress)} transition-all duration-500`}
                   style={{ width: hideValues ? "0%" : `${fiProgressClamped}%` }}
-                />
-              </div>
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
-                <PrivateCurrency
-                  value={liquidAssets}
-                  currency={currency}
-                  hideValues={hideValues}
-                />
-                <PrivateCurrency
-                  value={fiNumber}
-                  currency={currency}
-                  hideValues={hideValues}
                 />
               </div>
               {/* Gap/Surplus to FI */}
@@ -717,47 +689,9 @@ function BridgeStrategySection({
   )
 }
 
-interface PensionGaugeProps {
-  /** Stable identifier used for React list keys, not consumed by the component itself. */
-  key: string
-  label: string
-  tooltip: string
-  value: number
-  hideValues: boolean
-  format: (value: number) => string
-}
-
-type PensionGaugeRenderProps = Omit<PensionGaugeProps, "key">
-
-function PensionGauge({
-  label,
-  tooltip,
-  value,
-  hideValues,
-  format,
-}: PensionGaugeRenderProps): React.ReactElement {
-  const clamped = Math.max(0, Math.min(100, value))
-  return (
-    <div>
-      <div className="flex justify-between items-center mb-1">
-        <InfoTooltip text={tooltip}>
-          <span className="text-sm text-gray-600">{label}</span>
-        </InfoTooltip>
-        <span
-          className={`text-sm font-semibold ${getProgressTextColor(value)}`}
-        >
-          {hideValues ? HIDDEN_VALUE : format(value)}
-        </span>
-      </div>
-      <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-        <div
-          className={`h-full ${getProgressBgColor(value)} transition-all duration-500`}
-          style={{ width: hideValues ? "0%" : `${clamped}%` }}
-        />
-      </div>
-    </div>
-  )
-}
+// PensionGauge moved to ./PensionGauge.tsx — shared with StrategyGaugesStrip
+// so the ScenarioBar uses the same primitive without code duplication.
+type PensionGaugeProps = import("./PensionGauge").PensionGaugeProps
 
 /**
  * Calculate years to reach FI using binary search with compound interest.

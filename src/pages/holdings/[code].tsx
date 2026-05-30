@@ -124,9 +124,13 @@ function HoldingsPage(): React.ReactElement {
     if (!targetAssetId) return
     if (typeof window === "undefined") return
     if (!window.location.hash) return
-    router.replace(window.location.pathname + window.location.search, undefined, {
-      shallow: true,
-    })
+    router.replace(
+      window.location.pathname + window.location.search,
+      undefined,
+      {
+        shallow: true,
+      },
+    )
     // Run once after the hash is captured; router stays stable.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
