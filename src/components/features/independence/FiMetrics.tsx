@@ -501,6 +501,7 @@ export default function FiMetrics({
           <PensionStrategySection
             retirementAgeFiProgress={backendRetirementAgeFiProgress}
             incomeCoverage={backendIncomeCoverageAtRetirement}
+            bridgeProgress={backendBridgeProgress}
             isClassicFi={isFi}
             active={pensionActive}
             hideValues={hideValues}
@@ -555,6 +556,14 @@ function StrategyHeader({
 interface PensionStrategySectionProps {
   retirementAgeFiProgress?: number
   incomeCoverage?: number
+  /**
+   * Liquid runway through the pre-pension bridge years. Drives the funded
+   * banner so we don't celebrate "On Track for FI" while Sustainable
+   * Spending is simultaneously asking the user to cut back. Optional —
+   * absent when the user is already past pension payout age (no bridge
+   * to fund).
+   */
+  bridgeProgress?: number
   isClassicFi: boolean
   active?: boolean
   hideValues: boolean
@@ -568,6 +577,7 @@ interface PensionStrategySectionProps {
 function PensionStrategySection({
   retirementAgeFiProgress,
   incomeCoverage,
+  bridgeProgress,
   isClassicFi,
   active,
   hideValues,
@@ -599,11 +609,17 @@ function PensionStrategySection({
   }
 
   const sorted = [...gauges].sort((a, b) => b.value - a.value)
-  const showAchievement =
-    !isClassicFi &&
-    !hideValues &&
-    retirementAgeFiProgress != null &&
-    retirementAgeFiProgress >= 100
+
+  // Banner tier — driven by the BRIDGE (liquid coverage of pre-pension
+  // years), not just the lifetime-FI score. Otherwise we end up cheering
+  // "On Track for FI" while Sustainable Spending simultaneously warns the
+  // user to cut SGD950/mo — the exact contradiction Ruby surfaced.
+  const lifetimeFunded =
+    retirementAgeFiProgress != null && retirementAgeFiProgress >= 100
+  const fundedBanner: FundedBanner | null =
+    !isClassicFi && !hideValues && lifetimeFunded
+      ? deriveFundedBanner(bridgeProgress)
+      : null
 
   return (
     <div className="pt-4 border-t border-gray-100 space-y-3">
@@ -622,21 +638,70 @@ function PensionStrategySection({
         sorted.map(({ key, ...rest }) => <PensionGauge key={key} {...rest} />)
       )}
 
-      {showAchievement && (
-        <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-          <div className="flex items-center gap-2 text-green-700">
+      {fundedBanner && (
+        <div className={`p-3 rounded-lg border ${fundedBanner.containerClass}`}>
+          <div className={`flex items-center gap-2 ${fundedBanner.titleClass}`}>
             <i className="fas fa-piggy-bank"></i>
-            <span className="font-medium">On Track for FI at Retirement</span>
+            <span className="font-medium">{fundedBanner.title}</span>
           </div>
-          <p className="text-xs text-green-600 mt-1">
-            Your liquid assets plus the present value of your guaranteed pension
-            income already meet your FI Number. You may not be able to retire
-            early on liquid assets alone, but your full retirement is funded.
+          <p className={`text-xs mt-1 ${fundedBanner.bodyClass}`}>
+            {fundedBanner.body}
           </p>
         </div>
       )}
     </div>
   )
+}
+
+interface FundedBanner {
+  title: string
+  body: string
+  containerClass: string
+  titleClass: string
+  bodyClass: string
+}
+
+/**
+ * Pick a banner tone that reconciles the lifetime-FI win with the
+ * pre-pension liquid runway. `bridgeProgress` is the bridge-years gauge
+ * (liquid / required liquid through to pension payout). When absent we
+ * assume no bridge is needed (user already past pension start).
+ */
+function deriveFundedBanner(bridgeProgress?: number): FundedBanner {
+  const bridgeCovered = bridgeProgress == null || bridgeProgress >= 100
+  if (bridgeCovered) {
+    return {
+      title: "Funded — liquid covers the gap to your pension",
+      body:
+        "Your liquid pot is enough to carry you to your pension start age, " +
+        "and your pension income covers the rest.",
+      containerClass: "bg-green-50 border-green-200",
+      titleClass: "text-green-700",
+      bodyClass: "text-green-600",
+    }
+  }
+  if (bridgeProgress != null && bridgeProgress >= 60) {
+    return {
+      title: "Lifetime funded — but liquid may run short before pension",
+      body:
+        "Your guaranteed income covers full retirement, but at current spending " +
+        "your liquid pot won't last to your pension start age. " +
+        "Reduce monthly spending OR retire later to close the gap.",
+      containerClass: "bg-amber-50 border-amber-200",
+      titleClass: "text-amber-700",
+      bodyClass: "text-amber-600",
+    }
+  }
+  return {
+    title: "Lifetime funded — bridge gap to pension is significant",
+    body:
+      "Pension income covers full retirement, but you'd deplete liquid assets " +
+      "well before your pension starts. Reduce monthly spending, retire later, " +
+      "or grow liquid assets.",
+    containerClass: "bg-orange-50 border-orange-200",
+    titleClass: "text-orange-700",
+    bodyClass: "text-orange-600",
+  }
 }
 
 interface BridgeStrategySectionProps {

@@ -57,9 +57,11 @@ export default function SustainableSpendingCard({
               ending balance
             </div>
           )}
-        <div className="text-xs text-amber-600 bg-amber-50 rounded px-2 py-1">
-          Assumes steady returns with no market volatility. Use Stress Test for
-          a range of outcomes.
+        <div className="text-xs text-gray-500">
+          Gross expense level your liquid assets can sustain across the planning
+          horizon, after netting any pension / rental income that starts during
+          retirement. Assumes steady returns — use Stress Test for a range of
+          outcomes.
         </div>
         <hr />
         {projection.expenseAdjustment != null &&
