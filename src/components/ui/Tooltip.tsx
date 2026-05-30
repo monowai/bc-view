@@ -25,13 +25,13 @@ export default function Tooltip({
       <i className="fas fa-info-circle ml-1 text-gray-400 hover:text-gray-600 cursor-help text-xs"></i>
       {isVisible && (
         <span
-          className={`absolute z-50 left-1/2 transform -translate-x-1/2 px-3 py-2 text-xs text-white bg-gray-800 rounded-lg shadow-lg w-max max-w-md whitespace-normal text-left leading-snug ${
+          className={`absolute z-50 left-0 px-3 py-2 text-xs text-white bg-gray-800 rounded-lg shadow-lg w-max min-w-[12rem] max-w-[min(28rem,calc(100vw-2rem))] whitespace-normal text-left leading-snug ${
             isBelow ? "top-full mt-2" : "bottom-full mb-2"
           }`}
         >
           {text}
           <span
-            className={`absolute left-1/2 transform -translate-x-1/2 border-4 border-transparent ${
+            className={`absolute left-3 border-4 border-transparent ${
               isBelow
                 ? "bottom-full border-b-gray-800"
                 : "top-full border-t-gray-800"
