@@ -4,6 +4,7 @@ import {
   FiMetrics,
   SustainableSpendingCard,
 } from "@components/features/independence"
+import type { StrategyView } from "./strategyView"
 
 interface EffectivePlanValues {
   inflationRate: number
@@ -21,6 +22,8 @@ interface AssetsTabContentProps {
   retirementAge: number
   effectiveCurrency: string
   fireDataReady: boolean
+  /** Page-level strategy view — drives FiMetrics section visibility. */
+  view: StrategyView
 }
 
 /**
@@ -36,6 +39,7 @@ export default function AssetsTabContent({
   retirementAge,
   effectiveCurrency,
   fireDataReady,
+  view,
 }: AssetsTabContentProps): React.ReactElement {
   return (
     <div className="space-y-6">
@@ -53,6 +57,7 @@ export default function AssetsTabContent({
           retirementAge={retirementAge}
           backendFiMetrics={projection.fiMetrics}
           effectiveStrategy={projection.effectiveStrategy}
+          view={view}
           inflationRate={effectivePlanValues?.inflationRate ?? 0.025}
           equityReturnRate={effectivePlanValues?.equityReturnRate ?? 0.08}
           cashReturnRate={effectivePlanValues?.cashReturnRate ?? 0.03}

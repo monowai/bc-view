@@ -1,5 +1,6 @@
-import React, { useState } from "react"
+import React from "react"
 import type { FiMetrics as FiMetricsType } from "types/independence"
+import type { StrategyView } from "./strategyView"
 import InfoTooltip from "@components/ui/Tooltip"
 import PrivateCurrency, {
   PrivatePercentage,
@@ -59,6 +60,11 @@ interface FiMetricsProps {
    * highlighted.
    */
   effectiveStrategy?: "FIRE" | "PENSION" | "HYBRID"
+  /**
+   * Strategy view chosen at the page level. Drives which sections render —
+   * FIRE / Pension / Bridge focus on one; ALL shows every section.
+   */
+  view?: StrategyView
   /** Current inflation rate from plan (as decimal) */
   inflationRate?: number
   /** Current equity return rate from plan (as decimal) */
@@ -90,6 +96,7 @@ export default function FiMetrics({
   retirementAge,
   backendFiMetrics,
   effectiveStrategy,
+  view = "ALL",
   inflationRate = 0.025,
   equityReturnRate = 0.08,
   cashReturnRate = 0.03,
@@ -183,22 +190,13 @@ export default function FiMetrics({
     backendBridgeYearsNeeded != null &&
     backendBridgeYearsNeeded > 0
 
-  // Session-only view override. Lets the user inspect any single strategy or
-  // ALL of them, regardless of the auto-detect rules. Not persisted.
-  const [viewOverride, setViewOverride] = useState<
-    "auto" | "FIRE" | "PENSION" | "HYBRID" | "ALL"
-  >("auto")
-
-  const showFire =
-    viewOverride === "auto" || viewOverride === "ALL" || viewOverride === "FIRE"
+  // Section visibility derived from the page-level view selection. ALL shows
+  // every section; FIRE / PENSION / HYBRID focus on one — but only render
+  // Pension or Bridge when their backend data is actually present.
+  const showFire = view === "ALL" || view === "FIRE"
   const showPension =
-    viewOverride === "ALL" ||
-    viewOverride === "PENSION" ||
-    (viewOverride === "auto" && autoPensionEligible)
-  const showBridge =
-    viewOverride === "ALL" ||
-    viewOverride === "HYBRID" ||
-    (viewOverride === "auto" && autoBridgeEligible)
+    view === "PENSION" || (view === "ALL" && autoPensionEligible)
+  const showBridge = view === "HYBRID" || (view === "ALL" && autoBridgeEligible)
 
   // Active badge tracks the effective (real) strategy, even when the user is
   // peeking at a different view — so the original picture isn't lost.
@@ -208,37 +206,13 @@ export default function FiMetrics({
 
   return (
     <div className="bg-white rounded-xl shadow-md p-6">
-      <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+      <div className="flex items-center mb-4 gap-3 flex-wrap">
         <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
           Retirement Strategies
-          <InfoTooltip text="Each user pursues one or more of three paths: FIRE (live off liquid investments), Pension (rely on guaranteed income), or Bridge (use liquid to cover the gap until pensions start). Auto picks based on your plan; override to inspect a different view.">
+          <InfoTooltip text="Each user pursues one or more of three paths: FIRE (live off liquid investments), Pension (rely on guaranteed income), or Bridge (use liquid to cover the gap until pensions start). Pick a view at the top of the page to focus on one.">
             <span></span>
           </InfoTooltip>
         </h2>
-        <label className="flex items-center gap-2 text-sm text-gray-600">
-          <span>View:</span>
-          <select
-            value={viewOverride}
-            onChange={(e) =>
-              setViewOverride(
-                e.target.value as
-                  | "auto"
-                  | "FIRE"
-                  | "PENSION"
-                  | "HYBRID"
-                  | "ALL",
-              )
-            }
-            className="px-2 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-independence-500"
-            aria-label="View strategy"
-          >
-            <option value="auto">Auto</option>
-            <option value="FIRE">FIRE</option>
-            <option value="PENSION">Pension</option>
-            <option value="HYBRID">Bridge</option>
-            <option value="ALL">All</option>
-          </select>
-        </label>
       </div>
 
       <div className="space-y-4">

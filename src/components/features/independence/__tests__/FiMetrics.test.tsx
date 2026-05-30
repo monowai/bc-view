@@ -1,5 +1,5 @@
 import React from "react"
-import { fireEvent, render, screen } from "@testing-library/react"
+import { render, screen } from "@testing-library/react"
 import type { FiMetrics as FiMetricsType } from "types/independence"
 import FiMetrics from "../FiMetrics"
 
@@ -567,49 +567,38 @@ describe("FiMetrics", () => {
       expect(container.textContent).not.toContain("Active")
     })
 
-    it("View dropdown — All shows every section regardless of eligibility", () => {
-      render(<FiMetrics {...defaultProps} />)
-      fireEvent.change(screen.getByLabelText("View strategy"), {
-        target: { value: "ALL" },
-      })
+    it("view=ALL shows every section regardless of eligibility", () => {
+      render(<FiMetrics {...rubyPensionProps} view="ALL" />)
       expect(screen.getByText("FIRE Strategy")).toBeInTheDocument()
       expect(screen.getByText("Pension Strategy")).toBeInTheDocument()
       expect(screen.getByText("Bridge Strategy")).toBeInTheDocument()
     })
 
-    it("View dropdown — FIRE hides Pension + Bridge for Ruby", () => {
-      render(<FiMetrics {...rubyPensionProps} />)
-      fireEvent.change(screen.getByLabelText("View strategy"), {
-        target: { value: "FIRE" },
-      })
+    it("view=FIRE hides Pension + Bridge for Ruby", () => {
+      render(<FiMetrics {...rubyPensionProps} view="FIRE" />)
       expect(screen.getByText("FIRE Strategy")).toBeInTheDocument()
       expect(screen.queryByText("Pension Strategy")).not.toBeInTheDocument()
       expect(screen.queryByText("Bridge Strategy")).not.toBeInTheDocument()
     })
 
-    it("View dropdown — Pension hides FIRE + Bridge for Ruby", () => {
-      render(<FiMetrics {...rubyPensionProps} />)
-      fireEvent.change(screen.getByLabelText("View strategy"), {
-        target: { value: "PENSION" },
-      })
+    it("view=PENSION hides FIRE + Bridge for Ruby", () => {
+      render(<FiMetrics {...rubyPensionProps} view="PENSION" />)
       expect(screen.queryByText("FIRE Strategy")).not.toBeInTheDocument()
       expect(screen.getByText("Pension Strategy")).toBeInTheDocument()
       expect(screen.queryByText("Bridge Strategy")).not.toBeInTheDocument()
     })
 
-    it("View dropdown — Bridge hides FIRE + Pension for Ruby", () => {
-      render(<FiMetrics {...rubyPensionProps} />)
-      fireEvent.change(screen.getByLabelText("View strategy"), {
-        target: { value: "HYBRID" },
-      })
+    it("view=HYBRID hides FIRE + Pension for Ruby", () => {
+      render(<FiMetrics {...rubyPensionProps} view="HYBRID" />)
       expect(screen.queryByText("FIRE Strategy")).not.toBeInTheDocument()
       expect(screen.queryByText("Pension Strategy")).not.toBeInTheDocument()
       expect(screen.getByText("Bridge Strategy")).toBeInTheDocument()
     })
 
-    it("View dropdown — Auto keeps original visibility (plain FIRE user)", () => {
+    it("view defaults to ALL when omitted (plain FIRE user shows FIRE only)", () => {
       render(<FiMetrics {...defaultProps} />)
       expect(screen.getByText("FIRE Strategy")).toBeInTheDocument()
+      // No backend pension/bridge data → those sections still hidden.
       expect(screen.queryByText("Pension Strategy")).not.toBeInTheDocument()
       expect(screen.queryByText("Bridge Strategy")).not.toBeInTheDocument()
     })

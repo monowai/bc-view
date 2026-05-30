@@ -2,6 +2,7 @@ import React from "react"
 import type { FiMetrics } from "types/independence"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import PensionGauge, { type PensionGaugeProps } from "./PensionGauge"
+import type { StrategyView } from "./strategyView"
 
 export interface StrategyGaugesStripProps {
   /** Live FiMetrics from the latest projection. Undefined while calculating. */
@@ -12,6 +13,16 @@ export interface StrategyGaugesStripProps {
    * the Metrics tab Pension/Bridge sections).
    */
   compact?: boolean
+  /**
+   * Active strategy view. Promotes the matching gauge to the headline slot
+   * (first position). "ALL" falls back to FIRE for the headline.
+   */
+  view?: StrategyView
+  /**
+   * When true, renders only the headline gauge (single bar) instead of the
+   * full strip. Used by the sticky ScenarioBar so the header stays compact.
+   */
+  singleHeadline?: boolean
 }
 
 /**
@@ -24,9 +35,12 @@ export interface StrategyGaugesStripProps {
 export default function StrategyGaugesStrip({
   fiMetrics,
   compact = false,
+  view = "ALL",
+  singleHeadline = false,
 }: StrategyGaugesStripProps): React.ReactElement {
   const { hideValues } = usePrivacyMode()
-  const gauges = buildGauges(fiMetrics, hideValues)
+  const ordered = orderGauges(buildGauges(fiMetrics, hideValues), view)
+  const gauges = singleHeadline ? ordered.slice(0, 1) : ordered
 
   const containerClass = compact
     ? "grid grid-cols-1 sm:grid-cols-2 gap-3"
@@ -39,6 +53,31 @@ export default function StrategyGaugesStrip({
       ))}
     </div>
   )
+}
+
+/** Maps a strategy view to the gauge key that should sit in the headline slot. */
+const VIEW_HEADLINE_KEY: Record<StrategyView, string> = {
+  FIRE: "fire",
+  PENSION: "retirement-age-fi",
+  HYBRID: "bridge",
+  // ALL has no "single most relevant" gauge; fall through to FIRE.
+  ALL: "fire",
+}
+
+/**
+ * Promotes the view-matching gauge to position 0 so it stays visible if
+ * the strip is truncated. When view = ALL, returns gauges in their
+ * natural order.
+ */
+function orderGauges(
+  gauges: PensionGaugeProps[],
+  view: StrategyView,
+): PensionGaugeProps[] {
+  const headlineKey = VIEW_HEADLINE_KEY[view]
+  const headline = gauges.find((g) => g.key === headlineKey)
+  if (!headline) return gauges
+  const rest = gauges.filter((g) => g.key !== headlineKey)
+  return [headline, ...rest]
 }
 
 function buildGauges(

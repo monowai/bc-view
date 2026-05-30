@@ -3,6 +3,7 @@ import type { FiMetrics } from "types/independence"
 import InfoTooltip from "@components/ui/Tooltip"
 import type { ScenarioState } from "./scenario/types"
 import StrategyGaugesStrip from "./StrategyGaugesStrip"
+import { STRATEGY_VIEW_LABELS, type StrategyView } from "./strategyView"
 import WhatIfSlider from "./WhatIfSlider"
 
 export interface ScenarioBarProps {
@@ -19,6 +20,9 @@ export interface ScenarioBarProps {
   currency: string
   /** Live FiMetrics from the most recent projection. */
   fiMetrics?: FiMetrics
+  /** Active strategy view — drives the headline gauge + FiMetrics sections. */
+  view: StrategyView
+  onViewChange: (next: StrategyView) => void
   /**
    * Live derived liquid assets from holdings. Acts as the slider default
    * (when `scenario.liquidAssets` is null) and as the upper anchor for the
@@ -52,6 +56,8 @@ export default function ScenarioBar({
   isDirty,
   currency,
   fiMetrics,
+  view,
+  onViewChange,
   derivedLiquidAssets,
   planBlendedReturn,
   planInflation,
@@ -97,7 +103,24 @@ export default function ScenarioBar({
               </span>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 text-sm text-gray-600">
+              <span>View:</span>
+              <select
+                value={view}
+                onChange={(e) => onViewChange(e.target.value as StrategyView)}
+                className="px-2 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-independence-500"
+                aria-label="Strategy view"
+              >
+                {(["FIRE", "PENSION", "HYBRID", "ALL"] as StrategyView[]).map(
+                  (v) => (
+                    <option key={v} value={v}>
+                      {STRATEGY_VIEW_LABELS[v]}
+                    </option>
+                  ),
+                )}
+              </select>
+            </label>
             <button
               type="button"
               onClick={onReset}
@@ -231,7 +254,12 @@ export default function ScenarioBar({
 
           {/* Live gauges — always visible */}
           <div>
-            <StrategyGaugesStrip fiMetrics={fiMetrics} compact />
+            <StrategyGaugesStrip
+              fiMetrics={fiMetrics}
+              compact
+              view={view}
+              singleHeadline
+            />
           </div>
         </div>
       </div>

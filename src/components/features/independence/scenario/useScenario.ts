@@ -30,10 +30,7 @@ export function useScenario(
   plan: RetirementPlan | undefined,
   settings: UserIndependenceSettings | undefined,
 ): UseScenarioResult {
-  const seed = useMemo(
-    () => seedFromPlan(plan, settings),
-    [plan, settings],
-  )
+  const seed = useMemo(() => seedFromPlan(plan, settings), [plan, settings])
 
   const [patch, setPatch] = useState<Partial<ScenarioState>>({})
 

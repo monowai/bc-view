@@ -28,6 +28,8 @@ const baseProps = {
   onSave: jest.fn(),
   isDirty: false,
   currency: "SGD",
+  view: "FIRE" as const,
+  onViewChange: jest.fn(),
   derivedLiquidAssets: 250_000,
   planBlendedReturn: 0.058,
   planInflation: 0.025,

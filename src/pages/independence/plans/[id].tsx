@@ -28,6 +28,10 @@ import {
   applyRealReturn,
   blendedReturnRate as computeBlendedReturnRate,
 } from "@components/features/independence/scenario/scenarioToPayload"
+import {
+  defaultStrategyView,
+  type StrategyView,
+} from "@components/features/independence/strategyView"
 import { usePrivateAssetConfigs } from "@utils/assets/usePrivateAssetConfigs"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import { useIndependencePlanData } from "@hooks/useIndependencePlanData"
@@ -87,6 +91,11 @@ function PlanView(): React.ReactElement {
     reset: resetScenario,
     isDirty: scenarioIsDirty,
   } = useScenario(plan, independenceSettings)
+
+  // Strategy view dropdown — seeded from the projection's effective strategy
+  // once it arrives. Drives the ScenarioBar headline gauge order and the
+  // FiMetrics section visibility on the Metrics tab.
+  const [strategyView, setStrategyView] = useState<StrategyView | null>(null)
 
   const [isTransferring, setIsTransferring] = useState(false)
   const [transferError, setTransferError] = useState<string | null>(null)
@@ -772,6 +781,11 @@ function PlanView(): React.ReactElement {
               isDirty={scenarioIsDirty}
               currency={effectiveCurrency}
               fiMetrics={adjustedProjection?.fiMetrics}
+              view={
+                strategyView ??
+                defaultStrategyView(adjustedProjection?.effectiveStrategy)
+              }
+              onViewChange={setStrategyView}
               derivedLiquidAssets={liquidAssets}
               planBlendedReturn={computeBlendedReturnRate(plan)}
               planInflation={plan.inflationRate}
@@ -834,6 +848,10 @@ function PlanView(): React.ReactElement {
               retirementAge={retirementAge}
               effectiveCurrency={effectiveCurrency}
               fireDataReady={fireDataReady}
+              view={
+                strategyView ??
+                defaultStrategyView(adjustedProjection?.effectiveStrategy)
+              }
             />
           )}
 
