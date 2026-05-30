@@ -92,8 +92,13 @@ export function applyRealReturn(
     }
   }
 
+  // Anchor the delta against the plan's saved inflation, NOT the scenario's
+  // inflation slider — otherwise moving the Inflation slider before the Real
+  // Return slider would silently shift the real-return baseline and the
+  // resulting cash + equity rates wouldn't correspond to the requested real
+  // return any more.
   const planBlended = blendedReturnRate(plan)
-  const targetNominalBlended = scenario.realReturn + scenario.inflation
+  const targetNominalBlended = scenario.realReturn + plan.inflationRate
   const delta = targetNominalBlended - planBlended
 
   return {

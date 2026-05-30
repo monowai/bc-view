@@ -61,9 +61,13 @@ export default function ScenarioBar({
   const [collapsed, setCollapsed] = useState(false)
 
   const effectiveLiquidAssets = scenario.liquidAssets ?? derivedLiquidAssets
-  const effectiveRealReturn =
-    scenario.realReturn ?? planBlendedReturn - planInflation
+  const planRealReturn = planBlendedReturn - planInflation
+  const effectiveRealReturn = scenario.realReturn ?? planRealReturn
   const liquidMax = Math.max(derivedLiquidAssets * 2, 100_000)
+  // Slider snaps to nearest 0.001; treat anything within half a step of the
+  // plan's real return as "matches plan" and restore the null override so
+  // the isDirty badge clears.
+  const REAL_RETURN_SNAP = 0.0005
 
   return (
     <div className="sticky top-0 z-30 bg-white border-b shadow-sm mb-4">
@@ -208,9 +212,7 @@ export default function ScenarioBar({
               onChange={(v) =>
                 onScenarioChange({
                   realReturn:
-                    Math.abs(v - (planBlendedReturn - planInflation)) < 1e-6
-                      ? null
-                      : v,
+                    Math.abs(v - planRealReturn) < REAL_RETURN_SNAP ? null : v,
                 })
               }
               min={0}
