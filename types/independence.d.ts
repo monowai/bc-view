@@ -120,6 +120,13 @@ export interface RetirementPlan {
   isPrimary: boolean
   createdDate: string
   updatedDate: string
+  /**
+   * Plan owner's SystemUser.id, dual-populated on write. Null for legacy
+   * rows pre-dating the system_user_id column; svc-retire lazy-backfills
+   * during shared-plan projection. Used by bc-view to drive
+   * owner-scoped portfolio filtering for shared plans.
+   */
+  systemUserId?: string
 }
 
 export interface PlanCopyRequest {
