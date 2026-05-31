@@ -12,6 +12,7 @@ import {
 } from "types/independence"
 import { HoldingContract } from "types/beancounter"
 import { useAssetBreakdown } from "@components/features/independence"
+import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
 import Spinner from "@components/ui/Spinner"
 import Alert from "@components/ui/Alert"
 
@@ -31,20 +32,35 @@ interface Sliders {
   inflationRate: number
 }
 
+const DEFAULT_LIFE_EXPECTANCY = 90
+const DEFAULT_CURRENT_AGE = 50
+
 function planToSliders(
   plan: RetirementPlan,
   liquidFromAssets: number,
+  settingsYearOfBirth: number | undefined,
+  settingsLifeExpectancy: number | undefined,
 ): Sliders {
   const currentYear = new Date().getFullYear()
-  const currentAge = plan.yearOfBirth ? currentYear - plan.yearOfBirth : 50
+  // RetirementPlan entity doesn't persist yearOfBirth/lifeExpectancy —
+  // those live on UserIndependenceSettings. Fall through plan → settings →
+  // sensible default. Without this Wookie-shape plans (no yearOfBirth on
+  // settings, no lifeExpectancy on plan) produced NaN slider bounds and
+  // crashed the page.
+  const yearOfBirth = plan.yearOfBirth ?? settingsYearOfBirth
+  const currentAge = yearOfBirth
+    ? currentYear - yearOfBirth
+    : DEFAULT_CURRENT_AGE
+  const lifeExpectancy =
+    plan.lifeExpectancy ?? settingsLifeExpectancy ?? DEFAULT_LIFE_EXPECTANCY
   const retirementAge = Math.min(
-    plan.lifeExpectancy - 1,
+    lifeExpectancy - 1,
     Math.max(currentAge + 1, currentAge + 5),
   )
   return {
     currentAge,
     retirementAge,
-    lifeExpectancy: plan.lifeExpectancy,
+    lifeExpectancy,
     liquidAssets: Math.round(liquidFromAssets),
     monthlyExpenses: plan.monthlyExpenses,
     pensionMonthly: plan.pensionMonthly,
@@ -282,6 +298,8 @@ function IndependenceDebug(): React.ReactElement {
   const holdingsData = holdingsLoading ? undefined : holdingsResponse?.data
   const assets = useAssetBreakdown(holdingsData)
 
+  const { settings } = useIndependenceSettings()
+
   const plans = useMemo(() => plansData?.data ?? [], [plansData])
   const selectedPlan = useMemo(
     () => plans.find((p) => p.id === selectedPlanId) ?? null,
@@ -295,11 +313,24 @@ function IndependenceDebug(): React.ReactElement {
     setSelectedPlanId(primary.id)
   }, [plans, selectedPlanId])
 
-  // Seed sliders when plan or assets change
+  // Seed sliders when plan, assets, or settings change
   useEffect(() => {
     if (!selectedPlan || !assets.hasAssets) return
-    setSliders(planToSliders(selectedPlan, assets.liquidAssets))
-  }, [selectedPlan, assets.hasAssets, assets.liquidAssets])
+    setSliders(
+      planToSliders(
+        selectedPlan,
+        assets.liquidAssets,
+        settings?.yearOfBirth,
+        settings?.lifeExpectancy,
+      ),
+    )
+  }, [
+    selectedPlan,
+    assets.hasAssets,
+    assets.liquidAssets,
+    settings?.yearOfBirth,
+    settings?.lifeExpectancy,
+  ])
 
   // Debounced backend recalculation.
   // AbortController per scheduled request prevents stale responses (slider drag
