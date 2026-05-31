@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react"
+import React, { useMemo, useRef, useState } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import Head from "next/head"
 import Link from "next/link"
@@ -275,7 +275,7 @@ function RetirementPlanning(): React.ReactElement {
   const { settings } = useIndependenceSettings()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [activeView, setActiveView] = useState<
-    "profile" | "work" | "plans" | "composite"
+    "profile" | "work" | "plans" | "shared" | "composite"
   >("plans")
   const [isImporting, setIsImporting] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
@@ -328,7 +328,16 @@ function RetirementPlanning(): React.ReactElement {
   // they've defined on the Composite tab — a timeline like Singapore → NZ →
   // Thailand should show those cards in that order everywhere. Plans not in
   // the composite retain their backend order behind the sequenced ones.
-  const plans = sortPlansByCompositeOrder(data?.data || [], settings)
+  const sharedPlanIdSet = useMemo(
+    () => new Set(data?.sharedPlanIds ?? []),
+    [data?.sharedPlanIds],
+  )
+  const allPlans = sortPlansByCompositeOrder(data?.data || [], settings)
+  const ownedPlans = allPlans.filter((p) => !sharedPlanIdSet.has(p.id))
+  const sharedPlans = allPlans.filter((p) => sharedPlanIdSet.has(p.id))
+  // Backwards-compatible alias — most code below refers to the user's own
+  // plans; sharing UI references sharedPlans directly.
+  const plans = ownedPlans
 
   const handleExportPlan = async (plan: RetirementPlan): Promise<void> => {
     try {
@@ -630,6 +639,22 @@ function RetirementPlanning(): React.ReactElement {
               <i className="fas fa-th-large mr-2"></i>
               Plans
             </button>
+            {sharedPlans.length > 0 && (
+              <button
+                onClick={() => setActiveView("shared")}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  activeView === "shared"
+                    ? "bg-white text-independence-700 shadow-sm"
+                    : "text-gray-600 hover:text-gray-800"
+                }`}
+              >
+                <i className="fas fa-share-alt mr-2"></i>
+                Shared
+                <span className="ml-1.5 text-xs text-gray-500">
+                  ({sharedPlans.length})
+                </span>
+              </button>
+            )}
             {plans.length > 1 && (
               <button
                 onClick={() => setActiveView("composite")}
@@ -688,6 +713,23 @@ function RetirementPlanning(): React.ReactElement {
           {!isLoading && plans.length > 0 && activeView === "plans" && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {plans.map((plan: RetirementPlan) => (
+                <PlanCard
+                  key={plan.id}
+                  plan={plan}
+                  assets={assets}
+                  hideValues={hideValues}
+                  onDelete={setDeletePlanId}
+                  onExport={handleExportPlan}
+                  onCopy={handleCopyClick}
+                  onSetPrimary={handleSetPrimary}
+                />
+              ))}
+            </div>
+          )}
+
+          {!isLoading && activeView === "shared" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {sharedPlans.map((plan: RetirementPlan) => (
                 <PlanCard
                   key={plan.id}
                   plan={plan}

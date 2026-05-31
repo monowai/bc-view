@@ -213,6 +213,11 @@ export interface PlanResponse {
 
 export interface PlansResponse {
   data: RetirementPlan[]
+  /**
+   * Ids in `data` the caller does NOT own but has accepted a resource share
+   * for. Used to populate the Shared tab on /independence.
+   */
+  sharedPlanIds?: string[]
 }
 
 // ============ Category Labels ============
