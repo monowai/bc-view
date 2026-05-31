@@ -72,19 +72,6 @@ function PlanView(): React.ReactElement {
   // Version counter to force modal re-initialization after save
   const [planVersion, setPlanVersion] = useState(0)
 
-  // Data-fetching hooks
-  const {
-    plan,
-    planError,
-    isClientPlan,
-    portfoliosData,
-    holdingsData,
-    refreshHoldings,
-    isRefreshingHoldings,
-    availableCurrencies,
-    mutatePlan,
-  } = useIndependencePlanData(id)
-
   // Pull the sharedPlanIds set so we can detect when this plan belongs to
   // someone else (accepted resource share). Shared plans route the
   // projection through svc-retire's M2M / ?systemUserId path so the
@@ -102,6 +89,30 @@ function PlanView(): React.ReactElement {
     if (!idStr) return false
     return (plansData?.sharedPlanIds ?? []).includes(idStr)
   }, [plansData, id])
+  // Owner's SystemUser.id from the shared plan row. Drives the owner-
+  // scoped portfolio filter on the holdings SWR — when set, the
+  // Assets-by-Category panel renders the plan owner's categories (via
+  // accepted portfolio shares), not the viewer's. Null until the
+  // backfill on svc-retire has populated `plan.systemUserId`.
+  const sharedPlanOwnerSystemUserId = useMemo(() => {
+    if (!isSharedPlan) return undefined
+    const idStr = Array.isArray(id) ? id[0] : id
+    const match = plansData?.data?.find((p) => p.id === idStr)
+    return match?.systemUserId ?? undefined
+  }, [isSharedPlan, plansData, id])
+
+  // Data-fetching hooks
+  const {
+    plan,
+    planError,
+    isClientPlan,
+    portfoliosData,
+    holdingsData,
+    refreshHoldings,
+    isRefreshingHoldings,
+    availableCurrencies,
+    mutatePlan,
+  } = useIndependencePlanData(id, sharedPlanOwnerSystemUserId)
 
   // Unified scenario state — replaces the old WhatIfAdjustments + ScenarioOverrides
   // split. Drives the projection, Stress Test and Wealth-tab card.
@@ -875,6 +886,7 @@ function PlanView(): React.ReactElement {
               onRefreshHoldings={() => refreshHoldings()}
               excludedPensionFV={excludedPensionFV}
               includedPensionFvDifferential={includedPensionFvDifferential}
+              isSharedPlan={isSharedPlan}
             />
           )}
 
