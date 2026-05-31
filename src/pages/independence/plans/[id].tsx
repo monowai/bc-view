@@ -38,6 +38,9 @@ import { useIndependencePlanCurrency } from "@hooks/useIndependencePlanCurrency"
 import { useExcludedAssetIds } from "@hooks/useExcludedAssetIds"
 import { useIndependencePlanProjections } from "@hooks/useIndependencePlanProjections"
 import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
+import useSwr from "swr"
+import { simpleFetcher } from "@utils/api/fetchHelper"
+import type { PlansResponse } from "types/independence"
 import type { LumpSumAsset } from "@hooks/useIndependencePlanProjections"
 import Alert from "@components/ui/Alert"
 import Spinner from "@components/ui/Spinner"
@@ -81,6 +84,24 @@ function PlanView(): React.ReactElement {
     availableCurrencies,
     mutatePlan,
   } = useIndependencePlanData(id)
+
+  // Pull the sharedPlanIds set so we can detect when this plan belongs to
+  // someone else (accepted resource share). Shared plans route the
+  // projection through svc-retire's M2M / ?systemUserId path so the
+  // viewer's own holdings don't pollute the result.
+  const { data: plansData } = useSwr<PlansResponse>(
+    "/api/independence/plans",
+    simpleFetcher("/api/independence/plans"),
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 60000,
+    },
+  )
+  const isSharedPlan = useMemo(() => {
+    const idStr = Array.isArray(id) ? id[0] : id
+    if (!idStr) return false
+    return (plansData?.sharedPlanIds ?? []).includes(idStr)
+  }, [plansData, id])
 
   // Unified scenario state — replaces the old WhatIfAdjustments + ScenarioOverrides
   // split. Drives the projection, Stress Test and Wealth-tab card.
@@ -449,6 +470,7 @@ function PlanView(): React.ReactElement {
     isAtBaseline: !scenarioIsDirty,
     rentalIncome,
     displayCurrency: displayCurrency ?? undefined,
+    isSharedPlan,
   })
 
   // FIRE data is ready when backend projection has completed with valid metrics

@@ -19,6 +19,15 @@ export interface ScenarioPayloadCtx {
   derivedLiquidAssets: number
   /** Non-spendable assets derived from live holdings. */
   derivedNonSpendableAssets: number
+  /**
+   * Set when the viewer doesn't own the plan. Omits `liquidAssets` /
+   * `nonSpendableAssets` from the projection request so svc-retire's
+   * shared-plan M2M path resolves the OWNER's holdings via svc-position
+   * instead of accepting the viewer's caller-scoped totals.
+   */
+  isSharedPlan?: boolean
+  /** Request the optional ProjectionDebug block in the response. */
+  includeDebug?: boolean
 }
 
 /**
@@ -52,8 +61,17 @@ export function scenarioToPayload(
     socialSecurityMonthly: scenario.socialSecurityMonthly,
     otherIncomeMonthly: scenario.otherIncomeMonthly,
     targetBalance: ctx.plan.targetBalance,
-    liquidAssets: scenario.liquidAssets ?? ctx.derivedLiquidAssets,
-    nonSpendableAssets: ctx.derivedNonSpendableAssets,
+  }
+
+  // For owned plans the viewer's holdings are correct projection inputs;
+  // for shared plans they belong to the viewer, NOT the plan owner — let
+  // svc-retire resolve them server-side via the M2M + ?systemUserId path.
+  if (!ctx.isSharedPlan) {
+    payload.liquidAssets = scenario.liquidAssets ?? ctx.derivedLiquidAssets
+    payload.nonSpendableAssets = ctx.derivedNonSpendableAssets
+  } else if (scenario.liquidAssets != null) {
+    // Slider explicitly overrode liquid for what-if even on a shared plan.
+    payload.liquidAssets = scenario.liquidAssets
   }
 
   if (ctx.definedContribution != null) {
@@ -61,6 +79,9 @@ export function scenarioToPayload(
   }
   if (ctx.rentalIncome?.totalMonthlyInPlanCurrency) {
     payload.rentalIncomeMonthly = ctx.rentalIncome.totalMonthlyInPlanCurrency
+  }
+  if (ctx.includeDebug) {
+    payload.includeDebug = true
   }
 
   return payload

@@ -301,9 +301,17 @@ function IndependenceDebug(): React.ReactElement {
   const { settings } = useIndependenceSettings()
 
   const plans = useMemo(() => plansData?.data ?? [], [plansData])
+  const sharedPlanIdSet = useMemo(
+    () => new Set(plansData?.sharedPlanIds ?? []),
+    [plansData?.sharedPlanIds],
+  )
   const selectedPlan = useMemo(
     () => plans.find((p) => p.id === selectedPlanId) ?? null,
     [plans, selectedPlanId],
+  )
+  const isSharedPlan = useMemo(
+    () => (selectedPlanId ? sharedPlanIdSet.has(selectedPlanId) : false),
+    [selectedPlanId, sharedPlanIdSet],
   )
 
   // Auto-select primary plan once data loads
@@ -313,15 +321,29 @@ function IndependenceDebug(): React.ReactElement {
     setSelectedPlanId(primary.id)
   }, [plans, selectedPlanId])
 
-  // Seed sliders when plan, assets, or settings change
+  // Seed sliders when plan, assets, projection, or settings change.
+  // For shared plans the demographics come from the projection response
+  // (plan owner's settings) and the liquid total comes from the backend
+  // (M2M resolves owner's holdings); the viewer's own settings + holdings
+  // are deliberately ignored.
   useEffect(() => {
-    if (!selectedPlan || !assets.hasAssets) return
+    if (!selectedPlan) return
+    if (!isSharedPlan && !assets.hasAssets) return
+    const seedLiquid = isSharedPlan
+      ? (projection?.liquidAssets ?? 0)
+      : assets.liquidAssets
+    const seedYearOfBirth = isSharedPlan
+      ? projection?.planInputs?.yearOfBirth
+      : settings?.yearOfBirth
+    const seedLifeExpectancy = isSharedPlan
+      ? projection?.planInputs?.lifeExpectancy
+      : settings?.lifeExpectancy
     setSliders(
       planToSliders(
         selectedPlan,
-        assets.liquidAssets,
-        settings?.yearOfBirth,
-        settings?.lifeExpectancy,
+        seedLiquid,
+        seedYearOfBirth,
+        seedLifeExpectancy,
       ),
     )
   }, [
@@ -330,6 +352,10 @@ function IndependenceDebug(): React.ReactElement {
     assets.liquidAssets,
     settings?.yearOfBirth,
     settings?.lifeExpectancy,
+    isSharedPlan,
+    projection?.liquidAssets,
+    projection?.planInputs?.yearOfBirth,
+    projection?.planInputs?.lifeExpectancy,
   ])
 
   // Debounced backend recalculation.
@@ -337,16 +363,18 @@ function IndependenceDebug(): React.ReactElement {
   // can fire request N+1 before N returns; without abort the older response can
   // land last and overwrite the fresh state).
   useEffect(() => {
-    if (!selectedPlan || !sliders || !assets.hasAssets) return undefined
+    if (!selectedPlan || !sliders) return undefined
+    if (!isSharedPlan && !assets.hasAssets) return undefined
     const controller = new AbortController()
     const timer = setTimeout(async () => {
       setProjLoading(true)
       setProjError(null)
       try {
-        const body = {
+        // Shared plan: omit liquidAssets/nonSpendableAssets so svc-retire's
+        // M2M path resolves the OWNER's holdings via svc-position. Owned
+        // plan: send the viewer's totals as before.
+        const body: Record<string, unknown> = {
           currency: selectedPlan.expensesCurrency,
-          liquidAssets: sliders.liquidAssets,
-          nonSpendableAssets: assets.nonSpendableAssets,
           currentAge: sliders.currentAge,
           retirementAge: sliders.retirementAge,
           lifeExpectancy: sliders.lifeExpectancy,
@@ -356,6 +384,11 @@ function IndependenceDebug(): React.ReactElement {
           otherIncomeMonthly: sliders.otherIncomeMonthly,
           equityReturnRate: sliders.equityReturnRate,
           inflationRate: sliders.inflationRate,
+          includeDebug: true,
+        }
+        if (!isSharedPlan) {
+          body.liquidAssets = sliders.liquidAssets
+          body.nonSpendableAssets = assets.nonSpendableAssets
         }
         const res = await fetch(
           `/api/independence/projection/${selectedPlan.id}`,
@@ -388,7 +421,13 @@ function IndependenceDebug(): React.ReactElement {
       clearTimeout(timer)
       controller.abort()
     }
-  }, [selectedPlan, sliders, assets.hasAssets, assets.nonSpendableAssets])
+  }, [
+    selectedPlan,
+    sliders,
+    assets.hasAssets,
+    assets.nonSpendableAssets,
+    isSharedPlan,
+  ])
 
   const local = sliders ? computeLocal(sliders) : null
   const fiMetrics = projection?.fiMetrics
@@ -661,6 +700,95 @@ function IndependenceDebug(): React.ReactElement {
                     </>
                   }
                 />
+
+                {projection?.debug && (
+                  <div
+                    className={`rounded-lg border p-4 mt-5 ${
+                      projection.debug.ownerScopedFetch
+                        ? "bg-blue-50 border-blue-200"
+                        : "bg-white border-gray-200"
+                    }`}
+                  >
+                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
+                      Resolved Inputs
+                      {projection.debug.ownerScopedFetch && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] font-medium">
+                          Owner-scoped (M2M)
+                        </span>
+                      )}
+                    </h3>
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs font-mono text-gray-700">
+                      <div>
+                        callerOwnerId:{" "}
+                        <b className="break-all">
+                          {projection.debug.callerOwnerId}
+                        </b>
+                      </div>
+                      <div>
+                        planOwnerId:{" "}
+                        <b className="break-all">
+                          {projection.debug.planOwnerId}
+                        </b>
+                      </div>
+                      <div>
+                        planSystemUserId:{" "}
+                        <b className="break-all">
+                          {projection.debug.planSystemUserId ?? "—"}
+                        </b>
+                      </div>
+                      <div>
+                        ownerScopedFetch:{" "}
+                        <b>{String(projection.debug.ownerScopedFetch)}</b>
+                      </div>
+                      <div>
+                        resolvedInputs.liquidAssets:{" "}
+                        <b>
+                          {fmtMoney(
+                            currency,
+                            projection.debug.resolvedInputs.liquidAssets,
+                          )}
+                        </b>
+                      </div>
+                      <div>
+                        resolvedInputs.rentalIncomeMonthly:{" "}
+                        <b>
+                          {fmtMoney(
+                            currency,
+                            projection.debug.resolvedInputs.rentalIncomeMonthly,
+                          )}
+                        </b>
+                      </div>
+                      <div>
+                        resolvedInputs.pensionConfigCount:{" "}
+                        <b>
+                          {projection.debug.resolvedInputs.pensionConfigCount}
+                        </b>
+                      </div>
+                      <div>
+                        resolvedInputs.cpfLifeMonthlyTotal:{" "}
+                        <b>
+                          {fmtMoney(
+                            currency,
+                            projection.debug.resolvedInputs.cpfLifeMonthlyTotal,
+                          )}
+                        </b>
+                      </div>
+                      {Object.entries(projection.debug.resolution).map(
+                        ([k, v]) => (
+                          <div key={k} className="col-span-2">
+                            resolution.{k}: <b>{v}</b>
+                          </div>
+                        ),
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-3">
+                      Resolved values come from the actual cross-service
+                      fetches. When `ownerScopedFetch` is true the holdings,
+                      pension configs, and rental income were resolved against
+                      the plan owner&apos;s SystemUser (not the viewer&apos;s).
+                    </p>
+                  </div>
+                )}
 
                 <div className="bg-white rounded-lg border border-gray-200 p-4 mt-5">
                   <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
