@@ -535,6 +535,14 @@ function RetirementPlanning(): React.ReactElement {
                 )}
               </button>
               <Link
+                href="/independence/debug"
+                className="hidden sm:flex border border-gray-300 text-gray-700 px-4 py-3 rounded-lg hover:bg-gray-50 font-medium items-center"
+                title="Cross-check svc-retire metrics against local formulas"
+              >
+                <i className="fas fa-bug mr-2"></i>
+                Debug
+              </Link>
+              <Link
                 href="/independence/wizard"
                 className="bg-independence-600 text-white px-6 py-3 rounded-lg hover:bg-independence-700 font-medium flex items-center"
               >
