@@ -38,6 +38,14 @@ interface DetailsTabContentProps {
   onRefreshHoldings: () => void
   excludedPensionFV: number
   includedPensionFvDifferential: number
+  /**
+   * Caller doesn't own the plan. Per-category holdings can't be resolved
+   * server-side under the M2M path today, so the breakdown panel hides
+   * (showing the viewer's caller-scoped categories would be the same leak
+   * we just plugged on the projection request). Plan-detail values + the
+   * projection's owner-scoped totals remain visible.
+   */
+  isSharedPlan?: boolean
 }
 
 export default function DetailsTabContent({
@@ -65,6 +73,7 @@ export default function DetailsTabContent({
   onRefreshHoldings,
   excludedPensionFV,
   includedPensionFvDifferential,
+  isSharedPlan = false,
 }: DetailsTabContentProps): React.ReactElement {
   const { hideValues } = usePrivacyMode()
 
@@ -260,28 +269,47 @@ export default function DetailsTabContent({
         </div>
       </div>
 
-      {/* Assets by Category — swapped in from the Metrics tab. */}
-      <AssetsBreakdown
-        projection={projection}
-        categorySlices={categorySlices}
-        spendableCategories={spendableCategories}
-        onToggleCategory={onToggleCategory}
-        pensionProjections={pensionProjections}
-        totalAssets={totalAssets}
-        liquidAssets={liquidAssets}
-        blendedReturnRate={blendedReturnRate}
-        currentAge={currentAge}
-        retirementAge={retirementAge}
-        effectiveCurrency={effectiveCurrency}
-        effectiveFxRate={effectiveFxRate}
-        isCalculating={isCalculating}
-        holdingsLoaded={holdingsLoaded}
-        usingManualAssets={usingManualAssets}
-        isRefreshingHoldings={isRefreshingHoldings}
-        onRefreshHoldings={onRefreshHoldings}
-        excludedPensionFV={excludedPensionFV}
-        includedPensionFvDifferential={includedPensionFvDifferential}
-      />
+      {/* Assets by Category — swapped in from the Metrics tab.
+          For shared plans the per-category breakdown would echo the
+          viewer's caller-scoped holdings, which is the same leak the M2M
+          projection path was built to plug. Show a small notice instead;
+          the projection's owner-scoped liquid/non-spendable totals are
+          surfaced on the Metrics tab and the /independence/debug page. */}
+      {isSharedPlan ? (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-900">
+          <p className="font-medium mb-1">
+            <i className="fas fa-share-alt mr-2"></i>
+            Owner-scoped projection
+          </p>
+          <p>
+            Per-category asset breakdown isn&apos;t available for shared
+            plans. The projection (left panel and Metrics tab) uses the
+            plan owner&apos;s holdings via a server-side fetch.
+          </p>
+        </div>
+      ) : (
+        <AssetsBreakdown
+          projection={projection}
+          categorySlices={categorySlices}
+          spendableCategories={spendableCategories}
+          onToggleCategory={onToggleCategory}
+          pensionProjections={pensionProjections}
+          totalAssets={totalAssets}
+          liquidAssets={liquidAssets}
+          blendedReturnRate={blendedReturnRate}
+          currentAge={currentAge}
+          retirementAge={retirementAge}
+          effectiveCurrency={effectiveCurrency}
+          effectiveFxRate={effectiveFxRate}
+          isCalculating={isCalculating}
+          holdingsLoaded={holdingsLoaded}
+          usingManualAssets={usingManualAssets}
+          isRefreshingHoldings={isRefreshingHoldings}
+          onRefreshHoldings={onRefreshHoldings}
+          excludedPensionFV={excludedPensionFV}
+          includedPensionFvDifferential={includedPensionFvDifferential}
+        />
+      )}
     </div>
   )
 }
