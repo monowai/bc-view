@@ -51,9 +51,23 @@ export default function SharesBadge(): React.ReactElement | null {
     return null
   }
 
+  // Pick the most useful landing page based on what's pending. Portfolio shares
+  // take priority because the /portfolios managed tab is the established home
+  // for them; INDEPENDENCE_PLAN-only invites route to /independence where the
+  // PendingResourceSharesPanel can accept them in context.
+  const independenceInvitesOnly =
+    portfolioCount === 0 &&
+    resourceData != null &&
+    [...resourceData.invites, ...resourceData.requests].every(
+      (s) => s.resourceType === "INDEPENDENCE_PLAN",
+    )
+  const href = independenceInvitesOnly
+    ? "/independence"
+    : "/portfolios?tab=managed"
+
   return (
     <Link
-      href="/portfolios?tab=managed"
+      href={href}
       className="relative p-2 text-gray-300 hover:text-white transition-colors"
       title={`${count} pending share action${count === 1 ? "" : "s"}`}
     >

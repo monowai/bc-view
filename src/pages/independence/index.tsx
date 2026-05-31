@@ -4,9 +4,17 @@ import Head from "next/head"
 import Link from "next/link"
 import { useRouter } from "next/router"
 import useSwr from "swr"
-import { simpleFetcher, holdingKey } from "@utils/api/fetchHelper"
+import {
+  simpleFetcher,
+  fetcher,
+  holdingKey,
+  resourceSharesPendingKey,
+} from "@utils/api/fetchHelper"
 import { PlansResponse, RetirementPlan, PlanExport } from "types/independence"
-import { HoldingContract } from "types/beancounter"
+import {
+  HoldingContract,
+  PendingResourceSharesResponse,
+} from "types/beancounter"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
 import { sortPlansByCompositeOrder } from "@lib/independence/planOrdering"
@@ -19,6 +27,7 @@ import CompositeTab from "@components/features/independence/CompositeTab"
 import ScenarioList from "@components/features/independence/scenarios/ScenarioList"
 import IndependenceSettingsPanel from "@components/features/independence/IndependenceSettingsPanel"
 import ResourceShareInviteDialog from "@components/features/shares/ResourceShareInviteDialog"
+import PendingResourceSharesPanel from "@components/features/shares/PendingResourceSharesPanel"
 import Alert from "@components/ui/Alert"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 import Dialog from "@components/ui/Dialog"
@@ -279,6 +288,24 @@ function RetirementPlanning(): React.ReactElement {
     plansKey,
     simpleFetcher(plansKey),
   )
+
+  // Pending INDEPENDENCE_PLAN invites/requests so users can accept shares
+  // from inside the page where the shared plan will land — without this the
+  // SharesBadge counts INDEPENDENCE_PLAN invites but has no accept surface
+  // (ManagedPortfolios only renders PORTFOLIO shares).
+  const {
+    data: pendingResourceShares,
+    mutate: mutatePendingResourceShares,
+  } = useSwr<PendingResourceSharesResponse>(resourceSharesPendingKey, fetcher, {
+    refreshInterval: 300000,
+    revalidateOnFocus: false,
+    dedupingInterval: 60000,
+  })
+
+  const handlePendingResourceSharesAction = (): void => {
+    mutatePendingResourceShares()
+    mutate()
+  }
 
   // Fetch aggregated holdings once at page level for consistent FI calculation across all plans
   // Use SWR caching to persist across refreshes (revalidateOnFocus: false)
@@ -617,6 +644,14 @@ function RetirementPlanning(): React.ReactElement {
               </button>
             )}
           </div>
+
+          {pendingResourceShares && (
+            <PendingResourceSharesPanel
+              pending={pendingResourceShares}
+              resourceType="INDEPENDENCE_PLAN"
+              onAction={handlePendingResourceSharesAction}
+            />
+          )}
 
           {isLoading && (
             <div className="text-center py-12">
