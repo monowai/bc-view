@@ -301,9 +301,13 @@ function IndependenceDebug(): React.ReactElement {
     setSliders(planToSliders(selectedPlan, assets.liquidAssets))
   }, [selectedPlan, assets.hasAssets, assets.liquidAssets])
 
-  // Debounced backend recalculation
+  // Debounced backend recalculation.
+  // AbortController per scheduled request prevents stale responses (slider drag
+  // can fire request N+1 before N returns; without abort the older response can
+  // land last and overwrite the fresh state).
   useEffect(() => {
     if (!selectedPlan || !sliders || !assets.hasAssets) return undefined
+    const controller = new AbortController()
     const timer = setTimeout(async () => {
       setProjLoading(true)
       setProjError(null)
@@ -328,20 +332,31 @@ function IndependenceDebug(): React.ReactElement {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body),
+            signal: controller.signal,
           },
         )
         if (!res.ok) {
           throw new Error(`Projection failed: ${res.status}`)
         }
         const result: ProjectionResponse = await res.json()
-        setProjection(result.data)
+        if (!controller.signal.aborted) {
+          setProjection(result.data)
+        }
       } catch (err) {
-        setProjError(err instanceof Error ? err.message : String(err))
+        if (err instanceof DOMException && err.name === "AbortError") return
+        if (!controller.signal.aborted) {
+          setProjError(err instanceof Error ? err.message : String(err))
+        }
       } finally {
-        setProjLoading(false)
+        if (!controller.signal.aborted) {
+          setProjLoading(false)
+        }
       }
     }, PROJECTION_DEBOUNCE_MS)
-    return () => clearTimeout(timer)
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
   }, [selectedPlan, sliders, assets.hasAssets, assets.nonSpendableAssets])
 
   const local = sliders ? computeLocal(sliders) : null
