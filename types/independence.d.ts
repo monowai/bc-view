@@ -364,6 +364,12 @@ export interface ProjectionRequest {
   definedContribution?: number
   /** Portfolio IDs to exclude from wealth and rental income. Overrides plan.excludedPortfolioIds. */
   excludedPortfolioIds?: string[]
+  /**
+   * When true, populate `RetirementProjection.debug` with a
+   * `ProjectionDebug` block. Used by `/independence/debug` to verify
+   * shared-plan projections actually used the plan owner's data.
+   */
+  includeDebug?: boolean
 }
 
 /**
@@ -580,6 +586,44 @@ export interface PlanInputs {
   blendedReturnRate: number
   /** Defined contribution deduction applied (e.g., CPF employee contribution) */
   definedContribution?: number
+  /**
+   * Plan owner's current age, resolved from settings.yearOfBirth via the
+   * plan owner (NOT the caller). Lets the frontend populate shared-plan
+   * sliders from the projection response rather than the caller-scoped
+   * settings hook.
+   */
+  currentAge?: number
+  /** Plan owner's yearOfBirth from settings. */
+  yearOfBirth?: number
+  /** Plan owner's life expectancy from settings. */
+  lifeExpectancy?: number
+  /** Plan owner's resolved retirement age. */
+  retirementAge?: number
+}
+
+/**
+ * Optional diagnostic block returned when `ProjectionRequest.includeDebug`
+ * is true. Used by `/independence/debug` to spot-check the auth posture
+ * driving cross-service fetches (catches viewer-data leaks into shared
+ * plans).
+ */
+export interface ProjectionDebug {
+  callerOwnerId: string
+  planOwnerId: string
+  planSystemUserId?: string
+  ownerScopedFetch: boolean
+  resolution: Record<string, string>
+  resolvedInputs: ResolvedInputs
+}
+
+export interface ResolvedInputs {
+  liquidAssets: number
+  nonSpendableAssets: number
+  rentalIncomeMonthly: number
+  pensionConfigCount: number
+  cpfLifeMonthlyTotal: number
+  currency: string
+  portfolioIds: string[]
 }
 
 export interface RetirementProjection {
@@ -658,6 +702,12 @@ export interface RetirementProjection {
    * tab: explicit override if set, otherwise the default for effectiveStrategy.
    */
   effectiveHeadlineMetric?: HeadlineMetric
+  /**
+   * Populated when `ProjectionRequest.includeDebug = true`. Surfaces the
+   * resolved auth posture + input values so callers can verify a shared
+   * plan projection used the plan owner's data rather than the viewer's.
+   */
+  debug?: ProjectionDebug
 }
 
 export interface ProjectionResponse {

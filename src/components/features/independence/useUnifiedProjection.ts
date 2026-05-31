@@ -100,6 +100,16 @@ interface UseUnifiedProjectionProps {
   rentalIncome?: RentalIncomeData
   /** Optional defined contribution amount override (full mode only). */
   definedContribution?: number
+  /**
+   * Caller doesn't own the plan. Omits `liquidAssets` /
+   * `nonSpendableAssets` from the request so svc-retire resolves them
+   * server-side under the plan owner's M2M scope. Also relaxes the
+   * assets-ready gate — the viewer doesn't need their own holdings
+   * loaded to project someone else's plan.
+   */
+  isSharedPlan?: boolean
+  /** Request the optional ProjectionDebug block in the response. */
+  includeDebug?: boolean
 }
 
 interface UseUnifiedProjectionResult {
@@ -167,6 +177,8 @@ export function useUnifiedProjection({
   isAtBaseline = false,
   rentalIncome,
   definedContribution,
+  isSharedPlan = false,
+  includeDebug = false,
 }: UseUnifiedProjectionProps): UseUnifiedProjectionResult {
   const [projection, setProjection] = useState<RetirementProjection | null>(
     null,
@@ -178,8 +190,10 @@ export function useUnifiedProjection({
   const [error, setError] = useState<Error | null>(null)
   const hasAutoCalculated = useRef(false)
 
-  // Determine if we have the minimum required data
-  const isReady = enabled && !!plan?.id && assets.hasAssets
+  // Determine if we have the minimum required data. Shared-plan path
+  // doesn't need the viewer's holdings (svc-retire resolves the owner's
+  // server-side); only require the plan id.
+  const isReady = enabled && !!plan?.id && (isSharedPlan || assets.hasAssets)
 
   // Detect changes via single scenario checksum + plan checksum + asset/currency.
   const planChecksum = useMemo(() => createPlanChecksum(plan), [plan])
@@ -203,7 +217,8 @@ export function useUnifiedProjection({
   const prevChecksumRef = useRef<number>(0)
 
   const calculateProjection = useCallback(async (): Promise<void> => {
-    if (!plan || !assets.hasAssets) return
+    if (!plan) return
+    if (!isSharedPlan && !assets.hasAssets) return
 
     setIsCalculating(true)
     setError(null)
@@ -217,6 +232,8 @@ export function useUnifiedProjection({
         rentalIncome,
         derivedLiquidAssets: assets.liquidAssets,
         derivedNonSpendableAssets: assets.nonSpendableAssets,
+        isSharedPlan,
+        includeDebug,
       }
       if (definedContribution != null) {
         ctx.definedContribution = definedContribution
@@ -262,6 +279,8 @@ export function useUnifiedProjection({
     isAtBaseline,
     displayCurrency,
     definedContribution,
+    isSharedPlan,
+    includeDebug,
   ])
 
   // Auto-calculate when ready
