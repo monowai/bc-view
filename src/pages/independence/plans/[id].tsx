@@ -875,6 +875,7 @@ function PlanView(): React.ReactElement {
               onRefreshHoldings={() => refreshHoldings()}
               excludedPensionFV={excludedPensionFV}
               includedPensionFvDifferential={includedPensionFvDifferential}
+              isSharedPlan={isSharedPlan}
             />
           )}
 
