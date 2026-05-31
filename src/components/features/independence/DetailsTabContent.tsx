@@ -270,21 +270,21 @@ export default function DetailsTabContent({
       </div>
 
       {/* Assets by Category — swapped in from the Metrics tab.
-          For shared plans the per-category breakdown would echo the
-          viewer's caller-scoped holdings, which is the same leak the M2M
-          projection path was built to plug. Show a small notice instead;
-          the projection's owner-scoped liquid/non-spendable totals are
-          surfaced on the Metrics tab and the /independence/debug page. */}
-      {isSharedPlan ? (
+          For shared plans we filter to portfolios owned by the plan
+          owner (via accepted portfolio shares). When the caller has
+          plan-share but no portfolio-shares, categorySlices is empty —
+          show a small notice explaining what's missing. */}
+      {isSharedPlan && categorySlices.length === 0 ? (
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-900">
           <p className="font-medium mb-1">
             <i className="fas fa-share-alt mr-2"></i>
             Owner-scoped projection
           </p>
           <p>
-            Per-category asset breakdown isn&apos;t available for shared
-            plans. The projection (left panel and Metrics tab) uses the
-            plan owner&apos;s holdings via a server-side fetch.
+            Per-category asset breakdown for this shared plan needs the
+            plan owner to also share their portfolios with you. The
+            projection (left panel and Metrics tab) uses the owner&apos;s
+            holdings via a server-side fetch.
           </p>
         </div>
       ) : (

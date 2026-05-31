@@ -97,9 +97,10 @@ describe("useIndependencePlanData", () => {
     buildSwrMock({
       0: { data: { data: makePlan() } },
       1: {}, // portfolios
-      2: {}, // holdings
-      3: { data: { data: scenarios } }, // scenarios
-      4: {}, // currencies
+      2: {}, // managed shares (shared-plan path)
+      3: {}, // holdings
+      4: { data: { data: scenarios } }, // scenarios
+      5: {}, // currencies
     })
     const { result } = renderHook(() => useIndependencePlanData("plan-1"))
 
