@@ -40,6 +40,7 @@ function planToSliders(
   liquidFromAssets: number,
   settingsYearOfBirth: number | undefined,
   settingsLifeExpectancy: number | undefined,
+  resolvedRetirementAge?: number,
 ): Sliders {
   const currentYear = new Date().getFullYear()
   // RetirementPlan entity doesn't persist yearOfBirth/lifeExpectancy —
@@ -53,10 +54,13 @@ function planToSliders(
     : DEFAULT_CURRENT_AGE
   const lifeExpectancy =
     plan.lifeExpectancy ?? settingsLifeExpectancy ?? DEFAULT_LIFE_EXPECTANCY
-  const retirementAge = Math.min(
-    lifeExpectancy - 1,
-    Math.max(currentAge + 1, currentAge + 5),
-  )
+  // Shared plans pass `resolvedRetirementAge` from the projection's
+  // planInputs echo (server-resolved from the OWNER's settings).
+  // currentAge+5 is the wrong baseline for shared — Ruby retires ~15
+  // years from now, not 5.
+  const retirementAge =
+    resolvedRetirementAge ??
+    Math.min(lifeExpectancy - 1, Math.max(currentAge + 1, currentAge + 5))
   return {
     currentAge,
     retirementAge,
@@ -338,12 +342,16 @@ function IndependenceDebug(): React.ReactElement {
     const seedLifeExpectancy = isSharedPlan
       ? projection?.planInputs?.lifeExpectancy
       : settings?.lifeExpectancy
+    const seedRetirementAge = isSharedPlan
+      ? projection?.planInputs?.retirementAge
+      : undefined
     setSliders(
       planToSliders(
         selectedPlan,
         seedLiquid,
         seedYearOfBirth,
         seedLifeExpectancy,
+        seedRetirementAge,
       ),
     )
   }, [
@@ -356,6 +364,7 @@ function IndependenceDebug(): React.ReactElement {
     projection?.liquidAssets,
     projection?.planInputs?.yearOfBirth,
     projection?.planInputs?.lifeExpectancy,
+    projection?.planInputs?.retirementAge,
   ])
 
   // Debounced backend recalculation.
@@ -370,14 +379,13 @@ function IndependenceDebug(): React.ReactElement {
       setProjLoading(true)
       setProjError(null)
       try {
-        // Shared plan: omit liquidAssets/nonSpendableAssets so svc-retire's
-        // M2M path resolves the OWNER's holdings via svc-position. Owned
-        // plan: send the viewer's totals as before.
+        // Shared plan: omit ages + liquidAssets/nonSpendableAssets so
+        // svc-retire resolves them from the OWNER's settings + holdings.
+        // Sending the viewer's slider values overrides StartingStateResolver's
+        // owner-settings fallback and yields the viewer's retirement
+        // timeline instead of the owner's (same leak as scenarioToPayload).
         const body: Record<string, unknown> = {
           currency: selectedPlan.expensesCurrency,
-          currentAge: sliders.currentAge,
-          retirementAge: sliders.retirementAge,
-          lifeExpectancy: sliders.lifeExpectancy,
           monthlyExpenses: sliders.monthlyExpenses,
           pensionMonthly: sliders.pensionMonthly,
           socialSecurityMonthly: sliders.socialSecurityMonthly,
@@ -387,6 +395,9 @@ function IndependenceDebug(): React.ReactElement {
           includeDebug: true,
         }
         if (!isSharedPlan) {
+          body.currentAge = sliders.currentAge
+          body.retirementAge = sliders.retirementAge
+          body.lifeExpectancy = sliders.lifeExpectancy
           body.liquidAssets = sliders.liquidAssets
           body.nonSpendableAssets = assets.nonSpendableAssets
         }
