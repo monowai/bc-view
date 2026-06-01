@@ -1111,6 +1111,14 @@ export interface PendingResourceSharesResponse {
   requests: ResourceShare[]
 }
 
+/**
+ * Response from `GET /resource-shares/managed/{resourceType}` — active
+ * shares the current user has accepted for that resource type.
+ */
+export interface ResourceSharesResponse {
+  data: ResourceShare[]
+}
+
 // Performance / TWR types
 export interface PerformanceDataPoint {
   date: string

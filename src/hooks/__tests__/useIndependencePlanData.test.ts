@@ -122,4 +122,28 @@ describe("useIndependencePlanData", () => {
     // First call should have null key (plan)
     expect(mockUseSwr.mock.calls[0][0]).toBeNull()
   })
+
+  it("does NOT fire unscoped holdings fetch while portfolios are loading on a shared plan", () => {
+    // Regression: silent leak — the shared-plan path used to emit
+    // `/api/holdings/aggregated?asAt=today&currency=SGD` (no ids) during
+    // the window between plan-resolved and portfolios-resolved. svc-position
+    // treats no-codes/no-ids as "viewer's own portfolios", returning the
+    // viewer's data even though the visible UI later re-rendered with the
+    // owner's id-set. Holdings SWR must stay null until ids resolves.
+    const plan = makePlan({ expensesCurrency: "SGD" })
+    buildSwrMock({
+      0: { data: { data: plan } }, // plan resolved
+      1: { data: undefined }, // portfolios still loading
+      2: { data: undefined }, // managed shares still loading
+      3: {}, // holdings — should be skipped via null key
+      4: {},
+      5: {},
+    })
+    renderHook(() =>
+      useIndependencePlanData("plan-1", "shared-owner-system-user"),
+    )
+
+    // Call index 3 is the holdings endpoint; key must be null.
+    expect(mockUseSwr.mock.calls[3][0]).toBeNull()
+  })
 })

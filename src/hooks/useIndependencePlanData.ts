@@ -142,6 +142,13 @@ export function useIndependencePlanData(
   const planCurrency = planData?.data?.expensesCurrency
   const holdingsEndpoint = useMemo(() => {
     if (!hasResolvedPlan || isClientPlan) return null
+    // Shared-plan path must NEVER fire without `ids=`. While
+    // `portfoliosData` is still loading, `sharedPlanOwnerPortfolioIds`
+    // is still null — returning a URL here would post
+    // `/aggregated?asAt=today&currency=X` with no scope and svc-position
+    // would default to the viewer's own portfolios (the original leak).
+    // Wait until the id-set resolves to "" (skip) or a non-empty string.
+    if (ownerSystemUserId && sharedPlanOwnerPortfolioIds === null) return null
     // Shared-plan empty-string id-set = caller has plan-share but no
     // portfolio-shares from the owner. Skip the holdings fetch entirely
     // so we don't accidentally hit svc-position's "no codes / no ids =
@@ -159,6 +166,7 @@ export function useIndependencePlanData(
   }, [
     hasResolvedPlan,
     isClientPlan,
+    ownerSystemUserId,
     ownedPlanFilter,
     sharedPlanOwnerPortfolioIds,
     planCurrency,
