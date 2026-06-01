@@ -48,9 +48,6 @@ export function scenarioToPayload(
     portfolioIds: ctx.selectedPortfolioIds,
     currency: ctx.plan.expensesCurrency,
     displayCurrency: ctx.displayCurrency,
-    currentAge: scenario.currentAge,
-    retirementAge: scenario.retirementAge,
-    lifeExpectancy: scenario.lifeExpectancy,
     monthlyContribution: ctx.monthlyInvestment,
     monthlyExpenses: scenario.monthlyExpenses,
     cashReturnRate,
@@ -61,6 +58,20 @@ export function scenarioToPayload(
     socialSecurityMonthly: scenario.socialSecurityMonthly,
     otherIncomeMonthly: scenario.otherIncomeMonthly,
     targetBalance: ctx.plan.targetBalance,
+  }
+
+  // Age-related inputs come from the viewer's UserIndependenceSettings via
+  // seedFromPlan — Mike's age, not Ruby's. Sending them on a shared plan
+  // overrides the server's owner-scoped fallback (StartingStateResolver.kt
+  // line 57: `request.currentAge ?: settings.yearOfBirth`) and the
+  // resulting projection uses the VIEWER'S retirement timeline (Mike retired
+  // already vs Ruby's 15 working years to go). Omit on the shared path —
+  // svc-retire resolves them from plan-owner settings. Per-field dirty
+  // tracking for legitimate what-if overrides is a follow-up.
+  if (!ctx.isSharedPlan) {
+    payload.currentAge = scenario.currentAge
+    payload.retirementAge = scenario.retirementAge
+    payload.lifeExpectancy = scenario.lifeExpectancy
   }
 
   // For owned plans the viewer's holdings are correct projection inputs;
