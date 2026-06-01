@@ -84,6 +84,12 @@ function PlanView(): React.ReactElement {
       dedupingInterval: 60000,
     },
   )
+  // True once plansData has resolved — until then we can't tell whether
+  // the plan is owned or shared, and firing the projection prematurely
+  // sends a viewer-scoped payload that pollutes svc-retire's response.
+  // On a hard refresh of a shared plan that meant the first render
+  // would briefly show the viewer's data before plansData arrived.
+  const isSharedPlanResolved = plansData?.data != null
   const isSharedPlan = useMemo(() => {
     const idStr = Array.isArray(id) ? id[0] : id
     if (!idStr) return false
@@ -482,6 +488,7 @@ function PlanView(): React.ReactElement {
     rentalIncome,
     displayCurrency: displayCurrency ?? undefined,
     isSharedPlan,
+    enabled: isSharedPlanResolved,
   })
 
   // For shared plans, demographics + retirement age MUST come from the
