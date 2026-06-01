@@ -9,11 +9,13 @@ import {
   fetcher,
   holdingKey,
   resourceSharesPendingKey,
+  resourceSharesManagedKey,
 } from "@utils/api/fetchHelper"
 import { PlansResponse, RetirementPlan, PlanExport } from "types/independence"
 import {
   HoldingContract,
   PendingResourceSharesResponse,
+  ResourceSharesResponse,
 } from "types/beancounter"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
@@ -45,6 +47,8 @@ function PlanCard({
   onExport,
   onCopy,
   onSetPrimary,
+  isSharedPlan = false,
+  onLeaveShare,
 }: {
   plan: RetirementPlan
   assets: AssetBreakdown
@@ -53,6 +57,10 @@ function PlanCard({
   onExport: (plan: RetirementPlan) => void
   onCopy: (plan: RetirementPlan) => void
   onSetPrimary: (planId: string) => void
+  /** Plan is on the Shared tab — viewer doesn't own it. */
+  isSharedPlan?: boolean
+  /** Triggered when viewer revokes their own access; receives planId. */
+  onLeaveShare?: (planId: string) => void
 }): React.ReactElement {
   // Use unified projection hook with shared assets
   const { projection, isLoading: fiLoading } = useFiProjectionSimple({
@@ -116,43 +124,55 @@ function PlanCard({
           </p>
         </div>
         <div className="flex items-center space-x-1">
-          <button
-            onClick={() => onDelete(plan.id)}
-            className="text-red-600 hover:text-red-900 p-1.5 mr-1"
-            title="Delete plan"
-          >
-            <i className="fas fa-trash text-xs"></i>
-          </button>
-          <button
-            onClick={() => onCopy(plan)}
-            className="text-gray-400 hover:text-gray-600 p-1.5"
-            title="Copy plan"
-          >
-            <i className="fas fa-copy text-xs"></i>
-          </button>
-          <button
-            onClick={() => onExport(plan)}
-            className="text-gray-400 hover:text-gray-600 p-1.5"
-            title="Export plan as JSON"
-          >
-            <i className="fas fa-download text-xs"></i>
-          </button>
-          {!plan.isPrimary && (
+          {isSharedPlan ? (
             <button
-              onClick={() => onSetPrimary(plan.id)}
-              className="text-gray-400 hover:text-independence-600 p-1.5"
-              title="Set as primary plan"
+              onClick={() => onLeaveShare?.(plan.id)}
+              className="text-red-600 hover:text-red-900 p-1.5 mr-1"
+              title="Revoke your access to this shared plan"
             >
-              <i className="fas fa-star text-xs"></i>
+              <i className="fas fa-sign-out-alt text-xs"></i>
             </button>
+          ) : (
+            <>
+              <button
+                onClick={() => onDelete(plan.id)}
+                className="text-red-600 hover:text-red-900 p-1.5 mr-1"
+                title="Delete plan"
+              >
+                <i className="fas fa-trash text-xs"></i>
+              </button>
+              <button
+                onClick={() => onCopy(plan)}
+                className="text-gray-400 hover:text-gray-600 p-1.5"
+                title="Copy plan"
+              >
+                <i className="fas fa-copy text-xs"></i>
+              </button>
+              <button
+                onClick={() => onExport(plan)}
+                className="text-gray-400 hover:text-gray-600 p-1.5"
+                title="Export plan as JSON"
+              >
+                <i className="fas fa-download text-xs"></i>
+              </button>
+              {!plan.isPrimary && (
+                <button
+                  onClick={() => onSetPrimary(plan.id)}
+                  className="text-gray-400 hover:text-independence-600 p-1.5"
+                  title="Set as primary plan"
+                >
+                  <i className="fas fa-star text-xs"></i>
+                </button>
+              )}
+              <Link
+                href={`/independence/wizard/${plan.id}`}
+                className="!text-green-600 hover:!text-green-900 p-1.5"
+                title="Edit plan"
+              >
+                <i className="fas fa-edit"></i>
+              </Link>
+            </>
           )}
-          <Link
-            href={`/independence/wizard/${plan.id}`}
-            className="!text-green-600 hover:!text-green-900 p-1.5"
-            title="Edit plan"
-          >
-            <i className="fas fa-edit"></i>
-          </Link>
         </div>
       </div>
 
@@ -305,6 +325,58 @@ function RetirementPlanning(): React.ReactElement {
   const handlePendingResourceSharesAction = (): void => {
     mutatePendingResourceShares()
     mutate()
+  }
+
+  // Map shared INDEPENDENCE_PLAN ids → shareId so the viewer can revoke
+  // their own access via DELETE /resource-shares/{shareId}. The owner has
+  // a separate "active shares" surface elsewhere; this hook is purely for
+  // viewer-side leave actions.
+  const managedIndependencePlanKey = resourceSharesManagedKey(
+    "INDEPENDENCE_PLAN",
+  )
+  const {
+    data: managedIndependencePlans,
+    mutate: mutateManagedIndependencePlans,
+  } = useSwr<ResourceSharesResponse>(
+    managedIndependencePlanKey,
+    simpleFetcher(managedIndependencePlanKey),
+    { revalidateOnFocus: false, dedupingInterval: 60000 },
+  )
+
+  const sharedPlanShareIdByPlanId = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const share of managedIndependencePlans?.data ?? []) {
+      if (share.resourceId && share.id) map.set(share.resourceId, share.id)
+    }
+    return map
+  }, [managedIndependencePlans])
+
+  const [leavePlanId, setLeavePlanId] = useState<string | null>(null)
+  const [leaveError, setLeaveError] = useState<string | null>(null)
+
+  const handleLeaveSharedPlan = async (planId: string): Promise<void> => {
+    const shareId = sharedPlanShareIdByPlanId.get(planId)
+    if (!shareId) {
+      setLeaveError(
+        "Cannot revoke access — share record not loaded. Refresh and try again.",
+      )
+      return
+    }
+    try {
+      const res = await fetch(`/api/resource-shares/${shareId}`, {
+        method: "DELETE",
+      })
+      if (!res.ok) {
+        const body = await res.text()
+        setLeaveError(body || `Revoke failed (${res.status})`)
+        return
+      }
+      setLeavePlanId(null)
+      setLeaveError(null)
+      await Promise.all([mutate(), mutateManagedIndependencePlans()])
+    } catch (e) {
+      setLeaveError(e instanceof Error ? e.message : "Revoke failed")
+    }
   }
 
   // Fetch aggregated holdings once at page level for consistent FI calculation across all plans
@@ -728,20 +800,32 @@ function RetirementPlanning(): React.ReactElement {
           )}
 
           {!isLoading && activeView === "shared" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {sharedPlans.map((plan: RetirementPlan) => (
-                <PlanCard
-                  key={plan.id}
-                  plan={plan}
-                  assets={assets}
-                  hideValues={hideValues}
-                  onDelete={setDeletePlanId}
-                  onExport={handleExportPlan}
-                  onCopy={handleCopyClick}
-                  onSetPrimary={handleSetPrimary}
-                />
-              ))}
-            </div>
+            <>
+              {leaveError && (
+                <Alert variant="error" className="mb-4">
+                  {leaveError}
+                </Alert>
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {sharedPlans.map((plan: RetirementPlan) => (
+                  <PlanCard
+                    key={plan.id}
+                    plan={plan}
+                    assets={assets}
+                    hideValues={hideValues}
+                    onDelete={setDeletePlanId}
+                    onExport={handleExportPlan}
+                    onCopy={handleCopyClick}
+                    onSetPrimary={handleSetPrimary}
+                    isSharedPlan
+                    onLeaveShare={(planId) => {
+                      setLeaveError(null)
+                      setLeavePlanId(planId)
+                    }}
+                  />
+                ))}
+              </div>
+            </>
           )}
 
           {activeView === "work" && <ScenarioList />}
@@ -769,6 +853,20 @@ function RetirementPlanning(): React.ReactElement {
           variant="red"
           onConfirm={handleDeletePlanConfirm}
           onCancel={() => setDeletePlanId(null)}
+        />
+      )}
+      {leavePlanId && (
+        <ConfirmDialog
+          title="Leave shared plan"
+          message="You will no longer see this plan or any data the owner shared with it. The owner keeps the plan and any other portfolio shares stay as-is."
+          confirmLabel="Leave"
+          cancelLabel="Cancel"
+          variant="red"
+          onConfirm={() => handleLeaveSharedPlan(leavePlanId)}
+          onCancel={() => {
+            setLeavePlanId(null)
+            setLeaveError(null)
+          }}
         />
       )}
       {copyPlan && (

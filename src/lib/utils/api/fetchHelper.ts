@@ -128,3 +128,5 @@ export const executionKey = (id: string): string => `${executionsKey}/${id}`
 export const sharesPendingKey = `${apiRoot}/shares/pending`
 export const sharesManagedKey = `${apiRoot}/shares/managed`
 export const resourceSharesPendingKey = `${apiRoot}/resource-shares/pending`
+export const resourceSharesManagedKey = (resourceType: string): string =>
+  `${apiRoot}/resource-shares/managed/${resourceType}`
