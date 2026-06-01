@@ -101,6 +101,21 @@ describe("scenarioToPayload", () => {
     expect(payload.lifeExpectancy).toBeUndefined()
   })
 
+  it("omits portfolioIds / monthlyContribution / rentalIncomeMonthly when isSharedPlan", () => {
+    // Regression: those values come from the VIEWER'S holdings, contributions
+    // and PrivateAssetConfig entries. Sending them on a shared plan made
+    // svc-retire run the projection against Mike's 9 portfolios + Mike's
+    // rental income instead of the owner's M2M-resolved data.
+    const payload = scenarioToPayload(scenario, {
+      ...ctx,
+      isSharedPlan: true,
+      rentalIncome: { monthlyNetByCurrency: { SGD: 1500 }, totalMonthlyInPlanCurrency: 1500 },
+    })
+    expect("portfolioIds" in payload).toBe(false)
+    expect("monthlyContribution" in payload).toBe(false)
+    expect("rentalIncomeMonthly" in payload).toBe(false)
+  })
+
   it("passes plan return rates unchanged when realReturn is null", () => {
     const payload = scenarioToPayload(scenario, ctx)
     expect(payload.cashReturnRate).toBe(0.03)

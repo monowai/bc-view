@@ -45,10 +45,8 @@ export function scenarioToPayload(
     applyRealReturn(scenario, ctx.plan)
 
   const payload: Record<string, unknown> = {
-    portfolioIds: ctx.selectedPortfolioIds,
     currency: ctx.plan.expensesCurrency,
     displayCurrency: ctx.displayCurrency,
-    monthlyContribution: ctx.monthlyInvestment,
     monthlyExpenses: scenario.monthlyExpenses,
     cashReturnRate,
     equityReturnRate,
@@ -58,6 +56,16 @@ export function scenarioToPayload(
     socialSecurityMonthly: scenario.socialSecurityMonthly,
     otherIncomeMonthly: scenario.otherIncomeMonthly,
     targetBalance: ctx.plan.targetBalance,
+  }
+
+  // `portfolioIds` and `monthlyContribution` come from the viewer's own
+  // holdings + contributions. On a shared plan svc-retire resolves the
+  // OWNER's portfolios + contributions via the M2M path — sending the
+  // viewer's values overrides that and re-introduces the leak (Mike's
+  // 9 portfolios + his monthly investment land on Ruby's projection).
+  if (!ctx.isSharedPlan) {
+    payload.portfolioIds = ctx.selectedPortfolioIds
+    payload.monthlyContribution = ctx.monthlyInvestment
   }
 
   // Age-related inputs come from the viewer's UserIndependenceSettings via
@@ -88,7 +96,11 @@ export function scenarioToPayload(
   if (ctx.definedContribution != null) {
     payload.definedContribution = ctx.definedContribution
   }
-  if (ctx.rentalIncome?.totalMonthlyInPlanCurrency) {
+  // `rentalIncome` is computed from the viewer's PrivateAssetConfig
+  // entries. Ruby has none locally — Mike's rental income would override
+  // svc-retire's owner-scoped resolution. Omit on the shared path; server
+  // resolves rental income from plan-owner's configs.
+  if (!ctx.isSharedPlan && ctx.rentalIncome?.totalMonthlyInPlanCurrency) {
     payload.rentalIncomeMonthly = ctx.rentalIncome.totalMonthlyInPlanCurrency
   }
   if (ctx.includeDebug) {
