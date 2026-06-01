@@ -1,7 +1,16 @@
-import { createApiHandler } from "@utils/api/createApiHandler"
+import {
+  createApiHandler,
+  sanitizePathParam,
+} from "@utils/api/createApiHandler"
 import { getDataUrl } from "@utils/api/bcConfig"
 
 export default createApiHandler({
-  url: getDataUrl("/resource-shares/managed"),
+  url: (req) => {
+    const resourceType = sanitizePathParam(
+      req.query.resourceType,
+      "resourceType",
+    )
+    return getDataUrl(`/resource-shares/managed/${resourceType}`)
+  },
   methods: ["GET"],
 })

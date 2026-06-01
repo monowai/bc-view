@@ -1,13 +1,21 @@
 import { useMemo } from "react"
 import useSwr from "swr"
-import { simpleFetcher, portfoliosKey } from "@utils/api/fetchHelper"
+import {
+  simpleFetcher,
+  portfoliosKey,
+  sharesManagedKey,
+} from "@utils/api/fetchHelper"
 import {
   PlanResponse,
   QuickScenariosResponse,
   RetirementPlan,
   QuickScenario,
 } from "types/independence"
-import { Portfolio, HoldingContract } from "types/beancounter"
+import {
+  Portfolio,
+  HoldingContract,
+  PortfolioShare,
+} from "types/beancounter"
 import type { KeyedMutator } from "swr"
 import { parseExcludedPortfolioIds } from "@lib/independence/planHelpers"
 
@@ -31,6 +39,15 @@ export interface UseIndependencePlanDataResult {
 
 export function useIndependencePlanData(
   id: string | string[] | undefined,
+  /**
+   * Plan owner's SystemUser.id when the caller doesn't own the plan
+   * (shared INDEPENDENCE_PLAN). When set, holdings are filtered to
+   * portfolios owned by that SystemUser. Caller still needs an accepted
+   * portfolio share for those portfolios — svc-position's canView
+   * decides what comes back; mismatched ids are silently dropped. Pass
+   * undefined for owned plans.
+   */
+  ownerSystemUserId?: string,
 ): UseIndependencePlanDataResult {
   const normalizedId = Array.isArray(id) ? id[0] : id
   const planKey = normalizedId
@@ -62,18 +79,62 @@ export function useIndependencePlanData(
     portfoliosEndpoint ? simpleFetcher(portfoliosEndpoint) : null,
   )
 
-  // Compute included portfolio codes (all minus excluded)
-  const includedPortfolioCodes = useMemo(() => {
+  // Shared-plan caller: also pull the portfolios shared WITH them so we
+  // can spot the plan owner's portfolios for category-breakdown filtering.
+  // `/api/shares/managed` returns PortfolioShare rows; the `.portfolio`
+  // field has the share-target details. Only fetched when needed.
+  const { data: managedSharesData } = useSwr<{ data: PortfolioShare[] }>(
+    ownerSystemUserId ? sharesManagedKey : null,
+    ownerSystemUserId ? simpleFetcher(sharesManagedKey) : null,
+    { revalidateOnFocus: false, dedupingInterval: 60000 },
+  )
+
+  // Owned-plan path: filter by codes (existing contract). Shared-plan
+  // path: filter by ids — codes can collide across users (Mike's "SGD"
+  // vs Ruby's "SGD"), so codes-based filtering would aggregate both and
+  // re-introduce the leak. The shared-plan filter excludes the viewer's
+  // own portfolios outright via the owner.id == ownerSystemUserId check.
+  const ownedPlanFilter = useMemo(() => {
     if (!portfoliosData?.data || !planData?.data) return null
+    if (ownerSystemUserId) return null
     const excluded = new Set(
       parseExcludedPortfolioIds(planData.data.excludedPortfolioIds),
     )
+    const pool = portfoliosData.data.filter((p) => !excluded.has(p.id))
     if (excluded.size === 0) return null // null = fetch all
-    const included = portfoliosData.data
-      .filter((p) => !excluded.has(p.id))
-      .map((p) => p.code)
-    return included.length > 0 ? included.join(",") : null
-  }, [portfoliosData, planData])
+    return pool.length > 0 ? pool.map((p) => p.code).join(",") : null
+  }, [portfoliosData, planData, ownerSystemUserId])
+
+  const sharedPlanOwnerPortfolioIds = useMemo(() => {
+    if (!ownerSystemUserId || !portfoliosData?.data || !planData?.data) {
+      return null
+    }
+    const excluded = new Set(
+      parseExcludedPortfolioIds(planData.data.excludedPortfolioIds),
+    )
+    // Pool of caller-viewable portfolios = owned + accepted shares.
+    // `/portfolios` is owned-only; `/shares/managed` adds share targets.
+    const pool: Portfolio[] = []
+    const seen = new Set<string>()
+    for (const p of portfoliosData.data) {
+      if (!excluded.has(p.id) && !seen.has(p.id)) {
+        pool.push(p)
+        seen.add(p.id)
+      }
+    }
+    for (const s of managedSharesData?.data ?? []) {
+      const p = s.portfolio
+      if (p && !excluded.has(p.id) && !seen.has(p.id)) {
+        pool.push(p)
+        seen.add(p.id)
+      }
+    }
+    const owned = pool.filter((p) => p.owner?.id === ownerSystemUserId)
+    // Empty string = signal to caller "skip holdings fetch entirely so
+    // we don't fall back to the caller-scoped aggregate"; null = no
+    // shared-plan path (use the owned-plan codes filter).
+    return owned.length > 0 ? owned.map((p) => p.id).join(",") : ""
+  }, [portfoliosData, planData, ownerSystemUserId, managedSharesData])
 
   // Fetch aggregated holdings to get category breakdown
   // For client plans, skip holdings fetch (adviser's token returns adviser's data)
@@ -81,11 +142,35 @@ export function useIndependencePlanData(
   const planCurrency = planData?.data?.expensesCurrency
   const holdingsEndpoint = useMemo(() => {
     if (!hasResolvedPlan || isClientPlan) return null
+    // Shared-plan path must NEVER fire without `ids=`. While
+    // `portfoliosData` is still loading, `sharedPlanOwnerPortfolioIds`
+    // is still null — returning a URL here would post
+    // `/aggregated?asAt=today&currency=X` with no scope and svc-position
+    // would default to the viewer's own portfolios (the original leak).
+    // Wait until the id-set resolves to "" (skip) or a non-empty string.
+    if (ownerSystemUserId && sharedPlanOwnerPortfolioIds === null) return null
+    // Shared-plan empty-string id-set = caller has plan-share but no
+    // portfolio-shares from the owner. Skip the holdings fetch entirely
+    // so we don't accidentally hit svc-position's "no codes / no ids =
+    // all callers' portfolios" fallback (which would re-introduce the
+    // leak).
+    if (sharedPlanOwnerPortfolioIds === "") return null
     const params = new URLSearchParams({ asAt: "today" })
-    if (includedPortfolioCodes) params.set("codes", includedPortfolioCodes)
+    if (sharedPlanOwnerPortfolioIds) {
+      params.set("ids", sharedPlanOwnerPortfolioIds)
+    } else if (ownedPlanFilter) {
+      params.set("codes", ownedPlanFilter)
+    }
     if (planCurrency) params.set("currency", planCurrency)
     return `/api/holdings/aggregated?${params.toString()}`
-  }, [hasResolvedPlan, isClientPlan, includedPortfolioCodes, planCurrency])
+  }, [
+    hasResolvedPlan,
+    isClientPlan,
+    ownerSystemUserId,
+    ownedPlanFilter,
+    sharedPlanOwnerPortfolioIds,
+    planCurrency,
+  ])
   const {
     data: holdingsResponse,
     isLoading: holdingsLoading,

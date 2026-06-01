@@ -38,6 +38,9 @@ import { useIndependencePlanCurrency } from "@hooks/useIndependencePlanCurrency"
 import { useExcludedAssetIds } from "@hooks/useExcludedAssetIds"
 import { useIndependencePlanProjections } from "@hooks/useIndependencePlanProjections"
 import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
+import useSwr from "swr"
+import { simpleFetcher } from "@utils/api/fetchHelper"
+import type { PlansResponse } from "types/independence"
 import type { LumpSumAsset } from "@hooks/useIndependencePlanProjections"
 import Alert from "@components/ui/Alert"
 import Spinner from "@components/ui/Spinner"
@@ -69,6 +72,35 @@ function PlanView(): React.ReactElement {
   // Version counter to force modal re-initialization after save
   const [planVersion, setPlanVersion] = useState(0)
 
+  // Pull the sharedPlanIds set so we can detect when this plan belongs to
+  // someone else (accepted resource share). Shared plans route the
+  // projection through svc-retire's M2M / ?systemUserId path so the
+  // viewer's own holdings don't pollute the result.
+  const { data: plansData } = useSwr<PlansResponse>(
+    "/api/independence/plans",
+    simpleFetcher("/api/independence/plans"),
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 60000,
+    },
+  )
+  const isSharedPlan = useMemo(() => {
+    const idStr = Array.isArray(id) ? id[0] : id
+    if (!idStr) return false
+    return (plansData?.sharedPlanIds ?? []).includes(idStr)
+  }, [plansData, id])
+  // Owner's SystemUser.id from the shared plan row. Drives the owner-
+  // scoped portfolio filter on the holdings SWR — when set, the
+  // Assets-by-Category panel renders the plan owner's categories (via
+  // accepted portfolio shares), not the viewer's. Null until the
+  // backfill on svc-retire has populated `plan.systemUserId`.
+  const sharedPlanOwnerSystemUserId = useMemo(() => {
+    if (!isSharedPlan) return undefined
+    const idStr = Array.isArray(id) ? id[0] : id
+    const match = plansData?.data?.find((p) => p.id === idStr)
+    return match?.systemUserId ?? undefined
+  }, [isSharedPlan, plansData, id])
+
   // Data-fetching hooks
   const {
     plan,
@@ -80,7 +112,7 @@ function PlanView(): React.ReactElement {
     isRefreshingHoldings,
     availableCurrencies,
     mutatePlan,
-  } = useIndependencePlanData(id)
+  } = useIndependencePlanData(id, sharedPlanOwnerSystemUserId)
 
   // Unified scenario state — replaces the old WhatIfAdjustments + ScenarioOverrides
   // split. Drives the projection, Stress Test and Wealth-tab card.
@@ -449,7 +481,33 @@ function PlanView(): React.ReactElement {
     isAtBaseline: !scenarioIsDirty,
     rentalIncome,
     displayCurrency: displayCurrency ?? undefined,
+    isSharedPlan,
   })
+
+  // For shared plans, demographics + retirement age MUST come from the
+  // projection's planInputs echo (server resolves them from the plan
+  // OWNER's settings via the M2M path). Falling through to
+  // independenceSettings here renders the VIEWER's age + "Independence
+  // (60)" marker on someone else's plan. Owned plans keep the existing
+  // settings-driven path so pre-projection rendering still works.
+  const planInputsAges = (
+    adjustedProjection as unknown as {
+      planInputs?: {
+        currentAge?: number
+        retirementAge?: number
+        lifeExpectancy?: number
+      }
+    } | null | undefined
+  )?.planInputs
+  const displayCurrentAge = isSharedPlan
+    ? (planInputsAges?.currentAge ?? currentAge)
+    : currentAge
+  const displayRetirementAge = isSharedPlan
+    ? (planInputsAges?.retirementAge ?? retirementAge)
+    : retirementAge
+  const displayLifeExpectancy = isSharedPlan
+    ? (planInputsAges?.lifeExpectancy ?? lifeExpectancy)
+    : lifeExpectancy
 
   // FIRE data is ready when backend projection has completed with valid metrics
   const fireDataReady =
@@ -843,8 +901,8 @@ function PlanView(): React.ReactElement {
               totalAssets={totalAssets}
               liquidAssets={liquidAssets}
               blendedReturnRate={blendedReturnRate}
-              currentAge={currentAge}
-              retirementAge={retirementAge}
+              currentAge={displayCurrentAge}
+              retirementAge={displayRetirementAge}
               effectiveFxRate={effectiveFxRate}
               isCalculating={isCalculating}
               holdingsLoaded={!!holdingsData}
@@ -853,6 +911,7 @@ function PlanView(): React.ReactElement {
               onRefreshHoldings={() => refreshHoldings()}
               excludedPensionFV={excludedPensionFV}
               includedPensionFvDifferential={includedPensionFvDifferential}
+              isSharedPlan={isSharedPlan}
             />
           )}
 
@@ -861,8 +920,8 @@ function PlanView(): React.ReactElement {
               projection={adjustedProjection}
               effectivePlanValues={effectivePlanValues}
               blendedReturnRate={blendedReturnRate}
-              currentAge={currentAge}
-              retirementAge={retirementAge}
+              currentAge={displayCurrentAge}
+              retirementAge={displayRetirementAge}
               effectiveCurrency={effectiveCurrency}
               fireDataReady={fireDataReady}
               view={
@@ -876,8 +935,8 @@ function PlanView(): React.ReactElement {
             <TimelineTabContent
               projection={adjustedProjection}
               baselineProjection={baselineProjection}
-              retirementAge={retirementAge}
-              lifeExpectancy={lifeExpectancy}
+              retirementAge={displayRetirementAge}
+              lifeExpectancy={displayLifeExpectancy}
               hideValues={hideValues}
               isCalculating={isCalculating}
               effectiveCurrency={effectiveCurrency}

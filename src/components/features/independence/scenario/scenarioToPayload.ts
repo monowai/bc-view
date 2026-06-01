@@ -19,6 +19,15 @@ export interface ScenarioPayloadCtx {
   derivedLiquidAssets: number
   /** Non-spendable assets derived from live holdings. */
   derivedNonSpendableAssets: number
+  /**
+   * Set when the viewer doesn't own the plan. Omits `liquidAssets` /
+   * `nonSpendableAssets` from the projection request so svc-retire's
+   * shared-plan M2M path resolves the OWNER's holdings via svc-position
+   * instead of accepting the viewer's caller-scoped totals.
+   */
+  isSharedPlan?: boolean
+  /** Request the optional ProjectionDebug block in the response. */
+  includeDebug?: boolean
 }
 
 /**
@@ -36,13 +45,8 @@ export function scenarioToPayload(
     applyRealReturn(scenario, ctx.plan)
 
   const payload: Record<string, unknown> = {
-    portfolioIds: ctx.selectedPortfolioIds,
     currency: ctx.plan.expensesCurrency,
     displayCurrency: ctx.displayCurrency,
-    currentAge: scenario.currentAge,
-    retirementAge: scenario.retirementAge,
-    lifeExpectancy: scenario.lifeExpectancy,
-    monthlyContribution: ctx.monthlyInvestment,
     monthlyExpenses: scenario.monthlyExpenses,
     cashReturnRate,
     equityReturnRate,
@@ -52,15 +56,55 @@ export function scenarioToPayload(
     socialSecurityMonthly: scenario.socialSecurityMonthly,
     otherIncomeMonthly: scenario.otherIncomeMonthly,
     targetBalance: ctx.plan.targetBalance,
-    liquidAssets: scenario.liquidAssets ?? ctx.derivedLiquidAssets,
-    nonSpendableAssets: ctx.derivedNonSpendableAssets,
+  }
+
+  // `portfolioIds` and `monthlyContribution` come from the viewer's own
+  // holdings + contributions. On a shared plan svc-retire resolves the
+  // OWNER's portfolios + contributions via the M2M path — sending the
+  // viewer's values overrides that and re-introduces the leak (Mike's
+  // 9 portfolios + his monthly investment land on Ruby's projection).
+  if (!ctx.isSharedPlan) {
+    payload.portfolioIds = ctx.selectedPortfolioIds
+    payload.monthlyContribution = ctx.monthlyInvestment
+  }
+
+  // Age-related inputs come from the viewer's UserIndependenceSettings via
+  // seedFromPlan — Mike's age, not Ruby's. Sending them on a shared plan
+  // overrides the server's owner-scoped fallback (StartingStateResolver.kt
+  // line 57: `request.currentAge ?: settings.yearOfBirth`) and the
+  // resulting projection uses the VIEWER'S retirement timeline (Mike retired
+  // already vs Ruby's 15 working years to go). Omit on the shared path —
+  // svc-retire resolves them from plan-owner settings. Per-field dirty
+  // tracking for legitimate what-if overrides is a follow-up.
+  if (!ctx.isSharedPlan) {
+    payload.currentAge = scenario.currentAge
+    payload.retirementAge = scenario.retirementAge
+    payload.lifeExpectancy = scenario.lifeExpectancy
+  }
+
+  // For owned plans the viewer's holdings are correct projection inputs;
+  // for shared plans they belong to the viewer, NOT the plan owner — let
+  // svc-retire resolve them server-side via the M2M + ?systemUserId path.
+  if (!ctx.isSharedPlan) {
+    payload.liquidAssets = scenario.liquidAssets ?? ctx.derivedLiquidAssets
+    payload.nonSpendableAssets = ctx.derivedNonSpendableAssets
+  } else if (scenario.liquidAssets != null) {
+    // Slider explicitly overrode liquid for what-if even on a shared plan.
+    payload.liquidAssets = scenario.liquidAssets
   }
 
   if (ctx.definedContribution != null) {
     payload.definedContribution = ctx.definedContribution
   }
-  if (ctx.rentalIncome?.totalMonthlyInPlanCurrency) {
+  // `rentalIncome` is computed from the viewer's PrivateAssetConfig
+  // entries. Ruby has none locally — Mike's rental income would override
+  // svc-retire's owner-scoped resolution. Omit on the shared path; server
+  // resolves rental income from plan-owner's configs.
+  if (!ctx.isSharedPlan && ctx.rentalIncome?.totalMonthlyInPlanCurrency) {
     payload.rentalIncomeMonthly = ctx.rentalIncome.totalMonthlyInPlanCurrency
+  }
+  if (ctx.includeDebug) {
+    payload.includeDebug = true
   }
 
   return payload
