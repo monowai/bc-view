@@ -89,39 +89,51 @@ export function useIndependencePlanData(
     { revalidateOnFocus: false, dedupingInterval: 60000 },
   )
 
-  // Compute included portfolio codes (all minus excluded).
-  // Shared plans further filter to portfolios owned by the plan owner —
-  // surfacing the viewer's own portfolios alongside would replay the
-  // category-leak bug the M2M projection path was built to plug.
-  const includedPortfolioCodes = useMemo(() => {
+  // Owned-plan path: filter by codes (existing contract). Shared-plan
+  // path: filter by ids — codes can collide across users (Mike's "SGD"
+  // vs Ruby's "SGD"), so codes-based filtering would aggregate both and
+  // re-introduce the leak. The shared-plan filter excludes the viewer's
+  // own portfolios outright via the owner.id == ownerSystemUserId check.
+  const ownedPlanFilter = useMemo(() => {
     if (!portfoliosData?.data || !planData?.data) return null
+    if (ownerSystemUserId) return null
     const excluded = new Set(
       parseExcludedPortfolioIds(planData.data.excludedPortfolioIds),
     )
-    let pool = portfoliosData.data.filter((p) => !excluded.has(p.id))
-    if (ownerSystemUserId) {
-      // Pool of caller-viewable portfolios = owned + accepted shares.
-      // Mike's `/portfolios` is owned-only; pull share-target portfolios
-      // from `/shares/managed` and union them.
-      const shared =
-        managedSharesData?.data
-          ?.map((s) => s.portfolio)
-          ?.filter((p): p is Portfolio => !!p && !excluded.has(p.id)) ?? []
-      const seen = new Set(pool.map((p) => p.id))
-      for (const p of shared) {
-        if (!seen.has(p.id)) {
-          pool.push(p)
-          seen.add(p.id)
-        }
-      }
-      pool = pool.filter((p) => p.owner?.id === ownerSystemUserId)
-      // No matching portfolios = caller has plan share but not portfolio
-      // shares. Empty string signals "skip holdings fetch" downstream so
-      // we don't fall back to the caller-scoped aggregate.
-      return pool.length > 0 ? pool.map((p) => p.code).join(",") : ""
-    }
+    const pool = portfoliosData.data.filter((p) => !excluded.has(p.id))
     if (excluded.size === 0) return null // null = fetch all
     return pool.length > 0 ? pool.map((p) => p.code).join(",") : null
+  }, [portfoliosData, planData, ownerSystemUserId])
+
+  const sharedPlanOwnerPortfolioIds = useMemo(() => {
+    if (!ownerSystemUserId || !portfoliosData?.data || !planData?.data) {
+      return null
+    }
+    const excluded = new Set(
+      parseExcludedPortfolioIds(planData.data.excludedPortfolioIds),
+    )
+    // Pool of caller-viewable portfolios = owned + accepted shares.
+    // `/portfolios` is owned-only; `/shares/managed` adds share targets.
+    const pool: Portfolio[] = []
+    const seen = new Set<string>()
+    for (const p of portfoliosData.data) {
+      if (!excluded.has(p.id) && !seen.has(p.id)) {
+        pool.push(p)
+        seen.add(p.id)
+      }
+    }
+    for (const s of managedSharesData?.data ?? []) {
+      const p = s.portfolio
+      if (p && !excluded.has(p.id) && !seen.has(p.id)) {
+        pool.push(p)
+        seen.add(p.id)
+      }
+    }
+    const owned = pool.filter((p) => p.owner?.id === ownerSystemUserId)
+    // Empty string = signal to caller "skip holdings fetch entirely so
+    // we don't fall back to the caller-scoped aggregate"; null = no
+    // shared-plan path (use the owned-plan codes filter).
+    return owned.length > 0 ? owned.map((p) => p.id).join(",") : ""
   }, [portfoliosData, planData, ownerSystemUserId, managedSharesData])
 
   // Fetch aggregated holdings to get category breakdown
@@ -130,16 +142,27 @@ export function useIndependencePlanData(
   const planCurrency = planData?.data?.expensesCurrency
   const holdingsEndpoint = useMemo(() => {
     if (!hasResolvedPlan || isClientPlan) return null
-    // Empty-string codes means a shared-plan caller with no portfolio
-    // shares from the plan owner — skip the fetch entirely so we don't
-    // accidentally hit svc-position's "no codes = all callers'
-    // portfolios" fallback (which would re-introduce the leak).
-    if (includedPortfolioCodes === "") return null
+    // Shared-plan empty-string id-set = caller has plan-share but no
+    // portfolio-shares from the owner. Skip the holdings fetch entirely
+    // so we don't accidentally hit svc-position's "no codes / no ids =
+    // all callers' portfolios" fallback (which would re-introduce the
+    // leak).
+    if (sharedPlanOwnerPortfolioIds === "") return null
     const params = new URLSearchParams({ asAt: "today" })
-    if (includedPortfolioCodes) params.set("codes", includedPortfolioCodes)
+    if (sharedPlanOwnerPortfolioIds) {
+      params.set("ids", sharedPlanOwnerPortfolioIds)
+    } else if (ownedPlanFilter) {
+      params.set("codes", ownedPlanFilter)
+    }
     if (planCurrency) params.set("currency", planCurrency)
     return `/api/holdings/aggregated?${params.toString()}`
-  }, [hasResolvedPlan, isClientPlan, includedPortfolioCodes, planCurrency])
+  }, [
+    hasResolvedPlan,
+    isClientPlan,
+    ownedPlanFilter,
+    sharedPlanOwnerPortfolioIds,
+    planCurrency,
+  ])
   const {
     data: holdingsResponse,
     isLoading: holdingsLoading,
