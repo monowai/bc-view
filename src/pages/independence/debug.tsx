@@ -284,6 +284,14 @@ function IndependenceDebug(): React.ReactElement {
   const [projection, setProjection] = useState<RetirementProjection | null>(null)
   const [projError, setProjError] = useState<string | null>(null)
   const [projLoading, setProjLoading] = useState(false)
+  // Last POSTed body — surfaced on the debug page so any viewer-scoped
+  // value sneaking into a shared-plan projection request is visible
+  // without DevTools. Catches the class of leak that produced the
+  // shared-plan rollout bugs (portfolioIds, rentalIncomeMonthly, ages).
+  const [lastRequestBody, setLastRequestBody] = useState<Record<
+    string,
+    unknown
+  > | null>(null)
 
   const { data: plansData, isLoading: plansLoading } = useSwr<PlansResponse>(
     plansKey,
@@ -401,6 +409,7 @@ function IndependenceDebug(): React.ReactElement {
           body.liquidAssets = sliders.liquidAssets
           body.nonSpendableAssets = assets.nonSpendableAssets
         }
+        setLastRequestBody(body)
         const res = await fetch(
           `/api/independence/projection/${selectedPlan.id}`,
           {
@@ -798,6 +807,70 @@ function IndependenceDebug(): React.ReactElement {
                       pension configs, and rental income were resolved against
                       the plan owner&apos;s SystemUser (not the viewer&apos;s).
                     </p>
+                  </div>
+                )}
+
+                {lastRequestBody && (
+                  <div
+                    className={`rounded-lg border p-4 mt-5 ${
+                      isSharedPlan
+                        ? "bg-amber-50 border-amber-200"
+                        : "bg-white border-gray-200"
+                    }`}
+                  >
+                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
+                      Last Request Body
+                      {isSharedPlan && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-medium">
+                          Shared plan — viewer-scoped fields are leaks
+                        </span>
+                      )}
+                    </h3>
+                    <div className="space-y-1 text-xs font-mono">
+                      {Object.entries(lastRequestBody).map(([k, v]) => {
+                        // Viewer-scoped fields: server overrides its
+                        // owner-resolved fallback when ANY of these are
+                        // present. On a shared plan they MUST be absent.
+                        const isViewerScoped = [
+                          "portfolioIds",
+                          "monthlyContribution",
+                          "rentalIncomeMonthly",
+                          "currentAge",
+                          "retirementAge",
+                          "lifeExpectancy",
+                          "liquidAssets",
+                          "nonSpendableAssets",
+                        ].includes(k)
+                        const leak = isSharedPlan && isViewerScoped
+                        return (
+                          <div
+                            key={k}
+                            className={`flex items-start gap-2 ${
+                              leak ? "text-red-700" : "text-gray-700"
+                            }`}
+                          >
+                            <span className="font-semibold w-44 shrink-0">
+                              {leak && "🚨 "}
+                              {k}:
+                            </span>
+                            <span className="break-all">
+                              {typeof v === "object"
+                                ? JSON.stringify(v)
+                                : String(v)}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                    {isSharedPlan && (
+                      <p className="text-xs text-amber-700 mt-3">
+                        Any 🚨 field overrides svc-retire&apos;s owner-scoped
+                        fallback at <code>StartingStateResolver.kt</code>. On a
+                        shared plan the request body should contain ONLY
+                        scenario sliders + plan-rate fields — never holdings,
+                        portfolio ids, contributions, or ages.
+                      </p>
+                    )}
                   </div>
                 )}
 
