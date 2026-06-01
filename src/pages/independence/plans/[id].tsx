@@ -484,6 +484,31 @@ function PlanView(): React.ReactElement {
     isSharedPlan,
   })
 
+  // For shared plans, demographics + retirement age MUST come from the
+  // projection's planInputs echo (server resolves them from the plan
+  // OWNER's settings via the M2M path). Falling through to
+  // independenceSettings here renders the VIEWER's age + "Independence
+  // (60)" marker on someone else's plan. Owned plans keep the existing
+  // settings-driven path so pre-projection rendering still works.
+  const planInputsAges = (
+    adjustedProjection as unknown as {
+      planInputs?: {
+        currentAge?: number
+        retirementAge?: number
+        lifeExpectancy?: number
+      }
+    } | null | undefined
+  )?.planInputs
+  const displayCurrentAge = isSharedPlan
+    ? (planInputsAges?.currentAge ?? currentAge)
+    : currentAge
+  const displayRetirementAge = isSharedPlan
+    ? (planInputsAges?.retirementAge ?? retirementAge)
+    : retirementAge
+  const displayLifeExpectancy = isSharedPlan
+    ? (planInputsAges?.lifeExpectancy ?? lifeExpectancy)
+    : lifeExpectancy
+
   // FIRE data is ready when backend projection has completed with valid metrics
   const fireDataReady =
     !!plan &&
@@ -876,8 +901,8 @@ function PlanView(): React.ReactElement {
               totalAssets={totalAssets}
               liquidAssets={liquidAssets}
               blendedReturnRate={blendedReturnRate}
-              currentAge={currentAge}
-              retirementAge={retirementAge}
+              currentAge={displayCurrentAge}
+              retirementAge={displayRetirementAge}
               effectiveFxRate={effectiveFxRate}
               isCalculating={isCalculating}
               holdingsLoaded={!!holdingsData}
@@ -895,8 +920,8 @@ function PlanView(): React.ReactElement {
               projection={adjustedProjection}
               effectivePlanValues={effectivePlanValues}
               blendedReturnRate={blendedReturnRate}
-              currentAge={currentAge}
-              retirementAge={retirementAge}
+              currentAge={displayCurrentAge}
+              retirementAge={displayRetirementAge}
               effectiveCurrency={effectiveCurrency}
               fireDataReady={fireDataReady}
               view={
@@ -910,8 +935,8 @@ function PlanView(): React.ReactElement {
             <TimelineTabContent
               projection={adjustedProjection}
               baselineProjection={baselineProjection}
-              retirementAge={retirementAge}
-              lifeExpectancy={lifeExpectancy}
+              retirementAge={displayRetirementAge}
+              lifeExpectancy={displayLifeExpectancy}
               hideValues={hideValues}
               isCalculating={isCalculating}
               effectiveCurrency={effectiveCurrency}
