@@ -454,14 +454,27 @@ export default function TimelineTabContent({
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
-              data={projection.yearlyProjections.map((y) => ({
-                ...y,
-                // Life event expenses are already in withdrawals (backend includes them)
-                // Life event income needs to be added to the positive bar
-                investmentAndIncome:
-                  y.investment + (y.incomeBreakdown?.lifeEventIncome ?? 0),
-                negWithdrawals: -y.withdrawals,
-              }))}
+              data={[
+                // Accumulation rows: pre-retirement contributions + growth are
+                // the positive ("Returns & Income") bar; there are no
+                // withdrawals yet. Mirrors the Wealth Journey's axis so the
+                // viewer can read all three charts on the same timeline.
+                ...(projection.accumulationProjections ?? []).map((y) => ({
+                  age: y.age,
+                  year: y.year,
+                  investmentAndIncome:
+                    y.contribution + y.investmentGrowth + (y.lumpSumPayout ?? 0),
+                  negWithdrawals: 0,
+                })),
+                ...projection.yearlyProjections.map((y) => ({
+                  ...y,
+                  // Life event expenses are already in withdrawals (backend includes them)
+                  // Life event income needs to be added to the positive bar
+                  investmentAndIncome:
+                    y.investment + (y.incomeBreakdown?.lifeEventIncome ?? 0),
+                  negWithdrawals: -y.withdrawals,
+                })),
+              ]}
               margin={{ top: 10, right: 30, left: 20, bottom: 20 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -533,7 +546,37 @@ export default function TimelineTabContent({
         onToggle={() => toggleSection("incomeBreakdown")}
       >
         <IncomeBreakdownTable
-          projections={projection.yearlyProjections}
+          projections={[
+            // Normalize accumulation rows into YearlyProjection shape so
+            // the table shares the same axis as Wealth Journey + Cash Flows.
+            // Pre-retirement rows have no withdrawals; contributions +
+            // investment growth feed the Investment column via the
+            // incomeBreakdown.investmentReturns slot.
+            ...(projection.accumulationProjections ?? []).map((y) => ({
+              year: y.year,
+              age: y.age,
+              startingBalance: y.startingBalance,
+              investment: y.contribution + y.investmentGrowth,
+              withdrawals: 0,
+              endingBalance: y.endingBalance,
+              inflationAdjustedExpenses: 0,
+              currency: y.currency,
+              nonSpendableValue: y.nonSpendableValue,
+              totalWealth: y.totalWealth,
+              incomeBreakdown: {
+                investmentReturns:
+                  y.contribution + y.investmentGrowth + (y.lumpSumPayout ?? 0),
+                pension: 0,
+                socialSecurity: 0,
+                otherIncome: 0,
+                rentalIncome: 0,
+                totalIncome:
+                  y.contribution + y.investmentGrowth + (y.lumpSumPayout ?? 0),
+                lumpSumPayout: y.lumpSumPayout,
+              },
+            })),
+            ...projection.yearlyProjections,
+          ]}
           embedded
         />
       </CollapsibleSection>
