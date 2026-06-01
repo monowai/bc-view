@@ -4,19 +4,20 @@ import {
   MonteCarloResult,
   MonteCarloResponse,
 } from "types/independence"
-import { WhatIfAdjustments, ScenarioOverrides } from "./types"
+import {
+  scenarioToPayload,
+  type ScenarioPayloadCtx,
+} from "./scenario/scenarioToPayload"
+import { DEFAULT_SCENARIO_STATE, type ScenarioState } from "./scenario/types"
 import { AssetBreakdown } from "./useAssetBreakdown"
 import { RentalIncomeData } from "./useUnifiedProjection"
 
 interface UseMonteCarloSimulationProps {
   plan: RetirementPlan | undefined
   assets: AssetBreakdown
-  currentAge?: number
-  retirementAge?: number
-  lifeExpectancy?: number
   monthlyInvestment?: number
-  whatIfAdjustments?: WhatIfAdjustments
-  scenarioOverrides?: ScenarioOverrides
+  /** Unified scenario state — same shape as useUnifiedProjection. */
+  scenario?: ScenarioState
   rentalIncome?: RentalIncomeData
   displayCurrency?: string
 }
@@ -28,32 +29,19 @@ interface UseMonteCarloSimulationResult {
   runSimulation: (iterations?: number) => Promise<void>
 }
 
-const DEFAULT_WHAT_IF: WhatIfAdjustments = {
-  retirementAgeOffset: 0,
-  expensesPercent: 100,
-  returnRateOffset: 0,
-  inflationOffset: 0,
-  contributionPercent: 100,
-  equityPercent: null,
-  liquidationThreshold: 10,
-}
-
 /**
  * Hook for running Monte Carlo simulations on-demand.
  *
- * Unlike useUnifiedProjection which auto-calculates, this hook
- * exposes a runSimulation() callback that must be triggered explicitly
- * since simulations are computationally expensive.
+ * Unlike useUnifiedProjection which auto-calculates, this hook exposes a
+ * runSimulation() callback that must be triggered explicitly since
+ * simulations are computationally expensive. Both hooks share the same
+ * ScenarioState → payload translation via `scenarioToPayload`.
  */
 export function useMonteCarloSimulation({
   plan,
   assets,
-  currentAge,
-  retirementAge,
-  lifeExpectancy,
   monthlyInvestment = 0,
-  whatIfAdjustments = DEFAULT_WHAT_IF,
-  scenarioOverrides = {},
+  scenario = DEFAULT_SCENARIO_STATE,
   rentalIncome,
   displayCurrency,
 }: UseMonteCarloSimulationProps): UseMonteCarloSimulationResult {
@@ -69,67 +57,18 @@ export function useMonteCarloSimulation({
       setError(null)
 
       try {
-        // Apply What-If adjustments (same logic as useUnifiedProjection)
-        const baseMonthlyExpenses =
-          scenarioOverrides.monthlyExpenses ?? plan.monthlyExpenses
-        const effectiveMonthlyExpenses = Math.round(
-          baseMonthlyExpenses * (whatIfAdjustments.expensesPercent / 100),
-        )
-
-        const baseCashReturnRate =
-          scenarioOverrides.cashReturnRate ?? plan.cashReturnRate
-        const baseEquityReturnRate =
-          scenarioOverrides.equityReturnRate ?? plan.equityReturnRate
-        const baseHousingReturnRate =
-          scenarioOverrides.housingReturnRate ?? plan.housingReturnRate
-
-        const effectiveCashReturnRate =
-          baseCashReturnRate + whatIfAdjustments.returnRateOffset / 100
-        const effectiveEquityReturnRate =
-          baseEquityReturnRate + whatIfAdjustments.returnRateOffset / 100
-        const effectiveHousingReturnRate = baseHousingReturnRate
-
-        const baseInflationRate =
-          scenarioOverrides.inflationRate ?? plan.inflationRate
-        const effectiveInflationRate =
-          baseInflationRate + whatIfAdjustments.inflationOffset / 100
-
-        const effectiveRetirementAge =
-          (retirementAge ?? 65) + whatIfAdjustments.retirementAgeOffset
-
-        const effectiveMonthlyContribution = Math.round(
-          monthlyInvestment * (whatIfAdjustments.contributionPercent / 100),
-        )
-
-        const requestBody: Record<string, unknown> = {
-          currency: plan.expensesCurrency,
+        const ctx: ScenarioPayloadCtx = {
+          plan,
+          selectedPortfolioIds: [], // Monte Carlo doesn't filter portfolios
           displayCurrency,
-          currentAge,
-          retirementAge: effectiveRetirementAge,
-          lifeExpectancy,
-          monthlyContribution: effectiveMonthlyContribution,
-          monthlyExpenses: effectiveMonthlyExpenses,
-          cashReturnRate: effectiveCashReturnRate,
-          equityReturnRate: effectiveEquityReturnRate,
-          housingReturnRate: effectiveHousingReturnRate,
-          inflationRate: effectiveInflationRate,
-          pensionMonthly:
-            scenarioOverrides.pensionMonthly ?? plan.pensionMonthly,
-          socialSecurityMonthly:
-            scenarioOverrides.socialSecurityMonthly ??
-            plan.socialSecurityMonthly,
-          otherIncomeMonthly:
-            scenarioOverrides.otherIncomeMonthly ?? plan.otherIncomeMonthly,
-          targetBalance: scenarioOverrides.targetBalance ?? plan.targetBalance,
-          liquidationThreshold: whatIfAdjustments.liquidationThreshold,
-          liquidAssets: assets.liquidAssets,
-          nonSpendableAssets: assets.nonSpendableAssets,
-          iterations,
+          monthlyInvestment,
+          rentalIncome,
+          derivedLiquidAssets: assets.liquidAssets,
+          derivedNonSpendableAssets: assets.nonSpendableAssets,
         }
-
-        if (rentalIncome?.totalMonthlyInPlanCurrency) {
-          requestBody.rentalIncomeMonthly =
-            rentalIncome.totalMonthlyInPlanCurrency
+        const requestBody = {
+          ...scenarioToPayload(scenario, ctx),
+          iterations,
         }
 
         const response = await fetch(
@@ -157,18 +96,7 @@ export function useMonteCarloSimulation({
         setIsRunning(false)
       }
     },
-    [
-      plan,
-      assets,
-      currentAge,
-      retirementAge,
-      lifeExpectancy,
-      monthlyInvestment,
-      rentalIncome,
-      scenarioOverrides,
-      whatIfAdjustments,
-      displayCurrency,
-    ],
+    [plan, assets, monthlyInvestment, rentalIncome, scenario, displayCurrency],
   )
 
   return { result, isRunning, error, runSimulation }

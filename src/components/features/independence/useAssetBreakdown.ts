@@ -4,6 +4,17 @@ import { HoldingContract, ValueInOption } from "types/beancounter"
 /** Default non-spendable categories (property typically can't be easily liquidated) */
 export const DEFAULT_NON_SPENDABLE_CATEGORIES = ["Property", "Real Estate"]
 
+/**
+ * Categories whose balance feeds the Independence projection as a
+ * scheduled income stream (CPF LIFE annuity, policy maturity) rather
+ * than as drawable principal. NOTE: calculateAssetBreakdown itself does
+ * not filter these out — they currently fall into the liquid bucket.
+ * Display consumers (e.g. AssetsBreakdown.tsx, plans/[id].tsx) are the
+ * ones that exclude them from the spendable pool so the value isn't
+ * double-counted against the income column.
+ */
+export const INCOME_STREAM_CATEGORIES = ["Policies"]
+
 export interface AssetBreakdown {
   /** Liquid/spendable assets (everything except property) */
   liquidAssets: number

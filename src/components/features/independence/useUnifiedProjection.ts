@@ -6,10 +6,10 @@ import {
   ProjectionResponse,
 } from "types/independence"
 import {
-  WhatIfAdjustments,
-  ScenarioOverrides,
-  hasScenarioChanges,
-} from "./types"
+  scenarioToPayload,
+  type ScenarioPayloadCtx,
+} from "./scenario/scenarioToPayload"
+import { DEFAULT_SCENARIO_STATE, type ScenarioState } from "./scenario/types"
 import { AssetBreakdown } from "./useAssetBreakdown"
 
 /**
@@ -25,19 +25,11 @@ function hashString(str: string): number {
 }
 
 /**
- * Creates a checksum from What-If values for change detection.
+ * Creates a checksum from the scenario state for change detection. Drives
+ * the debounced recalculation effect — a stable checksum skips the API hit.
  */
-export function createWhatIfChecksum(
-  scenarioOverrides: ScenarioOverrides,
-  whatIfAdjustments: WhatIfAdjustments,
-  retirementAge: number,
-): number {
-  const key = JSON.stringify({
-    scenarioOverrides,
-    whatIfAdjustments,
-    retirementAge,
-  })
-  return hashString(key)
+export function createScenarioChecksum(scenario: ScenarioState): number {
+  return hashString(JSON.stringify(scenario))
 }
 
 /**
@@ -91,21 +83,22 @@ interface UseUnifiedProjectionProps {
   // ---- Full mode options (for plan detail page) ----
   /** Selected portfolio IDs (full mode only) */
   selectedPortfolioIds?: string[]
-  /** Current age calculated from yearOfBirth (full mode only) */
-  currentAge?: number
-  /** Retirement age (full mode only) */
-  retirementAge?: number
-  /** Life expectancy (full mode only) */
-  lifeExpectancy?: number
-  /** Monthly investment amount (full mode only) */
+  /** Monthly investment amount (full mode only). */
   monthlyInvestment?: number
-  /** What-If slider adjustments (full mode only) */
-  whatIfAdjustments?: WhatIfAdjustments
-  /** Scenario value overrides (full mode only) */
-  scenarioOverrides?: ScenarioOverrides
-  /** Optional rental income data (full mode only) */
+  /**
+   * Unified scenario state. When omitted the hook falls back to defaults,
+   * useful for the simple/widget mode that doesn't model what-if.
+   */
+  scenario?: ScenarioState
+  /**
+   * Caller-known flag indicating the scenario matches the seeded baseline.
+   * When true the result is captured as `baselineProjection` so the chart
+   * can overlay it once the user starts moving sliders.
+   */
+  isAtBaseline?: boolean
+  /** Optional rental income data (full mode only). */
   rentalIncome?: RentalIncomeData
-  /** Optional defined contribution amount override (full mode only) */
+  /** Optional defined contribution amount override (full mode only). */
   definedContribution?: number
 }
 
@@ -126,18 +119,8 @@ interface UseUnifiedProjectionResult {
   recalculate: () => void
   /** Reset projection state (for category changes) */
   resetProjection: () => void
-  /** Checksum of current What-If values */
-  whatIfChecksum: number
-}
-
-const DEFAULT_WHAT_IF: WhatIfAdjustments = {
-  retirementAgeOffset: 0,
-  expensesPercent: 100,
-  returnRateOffset: 0,
-  inflationOffset: 0,
-  contributionPercent: 100,
-  equityPercent: null,
-  liquidationThreshold: 10,
+  /** Checksum of the current scenario state — drives the debounced refetch. */
+  scenarioChecksum: number
 }
 
 /**
@@ -145,12 +128,12 @@ const DEFAULT_WHAT_IF: WhatIfAdjustments = {
  *
  * Supports two modes:
  * 1. **Simple mode**: For widgets (wealth page, PlanCard). Just pass plan and assets.
- * 2. **Full mode**: For plan detail page. Pass What-If adjustments, scenario overrides, etc.
+ * 2. **Full mode**: For plan detail page. Pass the ScenarioState and rental income.
  *
  * Key principles:
  * - Assets MUST be provided by the frontend (via useAssetBreakdown)
  * - Backend never fetches from svc-position (single source of truth)
- * - Uses SWR with asset values in cache key (auto-updates when assets change)
+ * - Scenario state is the single source of truth for plan-overridable values
  *
  * @example Simple mode (for widgets):
  * ```tsx
@@ -161,15 +144,13 @@ const DEFAULT_WHAT_IF: WhatIfAdjustments = {
  * @example Full mode (for plan detail):
  * ```tsx
  * const assets = useAssetBreakdown(holdingsData?.data, "PORTFOLIO", nonSpendableCategories)
+ * const { scenario, isDirty } = useScenario(plan, settings)
  * const { projection, isCalculating, resetProjection } = useUnifiedProjection({
  *   plan,
  *   assets,
- *   whatIfAdjustments,
- *   scenarioOverrides,
+ *   scenario,
+ *   isAtBaseline: !isDirty,
  *   displayCurrency,
- *   currentAge,
- *   retirementAge,
- *   lifeExpectancy,
  *   monthlyInvestment,
  * })
  * ```
@@ -181,12 +162,9 @@ export function useUnifiedProjection({
   enabled = true,
   // Full mode options
   selectedPortfolioIds = [],
-  currentAge,
-  retirementAge,
-  lifeExpectancy,
   monthlyInvestment = 0,
-  whatIfAdjustments = DEFAULT_WHAT_IF,
-  scenarioOverrides = {},
+  scenario = DEFAULT_SCENARIO_STATE,
+  isAtBaseline = false,
   rentalIncome,
   definedContribution,
 }: UseUnifiedProjectionProps): UseUnifiedProjectionResult {
@@ -203,29 +181,23 @@ export function useUnifiedProjection({
   // Determine if we have the minimum required data
   const isReady = enabled && !!plan?.id && assets.hasAssets
 
-  // Calculate checksum for detecting changes
+  // Detect changes via single scenario checksum + plan checksum + asset/currency.
   const planChecksum = useMemo(() => createPlanChecksum(plan), [plan])
-  const whatIfChecksum = useMemo(
-    () =>
-      createWhatIfChecksum(
-        scenarioOverrides,
-        whatIfAdjustments,
-        retirementAge ?? 65,
-      ),
-    [scenarioOverrides, whatIfAdjustments, retirementAge],
+  const scenarioChecksum = useMemo(
+    () => createScenarioChecksum(scenario),
+    [scenario],
   )
 
-  // Combined checksum including assets and display currency
   const projectionChecksum = useMemo(() => {
     const assetChecksum = Math.round(assets.liquidAssets)
     const currencyChecksum = displayCurrency ? hashString(displayCurrency) : 0
     return (
       ((planChecksum << 16) | (planChecksum >>> 16)) ^
-      whatIfChecksum ^
+      scenarioChecksum ^
       assetChecksum ^
       currencyChecksum
     )
-  }, [planChecksum, whatIfChecksum, assets.liquidAssets, displayCurrency])
+  }, [planChecksum, scenarioChecksum, assets.liquidAssets, displayCurrency])
 
   // Track previous checksum to detect changes
   const prevChecksumRef = useRef<number>(0)
@@ -237,79 +209,19 @@ export function useUnifiedProjection({
     setError(null)
 
     try {
-      // Calculate effective values with What-If adjustments applied
-      const baseMonthlyExpenses =
-        scenarioOverrides.monthlyExpenses ?? plan.monthlyExpenses
-      const effectiveMonthlyExpenses = Math.round(
-        baseMonthlyExpenses * (whatIfAdjustments.expensesPercent / 100),
-      )
-
-      const baseCashReturnRate =
-        scenarioOverrides.cashReturnRate ?? plan.cashReturnRate
-      const baseEquityReturnRate =
-        scenarioOverrides.equityReturnRate ?? plan.equityReturnRate
-      const baseHousingReturnRate =
-        scenarioOverrides.housingReturnRate ?? plan.housingReturnRate
-
-      // Return rate offset is in percentage points (e.g., -1 means subtract 1%)
-      const effectiveCashReturnRate =
-        baseCashReturnRate + whatIfAdjustments.returnRateOffset / 100
-      const effectiveEquityReturnRate =
-        baseEquityReturnRate + whatIfAdjustments.returnRateOffset / 100
-      // Housing rate not affected by return rate offset (it's for investable assets)
-      const effectiveHousingReturnRate = baseHousingReturnRate
-
-      const baseInflationRate =
-        scenarioOverrides.inflationRate ?? plan.inflationRate
-      const effectiveInflationRate =
-        baseInflationRate + whatIfAdjustments.inflationOffset / 100
-
-      // Apply retirement age offset
-      const effectiveRetirementAge =
-        (retirementAge ?? 65) + whatIfAdjustments.retirementAgeOffset
-
-      // Apply contribution percentage adjustment
-      const effectiveMonthlyContribution = Math.round(
-        monthlyInvestment * (whatIfAdjustments.contributionPercent / 100),
-      )
-
-      // Build request body - ALWAYS include asset values (required)
-      const requestBody: Record<string, unknown> = {
-        portfolioIds: selectedPortfolioIds,
-        currency: plan.expensesCurrency,
+      const ctx: ScenarioPayloadCtx = {
+        plan,
+        selectedPortfolioIds,
         displayCurrency,
-        currentAge,
-        retirementAge: effectiveRetirementAge,
-        lifeExpectancy,
-        monthlyContribution: effectiveMonthlyContribution,
-        // Plan value overrides (What-If adjusted values)
-        monthlyExpenses: effectiveMonthlyExpenses,
-        cashReturnRate: effectiveCashReturnRate,
-        equityReturnRate: effectiveEquityReturnRate,
-        housingReturnRate: effectiveHousingReturnRate,
-        inflationRate: effectiveInflationRate,
-        pensionMonthly: scenarioOverrides.pensionMonthly ?? plan.pensionMonthly,
-        socialSecurityMonthly:
-          scenarioOverrides.socialSecurityMonthly ?? plan.socialSecurityMonthly,
-        otherIncomeMonthly:
-          scenarioOverrides.otherIncomeMonthly ?? plan.otherIncomeMonthly,
-        targetBalance: scenarioOverrides.targetBalance ?? plan.targetBalance,
-        liquidationThreshold: whatIfAdjustments.liquidationThreshold,
-        // ALWAYS pass asset values - backend requires these
-        liquidAssets: assets.liquidAssets,
-        nonSpendableAssets: assets.nonSpendableAssets,
+        monthlyInvestment,
+        rentalIncome,
+        derivedLiquidAssets: assets.liquidAssets,
+        derivedNonSpendableAssets: assets.nonSpendableAssets,
       }
-
-      // Add defined contribution override if provided
       if (definedContribution != null) {
-        requestBody.definedContribution = definedContribution
+        ctx.definedContribution = definedContribution
       }
-
-      // Add rental income if provided
-      if (rentalIncome?.totalMonthlyInPlanCurrency) {
-        requestBody.rentalIncomeMonthly =
-          rentalIncome.totalMonthlyInPlanCurrency
-      }
+      const requestBody = scenarioToPayload(scenario, ctx)
 
       const response = await fetch(`/api/independence/projection/${plan.id}`, {
         method: "POST",
@@ -327,15 +239,11 @@ export function useUnifiedProjection({
       const result: ProjectionResponse = await response.json()
       setProjection(result.data)
 
-      // Capture baseline when what-if adjustments are at defaults
-      const isAtDefaults =
-        !hasScenarioChanges(whatIfAdjustments) &&
-        Object.keys(scenarioOverrides).length === 0
-      if (isAtDefaults) {
+      // Capture baseline when the scenario matches the seeded plan defaults.
+      if (isAtBaseline) {
         setBaselineProjection(result.data)
         baselineDisplayCurrencyRef.current = displayCurrency
       } else if (displayCurrency !== baselineDisplayCurrencyRef.current) {
-        // Invalidate baseline if display currency changed
         setBaselineProjection(null)
       }
     } catch (err) {
@@ -348,13 +256,10 @@ export function useUnifiedProjection({
     plan,
     assets,
     selectedPortfolioIds,
-    currentAge,
-    retirementAge,
-    lifeExpectancy,
     monthlyInvestment,
     rentalIncome,
-    scenarioOverrides,
-    whatIfAdjustments,
+    scenario,
+    isAtBaseline,
     displayCurrency,
     definedContribution,
   ])
@@ -407,7 +312,7 @@ export function useUnifiedProjection({
     error,
     recalculate,
     resetProjection,
-    whatIfChecksum,
+    scenarioChecksum,
   }
 }
 

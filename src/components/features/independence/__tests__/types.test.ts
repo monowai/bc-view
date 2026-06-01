@@ -1,27 +1,6 @@
-import {
-  DEFAULT_WHAT_IF_ADJUSTMENTS,
-  DEFAULT_NON_SPENDABLE,
-  TABS,
-  hasScenarioChanges,
-  getCategoryReturnType,
-  WhatIfAdjustments,
-} from "../types"
+import { DEFAULT_NON_SPENDABLE, TABS, getCategoryReturnType } from "../types"
 
 describe("types constants", () => {
-  describe("DEFAULT_WHAT_IF_ADJUSTMENTS", () => {
-    it("has correct default values", () => {
-      expect(DEFAULT_WHAT_IF_ADJUSTMENTS).toEqual({
-        retirementAgeOffset: 0,
-        expensesPercent: 100,
-        returnRateOffset: 0,
-        inflationOffset: 0,
-        contributionPercent: 100,
-        equityPercent: null,
-        liquidationThreshold: 10,
-      })
-    })
-  })
-
   describe("DEFAULT_NON_SPENDABLE", () => {
     it("contains Property category", () => {
       expect(DEFAULT_NON_SPENDABLE).toContain("Property")
@@ -41,7 +20,7 @@ describe("types constants", () => {
 
     it("has correct labels", () => {
       expect(TABS.find((t) => t.id === "details")?.label).toBe("My Plan")
-      expect(TABS.find((t) => t.id === "assets")?.label).toBe("My Assets")
+      expect(TABS.find((t) => t.id === "assets")?.label).toBe("Metrics")
       expect(TABS.find((t) => t.id === "timeline")?.label).toBe("My Path")
       expect(TABS.find((t) => t.id === "simulation")?.label).toBe("Stress Test")
     })
@@ -73,76 +52,6 @@ describe("types constants", () => {
         "markets",
       )
     })
-  })
-})
-
-describe("hasScenarioChanges", () => {
-  it("returns false for default adjustments", () => {
-    expect(hasScenarioChanges(DEFAULT_WHAT_IF_ADJUSTMENTS)).toBe(false)
-  })
-
-  it("returns true when retirementAgeOffset is changed", () => {
-    const adjustments: WhatIfAdjustments = {
-      ...DEFAULT_WHAT_IF_ADJUSTMENTS,
-      retirementAgeOffset: 2,
-    }
-    expect(hasScenarioChanges(adjustments)).toBe(true)
-  })
-
-  it("returns true when expensesPercent is changed", () => {
-    const adjustments: WhatIfAdjustments = {
-      ...DEFAULT_WHAT_IF_ADJUSTMENTS,
-      expensesPercent: 110,
-    }
-    expect(hasScenarioChanges(adjustments)).toBe(true)
-  })
-
-  it("returns true when returnRateOffset is changed", () => {
-    const adjustments: WhatIfAdjustments = {
-      ...DEFAULT_WHAT_IF_ADJUSTMENTS,
-      returnRateOffset: 1,
-    }
-    expect(hasScenarioChanges(adjustments)).toBe(true)
-  })
-
-  it("returns true when inflationOffset is changed", () => {
-    const adjustments: WhatIfAdjustments = {
-      ...DEFAULT_WHAT_IF_ADJUSTMENTS,
-      inflationOffset: 0.5,
-    }
-    expect(hasScenarioChanges(adjustments)).toBe(true)
-  })
-
-  it("returns true when contributionPercent is changed", () => {
-    const adjustments: WhatIfAdjustments = {
-      ...DEFAULT_WHAT_IF_ADJUSTMENTS,
-      contributionPercent: 150,
-    }
-    expect(hasScenarioChanges(adjustments)).toBe(true)
-  })
-
-  it("returns true when equityPercent is set", () => {
-    const adjustments: WhatIfAdjustments = {
-      ...DEFAULT_WHAT_IF_ADJUSTMENTS,
-      equityPercent: 70,
-    }
-    expect(hasScenarioChanges(adjustments)).toBe(true)
-  })
-
-  it("returns true when liquidationThreshold is changed", () => {
-    const adjustments: WhatIfAdjustments = {
-      ...DEFAULT_WHAT_IF_ADJUSTMENTS,
-      liquidationThreshold: 20,
-    }
-    expect(hasScenarioChanges(adjustments)).toBe(true)
-  })
-
-  it("returns false when equityPercent is null", () => {
-    const adjustments: WhatIfAdjustments = {
-      ...DEFAULT_WHAT_IF_ADJUSTMENTS,
-      equityPercent: null,
-    }
-    expect(hasScenarioChanges(adjustments)).toBe(false)
   })
 })
 

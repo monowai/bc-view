@@ -70,9 +70,7 @@ export default withPageAuthRequired(function Manage(): React.ReactElement {
         method: post ? "POST" : "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
-          post
-            ? toPortfolioRequests(validated)
-            : toPortfolioRequest(validated),
+          post ? toPortfolioRequests(validated) : toPortfolioRequest(validated),
         ),
       })
       if (!response.ok) {

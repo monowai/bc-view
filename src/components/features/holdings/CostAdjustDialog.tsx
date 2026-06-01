@@ -2,12 +2,12 @@ import React, { useState, useMemo } from "react"
 import { Asset, Currency } from "types/beancounter"
 
 const CATEGORY_LABELS: Record<string, string> = {
-  PENSION: "Retirement Fund",
+  PENSION: "Policies",
   ACCOUNT: "Bank Account",
   TRADE: "Trade Account",
   RE: "Real Estate",
   "MUTUAL FUND": "Mutual Fund",
-  POLICY: "Retirement Fund",
+  POLICY: "Policies",
 }
 import MathInput from "@components/ui/MathInput"
 import DateInput from "@components/ui/DateInput"

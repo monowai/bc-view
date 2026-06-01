@@ -3,7 +3,6 @@ import { render } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import type { RetirementPlan, RetirementProjection } from "types/independence"
 import type { AssetBreakdown } from "../useAssetBreakdown"
-import type { WhatIfAdjustments, ScenarioOverrides } from "../types"
 
 // Mock the Monte Carlo hook so the component renders with our deterministic
 // fixture instead of issuing a real API call. The shape MUST match what
@@ -76,17 +75,15 @@ const assets: AssetBreakdown = {
   hasAssets: true,
 }
 
-const whatIfAdjustments: WhatIfAdjustments = {
-  retirementAgeOffset: 0,
-  expensesPercent: 100,
-  returnRateOffset: 0,
-  inflationOffset: 0,
-  contributionPercent: 100,
-  equityPercent: null,
-  liquidationThreshold: 10,
+import { DEFAULT_SCENARIO_STATE } from "../scenario/types"
+const scenario = {
+  ...DEFAULT_SCENARIO_STATE,
+  currentAge: 60,
+  retirementAge: 65,
+  lifeExpectancy: 90,
+  monthlyExpenses: 4000,
+  inflation: 0.025,
 }
-
-const scenarioOverrides: ScenarioOverrides = {}
 
 const displayProjection: RetirementProjection = {
   planId: "plan-1",
@@ -190,12 +187,8 @@ const displayProjection: RetirementProjection = {
 const mockProps = {
   plan: makePlan(),
   assets,
-  currentAge: 60,
-  retirementAge: 65,
-  lifeExpectancy: 90,
   monthlyInvestment: 2000,
-  whatIfAdjustments,
-  scenarioOverrides,
+  scenario,
   rentalIncome: undefined,
   displayCurrency: "SGD",
   hideValues: false,

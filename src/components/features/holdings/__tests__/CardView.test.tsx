@@ -360,7 +360,7 @@ describe("CardView footer (Quantity / Price / Weight)", () => {
         id: "policy-1",
         code: "CPF",
         name: "CPF Composite",
-        assetCategory: { id: "POLICY", name: "Retirement Fund" },
+        assetCategory: { id: "POLICY", name: "Policies" },
         market: {
           code: "PRIVATE",
           name: "Private",

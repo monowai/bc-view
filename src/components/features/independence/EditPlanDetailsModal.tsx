@@ -2,7 +2,30 @@ import React, { useState, useMemo } from "react"
 import useSwr from "swr"
 import { RetirementPlan } from "types/independence"
 import { Portfolio } from "types/beancounter"
-import { ScenarioOverrides } from "./types"
+
+/**
+ * Subset of the saved-plan fields the EditPlanDetailsModal emits via onApply.
+ * The page maps these into the unified ScenarioState before they reach the
+ * projection hooks. Kept local because the modal's surface is narrower than
+ * the now-deleted ScenarioOverrides type.
+ */
+interface EditedOverrides {
+  pensionMonthly?: number
+  socialSecurityMonthly?: number
+  benefitsStartAge?: number
+  otherIncomeMonthly?: number
+  monthlyExpenses?: number
+  equityReturnRate?: number
+  cashReturnRate?: number
+  housingReturnRate?: number
+  equityAllocation?: number
+  cashAllocation?: number
+  housingAllocation?: number
+  inflationRate?: number
+  targetBalance?: number
+  excludedPortfolioIds?: string[]
+  excludedRentalAssetIds?: string[]
+}
 import {
   parseExcludedPortfolioIds,
   parseExcludedRentalAssetIds,
@@ -34,7 +57,7 @@ interface EditFormData {
 
 interface EditPlanDetailsModalProps {
   onClose: () => void
-  onApply: (overrides: ScenarioOverrides) => void
+  onApply: (overrides: EditedOverrides) => void
   plan: RetirementPlan
 }
 

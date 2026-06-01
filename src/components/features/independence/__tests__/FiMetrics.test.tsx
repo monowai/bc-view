@@ -1,6 +1,21 @@
 import React from "react"
 import { render, screen } from "@testing-library/react"
+import type { FiMetrics as FiMetricsType } from "types/independence"
 import FiMetrics from "../FiMetrics"
+
+/** Build a minimal FiMetrics fixture for tests; non-required fields default. */
+function mkFi(overrides: Partial<FiMetricsType> = {}): FiMetricsType {
+  return {
+    fiNumber: 0,
+    fiProgress: 0,
+    gapToFi: 0,
+    netMonthlyExpenses: 0,
+    totalMonthlyIncome: 0,
+    isCoastFire: false,
+    isFinanciallyIndependent: false,
+    ...overrides,
+  }
+}
 
 // Mock the usePrivacyMode hook
 jest.mock("@hooks/usePrivacyMode", () => ({
@@ -27,9 +42,9 @@ describe("FiMetrics", () => {
     })
   })
 
-  it("renders FIRE Metrics heading", () => {
+  it("renders Retirement Strategies heading", () => {
     render(<FiMetrics {...defaultProps} />)
-    expect(screen.getByText("FIRE Metrics")).toBeInTheDocument()
+    expect(screen.getByText("Retirement Strategies")).toBeInTheDocument()
   })
 
   it("calculates FI Number correctly (25x annual expenses)", () => {
@@ -43,9 +58,11 @@ describe("FiMetrics", () => {
   it("calculates FI Progress correctly", () => {
     render(<FiMetrics {...defaultProps} />)
     // Progress = 500,000 / 1,500,000 * 100 = 33.3%
-    expect(screen.getByText("FI Progress")).toBeInTheDocument()
+    expect(screen.getByText("Early Retirement Progress")).toBeInTheDocument()
     // The percentage is in a span, verify it's present
-    const container = screen.getByText("FI Progress").parentElement
+    const container = screen
+      .getByText("Early Retirement Progress")
+      .closest(".flex")
     expect(container).toHaveTextContent("33.3%")
   })
 
@@ -98,22 +115,25 @@ describe("FiMetrics", () => {
       />,
     )
     // Progress should show actual percentage
-    const progressContainer = screen.getByText("FI Progress").parentElement
+    const progressContainer = screen
+      .getByText("Early Retirement Progress")
+      .closest(".flex")
     expect(progressContainer).toHaveTextContent("200.0%")
   })
 
   it("displays formula breakdown for FI Number", () => {
     render(<FiMetrics {...defaultProps} />)
-    // Text includes currency code inline with the formula
-    const formulaText = screen.getByText(/Based on/)
+    // Compact form: "NZD5,000/mo × 12 × 25"
+    const formulaText = screen.getByText(/\/mo × 12 × 25/)
     expect(formulaText).toHaveTextContent("5,000")
-    expect(formulaText).toHaveTextContent("/mo net expenses × 12 × 25")
   })
 
   it("shows current assets on progress scale", () => {
     render(<FiMetrics {...defaultProps} />)
     // Find the progress bar footer which shows assets range
-    const progressSection = screen.getByText("FI Progress").closest("div")
+    const progressSection = screen
+      .getByText("Early Retirement Progress")
+      .closest("div")
     expect(progressSection?.parentElement).toHaveTextContent("500,000")
   })
 
@@ -178,8 +198,7 @@ describe("FiMetrics", () => {
       currentAge: CURRENT_AGE,
       retirementAge: RETIREMENT_AGE,
       expectedReturnRate: 0.07,
-      backendCoastFiNumber: 197000,
-      backendCoastFiProgress: 50,
+      backendFiMetrics: mkFi({ coastFiNumber: 197000, coastFiProgress: 50 }),
     }
 
     it("calculates Coast FI Number correctly", () => {
@@ -193,8 +212,11 @@ describe("FiMetrics", () => {
         <FiMetrics
           {...coastProps}
           liquidAssets={250000}
-          backendCoastFiProgress={127} // 250k/197k = ~127%
-          backendIsCoastFire={true}
+          backendFiMetrics={mkFi({
+            coastFiNumber: 197000,
+            coastFiProgress: 127, // 250k/197k = ~127%
+            isCoastFire: true,
+          })}
         />,
       )
       expect(screen.getByText("Coast FIRE Achieved!")).toBeInTheDocument()
@@ -205,7 +227,11 @@ describe("FiMetrics", () => {
         <FiMetrics
           {...coastProps}
           liquidAssets={2000000} // Above full FI Number of 1,500,000
-          backendFiProgress={133}
+          backendFiMetrics={mkFi({
+            coastFiNumber: 197000,
+            coastFiProgress: 50,
+            fiProgress: 133,
+          })}
         />,
       )
       expect(screen.getByText("Financially Independent!")).toBeInTheDocument()
@@ -227,8 +253,10 @@ describe("FiMetrics", () => {
           currentAge={age}
           retirementAge={retireAt}
           expectedReturnRate={0.07}
-          backendCoastFiNumber={400000}
-          backendCoastFiProgress={25}
+          backendFiMetrics={mkFi({
+            coastFiNumber: 400000,
+            coastFiProgress: 25,
+          })}
         />,
       )
       expect(
@@ -258,7 +286,9 @@ describe("FiMetrics", () => {
         toggleHideValues: jest.fn(),
       })
       render(<FiMetrics {...defaultProps} />)
-      const progressContainer = screen.getByText("FI Progress").parentElement
+      const progressContainer = screen
+        .getByText("Early Retirement Progress")
+        .closest(".flex")
       expect(progressContainer).toHaveTextContent("****")
       expect(progressContainer).not.toHaveTextContent("33.3%")
     })
@@ -308,8 +338,10 @@ describe("FiMetrics", () => {
           currentAge={35}
           retirementAge={65}
           expectedReturnRate={0.07}
-          backendCoastFiNumber={197000}
-          backendCoastFiProgress={50}
+          backendFiMetrics={mkFi({
+            coastFiNumber: 197000,
+            coastFiProgress: 50,
+          })}
         />,
       )
       // Should show the label but not the value
@@ -345,9 +377,11 @@ describe("FiMetrics", () => {
           currentAge={35}
           retirementAge={65}
           expectedReturnRate={0.07}
-          backendCoastFiNumber={197000}
-          backendCoastFiProgress={127}
-          backendIsCoastFire={true}
+          backendFiMetrics={mkFi({
+            coastFiNumber: 197000,
+            coastFiProgress: 127,
+            isCoastFire: true,
+          })}
         />,
       )
       expect(screen.queryByText("Coast FIRE Achieved!")).not.toBeInTheDocument()
@@ -358,29 +392,297 @@ describe("FiMetrics", () => {
     // Under 50% - orange
     const { rerender } = render(<FiMetrics {...defaultProps} />)
     let progressSpan = screen
-      .getByText("FI Progress")
-      .parentElement?.querySelector(".font-semibold")
+      .getByText("Early Retirement Progress")
+      .closest(".flex")
+      ?.querySelector(".font-semibold")
     expect(progressSpan).toHaveClass("text-orange-600")
 
     // 50-75% - yellow
     rerender(<FiMetrics {...defaultProps} liquidAssets={900000} />)
     progressSpan = screen
-      .getByText("FI Progress")
-      .parentElement?.querySelector(".font-semibold")
+      .getByText("Early Retirement Progress")
+      .closest(".flex")
+      ?.querySelector(".font-semibold")
     expect(progressSpan).toHaveClass("text-yellow-600")
 
     // 75-100% - blue
     rerender(<FiMetrics {...defaultProps} liquidAssets={1200000} />)
     progressSpan = screen
-      .getByText("FI Progress")
-      .parentElement?.querySelector(".font-semibold")
+      .getByText("Early Retirement Progress")
+      .closest(".flex")
+      ?.querySelector(".font-semibold")
     expect(progressSpan).toHaveClass("text-blue-600")
 
     // 100%+ - green
     rerender(<FiMetrics {...defaultProps} liquidAssets={1600000} />)
     progressSpan = screen
-      .getByText("FI Progress")
-      .parentElement?.querySelector(".font-semibold")
+      .getByText("Early Retirement Progress")
+      .closest(".flex")
+      ?.querySelector(".font-semibold")
     expect(progressSpan).toHaveClass("text-green-600")
+  })
+
+  describe("Retirement Strategies", () => {
+    const rubyPensionProps = {
+      ...defaultProps,
+      backendFiMetrics: mkFi({
+        retirementAgeFiProgress: 54.0,
+        bridgeYears: 3.33,
+        bridgeYearsNeeded: 13,
+        bridgeProgress: 25.64,
+        incomeCoverageAtRetirement: 44.44,
+      }),
+    }
+
+    it("always renders the FIRE Strategy section", () => {
+      render(<FiMetrics {...defaultProps} />)
+      expect(screen.getByText("FIRE Strategy")).toBeInTheDocument()
+    })
+
+    it("renders Pension + Bridge sections for a pension saver", () => {
+      render(<FiMetrics {...rubyPensionProps} />)
+      expect(screen.getByText("Pension Strategy")).toBeInTheDocument()
+      expect(screen.getByText("Bridge Strategy")).toBeInTheDocument()
+      expect(screen.getByText("Retirement-Age FI")).toBeInTheDocument()
+      expect(screen.getByText("Income Coverage")).toBeInTheDocument()
+      expect(screen.getByText("Bridge to Pension")).toBeInTheDocument()
+    })
+
+    it("hides Pension + Bridge when no guaranteed income configured", () => {
+      render(<FiMetrics {...defaultProps} />)
+      expect(screen.queryByText("Pension Strategy")).not.toBeInTheDocument()
+      expect(screen.queryByText("Bridge Strategy")).not.toBeInTheDocument()
+    })
+
+    it("shows Pension but not Bridge when no years-to-retirement gap", () => {
+      // Income coverage present but no bridge data → user is at/past retirement age
+      render(
+        <FiMetrics
+          {...defaultProps}
+          backendFiMetrics={mkFi({ incomeCoverageAtRetirement: 70 })}
+        />,
+      )
+      expect(screen.getByText("Pension Strategy")).toBeInTheDocument()
+      expect(screen.getByText("Income Coverage")).toBeInTheDocument()
+      expect(screen.queryByText("Bridge Strategy")).not.toBeInTheDocument()
+    })
+
+    it("formats Retirement-Age FI as a percentage", () => {
+      render(<FiMetrics {...rubyPensionProps} />)
+      const row = screen
+        .getByText("Retirement-Age FI")
+        .closest("div")?.parentElement
+      expect(row?.textContent).toContain("54.0%")
+    })
+
+    it("formats Bridge to Pension as years out of needed", () => {
+      render(<FiMetrics {...rubyPensionProps} />)
+      const row = screen
+        .getByText("Bridge to Pension")
+        .closest("div")?.parentElement
+      expect(row?.textContent).toContain("3.3 / 13 years")
+    })
+
+    it("formats Income Coverage as a percentage", () => {
+      render(<FiMetrics {...rubyPensionProps} />)
+      const row = screen
+        .getByText("Income Coverage")
+        .closest("div")?.parentElement
+      expect(row?.textContent).toContain("44.4%")
+    })
+
+    it("respects privacy mode by hiding values", () => {
+      usePrivacyMode.mockReturnValue({
+        hideValues: true,
+        toggleHideValues: jest.fn(),
+      })
+      render(<FiMetrics {...rubyPensionProps} />)
+      const row = screen
+        .getByText("Retirement-Age FI")
+        .closest("div")?.parentElement
+      expect(row?.textContent).not.toContain("54.0%")
+    })
+
+    it("colours Income Coverage green when fully covered", () => {
+      render(
+        <FiMetrics
+          {...defaultProps}
+          backendFiMetrics={mkFi({ incomeCoverageAtRetirement: 100 })}
+        />,
+      )
+      const span = screen
+        .getByText("Income Coverage")
+        .closest("div")
+        ?.parentElement?.querySelector(".font-semibold")
+      expect(span).toHaveClass("text-green-600")
+    })
+
+    it("orders Pension gauges by value descending so best news leads", () => {
+      // Ruby: Retirement-Age FI 54 > Income Coverage 44.44
+      render(<FiMetrics {...rubyPensionProps} />)
+      const pensionHeader = screen.getByText("Pension Strategy")
+      const section = pensionHeader.closest(".pt-4")
+      const labels = Array.from(
+        section?.querySelectorAll("span.text-gray-600") ?? [],
+      ).map((el) => el.textContent)
+      expect(labels).toEqual(["Retirement-Age FI", "Income Coverage"])
+    })
+
+    it("shows green funded banner when bridge is covered (bridgeProgress >= 100)", () => {
+      render(
+        <FiMetrics
+          {...defaultProps}
+          backendFiMetrics={mkFi({
+            retirementAgeFiProgress: 106.6,
+            bridgeProgress: 120,
+            bridgeYearsNeeded: 13,
+          })}
+        />,
+      )
+      expect(
+        screen.getByText("Funded — liquid covers the gap to your pension"),
+      ).toBeInTheDocument()
+    })
+
+    it("shows amber banner when lifetime funded but bridge is partial (60-99%)", () => {
+      render(
+        <FiMetrics
+          {...defaultProps}
+          backendFiMetrics={mkFi({
+            retirementAgeFiProgress: 106.6,
+            bridgeProgress: 70,
+            bridgeYearsNeeded: 13,
+          })}
+        />,
+      )
+      expect(
+        screen.getByText(
+          "Lifetime funded — but liquid may run short before pension",
+        ),
+      ).toBeInTheDocument()
+    })
+
+    it("shows orange banner when bridge gap is significant (<60%)", () => {
+      render(
+        <FiMetrics
+          {...defaultProps}
+          backendFiMetrics={mkFi({
+            retirementAgeFiProgress: 106.6,
+            bridgeProgress: 40,
+            bridgeYearsNeeded: 13,
+          })}
+        />,
+      )
+      expect(
+        screen.getByText(
+          "Lifetime funded — bridge gap to pension is significant",
+        ),
+      ).toBeInTheDocument()
+    })
+
+    it("treats missing bridgeProgress as no-bridge-needed (green banner)", () => {
+      render(
+        <FiMetrics
+          {...defaultProps}
+          backendFiMetrics={mkFi({
+            retirementAgeFiProgress: 106.6,
+            // bridgeProgress omitted — user already past pension start
+          })}
+        />,
+      )
+      expect(
+        screen.getByText("Funded — liquid covers the gap to your pension"),
+      ).toBeInTheDocument()
+    })
+
+    it("shows no funded banner when lifetime FI is not yet achieved", () => {
+      render(
+        <FiMetrics
+          {...defaultProps}
+          backendFiMetrics={mkFi({
+            retirementAgeFiProgress: 85,
+            bridgeProgress: 120,
+          })}
+        />,
+      )
+      expect(screen.queryByText(/Funded — /)).not.toBeInTheDocument()
+      expect(screen.queryByText(/Lifetime funded/)).not.toBeInTheDocument()
+    })
+
+    it("shows Active badge on FIRE Strategy when effective strategy is FIRE", () => {
+      render(<FiMetrics {...defaultProps} effectiveStrategy="FIRE" />)
+      const header = screen.getByText("FIRE Strategy")
+      const row = header.closest(".justify-between")
+      expect(row?.textContent).toContain("Active")
+    })
+
+    it("shows Active badge on Pension Strategy when effective strategy is PENSION", () => {
+      render(<FiMetrics {...rubyPensionProps} effectiveStrategy="PENSION" />)
+      const header = screen.getByText("Pension Strategy")
+      const row = header.closest(".justify-between")
+      expect(row?.textContent).toContain("Active")
+    })
+
+    it("shows Active badge on Bridge Strategy when effective strategy is HYBRID", () => {
+      render(<FiMetrics {...rubyPensionProps} effectiveStrategy="HYBRID" />)
+      const header = screen.getByText("Bridge Strategy")
+      const row = header.closest(".justify-between")
+      expect(row?.textContent).toContain("Active")
+    })
+
+    it("does not show Active badge when effectiveStrategy is undefined", () => {
+      const { container } = render(<FiMetrics {...rubyPensionProps} />)
+      expect(container.textContent).not.toContain("Active")
+    })
+
+    it("view=ALL shows every section regardless of eligibility", () => {
+      render(<FiMetrics {...rubyPensionProps} view="ALL" />)
+      expect(screen.getByText("FIRE Strategy")).toBeInTheDocument()
+      expect(screen.getByText("Pension Strategy")).toBeInTheDocument()
+      expect(screen.getByText("Bridge Strategy")).toBeInTheDocument()
+    })
+
+    it("view=FIRE hides Pension + Bridge for Ruby", () => {
+      render(<FiMetrics {...rubyPensionProps} view="FIRE" />)
+      expect(screen.getByText("FIRE Strategy")).toBeInTheDocument()
+      expect(screen.queryByText("Pension Strategy")).not.toBeInTheDocument()
+      expect(screen.queryByText("Bridge Strategy")).not.toBeInTheDocument()
+    })
+
+    it("view=PENSION hides FIRE + Bridge for Ruby", () => {
+      render(<FiMetrics {...rubyPensionProps} view="PENSION" />)
+      expect(screen.queryByText("FIRE Strategy")).not.toBeInTheDocument()
+      expect(screen.getByText("Pension Strategy")).toBeInTheDocument()
+      expect(screen.queryByText("Bridge Strategy")).not.toBeInTheDocument()
+    })
+
+    it("view=HYBRID hides FIRE + Pension for Ruby", () => {
+      render(<FiMetrics {...rubyPensionProps} view="HYBRID" />)
+      expect(screen.queryByText("FIRE Strategy")).not.toBeInTheDocument()
+      expect(screen.queryByText("Pension Strategy")).not.toBeInTheDocument()
+      expect(screen.getByText("Bridge Strategy")).toBeInTheDocument()
+    })
+
+    it("view defaults to ALL when omitted (plain FIRE user shows FIRE only)", () => {
+      render(<FiMetrics {...defaultProps} />)
+      expect(screen.getByText("FIRE Strategy")).toBeInTheDocument()
+      // No backend pension/bridge data → those sections still hidden.
+      expect(screen.queryByText("Pension Strategy")).not.toBeInTheDocument()
+      expect(screen.queryByText("Bridge Strategy")).not.toBeInTheDocument()
+    })
+
+    it("hides funded banner when classic FI already achieved", () => {
+      render(
+        <FiMetrics
+          {...defaultProps}
+          liquidAssets={2_000_000}
+          backendFiMetrics={mkFi({ retirementAgeFiProgress: 150 })}
+        />,
+      )
+      // Classic banner wins; pension banner stays hidden to avoid duplication
+      expect(screen.getByText("Financially Independent!")).toBeInTheDocument()
+      expect(screen.queryByText(/Funded — /)).not.toBeInTheDocument()
+      expect(screen.queryByText(/Lifetime funded/)).not.toBeInTheDocument()
+    })
   })
 })
