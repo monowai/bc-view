@@ -97,6 +97,13 @@ function buildGauges(
     },
   ]
 
+  // Always emit the retirement-age-fi gauge so the PENSION view headline
+  // slot has the right LABEL even before pension income is configured
+  // (e.g., CPF LIFE not yet set up). Without this the picker falls
+  // through to "FIRE Progress" on pension-strategy plans and the headline
+  // reads as a FIRE metric instead of a pension metric. Use coastFiProgress
+  // as the most-informative pension-strategy fallback when retirement-age
+  // FI is unavailable.
   if (fi?.retirementAgeFiProgress != null) {
     out.push({
       key: "retirement-age-fi",
@@ -104,6 +111,16 @@ function buildGauges(
       tooltip:
         "Liquid plus the present value of your guaranteed pension income, compared to your FI Number.",
       value: fi.retirementAgeFiProgress,
+      hideValues,
+      format: (v) => `${v.toFixed(1)}%`,
+    })
+  } else if (fi?.coastFiProgress != null) {
+    out.push({
+      key: "retirement-age-fi",
+      label: "Coast FI Progress",
+      tooltip:
+        "On-track signal for pension-strategy plans without configured guaranteed income. Compares current liquid assets to the amount that would compound to your FI Number by retirement age.",
+      value: fi.coastFiProgress,
       hideValues,
       format: (v) => `${v.toFixed(1)}%`,
     })
