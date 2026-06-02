@@ -26,7 +26,10 @@ function Avatar({
 }
 
 export default function HeaderUserControls(): React.ReactElement {
-  const { user, error, isLoading } = useUser()
+  // Auth0 v4 surfaces 401 from /auth/profile as `error` rather than a clean
+  // `user: undefined` — for header UX, treat error the same as unauthenticated
+  // and show the Sign In CTA.
+  const { user, isLoading } = useUser()
   const { preferences } = useUserPreferences()
   const { isAdmin } = useIsAdmin()
   const { hideValues, toggleHideValues } = usePrivacyMode()
@@ -57,17 +60,11 @@ export default function HeaderUserControls(): React.ReactElement {
         <div className="bg-gray-300 h-4 w-20 rounded"></div>
       </div>
     )
-  if (error)
-    return (
-      <div className="text-red-500 text-sm">
-        {"Error"}: {error.message}
-      </div>
-    )
   if (!user)
     return (
-      <div>
-        <Link href="/auth/login">{"Login"}</Link>
-      </div>
+      <Link href="/auth/login" className="btn-primary btn-primary--sm">
+        {"Sign In"}
+      </Link>
     )
 
   return (

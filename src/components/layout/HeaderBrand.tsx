@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from "react"
 import { useRouter } from "next/router"
 import Link from "next/link"
+import { useUser } from "@auth0/nextjs-auth0/client"
 import { useIsAdmin } from "@hooks/useIsAdmin"
 import { usePermissions } from "@hooks/usePermissions"
 
@@ -213,10 +214,12 @@ function DesktopDropdown({
 
 function HeaderBrand(): React.ReactElement {
   const router = useRouter()
+  const { user } = useUser()
   const { isAdmin } = useIsAdmin()
   const { ai: canRunAi } = usePermissions()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const mobileMenuRef = useRef<HTMLDivElement>(null)
+  const isAuthed = !!user
 
   // Close mobile menu when clicking outside
   useEffect(() => {
@@ -250,80 +253,85 @@ function HeaderBrand(): React.ReactElement {
 
   return (
     <div className="flex items-center" ref={mobileMenuRef}>
-      {/* Mobile Menu Button */}
-      <div className="relative lg:hidden mr-3">
-        <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          onKeyDown={handleKeyDown}
-          className="p-2 rounded-md hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400"
-          aria-expanded={mobileMenuOpen}
-          aria-haspopup="true"
-          aria-label="Navigation menu"
-        >
-          {mobileMenuOpen ? (
-            <i className="fas fa-times text-white text-lg w-5"></i>
-          ) : (
-            <i className="fas fa-bars text-white text-lg w-5"></i>
-          )}
-        </button>
+      {/* Mobile Menu Button — hidden when unauthenticated */}
+      {isAuthed && (
+        <div className="relative lg:hidden mr-3">
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            onKeyDown={handleKeyDown}
+            className="p-2 rounded-md hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400"
+            aria-expanded={mobileMenuOpen}
+            aria-haspopup="true"
+            aria-label="Navigation menu"
+          >
+            {mobileMenuOpen ? (
+              <i className="fas fa-times text-white text-lg w-5"></i>
+            ) : (
+              <i className="fas fa-bars text-white text-lg w-5"></i>
+            )}
+          </button>
 
-        {/* Mobile Dropdown */}
-        {mobileMenuOpen && (
-          <div className="absolute left-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden text-gray-800">
-            <div className="py-2 max-h-[75vh] overflow-y-auto">
-              {navSections.map((section, sectionIdx) => {
-                const filteredItems = section.items.filter(
-                  (item) =>
-                    (!item.adminOnly || isAdmin) && (!item.aiOnly || canRunAi),
-                )
-                if (filteredItems.length === 0) return null
-                return (
-                  <div key={section.title}>
-                    {sectionIdx > 0 && (
-                      <hr className="my-1.5 border-gray-100" />
-                    )}
-                    <div className="px-3 py-1">
-                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-                        {section.title}
-                      </p>
-                    </div>
-                    {filteredItems.map((item) => {
-                      const active = isActiveRoute(router.pathname, item.href)
-                      const colors =
-                        sectionColors[section.title] || defaultSectionColor
-                      return (
-                        <Link
-                          key={item.href}
-                          href={item.href}
-                          className={`flex items-center gap-2.5 px-3 py-2 transition-colors ${
-                            active
-                              ? `${colors.bg} border-l-2 ${colors.border} ${colors.text}`
-                              : "text-gray-700 hover:bg-gray-50"
-                          }`}
-                        >
-                          <i
-                            className={`fas ${item.icon} w-4 text-center text-xs ${
-                              active ? colors.text : "text-gray-400"
+          {/* Mobile Dropdown */}
+          {mobileMenuOpen && (
+            <div className="absolute left-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden text-gray-800">
+              <div className="py-2 max-h-[75vh] overflow-y-auto">
+                {navSections.map((section, sectionIdx) => {
+                  const filteredItems = section.items.filter(
+                    (item) =>
+                      (!item.adminOnly || isAdmin) &&
+                      (!item.aiOnly || canRunAi),
+                  )
+                  if (filteredItems.length === 0) return null
+                  return (
+                    <div key={section.title}>
+                      {sectionIdx > 0 && (
+                        <hr className="my-1.5 border-gray-100" />
+                      )}
+                      <div className="px-3 py-1">
+                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                          {section.title}
+                        </p>
+                      </div>
+                      {filteredItems.map((item) => {
+                        const active = isActiveRoute(router.pathname, item.href)
+                        const colors =
+                          sectionColors[section.title] || defaultSectionColor
+                        return (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            className={`flex items-center gap-2.5 px-3 py-2 transition-colors ${
+                              active
+                                ? `${colors.bg} border-l-2 ${colors.border} ${colors.text}`
+                                : "text-gray-700 hover:bg-gray-50"
                             }`}
-                          ></i>
-                          <span className="text-sm">{item.label}</span>
-                        </Link>
-                      )
-                    })}
-                  </div>
-                )
-              })}
+                          >
+                            <i
+                              className={`fas ${item.icon} w-4 text-center text-xs ${
+                                active ? colors.text : "text-gray-400"
+                              }`}
+                            ></i>
+                            <span className="text-sm">{item.label}</span>
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="bg-gray-50 px-3 py-1.5 border-t border-gray-100">
+                <p className="text-[10px] text-gray-400">
+                  Press{" "}
+                  <kbd className="px-1 bg-gray-200 rounded text-[10px]">
+                    Esc
+                  </kbd>{" "}
+                  to close
+                </p>
+              </div>
             </div>
-            <div className="bg-gray-50 px-3 py-1.5 border-t border-gray-100">
-              <p className="text-[10px] text-gray-400">
-                Press{" "}
-                <kbd className="px-1 bg-gray-200 rounded text-[10px]">Esc</kbd>{" "}
-                to close
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {/* Brand */}
       <a
@@ -335,18 +343,20 @@ function HeaderBrand(): React.ReactElement {
         Holds<i>worth</i>
       </a>
 
-      {/* Desktop Navigation */}
-      <nav className="hidden lg:flex items-center ml-8 space-x-1">
-        {navSections.map((section) => (
-          <DesktopDropdown
-            key={section.title}
-            section={section}
-            isAdmin={isAdmin}
-            canRunAi={canRunAi}
-            router={router}
-          />
-        ))}
-      </nav>
+      {/* Desktop Navigation — hidden when unauthenticated */}
+      {isAuthed && (
+        <nav className="hidden lg:flex items-center ml-8 space-x-1">
+          {navSections.map((section) => (
+            <DesktopDropdown
+              key={section.title}
+              section={section}
+              isAdmin={isAdmin}
+              canRunAi={canRunAi}
+              router={router}
+            />
+          ))}
+        </nav>
+      )}
     </div>
   )
 }
