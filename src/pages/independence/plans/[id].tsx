@@ -498,13 +498,16 @@ function PlanView(): React.ReactElement {
   // (60)" marker on someone else's plan. Owned plans keep the existing
   // settings-driven path so pre-projection rendering still works.
   const planInputsAges = (
-    adjustedProjection as unknown as {
-      planInputs?: {
-        currentAge?: number
-        retirementAge?: number
-        lifeExpectancy?: number
-      }
-    } | null | undefined
+    adjustedProjection as unknown as
+      | {
+          planInputs?: {
+            currentAge?: number
+            retirementAge?: number
+            lifeExpectancy?: number
+          }
+        }
+      | null
+      | undefined
   )?.planInputs
   const displayCurrentAge = isSharedPlan
     ? (planInputsAges?.currentAge ?? currentAge)

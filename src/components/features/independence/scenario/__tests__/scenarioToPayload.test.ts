@@ -109,7 +109,10 @@ describe("scenarioToPayload", () => {
     const payload = scenarioToPayload(scenario, {
       ...ctx,
       isSharedPlan: true,
-      rentalIncome: { monthlyNetByCurrency: { SGD: 1500 }, totalMonthlyInPlanCurrency: 1500 },
+      rentalIncome: {
+        monthlyNetByCurrency: { SGD: 1500 },
+        totalMonthlyInPlanCurrency: 1500,
+      },
     })
     expect("portfolioIds" in payload).toBe(false)
     expect("monthlyContribution" in payload).toBe(false)

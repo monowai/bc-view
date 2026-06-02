@@ -463,7 +463,9 @@ export default function TimelineTabContent({
                   age: y.age,
                   year: y.year,
                   investmentAndIncome:
-                    y.contribution + y.investmentGrowth + (y.lumpSumPayout ?? 0),
+                    y.contribution +
+                    y.investmentGrowth +
+                    (y.lumpSumPayout ?? 0),
                   negWithdrawals: 0,
                 })),
                 ...projection.yearlyProjections.map((y) => ({

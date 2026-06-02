@@ -123,12 +123,14 @@ function computeLocal(s: Sliders): LocalMetrics {
 
   let bridgePct: number | null = null
   const annualExp = s.monthlyExpenses * 12
-  const bridgeYears = annualExp > 0 ? s.liquidAssets / annualExp : yearsToRetirement
+  const bridgeYears =
+    annualExp > 0 ? s.liquidAssets / annualExp : yearsToRetirement
   if (yearsToRetirement > 0 && pensionMonthly > 0) {
     bridgePct = Math.min((bridgeYears / yearsToRetirement) * 100, 100)
   }
 
-  const covPct = s.monthlyExpenses > 0 ? (pensionMonthly / s.monthlyExpenses) * 100 : 100
+  const covPct =
+    s.monthlyExpenses > 0 ? (pensionMonthly / s.monthlyExpenses) * 100 : 100
 
   return {
     fiNumber,
@@ -219,7 +221,9 @@ function Gauge({
           <div className="text-xs text-gray-500 font-mono">{formula}</div>
         </div>
         <div className="text-right">
-          <div className={`text-2xl font-mono font-semibold ${textColorFor(backendPct)}`}>
+          <div
+            className={`text-2xl font-mono font-semibold ${textColorFor(backendPct)}`}
+          >
             {fmtPct(backendPct)}
           </div>
           <div className="text-xs text-gray-500 font-mono">
@@ -281,7 +285,9 @@ function SliderField({
 function IndependenceDebug(): React.ReactElement {
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null)
   const [sliders, setSliders] = useState<Sliders | null>(null)
-  const [projection, setProjection] = useState<RetirementProjection | null>(null)
+  const [projection, setProjection] = useState<RetirementProjection | null>(
+    null,
+  )
   const [projError, setProjError] = useState<string | null>(null)
   const [projLoading, setProjLoading] = useState(false)
   // Last POSTed body — surfaced on the debug page so any viewer-scoped
@@ -620,13 +626,14 @@ function IndependenceDebug(): React.ReactElement {
 
                 <div className="bg-white rounded-lg border border-gray-200 p-4 mb-4 text-sm text-gray-700">
                   <div className="flex justify-between items-baseline mb-1">
-                    <strong className="text-gray-900">{selectedPlan.name}</strong>
+                    <strong className="text-gray-900">
+                      {selectedPlan.name}
+                    </strong>
                     {projLoading && <Spinner label="Recalculating…" />}
                   </div>
                   Age <b>{sliders.currentAge}</b>, retire at{" "}
-                  <b>{sliders.retirementAge}</b> (in{" "}
-                  {local?.yearsToRetirement}y), live to{" "}
-                  <b>{sliders.lifeExpectancy}</b>. Liquid{" "}
+                  <b>{sliders.retirementAge}</b> (in {local?.yearsToRetirement}
+                  y), live to <b>{sliders.lifeExpectancy}</b>. Liquid{" "}
                   <b>{fmtMoney(currency, sliders.liquidAssets)}</b>. Expenses{" "}
                   <b>{fmtMoney(currency, sliders.monthlyExpenses)}/mo</b>.
                   Guaranteed income from {sliders.retirementAge}:{" "}
@@ -649,9 +656,8 @@ function IndependenceDebug(): React.ReactElement {
                   localPct={local?.firePct}
                   metaParts={
                     <>
-                      Gap to FI:{" "}
-                      <b>{fmtMoney(currency, fiMetrics?.gapToFi)}</b>. Locked
-                      pension assets ignored.
+                      Gap to FI: <b>{fmtMoney(currency, fiMetrics?.gapToFi)}</b>
+                      . Locked pension assets ignored.
                     </>
                   }
                 />
@@ -893,9 +899,7 @@ function IndependenceDebug(): React.ReactElement {
                     </div>
                     <div>
                       netMonthlyExpenses (local):{" "}
-                      <b>
-                        {fmtMoney(currency, local?.netMonthlyExpenses)}
-                      </b>
+                      <b>{fmtMoney(currency, local?.netMonthlyExpenses)}</b>
                     </div>
                     <div>
                       totalMonthlyIncome (backend):{" "}
@@ -942,9 +946,9 @@ function IndependenceDebug(): React.ReactElement {
                     Note: local compute treats pension+ss+other as guaranteed
                     income; backend may add derived pension income from policy
                     assets. Backend rental income is excluded from local pension
-                    PV (it&apos;s continuous illiquid income, not pension-shaped).
-                    Local realReturn uses equity slider only; backend blends
-                    equity/cash/housing weighted by allocation.
+                    PV (it&apos;s continuous illiquid income, not
+                    pension-shaped). Local realReturn uses equity slider only;
+                    backend blends equity/cash/housing weighted by allocation.
                   </p>
                 </div>
               </main>
