@@ -313,14 +313,12 @@ function RetirementPlanning(): React.ReactElement {
   // from inside the page where the shared plan will land — without this the
   // SharesBadge counts INDEPENDENCE_PLAN invites but has no accept surface
   // (ManagedPortfolios only renders PORTFOLIO shares).
-  const {
-    data: pendingResourceShares,
-    mutate: mutatePendingResourceShares,
-  } = useSwr<PendingResourceSharesResponse>(resourceSharesPendingKey, fetcher, {
-    refreshInterval: 300000,
-    revalidateOnFocus: false,
-    dedupingInterval: 60000,
-  })
+  const { data: pendingResourceShares, mutate: mutatePendingResourceShares } =
+    useSwr<PendingResourceSharesResponse>(resourceSharesPendingKey, fetcher, {
+      refreshInterval: 300000,
+      revalidateOnFocus: false,
+      dedupingInterval: 60000,
+    })
 
   const handlePendingResourceSharesAction = (): void => {
     mutatePendingResourceShares()
@@ -331,9 +329,8 @@ function RetirementPlanning(): React.ReactElement {
   // their own access via DELETE /resource-shares/{shareId}. The owner has
   // a separate "active shares" surface elsewhere; this hook is purely for
   // viewer-side leave actions.
-  const managedIndependencePlanKey = resourceSharesManagedKey(
-    "INDEPENDENCE_PLAN",
-  )
+  const managedIndependencePlanKey =
+    resourceSharesManagedKey("INDEPENDENCE_PLAN")
   const {
     data: managedIndependencePlans,
     mutate: mutateManagedIndependencePlans,

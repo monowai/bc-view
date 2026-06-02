@@ -1,5 +1,5 @@
 import React from "react"
-import { render, screen } from "@testing-library/react"
+import { render, screen, fireEvent } from "@testing-library/react"
 import HeaderBrand from "../HeaderBrand"
 import { useUser } from "@auth0/nextjs-auth0/client"
 
@@ -37,6 +37,13 @@ describe("HeaderBrand", () => {
     expect(screen.getByRole("button", { name: /^Invest/i })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: /^Plan/i })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: /^Tools/i })).toBeInTheDocument()
+  })
+
+  it("Tools dropdown includes Cost Stack link", () => {
+    render(<HeaderBrand />)
+    fireEvent.click(screen.getByRole("button", { name: /^Tools/i }))
+    const link = screen.getByRole("link", { name: /Cost Stack/i })
+    expect(link).toHaveAttribute("href", "/tools/cost-stack")
   })
 
   it("hides nav dropdowns when unauthenticated", () => {

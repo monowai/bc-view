@@ -11,11 +11,7 @@ import {
   RetirementPlan,
   QuickScenario,
 } from "types/independence"
-import {
-  Portfolio,
-  HoldingContract,
-  PortfolioShare,
-} from "types/beancounter"
+import { Portfolio, HoldingContract, PortfolioShare } from "types/beancounter"
 import type { KeyedMutator } from "swr"
 import { parseExcludedPortfolioIds } from "@lib/independence/planHelpers"
 

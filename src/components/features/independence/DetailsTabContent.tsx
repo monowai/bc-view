@@ -281,10 +281,10 @@ export default function DetailsTabContent({
             Owner-scoped projection
           </p>
           <p>
-            Per-category asset breakdown for this shared plan needs the
-            plan owner to also share their portfolios with you. The
-            projection (left panel and Metrics tab) uses the owner&apos;s
-            holdings via a server-side fetch.
+            Per-category asset breakdown for this shared plan needs the plan
+            owner to also share their portfolios with you. The projection (left
+            panel and Metrics tab) uses the owner&apos;s holdings via a
+            server-side fetch.
           </p>
         </div>
       ) : (

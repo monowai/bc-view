@@ -18,6 +18,25 @@ export default function LearnWealth(): React.ReactElement {
             }
           </p>
         </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-10">
+          <h2 className="font-semibold text-gray-900 mb-2">
+            {"Curious what fees actually cost you?"}
+          </h2>
+          <p className="text-gray-600 text-sm mb-4">
+            {
+              "Try our interactive fee-impact calculator. Compare bank UTs, robos, brokerage + DIY and ILPs over 30 years."
+            }
+          </p>
+          <Link
+            href="/tools/cost-stack"
+            className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-700"
+          >
+            {"Open Cost Stack"}
+            <i className="fas fa-arrow-right ml-2"></i>
+          </Link>
+        </div>
+
         <div className="text-center">
           <Link href="/auth/login" className="btn-primary">
             {"Sign In"}
