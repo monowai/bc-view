@@ -47,6 +47,40 @@ const WelcomeStep: React.FC<WelcomeStepProps> = ({
         </p>
       </div>
 
+      {/* Path choice — brokerage vs guided setup */}
+      <div className="max-w-md mx-auto mb-6">
+        <h3 className="text-sm font-semibold text-gray-700 mb-3 text-left">
+          {"Do you have a brokerage account you'd like to set up?"}
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Link
+            href="/tools/open-brokerage"
+            className="border border-gray-200 rounded-lg p-4 text-left hover:border-purple-300 hover:shadow-md transition-all bg-white"
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <i className="fas fa-building-columns text-purple-500"></i>
+              <span className="font-semibold text-gray-900">
+                {"Yes — set it up"}
+              </span>
+            </div>
+            <p className="text-xs text-gray-500">
+              {"Add a broker, a brokerage portfolio and your opening cash."}
+            </p>
+          </Link>
+          <div className="border border-blue-300 rounded-lg p-4 text-left bg-blue-50">
+            <div className="flex items-center gap-2 mb-1">
+              <i className="fas fa-route text-blue-500"></i>
+              <span className="font-semibold text-gray-900">
+                {"No — walk me through it"}
+              </span>
+            </div>
+            <p className="text-xs text-gray-500">
+              {"Continue with the guided setup below."}
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div className="bg-gray-50 rounded-lg p-4 max-w-sm mx-auto">
         <h3 className="font-medium text-gray-900 mb-3">
           {"What we'll cover:"}
@@ -70,19 +104,6 @@ const WelcomeStep: React.FC<WelcomeStepProps> = ({
       <p className="text-sm text-gray-500 mt-6">
         {"You can skip this setup and complete it later from settings."}
       </p>
-
-      <div className="mt-6 max-w-sm mx-auto pt-6 border-t border-gray-200">
-        <p className="text-sm text-gray-600 mb-2">
-          {"Already have a brokerage account?"}
-        </p>
-        <Link
-          href="/tools/open-brokerage"
-          className="inline-flex items-center text-sm font-medium text-purple-600 hover:text-purple-700"
-        >
-          <i className="fas fa-building-columns mr-2"></i>
-          {"Open Brokerage wizard →"}
-        </Link>
-      </div>
     </div>
   )
 }

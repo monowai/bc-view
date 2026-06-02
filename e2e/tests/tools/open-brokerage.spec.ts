@@ -10,14 +10,15 @@ test.describe("/tools/open-brokerage", () => {
     await expect(page.getByText(/Step 1 of 4/i)).toBeVisible()
   })
 
-  test("is reachable via the escape-hatch link on the onboarding Welcome step", async ({
+  test("is reachable from the onboarding Welcome step's brokerage choice", async ({
     page,
   }) => {
     await page.goto("/onboarding")
     await page.waitForLoadState("domcontentloaded")
-    await page
-      .getByRole("link", { name: /Open Brokerage wizard/i })
-      .click()
+    await expect(
+      page.getByText(/Do you have a brokerage account/i),
+    ).toBeVisible()
+    await page.getByRole("link", { name: /Yes\s*—\s*set it up/i }).click()
     await page.waitForURL(/\/tools\/open-brokerage$/)
     await expect(
       page.getByRole("heading", { name: /^Broker$/i }),
