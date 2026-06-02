@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Cost Stack — long-term fee impact</title>
+<style>
+  :root {
+    --bg: #0f1217;
+    --panel: #161b22;
+    --panel-2: #1c222b;
+    --border: #2a313c;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --good: #3fb950;
+    --bad: #f85149;
+    --warn: #d29922;
+    --c1: #f85149;
+    --c2: #db61a2;
+    --c3: #d29922;
+    --c4: #58a6ff;
+    --c5: #3fb950;
+    --c6: #a13130;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+  }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 24px; }
+  h1 { margin: 0 0 4px; font-size: 22px; }
+  h2 { margin: 0 0 12px; font-size: 16px; color: var(--muted); font-weight: 500; }
+  h3 { margin: 0 0 8px; font-size: 14px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .grid-inputs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+  }
+  .input-row { display: flex; flex-direction: column; gap: 4px; }
+  .input-row label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .input-row .val { font-size: 18px; font-weight: 600; color: var(--text); }
+  input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent);
+  }
+  input[type="number"] {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 8px;
+    border-radius: 6px;
+    width: 100%;
+    font-size: 14px;
+  }
+  input[type="number"]:focus { outline: 1px solid var(--accent); }
+
+  .presets {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .preset {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: 8px;
+    padding: 14px;
+  }
+  .preset.p1 { border-left-color: var(--c1); }
+  .preset.p2 { border-left-color: var(--c2); }
+  .preset.p3 { border-left-color: var(--c3); }
+  .preset.p4 { border-left-color: var(--c4); }
+  .preset.p5 { border-left-color: var(--c5); }
+  .preset.p6 { border-left-color: var(--c6); }
+  .preset header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .preset h3 { font-size: 14px; }
+  .preset .fees {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 8px 0;
+  }
+  .fee { display: flex; flex-direction: column; gap: 2px; }
+  .fee label { font-size: 10px; color: var(--muted); text-transform: uppercase; }
+  .pros-cons { font-size: 12px; margin-top: 8px; }
+  .pros-cons ul { margin: 4px 0 6px; padding-left: 18px; }
+  .pros-cons .pros li { color: var(--good); }
+  .pros-cons .cons li { color: var(--bad); }
+  .pros-cons strong { color: var(--text); display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
+
+  .chart-wrap {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  svg { width: 100%; height: auto; display: block; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin: 8px 0 4px; font-size: 13px; }
+  .legend .dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-right: 6px; vertical-align: middle; }
+
+  .stats {
+    margin-top: 16px;
+    overflow-x: auto;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--border); }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
+  td .label-pill { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 8px; vertical-align: middle; }
+  .delta-bad { color: var(--bad); }
+  .delta-good { color: var(--good); }
+
+  .actions { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  button {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); color: #0d1117; border-color: var(--accent); }
+
+  .footnote { color: var(--muted); font-size: 12px; margin-top: 12px; }
+  .footnote code { background: var(--panel-2); padding: 2px 5px; border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Cost Stack — long-term fee impact</h1>
+  <h2>For Ruby: how much do platform/wrapper fees really cost over 30 years?</h2>
+  <p class="sub">
+    All six paths buy the same global equity exposure. Only the fee stack differs.
+    Compounded over decades, fee drag eats more than most investors realise.
+    Numbers are currency-agnostic — read as your local currency.
+  </p>
+
+  <div class="actions">
+    <button class="primary" id="resetBtn">Reset to defaults</button>
+    <button id="rubyBtn">Ruby scenario (50k + 1k/mo · 30y · 7%)</button>
+    <button id="aggrBtn">Aggressive scenario (10k + 500/mo · 40y · 8%)</button>
+  </div>
+
+  <div class="panel">
+    <h3>Scenario inputs</h3>
+    <div class="grid-inputs">
+      <div class="input-row">
+        <label>Starting capital</label>
+        <input type="number" id="lump" value="50000" step="1000" min="0" />
+      </div>
+      <div class="input-row">
+        <label>Monthly contribution</label>
+        <input type="number" id="monthly" value="1000" step="100" min="0" />
+      </div>
+      <div class="input-row">
+        <label>Investment horizon (years): <span class="val" id="yearsLabel">30</span></label>
+        <input type="range" id="years" min="5" max="50" step="1" value="30" />
+      </div>
+      <div class="input-row">
+        <label>Gross return p.a. (%): <span class="val" id="grossLabel">7.0</span></label>
+        <input type="range" id="gross" min="2" max="12" step="0.1" value="7" />
+      </div>
+    </div>
+  </div>
+
+  <div class="presets" id="presets"></div>
+
+  <div class="chart-wrap">
+    <h3>Portfolio value over time</h3>
+    <div class="legend" id="legend"></div>
+    <svg id="chart" viewBox="0 0 900 380" preserveAspectRatio="none"></svg>
+    <div class="stats">
+      <table>
+        <thead>
+          <tr>
+            <th>Path</th>
+            <th>Final balance</th>
+            <th>Total contributions</th>
+            <th>Total fees paid</th>
+            <th>Fees as % of gains</th>
+            <th>Cost vs cheapest</th>
+          </tr>
+        </thead>
+        <tbody id="statsBody"></tbody>
+      </table>
+    </div>
+    <p class="footnote">
+      Monthly compounding. Fees applied as monthly drag on balance (TER + platform). Front-load
+      taken off each contribution. Trade commissions applied per rebalance month. FX cost taken
+      off each contribution where applicable. Inflation not modelled — all numbers are nominal.
+    </p>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+// ---- Preset definitions ----------------------------------------------------
+const PRESETS = [
+  {
+    id: "p1",
+    name: "Bank wrapped UT",
+    sub: "e.g. DBS / UOB unit trust sold by relationship manager",
+    color: "var(--c1)",
+    hex: "#f85149",
+    fees: {
+      frontLoad: 3.0,   // % off each contribution and lump sum
+      ter: 1.75,        // % p.a. ongoing
+      platform: 0.0,    // % p.a. (absorbed into TER for wrapped UT)
+      tradeCost: 0,     // flat per rebalance
+      rebalanceMonths: 0,
+      fx: 0,            // % off each contribution
+      subscription: 0,  // flat USD per month (e.g. BC $5/mo)
+    },
+    pros: [
+      "Single relationship — bank handles everything",
+      "No separate account opening; uses existing bank login",
+      "Auto-debit GIRO funding is trivial",
+    ],
+    cons: [
+      "Front-load is real cash gone day one (3% of lump = lost forever)",
+      "TER ~1.75% compounds against you for 30 years",
+      "Trail commission incentivises the RM to recommend higher-cost funds",
+      "Often actively managed — underperforms passive index in ~80% of 10y windows",
+    ],
+  },
+  {
+    id: "p2",
+    name: "Bank robo (DBS digiPortfolio)",
+    sub: "DBS Global/Asia tier: 0.75% mgmt + 0.20–0.30% underlying TER. Min S$1k lump or S$100/mo.",
+    color: "var(--c2)",
+    hex: "#db61a2",
+    fees: {
+      frontLoad: 0,
+      ter: 0.25,       // DBS Global/Asia underlying ETF TER published range 0.20-0.30%, midpoint
+      platform: 0.75,  // DBS Global/Asia management fee, published
+      tradeCost: 0,    // rebalancing included in mgmt fee
+      rebalanceMonths: 0,
+      fx: 0,           // not separately disclosed by DBS; embedded in ETF spread
+      subscription: 0,
+    },
+    pros: [
+      "No front-load, no sales charge (explicit on DBS marketing)",
+      "Bank brand trust — same login as your savings account",
+      "Auto-debit GIRO from existing DBS account",
+      "DBS handles rebalancing 'whenever necessary' (ad-hoc, not scheduled)",
+      "Low minimum: S$1k lump or S$100/mo recurring (May 2025+)",
+      "Cheaper SaveUp tier exists (0.25% mgmt) but cash-equivalent, not equity",
+    ],
+    cons: [
+      "Management fee 0.75% p.a. — 3-4× brokerage all-in cost",
+      "Combined drag ~1.0% — twice fintech robos like Endowus/Stashaway",
+      "Fund universe restricted to DBS custodian's selection",
+      "FX cost on USD-denominated underlyings not disclosed (embedded in spread)",
+      "Bank can change fees or restructure portfolio with 30-day notice",
+      "Rebalancing 'whenever necessary' = no published schedule, no SLA",
+    ],
+  },
+  {
+    id: "p3",
+    name: "Fintech robo / platform",
+    sub: "e.g. Endowus, Stashaway, Syfe",
+    color: "var(--c3)",
+    hex: "#d29922",
+    fees: {
+      frontLoad: 0,
+      ter: 0.20,
+      platform: 0.30,
+      tradeCost: 0,
+      rebalanceMonths: 0,
+      fx: 0,
+      subscription: 0,
+    },
+    pros: [
+      "No front-load — every dollar invested",
+      "Automated rebalancing and tax-aware allocation",
+      "Clean UX; works for anyone with internet banking",
+      "Aggregated ETF pricing gives near-institutional TER",
+    ],
+    cons: [
+      "Platform fee on top of ETF TER — still ~0.50% combined drag",
+      "Limited fund universe — locked to provider's curated list",
+      "Counterparty risk — your assets sit in the platform's custody arrangement",
+      "Switching out later may incur exit friction",
+    ],
+  },
+  {
+    id: "p4",
+    name: "Brokerage + DIY ETF",
+    sub: "e.g. IBKR + VWRA (Vanguard FTSE All-World)",
+    color: "var(--c4)",
+    hex: "#58a6ff",
+    fees: {
+      frontLoad: 0,
+      ter: 0.22,
+      platform: 0,
+      tradeCost: 2,
+      rebalanceMonths: 3, // quarterly batching of contributions
+      fx: 0.30,
+      subscription: 0,
+    },
+    pros: [
+      "Lowest ongoing drag — just the ETF TER (~0.22%)",
+      "Full ownership in your name at the broker",
+      "Free to switch ETFs or sell at any time",
+      "No platform lock-in",
+    ],
+    cons: [
+      "Requires a brokerage account (KYC, funding, FX conversion)",
+      "You execute trades — small operational burden",
+      "Need to learn order types, market vs limit, settlement",
+      "FX cost on each USD/SGD conversion (negotiable on IBKR)",
+    ],
+  },
+  {
+    id: "p5",
+    name: "Brokerage + BC model portfolio",
+    sub: "Your broker, beancounter tells you what to buy",
+    color: "var(--c5)",
+    hex: "#3fb950",
+    fees: {
+      frontLoad: 0,
+      ter: 0.15,
+      platform: 0,
+      tradeCost: 2,
+      rebalanceMonths: 3,
+      fx: 0.30,
+      subscription: 5,
+    },
+    pros: [
+      "Same low TER as DIY but with guided allocation",
+      "BC handles rebalancing logic — you just execute the trades",
+      "Education baked into the flow — you understand what you own",
+      "No platform fee, no front-load, no trail commission",
+    ],
+    cons: [
+      "You still have to place the trades manually",
+      "Still requires brokerage account setup (same friction as DIY)",
+      "BC is not a regulated advisor — recommendations not personalised",
+      "Discipline required — easy to skip a rebalance",
+    ],
+  },
+  {
+    id: "p6",
+    name: "Investment-Linked Policy (ILP)",
+    sub: "e.g. AIA Pro Achiever, Prudential PRUlink, Manulife ManuInvest. Insurance + investment wrapper.",
+    color: "var(--c6)",
+    hex: "#a13130",
+    fees: {
+      frontLoad: 5.0,    // bid-offer spread on each premium (5% typical retail)
+      ter: 1.0,          // underlying fund TER (sub-funds usually actively managed)
+      platform: 2.5,     // M&E charge + admin fee + cost of insurance, annualised
+      tradeCost: 0,
+      rebalanceMonths: 0,
+      fx: 0,
+      subscription: 0,
+    },
+    pros: [
+      "Bundles death + critical-illness coverage with investment — useful if you have no separate term policy",
+      "Forced savings discipline — premium can't be skipped without surrender penalty (helps undisciplined savers stay invested through market crashes)",
+      "Premium waiver on disability (some products) — keeps investing for you if you can't work",
+      "SG Insurance Act §73 — death proceeds to nominated beneficiaries are protected from creditors and bypass probate",
+      "Single product for those who genuinely want one bill, one statement, one agent",
+      "Loyalty / bonus units added in later policy years (year 10+)",
+      "Premium holiday flexibility once minimum premium term met",
+    ],
+    cons: [
+      "Front-load ~5% bid-offer on every premium — gone forever",
+      "First-year allocation rate often <100% — large chunk of year-1 premium consumed by distribution costs",
+      "M&E + admin + cost of insurance ~2.5% p.a. on top of fund TER",
+      "Combined drag ~3.5% p.a. — half of expected long-term equity return",
+      "Surrender charge for first 10–15 years — locked in",
+      "Switching funds capped (typically 4 free switches/yr)",
+      "Insurance component often duplicates a cheaper standalone term policy",
+      "Agent paid trail commission — incentive misalignment baked in",
+    ],
+  },
+];
+
+// ---- Simulation ------------------------------------------------------------
+function simulate(scenario, fees) {
+  const { lump, monthly, years, gross } = scenario;
+  const months = years * 12;
+  const rMonthly = Math.pow(1 + gross / 100, 1 / 12) - 1;
+  const terMonthly = (fees.ter + fees.platform) / 100 / 12;
+
+  let balance = lump * (1 - fees.frontLoad / 100);
+  let totalContrib = lump;
+  let totalFees = lump * (fees.frontLoad / 100); // front-load on lump
+
+  // Track ongoing drag separately so we can report
+  const series = new Array(months + 1);
+  const balanceNoFee = new Array(months + 1);
+  series[0] = balance;
+  balanceNoFee[0] = lump;
+
+  let bNoFee = lump;
+  let cumulative = lump;
+
+  for (let m = 1; m <= months; m++) {
+    // Contribution
+    const grossContribution = monthly;
+    const fxCost = grossContribution * (fees.fx / 100);
+    const afterFx = grossContribution - fxCost;
+    const frontLoadCost = afterFx * (fees.frontLoad / 100);
+    const invested = afterFx - frontLoadCost;
+
+    balance += invested;
+    totalContrib += grossContribution;
+    totalFees += fxCost + frontLoadCost;
+
+    // Trade commission if this is a rebalance month
+    if (fees.rebalanceMonths > 0 && m % fees.rebalanceMonths === 0) {
+      balance -= fees.tradeCost;
+      totalFees += fees.tradeCost;
+    } else if (fees.rebalanceMonths === 0 && fees.tradeCost > 0) {
+      // No rebalance schedule but per-trade cost: charge monthly
+      balance -= fees.tradeCost;
+      totalFees += fees.tradeCost;
+    }
+
+    // Flat monthly subscription (e.g. BC $5/mo)
+    if (fees.subscription > 0) {
+      balance -= fees.subscription;
+      totalFees += fees.subscription;
+    }
+
+    // Growth - ongoing drag
+    const gain = balance * rMonthly;
+    const drag = balance * terMonthly;
+    balance += gain - drag;
+    totalFees += drag;
+
+    // No-fee comparison
+    bNoFee += monthly;
+    bNoFee *= 1 + rMonthly;
+
+    series[m] = Math.max(0, balance);
+    balanceNoFee[m] = bNoFee;
+  }
+
+  return {
+    series,
+    balanceNoFee,
+    finalBalance: series[months],
+    totalContrib,
+    totalFees,
+    grossGain: balanceNoFee[months] - totalContrib,
+  };
+}
+
+// ---- State -----------------------------------------------------------------
+let state = {
+  scenario: { lump: 50000, monthly: 1000, years: 30, gross: 7 },
+  presets: structuredClone(PRESETS),
+};
+
+// ---- Render presets --------------------------------------------------------
+const presetsEl = document.getElementById("presets");
+function renderPresets() {
+  presetsEl.innerHTML = "";
+  state.presets.forEach((p, i) => {
+    const card = document.createElement("div");
+    card.className = `preset ${p.id}`;
+    card.innerHTML = `
+      <header>
+        <div>
+          <h3>${p.name}</h3>
+          <div style="font-size:11px;color:var(--muted)">${p.sub}</div>
+        </div>
+      </header>
+      <div class="fees">
+        ${feeInput(i, "frontLoad", "Front-load %", p.fees.frontLoad)}
+        ${feeInput(i, "ter", "ETF TER %", p.fees.ter)}
+        ${feeInput(i, "platform", "Platform %", p.fees.platform)}
+        ${feeInput(i, "fx", "FX cost %", p.fees.fx)}
+        ${feeInput(i, "tradeCost", "Trade cost (flat)", p.fees.tradeCost)}
+        ${feeInput(i, "rebalanceMonths", "Rebalance (months)", p.fees.rebalanceMonths)}
+        ${feeInput(i, "subscription", "BC sub $/mo", p.fees.subscription)}
+      </div>
+      <div class="pros-cons">
+        <strong>Pros</strong>
+        <ul class="pros">${p.pros.map(x => `<li>${x}</li>`).join("")}</ul>
+        <strong>Cons</strong>
+        <ul class="cons">${p.cons.map(x => `<li>${x}</li>`).join("")}</ul>
+      </div>
+    `;
+    presetsEl.appendChild(card);
+  });
+  presetsEl.querySelectorAll("input[data-preset]").forEach(inp => {
+    inp.addEventListener("input", e => {
+      const idx = +e.target.dataset.preset;
+      const key = e.target.dataset.key;
+      const val = parseFloat(e.target.value);
+      state.presets[idx].fees[key] = isNaN(val) ? 0 : val;
+      recalc();
+    });
+  });
+}
+function feeInput(idx, key, label, value) {
+  return `
+    <div class="fee">
+      <label>${label}</label>
+      <input type="number" step="0.05" min="0" data-preset="${idx}" data-key="${key}" value="${value}" />
+    </div>
+  `;
+}
+
+// ---- Render chart ----------------------------------------------------------
+const chartEl = document.getElementById("chart");
+const legendEl = document.getElementById("legend");
+const statsBody = document.getElementById("statsBody");
+
+function recalc() {
+  const sims = state.presets.map(p => simulate(state.scenario, p.fees));
+  drawChart(sims);
+  drawStats(sims);
+}
+
+function drawChart(sims) {
+  const W = 900, H = 380;
+  const padL = 64, padR = 12, padT = 16, padB = 32;
+  const innerW = W - padL - padR;
+  const innerH = H - padT - padB;
+  const months = state.scenario.years * 12;
+  const maxY = Math.max(...sims.flatMap(s => s.series), 1);
+  const yTickStep = niceStep(maxY, 5);
+  const yMax = Math.ceil(maxY / yTickStep) * yTickStep;
+
+  const xScale = m => padL + (m / months) * innerW;
+  const yScale = v => padT + innerH - (v / yMax) * innerH;
+
+  const lines = sims.map((s, i) => {
+    let d = "";
+    s.series.forEach((v, m) => {
+      d += (m === 0 ? "M" : "L") + xScale(m).toFixed(1) + "," + yScale(v).toFixed(1) + " ";
+    });
+    return `<path d="${d}" stroke="${PRESETS[i].hex}" stroke-width="2" fill="none" />`;
+  }).join("");
+
+  // y-axis ticks
+  let yTicks = "";
+  for (let v = 0; v <= yMax; v += yTickStep) {
+    const y = yScale(v);
+    yTicks += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="#2a313c" stroke-width="0.5" />`;
+    yTicks += `<text x="${padL - 6}" y="${y + 4}" text-anchor="end" font-size="10" fill="#8b949e">${fmt(v)}</text>`;
+  }
+  // x-axis ticks (every 5 years)
+  let xTicks = "";
+  for (let yr = 0; yr <= state.scenario.years; yr += 5) {
+    const x = xScale(yr * 12);
+    xTicks += `<line x1="${x}" y1="${padT + innerH}" x2="${x}" y2="${padT + innerH + 4}" stroke="#8b949e" />`;
+    xTicks += `<text x="${x}" y="${padT + innerH + 16}" text-anchor="middle" font-size="10" fill="#8b949e">${yr}y</text>`;
+  }
+
+  chartEl.innerHTML = `
+    <rect x="${padL}" y="${padT}" width="${innerW}" height="${innerH}" fill="none" stroke="#2a313c" />
+    ${yTicks}
+    ${xTicks}
+    ${lines}
+  `;
+
+  legendEl.innerHTML = PRESETS.map((p, i) =>
+    `<span><span class="dot" style="background:${p.hex}"></span>${p.name}</span>`
+  ).join("");
+}
+
+function drawStats(sims) {
+  const cheapestFinal = Math.max(...sims.map(s => s.finalBalance));
+  statsBody.innerHTML = sims.map((s, i) => {
+    const feesPctGains = s.grossGain > 0 ? (s.totalFees / s.grossGain * 100) : 0;
+    const deltaVsCheapest = s.finalBalance - cheapestFinal;
+    const deltaCls = deltaVsCheapest < 0 ? "delta-bad" : "delta-good";
+    return `
+      <tr>
+        <td><span class="label-pill" style="background:${PRESETS[i].hex}"></span>${PRESETS[i].name}</td>
+        <td>${fmt(s.finalBalance)}</td>
+        <td>${fmt(s.totalContrib)}</td>
+        <td>${fmt(s.totalFees)}</td>
+        <td>${feesPctGains.toFixed(1)}%</td>
+        <td class="${deltaCls}">${deltaVsCheapest === 0 ? "—" : (deltaVsCheapest > 0 ? "+" : "") + fmt(deltaVsCheapest)}</td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function fmt(n) {
+  if (Math.abs(n) >= 1e6) return (n / 1e6).toFixed(2) + "M";
+  if (Math.abs(n) >= 1e3) return (n / 1e3).toFixed(1) + "k";
+  return n.toFixed(0);
+}
+function niceStep(max, ticks) {
+  const raw = max / ticks;
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const norm = raw / mag;
+  let step;
+  if (norm < 1.5) step = 1;
+  else if (norm < 3) step = 2;
+  else if (norm < 7) step = 5;
+  else step = 10;
+  return step * mag;
+}
+
+// ---- Input wiring ----------------------------------------------------------
+function bindScenarioInputs() {
+  const map = {
+    lump: ["lump", null],
+    monthly: ["monthly", null],
+    years: ["years", "yearsLabel"],
+    gross: ["gross", "grossLabel"],
+  };
+  Object.entries(map).forEach(([key, [inputId, labelId]]) => {
+    const el = document.getElementById(inputId);
+    el.addEventListener("input", e => {
+      const val = parseFloat(e.target.value);
+      state.scenario[key] = isNaN(val) ? 0 : val;
+      if (labelId) document.getElementById(labelId).textContent =
+        key === "gross" ? val.toFixed(1) : val.toFixed(0);
+      recalc();
+    });
+  });
+}
+
+function applyScenario(s) {
+  state.scenario = { ...s };
+  document.getElementById("lump").value = s.lump;
+  document.getElementById("monthly").value = s.monthly;
+  document.getElementById("years").value = s.years;
+  document.getElementById("gross").value = s.gross;
+  document.getElementById("yearsLabel").textContent = s.years.toFixed(0);
+  document.getElementById("grossLabel").textContent = s.gross.toFixed(1);
+  recalc();
+}
+
+document.getElementById("resetBtn").addEventListener("click", () => {
+  state.presets = structuredClone(PRESETS);
+  renderPresets();
+  applyScenario({ lump: 50000, monthly: 1000, years: 30, gross: 7 });
+});
+document.getElementById("rubyBtn").addEventListener("click", () => {
+  applyScenario({ lump: 50000, monthly: 1000, years: 30, gross: 7 });
+});
+document.getElementById("aggrBtn").addEventListener("click", () => {
+  applyScenario({ lump: 10000, monthly: 500, years: 40, gross: 8 });
+});
+
+// ---- Init ------------------------------------------------------------------
+renderPresets();
+bindScenarioInputs();
+recalc();
+</script>
+</body>
+</html>
