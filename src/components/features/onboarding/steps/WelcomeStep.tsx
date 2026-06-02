@@ -1,4 +1,6 @@
 import React from "react"
+import Link from "next/link"
+
 interface WelcomeStepProps {
   preferredName: string
   onPreferredNameChange: (name: string) => void
@@ -68,6 +70,19 @@ const WelcomeStep: React.FC<WelcomeStepProps> = ({
       <p className="text-sm text-gray-500 mt-6">
         {"You can skip this setup and complete it later from settings."}
       </p>
+
+      <div className="mt-6 max-w-sm mx-auto pt-6 border-t border-gray-200">
+        <p className="text-sm text-gray-600 mb-2">
+          {"Already have a brokerage account?"}
+        </p>
+        <Link
+          href="/tools/open-brokerage"
+          className="inline-flex items-center text-sm font-medium text-purple-600 hover:text-purple-700"
+        >
+          <i className="fas fa-building-columns mr-2"></i>
+          {"Open Brokerage wizard →"}
+        </Link>
+      </div>
     </div>
   )
 }

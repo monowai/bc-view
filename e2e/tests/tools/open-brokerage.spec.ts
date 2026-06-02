@@ -10,6 +10,20 @@ test.describe("/tools/open-brokerage", () => {
     await expect(page.getByText(/Step 1 of 4/i)).toBeVisible()
   })
 
+  test("is reachable via the escape-hatch link on the onboarding Welcome step", async ({
+    page,
+  }) => {
+    await page.goto("/onboarding")
+    await page.waitForLoadState("domcontentloaded")
+    await page
+      .getByRole("link", { name: /Open Brokerage wizard/i })
+      .click()
+    await page.waitForURL(/\/tools\/open-brokerage$/)
+    await expect(
+      page.getByRole("heading", { name: /^Broker$/i }),
+    ).toBeVisible()
+  })
+
   test("creates a broker + portfolio with no funding @smoke", async ({
     page,
   }) => {
