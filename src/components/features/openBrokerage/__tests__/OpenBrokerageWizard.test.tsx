@@ -80,12 +80,13 @@ describe("<OpenBrokerageWizard />", () => {
     const user = userEvent.setup()
     render(<OpenBrokerageWizard />)
 
-    // Step 1 — broker: create new
+    // Step 1 — broker: create new. Use a name not in the existing list so
+    // ensureBroker takes the POST branch (reuse-by-name is covered below).
     await screen.findByRole("heading", { name: /Broker/i })
     await user.click(screen.getByRole("radio", { name: /Create a new broker/i }))
     await user.type(
       screen.getByLabelText(/Broker name/i),
-      "Interactive Brokers",
+      "Brand New Broker",
     )
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
@@ -101,7 +102,7 @@ describe("<OpenBrokerageWizard />", () => {
 
     // Step 4 — review
     await screen.findByRole("heading", { name: /Review/i })
-    expect(screen.getByText(/Interactive Brokers/)).toBeInTheDocument()
+    expect(screen.getByText(/Brand New Broker/)).toBeInTheDocument()
     expect(screen.getByText(/IBKR/)).toBeInTheDocument()
     await user.click(
       screen.getByRole("button", { name: /Create|Confirm|Open Brokerage/i }),
@@ -169,6 +170,47 @@ describe("<OpenBrokerageWizard />", () => {
     const types = bodies.flatMap((b) => b.data.map((d: { trnType: string }) => d.trnType))
     expect(types).toContain("DEPOSIT")
     expect(types).toContain("WITHDRAWAL")
+  })
+
+  test("reuses an existing broker by name instead of POSTing a duplicate", async () => {
+    const user = userEvent.setup()
+    render(<OpenBrokerageWizard />)
+
+    // Step 1 — broker: create new, but type a name that already exists
+    await screen.findByRole("heading", { name: /Broker/i })
+    await user.click(screen.getByRole("radio", { name: /Create a new broker/i }))
+    await user.type(
+      screen.getByLabelText(/Broker name/i),
+      "Interactive Brokers",
+    )
+    await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
+
+    // Step 2 — portfolio
+    await user.type(screen.getByLabelText(/Portfolio code/i), "IBRK")
+    await user.type(
+      screen.getByLabelText(/Portfolio name/i),
+      "Interactive Brokers USD",
+    )
+    await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
+
+    // Step 3 — skip funding
+    await screen.findByRole("heading", { name: /Funding|Deposit/i })
+    await user.click(screen.getByRole("button", { name: /Skip|No deposit/i }))
+
+    // Step 4 — review + submit
+    await screen.findByRole("heading", { name: /Review/i })
+    await user.click(
+      screen.getByRole("button", { name: /Create|Confirm|Open Brokerage/i }),
+    )
+    await screen.findByRole("heading", { name: /Done|Complete|Success/i })
+
+    // Must NOT POST a duplicate broker — only the existence-check GET happens
+    const brokerPosts = fetchMock.mock.calls.filter((c) => {
+      const url = c[0] as string
+      const method = (c[1] as RequestInit | undefined)?.method ?? "GET"
+      return method === "POST" && url.includes("/api/brokers")
+    })
+    expect(brokerPosts).toHaveLength(0)
   })
 
   test("blocks Next on Portfolio step when code is empty", async () => {

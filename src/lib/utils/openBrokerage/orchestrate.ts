@@ -62,6 +62,15 @@ async function ensureBroker(step: BrokerStep): Promise<Broker> {
     return { id: step.existingId, name: "" }
   }
   if (!step.newName) throw new Error("Broker name required")
+  // Reuse any existing broker with the same name so retrying the wizard
+  // after a downstream failure (e.g. duplicate-portfolio-code 409) doesn't
+  // collide with the backend's unique broker-name-per-owner constraint.
+  const newName = step.newName
+  const existing = await fetch("/api/brokers")
+    .then((r) => (r.ok ? (r.json() as Promise<{ data: Broker[] }>) : null))
+    .then((j) => j?.data.find((b) => b.name === newName))
+    .catch(() => undefined)
+  if (existing) return existing
   const resp = await postJson<{ data: Broker }>("/api/brokers", {
     name: step.newName,
     accountNumber: step.newAccountNumber || undefined,
@@ -144,6 +153,20 @@ export async function openBrokerage(
   const trnIds: string[] = []
   if (req.funding && req.funding.amount > 0) {
     const cashAssetId = await ensureCashAsset(req.funding.currency)
+    // Order matters: DEPOSIT first into the freshly-created portfolio
+    // (always succeeds — no balance/code constraints), then WITHDRAWAL
+    // from the source. If WITHDRAWAL fails afterwards the worst-case
+    // state is "cash visible in both portfolios" (a duplicate the user
+    // can spot and reverse), not "phantom debit on the source".
+    trnIds.push(
+      await postTrn({
+        portfolioId,
+        trnType: "DEPOSIT",
+        assetId: cashAssetId,
+        currency: req.funding.currency,
+        amount: req.funding.amount,
+      }),
+    )
     if (req.funding.sourcePortfolioId) {
       trnIds.push(
         await postTrn({
@@ -155,15 +178,6 @@ export async function openBrokerage(
         }),
       )
     }
-    trnIds.push(
-      await postTrn({
-        portfolioId,
-        trnType: "DEPOSIT",
-        assetId: cashAssetId,
-        currency: req.funding.currency,
-        amount: req.funding.amount,
-      }),
-    )
   }
 
   return { broker, portfolioId, trnIds }

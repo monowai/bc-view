@@ -4,8 +4,8 @@ import {
   openBrokerage,
   type OpenBrokerageResult,
 } from "@lib/openBrokerage/orchestrate"
-import { simpleFetcher } from "@utils/api/fetchHelper"
-import type { Broker, Portfolio } from "types/beancounter"
+import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper"
+import type { Broker, Currency, Portfolio } from "types/beancounter"
 
 type Step = "broker" | "portfolio" | "funding" | "review" | "done"
 
@@ -27,7 +27,10 @@ interface FundingState {
   sourcePortfolioId: string // empty = no source (cash injection)
 }
 
-const CURRENCIES = ["USD", "SGD", "EUR", "GBP", "AUD", "NZD", "HKD", "JPY"]
+// Fallback list — used only if /api/currencies hasn't returned yet so the
+// dropdown isn't empty on first paint. Replaced by backend response as soon
+// as SWR resolves.
+const FALLBACK_CURRENCIES = ["USD", "SGD", "EUR", "GBP", "AUD", "NZD", "HKD", "JPY"]
 
 const STEP_TITLES: Record<Exclude<Step, "done">, string> = {
   broker: "Broker",
@@ -84,11 +87,19 @@ export default function OpenBrokerageWizard(): React.ReactElement {
     "/api/portfolios",
     simpleFetcher("/api/portfolios"),
   )
+  const { data: currenciesData } = useSwr<{ data: Currency[] }>(
+    ccyKey,
+    simpleFetcher(ccyKey),
+  )
   const brokers = useMemo(() => brokersData?.data ?? [], [brokersData])
   const portfolios = useMemo(
     () => portfoliosData?.data ?? [],
     [portfoliosData],
   )
+  const currencyCodes = useMemo(() => {
+    const codes = currenciesData?.data?.map((c) => c.code)
+    return codes && codes.length > 0 ? codes : FALLBACK_CURRENCIES
+  }, [currenciesData])
 
   const sameCurrencySources = useMemo(
     () => portfolios.filter((p) => p.currency?.code === portfolio.currency),
@@ -277,7 +288,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
                 setPortfolio({ ...portfolio, code: e.target.value })
               }
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              placeholder="e.g. IBKR"
+              placeholder="e.g. IBRK"
             />
           </div>
           <div>
@@ -292,7 +303,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
                 setPortfolio({ ...portfolio, name: e.target.value })
               }
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              placeholder="e.g. IBKR USD"
+              placeholder="e.g. Interactive Brokers USD"
             />
           </div>
           <div>
@@ -307,7 +318,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
               }
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
             >
-              {CURRENCIES.map((c) => (
+              {currencyCodes.map((c) => (
                 <option key={c} value={c}>
                   {c}
                 </option>
