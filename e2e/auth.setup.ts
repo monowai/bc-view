@@ -13,8 +13,11 @@ setup("authenticate via Auth0", async ({ page }) => {
     )
   }
 
-  // Navigate to app which should redirect to login
-  await page.goto("/")
+  // Navigate directly to the Auth0 login route. Since PR #752 made `/`
+  // public, hitting the root no longer auto-redirects to Auth0 — the user
+  // has to opt in via "Sign In". `/auth/login` is handled by Auth0 v4
+  // middleware and always redirects to the IdP.
+  await page.goto("/auth/login")
 
   // Wait for Auth0 login page
   await page.waitForURL(/beancounter\.eu\.auth0\.com/)
