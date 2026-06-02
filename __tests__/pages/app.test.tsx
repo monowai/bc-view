@@ -4,6 +4,9 @@ import { render, screen, waitFor } from "@testing-library/react"
 import { registrationSuccess, portfolioResult } from "../fixtures"
 import { enableFetchMocks } from "jest-fetch-mock"
 import simpleGit from "../../__mocks__/simple-git"
+import { useUser } from "@auth0/nextjs-auth0/client"
+
+const mockUseUser = useUser as jest.MockedFunction<typeof useUser>
 
 enableFetchMocks()
 
@@ -68,5 +71,52 @@ describe("<Home />", () => {
     expect(screen.getByText("Manage Wealth")).toBeInTheDocument()
     expect(screen.getByText("Plan Independence")).toBeInTheDocument()
     expect(screen.getByText("Investment Strategy")).toBeInTheDocument()
+
+    // Auth'd cards point to functional routes
+    expect(
+      screen.getByRole("link", { name: /View Net Worth/i }),
+    ).toHaveAttribute("href", "/wealth")
+    expect(
+      screen.getByRole("link", { name: /Independence Plans/i }),
+    ).toHaveAttribute("href", "/independence")
+    expect(screen.getByRole("link", { name: /View Models/i })).toHaveAttribute(
+      "href",
+      "/rebalance/models",
+    )
+  })
+
+  test("renders unauth landing with Sign In CTA when no user", async () => {
+    mockUseUser.mockReturnValue({
+      user: undefined,
+      error: undefined,
+      isLoading: false,
+      invalidate: jest.fn(),
+    } as unknown as ReturnType<typeof useUser>)
+
+    render(<Home />)
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("heading", { name: /Welcome\./i }),
+      ).toBeInTheDocument()
+    })
+    expect(screen.getByText(/Login or Signup/i)).toBeInTheDocument()
+
+    const signIn = screen.getByRole("link", { name: /Sign In/i })
+    expect(signIn).toHaveAttribute("href", "/auth/login")
+
+    // Cards still rendered, but pointing to marketing routes
+    expect(
+      screen.getByRole("link", { name: /Manage Wealth/i }),
+    ).toHaveAttribute("href", "/learn/wealth")
+    expect(
+      screen.getByRole("link", { name: /Plan Independence/i }),
+    ).toHaveAttribute("href", "/learn/independence")
+    expect(
+      screen.getByRole("link", { name: /Investment Strategy/i }),
+    ).toHaveAttribute("href", "/learn/strategy")
+
+    // No portfolio "Getting Started" prompt for unauth
+    expect(screen.queryByText(/Let's Get You Started/i)).not.toBeInTheDocument()
   })
 })
