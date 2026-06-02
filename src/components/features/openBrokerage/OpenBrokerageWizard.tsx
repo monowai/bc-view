@@ -303,7 +303,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
                 setPortfolio({ ...portfolio, name: e.target.value })
               }
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              placeholder="e.g. Interactive Brokers USD"
+              placeholder="e.g. Interactive Brokers"
             />
           </div>
           <div>
