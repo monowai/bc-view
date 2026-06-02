@@ -1,6 +1,6 @@
 import React from "react"
 import { render, screen } from "@testing-library/react"
-import CostStackPage from "../cost-stack"
+import CostStackPage from "@pages/tools/cost-stack"
 
 jest.mock("next/router", () => ({
   useRouter: () => ({ pathname: "/tools/cost-stack" }),
