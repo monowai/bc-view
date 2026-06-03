@@ -27,10 +27,14 @@ interface BrokerStep {
 }
 
 interface PortfolioStep {
-  code: string
-  name: string
+  mode: "new" | "existing"
+  // Required when mode === "new"
+  code?: string
+  name?: string
   currency: string
-  base: string
+  base?: string
+  // Required when mode === "existing"
+  existingId?: string
 }
 
 interface FundingStep {
@@ -88,7 +92,14 @@ async function ensureBroker(step: BrokerStep): Promise<Broker> {
   return resp.data
 }
 
-async function createPortfolio(step: PortfolioStep): Promise<string> {
+async function resolvePortfolio(step: PortfolioStep): Promise<string> {
+  if (step.mode === "existing") {
+    if (!step.existingId) throw new Error("Existing portfolio id required")
+    return step.existingId
+  }
+  if (!step.code || !step.name || !step.base) {
+    throw new Error("New portfolio requires code, name and base currency")
+  }
   const resp = await postJson<{ data: Array<{ id: string }> }>(
     "/api/portfolios",
     {
@@ -106,16 +117,40 @@ async function createPortfolio(step: PortfolioStep): Promise<string> {
   return resp.data[0].id
 }
 
-async function ensureCashAsset(currency: string): Promise<string> {
+async function ensureAsset(payload: {
+  code: string
+  market: string
+  name?: string
+}): Promise<string> {
   const resp = await postJson<{
     data: Record<string, { id: string }>
   }>("/api/assets", {
-    data: { [currency]: { market: "CASH", code: currency } },
+    data: { [payload.code]: payload },
   })
   const asset = Object.values(resp.data)[0]
-  if (!asset?.id) throw new Error("Cash asset lookup returned no id")
+  if (!asset?.id) throw new Error(`Asset lookup returned no id (${payload.code})`)
   return asset.id
 }
+
+// Generic CASH/{ccy} asset (e.g. CASH/USD = "USD Balance"). Used when the
+// brokerage gets its own dedicated portfolio — no need to disambiguate
+// cash buckets within a single portfolio.
+const ensureCashAsset = (currency: string): Promise<string> =>
+  ensureAsset({ code: currency, market: "CASH" })
+
+// Per-broker PRIVATE cash asset like "IBRK-USD" / "DBS-SGD". Used when the
+// brokerage attaches to an EXISTING portfolio so the broker's cash is
+// visible as a distinct line ("IBRK USD Balance") alongside any pre-existing
+// generic-cash holdings in the same portfolio.
+const ensureBrokerCashAsset = (
+  brokerName: string,
+  currency: string,
+): Promise<string> =>
+  ensureAsset({
+    code: `${brokerName}-${currency}`,
+    market: "PRIVATE",
+    name: `${brokerName} ${currency} Balance`,
+  })
 
 interface TrnLeg {
   portfolioId: string
@@ -168,11 +203,18 @@ export async function openBrokerage(
   req: OpenBrokerageRequest,
 ): Promise<OpenBrokerageResult> {
   const broker = await ensureBroker(req.broker)
-  const portfolioId = await createPortfolio(req.portfolio)
+  const portfolioId = await resolvePortfolio(req.portfolio)
 
   const trnIds: string[] = []
   if (req.funding && req.funding.amount > 0) {
-    const cashAssetId = await ensureCashAsset(req.funding.currency)
+    // Attach-to-existing-portfolio path uses a per-broker PRIVATE cash
+    // asset so the brokerage cash is visible as a distinct line in the
+    // existing portfolio's holdings; the new-portfolio path uses the
+    // generic per-currency CASH asset (the portfolio itself segregates).
+    const depositAssetId =
+      req.portfolio.mode === "existing"
+        ? await ensureBrokerCashAsset(broker.name, req.funding.currency)
+        : await ensureCashAsset(req.funding.currency)
     // Order matters: DEPOSIT first into the freshly-created portfolio
     // (always succeeds — no balance/code constraints), then WITHDRAWAL
     // from the source. If WITHDRAWAL fails afterwards the worst-case
@@ -182,17 +224,20 @@ export async function openBrokerage(
       await postTrn({
         portfolioId,
         trnType: "DEPOSIT",
-        assetId: cashAssetId,
+        assetId: depositAssetId,
         currency: req.funding.currency,
         amount: req.funding.amount,
       }),
     )
     if (req.funding.sourcePortfolioId) {
+      // Source portfolio's cash is its generic CASH/{ccy} asset, NOT the
+      // broker-tagged one — broker cash only exists on the destination.
+      const sourceCashId = await ensureCashAsset(req.funding.currency)
       trnIds.push(
         await postTrn({
           portfolioId: req.funding.sourcePortfolioId,
           trnType: "WITHDRAWAL",
-          assetId: cashAssetId,
+          assetId: sourceCashId,
           currency: req.funding.currency,
           amount: req.funding.amount,
         }),

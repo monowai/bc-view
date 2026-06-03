@@ -62,7 +62,7 @@ test.describe("/tools/open-brokerage", () => {
       ).toBeVisible()
       await expect(page.getByText(`${brokerName} (new)`)).toBeVisible()
       await expect(
-        page.getByText(`${portfolioCode} — ${portfolioName} (USD)`),
+        page.getByText(`${portfolioCode} — ${portfolioName} (new, USD)`),
       ).toBeVisible()
 
       await page

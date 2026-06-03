@@ -17,9 +17,13 @@ interface BrokerState {
 }
 
 interface PortfolioState {
+  mode: "new" | "existing"
+  // mode === "new"
   code: string
   name: string
   currency: string
+  // mode === "existing"
+  existingId: string
 }
 
 interface FundingState {
@@ -67,9 +71,11 @@ export default function OpenBrokerageWizard(): React.ReactElement {
     newAccountNumber: "",
   })
   const [portfolio, setPortfolio] = useState<PortfolioState>({
+    mode: "new",
     code: "",
     name: "",
     currency: "USD",
+    existingId: "",
   })
   const [funding, setFunding] = useState<FundingState>({
     amount: "",
@@ -123,7 +129,9 @@ export default function OpenBrokerageWizard(): React.ReactElement {
       ? !!broker.existingId
       : broker.newName.trim().length > 0
   const portfolioValid =
-    portfolio.code.trim().length > 0 && portfolio.name.trim().length > 0
+    portfolio.mode === "existing"
+      ? !!portfolio.existingId
+      : portfolio.code.trim().length > 0 && portfolio.name.trim().length > 0
 
   const back = (): void => {
     const i = STEP_ORDER.indexOf(step as Exclude<Step, "done">)
@@ -147,12 +155,20 @@ export default function OpenBrokerageWizard(): React.ReactElement {
           newName: broker.newName || undefined,
           newAccountNumber: broker.newAccountNumber || undefined,
         },
-        portfolio: {
-          code: portfolio.code,
-          name: portfolio.name,
-          currency: portfolio.currency,
-          base: portfolio.currency,
-        },
+        portfolio:
+          portfolio.mode === "existing"
+            ? {
+                mode: "existing",
+                existingId: portfolio.existingId,
+                currency: portfolio.currency,
+              }
+            : {
+                mode: "new",
+                code: portfolio.code,
+                name: portfolio.name,
+                currency: portfolio.currency,
+                base: portfolio.currency,
+              },
         funding:
           Number.isFinite(amount) && amount > 0
             ? {
@@ -291,55 +307,124 @@ export default function OpenBrokerageWizard(): React.ReactElement {
 
       {step === "portfolio" && (
         <div className="space-y-3">
-          <div>
-            <label htmlFor="pf-code" className="block text-sm font-medium text-gray-700 mb-1">
-              {"Portfolio code"}
+          <fieldset className="space-y-3">
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="portfolio-mode"
+                checked={portfolio.mode === "new"}
+                onChange={() => setPortfolio({ ...portfolio, mode: "new" })}
+              />
+              <span>Create a new portfolio for this brokerage</span>
             </label>
-            <input
-              id="pf-code"
-              type="text"
-              value={portfolio.code}
-              onChange={(e) =>
-                setPortfolio({ ...portfolio, code: e.target.value })
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              placeholder="e.g. IBRK"
-            />
-          </div>
-          <div>
-            <label htmlFor="pf-name" className="block text-sm font-medium text-gray-700 mb-1">
-              {"Portfolio name"}
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="portfolio-mode"
+                checked={portfolio.mode === "existing"}
+                onChange={() =>
+                  setPortfolio({ ...portfolio, mode: "existing" })
+                }
+                disabled={portfolios.length === 0}
+              />
+              <span>
+                Attach to an existing portfolio{" "}
+                {portfolios.length === 0 && "(none yet)"}
+              </span>
             </label>
-            <input
-              id="pf-name"
-              type="text"
-              value={portfolio.name}
-              onChange={(e) =>
-                setPortfolio({ ...portfolio, name: e.target.value })
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              placeholder="e.g. Interactive Brokers"
-            />
-          </div>
-          <div>
-            <label htmlFor="pf-ccy" className="block text-sm font-medium text-gray-700 mb-1">
-              {"Currency"}
-            </label>
-            <select
-              id="pf-ccy"
-              value={portfolio.currency}
-              onChange={(e) =>
-                setPortfolio({ ...portfolio, currency: e.target.value })
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            >
-              {currencyCodes.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </div>
+          </fieldset>
+
+          {portfolio.mode === "existing" ? (
+            <div>
+              <label
+                htmlFor="pf-existing"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                {"Existing portfolio"}
+              </label>
+              <select
+                id="pf-existing"
+                value={portfolio.existingId}
+                onChange={(e) => {
+                  const id = e.target.value
+                  const pf = portfolios.find((p) => p.id === id)
+                  setPortfolio({
+                    ...portfolio,
+                    existingId: id,
+                    currency: pf?.currency?.code ?? portfolio.currency,
+                  })
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              >
+                <option value="">— Select —</option>
+                {portfolios.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} ({p.code}, {p.currency?.code})
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                {`Deposits will land on a per-broker cash line (e.g. ${broker.newName || "BROKER"}-${portfolio.currency}) so the brokerage cash stays separate from any existing cash on this portfolio.`}
+              </p>
+            </div>
+          ) : (
+            <>
+              <div>
+                <label htmlFor="pf-code" className="block text-sm font-medium text-gray-700 mb-1">
+                  {"Portfolio code"}
+                </label>
+                <input
+                  id="pf-code"
+                  type="text"
+                  value={portfolio.code}
+                  onChange={(e) =>
+                    setPortfolio({ ...portfolio, code: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  placeholder="e.g. IBRK"
+                />
+              </div>
+              <div>
+                <label htmlFor="pf-name" className="block text-sm font-medium text-gray-700 mb-1">
+                  {"Portfolio name"}
+                </label>
+                <input
+                  id="pf-name"
+                  type="text"
+                  value={portfolio.name}
+                  onChange={(e) =>
+                    setPortfolio({ ...portfolio, name: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  placeholder="e.g. Interactive Brokers"
+                />
+              </div>
+            </>
+          )}
+          {portfolio.mode === "new" && (
+            <div>
+              <label
+                htmlFor="pf-ccy"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                {"Currency"}
+              </label>
+              <select
+                id="pf-ccy"
+                value={portfolio.currency}
+                onChange={(e) =>
+                  setPortfolio({ ...portfolio, currency: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              >
+                {currencyCodes.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       )}
 
@@ -400,7 +485,9 @@ export default function OpenBrokerageWizard(): React.ReactElement {
               </dd>
               <dt className="text-gray-500">Portfolio</dt>
               <dd className="col-span-2 text-gray-900">
-                {portfolio.code} — {portfolio.name} ({portfolio.currency})
+                {portfolio.mode === "existing"
+                  ? `${portfolios.find((p) => p.id === portfolio.existingId)?.name ?? "?"} (existing, ${portfolio.currency})`
+                  : `${portfolio.code} — ${portfolio.name} (new, ${portfolio.currency})`}
               </dd>
               <dt className="text-gray-500">Funding</dt>
               <dd className="col-span-2 text-gray-900">
