@@ -541,33 +541,42 @@ const OnboardingWizard: React.FC = () => {
       })
 
       // Create portfolio with reporting currency as display currency
-      // and base currency as cost tracking currency
-      const portfolioResponse = await fetch("/api/portfolios", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          data: [
-            {
-              code: portfolioCode,
-              name: portfolioName,
-              currency: reportingCurrency,
-              base: baseCurrency,
-            },
-          ],
-        }),
-      })
+      // and base currency as cost tracking currency. Make the call
+      // idempotent so a retry after a downstream failure (e.g. the
+      // optional Brokerage step erroring out) doesn't trip the
+      // (code, owner_id) unique constraint and 409 — reuse the
+      // existing portfolio with the same code instead.
+      const existingPortfolio = existingPortfolios.find(
+        (p) => p.code === portfolioCode,
+      )
+      let portfolioId: string | undefined = existingPortfolio?.id
+      if (!portfolioId) {
+        const portfolioResponse = await fetch("/api/portfolios", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            data: [
+              {
+                code: portfolioCode,
+                name: portfolioName,
+                currency: reportingCurrency,
+                base: baseCurrency,
+              },
+            ],
+          }),
+        })
 
-      if (!portfolioResponse.ok) {
-        const errorData = await portfolioResponse.json().catch(() => ({}))
-        setError(errorData.error || "Failed to create portfolio")
-        setIsSubmitting(false)
-        return
+        if (!portfolioResponse.ok) {
+          const errorData = await portfolioResponse.json().catch(() => ({}))
+          setError(errorData.error || "Failed to create portfolio")
+          setIsSubmitting(false)
+          return
+        }
+
+        const portfolioData = await portfolioResponse.json()
+        portfolioId = portfolioData.data[0]?.id
       }
-
-      const portfolioData = await portfolioResponse.json()
-      // Response is { data: [Portfolio] }
-      const portfolioId = portfolioData.data[0]?.id
-      setCreatedPortfolioId(portfolioId)
+      setCreatedPortfolioId(portfolioId ?? null)
 
       // Create assets if any
       if (
