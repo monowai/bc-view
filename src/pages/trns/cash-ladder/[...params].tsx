@@ -127,15 +127,29 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
     [],
   )
 
-  // Calculate running balances
-  // Transactions are sorted desc (newest first)
-  // Sum all cashAmounts to get current balance, then work backwards to show balance after each trn
+  // Calculate running balances.
+  //
+  // The algorithm expects transactions in newest-first order so it can start
+  // from the current total and walk backwards subtracting each trn to expose
+  // "balance immediately after this trn". The backend now returns them
+  // oldest-first; sort defensively here so the algorithm keeps working
+  // regardless of upstream ordering (and so the visible row order is
+  // newest-first, which matches every other transaction list in the app).
   const transactionsWithBalance = useMemo((): TrnWithBalance[] => {
-    const trns = cashLadderData.data?.data || []
-    if (trns.length === 0 || !cashAssetId) return []
+    const raw = cashLadderData.data?.data || []
+    if (raw.length === 0 || !cashAssetId) return []
 
-    // Calculate total balance from all transactions with enforced signs
-    // Work backwards from total to show balance after each transaction
+    const trns = [...raw].sort((a, b) => {
+      // Primary: tradeDate desc (string YYYY-MM-DD compares naturally)
+      const dateDiff = (b.tradeDate ?? "").localeCompare(a.tradeDate ?? "")
+      if (dateDiff !== 0) return dateDiff
+      // Secondary: id desc so trns posted later within the same day land
+      // on top (preserves "newest first" within a tradeDate).
+      return (b.id ?? "").localeCompare(a.id ?? "")
+    })
+
+    // Calculate total balance from all transactions with enforced signs.
+    // Work backwards from total to show balance after each transaction.
     let balance = trns.reduce(
       (sum, trn) => sum + getSignedCashAmount(trn, cashAssetId),
       0,
