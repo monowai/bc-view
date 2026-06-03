@@ -158,6 +158,7 @@ const OnboardingWizard: React.FC = () => {
   const [brokerageBrokerName, setBrokerageBrokerName] = useState("")
   const [brokerageSource, setBrokerageSource] = useState<SourceValue>("")
   const [brokerageAmount, setBrokerageAmount] = useState("")
+  const [brokerageCurrency, setBrokerageCurrency] = useState("")
   const [brokerageCreated, setBrokerageCreated] = useState(false)
 
   // Steps configuration
@@ -686,13 +687,18 @@ const OnboardingWizard: React.FC = () => {
           // when the user picked one, so a paired WITHDRAWAL hits the
           // right line.
           const brokerCode = brokerageBrokerName.trim()
+          // Reporting currency for the brokerage portfolio. User-picked in
+          // step 7; falls back to baseCurrency if they didn't touch the
+          // dropdown. `base` stays as the user's overall base currency for
+          // consolidated reporting upstream.
+          const brokerageCcy = brokerageCurrency || baseCurrency
           const brokerageResult = await openBrokerage({
             broker: { mode: "new", newName: brokerCode },
             portfolio: {
               mode: "new",
               code: brokerCode,
               name: `${brokerCode} Portfolio`,
-              currency: baseCurrency,
+              currency: brokerageCcy,
               base: baseCurrency,
             },
             funding:
@@ -703,7 +709,7 @@ const OnboardingWizard: React.FC = () => {
                       currency: string
                       sourcePortfolioId?: string
                       sourceAssetId?: string
-                    } = { amount: amt, currency: baseCurrency }
+                    } = { amount: amt, currency: brokerageCcy }
                     if (brokerageSource.startsWith("portfolio:")) {
                       fund.sourcePortfolioId = brokerageSource.slice(
                         "portfolio:".length,
@@ -844,7 +850,12 @@ const OnboardingWizard: React.FC = () => {
             brokerName={brokerageBrokerName}
             source={brokerageSource}
             amount={brokerageAmount}
-            currency={baseCurrency || "USD"}
+            currency={brokerageCurrency || baseCurrency || "USD"}
+            currencyCodes={
+              currencies.length > 0
+                ? currencies.map((c) => c.code)
+                : [baseCurrency || "USD"]
+            }
             existingPortfolios={existingPortfolios}
             bankAccounts={bankAccounts}
             defaultPortfolioName={portfolioName}
@@ -852,6 +863,7 @@ const OnboardingWizard: React.FC = () => {
             onBrokerNameChange={setBrokerageBrokerName}
             onSourceChange={setBrokerageSource}
             onAmountChange={setBrokerageAmount}
+            onCurrencyChange={setBrokerageCurrency}
           />
         )
       case 8:

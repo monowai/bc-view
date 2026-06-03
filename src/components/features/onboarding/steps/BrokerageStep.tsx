@@ -18,7 +18,11 @@ export interface BrokerageStepProps {
   brokerName: string
   source: SourceValue
   amount: string // free text; parsed at submit
-  currency: string // defaults to base
+  // User-chosen reporting currency for the new brokerage portfolio.
+  // Defaults to the user's baseCurrency but they can pick any code from
+  // `currencyCodes` (e.g. USD broker funded from SGD bank balances).
+  currency: string
+  currencyCodes: string[]
   // Portfolios the user already has — used to populate the source dropdown.
   // The default portfolio created earlier in this onboarding is NOT in this
   // list because it lives in component state, not the backend yet; we expose
@@ -34,6 +38,7 @@ export interface BrokerageStepProps {
   onBrokerNameChange: (v: string) => void
   onSourceChange: (v: SourceValue) => void
   onAmountChange: (v: string) => void
+  onCurrencyChange: (v: string) => void
 }
 
 /**
@@ -48,6 +53,7 @@ const BrokerageStep: React.FC<BrokerageStepProps> = ({
   source,
   amount,
   currency,
+  currencyCodes,
   existingPortfolios,
   bankAccounts,
   defaultPortfolioName,
@@ -55,6 +61,7 @@ const BrokerageStep: React.FC<BrokerageStepProps> = ({
   onBrokerNameChange,
   onSourceChange,
   onAmountChange,
+  onCurrencyChange,
 }) => {
   // Filter source options to the chosen currency (same-currency v1).
   const sameCurrencyPortfolios = existingPortfolios.filter(
@@ -111,6 +118,30 @@ const BrokerageStep: React.FC<BrokerageStepProps> = ({
             />
             <p className="text-xs text-gray-500 mt-1">
               {`A new portfolio "${brokerName || "BROKER"} Portfolio" will be created for your brokerage, keeping its cash and trades separate from your "${defaultPortfolioName}" bank-account portfolio.`}
+            </p>
+          </div>
+
+          <div>
+            <label
+              htmlFor="ob-currency"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              {"Reporting currency"}
+            </label>
+            <select
+              id="ob-currency"
+              value={currency}
+              onChange={(e) => onCurrencyChange(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            >
+              {currencyCodes.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              {`Cash and trades in this brokerage portfolio will report in ${currency}. Picking a different currency from the bank-account source needs FX (not handled in v1 — same-currency source only).`}
             </p>
           </div>
 
