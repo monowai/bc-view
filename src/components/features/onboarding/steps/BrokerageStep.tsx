@@ -70,6 +70,15 @@ const BrokerageStep: React.FC<BrokerageStepProps> = ({
   const sameCurrencyBankAccounts = bankAccounts.filter(
     (b) => b.currency === currency,
   )
+  // If the user has bank accounts but none in the chosen currency, they
+  // probably expected to fund from a different-currency balance. Surface
+  // it explicitly so they don't end up with a silent standalone deposit.
+  const otherCurrencyBankAccounts = bankAccounts.filter(
+    (b) => b.currency !== currency,
+  )
+  const showFxNotice =
+    sameCurrencyBankAccounts.length === 0 &&
+    otherCurrencyBankAccounts.length > 0
   return (
     <div className="py-2">
       <p className="text-gray-500 text-xs mb-3">
@@ -166,6 +175,14 @@ const BrokerageStep: React.FC<BrokerageStepProps> = ({
             >
               {"Source (optional)"}
             </label>
+            {showFxNotice && (
+              <div className="mb-2 px-3 py-2 rounded bg-amber-50 border border-amber-200 text-xs text-amber-800">
+                {`You have bank accounts in ${otherCurrencyBankAccounts
+                  .map((b) => b.currency)
+                  .filter((c, i, a) => a.indexOf(c) === i)
+                  .join(", ")} but the brokerage currency is ${currency}. Cross-currency funding (FX) isn't supported yet — the opening deposit will be recorded as a standalone cash injection on the new portfolio with no matching withdrawal.`}
+              </div>
+            )}
             <select
               id="ob-source"
               value={source}

@@ -90,26 +90,34 @@ const CompleteStep: React.FC<CompleteStepProps> = ({
         </ul>
       </div>
 
-      {/* Follow-up: brokerage. Surfaced here (not on Welcome) so the user's
-          existing bank-side picture is recorded into the default portfolio
-          first. The wizard creates a fresh broker + portfolio for invested
-          cash as a separate activity. */}
-      <div className="mt-8 max-w-sm mx-auto bg-purple-50 border border-purple-200 rounded-lg p-4 text-left">
-        <h3 className="font-semibold text-gray-900 mb-1 flex items-center gap-2">
-          <i className="fas fa-building-columns text-purple-500"></i>
-          {"Have a brokerage account?"}
-        </h3>
-        <p className="text-sm text-gray-600 mb-3">
-          {
-            "Set up your broker, a brokerage portfolio and your opening cash deposit."
-          }
-        </p>
-        <Link
-          href="/tools/open-brokerage"
-          className="inline-flex items-center text-sm font-medium text-purple-600 hover:text-purple-700"
-        >
-          {"Open Brokerage wizard →"}
-        </Link>
+      {/* Where to go next. The brokerage CTA used to live here as a
+          stand-alone card; now that step 7 captures one brokerage inline,
+          this section just points at the menus for ongoing additions. */}
+      <div className="mt-8 max-w-md mx-auto text-left text-sm text-gray-700 space-y-3">
+        <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+          <div className="font-semibold text-gray-900 flex items-center gap-2 mb-1">
+            <i className="fas fa-building-columns text-purple-500"></i>
+            {"Add more brokerage accounts"}
+          </div>
+          <p className="text-gray-600">
+            {"Open the "}
+            <strong>Tools</strong>
+            {" menu → "}
+            <strong>Open Brokerage</strong>
+            {" any time to add another broker, portfolio and opening cash deposit."}
+          </p>
+        </div>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <div className="font-semibold text-gray-900 flex items-center gap-2 mb-1">
+            <i className="fas fa-coins text-blue-500"></i>
+            {"Track assets Beancounter doesn't natively support"}
+          </div>
+          <p className="text-gray-600">
+            {"Use the "}
+            <strong>Wealth</strong>
+            {" menu to record private holdings — collectibles, alt-investments, anything off-market — as cash-balance assets in your portfolios."}
+          </p>
+        </div>
       </div>
     </div>
   )
