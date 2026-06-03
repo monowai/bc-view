@@ -3,7 +3,7 @@ import { useRouter } from "next/router"
 import useSwr from "swr"
 import { useUser } from "@auth0/nextjs-auth0/client"
 import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper"
-import { Currency, PolicyType, SubAccountRequest } from "types/beancounter"
+import { Currency, PolicyType, Portfolio, SubAccountRequest } from "types/beancounter"
 import OnboardingProgress from "./OnboardingProgress"
 import WelcomeStep from "./steps/WelcomeStep"
 import CurrencyStep from "./steps/CurrencyStep"
@@ -12,6 +12,8 @@ import AssetsStep from "./steps/AssetsStep"
 import ReviewStep from "./steps/ReviewStep"
 import CompleteStep from "./steps/CompleteStep"
 import IndependencePlanStep from "./steps/IndependencePlanStep"
+import BrokerageStep from "./steps/BrokerageStep"
+import { openBrokerage } from "@lib/openBrokerage/orchestrate"
 import { useRegistration } from "@contexts/RegistrationContext"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import Spinner from "@components/ui/Spinner"
@@ -89,6 +91,13 @@ const OnboardingWizard: React.FC = () => {
   const { data: ccyResponse } = useSwr(ccyKey, simpleFetcher(ccyKey))
   const currencies: Currency[] = ccyResponse?.data || []
 
+  // Fetch portfolios for the Brokerage step's source-portfolio dropdown
+  const { data: portfoliosResponse } = useSwr<{ data: Portfolio[] }>(
+    "/api/portfolios",
+    simpleFetcher("/api/portfolios"),
+  )
+  const existingPortfolios: Portfolio[] = portfoliosResponse?.data ?? []
+
   // Wizard state - no pre-selection, user must explicitly choose
   const [currentStep, setCurrentStep] = useState(1)
   const [preferredName, setPreferredName] = useState("")
@@ -143,6 +152,14 @@ const OnboardingWizard: React.FC = () => {
   const [independenceTargetAge, setIndependenceTargetAge] = useState(65)
   const [independencePlanCreated, setIndependencePlanCreated] = useState(false)
 
+  // Brokerage step (optional, post-default-portfolio creation)
+  const [brokerageEnabled, setBrokerageEnabled] = useState(false)
+  const [brokerageBrokerName, setBrokerageBrokerName] = useState("")
+  const [brokerageSourcePortfolioId, setBrokerageSourcePortfolioId] =
+    useState("")
+  const [brokerageAmount, setBrokerageAmount] = useState("")
+  const [brokerageCreated, setBrokerageCreated] = useState(false)
+
   // Steps configuration
   const steps = useMemo(
     () => [
@@ -152,7 +169,8 @@ const OnboardingWizard: React.FC = () => {
       { id: 4, label: "Assets" },
       { id: 5, label: "Review" },
       { id: 6, label: "Independence" },
-      { id: 7, label: "Complete" },
+      { id: 7, label: "Brokerage" },
+      { id: 8, label: "Complete" },
     ],
     [],
   )
@@ -190,6 +208,8 @@ const OnboardingWizard: React.FC = () => {
       case 6:
         return true // Independence - always can proceed (optional step)
       case 7:
+        return true // Brokerage - always can proceed (optional step)
+      case 8:
         return true
       default:
         return false
@@ -627,8 +647,44 @@ const OnboardingWizard: React.FC = () => {
         }
       }
 
+      // Optional: open a brokerage as part of the onboarding flow. Runs
+      // AFTER the default portfolio is created so the user can fund the new
+      // broker cash from it. Failures are surfaced but don't abort the
+      // wizard — the user can retry from /tools/open-brokerage.
+      // Use the local `portfolioId` variable (set just above), not the
+      // React state `createdPortfolioId` — setState hasn't flushed inside
+      // the same async function call.
+      if (brokerageEnabled && brokerageBrokerName.trim() && portfolioId) {
+        const amt = parseFloat(brokerageAmount)
+        try {
+          await openBrokerage({
+            broker: { mode: "new", newName: brokerageBrokerName.trim() },
+            portfolio: {
+              mode: "existing",
+              existingId: portfolioId,
+              currency: baseCurrency,
+            },
+            funding:
+              Number.isFinite(amt) && amt > 0
+                ? {
+                    amount: amt,
+                    currency: baseCurrency,
+                    sourcePortfolioId:
+                      brokerageSourcePortfolioId || undefined,
+                  }
+                : undefined,
+          })
+          setBrokerageCreated(true)
+        } catch (bErr) {
+          console.warn("Onboarding brokerage setup failed:", bErr)
+          setError(
+            `Brokerage setup failed: ${bErr instanceof Error ? bErr.message : String(bErr)}. The rest of your setup was saved.`,
+          )
+        }
+      }
+
       // Move to complete step
-      setCurrentStep(7)
+      setCurrentStep(8)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Setup failed")
     } finally {
@@ -715,6 +771,22 @@ const OnboardingWizard: React.FC = () => {
         )
       case 7:
         return (
+          <BrokerageStep
+            enabled={brokerageEnabled}
+            brokerName={brokerageBrokerName}
+            sourcePortfolioId={brokerageSourcePortfolioId}
+            amount={brokerageAmount}
+            currency={baseCurrency || "USD"}
+            existingPortfolios={existingPortfolios}
+            defaultPortfolioName={portfolioName}
+            onEnabledChange={setBrokerageEnabled}
+            onBrokerNameChange={setBrokerageBrokerName}
+            onSourcePortfolioIdChange={setBrokerageSourcePortfolioId}
+            onAmountChange={setBrokerageAmount}
+          />
+        )
+      case 8:
+        return (
           <CompleteStep
             portfolioName={portfolioName}
             bankAccountCount={bankAccounts.length}
@@ -723,6 +795,7 @@ const OnboardingWizard: React.FC = () => {
             insuranceCount={insurances.length}
             portfolioId={createdPortfolioId}
             independencePlanCreated={independencePlanCreated}
+            brokerageCreated={brokerageCreated}
           />
         )
       default:
@@ -747,7 +820,7 @@ const OnboardingWizard: React.FC = () => {
       {/* Navigation */}
       <div className="flex justify-between mt-6">
         <div>
-          {currentStep > 1 && currentStep < 7 && (
+          {currentStep > 1 && currentStep < 8 && (
             <button
               type="button"
               onClick={handleBack}
@@ -769,7 +842,7 @@ const OnboardingWizard: React.FC = () => {
             </button>
           )}
 
-          {currentStep < 6 && (
+          {currentStep < 7 && (
             <button
               type="button"
               onClick={handleNext}
@@ -784,7 +857,7 @@ const OnboardingWizard: React.FC = () => {
             </button>
           )}
 
-          {currentStep === 6 && (
+          {currentStep === 7 && (
             <button
               type="button"
               onClick={handleComplete}
@@ -806,7 +879,7 @@ const OnboardingWizard: React.FC = () => {
             </button>
           )}
 
-          {currentStep === 7 && (
+          {currentStep === 8 && (
             <button
               type="button"
               onClick={handleFinish}

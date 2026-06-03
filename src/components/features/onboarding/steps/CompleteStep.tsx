@@ -8,6 +8,7 @@ interface CompleteStepProps {
   insuranceCount: number
   portfolioId: string | null
   independencePlanCreated?: boolean
+  brokerageCreated?: boolean
 }
 
 const CompleteStep: React.FC<CompleteStepProps> = ({
@@ -17,6 +18,7 @@ const CompleteStep: React.FC<CompleteStepProps> = ({
   pensionCount,
   insuranceCount,
   independencePlanCreated,
+  brokerageCreated,
 }) => {
   return (
     <div className="text-center py-6">
@@ -77,6 +79,12 @@ const CompleteStep: React.FC<CompleteStepProps> = ({
                   {"View plan"}
                 </Link>
               </span>
+            </li>
+          )}
+          {brokerageCreated && (
+            <li className="flex items-center text-gray-700">
+              <i className="fas fa-building-columns text-purple-500 w-6"></i>
+              <span>{"Brokerage set up"}</span>
             </li>
           )}
         </ul>
