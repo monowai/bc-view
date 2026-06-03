@@ -139,14 +139,17 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
     const raw = cashLadderData.data?.data || []
     if (raw.length === 0 || !cashAssetId) return []
 
-    const trns = [...raw].sort((a, b) => {
-      // Primary: tradeDate desc (string YYYY-MM-DD compares naturally)
-      const dateDiff = (b.tradeDate ?? "").localeCompare(a.tradeDate ?? "")
-      if (dateDiff !== 0) return dateDiff
-      // Secondary: id desc so trns posted later within the same day land
-      // on top (preserves "newest first" within a tradeDate).
-      return (b.id ?? "").localeCompare(a.id ?? "")
-    })
+    // Backend orders by `tradeDate desc` only — within the same date the
+    // row order is unspecified (Postgres physical scan order, which is
+    // effectively insertion order for new portfolios). Trn ids are
+    // random strings so we can't tie-break by id chronologically. Reverse
+    // the raw array first, then stable-sort by tradeDate desc: same-date
+    // rows keep the REVERSED insertion order (= newest first within the
+    // day) and across-date ordering is correct.
+    const trns = [...raw].reverse()
+    trns.sort((a, b) =>
+      (b.tradeDate ?? "").localeCompare(a.tradeDate ?? ""),
+    )
 
     // Calculate total balance from all transactions with enforced signs.
     // Work backwards from total to show balance after each transaction.

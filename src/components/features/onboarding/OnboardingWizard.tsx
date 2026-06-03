@@ -686,7 +686,7 @@ const OnboardingWizard: React.FC = () => {
           // when the user picked one, so a paired WITHDRAWAL hits the
           // right line.
           const brokerCode = brokerageBrokerName.trim()
-          await openBrokerage({
+          const brokerageResult = await openBrokerage({
             broker: { mode: "new", newName: brokerCode },
             portfolio: {
               mode: "new",
@@ -726,6 +726,23 @@ const OnboardingWizard: React.FC = () => {
                 : undefined,
           })
           setBrokerageCreated(true)
+          // Trigger valuation for the new brokerage portfolio (same as we
+          // do for the default portfolio earlier); otherwise the home /
+          // portfolios list shows it with no market value until the user
+          // opens it.
+          try {
+            await fetch(`/api/holdings/${brokerCode}?asAt=${today}`, {
+              credentials: "include",
+            })
+          } catch (vErr) {
+            console.warn(
+              "Failed to trigger brokerage portfolio valuation:",
+              vErr,
+            )
+          }
+          // Touch result so eslint sees it as used; future caller may want
+          // the broker / portfolio ids for navigation.
+          void brokerageResult
         } catch (bErr) {
           console.warn("Onboarding brokerage setup failed:", bErr)
           setError(
