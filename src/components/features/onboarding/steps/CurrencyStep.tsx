@@ -35,37 +35,33 @@ const CurrencyStep: React.FC<CurrencyStepProps> = ({
   }
 
   return (
-    <div className="py-4">
-      <h2 className="text-xl font-bold text-gray-900 mb-2">
+    <div className="py-2">
+      <h2 className="text-xl font-bold text-gray-900 mb-1">
         {"Set your currencies"}
       </h2>
-
-      <p className="text-gray-600 mb-6">
+      <p className="text-sm text-gray-600 mb-3">
         {
-          "Select the currency you primarily use. This will be used for tracking costs and displaying values."
+          "Base currency tracks costs; reporting currency displays values. Default to the same one — they can differ."
         }
       </p>
 
       {/* Base Currency */}
-      <div className="mb-6">
-        <h3 className="font-medium text-gray-900 mb-2">
-          {"System Base Currency"}
+      <div className="mb-3">
+        <h3 className="text-sm font-medium text-gray-900 mb-1">
+          {"Base Currency"}
           {!baseCurrency && (
-            <span className="ml-2 text-sm text-orange-600 font-normal">
+            <span className="ml-2 text-xs text-orange-600 font-normal">
               {"(please select)"}
             </span>
           )}
         </h3>
-        <p className="text-sm text-gray-500 mb-3">
-          {"Used for cost tracking and as the default for new portfolios."}
-        </p>
-        <div className="grid grid-cols-2 gap-3 max-w-md">
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
           {currencies.map((currency) => (
             <button
               key={currency.code}
               type="button"
               onClick={() => handleBaseCurrencyChange(currency.code)}
-              className={`p-3 rounded-lg border-2 text-left transition-all ${
+              className={`px-2 py-1.5 rounded border-2 text-left transition-all text-sm ${
                 baseCurrency === currency.code
                   ? "border-blue-500 bg-blue-50"
                   : "border-gray-200 hover:border-gray-300"
@@ -74,43 +70,37 @@ const CurrencyStep: React.FC<CurrencyStepProps> = ({
               <div className="font-medium text-gray-900">
                 {currency.symbol} {currency.code}
               </div>
-              <div className="text-xs text-gray-500">{currency.name}</div>
             </button>
           ))}
         </div>
       </div>
 
       {/* Same currency toggle */}
-      <div className="mb-6">
-        <label className="flex items-center cursor-pointer">
-          <input
-            type="checkbox"
-            checked={useSameCurrency}
-            onChange={handleToggleSameCurrency}
-            className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-          />
-          <span className="ml-2 text-gray-700">
-            {"Use the same currency for reporting values"}
-          </span>
-        </label>
-      </div>
+      <label className="flex items-center cursor-pointer mb-3 text-sm text-gray-700">
+        <input
+          type="checkbox"
+          checked={useSameCurrency}
+          onChange={handleToggleSameCurrency}
+          className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+        />
+        <span className="ml-2">
+          {"Use the same currency for reporting values"}
+        </span>
+      </label>
 
       {/* Reporting Currency - only show if different from base */}
       {!useSameCurrency && (
         <div>
-          <h3 className="font-medium text-gray-900 mb-2">
+          <h3 className="text-sm font-medium text-gray-900 mb-1">
             {"Reporting Currency"}
           </h3>
-          <p className="text-sm text-gray-500 mb-3">
-            {"The currency used to display portfolio values and reports."}
-          </p>
-          <div className="grid grid-cols-2 gap-3 max-w-md">
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
             {currencies.map((currency) => (
               <button
                 key={currency.code}
                 type="button"
                 onClick={() => onReportingCurrencyChange(currency.code)}
-                className={`p-3 rounded-lg border-2 text-left transition-all ${
+                className={`px-2 py-1.5 rounded border-2 text-left transition-all text-sm ${
                   reportingCurrency === currency.code
                     ? "border-green-500 bg-green-50"
                     : "border-gray-200 hover:border-gray-300"
@@ -119,7 +109,6 @@ const CurrencyStep: React.FC<CurrencyStepProps> = ({
                 <div className="font-medium text-gray-900">
                   {currency.symbol} {currency.code}
                 </div>
-                <div className="text-xs text-gray-500">{currency.name}</div>
               </button>
             ))}
           </div>
