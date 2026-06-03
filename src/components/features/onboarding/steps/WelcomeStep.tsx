@@ -14,15 +14,6 @@ const WelcomeStep: React.FC<WelcomeStepProps> = ({
 }) => {
   return (
     <div className="py-2">
-      <h2 className="text-xl font-bold text-gray-900 mb-1">
-        {"Welcome to Beancounter!"}
-      </h2>
-      <p className="text-sm text-gray-600 mb-4">
-        {
-          "Quick setup — currency, portfolio, accounts. Skip and finish later in settings if you like."
-        }
-      </p>
-
       <div className="max-w-sm mb-4">
         <label
           htmlFor="preferredName"

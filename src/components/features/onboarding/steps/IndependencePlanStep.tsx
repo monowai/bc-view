@@ -26,20 +26,6 @@ const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
 }) => {
   return (
     <div className="space-y-6">
-      <div className="text-center">
-        <div className="text-4xl mb-4 text-independence-500">
-          <i className="fas fa-chart-line"></i>
-        </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          {"Quick Independence Check"}
-        </h2>
-        <p className="text-gray-600">
-          {
-            "Want to see how your finances might look in retirement? Just three quick questions."
-          }
-        </p>
-      </div>
-
       {/* Enable/Skip toggle. Tick follows the selected option so the user
           sees clear feedback when picking either path (previously hardcoded
           on "Yes" regardless of state — Skip felt unresponsive). */}

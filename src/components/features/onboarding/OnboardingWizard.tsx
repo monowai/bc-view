@@ -884,8 +884,42 @@ const OnboardingWizard: React.FC = () => {
     }
   }
 
+  // Per-step heading + lead, lifted out of the individual step
+  // components so the user sees what the step is for BEFORE the
+  // progress bar takes the visual focus. Renders right under the page's
+  // "Account Setup" title.
+  const stepIntro: Record<number, { title: string; lead: string }> = {
+    1: {
+      title: "Welcome to Beancounter!",
+      lead: "Quick setup — currency, portfolio, accounts. Skip and finish later in settings if you like.",
+    },
+    2: {
+      title: "Set your currencies",
+      lead: "Base currency tracks costs; reporting currency displays values. Default to the same one — they can differ.",
+    },
+    4: {
+      title: "Add your accounts",
+      lead: "Tell us about your assets to get a complete picture of your wealth. Optional.",
+    },
+    6: {
+      title: "Quick Independence Check",
+      lead: "Want to see how your finances might look in retirement? Just three quick questions.",
+    },
+    7: {
+      title: "Brokerage account",
+      lead: "Optional — set up a broker, a brokerage portfolio, and your opening cash deposit.",
+    },
+  }
+  const intro = stepIntro[currentStep]
+
   return (
     <div className="max-w-2xl mx-auto">
+      {intro && (
+        <div className="mb-3">
+          <h2 className="text-lg font-semibold text-gray-900">{intro.title}</h2>
+          <p className="text-sm text-gray-600">{intro.lead}</p>
+        </div>
+      )}
       <OnboardingProgress currentStep={currentStep} steps={steps} />
 
       {error && (

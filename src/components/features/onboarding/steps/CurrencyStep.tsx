@@ -36,15 +36,6 @@ const CurrencyStep: React.FC<CurrencyStepProps> = ({
 
   return (
     <div className="py-2">
-      <h2 className="text-xl font-bold text-gray-900 mb-1">
-        {"Set your currencies"}
-      </h2>
-      <p className="text-sm text-gray-600 mb-3">
-        {
-          "Base currency tracks costs; reporting currency displays values. Default to the same one — they can differ."
-        }
-      </p>
-
       {/* Base Currency */}
       <div className="mb-3">
         <h3 className="text-sm font-medium text-gray-900 mb-1">

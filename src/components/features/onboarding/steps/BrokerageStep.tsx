@@ -72,13 +72,8 @@ const BrokerageStep: React.FC<BrokerageStepProps> = ({
   )
   return (
     <div className="py-2">
-      <h2 className="text-2xl font-bold text-gray-900 mb-2">
-        {"Brokerage account"}
-      </h2>
-      <p className="text-gray-600 mb-4 text-sm">
-        {
-          "Optional — set up a broker, attach it to a portfolio, and record your opening cash deposit. You can do this later from "
-        }
+      <p className="text-gray-500 text-xs mb-3">
+        {"Also available later from "}
         <Link
           href="/tools/open-brokerage"
           className="text-purple-600 hover:underline"
