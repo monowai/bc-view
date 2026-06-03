@@ -129,30 +129,15 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
 
   // Calculate running balances.
   //
-  // The algorithm expects transactions in newest-first order so it can start
-  // from the current total and walk backwards subtracting each trn to expose
-  // "balance immediately after this trn". The backend now returns them
-  // oldest-first; sort defensively here so the algorithm keeps working
-  // regardless of upstream ordering (and so the visible row order is
-  // newest-first, which matches every other transaction list in the app).
+  // Trust the backend's order — svc-data sorts the cash-ladder query
+  // by `tradeDate desc, createdAt desc` (V26 migration added the
+  // `created_at` column for chronological tie-break). The algorithm
+  // walks newest→oldest starting from the current total and subtracts
+  // each trn to expose "balance immediately after this trn".
   const transactionsWithBalance = useMemo((): TrnWithBalance[] => {
-    const raw = cashLadderData.data?.data || []
-    if (raw.length === 0 || !cashAssetId) return []
+    const trns = cashLadderData.data?.data || []
+    if (trns.length === 0 || !cashAssetId) return []
 
-    // Backend orders by `tradeDate desc` only — within the same date the
-    // row order is unspecified (Postgres physical scan order, which is
-    // effectively insertion order for new portfolios). Trn ids are
-    // random strings so we can't tie-break by id chronologically. Reverse
-    // the raw array first, then stable-sort by tradeDate desc: same-date
-    // rows keep the REVERSED insertion order (= newest first within the
-    // day) and across-date ordering is correct.
-    const trns = [...raw].reverse()
-    trns.sort((a, b) =>
-      (b.tradeDate ?? "").localeCompare(a.tradeDate ?? ""),
-    )
-
-    // Calculate total balance from all transactions with enforced signs.
-    // Work backwards from total to show balance after each transaction.
     let balance = trns.reduce(
       (sum, trn) => sum + getSignedCashAmount(trn, cashAssetId),
       0,
