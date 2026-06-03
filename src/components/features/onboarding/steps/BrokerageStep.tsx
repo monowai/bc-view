@@ -110,7 +110,7 @@ const BrokerageStep: React.FC<BrokerageStepProps> = ({
               placeholder="e.g. IBRK"
             />
             <p className="text-xs text-gray-500 mt-1">
-              {`Cash will land on a broker-tagged line (e.g. ${brokerName || "BROKER"}-${currency}) on your default portfolio "${defaultPortfolioName}".`}
+              {`A new portfolio "${brokerName || "BROKER"} Portfolio" will be created for your brokerage, keeping its cash and trades separate from your "${defaultPortfolioName}" bank-account portfolio.`}
             </p>
           </div>
 

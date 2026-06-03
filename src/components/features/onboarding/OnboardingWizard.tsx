@@ -679,12 +679,21 @@ const OnboardingWizard: React.FC = () => {
       if (brokerageEnabled && brokerageBrokerName.trim() && portfolioId) {
         const amt = parseFloat(brokerageAmount)
         try {
+          // Brokerage gets its own dedicated portfolio (named after the
+          // broker) so its cash + future trades stay separate from the
+          // user's day-to-day bank-account portfolio. Source still
+          // resolves to a bank-account asset on the default portfolio
+          // when the user picked one, so a paired WITHDRAWAL hits the
+          // right line.
+          const brokerCode = brokerageBrokerName.trim()
           await openBrokerage({
-            broker: { mode: "new", newName: brokerageBrokerName.trim() },
+            broker: { mode: "new", newName: brokerCode },
             portfolio: {
-              mode: "existing",
-              existingId: portfolioId,
+              mode: "new",
+              code: brokerCode,
+              name: `${brokerCode} Portfolio`,
               currency: baseCurrency,
+              base: baseCurrency,
             },
             funding:
               Number.isFinite(amt) && amt > 0
@@ -704,7 +713,13 @@ const OnboardingWizard: React.FC = () => {
                         "bankAccount:".length,
                       )
                       const assetId = bankAccountAssetIds[name]
-                      if (assetId) fund.sourceAssetId = assetId
+                      if (assetId) {
+                        fund.sourceAssetId = assetId
+                        // Bank-account assets live on the default
+                        // portfolio, not the new brokerage portfolio
+                        // being created — pin the WITHDRAWAL there.
+                        fund.sourcePortfolioId = portfolioId
+                      }
                     }
                     return fund
                   })()
