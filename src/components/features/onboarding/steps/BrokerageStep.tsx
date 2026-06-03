@@ -1,11 +1,22 @@
 import React from "react"
 import Link from "next/link"
 import type { Portfolio } from "types/beancounter"
+import type { BankAccount } from "../OnboardingWizard"
+
+// The source dropdown's value encodes WHICH backend object the WITHDRAWAL
+// should hit: a portfolio (uses its generic cash asset) or a specific
+// bank-account asset on the default portfolio (e.g. the "DBS" PRIVATE
+// line the user just added in step 4). Format keeps both shapes in a
+// single <select> value string.
+//   ""                              → no source (standalone deposit)
+//   "portfolio:{id}"                → withdraw from portfolio's CASH/{ccy}
+//   "bankAccount:{name}"            → withdraw from bank-account asset
+export type SourceValue = "" | `portfolio:${string}` | `bankAccount:${string}`
 
 export interface BrokerageStepProps {
   enabled: boolean
   brokerName: string
-  sourcePortfolioId: string // "" → no source (cash injection)
+  source: SourceValue
   amount: string // free text; parsed at submit
   currency: string // defaults to base
   // Portfolios the user already has — used to populate the source dropdown.
@@ -14,10 +25,14 @@ export interface BrokerageStepProps {
   // it as a synthetic "Default portfolio" option via the defaultPortfolioName
   // prop instead.
   existingPortfolios: Portfolio[]
+  // Bank accounts the user added in step 4 — surfaced as additional source
+  // options so the brokerage deposit can be funded from a specific
+  // bank-account line on the default portfolio.
+  bankAccounts: BankAccount[]
   defaultPortfolioName: string
   onEnabledChange: (v: boolean) => void
   onBrokerNameChange: (v: string) => void
-  onSourcePortfolioIdChange: (v: string) => void
+  onSourceChange: (v: SourceValue) => void
   onAmountChange: (v: string) => void
 }
 
@@ -30,19 +45,23 @@ export interface BrokerageStepProps {
 const BrokerageStep: React.FC<BrokerageStepProps> = ({
   enabled,
   brokerName,
-  sourcePortfolioId,
+  source,
   amount,
   currency,
   existingPortfolios,
+  bankAccounts,
   defaultPortfolioName,
   onEnabledChange,
   onBrokerNameChange,
-  onSourcePortfolioIdChange,
+  onSourceChange,
   onAmountChange,
 }) => {
-  // Filter source portfolios to the chosen currency (same-currency v1).
-  const sameCurrencySources = existingPortfolios.filter(
+  // Filter source options to the chosen currency (same-currency v1).
+  const sameCurrencyPortfolios = existingPortfolios.filter(
     (p) => p.currency?.code === currency,
+  )
+  const sameCurrencyBankAccounts = bankAccounts.filter(
+    (b) => b.currency === currency,
   )
   return (
     <div className="py-2">
@@ -119,24 +138,39 @@ const BrokerageStep: React.FC<BrokerageStepProps> = ({
               htmlFor="ob-source"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              {"Source portfolio (optional)"}
+              {"Source (optional)"}
             </label>
             <select
               id="ob-source"
-              value={sourcePortfolioId}
-              onChange={(e) => onSourcePortfolioIdChange(e.target.value)}
+              value={source}
+              onChange={(e) =>
+                onSourceChange(e.target.value as SourceValue)
+              }
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
             >
               <option value="">— None (standalone deposit) —</option>
-              {sameCurrencySources.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({p.code})
-                </option>
-              ))}
+              {sameCurrencyBankAccounts.length > 0 && (
+                <optgroup label={`Bank accounts on "${defaultPortfolioName}"`}>
+                  {sameCurrencyBankAccounts.map((b) => (
+                    <option key={`b-${b.name}`} value={`bankAccount:${b.name}`}>
+                      {b.name}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              {sameCurrencyPortfolios.length > 0 && (
+                <optgroup label="Other portfolios">
+                  {sameCurrencyPortfolios.map((p) => (
+                    <option key={`p-${p.id}`} value={`portfolio:${p.id}`}>
+                      {p.name} ({p.code})
+                    </option>
+                  ))}
+                </optgroup>
+              )}
             </select>
             <p className="text-xs text-gray-500 mt-1">
               {
-                "Picking a source posts a matching withdrawal so the source's cash balance stays accurate."
+                "Picking a source posts a matching withdrawal so the source's cash stays accurate."
               }
             </p>
           </div>

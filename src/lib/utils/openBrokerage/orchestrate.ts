@@ -39,7 +39,13 @@ interface PortfolioStep {
 
 interface FundingStep {
   amount: number
-  sourcePortfolioId?: string // omit → no WITHDRAWAL leg
+  // Either side may be omitted (no WITHDRAWAL leg = standalone deposit).
+  // When both are given, sourceAssetId takes precedence — use it when the
+  // source is a specific PRIVATE asset (e.g. a bank-account line inside
+  // the same portfolio); fall back to ensureCashAsset(currency) when only
+  // sourcePortfolioId is set.
+  sourcePortfolioId?: string
+  sourceAssetId?: string
   currency: string
 }
 
@@ -235,15 +241,24 @@ export async function openBrokerage(
         amount: req.funding.amount,
       }),
     )
-    if (req.funding.sourcePortfolioId) {
-      // Source portfolio's cash is its generic CASH/{ccy} asset, NOT the
-      // broker-tagged one — broker cash only exists on the destination.
-      const sourceCashId = await ensureCashAsset(req.funding.currency)
+    if (req.funding.sourcePortfolioId || req.funding.sourceAssetId) {
+      // Withdraw from either the specific source asset (e.g. a bank-account
+      // PRIVATE line) when provided, or fall back to the portfolio's
+      // generic CASH/{ccy} asset. Broker-tagged cash only exists on the
+      // destination, never the source.
+      const sourceAssetId =
+        req.funding.sourceAssetId ??
+        (await ensureCashAsset(req.funding.currency))
+      // If sourceAssetId is supplied without an explicit sourcePortfolioId,
+      // assume the asset lives on the same portfolio the wizard is
+      // attaching the broker to (true for the onboarding flow's
+      // bank-account-on-default-portfolio case).
+      const sourcePortfolioId = req.funding.sourcePortfolioId ?? portfolioId
       trnIds.push(
         await postTrn({
-          portfolioId: req.funding.sourcePortfolioId,
+          portfolioId: sourcePortfolioId,
           trnType: "WITHDRAWAL",
-          assetId: sourceCashId,
+          assetId: sourceAssetId,
           currency: req.funding.currency,
           amount: req.funding.amount,
         }),

@@ -13,6 +13,7 @@ import ReviewStep from "./steps/ReviewStep"
 import CompleteStep from "./steps/CompleteStep"
 import IndependencePlanStep from "./steps/IndependencePlanStep"
 import BrokerageStep from "./steps/BrokerageStep"
+import type { SourceValue } from "./steps/BrokerageStep"
 import { openBrokerage } from "@lib/openBrokerage/orchestrate"
 import { useRegistration } from "@contexts/RegistrationContext"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
@@ -155,8 +156,7 @@ const OnboardingWizard: React.FC = () => {
   // Brokerage step (optional, post-default-portfolio creation)
   const [brokerageEnabled, setBrokerageEnabled] = useState(false)
   const [brokerageBrokerName, setBrokerageBrokerName] = useState("")
-  const [brokerageSourcePortfolioId, setBrokerageSourcePortfolioId] =
-    useState("")
+  const [brokerageSource, setBrokerageSource] = useState<SourceValue>("")
   const [brokerageAmount, setBrokerageAmount] = useState("")
   const [brokerageCreated, setBrokerageCreated] = useState(false)
 
@@ -341,7 +341,10 @@ const OnboardingWizard: React.FC = () => {
     return extractAsset(assetData)
   }
 
-  const createAssets = async (portfolioId: string): Promise<void> => {
+  const createAssets = async (
+    portfolioId: string,
+  ): Promise<{ bankAccountAssetIds: Record<string, string> }> => {
+    const bankAccountAssetIds: Record<string, string> = {}
     // Fetch existing user assets to avoid creating duplicates
     const existingResponse = await fetch("/api/assets")
     const existingAssets: Record<string, { id: string }> = existingResponse.ok
@@ -362,6 +365,10 @@ const OnboardingWizard: React.FC = () => {
         category: "ACCOUNT",
         currency: account.currency,
       })
+
+      if (asset?.id) {
+        bankAccountAssetIds[account.name] = asset.id
+      }
 
       if (asset?.id && account.balance && account.balance > 0) {
         await createTransaction(
@@ -522,6 +529,8 @@ const OnboardingWizard: React.FC = () => {
         })
       }
     }
+
+    return { bankAccountAssetIds }
   }
 
   const handleComplete = async (): Promise<void> => {
@@ -578,7 +587,10 @@ const OnboardingWizard: React.FC = () => {
       }
       setCreatedPortfolioId(portfolioId ?? null)
 
-      // Create assets if any
+      // Create assets if any. The returned bankAccountAssetIds map is
+      // used below to wire the optional brokerage step's source to a
+      // specific bank-account asset.
+      let bankAccountAssetIds: Record<string, string> = {}
       if (
         portfolioId &&
         (bankAccounts.length > 0 ||
@@ -586,7 +598,8 @@ const OnboardingWizard: React.FC = () => {
           pensions.length > 0 ||
           insurances.length > 0)
       ) {
-        await createAssets(portfolioId)
+        const created = await createAssets(portfolioId)
+        bankAccountAssetIds = created.bankAccountAssetIds
       }
 
       // Trigger portfolio valuation by fetching holdings
@@ -675,12 +688,26 @@ const OnboardingWizard: React.FC = () => {
             },
             funding:
               Number.isFinite(amt) && amt > 0
-                ? {
-                    amount: amt,
-                    currency: baseCurrency,
-                    sourcePortfolioId:
-                      brokerageSourcePortfolioId || undefined,
-                  }
+                ? (() => {
+                    const fund: {
+                      amount: number
+                      currency: string
+                      sourcePortfolioId?: string
+                      sourceAssetId?: string
+                    } = { amount: amt, currency: baseCurrency }
+                    if (brokerageSource.startsWith("portfolio:")) {
+                      fund.sourcePortfolioId = brokerageSource.slice(
+                        "portfolio:".length,
+                      )
+                    } else if (brokerageSource.startsWith("bankAccount:")) {
+                      const name = brokerageSource.slice(
+                        "bankAccount:".length,
+                      )
+                      const assetId = bankAccountAssetIds[name]
+                      if (assetId) fund.sourceAssetId = assetId
+                    }
+                    return fund
+                  })()
                 : undefined,
           })
           setBrokerageCreated(true)
@@ -783,14 +810,15 @@ const OnboardingWizard: React.FC = () => {
           <BrokerageStep
             enabled={brokerageEnabled}
             brokerName={brokerageBrokerName}
-            sourcePortfolioId={brokerageSourcePortfolioId}
+            source={brokerageSource}
             amount={brokerageAmount}
             currency={baseCurrency || "USD"}
             existingPortfolios={existingPortfolios}
+            bankAccounts={bankAccounts}
             defaultPortfolioName={portfolioName}
             onEnabledChange={setBrokerageEnabled}
             onBrokerNameChange={setBrokerageBrokerName}
-            onSourcePortfolioIdChange={setBrokerageSourcePortfolioId}
+            onSourceChange={setBrokerageSource}
             onAmountChange={setBrokerageAmount}
           />
         )
