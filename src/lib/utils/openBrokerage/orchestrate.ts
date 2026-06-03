@@ -7,7 +7,17 @@
 
 import type { Broker } from "types/beancounter"
 
-const today = (): string => new Date().toISOString().split("T")[0]
+// Local-date YYYY-MM-DD so tradeDate matches the user's calendar day,
+// not UTC's. `new Date().toISOString()` would mis-report the day for any
+// user east of GMT after late afternoon.
+const today = (): string => {
+  const d = new Date()
+  return (
+    `${d.getFullYear()}-` +
+    `${String(d.getMonth() + 1).padStart(2, "0")}-` +
+    `${String(d.getDate()).padStart(2, "0")}`
+  )
+}
 
 interface BrokerStep {
   mode: "existing" | "new"
@@ -136,7 +146,17 @@ async function postTrn(leg: TrnLeg): Promise<string> {
       ],
     },
   )
-  return resp.data?.trns?.[0]?.id ?? ""
+  // Backend returns a normalised TrnPayload envelope; the first trn id
+  // is what callers care about. If the envelope is empty (shouldn't
+  // happen on 2xx but observed when auto-settle reshapes the response),
+  // log + return an empty string so the wizard still completes and the
+  // user sees the success screen — the trn was persisted upstream.
+  const id = resp.data?.trns?.[0]?.id
+  if (!id) {
+    console.warn("postTrn: backend returned no trn id", resp)
+    return ""
+  }
+  return id
 }
 
 /**

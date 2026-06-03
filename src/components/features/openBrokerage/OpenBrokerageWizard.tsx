@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 import useSwr from "swr"
 import {
   openBrokerage,
@@ -106,6 +106,18 @@ export default function OpenBrokerageWizard(): React.ReactElement {
     [portfolios, portfolio.currency],
   )
 
+  // If the user backs up and changes the portfolio currency, drop a
+  // previously-picked source portfolio if it no longer matches.
+  // Otherwise a cross-currency source id would sneak through to submit.
+  useEffect(() => {
+    if (
+      funding.sourcePortfolioId &&
+      !sameCurrencySources.some((p) => p.id === funding.sourcePortfolioId)
+    ) {
+      setFunding((f) => ({ ...f, sourcePortfolioId: "" }))
+    }
+  }, [sameCurrencySources, funding.sourcePortfolioId])
+
   const brokerValid =
     broker.mode === "existing"
       ? !!broker.existingId
@@ -185,7 +197,10 @@ export default function OpenBrokerageWizard(): React.ReactElement {
     <div className="max-w-2xl mx-auto px-4 py-8">
       <StepHeader step={step} />
       {error && (
-        <div className="mb-4 px-4 py-3 rounded bg-red-50 border border-red-200 text-sm text-red-700">
+        <div
+          role="alert"
+          className="mb-4 px-4 py-3 rounded bg-red-50 border border-red-200 text-sm text-red-700"
+        >
           {error}
         </div>
       )}

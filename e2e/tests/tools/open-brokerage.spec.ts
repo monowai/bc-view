@@ -97,6 +97,9 @@ test.describe("/tools/open-brokerage", () => {
       expect(result.code).toBe(portfolioCode)
     } finally {
       await helpers.cleanupTestData()
+      // Wizard creates a broker that cleanupTestData doesn't know about.
+      // Sweep by name prefix so it doesn't leak between runs.
+      await helpers.cleanupBrokersByPrefix("E2E")
     }
   })
 
@@ -197,6 +200,9 @@ test.describe("/tools/open-brokerage", () => {
       await expect(page.getByText(/2\s+cash transaction/i)).toBeVisible()
     } finally {
       await helpers.cleanupTestData()
+      // Wizard creates a broker that cleanupTestData doesn't know about.
+      // Sweep by name prefix so it doesn't leak between runs.
+      await helpers.cleanupBrokersByPrefix("E2E")
     }
   })
 })
