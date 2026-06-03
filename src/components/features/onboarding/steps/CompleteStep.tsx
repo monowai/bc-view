@@ -81,6 +81,28 @@ const CompleteStep: React.FC<CompleteStepProps> = ({
           )}
         </ul>
       </div>
+
+      {/* Follow-up: brokerage. Surfaced here (not on Welcome) so the user's
+          existing bank-side picture is recorded into the default portfolio
+          first. The wizard creates a fresh broker + portfolio for invested
+          cash as a separate activity. */}
+      <div className="mt-8 max-w-sm mx-auto bg-purple-50 border border-purple-200 rounded-lg p-4 text-left">
+        <h3 className="font-semibold text-gray-900 mb-1 flex items-center gap-2">
+          <i className="fas fa-building-columns text-purple-500"></i>
+          {"Have a brokerage account?"}
+        </h3>
+        <p className="text-sm text-gray-600 mb-3">
+          {
+            "Set up your broker, a brokerage portfolio and your opening cash deposit."
+          }
+        </p>
+        <Link
+          href="/tools/open-brokerage"
+          className="inline-flex items-center text-sm font-medium text-purple-600 hover:text-purple-700"
+        >
+          {"Open Brokerage wizard →"}
+        </Link>
+      </div>
     </div>
   )
 }

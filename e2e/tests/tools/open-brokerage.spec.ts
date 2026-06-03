@@ -10,20 +10,12 @@ test.describe("/tools/open-brokerage", () => {
     await expect(page.getByText(/Step 1 of 4/i)).toBeVisible()
   })
 
-  test("is reachable from the onboarding Welcome step's brokerage choice", async ({
-    page,
-  }) => {
-    await page.goto("/onboarding")
-    await page.waitForLoadState("domcontentloaded")
-    await expect(
-      page.getByText(/Do you have a brokerage account/i),
-    ).toBeVisible()
-    await page.getByRole("link", { name: /Yes\s*—\s*set it up/i }).click()
-    await page.waitForURL(/\/tools\/open-brokerage$/)
-    await expect(
-      page.getByRole("heading", { name: /^Broker$/i }),
-    ).toBeVisible()
-  })
+  // Note: the onboarding-link click-through test was removed when the
+  // brokerage CTA moved from WelcomeStep (step 1) to CompleteStep (final
+  // step). Reaching it from /onboarding now requires walking the entire
+  // wizard — too expensive for this spec. A direct /tools/open-brokerage
+  // smoke test covers the destination; CompleteStep itself is verified
+  // by jest renders rather than the browser.
 
   test("creates a broker + portfolio with no funding @smoke", async ({
     page,
