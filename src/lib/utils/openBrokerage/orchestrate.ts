@@ -121,6 +121,8 @@ async function ensureAsset(payload: {
   code: string
   market: string
   name?: string
+  currency?: string
+  category?: string
 }): Promise<string> {
   const resp = await postJson<{
     data: Record<string, { id: string }>
@@ -141,7 +143,9 @@ const ensureCashAsset = (currency: string): Promise<string> =>
 // Per-broker PRIVATE cash asset like "IBRK-USD" / "DBS-SGD". Used when the
 // brokerage attaches to an EXISTING portfolio so the broker's cash is
 // visible as a distinct line ("IBRK USD Balance") alongside any pre-existing
-// generic-cash holdings in the same portfolio.
+// generic-cash holdings in the same portfolio. PRIVATE assets MUST carry an
+// explicit `currency` and `category` per svc-data's AssetController
+// validation ("Currency required for private asset {code}").
 const ensureBrokerCashAsset = (
   brokerName: string,
   currency: string,
@@ -150,6 +154,8 @@ const ensureBrokerCashAsset = (
     code: `${brokerName}-${currency}`,
     market: "PRIVATE",
     name: `${brokerName} ${currency} Balance`,
+    currency,
+    category: "ACCOUNT",
   })
 
 interface TrnLeg {
