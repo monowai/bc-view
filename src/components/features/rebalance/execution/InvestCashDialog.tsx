@@ -252,13 +252,14 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
         return
       }
 
-      onSuccess()
+      // PROPOSED commits navigate away; skip the parent refresh so the
+      // caller's `router.replace(asPath)` doesn't race with our push and
+      // strand the user on the current page.
       handleClose()
-      // Only nav to the proposed-transactions list when the orders are
-      // actually unsettled. SETTLED commits skip the proposed list and
-      // would surface on the portfolio holdings instead.
       if (transactionStatus === "PROPOSED") {
         router.push("/trns/proposed")
+      } else {
+        onSuccess()
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to commit")
