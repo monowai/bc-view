@@ -103,12 +103,43 @@ jobs:
           restore-keys: |
             nextjs-cache-
 
+      - name: Verify Sentry DSN secret is present
+        env:
+          DSN_PRESENT: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN != '' }}
+        run: |
+          if [ "$DSN_PRESENT" != "true" ]; then
+            echo "::error::NEXT_PUBLIC_SENTRY_DSN repo secret is missing or empty."
+            echo "Browser-side Sentry will silently bail out — no pageload traces."
+            echo "Add the secret at: https://github.com/monowai/bc-view/settings/secrets/actions"
+            exit 1
+          fi
+          echo "NEXT_PUBLIC_SENTRY_DSN secret is set."
+
       - name: Build application
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
           CI: true
           NEXT_PUBLIC_SENTRY_DSN: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
         run: yarn build
+
+      - name: Verify Sentry DSN is inlined into client bundle
+        env:
+          NEXT_PUBLIC_SENTRY_DSN: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
+        run: |
+          # Extract Sentry project ID (last path segment of DSN URL) - public identifier, safe to grep
+          PROJECT_ID="${NEXT_PUBLIC_SENTRY_DSN##*/}"
+          if [ -z "$PROJECT_ID" ]; then
+            echo "::error::Could not extract project ID from NEXT_PUBLIC_SENTRY_DSN."
+            exit 1
+          fi
+          if grep -rqF "$PROJECT_ID" .next/static/chunks 2>/dev/null; then
+            echo "Sentry DSN inlined into client bundle."
+          else
+            echo "::error::Sentry DSN NOT found in .next/static/chunks — browser tracing would be dead."
+            echo "Next.js did not inline NEXT_PUBLIC_SENTRY_DSN despite the env var being set at build time."
+            echo "Check that instrumentation-client.ts references process.env.NEXT_PUBLIC_SENTRY_DSN directly (no indirection)."
+            exit 1
+          fi
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v6
