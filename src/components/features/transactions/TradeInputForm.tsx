@@ -401,10 +401,8 @@ const TradeInputForm: React.FC<{
     const assetCode = option.symbol || option.value
     // Skip price fetching for private assets - they don't have external market data
     if (market && assetCode && market !== "PRIVATE" && market !== "CASH") {
-      const tradeDate = watch("tradeDate")
-      const today = new Date().toISOString().split("T")[0]
-      const asAt = tradeDate && tradeDate < today ? tradeDate : undefined
-      const fetchedPrice = await fetchAssetPrice(market, assetCode, asAt)
+      const tradeDate = watch("tradeDate") || undefined
+      const fetchedPrice = await fetchAssetPrice(market, assetCode, tradeDate)
       if (fetchedPrice !== null) {
         setValue("price", fetchedPrice)
       }
