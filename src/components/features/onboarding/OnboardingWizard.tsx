@@ -67,19 +67,23 @@ export interface OnboardingState {
   insurances: Insurance[]
 }
 
+/**
+ * Build a short asset code from a user-typed name. Splits on any
+ * non-alphanumeric (whitespace, hyphens, dots, underscores) so that
+ * names like "DBS-SGD" and "DBS-USD" produce distinct codes
+ * ("DBS-SGD" / "DBS-USD") instead of colliding on a truncated prefix
+ * ("DBS-" each). Caps at 16 chars to stay within DB column bounds and
+ * to avoid hand-typed paragraphs becoming the code.
+ */
 function generateAssetCode(name: string): string {
-  const words = name
-    .trim()
-    .split(/\s+/)
-    .filter((w) => w.length > 0)
-  if (words.length === 0) return "ASSET"
-  if (words.length >= 2) {
-    return words
-      .map((w) => w[0])
-      .join("")
-      .toUpperCase()
-  }
-  return words[0].substring(0, 4).toUpperCase()
+  const upper = name.trim().toUpperCase()
+  if (!upper) return "ASSET"
+  const parts = upper.split(/[^A-Z0-9]+/).filter(Boolean)
+  if (parts.length === 0) return "ASSET"
+  // Preserve hyphenation so user-typed identifiers stay distinct.
+  // Single-token names still get the original short-prefix behaviour
+  // (e.g. "Savings" → "SAVINGS"), capped to 16 chars.
+  return parts.join("-").slice(0, 16)
 }
 
 const OnboardingWizard: React.FC = () => {
