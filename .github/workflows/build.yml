@@ -95,11 +95,17 @@ jobs:
       # the key minted a fresh ~100 MB cache on every source commit and blew
       # past the repo cache budget. .next/cache is designed to restore stale —
       # Next handles incremental compilation from there.
+      # Include the workflow file in the cache key so changes to build env
+      # (env vars, secret references, build flags) bust the Turbopack persistent
+      # cache. Without this, .next/cache can pin a stale compiled version of
+      # process.env.NEXT_PUBLIC_* values — observed on 2026-06-04 when a chunk
+      # built BEFORE the Sentry DSN secret existed was reused AFTER the secret
+      # was added, leaving the browser bundle with an undefined DSN.
       - name: Restore Next.js build cache
         uses: actions/cache@v5
         with:
           path: .next/cache
-          key: nextjs-cache-${{ hashFiles('yarn.lock', 'next.config.js') }}
+          key: nextjs-cache-${{ hashFiles('yarn.lock', 'next.config.js', '.github/workflows/build.yml') }}
           restore-keys: |
             nextjs-cache-
 
