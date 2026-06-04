@@ -65,7 +65,7 @@ export const toCashAssetOptions = (
 ): SettlementAccountOption[] => {
   return cashAssets.map((asset) => ({
     value: asset.id,
-    label: `${asset.name || asset.code} Balance`,
+    label: asset.name || `${asset.code} Cash`,
     currency: asset.code,
     market: "CASH",
   }))
