@@ -1,5 +1,6 @@
 import React from "react"
 import Link from "next/link"
+import MathInput from "@components/ui/MathInput"
 import type { Portfolio } from "types/beancounter"
 import type { BankAccount } from "../OnboardingWizard"
 
@@ -156,15 +157,13 @@ const BrokerageStep: React.FC<BrokerageStepProps> = ({
             >
               {`Opening deposit (${currency})`}
             </label>
-            <input
+            <MathInput
               id="ob-amount"
-              type="number"
-              inputMode="decimal"
-              min="0"
               value={amount}
-              onChange={(e) => onAmountChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              onChange={(v) => onAmountChange(v === 0 ? "" : String(v))}
+              min={0}
               placeholder="0"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
             />
           </div>
 
