@@ -115,6 +115,14 @@ export default function HeaderUserControls(): React.ReactElement {
             <i className="fas fa-building w-4 text-center text-xs text-gray-400"></i>
             {"Brokers"}
           </Link>
+          <Link
+            href="/shares"
+            className="flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            onClick={() => setDropdownOpen(false)}
+          >
+            <i className="fas fa-share-alt w-4 text-center text-xs text-gray-400"></i>
+            {"Shares"}
+          </Link>
           {isAdmin && (
             <Link
               href="/admin"
