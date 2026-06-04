@@ -495,13 +495,8 @@ const TradeInputForm: React.FC<{
   }, [allCashBalances, currentTradeCurrency])
 
   const defaultCashAsset = useMemo(
-    () =>
-      buildDefaultCashAsset(
-        filteredCashAssets,
-        currentTradeCurrency,
-        allBankAccounts,
-      ),
-    [filteredCashAssets, currentTradeCurrency, allBankAccounts],
+    () => buildDefaultCashAsset(filteredCashAssets, currentTradeCurrency),
+    [filteredCashAssets, currentTradeCurrency],
   )
 
   // Cash assets for dropdown - all currency balances are already included
