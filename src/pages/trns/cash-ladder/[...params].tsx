@@ -127,15 +127,17 @@ export default withPageAuthRequired(function CashLadder(): React.ReactElement {
     [],
   )
 
-  // Calculate running balances
-  // Transactions are sorted desc (newest first)
-  // Sum all cashAmounts to get current balance, then work backwards to show balance after each trn
+  // Calculate running balances.
+  //
+  // Trust the backend's order — svc-data sorts the cash-ladder query
+  // by `tradeDate desc, createdAt desc` (V26 migration added the
+  // `created_at` column for chronological tie-break). The algorithm
+  // walks newest→oldest starting from the current total and subtracts
+  // each trn to expose "balance immediately after this trn".
   const transactionsWithBalance = useMemo((): TrnWithBalance[] => {
     const trns = cashLadderData.data?.data || []
     if (trns.length === 0 || !cashAssetId) return []
 
-    // Calculate total balance from all transactions with enforced signs
-    // Work backwards from total to show balance after each transaction
     let balance = trns.reduce(
       (sum, trn) => sum + getSignedCashAmount(trn, cashAssetId),
       0,

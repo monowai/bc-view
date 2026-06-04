@@ -8,8 +8,11 @@ interface CompleteStepProps {
   insuranceCount: number
   portfolioId: string | null
   independencePlanCreated?: boolean
+  brokerageCreated?: boolean
 }
 
+// Compact "you're all set" — single screen. Summary as horizontal chips,
+// next-step pointers side-by-side, no oversized icon header.
 const CompleteStep: React.FC<CompleteStepProps> = ({
   portfolioName,
   bankAccountCount,
@@ -17,69 +20,114 @@ const CompleteStep: React.FC<CompleteStepProps> = ({
   pensionCount,
   insuranceCount,
   independencePlanCreated,
+  brokerageCreated,
 }) => {
-  return (
-    <div className="text-center py-6">
-      <div className="text-5xl mb-6 text-green-500">
-        <i className="fas fa-check-circle"></i>
-      </div>
+  const chips: Array<{ icon: string; color: string; label: string }> = [
+    { icon: "fa-folder", color: "text-blue-500", label: portfolioName },
+    ...(bankAccountCount > 0
+      ? [
+          {
+            icon: "fa-university",
+            color: "text-blue-500",
+            label: `${bankAccountCount} bank account${bankAccountCount === 1 ? "" : "s"}`,
+          },
+        ]
+      : []),
+    ...(propertyCount > 0
+      ? [
+          {
+            icon: "fa-home",
+            color: "text-green-500",
+            label: `${propertyCount} propert${propertyCount === 1 ? "y" : "ies"}`,
+          },
+        ]
+      : []),
+    ...(pensionCount > 0
+      ? [
+          {
+            icon: "fa-piggy-bank",
+            color: "text-purple-500",
+            label: `${pensionCount} pension${pensionCount === 1 ? "" : "s"}`,
+          },
+        ]
+      : []),
+    ...(insuranceCount > 0
+      ? [
+          {
+            icon: "fa-shield-alt",
+            color: "text-teal-500",
+            label: `${insuranceCount} insurance${insuranceCount === 1 ? "" : " policies"}`,
+          },
+        ]
+      : []),
+    ...(brokerageCreated
+      ? [
+          {
+            icon: "fa-building-columns",
+            color: "text-purple-500",
+            label: "Brokerage set up",
+          },
+        ]
+      : []),
+  ]
 
-      <h2 className="text-2xl font-bold text-gray-900 mb-4">
+  return (
+    <div className="py-2">
+      <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2 mb-1">
+        <i className="fas fa-check-circle text-green-500"></i>
         {"You're all set!"}
       </h2>
-
-      <p className="text-gray-600 mb-6">
-        {"Your account has been set up successfully. Here's what was created:"}
+      <p className="text-sm text-gray-600 mb-3">
+        {"Created:"}
       </p>
 
-      {/* Summary */}
-      <div className="bg-gray-50 rounded-lg p-4 max-w-sm mx-auto">
-        <ul className="text-left space-y-2">
-          <li className="flex items-center text-gray-700">
-            <i className="fas fa-folder text-blue-500 w-6"></i>
-            <span>
-              {"Portfolio:"} <strong>{portfolioName}</strong>
-            </span>
-          </li>
-          {bankAccountCount > 0 && (
-            <li className="flex items-center text-gray-700">
-              <i className="fas fa-university text-blue-500 w-6"></i>
-              <span>{`${bankAccountCount} bank account(s)`}</span>
-            </li>
-          )}
-          {propertyCount > 0 && (
-            <li className="flex items-center text-gray-700">
-              <i className="fas fa-home text-green-500 w-6"></i>
-              <span>{`${propertyCount} property(ies)`}</span>
-            </li>
-          )}
-          {pensionCount > 0 && (
-            <li className="flex items-center text-gray-700">
-              <i className="fas fa-piggy-bank text-purple-500 w-6"></i>
-              <span>{`${pensionCount} pension plan(s)`}</span>
-            </li>
-          )}
-          {insuranceCount > 0 && (
-            <li className="flex items-center text-gray-700">
-              <i className="fas fa-shield-alt text-teal-500 w-6"></i>
-              <span>{`${insuranceCount} insurance policy(ies)`}</span>
-            </li>
-          )}
-          {independencePlanCreated && (
-            <li className="flex items-center text-gray-700">
-              <i className="fas fa-chart-line text-independence-500 w-6"></i>
-              <span>
-                {"Independence Plan created"}{" "}
-                <Link
-                  href="/independence"
-                  className="text-independence-600 hover:underline"
-                >
-                  {"View plan"}
-                </Link>
-              </span>
-            </li>
-          )}
-        </ul>
+      {/* Horizontal summary chips */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        {chips.map((c, i) => (
+          <span
+            key={i}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 text-xs text-gray-700"
+          >
+            <i className={`fas ${c.icon} ${c.color}`}></i>
+            {c.label}
+          </span>
+        ))}
+        {independencePlanCreated && (
+          <Link
+            href="/independence"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-independence-50 text-xs text-independence-700 hover:bg-independence-100"
+          >
+            <i className="fas fa-chart-line text-independence-500"></i>
+            {"Independence Plan"}
+            <i className="fas fa-arrow-right text-[10px]"></i>
+          </Link>
+        )}
+      </div>
+
+      {/* Next-step pointers — side-by-side, compact */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-sm">
+          <div className="font-semibold text-gray-900 flex items-center gap-1.5 mb-1">
+            <i className="fas fa-building-columns text-purple-500"></i>
+            {"More brokerage accounts"}
+          </div>
+          <p className="text-xs text-gray-600">
+            {"Use "}
+            <strong>Tools → Open Brokerage</strong>
+            {" any time to add another broker."}
+          </p>
+        </div>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
+          <div className="font-semibold text-gray-900 flex items-center gap-1.5 mb-1">
+            <i className="fas fa-coins text-blue-500"></i>
+            {"Other assets"}
+          </div>
+          <p className="text-xs text-gray-600">
+            {"Use the "}
+            <strong>Wealth</strong>
+            {" menu to record assets BC doesn't natively support — collectibles, alt-investments, anything off-market."}
+          </p>
+        </div>
       </div>
     </div>
   )

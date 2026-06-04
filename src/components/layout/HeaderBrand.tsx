@@ -59,6 +59,11 @@ const navSections: NavSection[] = [
     items: [
       { href: "/chat", label: "Chat", icon: "fa-robot", aiOnly: true },
       {
+        href: "/tools/open-brokerage",
+        label: "Open Brokerage",
+        icon: "fa-building-columns",
+      },
+      {
         href: "/tools/cost-stack",
         label: "Cost Stack",
         icon: "fa-layer-group",

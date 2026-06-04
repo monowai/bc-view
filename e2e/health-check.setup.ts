@@ -20,12 +20,12 @@ const services: ServiceCheck[] = [
   {
     name: "bc-event",
     url: process.env.BC_EVENT_ACTUATOR || "http://localhost:9521",
-    required: true,
+    required: process.env.E2E_SKIP_EVENT_CHECK !== "true",
   },
   {
     name: "bc-retire",
     url: process.env.BC_RETIRE_ACTUATOR || "http://localhost:9541",
-    required: true,
+    required: process.env.E2E_SKIP_RETIRE_CHECK !== "true",
   },
   {
     name: "bc-rebalance",
@@ -67,6 +67,6 @@ setup("backends are up", async ({ request }) => {
 
   expect(
     failures,
-    `Required backend services not healthy:\n  - ${failures.join("\n  - ")}\nStart them via ./gradlew bootRun in the relevant repo, or set E2E_SKIP_REBALANCE_CHECK=true to skip bc-rebalance.`,
+    `Required backend services not healthy:\n  - ${failures.join("\n  - ")}\nStart them via ./gradlew bootRun in the relevant repo, or skip the auxiliary services with E2E_SKIP_EVENT_CHECK / E2E_SKIP_RETIRE_CHECK / E2E_SKIP_REBALANCE_CHECK = true (bc-data + bc-position remain required).`,
   ).toHaveLength(0)
 })

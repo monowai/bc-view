@@ -26,43 +26,34 @@ const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
 }) => {
   return (
     <div className="space-y-6">
-      <div className="text-center">
-        <div className="text-4xl mb-4 text-independence-500">
-          <i className="fas fa-chart-line"></i>
-        </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          {"Quick Independence Check"}
-        </h2>
-        <p className="text-gray-600">
-          {
-            "Want to see how your finances might look in retirement? Just three quick questions."
-          }
-        </p>
-      </div>
-
-      {/* Enable/Skip toggle */}
+      {/* Enable/Skip toggle. Tick follows the selected option so the user
+          sees clear feedback when picking either path (previously hardcoded
+          on "Yes" regardless of state — Skip felt unresponsive). */}
       <div className="flex items-center justify-center gap-4">
         <button
           type="button"
           onClick={() => onEnabledChange(true)}
-          className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+          aria-pressed={enabled}
+          className={`px-6 py-3 rounded-lg font-medium transition-colors border-2 ${
             enabled
-              ? "bg-independence-600 text-white"
-              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              ? "bg-independence-600 text-white border-independence-600"
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200 border-transparent"
           }`}
         >
-          <i className="fas fa-check mr-2"></i>
+          {enabled && <i className="fas fa-check mr-2"></i>}
           {"Yes, let's do it"}
         </button>
         <button
           type="button"
           onClick={() => onEnabledChange(false)}
-          className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+          aria-pressed={!enabled}
+          className={`px-6 py-3 rounded-lg font-medium transition-colors border-2 ${
             !enabled
-              ? "bg-gray-200 text-gray-700"
-              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              ? "bg-gray-700 text-white border-gray-700"
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200 border-transparent"
           }`}
         >
+          {!enabled && <i className="fas fa-check mr-2"></i>}
           {"Skip for now"}
         </button>
       </div>

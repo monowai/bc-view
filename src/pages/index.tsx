@@ -146,7 +146,7 @@ export default function Home(): React.ReactElement {
             <p className="text-gray-600 mb-6 text-center">
               {"No portfolios yet"}
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Guided Setup - for novice users */}
               <Link
                 href="/onboarding"
@@ -160,6 +160,21 @@ export default function Home(): React.ReactElement {
                 </h3>
                 <p className="text-gray-500 text-sm">
                   {"Guided setup for bank accounts, property, and pensions"}
+                </p>
+              </Link>
+              {/* Open Brokerage - for users who already have a broker account */}
+              <Link
+                href="/tools/open-brokerage"
+                className="border border-gray-200 rounded-xl p-5 text-center hover:border-purple-300 hover:shadow-md transition-all"
+              >
+                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <i className="fas fa-building-columns text-xl text-purple-500"></i>
+                </div>
+                <h3 className="font-semibold text-gray-900 mb-1">
+                  {"Open Brokerage"}
+                </h3>
+                <p className="text-gray-500 text-sm">
+                  {"Add a broker, a brokerage portfolio and your opening cash"}
                 </p>
               </Link>
               {/* Direct Add - for professional users */}

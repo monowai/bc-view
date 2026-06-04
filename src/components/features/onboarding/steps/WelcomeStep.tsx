@@ -1,34 +1,23 @@
 import React from "react"
+
 interface WelcomeStepProps {
   preferredName: string
   onPreferredNameChange: (name: string) => void
 }
 
+// Compact Welcome step — single screen, no scroll on a 800x600 viewport.
+// Icon dropped, vertical paddings tightened, "what we'll cover" inlined
+// as a one-line summary rather than a full panel.
 const WelcomeStep: React.FC<WelcomeStepProps> = ({
   preferredName,
   onPreferredNameChange,
 }) => {
   return (
-    <div className="text-center py-6">
-      <div className="text-5xl mb-6">
-        <i className="fas fa-chart-line text-blue-500"></i>
-      </div>
-
-      <h2 className="text-2xl font-bold text-gray-900 mb-4">
-        {"Welcome to Beancounter!"}
-      </h2>
-
-      <p className="text-gray-600 mb-6 max-w-md mx-auto">
-        {
-          "Let's set up your account in a few quick steps. We'll help you create your first portfolio and add your accounts."
-        }
-      </p>
-
-      {/* Preferred Name Input */}
-      <div className="max-w-sm mx-auto mb-6">
+    <div className="py-2">
+      <div className="max-w-sm mb-4">
         <label
           htmlFor="preferredName"
-          className="block text-sm font-medium text-gray-700 mb-2 text-left"
+          className="block text-sm font-medium text-gray-700 mb-1"
         >
           {"What should we call you?"}
         </label>
@@ -38,36 +27,26 @@ const WelcomeStep: React.FC<WelcomeStepProps> = ({
           value={preferredName}
           onChange={(e) => onPreferredNameChange(e.target.value)}
           placeholder={"Your first name"}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
-        <p className="text-sm text-gray-500 mt-1 text-left">
-          {"This is how we'll greet you throughout the app."}
-        </p>
       </div>
 
-      <div className="bg-gray-50 rounded-lg p-4 max-w-sm mx-auto">
-        <h3 className="font-medium text-gray-900 mb-3">
-          {"What we'll cover:"}
-        </h3>
-        <ul className="text-left text-gray-600 space-y-2">
-          <li className="flex items-center">
-            <i className="fas fa-dollar-sign text-blue-500 w-5 mr-2"></i>
-            {"Choose your base currency"}
-          </li>
-          <li className="flex items-center">
-            <i className="fas fa-folder text-blue-500 w-5 mr-2"></i>
-            {"Create your first portfolio"}
-          </li>
-          <li className="flex items-center">
-            <i className="fas fa-university text-blue-500 w-5 mr-2"></i>
-            {"Add your bank accounts & property"}
-          </li>
-        </ul>
+      <div className="text-xs text-gray-500 flex flex-wrap gap-x-4 gap-y-1">
+        <span>
+          <i className="fas fa-dollar-sign text-blue-500 mr-1"></i>Currency
+        </span>
+        <span>
+          <i className="fas fa-folder text-blue-500 mr-1"></i>Portfolio
+        </span>
+        <span>
+          <i className="fas fa-university text-blue-500 mr-1"></i>Bank accounts
+          &amp; property
+        </span>
+        <span>
+          <i className="fas fa-building-columns text-purple-500 mr-1"></i>
+          Brokerage
+        </span>
       </div>
-
-      <p className="text-sm text-gray-500 mt-6">
-        {"You can skip this setup and complete it later from settings."}
-      </p>
     </div>
   )
 }
