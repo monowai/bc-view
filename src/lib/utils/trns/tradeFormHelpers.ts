@@ -236,7 +236,7 @@ export const buildInitialSettlementAccount = (
     value: asset.id,
     label:
       asset.name ||
-      `${getDisplayCode(asset)} ${asset.market?.code === "CASH" ? "Balance" : ""}`,
+      `${getDisplayCode(asset)}${asset.market?.code === "CASH" ? " Cash" : ""}`,
     currency:
       asset.accountingType?.currency?.code ||
       asset.priceSymbol ||
@@ -302,38 +302,28 @@ export const buildAllCashBalances = (
 }
 
 /**
- * Build default settlement option for a trade currency.
- * Prefers a matching bank account over a generic cash balance.
+ * Build default settlement option for a trade currency. Always returns the
+ * generic `{ccy} Cash` asset so a broker with no explicit settlement
+ * mapping doesn't accidentally route trades to an unrelated bank account
+ * in the linked funding portfolio. Caller can still override via the
+ * dropdown or via the broker's settlement-accounts mapping.
  */
 export const buildDefaultCashAsset = (
   filteredCashAssets: AssetLike[],
   tradeCurrency: string,
-  bankAccounts: AssetLike[] = [],
 ): SettlementAccountOption => {
-  // Prefer a bank account matching the trade currency
-  const matchingBank = bankAccounts.find(
-    (a) => getAssetCurrency(a) === tradeCurrency,
-  )
-  if (matchingBank) {
-    return {
-      value: matchingBank.id,
-      label: `${matchingBank.name || matchingBank.code} (${tradeCurrency})`,
-      currency: tradeCurrency,
-      market: "PRIVATE",
-    }
-  }
   const cashAsset = filteredCashAssets[0]
   if (cashAsset) {
     return {
       value: cashAsset.id,
-      label: `${cashAsset.name || cashAsset.code} Balance`,
+      label: cashAsset.name || `${cashAsset.code} Cash`,
       currency: cashAsset.code,
       market: "CASH",
     }
   }
   return {
     value: `cash:${tradeCurrency}`,
-    label: `${tradeCurrency} Balance`,
+    label: `${tradeCurrency} Cash`,
     currency: tradeCurrency,
     market: "CASH",
   }

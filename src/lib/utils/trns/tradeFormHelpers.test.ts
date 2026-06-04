@@ -429,7 +429,7 @@ describe("tradeFormHelpers", () => {
       }
       const result = buildInitialSettlementAccount(trn as any)
       expect(result!.label).toContain("USD")
-      expect(result!.label).toContain("Balance")
+      expect(result!.label).toContain("Cash")
     })
   })
 
@@ -524,7 +524,7 @@ describe("tradeFormHelpers", () => {
       const result = buildDefaultCashAsset(filtered, "NZD")
       expect(result).toEqual({
         value: "c1",
-        label: "NZD Balance",
+        label: "NZD",
         currency: "NZD",
         market: "CASH",
       })
@@ -534,7 +534,7 @@ describe("tradeFormHelpers", () => {
       const result = buildDefaultCashAsset([], "GBP")
       expect(result).toEqual({
         value: "cash:GBP",
-        label: "GBP Balance",
+        label: "GBP Cash",
         currency: "GBP",
         market: "CASH",
       })
