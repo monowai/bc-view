@@ -41,13 +41,30 @@ export default function OffboardingWizard(): React.ReactElement {
       }
 
       if (plansRes?.ok) {
-        const plansData = await plansRes.json()
-        setPlanCount(plansData.data?.length ?? 0)
+        // /api/independence/plans returns plans the caller can SEE,
+        // which includes shared plans they don't own. The offboarding
+        // delete only removes plans the caller owns, so the count
+        // displayed has to exclude `sharedPlanIds`.
+        const plansData = (await plansRes.json()) as {
+          data?: Array<{ id: string }>
+          sharedPlanIds?: string[]
+        }
+        const shared = new Set(plansData.sharedPlanIds ?? [])
+        const owned = (plansData.data ?? []).filter((p) => !shared.has(p.id))
+        setPlanCount(owned.length)
       }
 
       if (modelsRes?.ok) {
-        const modelsData = await modelsRes.json()
-        setModelCount(modelsData.data?.length ?? 0)
+        // ModelDto exposes `isOwner` directly. Shared models (where
+        // the caller is a viewer, not the owner) are excluded so the
+        // count matches what offboarding will actually delete.
+        const modelsData = (await modelsRes.json()) as {
+          data?: Array<{ isOwner?: boolean }>
+        }
+        const owned = (modelsData.data ?? []).filter(
+          (m) => m.isOwner !== false,
+        )
+        setModelCount(owned.length)
       }
     } catch (error) {
       console.error("Failed to fetch offboarding summary:", error)
