@@ -666,11 +666,7 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
                 <div className="text-gray-500">{"Cash After"}</div>
                 <div
                   className={`font-semibold ${
-                    cashAfter < 0
-                      ? "text-red-600"
-                      : cashAfter < portfolioCash * 0.05
-                        ? "text-orange-600"
-                        : "text-blue-600"
+                    cashAfter < 0 ? "text-red-600" : "text-green-600"
                   }`}
                 >
                   {formatCurrency(cashAfter)}
