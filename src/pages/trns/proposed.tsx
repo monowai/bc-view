@@ -322,6 +322,16 @@ export default function ProposedTransactions(): React.JSX.Element {
     )
   }
 
+  // Bulk-apply a single broker to every row in the preview. Useful when
+  // the user opened a batch of orders that should all settle through the
+  // same broker — saves clicking the dropdown per row.
+  const handleApplyBrokerToAll = (value: string): void => {
+    if (!value) return
+    setTransactions((prev) =>
+      prev.map((trn) => ({ ...trn, editedBrokerId: value })),
+    )
+  }
+
   // Handlers for aggregated transaction edits
   const handleAggregatedPriceChange = (
     aggregateKey: string,
@@ -718,6 +728,32 @@ export default function ProposedTransactions(): React.JSX.Element {
             />
             <span className="text-gray-700">Aggregate by Broker + Asset</span>
           </label>
+
+          {brokers.length > 0 && transactions.length > 0 && (
+            <>
+              <div className="hidden sm:block border-l border-gray-300 h-6" />
+              <label className="flex items-center gap-2 text-sm">
+                <span className="text-gray-700">Apply broker to all:</span>
+                <select
+                  value=""
+                  onChange={(e) => {
+                    handleApplyBrokerToAll(e.target.value)
+                    // Reset so the same broker can be re-applied later.
+                    e.currentTarget.selectedIndex = 0
+                  }}
+                  className="px-2 py-1 border border-gray-300 rounded text-sm bg-white"
+                >
+                  <option value="">— Pick a broker —</option>
+                  {brokers.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                      {b.accountNumber ? ` (${b.accountNumber})` : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </>
+          )}
         </div>
 
         {fetchError && (

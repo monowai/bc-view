@@ -548,12 +548,17 @@ describe("useRebalanceExecution", () => {
       },
     )
 
-    let commitResult: { portfolioId: string } | undefined
+    let commitResult:
+      | { portfolioId: string; transactionStatus: "PROPOSED" | "SETTLED" }
+      | undefined
     await act(async () => {
       commitResult = await result.current.handlers.commit()
     })
 
-    expect(commitResult).toEqual({ portfolioId: "portfolio-1" })
+    expect(commitResult).toEqual({
+      portfolioId: "portfolio-1",
+      transactionStatus: "PROPOSED",
+    })
     expect(global.fetch).toHaveBeenCalledWith(
       "/api/rebalance/executions/exec-1/commit",
       expect.objectContaining({
