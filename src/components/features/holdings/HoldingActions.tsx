@@ -551,11 +551,19 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
           initialValues={quickSellData}
         />
       )}
-      <CashInputForm
-        portfolio={holdingResults.portfolio}
-        modalOpen={cashModalOpen}
-        setModalOpen={setCashModalOpen}
-      />
+      {cashModalOpen && (
+        // Lazy-mount: CashInputForm calls useSwr for both
+        // /api/assets?category=ACCOUNT and /api/assets?category=TRADE in its
+        // body. Mounting unconditionally fires both fetches on every holdings
+        // pageload even when the cash dialog is closed (~62ms + 64ms apiece in
+        // the trace). Gate on cashModalOpen so the hooks only run when the
+        // dialog opens — same pattern as TradeInputForm.
+        <CashInputForm
+          portfolio={holdingResults.portfolio}
+          modalOpen={cashModalOpen}
+          setModalOpen={setCashModalOpen}
+        />
+      )}
       <CopyPopup
         columns={columns}
         data={holdingResults.positions}
