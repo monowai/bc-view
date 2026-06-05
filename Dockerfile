@@ -11,6 +11,10 @@ ARG BUILD_ID
 # into the client bundle (process.env.NEXT_PUBLIC_* is substituted by the
 # bundler at compile, not read at runtime). Passed from CI via --build-arg.
 ARG NEXT_PUBLIC_SENTRY_DSN
+# Days the cached registration check survives in localStorage before the
+# browser revalidates against /api/register. Inlined at build time; defaults
+# in code to 30 if absent. Configurable via repo Variable NEXT_PUBLIC_REGISTRATION_TTL_DAYS.
+ARG NEXT_PUBLIC_REGISTRATION_TTL_DAYS
 
 # Environment variables - Build info
 ENV GIT_BRANCH=$GIT_BRANCH
@@ -31,6 +35,8 @@ ENV SENTRY_DEBUG="false"
 FROM base AS builder
 ARG NEXT_PUBLIC_SENTRY_DSN
 ENV NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN
+ARG NEXT_PUBLIC_REGISTRATION_TTL_DAYS
+ENV NEXT_PUBLIC_REGISTRATION_TTL_DAYS=$NEXT_PUBLIC_REGISTRATION_TTL_DAYS
 COPY . .
 
 RUN yarn install --frozen-lockfile --prefer-offline --production=false
