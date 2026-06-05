@@ -93,7 +93,9 @@ export function useDisplayCurrencyConversion({
   // key on the mode keeps the request off the hot path for non-CUSTOM use.
   // The /api/currencies key is shared with useCurrencies / usePortfolios so
   // SWR collapses concurrent consumers across the tree to one fetch.
-  const { data: currenciesData } = useSWR<{ data: Currency[] }>(
+  const { data: currenciesData, isLoading: currenciesLoading } = useSWR<{
+    data: Currency[]
+  }>(
     mode === "CUSTOM" && customCode ? ccyKey : null,
     simpleFetcher(ccyKey),
     SWR_CURRENCIES_CONFIG,
@@ -171,8 +173,14 @@ export function useDisplayCurrencyConversion({
 
   // Loading is derived: pending iff we expect an async result we don't yet
   // have. No setIsLoading(true) / setIsLoading(false) inside an effect.
+  //
+  // CUSTOM-mode pending tracks SWR's isLoading rather than !customCurrency
+  // so an invalid customCode (one absent from the response) clears loading
+  // when the fetch resolves. Otherwise the hook would stay stuck on the
+  // first render after the bad code was selected (downstream falls back to
+  // sourceCurrency at rate 1 — the right UX for a missing code).
   const customFetchPending =
-    mode === "CUSTOM" && !!customCode && !customCurrency
+    mode === "CUSTOM" && !!customCode && currenciesLoading
   const fxFetchPending =
     syncFxRate === null &&
     !!sourceCurrency &&
