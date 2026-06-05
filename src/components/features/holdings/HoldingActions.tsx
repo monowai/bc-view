@@ -5,7 +5,6 @@ import CashInputForm from "@components/features/transactions/CashInputForm"
 import CopyPopup from "@components/ui/CopyPopup"
 import { HoldingContract, QuickSellData } from "types/beancounter"
 import { ViewMode, VIEW_MODES } from "./ViewToggle"
-import { useIsAdmin } from "@hooks/useIsAdmin"
 import {
   GroupBy,
   useGroupOptions,
@@ -309,8 +308,11 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
   onInvestCash,
 }) => {
   const router = useRouter()
-  const { isAdmin } = useIsAdmin()
-  const { ai: canRunAi, isLoading: permsLoading } = usePermissions()
+  const {
+    admin: isAdmin,
+    ai: canRunAi,
+    isLoading: permsLoading,
+  } = usePermissions()
   const holdingState = useHoldingState()
   const groupOptions = useGroupOptions()
   const { popup: reviewPopup, showReview } = usePortfolioReview()

@@ -4,7 +4,7 @@ import type { User } from "@auth0/nextjs-auth0/types"
 import Link from "next/link"
 import Image from "next/image"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
-import { useIsAdmin } from "@hooks/useIsAdmin"
+import { usePermissions } from "@hooks/usePermissions"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 
 function Avatar({
@@ -31,7 +31,7 @@ export default function HeaderUserControls(): React.ReactElement {
   // and show the Sign In CTA.
   const { user, isLoading } = useUser()
   const { preferences } = useUserPreferences()
-  const { isAdmin } = useIsAdmin()
+  const { admin: isAdmin } = usePermissions()
   const { hideValues, toggleHideValues } = usePrivacyMode()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)

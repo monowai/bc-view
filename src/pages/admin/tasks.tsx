@@ -1,7 +1,7 @@
 import React, { useState } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { rootLoader } from "@components/ui/PageLoader"
-import { useIsAdmin } from "@hooks/useIsAdmin"
+import { usePermissions } from "@hooks/usePermissions"
 import Link from "next/link"
 import Spinner from "@components/ui/Spinner"
 
@@ -97,7 +97,7 @@ const SCHEDULED_TASKS: ScheduledTask[] = [
 
 export default withPageAuthRequired(
   function ScheduledTasksPage(): React.ReactElement {
-    const { isAdmin, isLoading } = useIsAdmin()
+    const { admin: isAdmin, isLoading } = usePermissions()
     const [runningTasks, setRunningTasks] = useState<Set<string>>(new Set())
     const [taskResults, setTaskResults] = useState<Record<string, TaskResult>>(
       {},

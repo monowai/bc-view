@@ -21,7 +21,7 @@ import {
   VALUE_IN_OPTIONS,
   ValueInOption,
 } from "types/constants"
-import { useIsAdmin } from "@hooks/useIsAdmin"
+import { usePermissions } from "@hooks/usePermissions"
 
 type SettingsTab = "profile" | "wealth" | "tax" | "account"
 
@@ -86,7 +86,7 @@ const GROUP_BY_UI_OPTIONS: { value: GroupByApiValue; labelKey: string }[] = [
 function SettingsPage(): React.ReactElement {
   const { user } = useUser()
   const { refetch: refetchPreferences } = useUserPreferences()
-  const { isAdmin } = useIsAdmin()
+  const { admin: isAdmin } = usePermissions()
   const [activeTab, setActiveTab] = useState<SettingsTab>("profile")
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)

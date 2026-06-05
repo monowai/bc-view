@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from "react"
 import useSwr, { mutate } from "swr"
-import { useIsAdmin } from "@hooks/useIsAdmin"
+import { usePermissions } from "@hooks/usePermissions"
 import {
   ComposedChart,
   Area,
@@ -234,7 +234,7 @@ const PriceChartPopup: React.FC<PriceChartPopupProps> = ({
 }) => {
   const [months, setMonths] = useState(DEFAULT_MONTHS)
   const [smaWindow, setSmaWindow] = useState(DEFAULT_SMA)
-  const { isAdmin } = useIsAdmin()
+  const { admin: isAdmin } = usePermissions()
   const [repairState, setRepairState] = useState<{
     busy: boolean
     message: string | null

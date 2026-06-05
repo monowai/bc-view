@@ -5,7 +5,7 @@ import Dialog from "@components/ui/Dialog"
 import Alert from "@components/ui/Alert"
 import Spinner from "@components/ui/Spinner"
 import { AssetOption, Market } from "types/beancounter"
-import { useIsAdmin } from "@hooks/useIsAdmin"
+import { usePermissions } from "@hooks/usePermissions"
 import Link from "next/link"
 import useSWR from "swr"
 import { marketsKey, simpleFetcher } from "@utils/api/fetchHelper"
@@ -42,7 +42,7 @@ interface SelectedAsset {
 
 export default withPageAuthRequired(
   function Classifications(): React.ReactElement {
-    const { isAdmin, isLoading: isAdminLoading } = useIsAdmin()
+    const { admin: isAdmin, isLoading: isAdminLoading } = usePermissions()
 
     // Fetch available markets for MARKET:KEYWORD search syntax
     const { data: marketsData } = useSWR<{ data: Market[] }>(

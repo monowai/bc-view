@@ -13,8 +13,13 @@ jest.mock("@contexts/UserPreferencesContext", () => ({
   }),
 }))
 
-jest.mock("@hooks/useIsAdmin", () => ({
-  useIsAdmin: () => ({ isAdmin: false, isLoading: false }),
+jest.mock("@hooks/usePermissions", () => ({
+  usePermissions: () => ({
+    ai: false,
+    preview: false,
+    admin: false,
+    isLoading: false,
+  }),
 }))
 
 jest.mock("@hooks/usePrivacyMode", () => ({

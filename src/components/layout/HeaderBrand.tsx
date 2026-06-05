@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect, useCallback } from "react"
 import { useRouter } from "next/router"
 import Link from "next/link"
 import { useUser } from "@auth0/nextjs-auth0/client"
-import { useIsAdmin } from "@hooks/useIsAdmin"
 import { usePermissions } from "@hooks/usePermissions"
 
 interface NavItem {
@@ -225,8 +224,7 @@ function DesktopDropdown({
 function HeaderBrand(): React.ReactElement {
   const router = useRouter()
   const { user } = useUser()
-  const { isAdmin } = useIsAdmin()
-  const { ai: canRunAi } = usePermissions()
+  const { admin: isAdmin, ai: canRunAi } = usePermissions()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const mobileMenuRef = useRef<HTMLDivElement>(null)
   const isAuthed = !!user
