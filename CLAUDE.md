@@ -339,3 +339,38 @@ docker build --build-arg KAFKA_URL=host.minikube.internal:9092 . -t monowai/bc-v
 ```
 
 Output is `standalone` mode for containerized deployment.
+
+### CI build pipeline
+
+`.github/workflows/build.yml` deliberately runs `yarn build` twice:
+
+1. **`build` job (CI runner)** — fast-fail signal. Compiles `.next/`, runs the
+   Sentry DSN guards, then throws the output away.
+2. **`docker` job (matrix)** — the single source of truth for the image. Re-runs
+   `yarn install` + `yarn build` inside the Dockerfile's builder stage with
+   `NEXT_PUBLIC_SENTRY_DSN` passed via `--build-arg`. A `RUN` guard in the
+   Dockerfile asserts the DSN is inlined into the instrumentation-client chunk;
+   image build fails if not.
+
+No artifact handoff. The previous artifact pattern (upload `.next/`, download
+in the Docker job, Dockerfile picks it up via `if [ -d .next ]`) was a foot-gun:
+`actions/upload-artifact@v6` silently drops dot-prefixed paths
+(`include-hidden-files: false` default), so `.next/` never reached the Docker
+job, the conditional always rebuilt, and the CI guard was verifying a
+throwaway compile while a separately-built bundle shipped to kauri. Took
+PRs #762-#766 to untangle.
+
+### Future investigation — conditional artifact handoff
+
+The `docker` job already only runs on `push` to `main` or
+`workflow_dispatch + build_image`. PR builds never trigger it. So if the
+artifact handoff is ever re-enabled for the ~20s/main-build speedup, the
+`upload-artifact` and `download-artifact` steps should be **gated by the same
+`if:` condition as the docker job**, and `include-hidden-files: true` must be
+set on the upload step.
+
+That preserves the speedup when it matters (main → deploy) without paying any
+storage cost on the much-more-frequent PR builds. Estimated saving: ~50 min of
+GH Actions minutes per month. Reliability constraint: the Dockerfile's
+post-build DSN guard must run regardless of which path produced `.next/`, so
+a split-state regression is caught on the image side.
