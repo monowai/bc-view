@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { rootLoader } from "@components/ui/PageLoader"
-import { useIsAdmin } from "@hooks/useIsAdmin"
+import { usePermissions } from "@hooks/usePermissions"
 import useSWR, { mutate } from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 
@@ -47,7 +47,7 @@ function levelBadgeClass(level: string): string {
 }
 
 export default withPageAuthRequired(function LoggersPage(): React.ReactElement {
-  const { isAdmin, isLoading } = useIsAdmin()
+  const { admin: isAdmin, isLoading } = usePermissions()
   const [service, setService] = useState<Service>("bc-data")
   const [filter, setFilter] = useState("com.beancounter")
   const [saving, setSaving] = useState<Set<string>>(new Set())

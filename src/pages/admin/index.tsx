@@ -1,7 +1,7 @@
 import React from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { rootLoader } from "@components/ui/PageLoader"
-import { useIsAdmin } from "@hooks/useIsAdmin"
+import { usePermissions } from "@hooks/usePermissions"
 import Link from "next/link"
 
 interface AdminCard {
@@ -13,7 +13,7 @@ interface AdminCard {
 }
 
 export default withPageAuthRequired(function AdminPage(): React.ReactElement {
-  const { isAdmin, isLoading } = useIsAdmin()
+  const { admin: isAdmin, isLoading } = usePermissions()
 
   if (isLoading) {
     return rootLoader("Loading...")

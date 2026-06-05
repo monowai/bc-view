@@ -53,7 +53,13 @@ export interface UseRebalanceExecutionResult {
     initialize: () => Promise<void>
     save: () => Promise<boolean>
     refresh: () => Promise<void>
-    commit: () => Promise<{ portfolioId: string } | undefined>
+    commit: () => Promise<
+      | {
+          portfolioId: string
+          transactionStatus: "PROPOSED" | "SETTLED"
+        }
+      | undefined
+    >
     targetChange: (assetId: string, value: number) => void
     excludeToggle: (assetId: string) => void
     setAllToCurrent: () => void
@@ -108,7 +114,21 @@ export function useRebalanceExecution(
     "/api/brokers",
     simpleFetcher("/api/brokers"),
   )
-  const brokers: Broker[] = brokersData?.data || []
+  const brokers: Broker[] = useMemo(
+    () => brokersData?.data || [],
+    [brokersData],
+  )
+
+  // Convenience default: if the user has exactly one broker, pre-select it.
+  // No reason to make them pick from a single-item list. We only set this
+  // once (when brokers first resolve) — if the user has explicitly cleared
+  // the selection back to "No broker" we don't re-apply.
+  useEffect(() => {
+    if (brokers.length === 1 && selectedBrokerId === undefined) {
+      setSelectedBrokerId(brokers[0].id)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brokers])
 
   // --- Operations ---
 
@@ -383,7 +403,7 @@ export function useRebalanceExecution(
 
   // Commit execution - create transactions
   const handleCommit = useCallback(async (): Promise<
-    { portfolioId: string } | undefined
+    { portfolioId: string; transactionStatus: "PROPOSED" | "SETTLED" } | undefined
   > => {
     if (!execution || execution.portfolioIds.length === 0) return undefined
 
@@ -392,6 +412,7 @@ export function useRebalanceExecution(
 
     try {
       const portfolioId = execution.portfolioIds[0]
+      const transactionStatus: "PROPOSED" | "SETTLED" = "PROPOSED"
 
       const response = await fetch(
         `/api/rebalance/executions/${execution.id}/commit`,
@@ -400,7 +421,7 @@ export function useRebalanceExecution(
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             portfolioId,
-            transactionStatus: "PROPOSED",
+            transactionStatus,
             brokerId: selectedBrokerId,
           }),
         },
@@ -414,7 +435,7 @@ export function useRebalanceExecution(
         return undefined
       }
 
-      return { portfolioId }
+      return { portfolioId, transactionStatus }
     } catch (err) {
       console.error("Failed to commit execution:", err)
       setError(err instanceof Error ? err.message : "Failed to commit")

@@ -723,8 +723,23 @@ function ExecuteRebalancePage(): React.ReactElement {
             </button>
             <button
               onClick={async () => {
+                // Warn (but don't block) when the user has >1 brokers
+                // and didn't tag the orders — saves a "where's the
+                // broker on these trns?" follow-up later.
+                if (brokers.length > 1 && !selectedBrokerId) {
+                  const ok = window.confirm(
+                    "No broker selected. Your proposed transactions won't be tagged with a broker. Continue?",
+                  )
+                  if (!ok) return
+                }
                 const result = await handlers.commit()
-                if (result) {
+                if (!result) return
+                // Only land on /trns/proposed when the orders are
+                // actually unsettled. Settled commits go straight to
+                // the portfolio holdings.
+                if (result.transactionStatus === "PROPOSED") {
+                  router.push("/trns/proposed")
+                } else {
                   router.push(`/trns?portfolioId=${result.portfolioId}`)
                 }
               }}

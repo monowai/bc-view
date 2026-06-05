@@ -2,7 +2,7 @@ import React, { useState } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { rootLoader } from "@components/ui/PageLoader"
 import { Asset, AssetOption, Currency, Market } from "types/beancounter"
-import { useIsAdmin } from "@hooks/useIsAdmin"
+import { usePermissions } from "@hooks/usePermissions"
 import Link from "next/link"
 import useSWR from "swr"
 import { ccyKey, marketsKey, simpleFetcher } from "@utils/api/fetchHelper"
@@ -19,7 +19,7 @@ const EDITABLE_CATEGORIES = [
 ]
 
 export default withPageAuthRequired(function AssetAdmin(): React.ReactElement {
-  const { isAdmin, isLoading: isAdminLoading } = useIsAdmin()
+  const { admin: isAdmin, isLoading: isAdminLoading } = usePermissions()
 
   const { data: marketsData } = useSWR<{ data: Market[] }>(
     marketsKey,

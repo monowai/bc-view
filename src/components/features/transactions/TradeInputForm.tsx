@@ -401,10 +401,8 @@ const TradeInputForm: React.FC<{
     const assetCode = option.symbol || option.value
     // Skip price fetching for private assets - they don't have external market data
     if (market && assetCode && market !== "PRIVATE" && market !== "CASH") {
-      const tradeDate = watch("tradeDate")
-      const today = new Date().toISOString().split("T")[0]
-      const asAt = tradeDate && tradeDate < today ? tradeDate : undefined
-      const fetchedPrice = await fetchAssetPrice(market, assetCode, asAt)
+      const tradeDate = watch("tradeDate") || undefined
+      const fetchedPrice = await fetchAssetPrice(market, assetCode, tradeDate)
       if (fetchedPrice !== null) {
         setValue("price", fetchedPrice)
       }
@@ -497,13 +495,8 @@ const TradeInputForm: React.FC<{
   }, [allCashBalances, currentTradeCurrency])
 
   const defaultCashAsset = useMemo(
-    () =>
-      buildDefaultCashAsset(
-        filteredCashAssets,
-        currentTradeCurrency,
-        allBankAccounts,
-      ),
-    [filteredCashAssets, currentTradeCurrency, allBankAccounts],
+    () => buildDefaultCashAsset(filteredCashAssets, currentTradeCurrency),
+    [filteredCashAssets, currentTradeCurrency],
   )
 
   // Cash assets for dropdown - all currency balances are already included

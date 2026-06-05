@@ -1,5 +1,6 @@
-# Dependencies
-# node_modules  # Allow node_modules from CI
+# Dependencies — yarn install runs inside the builder stage; host node_modules
+# is irrelevant and would only inflate the build context.
+node_modules
 npm-debug.log*
 yarn-debug.log*
 
@@ -14,8 +15,10 @@ tests/
 **/*.test.jsx
 **/__tests__/**
 
-# Next.js
-# .next/  # Allow .next from CI
+# Next.js — leave .next/ available so the Docker job's builder stage can reuse
+# the artifact from the CI build job (main / workflow_dispatch only). On PR /
+# local builds where .next is absent, the Dockerfile rebuilds it.
+# .next/  # intentionally not ignored
 
 # Misc
 .DS_Store

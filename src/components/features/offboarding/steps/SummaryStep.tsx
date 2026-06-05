@@ -76,6 +76,16 @@ export default function SummaryStep({
 
         <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
           <div className="flex items-center">
+            <i className="fas fa-building-columns text-purple-500 mr-3"></i>
+            <span className="font-medium">{"Brokers"}</span>
+          </div>
+          <span className="text-lg font-semibold">
+            {summary?.brokerCount ?? 0}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+          <div className="flex items-center">
             <i className="fas fa-percent text-orange-500 mr-3"></i>
             <span className="font-medium">{"Tax Rates"}</span>
           </div>

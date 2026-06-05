@@ -1,5 +1,6 @@
-import React, { useState, useMemo, useCallback } from "react"
+import React, { useState, useMemo, useCallback, useEffect } from "react"
 import useSWR from "swr"
+import { useRouter } from "next/router"
 import Dialog from "@components/ui/Dialog"
 import Spinner from "@components/ui/Spinner"
 import { simpleFetcher } from "@utils/api/fetchHelper"
@@ -63,12 +64,23 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
     simpleFetcher("/api/rebalance/models"),
   )
 
+  const router = useRouter()
+
   // Fetch brokers
   const { data: brokersData } = useSWR(
     modalOpen ? "/api/brokers" : null,
     simpleFetcher("/api/brokers"),
   )
   const brokers: Broker[] = brokersData?.data || []
+
+  // Convenience: if the user has exactly one broker, pre-select it
+  // when the dialog opens. Skip if user already chose (or cleared it).
+  useEffect(() => {
+    if (brokers.length === 1 && selectedBrokerId === undefined) {
+      setSelectedBrokerId(brokers[0].id)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brokers.length, modalOpen])
 
   const models: ModelDto[] = modelsData?.data || []
   const modelsWithApprovedPlans = models.filter(
@@ -176,8 +188,22 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
   const handleCommit = async (): Promise<void> => {
     if (!execution) return
 
+    // Warn (but don't block) when the user has more than one broker but
+    // hasn't tagged the orders. They can still proceed if they meant to.
+    if (brokers.length > 1 && !selectedBrokerId) {
+      const ok = window.confirm(
+        "No broker selected. Your proposed transactions won't be tagged with a broker. Continue?",
+      )
+      if (!ok) return
+    }
+
     setCommitting(true)
     setError(null)
+
+    // Single source of truth for the commit's trn status — used both in
+    // the request body and to decide whether to navigate to the
+    // proposed-transactions list afterwards (only relevant for PROPOSED).
+    const transactionStatus: "PROPOSED" | "SETTLED" = "PROPOSED"
 
     try {
       // Only send updates if user made edits
@@ -214,7 +240,7 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             portfolioId: portfolioId,
-            transactionStatus: "PROPOSED",
+            transactionStatus,
             brokerId: selectedBrokerId,
           }),
         },
@@ -226,8 +252,15 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
         return
       }
 
-      onSuccess()
+      // PROPOSED commits navigate away; skip the parent refresh so the
+      // caller's `router.replace(asPath)` doesn't race with our push and
+      // strand the user on the current page.
       handleClose()
+      if (transactionStatus === "PROPOSED") {
+        router.push("/trns/proposed")
+      } else {
+        onSuccess()
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to commit")
     } finally {
@@ -634,11 +667,7 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
                 <div className="text-gray-500">{"Cash After"}</div>
                 <div
                   className={`font-semibold ${
-                    cashAfter < 0
-                      ? "text-red-600"
-                      : cashAfter < portfolioCash * 0.05
-                        ? "text-orange-600"
-                        : "text-blue-600"
+                    cashAfter < 0 ? "text-red-600" : "text-green-600"
                   }`}
                 >
                   {formatCurrency(cashAfter)}

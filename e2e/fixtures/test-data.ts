@@ -29,6 +29,13 @@ export interface TestHelpers {
     base?: string,
   ) => Promise<TestPortfolio>
   deletePortfolio: (id: string) => Promise<void>
+  /**
+   * Delete every broker whose name starts with the given prefix
+   * (defaults to "E2E"). Used after the Open Brokerage wizard runs;
+   * the wizard creates a broker but doesn't expose its id to the spec,
+   * so we sweep by name prefix instead.
+   */
+  cleanupBrokersByPrefix: (prefix?: string) => Promise<void>
   cleanupTestData: () => Promise<void>
 }
 
@@ -120,6 +127,31 @@ export function createTestHelpers(page: Page): TestHelpers {
 
       if (!result.ok && result.status !== 404) {
         console.warn(`Failed to delete portfolio ${id}: ${result.status}`)
+      }
+    },
+
+    async cleanupBrokersByPrefix(prefix = "E2E"): Promise<void> {
+      await ensureAppDomain(page)
+      try {
+        const result = await page.evaluate(async () => {
+          const r = await fetch("/api/brokers")
+          if (!r.ok) return { ok: false, brokers: [] }
+          const j = await r.json()
+          return {
+            ok: true,
+            brokers: (j.data ?? []) as Array<{ id: string; name: string }>,
+          }
+        })
+        if (!result.ok) return
+        for (const b of result.brokers) {
+          if (b.name?.startsWith(prefix)) {
+            await page.evaluate(async (brokerId) => {
+              await fetch(`/api/brokers/${brokerId}`, { method: "DELETE" })
+            }, b.id)
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to cleanup brokers:", e)
       }
     },
 

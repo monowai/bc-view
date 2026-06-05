@@ -14,7 +14,7 @@ interface AdminGuardResult {
  * settings). Writes 401 / 403 on the response and returns
  * `{ ok: false }` when the caller should not proceed.
  *
- * The client-side `useIsAdmin` hook hides admin pages from the UI;
+ * The client-side `usePermissions().admin` flag hides admin pages from the UI;
  * this exists so direct calls to `/api/admin/*` are also blocked.
  */
 export async function requireAdmin(

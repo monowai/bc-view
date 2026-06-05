@@ -908,6 +908,7 @@ export interface OffboardingSummary {
   portfolioCount: number
   assetCount: number
   taxRateCount: number
+  brokerCount: number
 }
 
 /**

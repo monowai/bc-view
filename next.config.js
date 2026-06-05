@@ -68,8 +68,12 @@ const nextConfig = {
         source: "/(.*)",
         headers: [
           {
+            // SAMEORIGIN (not DENY) so first-party tools/marketing pages
+            // can embed the static playgrounds under /tools/*.html in an
+            // iframe (e.g. /tools/cost-stack embeds /tools/cost-stack.html).
+            // Still blocks any cross-origin clickjacking attempt.
             key: "X-Frame-Options",
-            value: "DENY",
+            value: "SAMEORIGIN",
           },
           {
             key: "X-Content-Type-Options",

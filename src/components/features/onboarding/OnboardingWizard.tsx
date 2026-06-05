@@ -3,7 +3,7 @@ import { useRouter } from "next/router"
 import useSwr from "swr"
 import { useUser } from "@auth0/nextjs-auth0/client"
 import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper"
-import { Currency, PolicyType, SubAccountRequest } from "types/beancounter"
+import { Currency, PolicyType, Portfolio, SubAccountRequest } from "types/beancounter"
 import OnboardingProgress from "./OnboardingProgress"
 import WelcomeStep from "./steps/WelcomeStep"
 import CurrencyStep from "./steps/CurrencyStep"
@@ -12,6 +12,9 @@ import AssetsStep from "./steps/AssetsStep"
 import ReviewStep from "./steps/ReviewStep"
 import CompleteStep from "./steps/CompleteStep"
 import IndependencePlanStep from "./steps/IndependencePlanStep"
+import BrokerageStep from "./steps/BrokerageStep"
+import type { SourceValue } from "./steps/BrokerageStep"
+import { openBrokerage } from "@lib/openBrokerage/orchestrate"
 import { useRegistration } from "@contexts/RegistrationContext"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import Spinner from "@components/ui/Spinner"
@@ -64,19 +67,23 @@ export interface OnboardingState {
   insurances: Insurance[]
 }
 
+/**
+ * Build a short asset code from a user-typed name. Splits on any
+ * non-alphanumeric (whitespace, hyphens, dots, underscores) so that
+ * names like "DBS-SGD" and "DBS-USD" produce distinct codes
+ * ("DBS-SGD" / "DBS-USD") instead of colliding on a truncated prefix
+ * ("DBS-" each). Caps at 16 chars to stay within DB column bounds and
+ * to avoid hand-typed paragraphs becoming the code.
+ */
 function generateAssetCode(name: string): string {
-  const words = name
-    .trim()
-    .split(/\s+/)
-    .filter((w) => w.length > 0)
-  if (words.length === 0) return "ASSET"
-  if (words.length >= 2) {
-    return words
-      .map((w) => w[0])
-      .join("")
-      .toUpperCase()
-  }
-  return words[0].substring(0, 4).toUpperCase()
+  const upper = name.trim().toUpperCase()
+  if (!upper) return "ASSET"
+  const parts = upper.split(/[^A-Z0-9]+/).filter(Boolean)
+  if (parts.length === 0) return "ASSET"
+  // Preserve hyphenation so user-typed identifiers stay distinct.
+  // Single-token names still get the original short-prefix behaviour
+  // (e.g. "Savings" → "SAVINGS"), capped to 16 chars.
+  return parts.join("-").slice(0, 16)
 }
 
 const OnboardingWizard: React.FC = () => {
@@ -88,6 +95,13 @@ const OnboardingWizard: React.FC = () => {
   // Fetch currencies from backend
   const { data: ccyResponse } = useSwr(ccyKey, simpleFetcher(ccyKey))
   const currencies: Currency[] = ccyResponse?.data || []
+
+  // Fetch portfolios for the Brokerage step's source-portfolio dropdown
+  const { data: portfoliosResponse } = useSwr<{ data: Portfolio[] }>(
+    "/api/portfolios",
+    simpleFetcher("/api/portfolios"),
+  )
+  const existingPortfolios: Portfolio[] = portfoliosResponse?.data ?? []
 
   // Wizard state - no pre-selection, user must explicitly choose
   const [currentStep, setCurrentStep] = useState(1)
@@ -143,6 +157,14 @@ const OnboardingWizard: React.FC = () => {
   const [independenceTargetAge, setIndependenceTargetAge] = useState(65)
   const [independencePlanCreated, setIndependencePlanCreated] = useState(false)
 
+  // Brokerage step (optional, post-default-portfolio creation)
+  const [brokerageEnabled, setBrokerageEnabled] = useState(false)
+  const [brokerageBrokerName, setBrokerageBrokerName] = useState("")
+  const [brokerageSource, setBrokerageSource] = useState<SourceValue>("")
+  const [brokerageAmount, setBrokerageAmount] = useState("")
+  const [brokerageCurrency, setBrokerageCurrency] = useState("")
+  const [brokerageCreated, setBrokerageCreated] = useState(false)
+
   // Steps configuration
   const steps = useMemo(
     () => [
@@ -152,7 +174,8 @@ const OnboardingWizard: React.FC = () => {
       { id: 4, label: "Assets" },
       { id: 5, label: "Review" },
       { id: 6, label: "Independence" },
-      { id: 7, label: "Complete" },
+      { id: 7, label: "Brokerage" },
+      { id: 8, label: "Complete" },
     ],
     [],
   )
@@ -190,6 +213,8 @@ const OnboardingWizard: React.FC = () => {
       case 6:
         return true // Independence - always can proceed (optional step)
       case 7:
+        return true // Brokerage - always can proceed (optional step)
+      case 8:
         return true
       default:
         return false
@@ -321,7 +346,10 @@ const OnboardingWizard: React.FC = () => {
     return extractAsset(assetData)
   }
 
-  const createAssets = async (portfolioId: string): Promise<void> => {
+  const createAssets = async (
+    portfolioId: string,
+  ): Promise<{ bankAccountAssetIds: Record<string, string> }> => {
+    const bankAccountAssetIds: Record<string, string> = {}
     // Fetch existing user assets to avoid creating duplicates
     const existingResponse = await fetch("/api/assets")
     const existingAssets: Record<string, { id: string }> = existingResponse.ok
@@ -342,6 +370,10 @@ const OnboardingWizard: React.FC = () => {
         category: "ACCOUNT",
         currency: account.currency,
       })
+
+      if (asset?.id) {
+        bankAccountAssetIds[account.name] = asset.id
+      }
 
       if (asset?.id && account.balance && account.balance > 0) {
         await createTransaction(
@@ -502,6 +534,8 @@ const OnboardingWizard: React.FC = () => {
         })
       }
     }
+
+    return { bankAccountAssetIds }
   }
 
   const handleComplete = async (): Promise<void> => {
@@ -521,35 +555,47 @@ const OnboardingWizard: React.FC = () => {
       })
 
       // Create portfolio with reporting currency as display currency
-      // and base currency as cost tracking currency
-      const portfolioResponse = await fetch("/api/portfolios", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          data: [
-            {
-              code: portfolioCode,
-              name: portfolioName,
-              currency: reportingCurrency,
-              base: baseCurrency,
-            },
-          ],
-        }),
-      })
+      // and base currency as cost tracking currency. Make the call
+      // idempotent so a retry after a downstream failure (e.g. the
+      // optional Brokerage step erroring out) doesn't trip the
+      // (code, owner_id) unique constraint and 409 — reuse the
+      // existing portfolio with the same code instead.
+      const existingPortfolio = existingPortfolios.find(
+        (p) => p.code === portfolioCode,
+      )
+      let portfolioId: string | undefined = existingPortfolio?.id
+      if (!portfolioId) {
+        const portfolioResponse = await fetch("/api/portfolios", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            data: [
+              {
+                code: portfolioCode,
+                name: portfolioName,
+                currency: reportingCurrency,
+                base: baseCurrency,
+              },
+            ],
+          }),
+        })
 
-      if (!portfolioResponse.ok) {
-        const errorData = await portfolioResponse.json().catch(() => ({}))
-        setError(errorData.error || "Failed to create portfolio")
-        setIsSubmitting(false)
-        return
+        if (!portfolioResponse.ok) {
+          const errorData = await portfolioResponse.json().catch(() => ({}))
+          setError(errorData.error || "Failed to create portfolio")
+          setIsSubmitting(false)
+          return
+        }
+
+        const portfolioData = await portfolioResponse.json()
+        portfolioId = portfolioData.data[0]?.id
       }
+      setCreatedPortfolioId(portfolioId ?? null)
 
-      const portfolioData = await portfolioResponse.json()
-      // Response is { data: [Portfolio] }
-      const portfolioId = portfolioData.data[0]?.id
-      setCreatedPortfolioId(portfolioId)
-
-      // Create assets if any
+      // Create assets if any. The returned bankAccountAssetIds map is
+      // used below to wire the optional brokerage step's source to a
+      // specific bank-account asset.
+      let bankAccountAssetIds: Record<string, string> = {}
       if (
         portfolioId &&
         (bankAccounts.length > 0 ||
@@ -557,7 +603,8 @@ const OnboardingWizard: React.FC = () => {
           pensions.length > 0 ||
           insurances.length > 0)
       ) {
-        await createAssets(portfolioId)
+        const created = await createAssets(portfolioId)
+        bankAccountAssetIds = created.bankAccountAssetIds
       }
 
       // Trigger portfolio valuation by fetching holdings
@@ -627,8 +674,95 @@ const OnboardingWizard: React.FC = () => {
         }
       }
 
+      // Optional: open a brokerage as part of the onboarding flow. Runs
+      // AFTER the default portfolio is created so the user can fund the new
+      // broker cash from it. Failures are surfaced but don't abort the
+      // wizard — the user can retry from /tools/open-brokerage.
+      // Use the local `portfolioId` variable (set just above), not the
+      // React state `createdPortfolioId` — setState hasn't flushed inside
+      // the same async function call.
+      if (brokerageEnabled && brokerageBrokerName.trim() && portfolioId) {
+        const amt = parseFloat(brokerageAmount)
+        try {
+          // Brokerage gets its own dedicated portfolio (named after the
+          // broker) so its cash + future trades stay separate from the
+          // user's day-to-day bank-account portfolio. Source still
+          // resolves to a bank-account asset on the default portfolio
+          // when the user picked one, so a paired WITHDRAWAL hits the
+          // right line.
+          const brokerCode = brokerageBrokerName.trim()
+          // Reporting currency for the brokerage portfolio. User-picked in
+          // step 7; falls back to baseCurrency if they didn't touch the
+          // dropdown. `base` stays as the user's overall base currency for
+          // consolidated reporting upstream.
+          const brokerageCcy = brokerageCurrency || baseCurrency
+          const brokerageResult = await openBrokerage({
+            broker: { mode: "new", newName: brokerCode },
+            portfolio: {
+              mode: "new",
+              code: brokerCode,
+              name: `${brokerCode} Portfolio`,
+              currency: brokerageCcy,
+              base: baseCurrency,
+            },
+            funding:
+              Number.isFinite(amt) && amt > 0
+                ? (() => {
+                    const fund: {
+                      amount: number
+                      currency: string
+                      sourcePortfolioId?: string
+                      sourceAssetId?: string
+                    } = { amount: amt, currency: brokerageCcy }
+                    if (brokerageSource.startsWith("portfolio:")) {
+                      fund.sourcePortfolioId = brokerageSource.slice(
+                        "portfolio:".length,
+                      )
+                    } else if (brokerageSource.startsWith("bankAccount:")) {
+                      const name = brokerageSource.slice(
+                        "bankAccount:".length,
+                      )
+                      const assetId = bankAccountAssetIds[name]
+                      if (assetId) {
+                        fund.sourceAssetId = assetId
+                        // Bank-account assets live on the default
+                        // portfolio, not the new brokerage portfolio
+                        // being created — pin the WITHDRAWAL there.
+                        fund.sourcePortfolioId = portfolioId
+                      }
+                    }
+                    return fund
+                  })()
+                : undefined,
+          })
+          setBrokerageCreated(true)
+          // Trigger valuation for the new brokerage portfolio (same as we
+          // do for the default portfolio earlier); otherwise the home /
+          // portfolios list shows it with no market value until the user
+          // opens it.
+          try {
+            await fetch(`/api/holdings/${brokerCode}?asAt=${today}`, {
+              credentials: "include",
+            })
+          } catch (vErr) {
+            console.warn(
+              "Failed to trigger brokerage portfolio valuation:",
+              vErr,
+            )
+          }
+          // Touch result so eslint sees it as used; future caller may want
+          // the broker / portfolio ids for navigation.
+          void brokerageResult
+        } catch (bErr) {
+          console.warn("Onboarding brokerage setup failed:", bErr)
+          setError(
+            `Brokerage setup failed: ${bErr instanceof Error ? bErr.message : String(bErr)}. The rest of your setup was saved.`,
+          )
+        }
+      }
+
       // Move to complete step
-      setCurrentStep(7)
+      setCurrentStep(8)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Setup failed")
     } finally {
@@ -715,6 +849,29 @@ const OnboardingWizard: React.FC = () => {
         )
       case 7:
         return (
+          <BrokerageStep
+            enabled={brokerageEnabled}
+            brokerName={brokerageBrokerName}
+            source={brokerageSource}
+            amount={brokerageAmount}
+            currency={brokerageCurrency || baseCurrency || "USD"}
+            currencyCodes={
+              currencies.length > 0
+                ? currencies.map((c) => c.code)
+                : [baseCurrency || "USD"]
+            }
+            existingPortfolios={existingPortfolios}
+            bankAccounts={bankAccounts}
+            defaultPortfolioName={portfolioName}
+            onEnabledChange={setBrokerageEnabled}
+            onBrokerNameChange={setBrokerageBrokerName}
+            onSourceChange={setBrokerageSource}
+            onAmountChange={setBrokerageAmount}
+            onCurrencyChange={setBrokerageCurrency}
+          />
+        )
+      case 8:
+        return (
           <CompleteStep
             portfolioName={portfolioName}
             bankAccountCount={bankAccounts.length}
@@ -723,6 +880,7 @@ const OnboardingWizard: React.FC = () => {
             insuranceCount={insurances.length}
             portfolioId={createdPortfolioId}
             independencePlanCreated={independencePlanCreated}
+            brokerageCreated={brokerageCreated}
           />
         )
       default:
@@ -730,8 +888,42 @@ const OnboardingWizard: React.FC = () => {
     }
   }
 
+  // Per-step heading + lead, lifted out of the individual step
+  // components so the user sees what the step is for BEFORE the
+  // progress bar takes the visual focus. Renders right under the page's
+  // "Account Setup" title.
+  const stepIntro: Record<number, { title: string; lead: string }> = {
+    1: {
+      title: "Welcome to Beancounter!",
+      lead: "Quick setup — currency, portfolio, accounts. Skip and finish later in settings if you like.",
+    },
+    2: {
+      title: "Set your currencies",
+      lead: "Base currency tracks costs; reporting currency displays values. Default to the same one — they can differ.",
+    },
+    4: {
+      title: "Add your accounts",
+      lead: "Tell us about your assets to get a complete picture of your wealth. Optional.",
+    },
+    6: {
+      title: "Quick Independence Check",
+      lead: "Want to see how your finances might look in retirement? Just three quick questions.",
+    },
+    7: {
+      title: "Brokerage account",
+      lead: "Optional — set up a broker, a brokerage portfolio, and your opening cash deposit.",
+    },
+  }
+  const intro = stepIntro[currentStep]
+
   return (
     <div className="max-w-2xl mx-auto">
+      {intro && (
+        <div className="mb-3">
+          <h2 className="text-lg font-semibold text-gray-900">{intro.title}</h2>
+          <p className="text-sm text-gray-600">{intro.lead}</p>
+        </div>
+      )}
       <OnboardingProgress currentStep={currentStep} steps={steps} />
 
       {error && (
@@ -747,7 +939,7 @@ const OnboardingWizard: React.FC = () => {
       {/* Navigation */}
       <div className="flex justify-between mt-6">
         <div>
-          {currentStep > 1 && currentStep < 7 && (
+          {currentStep > 1 && currentStep < 8 && (
             <button
               type="button"
               onClick={handleBack}
@@ -769,7 +961,7 @@ const OnboardingWizard: React.FC = () => {
             </button>
           )}
 
-          {currentStep < 6 && (
+          {currentStep < 7 && (
             <button
               type="button"
               onClick={handleNext}
@@ -784,7 +976,7 @@ const OnboardingWizard: React.FC = () => {
             </button>
           )}
 
-          {currentStep === 6 && (
+          {currentStep === 7 && (
             <button
               type="button"
               onClick={handleComplete}
@@ -806,7 +998,7 @@ const OnboardingWizard: React.FC = () => {
             </button>
           )}
 
-          {currentStep === 7 && (
+          {currentStep === 8 && (
             <button
               type="button"
               onClick={handleFinish}

@@ -4,6 +4,7 @@ import type { User } from "@auth0/nextjs-auth0/types"
 import { Portfolio } from "types/beancounter"
 import { errorOut } from "@components/errors/ErrorOut"
 import { useRouter } from "next/router"
+import useSwr from "swr"
 import { rootLoader } from "@components/ui/PageLoader"
 import PortfolioCorporateActionsPopup from "@components/features/portfolios/PortfolioCorporateActionsPopup"
 import ManagedPortfolios from "@components/features/portfolios/ManagedPortfolios"
@@ -12,6 +13,7 @@ import PortfolioImportDialog from "@components/features/portfolios/PortfolioImpo
 import PortfoliosList from "@components/features/portfolios/PortfoliosList"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 import { usePortfolios } from "@hooks/usePortfolios"
+import { sharesManagedKey, simpleFetcher } from "@utils/api/fetchHelper"
 
 export default withPageAuthRequired(function Portfolios({
   user,
@@ -71,6 +73,26 @@ export default withPageAuthRequired(function Portfolios({
 
   const activePortfolios = portfolios.filter((p) => p.active !== false)
   const inactivePortfolios = portfolios.filter((p) => p.active === false)
+
+  // Hide the Managed tab when the user has nothing shared with them.
+  // Cheap GET — same endpoint ManagedPortfolios uses; SWR will dedupe.
+  const { data: managedSharesData } = useSwr<{ data: unknown[] }>(
+    sharesManagedKey,
+    simpleFetcher(sharesManagedKey),
+  )
+  const hasManagedShares = (managedSharesData?.data?.length ?? 0) > 0
+  // If the user lands on /portfolios?tab=managed but has nothing managed
+  // (e.g. a share was revoked), bounce them back to "my" so they don't
+  // see an empty tab with no way to switch.
+  React.useEffect(() => {
+    if (
+      activeTab === "managed" &&
+      managedSharesData !== undefined &&
+      !hasManagedShares
+    ) {
+      setActiveTab("my")
+    }
+  }, [activeTab, managedSharesData, hasManagedShares, setActiveTab])
 
   const handleCorporateActionsClose = useCallback(() => {
     setCorporateActionsPortfolio(null)
@@ -147,17 +169,19 @@ export default withPageAuthRequired(function Portfolios({
               </span>
             )}
           </button>
-          <button
-            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === "managed"
-                ? "border-wealth-500 text-wealth-600"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-            }`}
-            onClick={() => setActiveTab("managed")}
-          >
-            <i className="fas fa-users mr-2"></i>
-            {"Managed"}
-          </button>
+          {hasManagedShares && (
+            <button
+              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === "managed"
+                  ? "border-wealth-500 text-wealth-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+              onClick={() => setActiveTab("managed")}
+            >
+              <i className="fas fa-users mr-2"></i>
+              {"Managed"}
+            </button>
+          )}
         </div>
       </div>
 

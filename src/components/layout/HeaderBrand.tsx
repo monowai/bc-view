@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect, useCallback } from "react"
 import { useRouter } from "next/router"
 import Link from "next/link"
 import { useUser } from "@auth0/nextjs-auth0/client"
-import { useIsAdmin } from "@hooks/useIsAdmin"
 import { usePermissions } from "@hooks/usePermissions"
 
 interface NavItem {
@@ -58,6 +57,16 @@ const navSections: NavSection[] = [
     title: "Tools",
     items: [
       { href: "/chat", label: "Chat", icon: "fa-robot", aiOnly: true },
+      {
+        href: "/tools/open-brokerage",
+        label: "Open Brokerage",
+        icon: "fa-building-columns",
+      },
+      {
+        href: "/tools/cost-stack",
+        label: "Cost Stack",
+        icon: "fa-layer-group",
+      },
       { href: "/fx", label: "FX Rates", icon: "fa-exchange-alt" },
       { href: "/fx/calculator", label: "FX Calculator", icon: "fa-calculator" },
       { href: "/tax-rates", label: "Tax Rates", icon: "fa-percent" },
@@ -215,8 +224,7 @@ function DesktopDropdown({
 function HeaderBrand(): React.ReactElement {
   const router = useRouter()
   const { user } = useUser()
-  const { isAdmin } = useIsAdmin()
-  const { ai: canRunAi } = usePermissions()
+  const { admin: isAdmin, ai: canRunAi } = usePermissions()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const mobileMenuRef = useRef<HTMLDivElement>(null)
   const isAuthed = !!user

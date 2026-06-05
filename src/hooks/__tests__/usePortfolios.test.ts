@@ -114,13 +114,7 @@ describe("usePortfolios", () => {
     await act(async () => {})
   })
 
-  it("fetches currencies on mount", async () => {
-    const currencies = [makeCurrency("USD"), makeCurrency("NZD")]
-    ;(global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve({ data: currencies }),
-    })
-
+  it("requests currencies via SWR using the shared ccyKey", async () => {
     mockUseSwr.mockReturnValue({
       data: undefined,
       mutate: jest.fn(),
@@ -131,7 +125,12 @@ describe("usePortfolios", () => {
 
     renderHook(() => usePortfolios())
 
-    expect(global.fetch).toHaveBeenCalledWith("/api/currencies")
+    // usePortfolios calls useSwr twice — once for portfoliosKey, once for
+    // ccyKey. The currencies call must use the shared "/api/currencies" key
+    // so SWR can collapse it with other consumers of useCurrencies /
+    // useDisplayCurrencyConversion.
+    const calledKeys = mockUseSwr.mock.calls.map(([key]) => key)
+    expect(calledKeys).toContain("/api/currencies")
 
     await act(async () => {})
   })

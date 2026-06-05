@@ -236,16 +236,10 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
   }
 
   return (
-    <div className="py-4">
-      <h2 className="text-xl font-bold text-gray-900 mb-2">
-        {"Add your accounts"}
-      </h2>
-
-      <p className="text-gray-600 mb-6">
-        {
-          "Tell us about your assets to get a complete picture of your wealth. This step is optional."
-        }
-      </p>
+    <div className="py-2">
+      {/* Per-step title + lead are rendered by OnboardingWizard above the
+          progress bar so the user sees what the step is for before the
+          form takes the visual focus. */}
 
       {/* Added Assets Summary */}
       {totalAssets > 0 && (
@@ -373,33 +367,32 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
         </div>
       )}
 
-      {/* Asset Type Selection */}
+      {/* Asset Type Selection — 2-col on small, 4-col on md+ so picker
+          stays above the fold even with the summary list. Each card is a
+          compact stack (icon, title, one-line description) instead of a
+          horizontal full-width row. */}
       {!selectedType && (
         <div className="space-y-3">
-          <h3 className="font-medium text-gray-700">
+          <h3 className="text-sm font-medium text-gray-700">
             {totalAssets > 0
               ? "Add another asset"
               : "Choose an asset type to add"}
           </h3>
-          <div className="grid grid-cols-1 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {assetTypes.map((type) => (
               <button
                 key={type.id}
                 type="button"
                 onClick={() => setSelectedType(type.id)}
-                className={`p-4 rounded-lg border-2 text-left transition-all ${getColorClasses(type.color, false)}`}
+                className={`p-3 rounded-lg border-2 text-left transition-all h-full ${getColorClasses(type.color, false)}`}
               >
-                <div className="flex items-start">
-                  <div className={`text-2xl mr-4 ${getIconColor(type.color)}`}>
-                    <i className={`fas ${type.icon}`}></i>
-                  </div>
-                  <div>
-                    <h4 className="font-medium text-gray-900">{type.title}</h4>
-                    <p className="text-sm text-gray-600 mt-1">
-                      {type.description}
-                    </p>
-                  </div>
+                <div className={`text-2xl mb-2 ${getIconColor(type.color)}`}>
+                  <i className={`fas ${type.icon}`}></i>
                 </div>
+                <h4 className="font-medium text-gray-900 text-sm">
+                  {type.title}
+                </h4>
+                <p className="text-xs text-gray-600 mt-1">{type.description}</p>
               </button>
             ))}
           </div>

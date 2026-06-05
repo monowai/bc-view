@@ -5,7 +5,6 @@ import CashInputForm from "@components/features/transactions/CashInputForm"
 import CopyPopup from "@components/ui/CopyPopup"
 import { HoldingContract, QuickSellData } from "types/beancounter"
 import { ViewMode, VIEW_MODES } from "./ViewToggle"
-import { useIsAdmin } from "@hooks/useIsAdmin"
 import {
   GroupBy,
   useGroupOptions,
@@ -309,8 +308,11 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
   onInvestCash,
 }) => {
   const router = useRouter()
-  const { isAdmin } = useIsAdmin()
-  const { ai: canRunAi, isLoading: permsLoading } = usePermissions()
+  const {
+    admin: isAdmin,
+    ai: canRunAi,
+    isLoading: permsLoading,
+  } = usePermissions()
   const holdingState = useHoldingState()
   const groupOptions = useGroupOptions()
   const { popup: reviewPopup, showReview } = usePortfolioReview()
@@ -535,12 +537,20 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
           />
         </div>
       </div>
-      <TradeInputForm
-        portfolio={holdingResults.portfolio}
-        modalOpen={tradeModalOpen}
-        setModalOpen={handleTradeModalClose}
-        initialValues={quickSellData}
-      />
+      {tradeModalOpen && (
+        // Lazy-mount: TradeInputForm calls useSwr("/api/portfolios") in its
+        // body. Mounting it unconditionally fires the fetch on every holdings
+        // pageload even when the trade dialog is closed, producing a duplicate
+        // /api/portfolios call alongside the page's own keyed fetch (the bare
+        // URL doesn't match the portfoliosKey cache slot). Gate on
+        // tradeModalOpen so the form's hooks only run when the dialog opens.
+        <TradeInputForm
+          portfolio={holdingResults.portfolio}
+          modalOpen={tradeModalOpen}
+          setModalOpen={handleTradeModalClose}
+          initialValues={quickSellData}
+        />
+      )}
       <CashInputForm
         portfolio={holdingResults.portfolio}
         modalOpen={cashModalOpen}

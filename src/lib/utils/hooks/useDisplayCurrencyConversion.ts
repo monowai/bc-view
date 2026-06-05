@@ -1,32 +1,16 @@
 import { useEffect, useState } from "react"
+import useSWR from "swr"
 import { Currency, Portfolio, FxResponse } from "types/beancounter"
+import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { useHoldingState } from "@lib/holdings/holdingState"
 
-// Cache for currencies to avoid repeated fetches
-let currenciesCache: Currency[] | null = null
-let currenciesFetchPromise: Promise<Currency[]> | null = null
-
-function fetchCurrencies(): Promise<Currency[]> {
-  if (currenciesCache) return Promise.resolve(currenciesCache)
-
-  if (!currenciesFetchPromise) {
-    currenciesFetchPromise = fetch("/api/currencies")
-      .then((res) => res.json())
-      .then((data): Currency[] => {
-        currenciesCache = data.data || []
-        return currenciesCache as Currency[]
-      })
-      .catch((err): Currency[] => {
-        console.error("Failed to fetch currencies:", err)
-        currenciesFetchPromise = null
-        return []
-      })
-  }
-
-  return currenciesFetchPromise as Promise<Currency[]>
+const SWR_CURRENCIES_CONFIG = {
+  revalidateOnFocus: false,
+  dedupingInterval: 60_000,
 }
 
-// Cache for FX rates - keyed by "FROM:TO"
+// Cache for FX rates — keyed by "FROM:TO". Module-level because the same
+// rate is reused across many components within a session.
 const fxRateCache = new Map<string, { rate: number; timestamp: number }>()
 const FX_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
@@ -81,11 +65,6 @@ interface UseDisplayCurrencyConversionProps {
   portfolio: Portfolio
 }
 
-interface AsyncCustom {
-  code: string
-  currency: Currency
-}
-
 interface AsyncFx {
   fromCode: string
   toCode: string
@@ -110,16 +89,24 @@ export function useDisplayCurrencyConversion({
   const mode = displayCurrencyOption.mode
   const customCode = displayCurrencyOption.customCode
 
-  // Async-fetched currency for CUSTOM mode. We track which code it was
-  // fetched for so a stale value doesn't leak when customCode changes.
-  const [asyncCustom, setAsyncCustom] = useState<AsyncCustom | null>(null)
+  // Currencies are only needed when CUSTOM mode is active. Gating the SWR
+  // key on the mode keeps the request off the hot path for non-CUSTOM use.
+  // The /api/currencies key is shared with useCurrencies / usePortfolios so
+  // SWR collapses concurrent consumers across the tree to one fetch.
+  const { data: currenciesData, isLoading: currenciesLoading } = useSWR<{
+    data: Currency[]
+  }>(
+    mode === "CUSTOM" && customCode ? ccyKey : null,
+    simpleFetcher(ccyKey),
+    SWR_CURRENCIES_CONFIG,
+  )
+  const currencies = currenciesData?.data
 
-  // Async-fetched FX rate keyed by from/to pair, for the same reason.
   const [asyncFx, setAsyncFx] = useState<AsyncFx | null>(null)
 
   const customCurrency =
-    mode === "CUSTOM" && customCode && asyncCustom?.code === customCode
-      ? asyncCustom.currency
+    mode === "CUSTOM" && customCode && currencies
+      ? (currencies.find((c) => c.code === customCode) ?? null)
       : null
 
   // Determine target currency synchronously for non-CUSTOM modes.
@@ -146,22 +133,6 @@ export function useDisplayCurrencyConversion({
   } else {
     syncFxRate = null
   }
-
-  // Fetch CUSTOM-mode currency only when in that mode and we don't already
-  // have a fresh result for the requested code.
-  useEffect(() => {
-    if (mode !== "CUSTOM" || !customCode) return () => {}
-    if (asyncCustom?.code === customCode) return () => {}
-    let cancelled = false
-    fetchCurrencies().then((currencies) => {
-      if (cancelled) return
-      const found = currencies.find((c) => c.code === customCode)
-      if (found) setAsyncCustom({ code: customCode, currency: found })
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [mode, customCode, asyncCustom])
 
   // Fetch FX rate only when sync path can't satisfy the request.
   useEffect(() => {
@@ -202,8 +173,14 @@ export function useDisplayCurrencyConversion({
 
   // Loading is derived: pending iff we expect an async result we don't yet
   // have. No setIsLoading(true) / setIsLoading(false) inside an effect.
+  //
+  // CUSTOM-mode pending tracks SWR's isLoading rather than !customCurrency
+  // so an invalid customCode (one absent from the response) clears loading
+  // when the fetch resolves. Otherwise the hook would stay stuck on the
+  // first render after the bad code was selected (downstream falls back to
+  // sourceCurrency at rate 1 — the right UX for a missing code).
   const customFetchPending =
-    mode === "CUSTOM" && !!customCode && asyncCustom?.code !== customCode
+    mode === "CUSTOM" && !!customCode && currenciesLoading
   const fxFetchPending =
     syncFxRate === null &&
     !!sourceCurrency &&
@@ -230,41 +207,20 @@ export function useDisplayCurrencyConversion({
 }
 
 /**
- * Get cached currencies list (for use in components that just need the list)
+ * Get the currency list. SWR-backed so consumers share a single in-flight
+ * request with usePortfolios / useDisplayCurrencyConversion.
  */
 export function useCurrencies(): {
   currencies: Currency[]
   isLoading: boolean
 } {
-  // Lazy initial state: if the module cache is already populated we expose
-  // it immediately and skip the effect entirely. The "no cache yet" path
-  // initialises with [] + isLoading=true and is filled by the effect's
-  // async .then() callback.
-  const [state, setState] = useState<{
-    currencies: Currency[]
-    isLoading: boolean
-  }>(() =>
-    currenciesCache
-      ? { currencies: currenciesCache, isLoading: false }
-      : { currencies: [], isLoading: true },
+  const { data, isLoading } = useSWR<{ data: Currency[] }>(
+    ccyKey,
+    simpleFetcher(ccyKey),
+    SWR_CURRENCIES_CONFIG,
   )
-
-  useEffect(() => {
-    if (currenciesCache) return () => {}
-    let cancelled = false
-    fetchCurrencies()
-      .then((currencies) => {
-        if (cancelled) return
-        setState({ currencies, isLoading: false })
-      })
-      .catch(() => {
-        if (cancelled) return
-        setState({ currencies: [], isLoading: false })
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  return state
+  return {
+    currencies: data?.data ?? [],
+    isLoading,
+  }
 }

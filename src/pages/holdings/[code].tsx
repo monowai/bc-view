@@ -23,6 +23,7 @@ import {
   categoriesKey,
   holdingByIdKey,
   holdingKey,
+  portfoliosKey,
   simpleFetcher,
 } from "@utils/api/fetchHelper"
 import dynamic from "next/dynamic"
@@ -80,7 +81,7 @@ import CreateModelFromHoldingsDialog from "@components/features/rebalance/models
 import SelectPlanDialog from "@components/features/rebalance/execution/SelectPlanDialog"
 import InvestCashDialog from "@components/features/rebalance/execution/InvestCashDialog"
 import { ModelDto, PlanDto } from "types/rebalance"
-import { useIsAdmin } from "@hooks/useIsAdmin"
+import { usePermissions } from "@hooks/usePermissions"
 
 function HoldingsPage(): React.ReactElement {
   const router = useRouter()
@@ -199,7 +200,7 @@ function HoldingsPage(): React.ReactElement {
   const [adminEditAsset, setAdminEditAsset] = useState<Asset | undefined>(
     undefined,
   )
-  const { isAdmin } = useIsAdmin()
+  const { admin: isAdmin } = usePermissions()
 
   // Share dialog state
   const [showShareDialog, setShowShareDialog] = useState(false)
@@ -209,10 +210,17 @@ function HoldingsPage(): React.ReactElement {
   const [createModelModalOpen, setCreateModelModalOpen] = useState(false)
   const [investCashModalOpen, setInvestCashModalOpen] = useState(false)
 
-  // Fetch portfolios for cash transfer dialog
+  // Fetch portfolios for cash transfer / move-position / share dialogs.
+  // Use the shared portfoliosKey (?inactive=true) so this consumer collapses
+  // into the same SWR cache as the header dropdown and the Portfolios page —
+  // one /api/portfolios fetch per pageload instead of two. Inactive entries
+  // are filtered client-side because none of the dialogs want them.
   const { data: portfoliosData } = useSwr(
-    "/api/portfolios",
-    simpleFetcher("/api/portfolios"),
+    portfoliosKey,
+    simpleFetcher(portfoliosKey),
+  )
+  const activePortfolios = (portfoliosData?.data || []).filter(
+    (p: { active?: boolean }) => p.active !== false,
   )
 
   // Edit-asset dialog needs the same reference data as the accounts page.
@@ -840,7 +848,7 @@ function HoldingsPage(): React.ReactElement {
           modalOpen={!!cashTransferData}
           onClose={handleCashTransferClose}
           sourceData={cashTransferData}
-          portfolios={portfoliosData?.data || []}
+          portfolios={activePortfolios}
         />
       )}
       {movePositionData && (
@@ -848,7 +856,7 @@ function HoldingsPage(): React.ReactElement {
           modalOpen={!!movePositionData}
           onClose={handleMovePositionClose}
           sourceData={movePositionData}
-          portfolios={portfoliosData?.data || []}
+          portfolios={activePortfolios}
         />
       )}
       {costAdjustData && (
@@ -913,7 +921,7 @@ function HoldingsPage(): React.ReactElement {
       />
       {showShareDialog && portfoliosData?.data && (
         <ShareInviteDialog
-          portfolios={portfoliosData.data}
+          portfolios={activePortfolios}
           preSelectedPortfolioId={holdingResults.portfolio.id}
           onClose={() => setShowShareDialog(false)}
           onSuccess={() => setShowShareDialog(false)}
