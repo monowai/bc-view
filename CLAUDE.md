@@ -339,3 +339,35 @@ docker build --build-arg KAFKA_URL=host.minikube.internal:9092 . -t monowai/bc-v
 ```
 
 Output is `standalone` mode for containerized deployment.
+
+### CI build pipeline
+
+`.github/workflows/build.yml` flow:
+
+1. **`build` job (CI runner)** — runs on every push and PR. Compiles `.next/`,
+   runs the Sentry DSN pre-build and post-build guards as a fast-fail signal.
+   Uploads `.next/` + `public/` + `package.json` + `yarn.lock` as the
+   `build-output` artifact **only when the docker job will run** (push to
+   `main` or `workflow_dispatch + build_image`). PR builds skip the upload
+   entirely, so they don't consume artifact storage.
+2. **`docker` job (matrix, main / workflow_dispatch only)** — downloads the
+   `build-output` artifact. The Dockerfile's builder stage detects `.next/`
+   in the context and reuses it (skipping `yarn build`); if `.next/` is
+   missing (e.g. local `docker build`) it falls back to running `yarn build`
+   inside the container with `NEXT_PUBLIC_SENTRY_DSN` from `--build-arg`.
+   Either path ends at the same post-build `RUN` assertion that the DSN's
+   project ID appears in the instrumentation-client chunk — image build
+   fails if not.
+
+Critical configuration:
+- `actions/upload-artifact@v6+`: `include-hidden-files: true` is **required**.
+  Without it the action silently drops dot-prefixed paths like `.next/`. This
+  is the trap PRs #762–#766 chased: artifact appeared to upload but `.next/`
+  was missing, Dockerfile rebuilt without `NEXT_PUBLIC_*` secrets, browser
+  bundle shipped with `undefined` DSN.
+- `NEXT_PUBLIC_SENTRY_DSN` must be in both the CI `Build application` step
+  env AND the docker job's `build-args`. Belt-and-suspenders so the fallback
+  rebuild path is also covered.
+- The Dockerfile's post-build assertion runs against the final `.next/` that
+  the runner stage will COPY, so neither path (handoff or rebuild) can ship
+  a missing DSN.

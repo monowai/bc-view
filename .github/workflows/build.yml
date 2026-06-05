@@ -135,10 +135,17 @@ jobs:
         env:
           NEXT_PUBLIC_SENTRY_DSN: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
         run: |
-          # Extract Sentry project ID (last path segment of DSN URL) - public identifier, safe to grep
+          # Extract Sentry project ID (last path segment) and ingest host. Checking BOTH
+          # catches the case where a DSN was rotated to a different region (us → de) or
+          # public key, but the same project ID was reused — project-ID-only grep would
+          # false-pass while the bundle pointed at the wrong host. Both are public
+          # identifiers, safe to grep / echo.
           PROJECT_ID="${NEXT_PUBLIC_SENTRY_DSN##*/}"
-          if [ -z "$PROJECT_ID" ]; then
-            echo "::error::Could not extract project ID from NEXT_PUBLIC_SENTRY_DSN."
+          DSN_HOST="${NEXT_PUBLIC_SENTRY_DSN#*://}"
+          DSN_HOST="${DSN_HOST#*@}"
+          DSN_HOST="${DSN_HOST%%/*}"
+          if [ -z "$PROJECT_ID" ] || [ -z "$DSN_HOST" ]; then
+            echo "::error::Could not parse NEXT_PUBLIC_SENTRY_DSN (project_id=$PROJECT_ID host=$DSN_HOST)."
             exit 1
           fi
           # Find the chunk that actually runs instrumentation-client.ts — that's the one
@@ -151,17 +158,28 @@ jobs:
             echo "If instrumentation-client.ts was renamed, update this guard."
             exit 1
           fi
-          if grep -qF "$PROJECT_ID" "$CHUNK"; then
-            echo "Sentry DSN inlined into instrumentation-client chunk: $CHUNK"
+          if grep -qF "$PROJECT_ID" "$CHUNK" && grep -qF "$DSN_HOST" "$CHUNK"; then
+            echo "Sentry DSN inlined into $CHUNK (project_id=$PROJECT_ID host=$DSN_HOST)"
           else
-            echo "::error::Sentry DSN NOT found in $CHUNK — browser tracing would be dead."
-            echo "Next.js did not inline NEXT_PUBLIC_SENTRY_DSN into the instrumentation chunk despite the env var being set at build time."
-            echo "Likely cause: Turbopack persistent cache reused a pre-compiled module with the old (undefined) DSN value."
+            echo "::error::Sentry DSN NOT fully inlined in $CHUNK (project_id=$PROJECT_ID host=$DSN_HOST) — browser tracing would be dead."
+            echo "Next.js did not inline the expected NEXT_PUBLIC_SENTRY_DSN into the instrumentation chunk despite the env var being set at build time."
+            echo "Likely cause: Turbopack persistent cache reused a pre-compiled module with the old (undefined or rotated) DSN value."
             echo "Fix: invalidate .next/cache (delete the relevant Actions cache, then re-run)."
             exit 1
           fi
 
+      # Artifact handoff to the docker job — gated on the same condition as the
+      # docker job itself so PR builds (where docker doesn't run) don't pay any
+      # storage cost. include-hidden-files: true is REQUIRED — without it,
+      # actions/upload-artifact@v6 silently drops .next/ (dot-prefixed paths are
+      # treated as "hidden") and the Docker job's "use pre-built .next" branch
+      # falls into the rebuild path. The Dockerfile's post-build DSN guard runs
+      # against the final .next regardless of which path produced it, so this
+      # cannot silently regress.
       - name: Upload build artifacts
+        if: |
+          (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+          (github.event_name == 'workflow_dispatch' && inputs.build_image)
         uses: actions/upload-artifact@v6
         with:
           name: build-output
@@ -171,6 +189,7 @@ jobs:
             package.json
             yarn.lock
           retention-days: 1
+          include-hidden-files: true
 
   docker:
     name: Build Docker (${{ matrix.platform }})
@@ -197,6 +216,20 @@ jobs:
         uses: actions/download-artifact@v7
         with:
           name: build-output
+
+      # Catch silent artifact regressions early — if .next or node_modules
+      # is missing, the Dockerfile falls into the rebuild path which is OK
+      # but slower than the handoff. This step turns a perf regression into
+      # a visible warning rather than letting it go unnoticed.
+      - name: Report artifact contents
+        run: |
+          for d in .next node_modules; do
+            if [ -d "$d" ] && [ -n "$(ls -A "$d" 2>/dev/null)" ]; then
+              echo "$d present ($(du -sh "$d" | cut -f1)) — Dockerfile will reuse."
+            else
+              echo "::warning::$d missing or empty — Dockerfile will rebuild it (slower)."
+            fi
+          done
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -226,10 +259,15 @@ jobs:
             ${{ env.CONTAINER_REGISTRY }}/${{ env.CONTAINER_ORG }}/${{ env.IMAGE_NAME }}:${{ github.run_number }}-${{ steps.prep.outputs.platform_tag }}
           labels: |
             org.opencontainers.image.build-number=${{ github.run_number }}
+          # NEXT_PUBLIC_SENTRY_DSN is inlined into the client bundle at build
+          # time — must be passed here so the Docker `yarn build` produces a
+          # chunk with the DSN embedded. Without it the browser SDK silently
+          # bails out and no pageload traces reach Sentry.
           build-args: |
             GIT_BRANCH=${{ github.ref_name }}
             GIT_COMMIT=${{ steps.prep.outputs.short_sha }}
             BUILD_ID=${{ github.run_number }}
+            NEXT_PUBLIC_SENTRY_DSN=${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
           cache-from: type=gha,scope=${{ matrix.platform }}
           # mode=min stores only final-stage layers, not every intermediate
           # builder layer. mode=max ballooned the GHA cache pool.
