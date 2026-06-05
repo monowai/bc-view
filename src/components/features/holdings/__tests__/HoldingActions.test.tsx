@@ -78,13 +78,9 @@ jest.mock("@components/features/rebalance/execution/InvestCashDialog", () => {
   }
 })
 
-// Mock useIsAdmin to prevent async state updates
-jest.mock("@hooks/useIsAdmin", () => ({
-  useIsAdmin: () => ({ isAdmin: false, isLoading: false }),
-}))
-
 // Permissions: grant `ai` so the AI Summary button renders. Mobile-visibility
 // tests don't care about the chat bus side-effect, only the DOM placement.
+// `admin: false` keeps the admin paths gated.
 jest.mock("@hooks/usePermissions", () => ({
   usePermissions: () => ({
     ai: true,

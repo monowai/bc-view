@@ -1,7 +1,7 @@
 import React from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { rootLoader } from "@components/ui/PageLoader"
-import { useIsAdmin } from "@hooks/useIsAdmin"
+import { usePermissions } from "@hooks/usePermissions"
 import Link from "next/link"
 import useSWR from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
@@ -242,7 +242,7 @@ function ServiceCard({
 
 export default withPageAuthRequired(
   function ServicesPage(): React.ReactElement {
-    const { isAdmin, isLoading } = useIsAdmin()
+    const { admin: isAdmin, isLoading } = usePermissions()
 
     const {
       data,

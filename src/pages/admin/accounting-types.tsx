@@ -4,7 +4,7 @@ import { rootLoader } from "@components/ui/PageLoader"
 import Dialog from "@components/ui/Dialog"
 import Alert from "@components/ui/Alert"
 import Spinner from "@components/ui/Spinner"
-import { useIsAdmin } from "@hooks/useIsAdmin"
+import { usePermissions } from "@hooks/usePermissions"
 import Link from "next/link"
 import { AccountingType, Currency } from "types/beancounter"
 
@@ -24,7 +24,7 @@ const defaultFormData: FormData = {
 
 export default withPageAuthRequired(
   function AccountingTypesAdmin(): React.ReactElement {
-    const { isAdmin, isLoading: isAdminLoading } = useIsAdmin()
+    const { admin: isAdmin, isLoading: isAdminLoading } = usePermissions()
     const [accountingTypes, setAccountingTypes] = useState<AccountingType[]>([])
     const [currencies, setCurrencies] = useState<Currency[]>([])
     const [isLoading, setIsLoading] = useState(true)

@@ -1,7 +1,7 @@
 import React, { useState } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { errorOut } from "@components/errors/ErrorOut"
-import { useIsAdmin } from "@hooks/useIsAdmin"
+import { usePermissions } from "@hooks/usePermissions"
 import { useFxHistory } from "@hooks/useFxHistory"
 import { useFxMatrix } from "@hooks/useFxMatrix"
 import FxConverter from "@components/features/fx/FxConverter"
@@ -279,7 +279,7 @@ const RateChartModal: React.FC<RateChartModalProps> = ({
 }
 
 export default withPageAuthRequired(function FxMatrix(): React.ReactElement {
-  const { isAdmin } = useIsAdmin()
+  const { admin: isAdmin } = usePermissions()
   const [compareMode, setCompareMode] = useState(false)
   const [selectedProvider, setSelectedProvider] = useState<string | undefined>(
     undefined,

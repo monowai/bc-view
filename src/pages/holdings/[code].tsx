@@ -80,7 +80,7 @@ import CreateModelFromHoldingsDialog from "@components/features/rebalance/models
 import SelectPlanDialog from "@components/features/rebalance/execution/SelectPlanDialog"
 import InvestCashDialog from "@components/features/rebalance/execution/InvestCashDialog"
 import { ModelDto, PlanDto } from "types/rebalance"
-import { useIsAdmin } from "@hooks/useIsAdmin"
+import { usePermissions } from "@hooks/usePermissions"
 
 function HoldingsPage(): React.ReactElement {
   const router = useRouter()
@@ -199,7 +199,7 @@ function HoldingsPage(): React.ReactElement {
   const [adminEditAsset, setAdminEditAsset] = useState<Asset | undefined>(
     undefined,
   )
-  const { isAdmin } = useIsAdmin()
+  const { admin: isAdmin } = usePermissions()
 
   // Share dialog state
   const [showShareDialog, setShowShareDialog] = useState(false)

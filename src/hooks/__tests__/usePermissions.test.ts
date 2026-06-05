@@ -1,5 +1,7 @@
+import React from "react"
 import { renderHook, waitFor } from "@testing-library/react"
 import { useUser } from "@auth0/nextjs-auth0/client"
+import { SWRConfig } from "swr"
 
 // jest.setup.js applies a global mock for this hook so other tests get
 // permissive perms. We want the real implementation here.
@@ -14,6 +16,19 @@ const fakeUser = {
   email: "x@y",
   email_verified: true,
 } as unknown as Parameters<typeof mockUseUser.mockReturnValue>[0]["user"]
+
+// Each test mounts with a fresh SWR cache so resolved data from a prior
+// test does not leak through SWR's module-level cache.
+const wrapper = ({
+  children,
+}: {
+  children: React.ReactNode
+}): React.ReactElement =>
+  React.createElement(
+    SWRConfig,
+    { value: { provider: () => new Map() } },
+    children,
+  )
 
 describe("usePermissions", () => {
   beforeEach(() => {
@@ -30,7 +45,7 @@ describe("usePermissions", () => {
       invalidate: jest.fn(),
     } as unknown as ReturnType<typeof useUser>)
 
-    const { result } = renderHook(() => usePermissions())
+    const { result } = renderHook(() => usePermissions(), { wrapper })
     await waitFor(() => expect(result.current.isLoading).toBe(false))
     expect(result.current.ai).toBe(false)
     expect(global.fetch).not.toHaveBeenCalled()
@@ -44,7 +59,7 @@ describe("usePermissions", () => {
       invalidate: jest.fn(),
     } as unknown as ReturnType<typeof useUser>)
 
-    const { result } = renderHook(() => usePermissions())
+    const { result } = renderHook(() => usePermissions(), { wrapper })
     expect(result.current.isLoading).toBe(true)
     expect(global.fetch).not.toHaveBeenCalled()
   })
@@ -61,7 +76,7 @@ describe("usePermissions", () => {
       json: () => Promise.resolve({ ai: true, preview: false, admin: false }),
     })
 
-    const { result } = renderHook(() => usePermissions())
+    const { result } = renderHook(() => usePermissions(), { wrapper })
     await waitFor(() => expect(result.current.isLoading).toBe(false))
     expect(global.fetch).toHaveBeenCalledWith("/api/auth/permissions")
     expect(result.current.ai).toBe(true)
@@ -80,9 +95,38 @@ describe("usePermissions", () => {
       statusText: "Unauthorized",
     })
 
-    const { result } = renderHook(() => usePermissions())
+    const { result } = renderHook(() => usePermissions(), { wrapper })
     await waitFor(() => expect(result.current.isLoading).toBe(false))
     expect(result.current.ai).toBe(false)
     expect(errorSpy).not.toHaveBeenCalled()
+  })
+
+  it("dedupes concurrent consumers via SWR cache", async () => {
+    mockUseUser.mockReturnValue({
+      user: fakeUser,
+      error: null,
+      isLoading: false,
+      invalidate: jest.fn(),
+    } as unknown as ReturnType<typeof useUser>)
+    ;(global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ ai: true, preview: false, admin: true }),
+    })
+
+    const { result } = renderHook(
+      () => {
+        const a = usePermissions()
+        const b = usePermissions()
+        const c = usePermissions()
+        return { a, b, c }
+      },
+      { wrapper },
+    )
+    await waitFor(() => expect(result.current.a.isLoading).toBe(false))
+    expect(result.current.a.admin).toBe(true)
+    expect(result.current.b.admin).toBe(true)
+    expect(result.current.c.admin).toBe(true)
+    // Three consumers in the same component tree share one SWR fetch.
+    expect(global.fetch).toHaveBeenCalledTimes(1)
   })
 })
