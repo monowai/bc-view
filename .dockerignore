@@ -1,5 +1,6 @@
-# Dependencies
-# node_modules  # Allow node_modules from CI
+# Dependencies — yarn install runs inside the builder stage; host node_modules
+# is irrelevant and would only inflate the build context.
+node_modules
 npm-debug.log*
 yarn-debug.log*
 
@@ -14,8 +15,8 @@ tests/
 **/*.test.jsx
 **/__tests__/**
 
-# Next.js
-# .next/  # Allow .next from CI
+# Next.js — yarn build runs inside the builder stage; host .next is irrelevant.
+.next/
 
 # Misc
 .DS_Store

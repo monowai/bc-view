@@ -7,6 +7,10 @@ RUN apk add --no-cache libc6-compat
 ARG GIT_BRANCH
 ARG GIT_COMMIT
 ARG BUILD_ID
+# Public Sentry DSN — must be present at build time so Next.js can inline it
+# into the client bundle (process.env.NEXT_PUBLIC_* is substituted by the
+# bundler at compile, not read at runtime). Passed from CI via --build-arg.
+ARG NEXT_PUBLIC_SENTRY_DSN
 
 # Environment variables - Build info
 ENV GIT_BRANCH=$GIT_BRANCH
@@ -19,25 +23,33 @@ ENV PORT=3000
 ENV SENTRY_ENABLED="true"
 ENV SENTRY_DEBUG="false"
 
-# Build stage - copy pre-built artifacts from CI
+# Build stage — single source of truth for the deployed image.
 FROM base AS builder
+ARG NEXT_PUBLIC_SENTRY_DSN
+ENV NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN
 COPY . .
 
-# If node_modules exists from CI, use it; otherwise install
-RUN if [ -d "node_modules" ]; then \
-      echo "Using pre-built node_modules from CI"; \
-    else \
-      echo "Installing dependencies in Docker"; \
-      yarn install --frozen-lockfile --prefer-offline --production=false; \
-    fi
+RUN yarn install --frozen-lockfile --prefer-offline --production=false
+RUN yarn build
 
-# If .next exists from CI, use it; otherwise build
-RUN if [ -d ".next" ]; then \
-      echo "Using pre-built .next from CI"; \
-    else \
-      echo "Building application in Docker"; \
-      yarn build; \
-    fi
+# Post-build assertion: the instrumentation-client chunk must contain the DSN's
+# project ID. Fails the image build if Next.js did not inline NEXT_PUBLIC_SENTRY_DSN
+# (e.g. the build-arg was empty, or Turbopack reused a stale cached module).
+RUN PROJECT_ID="${NEXT_PUBLIC_SENTRY_DSN##*/}"; \
+    if [ -z "$PROJECT_ID" ]; then \
+      echo "NEXT_PUBLIC_SENTRY_DSN build-arg missing — pass it via docker build --build-arg." >&2; \
+      exit 1; \
+    fi; \
+    CHUNK=$(grep -lrF "instrumentation-client.ts loading" .next/static/chunks | head -1); \
+    if [ -z "$CHUNK" ]; then \
+      echo "Could not locate instrumentation-client chunk in .next/static/chunks." >&2; \
+      exit 1; \
+    fi; \
+    if ! grep -qF "$PROJECT_ID" "$CHUNK"; then \
+      echo "Sentry DSN NOT inlined into $CHUNK — browser tracing would be dead." >&2; \
+      exit 1; \
+    fi; \
+    echo "Sentry DSN inlined into $CHUNK."
 
 # Production stage (only production dependencies)
 FROM base AS runner

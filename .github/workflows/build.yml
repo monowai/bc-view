@@ -161,16 +161,14 @@ jobs:
             exit 1
           fi
 
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v6
-        with:
-          name: build-output
-          path: |
-            .next/
-            public/
-            package.json
-            yarn.lock
-          retention-days: 1
+      # No artifact upload — the Docker job builds .next itself with the same
+      # secrets via --build-arg. This job's `yarn build` is kept as a fast-fail
+      # signal for compile / type / inline regressions BEFORE the slower
+      # docker matrix kicks in, but its .next/ output is not shipped anywhere.
+      # Previous artifact handoff was a foot-gun: upload-artifact@v6 silently
+      # excluded .next as a hidden file, so the Docker job's "use pre-built
+      # .next" branch was dead and the deployed bundle was always built with
+      # a separate set of env vars than the one the CI guard verified.
 
   docker:
     name: Build Docker (${{ matrix.platform }})
@@ -192,11 +190,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v7
-        with:
-          name: build-output
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -226,10 +219,15 @@ jobs:
             ${{ env.CONTAINER_REGISTRY }}/${{ env.CONTAINER_ORG }}/${{ env.IMAGE_NAME }}:${{ github.run_number }}-${{ steps.prep.outputs.platform_tag }}
           labels: |
             org.opencontainers.image.build-number=${{ github.run_number }}
+          # NEXT_PUBLIC_SENTRY_DSN is inlined into the client bundle at build
+          # time — must be passed here so the Docker `yarn build` produces a
+          # chunk with the DSN embedded. Without it the browser SDK silently
+          # bails out and no pageload traces reach Sentry.
           build-args: |
             GIT_BRANCH=${{ github.ref_name }}
             GIT_COMMIT=${{ steps.prep.outputs.short_sha }}
             BUILD_ID=${{ github.run_number }}
+            NEXT_PUBLIC_SENTRY_DSN=${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
           cache-from: type=gha,scope=${{ matrix.platform }}
           # mode=min stores only final-stage layers, not every intermediate
           # builder layer. mode=max ballooned the GHA cache pool.
