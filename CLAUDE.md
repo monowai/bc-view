@@ -342,35 +342,32 @@ Output is `standalone` mode for containerized deployment.
 
 ### CI build pipeline
 
-`.github/workflows/build.yml` deliberately runs `yarn build` twice:
+`.github/workflows/build.yml` flow:
 
-1. **`build` job (CI runner)** — fast-fail signal. Compiles `.next/`, runs the
-   Sentry DSN guards, then throws the output away.
-2. **`docker` job (matrix)** — the single source of truth for the image. Re-runs
-   `yarn install` + `yarn build` inside the Dockerfile's builder stage with
-   `NEXT_PUBLIC_SENTRY_DSN` passed via `--build-arg`. A `RUN` guard in the
-   Dockerfile asserts the DSN is inlined into the instrumentation-client chunk;
-   image build fails if not.
+1. **`build` job (CI runner)** — runs on every push and PR. Compiles `.next/`,
+   runs the Sentry DSN pre-build and post-build guards as a fast-fail signal.
+   Uploads `.next/` + `public/` + `package.json` + `yarn.lock` as the
+   `build-output` artifact **only when the docker job will run** (push to
+   `main` or `workflow_dispatch + build_image`). PR builds skip the upload
+   entirely, so they don't consume artifact storage.
+2. **`docker` job (matrix, main / workflow_dispatch only)** — downloads the
+   `build-output` artifact. The Dockerfile's builder stage detects `.next/`
+   in the context and reuses it (skipping `yarn build`); if `.next/` is
+   missing (e.g. local `docker build`) it falls back to running `yarn build`
+   inside the container with `NEXT_PUBLIC_SENTRY_DSN` from `--build-arg`.
+   Either path ends at the same post-build `RUN` assertion that the DSN's
+   project ID appears in the instrumentation-client chunk — image build
+   fails if not.
 
-No artifact handoff. The previous artifact pattern (upload `.next/`, download
-in the Docker job, Dockerfile picks it up via `if [ -d .next ]`) was a foot-gun:
-`actions/upload-artifact@v6` silently drops dot-prefixed paths
-(`include-hidden-files: false` default), so `.next/` never reached the Docker
-job, the conditional always rebuilt, and the CI guard was verifying a
-throwaway compile while a separately-built bundle shipped to kauri. Took
-PRs #762-#766 to untangle.
-
-### Future investigation — conditional artifact handoff
-
-The `docker` job already only runs on `push` to `main` or
-`workflow_dispatch + build_image`. PR builds never trigger it. So if the
-artifact handoff is ever re-enabled for the ~20s/main-build speedup, the
-`upload-artifact` and `download-artifact` steps should be **gated by the same
-`if:` condition as the docker job**, and `include-hidden-files: true` must be
-set on the upload step.
-
-That preserves the speedup when it matters (main → deploy) without paying any
-storage cost on the much-more-frequent PR builds. Estimated saving: ~50 min of
-GH Actions minutes per month. Reliability constraint: the Dockerfile's
-post-build DSN guard must run regardless of which path produced `.next/`, so
-a split-state regression is caught on the image side.
+Critical configuration:
+- `actions/upload-artifact@v6+`: `include-hidden-files: true` is **required**.
+  Without it the action silently drops dot-prefixed paths like `.next/`. This
+  is the trap PRs #762–#766 chased: artifact appeared to upload but `.next/`
+  was missing, Dockerfile rebuilt without `NEXT_PUBLIC_*` secrets, browser
+  bundle shipped with `undefined` DSN.
+- `NEXT_PUBLIC_SENTRY_DSN` must be in both the CI `Build application` step
+  env AND the docker job's `build-args`. Belt-and-suspenders so the fallback
+  rebuild path is also covered.
+- The Dockerfile's post-build assertion runs against the final `.next/` that
+  the runner stage will COPY, so neither path (handoff or rebuild) can ship
+  a missing DSN.

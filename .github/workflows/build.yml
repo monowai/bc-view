@@ -161,14 +161,28 @@ jobs:
             exit 1
           fi
 
-      # No artifact upload — the Docker job builds .next itself with the same
-      # secrets via --build-arg. This job's `yarn build` is kept as a fast-fail
-      # signal for compile / type / inline regressions BEFORE the slower
-      # docker matrix kicks in, but its .next/ output is not shipped anywhere.
-      # Previous artifact handoff was a foot-gun: upload-artifact@v6 silently
-      # excluded .next as a hidden file, so the Docker job's "use pre-built
-      # .next" branch was dead and the deployed bundle was always built with
-      # a separate set of env vars than the one the CI guard verified.
+      # Artifact handoff to the docker job — gated on the same condition as the
+      # docker job itself so PR builds (where docker doesn't run) don't pay any
+      # storage cost. include-hidden-files: true is REQUIRED — without it,
+      # actions/upload-artifact@v6 silently drops .next/ (dot-prefixed paths are
+      # treated as "hidden") and the Docker job's "use pre-built .next" branch
+      # falls into the rebuild path. The Dockerfile's post-build DSN guard runs
+      # against the final .next regardless of which path produced it, so this
+      # cannot silently regress.
+      - name: Upload build artifacts
+        if: |
+          (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+          (github.event_name == 'workflow_dispatch' && inputs.build_image)
+        uses: actions/upload-artifact@v6
+        with:
+          name: build-output
+          path: |
+            .next/
+            public/
+            package.json
+            yarn.lock
+          retention-days: 1
+          include-hidden-files: true
 
   docker:
     name: Build Docker (${{ matrix.platform }})
@@ -190,6 +204,25 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v7
+        with:
+          name: build-output
+
+      # Catch silent artifact regressions early — if .next or node_modules
+      # is missing, the Dockerfile falls into the rebuild path which is OK
+      # but slower than the handoff. This step turns a perf regression into
+      # a visible warning rather than letting it go unnoticed.
+      - name: Report artifact contents
+        run: |
+          for d in .next node_modules; do
+            if [ -d "$d" ] && [ -n "$(ls -A "$d" 2>/dev/null)" ]; then
+              echo "$d present ($(du -sh "$d" | cut -f1)) — Dockerfile will reuse."
+            else
+              echo "::warning::$d missing or empty — Dockerfile will rebuild it (slower)."
+            fi
+          done
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

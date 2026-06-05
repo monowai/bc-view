@@ -15,8 +15,10 @@ tests/
 **/*.test.jsx
 **/__tests__/**
 
-# Next.js — yarn build runs inside the builder stage; host .next is irrelevant.
-.next/
+# Next.js — leave .next/ available so the Docker job's builder stage can reuse
+# the artifact from the CI build job (main / workflow_dispatch only). On PR /
+# local builds where .next is absent, the Dockerfile rebuilds it.
+# .next/  # intentionally not ignored
 
 # Misc
 .DS_Store

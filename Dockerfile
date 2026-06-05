@@ -23,18 +23,29 @@ ENV PORT=3000
 ENV SENTRY_ENABLED="true"
 ENV SENTRY_DEBUG="false"
 
-# Build stage — single source of truth for the deployed image.
+# Build stage — accepts either:
+#   (a) a pre-built .next/ from the CI artifact handoff (main + workflow_dispatch only)
+#   (b) a fresh in-container build when .next is absent (PR builds, local builds)
+# Either way, the post-build assertion runs against the final .next that the
+# runner stage will COPY, so a missing DSN cannot ship.
 FROM base AS builder
 ARG NEXT_PUBLIC_SENTRY_DSN
 ENV NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN
 COPY . .
 
 RUN yarn install --frozen-lockfile --prefer-offline --production=false
-RUN yarn build
+
+RUN if [ -d ".next" ] && [ -n "$(ls -A .next 2>/dev/null)" ]; then \
+      echo "Using pre-built .next from CI artifact."; \
+    else \
+      echo "Building application in Docker."; \
+      yarn build; \
+    fi
 
 # Post-build assertion: the instrumentation-client chunk must contain the DSN's
 # project ID. Fails the image build if Next.js did not inline NEXT_PUBLIC_SENTRY_DSN
-# (e.g. the build-arg was empty, or Turbopack reused a stale cached module).
+# (e.g. the build-arg was empty, the CI artifact was built without the secret,
+# or Turbopack reused a stale cached module).
 RUN PROJECT_ID="${NEXT_PUBLIC_SENTRY_DSN##*/}"; \
     if [ -z "$PROJECT_ID" ]; then \
       echo "NEXT_PUBLIC_SENTRY_DSN build-arg missing — pass it via docker build --build-arg." >&2; \
