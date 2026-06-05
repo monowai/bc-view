@@ -91,23 +91,26 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile --prefer-offline --network-concurrency 8
 
-      # Key on lockfile + next.config only. Including hashFiles('src/**/*') in
-      # the key minted a fresh ~100 MB cache on every source commit and blew
-      # past the repo cache budget. .next/cache is designed to restore stale —
-      # Next handles incremental compilation from there.
-      # Include the workflow file in the cache key so changes to build env
-      # (env vars, secret references, build flags) bust the Turbopack persistent
-      # cache. Without this, .next/cache can pin a stale compiled version of
-      # process.env.NEXT_PUBLIC_* values — observed on 2026-06-04 when a chunk
-      # built BEFORE the Sentry DSN secret existed was reused AFTER the secret
-      # was added, leaving the browser bundle with an undefined DSN.
+      # Key structure: nextjs-cache-<workflow-hash>-<deps-hash>
+      # Including hashFiles('src/**/*') in the key minted a fresh ~100 MB cache on every
+      # source commit and blew past the repo cache budget. .next/cache is designed to
+      # restore stale — Next handles incremental compilation from there.
+      #
+      # Workflow hash comes FIRST so the restore-keys fallback is anchored to it: a
+      # change to .github/workflows/build.yml (env vars, secret references, build flags)
+      # produces a new workflow hash, so the restore-keys prefix never matches a cache
+      # built under the previous workflow. Without this anchoring, .next/cache can pin
+      # a stale compiled version of process.env.NEXT_PUBLIC_* values — observed on
+      # 2026-06-04 when a chunk built BEFORE the Sentry DSN secret existed was reused
+      # AFTER the secret was added, leaving the browser bundle with an undefined DSN.
+      # Routine yarn.lock / next.config.js changes still benefit from partial restore.
       - name: Restore Next.js build cache
         uses: actions/cache@v5
         with:
           path: .next/cache
-          key: nextjs-cache-${{ hashFiles('yarn.lock', 'next.config.js', '.github/workflows/build.yml') }}
+          key: nextjs-cache-${{ hashFiles('.github/workflows/build.yml') }}-${{ hashFiles('yarn.lock', 'next.config.js') }}
           restore-keys: |
-            nextjs-cache-
+            nextjs-cache-${{ hashFiles('.github/workflows/build.yml') }}-
 
       - name: Verify Sentry DSN secret is present
         env:
@@ -138,12 +141,23 @@ jobs:
             echo "::error::Could not extract project ID from NEXT_PUBLIC_SENTRY_DSN."
             exit 1
           fi
-          if grep -rqF "$PROJECT_ID" .next/static/chunks 2>/dev/null; then
-            echo "Sentry DSN inlined into client bundle."
+          # Find the chunk that actually runs instrumentation-client.ts — that's the one
+          # that has to reference the DSN. Greping all of .next/static/chunks is too
+          # lenient: a build could have the DSN in some unrelated chunk while the
+          # init module still inlined `undefined` (this happened on 2026-06-04).
+          CHUNK=$(grep -lrF "instrumentation-client.ts loading" .next/static/chunks 2>/dev/null | head -1)
+          if [ -z "$CHUNK" ]; then
+            echo "::error::Could not locate the instrumentation-client chunk in .next/static/chunks."
+            echo "If instrumentation-client.ts was renamed, update this guard."
+            exit 1
+          fi
+          if grep -qF "$PROJECT_ID" "$CHUNK"; then
+            echo "Sentry DSN inlined into instrumentation-client chunk: $CHUNK"
           else
-            echo "::error::Sentry DSN NOT found in .next/static/chunks — browser tracing would be dead."
-            echo "Next.js did not inline NEXT_PUBLIC_SENTRY_DSN despite the env var being set at build time."
-            echo "Check that instrumentation-client.ts references process.env.NEXT_PUBLIC_SENTRY_DSN directly (no indirection)."
+            echo "::error::Sentry DSN NOT found in $CHUNK — browser tracing would be dead."
+            echo "Next.js did not inline NEXT_PUBLIC_SENTRY_DSN into the instrumentation chunk despite the env var being set at build time."
+            echo "Likely cause: Turbopack persistent cache reused a pre-compiled module with the old (undefined) DSN value."
+            echo "Fix: invalidate .next/cache (delete the relevant Actions cache, then re-run)."
             exit 1
           fi
 
