@@ -63,6 +63,31 @@ if (!enabled) {
         return null
       }
 
+      // Drop the duplicate http.server transaction that the OpenTelemetry
+      // HTTP integration emits for every inbound API request. @sentry/nextjs's
+      // Pages-Router wrapper emits a SECOND http.server transaction for the
+      // same request with the resolved route name (e.g.
+      // "GET /api/holdings/[code]" instead of "GET /api/holdings/USV") and
+      // that one carries the "executing api route" child + downstream
+      // http.client spans. The OTel one is just a thin HTTP envelope with
+      // no useful children — keeping both doubles span ingestion on every
+      // API request and clutters traces (observed 2026-06-05: every
+      // /api/* request on /holdings/[code] produced two http.server spans).
+      //
+      // Heuristic: http.server transaction whose span list contains no
+      // "executing api route" entry is the OTel one — drop it. The Pages
+      // Router wrapper always emits that child, so this is robust to route
+      // shape (top-level routes, /index files, [param] segments).
+      const txnOp = event.contexts?.trace?.op
+      const isApiInbound =
+        txnOp === "http.server" && txn.includes(" /api/") && !isMiddleware
+      const hasApiRouteChild = event.spans?.some((s) =>
+        (s.description || "").startsWith("executing api route"),
+      )
+      if (isApiInbound && !hasApiRouteChild && !hasException) {
+        return null
+      }
+
       // Rename generic transactions to include the URL path
       if (
         event.transaction === "middleware" ||
