@@ -2,6 +2,53 @@ import React, { createContext, useContext, useEffect, useState } from "react"
 import { useUser } from "@auth0/nextjs-auth0/client"
 
 const ONBOARDING_COMPLETE_KEY = "bc_onboarding_complete"
+const REGISTERED_KEY_PREFIX = "bc_registered:"
+const DEFAULT_TTL_DAYS = 30
+
+// Externally configured at build time via NEXT_PUBLIC_REGISTRATION_TTL_DAYS.
+// Number(undefined) is NaN; NaN || fallback collapses to the default. Treat
+// non-positive values as the default so a stray 0 doesn't force every load
+// to hit /api/register again.
+function resolveTtlMs(): number {
+  const raw = Number(process.env.NEXT_PUBLIC_REGISTRATION_TTL_DAYS)
+  const days = raw > 0 ? raw : DEFAULT_TTL_DAYS
+  return days * 24 * 60 * 60 * 1000
+}
+
+const REGISTRATION_TTL_MS = resolveTtlMs()
+
+interface CachedRegistration {
+  since?: string
+  checkedAt: number
+}
+
+function registeredKey(sub: string): string {
+  return `${REGISTERED_KEY_PREFIX}${sub}`
+}
+
+function readCachedRegistration(sub: string): CachedRegistration | null {
+  try {
+    const raw = localStorage.getItem(registeredKey(sub))
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as CachedRegistration
+    if (typeof parsed.checkedAt !== "number") return null
+    if (Date.now() - parsed.checkedAt > REGISTRATION_TTL_MS) return null
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+function writeCachedRegistration(sub: string, since?: string): void {
+  try {
+    localStorage.setItem(
+      registeredKey(sub),
+      JSON.stringify({ since, checkedAt: Date.now() } satisfies CachedRegistration),
+    )
+  } catch {
+    // localStorage may be unavailable (private mode, quota); just skip caching.
+  }
+}
 
 interface RegistrationContextValue {
   isChecking: boolean
@@ -44,7 +91,26 @@ export function RegistrationProvider({
       return
     }
 
-    if (!user) {
+    if (!user?.sub) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- terminal state when no auth user
+      setIsChecking(false)
+      return
+    }
+
+    const sub = user.sub
+    const onboardingComplete =
+      localStorage.getItem(ONBOARDING_COMPLETE_KEY) === "true"
+
+    // Fast path: a recent cached registration (per user.sub) skips /api/register.
+    // bc-data's SystemUser is created on first /register call and never removed,
+    // so re-checking on every pageload is wasted work — ~90ms + bc-data lookup
+    // per load with no behaviour change. The TTL exists so users whose backend
+    // record is rotated externally (rare) eventually re-validate.
+    const cached = readCachedRegistration(sub)
+    if (cached) {
+      setIsRegistered(true)
+      setIsNewlyRegistered(false)
+      setIsOnboardingComplete(onboardingComplete)
       setIsChecking(false)
       return
     }
@@ -52,10 +118,6 @@ export function RegistrationProvider({
     const ensureRegistered = async (): Promise<void> => {
       setIsChecking(true)
       setError(null)
-
-      // Check onboarding status from localStorage
-      const onboardingComplete =
-        localStorage.getItem(ONBOARDING_COMPLETE_KEY) === "true"
       setIsOnboardingComplete(onboardingComplete)
 
       try {
@@ -67,10 +129,12 @@ export function RegistrationProvider({
 
         if (response.ok) {
           const data = await response.json()
+          const since = data.data?.since as string | undefined
+          writeCachedRegistration(sub, since)
           setIsRegistered(true)
 
           // Check if this is a newly created user
-          const isNew = isNewUser(data.data?.since)
+          const isNew = isNewUser(since)
           if (isNew && !onboardingComplete) {
             localStorage.removeItem(ONBOARDING_COMPLETE_KEY)
             setIsNewlyRegistered(true)

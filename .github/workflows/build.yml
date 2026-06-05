@@ -129,6 +129,10 @@ jobs:
           NODE_OPTIONS: "--max-old-space-size=4096"
           CI: true
           NEXT_PUBLIC_SENTRY_DSN: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
+          # Days the cached registration check survives in localStorage before
+          # the browser revalidates against /api/register. Set via repo Variable
+          # (Settings → Variables), defaults to 30 if unset.
+          NEXT_PUBLIC_REGISTRATION_TTL_DAYS: ${{ vars.NEXT_PUBLIC_REGISTRATION_TTL_DAYS || '30' }}
         run: yarn build
 
       - name: Verify Sentry DSN is inlined into client bundle
@@ -268,6 +272,7 @@ jobs:
             GIT_COMMIT=${{ steps.prep.outputs.short_sha }}
             BUILD_ID=${{ github.run_number }}
             NEXT_PUBLIC_SENTRY_DSN=${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
+            NEXT_PUBLIC_REGISTRATION_TTL_DAYS=${{ vars.NEXT_PUBLIC_REGISTRATION_TTL_DAYS || '30' }}
           cache-from: type=gha,scope=${{ matrix.platform }}
           # mode=min stores only final-stage layers, not every intermediate
           # builder layer. mode=max ballooned the GHA cache pool.
