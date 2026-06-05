@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo, useCallback } from "react"
+import { useMemo, useCallback } from "react"
 import useSwr from "swr"
 import { Portfolio, Currency } from "types/beancounter"
-import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
+import { ccyKey, portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { useFxRates } from "./useFxRates"
 
 interface UsePortfoliosResult {
@@ -23,18 +23,14 @@ export function usePortfolios(): UsePortfoliosResult {
     simpleFetcher(portfoliosKey),
   )
 
-  const [currencies, setCurrencies] = useState<Currency[]>([])
-
-  useEffect(() => {
-    fetch("/api/currencies")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.data) {
-          setCurrencies(data.data)
-        }
-      })
-      .catch(console.error)
-  }, [])
+  // Shared SWR key with useCurrencies / useDisplayCurrencyConversion so all
+  // consumers in a render tree collapse to one /api/currencies fetch.
+  const { data: currenciesPayload } = useSwr<{ data: Currency[] }>(
+    ccyKey,
+    simpleFetcher(ccyKey),
+    { revalidateOnFocus: false, dedupingInterval: 60_000 },
+  )
+  const currencies = currenciesPayload?.data ?? []
 
   const sourceCurrencyCodes = useMemo(
     () => (data?.data || []).map((p: Portfolio) => p.base.code),

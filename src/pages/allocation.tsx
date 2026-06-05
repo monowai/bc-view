@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from "react"
 import { useRouter } from "next/router"
 import useSwr from "swr"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
-import { simpleFetcher } from "@utils/api/fetchHelper"
+import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { errorOut } from "@components/errors/ErrorOut"
 import { rootLoader } from "@components/ui/PageLoader"
 import { Currency, FxResponse, HoldingContract } from "types/beancounter"
@@ -30,7 +30,6 @@ export default withPageAuthRequired(function Allocation(): React.ReactElement {
   const [valueIn, setValueIn] = useState<ValueIn>(ValueIn.PORTFOLIO)
 
   // Currency display state (same pattern as portfolios)
-  const [currencies, setCurrencies] = useState<Currency[]>([])
   const [displayCurrency, setDisplayCurrency] = useState<Currency | null>(null)
   const [baseCurrency, setBaseCurrency] = useState<Currency | null>(null)
   const [fxRate, setFxRate] = useState<number>(1)
@@ -40,17 +39,14 @@ export default withPageAuthRequired(function Allocation(): React.ReactElement {
     simpleFetcher(aggregatedHoldingsKey),
   )
 
-  // Fetch available currencies
-  useEffect(() => {
-    fetch("/api/currencies")
-      .then((res) => res.json())
-      .then((result) => {
-        if (result.data) {
-          setCurrencies(result.data)
-        }
-      })
-      .catch(console.error)
-  }, [])
+  // Shared SWR key with useCurrencies / usePortfolios — collapses to one
+  // /api/currencies request across the tree.
+  const { data: currenciesPayload } = useSwr<{ data: Currency[] }>(
+    ccyKey,
+    simpleFetcher(ccyKey),
+    { revalidateOnFocus: false, dedupingInterval: 60_000 },
+  )
+  const currencies = currenciesPayload?.data ?? []
 
   // Set default display currency from portfolio's currency
   useEffect(() => {
