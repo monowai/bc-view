@@ -135,10 +135,17 @@ jobs:
         env:
           NEXT_PUBLIC_SENTRY_DSN: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
         run: |
-          # Extract Sentry project ID (last path segment of DSN URL) - public identifier, safe to grep
+          # Extract Sentry project ID (last path segment) and ingest host. Checking BOTH
+          # catches the case where a DSN was rotated to a different region (us → de) or
+          # public key, but the same project ID was reused — project-ID-only grep would
+          # false-pass while the bundle pointed at the wrong host. Both are public
+          # identifiers, safe to grep / echo.
           PROJECT_ID="${NEXT_PUBLIC_SENTRY_DSN##*/}"
-          if [ -z "$PROJECT_ID" ]; then
-            echo "::error::Could not extract project ID from NEXT_PUBLIC_SENTRY_DSN."
+          DSN_HOST="${NEXT_PUBLIC_SENTRY_DSN#*://}"
+          DSN_HOST="${DSN_HOST#*@}"
+          DSN_HOST="${DSN_HOST%%/*}"
+          if [ -z "$PROJECT_ID" ] || [ -z "$DSN_HOST" ]; then
+            echo "::error::Could not parse NEXT_PUBLIC_SENTRY_DSN (project_id=$PROJECT_ID host=$DSN_HOST)."
             exit 1
           fi
           # Find the chunk that actually runs instrumentation-client.ts — that's the one
@@ -151,12 +158,12 @@ jobs:
             echo "If instrumentation-client.ts was renamed, update this guard."
             exit 1
           fi
-          if grep -qF "$PROJECT_ID" "$CHUNK"; then
-            echo "Sentry DSN inlined into instrumentation-client chunk: $CHUNK"
+          if grep -qF "$PROJECT_ID" "$CHUNK" && grep -qF "$DSN_HOST" "$CHUNK"; then
+            echo "Sentry DSN inlined into $CHUNK (project_id=$PROJECT_ID host=$DSN_HOST)"
           else
-            echo "::error::Sentry DSN NOT found in $CHUNK — browser tracing would be dead."
-            echo "Next.js did not inline NEXT_PUBLIC_SENTRY_DSN into the instrumentation chunk despite the env var being set at build time."
-            echo "Likely cause: Turbopack persistent cache reused a pre-compiled module with the old (undefined) DSN value."
+            echo "::error::Sentry DSN NOT fully inlined in $CHUNK (project_id=$PROJECT_ID host=$DSN_HOST) — browser tracing would be dead."
+            echo "Next.js did not inline the expected NEXT_PUBLIC_SENTRY_DSN into the instrumentation chunk despite the env var being set at build time."
+            echo "Likely cause: Turbopack persistent cache reused a pre-compiled module with the old (undefined or rotated) DSN value."
             echo "Fix: invalidate .next/cache (delete the relevant Actions cache, then re-run)."
             exit 1
           fi

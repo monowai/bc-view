@@ -42,13 +42,19 @@ RUN if [ -d ".next" ] && [ -n "$(ls -A .next 2>/dev/null)" ]; then \
       yarn build; \
     fi
 
-# Post-build assertion: the instrumentation-client chunk must contain the DSN's
-# project ID. Fails the image build if Next.js did not inline NEXT_PUBLIC_SENTRY_DSN
-# (e.g. the build-arg was empty, the CI artifact was built without the secret,
-# or Turbopack reused a stale cached module).
+# Post-build assertion: the instrumentation-client chunk must contain BOTH the
+# DSN's project ID AND its ingest host. Project-ID-only would false-pass if a
+# DSN rotated to a different region (e.g. us → de) or with a different public
+# key but the same project ID got inlined instead of the intended one. Fails
+# the image build if NEXT_PUBLIC_SENTRY_DSN was not inlined correctly (build-arg
+# missing, CI artifact built without the secret, Turbopack reused a stale
+# cached module).
 RUN PROJECT_ID="${NEXT_PUBLIC_SENTRY_DSN##*/}"; \
-    if [ -z "$PROJECT_ID" ]; then \
-      echo "NEXT_PUBLIC_SENTRY_DSN build-arg missing — pass it via docker build --build-arg." >&2; \
+    DSN_HOST="${NEXT_PUBLIC_SENTRY_DSN#*://}"; \
+    DSN_HOST="${DSN_HOST#*@}"; \
+    DSN_HOST="${DSN_HOST%%/*}"; \
+    if [ -z "$PROJECT_ID" ] || [ -z "$DSN_HOST" ]; then \
+      echo "NEXT_PUBLIC_SENTRY_DSN build-arg missing or malformed — pass it via docker build --build-arg." >&2; \
       exit 1; \
     fi; \
     CHUNK=$(grep -lrF "instrumentation-client.ts loading" .next/static/chunks | head -1); \
@@ -56,11 +62,11 @@ RUN PROJECT_ID="${NEXT_PUBLIC_SENTRY_DSN##*/}"; \
       echo "Could not locate instrumentation-client chunk in .next/static/chunks." >&2; \
       exit 1; \
     fi; \
-    if ! grep -qF "$PROJECT_ID" "$CHUNK"; then \
-      echo "Sentry DSN NOT inlined into $CHUNK — browser tracing would be dead." >&2; \
+    if ! grep -qF "$PROJECT_ID" "$CHUNK" || ! grep -qF "$DSN_HOST" "$CHUNK"; then \
+      echo "Sentry DSN NOT fully inlined into $CHUNK (project_id=$PROJECT_ID host=$DSN_HOST) — browser tracing would be dead." >&2; \
       exit 1; \
     fi; \
-    echo "Sentry DSN inlined into $CHUNK."
+    echo "Sentry DSN inlined into $CHUNK (project_id=$PROJECT_ID host=$DSN_HOST)."
 
 # Production stage (only production dependencies)
 FROM base AS runner
