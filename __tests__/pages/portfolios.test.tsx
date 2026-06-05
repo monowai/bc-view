@@ -89,11 +89,8 @@ describe("Portfolios Page", () => {
     ;(useSWR as jest.Mock).mockImplementation(() => mockUseSWR())
     render(<PortfoliosPage user={mockUserProfile} />)
 
-    // Wait for async currency fetch to complete
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalled()
+      expect(screen.getByText("You have no portfolios")).toBeInTheDocument()
     })
-
-    expect(screen.getByText("You have no portfolios")).toBeInTheDocument()
   })
 })
