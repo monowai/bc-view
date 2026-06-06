@@ -69,6 +69,17 @@ const WealthHeroSection: React.FC<WealthHeroSectionProps> = ({
               {summary.totalGainOnDay >= 0 ? "+" : ""}
               {displayCurrency?.symbol}
               <FormatValue value={summary.totalGainOnDay} />
+              {summary.totalValue - summary.totalGainOnDay > 0 && (
+                <span className="ml-1">
+                  (
+                  {(
+                    (summary.totalGainOnDay /
+                      (summary.totalValue - summary.totalGainOnDay)) *
+                    100
+                  ).toFixed(2)}
+                  %)
+                </span>
+              )}
               <span className="text-sm ml-1 text-white/60 font-normal">
                 today
               </span>

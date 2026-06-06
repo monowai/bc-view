@@ -1,0 +1,72 @@
+import React from "react"
+import { render, screen, RenderResult } from "@testing-library/react"
+import "@testing-library/jest-dom"
+import WealthHeroSection from "../WealthHeroSection"
+import { USD } from "@test-fixtures/beancounter"
+import { WealthSummary } from "@lib/wealth/liquidityGroups"
+
+jest.mock("@hooks/usePrivacyMode", () => ({
+  usePrivacyMode: () => ({ hideValues: false }),
+}))
+
+function makeSummary(overrides: Partial<WealthSummary> = {}): WealthSummary {
+  return {
+    totalValue: 100_000,
+    totalGainOnDay: 0,
+    portfolioCount: 1,
+    classificationBreakdown: [],
+    portfolioBreakdown: [],
+    ...overrides,
+  }
+}
+
+function renderHero(summary: WealthSummary): RenderResult {
+  return render(
+    <WealthHeroSection
+      summary={summary}
+      displayCurrency={USD}
+      currencies={[USD]}
+      portfolios={[]}
+      onCurrencyChange={() => {}}
+      onShareClick={() => {}}
+    />,
+  )
+}
+
+// Keep React in scope for the @testing-library JSX above without tripping
+// the unused-import diagnostic. react/react-in-jsx-scope demands the
+// import; TS6133 demands a use.
+void React
+
+describe("WealthHeroSection — today's gain percent", () => {
+  it("renders the gain percent next to the dollar gain when totalGainOnDay > 0", () => {
+    // gain 2,500 on prior-day value 97,500 → ~2.56% rise
+    renderHero(makeSummary({ totalValue: 100_000, totalGainOnDay: 2_500 }))
+    expect(screen.getByText(/\(2\.56%\)/)).toBeInTheDocument()
+    expect(screen.getByText(/today/)).toBeInTheDocument()
+  })
+
+  it("renders a negative percent when totalGainOnDay < 0", () => {
+    // -10,830.75 from prior-day value 1,875,476.08 → -0.58%
+    renderHero(
+      makeSummary({
+        totalValue: 1_864_645.33,
+        totalGainOnDay: -10_830.75,
+      }),
+    )
+    expect(screen.getByText(/\(-0\.58%\)/)).toBeInTheDocument()
+  })
+
+  it("omits the percent when totalGainOnDay equals zero (whole gain block is hidden)", () => {
+    renderHero(makeSummary({ totalValue: 100_000, totalGainOnDay: 0 }))
+    expect(screen.queryByText(/%/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/today/)).not.toBeInTheDocument()
+  })
+
+  it("omits the percent when prior-day value resolves to zero (avoid divide-by-zero)", () => {
+    // edge case: a new account where today's first deposit equals totalValue
+    renderHero(makeSummary({ totalValue: 500, totalGainOnDay: 500 }))
+    expect(screen.queryByText(/%/)).not.toBeInTheDocument()
+    expect(screen.getByText(/today/)).toBeInTheDocument()
+  })
+})
