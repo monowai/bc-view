@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import { useRouter } from "next/router"
 import useSWR from "swr"
@@ -84,6 +84,13 @@ function AssetLookupPage(): React.ReactElement {
   const canReviewAsset = canRunAi || canPreview
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  // Mirror selectedAsset into a ref so the in-flight delete handler can
+  // identity-check against the LATEST selection at the time the response
+  // resolves, not the value it closed over when invoked.
+  const selectedAssetRef = useRef<AssetOption | null>(null)
+  useEffect(() => {
+    selectedAssetRef.current = selectedAsset
+  }, [selectedAsset])
 
   // Hydrate selected asset from query string (header search deep-link).
   useEffect(() => {
@@ -191,6 +198,10 @@ function AssetLookupPage(): React.ReactElement {
 
   const handleDeleteAsset = async (): Promise<void> => {
     if (!selectedAsset?.assetId) return
+    // Snapshot the target identity so a late response can't clear or
+    // overwrite state for a different asset the user picked while the
+    // delete was in flight.
+    const targetAssetId = selectedAsset.assetId
     const label = selectedAsset.symbol || selectedAsset.assetId
     if (
       !window.confirm(
@@ -201,22 +212,49 @@ function AssetLookupPage(): React.ReactElement {
     }
     setDeleting(true)
     setDeleteError(null)
+    const isStillSelected = (): boolean =>
+      selectedAssetRef.current?.assetId === targetAssetId
     try {
       const response = await fetch(
-        `/api/assets/admin/${encodeURIComponent(selectedAsset.assetId)}`,
+        `/api/assets/admin/${encodeURIComponent(targetAssetId)}`,
         { method: "DELETE" },
       )
       if (!response.ok) {
-        const body = await response.text()
-        setDeleteError(
-          body || `Delete failed (${response.status} ${response.statusText})`,
-        )
+        // API proxy writes JSON `{ error, message, ... }` on failures —
+        // surface that message rather than the raw envelope.
+        let errorMessage: string | null = null
+        const raw = await response.text()
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw) as {
+              message?: string
+              error?: string
+              detail?: string
+            }
+            errorMessage =
+              parsed.message || parsed.error || parsed.detail || null
+          } catch {
+            errorMessage = raw
+          }
+        }
+        if (isStillSelected()) {
+          setDeleteError(
+            errorMessage ||
+              `Delete failed (${response.status} ${response.statusText})`,
+          )
+        }
         return
       }
-      setSelectedAsset(null)
-      setChartAsset(null)
+      if (isStillSelected()) {
+        setSelectedAsset(null)
+        setChartAsset(null)
+      }
     } catch (e) {
-      setDeleteError(e instanceof Error ? e.message : "Failed to delete asset")
+      if (isStillSelected()) {
+        setDeleteError(
+          e instanceof Error ? e.message : "Failed to delete asset",
+        )
+      }
     } finally {
       setDeleting(false)
     }
@@ -347,9 +385,11 @@ function AssetLookupPage(): React.ReactElement {
                   className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-red-600 text-white text-sm font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1 disabled:opacity-60 disabled:cursor-not-allowed"
                   aria-label={`Delete asset ${selectedAsset.symbol || selectedAsset.assetId}`}
                   title={
-                    positions.length > 0
-                      ? "Cannot delete — asset is held in one or more portfolios"
-                      : "Delete asset (admin)"
+                    loadingPositions
+                      ? "Checking whether this asset is held in any portfolio…"
+                      : positions.length > 0
+                        ? "Cannot delete — asset is held in one or more portfolios"
+                        : "Delete asset (admin)"
                   }
                 >
                   <i className="fas fa-trash"></i>
