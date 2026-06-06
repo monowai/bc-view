@@ -80,8 +80,10 @@ function AssetLookupPage(): React.ReactElement {
   const [resolvingChart, setResolvingChart] = useState(false)
   const [resolveError, setResolveError] = useState<string | null>(null)
   const { popup: reviewPopup, showReview } = useAssetReview()
-  const { ai: canRunAi, preview: canPreview } = usePermissions()
+  const { ai: canRunAi, preview: canPreview, admin: isAdmin } = usePermissions()
   const canReviewAsset = canRunAi || canPreview
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   // Hydrate selected asset from query string (header search deep-link).
   useEffect(() => {
@@ -185,6 +187,39 @@ function AssetLookupPage(): React.ReactElement {
   // Navigate to transactions on double-click
   const handleRowDoubleClick = (portfolioId: string, assetId: string): void => {
     router.push(`/trns/trades/${portfolioId}/${assetId}`)
+  }
+
+  const handleDeleteAsset = async (): Promise<void> => {
+    if (!selectedAsset?.assetId) return
+    const label = selectedAsset.symbol || selectedAsset.assetId
+    if (
+      !window.confirm(
+        `Delete asset "${label}"? This cannot be undone. The asset must not be held in any portfolio.`,
+      )
+    ) {
+      return
+    }
+    setDeleting(true)
+    setDeleteError(null)
+    try {
+      const response = await fetch(
+        `/api/assets/admin/${encodeURIComponent(selectedAsset.assetId)}`,
+        { method: "DELETE" },
+      )
+      if (!response.ok) {
+        const body = await response.text()
+        setDeleteError(
+          body || `Delete failed (${response.status} ${response.statusText})`,
+        )
+        return
+      }
+      setSelectedAsset(null)
+      setChartAsset(null)
+    } catch (e) {
+      setDeleteError(e instanceof Error ? e.message : "Failed to delete asset")
+    } finally {
+      setDeleting(false)
+    }
   }
 
   // Format currency value
@@ -302,8 +337,32 @@ function AssetLookupPage(): React.ReactElement {
                   <span>AI Review</span>
                 </button>
               )}
+              {isAdmin && selectedAsset.assetId && (
+                <button
+                  type="button"
+                  onClick={handleDeleteAsset}
+                  disabled={
+                    deleting || loadingPositions || positions.length > 0
+                  }
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-red-600 text-white text-sm font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1 disabled:opacity-60 disabled:cursor-not-allowed"
+                  aria-label={`Delete asset ${selectedAsset.symbol || selectedAsset.assetId}`}
+                  title={
+                    positions.length > 0
+                      ? "Cannot delete — asset is held in one or more portfolios"
+                      : "Delete asset (admin)"
+                  }
+                >
+                  <i className="fas fa-trash"></i>
+                  <span>{deleting ? "Deleting..." : "Delete"}</span>
+                </button>
+              )}
             </div>
           </div>
+          {deleteError && (
+            <div className="mt-3 px-3 py-2 rounded-md bg-red-50 border border-red-200 text-sm text-red-700">
+              {deleteError}
+            </div>
+          )}
         </div>
       )}
       {reviewPopup}

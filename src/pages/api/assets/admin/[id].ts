@@ -6,5 +6,5 @@ export default createApiHandler({
     const { id } = req.query
     return getDataUrl(`/assets/admin/${id}`)
   },
-  methods: ["PATCH"],
+  methods: ["PATCH", "DELETE"],
 })
