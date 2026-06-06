@@ -90,7 +90,12 @@ const ModelWeightsEditor: React.FC<ModelWeightsEditorProps> = ({
               {showPrice && onFetchPrices && weights.length > 0 && (
                 <button
                   type="button"
-                  onClick={onFetchPrices}
+                  // Wrap so the React SyntheticEvent isn't forwarded as the
+                  // first arg — handleFetchPrices treats arg[0] as
+                  // `weightsOverride?: AssetWeightWithDetails[]` and would
+                  // call .filter() on the event, throw TypeError, and the
+                  // caller's try/catch would swallow it (no network fired).
+                  onClick={() => onFetchPrices()}
                   disabled={fetchingPrices}
                   className="text-sm text-gray-700 bg-gray-100 px-3 py-1.5 rounded hover:bg-gray-200 transition-colors flex items-center disabled:opacity-50"
                 >
