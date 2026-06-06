@@ -21,6 +21,7 @@ const SESSION_KEY_INCLUDE_SETTLED = "proposed-include-settled"
 const SESSION_KEY_SETTLED_DATE = "proposed-settled-date"
 const SESSION_KEY_AGGREGATE_VIEW = "proposed-aggregate-view"
 const SESSION_KEY_SCOPE = "proposed-scope"
+const SESSION_KEY_AS_AT = "proposed-as-at"
 
 type ProposedScope = "OWNED" | "MANAGED" | "ALL"
 
@@ -38,6 +39,9 @@ export default function ProposedTransactions(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null)
   const [includeSettled, setIncludeSettled] = useState(false)
   const [settledDate, setSettledDate] = useState(getToday())
+  // Proposed transactions due on or before this date are shown; defaults to today so
+  // future-dated rows (e.g. dividends with a forward pay date) stay hidden until due.
+  const [asAtDate, setAsAtDate] = useState(getToday())
   const [settledTransactions, setSettledTransactions] = useState<Transaction[]>(
     [],
   )
@@ -59,6 +63,7 @@ export default function ProposedTransactions(): React.JSX.Element {
   useEffect(() => {
     setIncludeSettled(getSessionValue(SESSION_KEY_INCLUDE_SETTLED, false))
     setSettledDate(getSessionValue(SESSION_KEY_SETTLED_DATE, getToday()))
+    setAsAtDate(getSessionValue(SESSION_KEY_AS_AT, getToday()))
     setAggregateView(getSessionValue(SESSION_KEY_AGGREGATE_VIEW, false))
     const storedScope = getSessionValue<ProposedScope>(SESSION_KEY_SCOPE, "ALL")
     if (
@@ -92,6 +97,12 @@ export default function ProposedTransactions(): React.JSX.Element {
 
   useEffect(() => {
     if (sessionInitialized) {
+      setSessionValue(SESSION_KEY_AS_AT, asAtDate)
+    }
+  }, [asAtDate, sessionInitialized])
+
+  useEffect(() => {
+    if (sessionInitialized) {
       setSessionValue(SESSION_KEY_AGGREGATE_VIEW, aggregateView)
     }
   }, [aggregateView, sessionInitialized])
@@ -99,8 +110,10 @@ export default function ProposedTransactions(): React.JSX.Element {
     AggregatedTransaction[]
   >([])
 
-  // Fetch proposed transactions across all portfolios
-  const proposedKey = user ? `/api/trns/proposed?scope=${scope}` : null
+  // Fetch proposed transactions across all portfolios, bounded to those due on or before asAtDate.
+  const proposedKey = user
+    ? `/api/trns/proposed?scope=${scope}&asAt=${asAtDate}`
+    : null
   const { data: proposedData, error: fetchError } = useSwr<{
     data: Transaction[]
   }>(proposedKey, fetcher, { refreshInterval: 0 })
@@ -674,6 +687,15 @@ export default function ProposedTransactions(): React.JSX.Element {
               </button>
             ))}
           </div>
+          <div className="hidden sm:block border-l border-gray-300 h-6" />
+          <label className="flex items-center gap-2 text-sm">
+            <span className="text-gray-700">Due up to</span>
+            <DateInput
+              value={asAtDate}
+              onChange={setAsAtDate}
+              className="px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </label>
           <div className="hidden sm:block border-l border-gray-300 h-6" />
           <label className="flex items-center gap-2 text-sm">
             <span className="text-gray-700">Type:</span>
