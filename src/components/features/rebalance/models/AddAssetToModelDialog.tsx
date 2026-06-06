@@ -50,8 +50,16 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
     setError(null)
     try {
       // Resolve the asset to get a real UUID from svc-data
-      // This also creates the asset if it doesn't exist and fetches its price
-      const resolvedAsset = await resolveAsset(selectedAsset.symbol)
+      // This also creates the asset if it doesn't exist and fetches its price.
+      // Pass the selected market so a non-US listing (e.g. LON-listed UCITS
+      // ETF traded via IBKR in USD) resolves to the right asset row instead
+      // of silently falling back to /api/assets/US/{code} — the previous
+      // behaviour was the root cause of "Fetch Prices" returning nothing
+      // for LON / ASX / NZX picks.
+      const resolvedAsset = await resolveAsset(
+        selectedAsset.symbol,
+        selectedAsset.market,
+      )
 
       if (!resolvedAsset?.id) {
         setError("Could not resolve asset. Please try again.")
@@ -91,6 +99,7 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
    */
   const resolveAsset = async (
     code: string,
+    market?: string,
   ): Promise<{
     id: string
     code: string
@@ -98,15 +107,17 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
     market: { code: string }
   } | null> => {
     try {
-      const response = await fetch(`/api/assets/resolve?code=${code}`)
+      const params = new URLSearchParams({ code })
+      if (market) params.set("market", market)
+      const response = await fetch(`/api/assets/resolve?${params.toString()}`)
       if (!response.ok) {
-        console.warn(`Failed to resolve asset ${code}:`, response.status)
+        console.warn("Failed to resolve asset:", code, response.status)
         return null
       }
       const data = await response.json()
       return data.data
     } catch (error) {
-      console.warn(`Error resolving asset ${code}:`, error)
+      console.warn("Error resolving asset:", code, error)
       return null
     }
   }
