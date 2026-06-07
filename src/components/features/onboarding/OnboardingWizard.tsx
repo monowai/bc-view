@@ -3,7 +3,12 @@ import { useRouter } from "next/router"
 import useSwr from "swr"
 import { useUser } from "@auth0/nextjs-auth0/client"
 import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper"
-import { Currency, PolicyType, Portfolio, SubAccountRequest } from "types/beancounter"
+import {
+  Currency,
+  PolicyType,
+  Portfolio,
+  SubAccountRequest,
+} from "types/beancounter"
 import OnboardingProgress from "./OnboardingProgress"
 import WelcomeStep from "./steps/WelcomeStep"
 import CurrencyStep from "./steps/CurrencyStep"
@@ -42,6 +47,7 @@ export interface Pension {
   lumpSum?: boolean // If true, pays out in full rather than monthly
   monthlyContribution?: number // Regular contribution amount
   policyType?: PolicyType // Composite policy type (CPF, ILP, GENERIC)
+  cpfLifePlan?: "STANDARD" | "BASIC" | "ESCALATING" // CPF LIFE payout plan
   lockedUntilDate?: string // Date when asset can be liquidated
   subAccounts?: SubAccountRequest[] // Sub-accounts for composite policies
 }
@@ -458,6 +464,7 @@ const OnboardingWizard: React.FC = () => {
             monthlyContribution: pension.monthlyContribution,
             rentalCurrency: pension.currency,
             policyType: pension.policyType,
+            cpfLifePlan: pension.cpfLifePlan,
             lockedUntilDate: pension.lockedUntilDate || null,
             subAccounts: pension.subAccounts,
           }),
@@ -719,9 +726,7 @@ const OnboardingWizard: React.FC = () => {
                         "portfolio:".length,
                       )
                     } else if (brokerageSource.startsWith("bankAccount:")) {
-                      const name = brokerageSource.slice(
-                        "bankAccount:".length,
-                      )
+                      const name = brokerageSource.slice("bankAccount:".length)
                       const assetId = bankAccountAssetIds[name]
                       if (assetId) {
                         fund.sourceAssetId = assetId
