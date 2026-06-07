@@ -137,6 +137,15 @@ const OnboardingWizard: React.FC = () => {
         setReportingCurrency(preferences.reportingCurrencyCode)
       }
 
+      // Pre-fill date of birth so a known DOB wins over the currentYear-55
+      // default (otherwise everyone defaulted to ~55 years old).
+      if (preferences.yearOfBirth) {
+        setIndependenceYearOfBirth(preferences.yearOfBirth)
+      }
+      if (preferences.monthOfBirth) {
+        setIndependenceMonthOfBirth(preferences.monthOfBirth)
+      }
+
       setPrefsInitialized(true)
     }
   }, [preferences, user, prefsInitialized])
@@ -158,6 +167,7 @@ const OnboardingWizard: React.FC = () => {
   const [independenceYearOfBirth, setIndependenceYearOfBirth] = useState(
     currentYear - 55,
   )
+  const [independenceMonthOfBirth, setIndependenceMonthOfBirth] = useState(1)
   const [independenceMonthlyExpenses, setIndependenceMonthlyExpenses] =
     useState(0)
   const [independenceTargetAge, setIndependenceTargetAge] = useState(65)
@@ -550,7 +560,10 @@ const OnboardingWizard: React.FC = () => {
     setError(null)
 
     try {
-      // Save user preferences with currency settings
+      // Save user preferences with currency settings. When the user filled
+      // in the independence step, also persist their date of birth on the
+      // SystemUser preferences (svc-data) so age-driven projections don't
+      // fall back to the currentYear-55 default.
       await fetch("/api/me", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -558,6 +571,10 @@ const OnboardingWizard: React.FC = () => {
           preferredName: preferredName || undefined,
           baseCurrencyCode: baseCurrency,
           reportingCurrencyCode: reportingCurrency,
+          ...(independencePlanEnabled && {
+            yearOfBirth: independenceYearOfBirth,
+            monthOfBirth: independenceMonthOfBirth,
+          }),
         }),
       })
 
@@ -843,10 +860,12 @@ const OnboardingWizard: React.FC = () => {
           <IndependencePlanStep
             enabled={independencePlanEnabled}
             yearOfBirth={independenceYearOfBirth}
+            monthOfBirth={independenceMonthOfBirth}
             monthlyExpenses={independenceMonthlyExpenses}
             targetRetirementAge={independenceTargetAge}
             onEnabledChange={setIndependencePlanEnabled}
             onYearOfBirthChange={setIndependenceYearOfBirth}
+            onMonthOfBirthChange={setIndependenceMonthOfBirth}
             onMonthlyExpensesChange={setIndependenceMonthlyExpenses}
             onTargetRetirementAgeChange={setIndependenceTargetAge}
             baseCurrency={baseCurrency}
