@@ -23,6 +23,7 @@ import { openBrokerage } from "@lib/openBrokerage/orchestrate"
 import { useRegistration } from "@contexts/RegistrationContext"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import Spinner from "@components/ui/Spinner"
+import { buildMePatchBody } from "./buildMePatchBody"
 
 export interface BankAccount {
   name: string
@@ -561,21 +562,26 @@ const OnboardingWizard: React.FC = () => {
 
     try {
       // Save user preferences with currency settings. When the user filled
-      // in the independence step, also persist their date of birth on the
-      // SystemUser preferences (svc-data) so age-driven projections don't
-      // fall back to the currentYear-55 default.
+      // in the independence step, also persist their date of birth AND
+      // target independence age on the SystemUser preferences (svc-data)
+      // so age-driven projections don't fall back to the currentYear-55
+      // / target-65 defaults. svc-retire's UserIndependenceSettings reads
+      // these as its fallback when its own row has null demographic
+      // fields — see bc-claude/USER_PROFILE.md.
       await fetch("/api/me", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          preferredName: preferredName || undefined,
-          baseCurrencyCode: baseCurrency,
-          reportingCurrencyCode: reportingCurrency,
-          ...(independencePlanEnabled && {
-            yearOfBirth: independenceYearOfBirth,
-            monthOfBirth: independenceMonthOfBirth,
+        body: JSON.stringify(
+          buildMePatchBody({
+            preferredName,
+            baseCurrency,
+            reportingCurrency,
+            independencePlanEnabled,
+            independenceYearOfBirth,
+            independenceMonthOfBirth,
+            independenceTargetAge,
           }),
-        }),
+        ),
       })
 
       // Create portfolio with reporting currency as display currency
