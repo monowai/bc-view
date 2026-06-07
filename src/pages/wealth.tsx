@@ -27,6 +27,7 @@ import QuickActionCards from "@components/features/wealth/QuickActionCards"
 import WealthPerformanceChart from "@components/features/wealth/WealthPerformanceChart"
 import { useWealthSummary } from "@components/features/wealth/useWealthSummary"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
+import { usePrivateAssetConfigs } from "@utils/assets/usePrivateAssetConfigs"
 
 type SortConfig = {
   key: string | null
@@ -101,13 +102,35 @@ function WealthDashboard(): React.ReactElement {
     [portfolioData?.data],
   )
 
+  // Custom assets (composite pensions etc.) — sit outside any portfolio,
+  // so the portfolio.marketValue sum below misses them. Net Worth needs
+  // their balances added in so the headline tile matches what the user
+  // actually has. See DEMO-ISSUES #13.
+  const { configs: privateAssetConfigs } = usePrivateAssetConfigs()
+  const customAssetTotals = useMemo(() => {
+    const totals: Record<string, number> = {}
+    privateAssetConfigs.forEach((config) => {
+      const subAccounts = config.subAccounts ?? []
+      if (subAccounts.length === 0) return
+      const subTotal = subAccounts.reduce(
+        (sum, sa) => sum + (sa.balance || 0),
+        0,
+      )
+      if (subTotal === 0) return
+      const currency = config.rentalCurrency || "USD"
+      totals[currency] = (totals[currency] || 0) + subTotal
+    })
+    return totals
+  }, [privateAssetConfigs])
+
   // FX rates for converting portfolio values to display currency
   const sourceCurrencyCodes = useMemo(
     () => [
       ...portfolios.map((p) => p.base.code),
       ...portfolios.map((p) => p.currency.code),
+      ...Object.keys(customAssetTotals),
     ],
-    [portfolios],
+    [portfolios, customAssetTotals],
   )
   const { displayCurrency, setDisplayCurrency, fxRates, fxReady } = useFxRates(
     currencies,
@@ -143,6 +166,7 @@ function WealthDashboard(): React.ReactElement {
     fxRates,
     sortConfig,
     holdingsData,
+    customAssetTotals,
   )
 
   // Calculate asset breakdown from holdings
@@ -165,7 +189,7 @@ function WealthDashboard(): React.ReactElement {
     return rootLoader("Loading...")
   }
 
-  if (portfolios.length === 0) {
+  if (portfolios.length === 0 && Object.keys(customAssetTotals).length === 0) {
     return (
       <>
         <Head>
