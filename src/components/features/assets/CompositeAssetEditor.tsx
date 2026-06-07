@@ -134,8 +134,14 @@ export default function CompositeAssetEditor({
   const handleApplyTemplate = useCallback(
     (template: SubAccountRequest[]) => {
       onSubAccountsChange(template.map((t) => ({ ...t })))
+      // Belt-and-braces: if someone reaches the CPF template button with
+      // the plan still unset (e.g. policyType was already CPF from a
+      // prior session), seed STANDARD here too.
+      if (policyType === "CPF" && !cpfLifePlan) {
+        onCpfLifePlanChange?.("STANDARD")
+      }
     },
-    [onSubAccountsChange],
+    [onSubAccountsChange, policyType, cpfLifePlan, onCpfLifePlanChange],
   )
 
   const isComposite = policyType !== undefined
@@ -155,6 +161,13 @@ export default function CompositeAssetEditor({
               onPolicyTypeChange(val === "" ? undefined : val)
               if (val === "" && subAccounts.length > 0) {
                 onSubAccountsChange([])
+              }
+              // Default CPF LIFE plan to Standard the moment policy turns
+              // CPF — otherwise projections silently report zero pension
+              // income (svc-retire's enrichCpfConfigs gates on the plan
+              // being set). User can switch to Basic/Escalating after.
+              if (val === "CPF" && !cpfLifePlan) {
+                onCpfLifePlanChange?.("STANDARD")
               }
             }}
             className="flex-1 border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
