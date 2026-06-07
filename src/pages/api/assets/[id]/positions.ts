@@ -9,9 +9,41 @@ const dataUrl = getDataUrl()
 const positionUrl = getPositionsUrl()
 
 interface AssetPosition {
-  portfolio: Portfolio
+  portfolio: Portfolio | null
   position: Position | null
   balance: number
+}
+
+// Response from svc-position /positions/composite/{assetId}
+interface CompositePositionResponse {
+  data: Position | null
+}
+
+async function fetchCompositeBalance(
+  assetId: string,
+  accessToken: string,
+  req: NextApiRequest,
+  date: string,
+): Promise<{ position: Position; balance: number } | null> {
+  try {
+    const response = await fetch(
+      `${positionUrl}/positions/composite/${assetId}?asAt=${date}`,
+      requestInit(accessToken, "GET", req),
+    )
+    if (!response.ok) return null
+    const body: CompositePositionResponse = await response.json()
+    const position = body.data
+    if (!position) return null
+    const subAccountTotal = Object.values(position.subAccounts ?? {}).reduce(
+      (sum: number, raw) => sum + Number(raw ?? 0),
+      0,
+    )
+    const balance =
+      Number(position.quantityValues?.total ?? 0) || subAccountTotal
+    return { position, balance }
+  } catch {
+    return null
+  }
 }
 
 interface AssetPositionsResponse {
@@ -99,9 +131,28 @@ export default async function getAssetPositions(
       portfolios = whereHeldData.data || []
     }
 
-    // If whereHeld returns empty (can happen for ACCOUNT assets where asset.id == cashAsset.id),
-    // fall back to scanning all portfolios for positions
+    // Composite assets (CPF, ILP, ...) hold their balance in svc-data's
+    // PrivateAssetConfig sub-accounts, not as svc-position positions. Ask
+    // svc-position to synthesise one before falling back to portfolio scan.
     if (portfolios.length === 0) {
+      const compositeBalance = await fetchCompositeBalance(
+        resolvedAssetId,
+        accessToken,
+        req,
+        date,
+      )
+      if (compositeBalance !== null) {
+        res.status(200).json({
+          data: [
+            {
+              portfolio: null,
+              position: compositeBalance.position,
+              balance: compositeBalance.balance,
+            },
+          ],
+        })
+        return
+      }
       const allPortfoliosResponse = await fetch(
         `${dataUrl}/portfolios`,
         requestInit(accessToken, "GET", req),
@@ -143,7 +194,7 @@ export default async function getAssetPositions(
               })
             }
           } catch (error) {
-            console.error(`Error scanning portfolio ${portfolio.code}:`, error)
+            console.error("Error scanning portfolio %s:", portfolio.code, error)
           }
         }),
       )
@@ -183,7 +234,11 @@ export default async function getAssetPositions(
             balance: position?.quantityValues?.total || 0,
           }
         } catch (error) {
-          console.error(`Error fetching holdings for ${portfolio.code}:`, error)
+          console.error(
+            "Error fetching holdings for %s:",
+            portfolio.code,
+            error,
+          )
           return {
             portfolio,
             position: null,
