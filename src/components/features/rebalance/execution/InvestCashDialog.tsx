@@ -432,9 +432,24 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
                         <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-gray-100 text-gray-700 font-medium">
                           {model.baseCurrency}
                         </span>
-                        <span>
-                          {model.planCount}{" "}
-                          {model.planCount === 1 ? "plan" : "plans"}
+                        <span
+                          className="inline-flex items-center gap-1"
+                          title={`Risk ${model.risk ?? 5} of 5`}
+                          aria-label={`Risk ${model.risk ?? 5} of 5`}
+                        >
+                          <span className="text-gray-400">Risk</span>
+                          <span className="inline-flex items-center gap-0.5">
+                            {[1, 2, 3, 4, 5].map((n) => (
+                              <i
+                                key={n}
+                                className={`fas fa-star text-[10px] ${
+                                  n <= (model.risk ?? 5)
+                                    ? "text-amber-400"
+                                    : "text-gray-300"
+                                }`}
+                              ></i>
+                            ))}
+                          </span>
                         </span>
                         {model.shared && (
                           <span className="inline-flex items-center gap-1 text-indigo-600">

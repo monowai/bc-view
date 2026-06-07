@@ -26,6 +26,8 @@ export interface ModelDto {
   objective?: string
   description?: string
   baseCurrency: string
+  /** Risk profile 1 (lowest) – 5 (highest); shown as stars. */
+  risk: number
   shared: boolean
   clientId?: string
   isOwner: boolean
