@@ -1,13 +1,30 @@
 import React from "react"
 const currentYear = new Date().getFullYear()
 
+const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+]
+
 interface IndependencePlanStepProps {
   enabled: boolean
   yearOfBirth: number
+  monthOfBirth: number
   monthlyExpenses: number
   targetRetirementAge: number
   onEnabledChange: (enabled: boolean) => void
   onYearOfBirthChange: (year: number) => void
+  onMonthOfBirthChange: (month: number) => void
   onMonthlyExpensesChange: (amount: number) => void
   onTargetRetirementAgeChange: (age: number) => void
   baseCurrency: string
@@ -16,10 +33,12 @@ interface IndependencePlanStepProps {
 const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
   enabled,
   yearOfBirth,
+  monthOfBirth,
   monthlyExpenses,
   targetRetirementAge,
   onEnabledChange,
   onYearOfBirthChange,
+  onMonthOfBirthChange,
   onMonthlyExpensesChange,
   onTargetRetirementAgeChange,
   baseCurrency,
@@ -61,21 +80,34 @@ const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
       {enabled && (
         <div className="space-y-4 bg-gray-50 rounded-lg p-6">
           <div>
-            <label
-              htmlFor="independenceYearOfBirth"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              {"Year of Birth"}
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {"Date of Birth"}
             </label>
-            <input
-              id="independenceYearOfBirth"
-              type="number"
-              value={yearOfBirth}
-              min={1920}
-              max={currentYear - 18}
-              onChange={(e) => onYearOfBirthChange(Number(e.target.value))}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
-            />
+            <div className="grid grid-cols-2 gap-3">
+              <select
+                id="independenceMonthOfBirth"
+                aria-label="Month of birth"
+                value={monthOfBirth}
+                onChange={(e) => onMonthOfBirthChange(Number(e.target.value))}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
+              >
+                {MONTHS.map((label, i) => (
+                  <option key={label} value={i + 1}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+              <input
+                id="independenceYearOfBirth"
+                type="number"
+                aria-label="Year of birth"
+                value={yearOfBirth}
+                min={1920}
+                max={currentYear - 18}
+                onChange={(e) => onYearOfBirthChange(Number(e.target.value))}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
+              />
+            </div>
             <p className="mt-1 text-sm text-gray-500">
               {`Currently ${currentYear - yearOfBirth} years old`}
             </p>
