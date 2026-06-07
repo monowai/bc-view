@@ -53,7 +53,9 @@ export default function ScenarioEditor({
         workingExpensesMonthly: scenario.workingExpensesMonthly,
         taxesMonthly: scenario.taxesMonthly,
         bonusMonthly: scenario.bonusMonthly,
-        investmentAllocationPercent: scenario.investmentAllocationPercent,
+        // API stores allocation as a decimal fraction (0.5 = 50%); the form edits
+        // a 0–100 percent, so scale up on read and back down on save.
+        investmentAllocationPercent: scenario.investmentAllocationPercent * 100,
         currency: scenario.currency,
       })
     }
@@ -74,7 +76,12 @@ export default function ScenarioEditor({
     setIsSubmitting(true)
     setError(null)
     try {
-      await onSave(form)
+      await onSave({
+        ...form,
+        // Convert the 0–100 percent back to the decimal fraction the API stores.
+        investmentAllocationPercent:
+          (form.investmentAllocationPercent ?? 80) / 100,
+      })
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "Failed to save scenario"

@@ -17,7 +17,8 @@ function computeContribution(scenario: WorkScenario): number {
   const outgoings =
     (scenario.workingExpensesMonthly || 0) + (scenario.taxesMonthly || 0)
   const surplus = income - outgoings
-  const pct = (scenario.investmentAllocationPercent || 0) / 100
+  // investmentAllocationPercent is a decimal fraction (0.5 = 50%) — already the multiplier.
+  const pct = scenario.investmentAllocationPercent || 0
   return Math.round(surplus * pct)
 }
 

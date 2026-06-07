@@ -113,7 +113,7 @@ export default function ScenarioCard({
         <div className="flex justify-between text-sm">
           <span className="text-gray-500">Invest %</span>
           <span className="font-medium">
-            {scenario.investmentAllocationPercent}%
+            {Math.round(scenario.investmentAllocationPercent * 100)}%
           </span>
         </div>
       </div>
