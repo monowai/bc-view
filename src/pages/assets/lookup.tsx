@@ -20,7 +20,10 @@ import Spinner from "@components/ui/Spinner"
 import { usePermissions } from "@hooks/usePermissions"
 
 interface AssetPosition {
-  portfolio: Portfolio
+  // Composite assets (CPF, ILP, ...) don't belong to a portfolio — svc-position
+  // synthesises a position from the asset config and the API returns
+  // portfolio: null on that path.
+  portfolio: Portfolio | null
   position: Position | null
   balance: number
 }
@@ -461,7 +464,7 @@ function AssetLookupPage(): React.ReactElement {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {positions.map((ap) => {
+                {positions.map((ap, idx) => {
                   const moneyValues = ap.position?.moneyValues?.PORTFOLIO
                   const gain = moneyValues
                     ? (moneyValues.marketValue || 0) -
@@ -471,14 +474,49 @@ function AssetLookupPage(): React.ReactElement {
                     moneyValues && moneyValues.costValue
                       ? (gain / moneyValues.costValue) * 100
                       : 0
+                  const portfolio = ap.portfolio
+                  const currencyCode =
+                    portfolio?.currency.code ??
+                    ap.position?.asset?.market?.currency?.code ??
+                    ""
+                  const rowKey = portfolio?.id ?? `composite-${idx}`
+
+                  if (!portfolio) {
+                    return (
+                      <tr key={rowKey} className="bg-gray-50">
+                        <td className="px-4 py-3">
+                          <span className="font-medium text-gray-700">
+                            Composite
+                          </span>
+                          <div className="text-xs text-gray-500">
+                            Sub-account roll-up (no portfolio)
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-right text-gray-900">
+                          {formatQuantity(ap.balance)}
+                        </td>
+                        <td className="px-4 py-3 text-right text-gray-500 hidden sm:table-cell">
+                          -
+                        </td>
+                        <td className="px-4 py-3 text-right text-gray-900 font-medium">
+                          {currencyCode
+                            ? formatValue(ap.balance, currencyCode)
+                            : formatQuantity(ap.balance)}
+                        </td>
+                        <td className="px-4 py-3 text-right text-gray-500 hidden md:table-cell">
+                          -
+                        </td>
+                      </tr>
+                    )
+                  }
 
                   return (
                     <tr
-                      key={ap.portfolio.id}
+                      key={rowKey}
                       className="hover:bg-gray-50 cursor-pointer transition-colors"
                       onDoubleClick={() =>
                         handleRowDoubleClick(
-                          ap.portfolio.id,
+                          portfolio.id,
                           selectedAsset.assetId || selectedAsset.value,
                         )
                       }
@@ -492,16 +530,16 @@ function AssetLookupPage(): React.ReactElement {
                             const assetId =
                               selectedAsset.assetId || selectedAsset.value
                             router.push(
-                              `/holdings/${ap.portfolio.code}#asset-${encodeURIComponent(assetId)}`,
+                              `/holdings/${portfolio.code}#asset-${encodeURIComponent(assetId)}`,
                             )
                           }}
                           className="font-medium text-blue-600 hover:text-blue-800 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
-                          title={`View holdings for ${ap.portfolio.code}`}
+                          title={`View holdings for ${portfolio.code}`}
                         >
-                          {ap.portfolio.code}
+                          {portfolio.code}
                         </button>
                         <div className="text-xs text-gray-500">
-                          {ap.portfolio.name}
+                          {portfolio.name}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-right text-gray-900">
@@ -511,7 +549,7 @@ function AssetLookupPage(): React.ReactElement {
                         {moneyValues
                           ? formatValue(
                               moneyValues.costValue || 0,
-                              ap.portfolio.currency.code,
+                              portfolio.currency.code,
                             )
                           : "-"}
                       </td>
@@ -519,7 +557,7 @@ function AssetLookupPage(): React.ReactElement {
                         {moneyValues
                           ? formatValue(
                               moneyValues.marketValue || 0,
-                              ap.portfolio.currency.code,
+                              portfolio.currency.code,
                             )
                           : "-"}
                       </td>
@@ -531,7 +569,7 @@ function AssetLookupPage(): React.ReactElement {
                             }
                           >
                             <div>
-                              {formatValue(gain, ap.portfolio.currency.code)}
+                              {formatValue(gain, portfolio.currency.code)}
                             </div>
                             <div className="text-xs">
                               ({gainPercent >= 0 ? "+" : ""}
