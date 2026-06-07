@@ -12,9 +12,18 @@ export function useWealthSummary(
   fxRates: Record<string, number>,
   sortConfig: SortConfig,
   holdingsData: HoldingContract | undefined,
+  // Per-currency sum of custom-asset balances that live outside any
+  // portfolio (e.g. CPF composite sub-account balances stored on
+  // PrivateAssetConfig). Each entry's value is in its currency key; the
+  // hook applies the same fxRates table used for portfolios.
+  customAssetTotals: Record<string, number> = {},
 ): WealthSummary {
   return useMemo(() => {
-    if (portfolios.length === 0 || Object.keys(fxRates).length === 0) {
+    const hasCustomAssets = Object.keys(customAssetTotals).length > 0
+    if (
+      (portfolios.length === 0 && !hasCustomAssets) ||
+      Object.keys(fxRates).length === 0
+    ) {
       return {
         totalValue: 0,
         totalGainOnDay: 0,
@@ -46,6 +55,11 @@ export function useWealthSummary(
         value: convertedValue,
         irr: portfolio.irr || 0,
       })
+    })
+
+    Object.entries(customAssetTotals).forEach(([currency, balance]) => {
+      const rate = fxRates[currency] || 1
+      totalValue += balance * rate
     })
 
     // Calculate liquidity breakdown and total gain on day from holdings
@@ -129,5 +143,5 @@ export function useWealthSummary(
       classificationBreakdown,
       portfolioBreakdown,
     }
-  }, [portfolios, fxRates, sortConfig, holdingsData])
+  }, [portfolios, fxRates, sortConfig, holdingsData, customAssetTotals])
 }
