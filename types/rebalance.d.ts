@@ -44,6 +44,8 @@ export interface CreateModelRequest {
   description?: string
   baseCurrency?: string
   clientId?: string
+  /** Risk profile 1 (lowest) – 5 (highest). */
+  risk?: number
 }
 
 export interface UpdateModelRequest {
@@ -52,6 +54,8 @@ export interface UpdateModelRequest {
   description?: string
   baseCurrency?: string
   shared?: boolean
+  /** Risk profile 1 (lowest) – 5 (highest). */
+  risk?: number
 }
 
 // Plan Types (new structure)
