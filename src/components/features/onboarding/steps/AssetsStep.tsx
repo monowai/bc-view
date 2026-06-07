@@ -707,10 +707,14 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
             {/* Composite Policy Type */}
             <CompositeAssetEditor
               policyType={newPension.policyType}
+              cpfLifePlan={newPension.cpfLifePlan}
               lockedUntilDate={newPension.lockedUntilDate || ""}
               subAccounts={newPension.subAccounts || []}
               onPolicyTypeChange={(value: PolicyType | undefined) =>
                 setNewPension({ ...newPension, policyType: value })
+              }
+              onCpfLifePlanChange={(value) =>
+                setNewPension({ ...newPension, cpfLifePlan: value })
               }
               onLockedUntilDateChange={(value: string) =>
                 setNewPension({ ...newPension, lockedUntilDate: value })
