@@ -548,37 +548,80 @@ export default function TimelineTabContent({
         onToggle={() => toggleSection("incomeBreakdown")}
       >
         <IncomeBreakdownTable
-          projections={[
-            // Normalize accumulation rows into YearlyProjection shape so
-            // the table shares the same axis as Wealth Journey + Cash Flows.
-            // Pre-retirement rows have no withdrawals; contributions +
-            // investment growth feed the Investment column via the
-            // incomeBreakdown.investmentReturns slot.
-            ...(projection.accumulationProjections ?? []).map((y) => ({
-              year: y.year,
-              age: y.age,
-              startingBalance: y.startingBalance,
-              investment: y.contribution + y.investmentGrowth,
-              withdrawals: 0,
-              endingBalance: y.endingBalance,
-              inflationAdjustedExpenses: 0,
-              currency: y.currency,
-              nonSpendableValue: y.nonSpendableValue,
-              totalWealth: y.totalWealth,
-              incomeBreakdown: {
-                investmentReturns:
-                  y.contribution + y.investmentGrowth + (y.lumpSumPayout ?? 0),
-                pension: 0,
-                socialSecurity: 0,
-                otherIncome: 0,
-                rentalIncome: 0,
-                totalIncome:
-                  y.contribution + y.investmentGrowth + (y.lumpSumPayout ?? 0),
-                lumpSumPayout: y.lumpSumPayout,
-              },
-            })),
-            ...projection.yearlyProjections,
-          ]}
+          projections={(() => {
+            // Composite projections (multi-plan / pension plans) expose `expenses`
+            // and `income` instead of the single-plan `inflationAdjustedExpenses`
+            // and `withdrawals`. Normalize both shapes so the Expenses/Withdrawals
+            // columns populate every year regardless of which projector produced
+            // the rows.
+            type LooseYear = Omit<
+              (typeof projection.yearlyProjections)[number],
+              "inflationAdjustedExpenses" | "withdrawals"
+            > & {
+              inflationAdjustedExpenses?: number
+              withdrawals?: number
+              expenses?: number
+              income?: number
+            }
+            const yearly = projection.yearlyProjections as LooseYear[]
+
+            // Accumulation rows carry no expense figure. Inflate the base annual
+            // expense to each working year so the column reads as a growing series
+            // rather than a dash. Inflation is read off the retirement expense
+            // curve (the backend compounds it at a single rate).
+            const baseAnnualExpenses = (projection.monthlyExpenses ?? 0) * 12
+            const e0 =
+              yearly[0]?.inflationAdjustedExpenses ?? yearly[0]?.expenses ?? 0
+            const e1 =
+              yearly[1]?.inflationAdjustedExpenses ?? yearly[1]?.expenses ?? 0
+            const annualInflation = e0 > 0 && e1 > 0 ? e1 / e0 - 1 : 0
+            const firstAccumAge =
+              projection.accumulationProjections?.[0]?.age ?? 0
+
+            return [
+              ...(projection.accumulationProjections ?? []).map((y) => ({
+                year: y.year,
+                age: y.age,
+                startingBalance: y.startingBalance,
+                investment: y.contribution + y.investmentGrowth,
+                withdrawals: 0,
+                endingBalance: y.endingBalance,
+                inflationAdjustedExpenses: Math.round(
+                  baseAnnualExpenses *
+                    Math.pow(1 + annualInflation, y.age - firstAccumAge),
+                ),
+                currency: y.currency,
+                nonSpendableValue: y.nonSpendableValue,
+                totalWealth: y.totalWealth,
+                incomeBreakdown: {
+                  investmentReturns:
+                    y.contribution +
+                    y.investmentGrowth +
+                    (y.lumpSumPayout ?? 0),
+                  pension: 0,
+                  socialSecurity: 0,
+                  otherIncome: 0,
+                  rentalIncome: 0,
+                  totalIncome:
+                    y.contribution +
+                    y.investmentGrowth +
+                    (y.lumpSumPayout ?? 0),
+                  lumpSumPayout: y.lumpSumPayout,
+                },
+              })),
+              ...yearly.map((y) => {
+                const expenses = y.inflationAdjustedExpenses ?? y.expenses ?? 0
+                const totalIncome =
+                  y.incomeBreakdown?.totalIncome ?? y.income ?? 0
+                return {
+                  ...y,
+                  inflationAdjustedExpenses: expenses,
+                  withdrawals:
+                    y.withdrawals ?? Math.max(0, expenses - totalIncome),
+                }
+              }),
+            ]
+          })()}
           embedded
         />
       </CollapsibleSection>
