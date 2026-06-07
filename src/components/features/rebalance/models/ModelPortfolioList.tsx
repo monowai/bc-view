@@ -48,6 +48,7 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
           description: model.description,
           baseCurrency: model.baseCurrency,
           shared: !model.shared,
+          risk: model.risk,
         }),
       })
       if (response.ok) {
@@ -108,7 +109,7 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
               {"Objective"}
             </th>
             <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
-              {"Plans"}
+              {"Risk"}
             </th>
             <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
               {"Current Plan"}
@@ -176,8 +177,21 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
                 </span>
               </td>
               <td className="px-4 py-3 text-center">
-                <span className="bg-gray-100 px-2 py-1 rounded text-sm">
-                  {model.planCount}
+                <span
+                  className="inline-flex items-center gap-0.5"
+                  title={`Risk ${model.risk ?? 5} of 5`}
+                  aria-label={`Risk ${model.risk ?? 5} of 5`}
+                >
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <i
+                      key={n}
+                      className={`fas fa-star text-[10px] ${
+                        n <= (model.risk ?? 5)
+                          ? "text-amber-400"
+                          : "text-gray-300"
+                      }`}
+                    ></i>
+                  ))}
                 </span>
               </td>
               <td className="px-4 py-3 text-center">
