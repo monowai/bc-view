@@ -30,6 +30,7 @@ const ModelPortfolioForm: React.FC<ModelPortfolioFormProps> = ({
   const [objective, setObjective] = useState(model?.objective || "")
   const [description, setDescription] = useState(model?.description || "")
   const [baseCurrency, setBaseCurrency] = useState(model?.baseCurrency || "NZD")
+  const [risk, setRisk] = useState<number>(model?.risk ?? 5)
   const [clientId, setClientId] = useState(model?.clientId || "")
   const {
     isSubmitting,
@@ -50,6 +51,7 @@ const ModelPortfolioForm: React.FC<ModelPortfolioFormProps> = ({
         description: description.trim() || undefined,
         baseCurrency,
         clientId: clientId.trim() || undefined,
+        risk,
       }
 
       const url = isEditing
@@ -161,6 +163,41 @@ const ModelPortfolioForm: React.FC<ModelPortfolioFormProps> = ({
             ))
           )}
         </select>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          {"Risk Profile"}
+        </label>
+        <div
+          className="flex items-center gap-1"
+          role="radiogroup"
+          aria-label="Risk profile"
+        >
+          {[1, 2, 3, 4, 5].map((n) => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => setRisk(n)}
+              role="radio"
+              aria-checked={risk === n}
+              aria-label={`Risk ${n}`}
+              className="p-1"
+            >
+              <i
+                className={`fas fa-star text-lg ${
+                  n <= risk
+                    ? "text-amber-400"
+                    : "text-gray-300 hover:text-amber-200"
+                }`}
+              ></i>
+            </button>
+          ))}
+          <span className="ml-2 text-sm text-gray-500">{risk}/5</span>
+        </div>
+        <p className="mt-1 text-xs text-gray-500">
+          {"1 = lowest risk, 5 = highest"}
+        </p>
       </div>
 
       {!isEditing && (
