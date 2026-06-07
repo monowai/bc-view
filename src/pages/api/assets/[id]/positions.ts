@@ -39,7 +39,9 @@ async function fetchCompositeBalance(
       0,
     )
     const balance =
-      Number(position.quantityValues?.total ?? 0) || subAccountTotal
+      position.quantityValues?.total != null
+        ? Number(position.quantityValues.total)
+        : subAccountTotal
     return { position, balance }
   } catch {
     return null
