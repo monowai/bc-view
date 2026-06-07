@@ -93,17 +93,17 @@ export default function ScenarioContributions({
       : null
   const { data: previewResp } = useSWR<CpfPreviewResponse>(
     previewKey,
-    simpleFetcher,
+    previewKey ? simpleFetcher(previewKey) : null,
   )
   const salaryAnnual = previewResp?.data?.annualContribution
 
   const { data: configsResp } = useSWR<PrivateAssetConfigsResponse>(
     configsKey,
-    simpleFetcher,
+    simpleFetcher(configsKey),
   )
   const { data: contribsResp, mutate: refreshContribs } = useSWR<{
     data: PlanContribution[]
-  }>(contributionsKey, simpleFetcher)
+  }>(contributionsKey, simpleFetcher(contributionsKey))
 
   const pensionAssets: PensionAsset[] = (configsResp?.data || [])
     .filter((c) => c.isPension)
