@@ -101,6 +101,9 @@ export default function Home(): React.ReactElement {
     )
 
   const isAuthed = !!user
+  // Authed user with no portfolios sees the guided "Getting Started" card.
+  // In that state the three pillar cards are noise, so they're hidden.
+  const isGettingStarted = isAuthed && portfoliosData?.data?.length === 0
   const cardHref = {
     wealth: isAuthed ? "/wealth" : "/learn/wealth",
     independence: isAuthed ? "/independence" : "/learn/independence",
@@ -137,15 +140,12 @@ export default function Home(): React.ReactElement {
       </div>
 
       {/* Getting Started - shown when authed user has no portfolios */}
-      {isAuthed && portfoliosData?.data?.length === 0 && (
+      {isGettingStarted && (
         <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
           <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-2 text-center">
+            <h2 className="text-xl font-bold text-gray-900 mb-6 text-center">
               {"Let's Get You Started"}
             </h2>
-            <p className="text-gray-600 mb-6 text-center">
-              {"No portfolios yet"}
-            </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Guided Setup - for novice users */}
               <Link
@@ -195,119 +195,121 @@ export default function Home(): React.ReactElement {
         </div>
       )}
 
-      {/* Three Domains */}
+      {/* Three Domains - hidden while the Getting Started card is showing */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Wealth - Blue */}
-          <Link
-            href={cardHref.wealth}
-            className="group relative overflow-hidden rounded-2xl bg-linear-to-br from-blue-500 to-blue-600 p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
-          >
-            <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white/10"></div>
-            <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-32 w-32 rounded-full bg-white/5"></div>
-            <div className="relative">
-              <div className="mb-4">
-                <i className="fas fa-coins text-4xl text-white/90"></i>
+        {!isGettingStarted && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Wealth - Blue */}
+            <Link
+              href={cardHref.wealth}
+              className="group relative overflow-hidden rounded-2xl bg-linear-to-br from-blue-500 to-blue-600 p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+            >
+              <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white/10"></div>
+              <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-32 w-32 rounded-full bg-white/5"></div>
+              <div className="relative">
+                <div className="mb-4">
+                  <i className="fas fa-coins text-4xl text-white/90"></i>
+                </div>
+                <h2 className="text-2xl font-bold text-white mb-2">
+                  Manage Wealth
+                </h2>
+                <p className="text-blue-100 text-sm mb-4">
+                  What do I have? See net worth across brokers, assets and
+                  currencies in one place.
+                </p>
+                <ul className="text-blue-100 text-xs space-y-1">
+                  <li>
+                    <i className="fas fa-check mr-2"></i>Multi-currency
+                  </li>
+                  <li>
+                    <i className="fas fa-check mr-2"></i>Multi-broker
+                  </li>
+                  <li>
+                    <i className="fas fa-check mr-2"></i>Multi-asset
+                  </li>
+                </ul>
+                <div className="mt-4 flex items-center text-white font-medium">
+                  View Net Worth
+                  <i className="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+                </div>
               </div>
-              <h2 className="text-2xl font-bold text-white mb-2">
-                Manage Wealth
-              </h2>
-              <p className="text-blue-100 text-sm mb-4">
-                What do I have? See net worth across brokers, assets and
-                currencies in one place.
-              </p>
-              <ul className="text-blue-100 text-xs space-y-1">
-                <li>
-                  <i className="fas fa-check mr-2"></i>Multi-currency
-                </li>
-                <li>
-                  <i className="fas fa-check mr-2"></i>Multi-broker
-                </li>
-                <li>
-                  <i className="fas fa-check mr-2"></i>Multi-asset
-                </li>
-              </ul>
-              <div className="mt-4 flex items-center text-white font-medium">
-                View Net Worth
-                <i className="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
-              </div>
-            </div>
-          </Link>
+            </Link>
 
-          {/* Independence - Sunset */}
-          <Link
-            href={cardHref.independence}
-            className="group relative overflow-hidden rounded-2xl bg-linear-to-br from-orange-400 via-orange-500 to-rose-500 p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
-          >
-            <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white/10"></div>
-            <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-32 w-32 rounded-full bg-white/5"></div>
-            <div className="relative">
-              <div className="mb-4">
-                <i className="fas fa-umbrella-beach text-4xl text-white/90"></i>
+            {/* Independence - Sunset */}
+            <Link
+              href={cardHref.independence}
+              className="group relative overflow-hidden rounded-2xl bg-linear-to-br from-orange-400 via-orange-500 to-rose-500 p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+            >
+              <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white/10"></div>
+              <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-32 w-32 rounded-full bg-white/5"></div>
+              <div className="relative">
+                <div className="mb-4">
+                  <i className="fas fa-umbrella-beach text-4xl text-white/90"></i>
+                </div>
+                <h2 className="text-2xl font-bold text-white mb-2">
+                  Plan Independence
+                </h2>
+                <p className="text-orange-100 text-sm mb-4">
+                  What do I want? Plan your financial independence with
+                  withdrawal strategies and identify when work becomes optional.
+                </p>
+                <ul className="text-orange-100 text-xs space-y-1">
+                  <li>
+                    <i className="fas fa-check mr-2"></i>Withdrawal strategies
+                  </li>
+                  <li>
+                    <i className="fas fa-check mr-2"></i>Inflation modeling
+                  </li>
+                  <li>
+                    <i className="fas fa-check mr-2"></i>FIRE calculations
+                  </li>
+                </ul>
+                <div className="mt-4 flex items-center text-white font-medium">
+                  Independence Plans
+                  <i className="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+                </div>
               </div>
-              <h2 className="text-2xl font-bold text-white mb-2">
-                Plan Independence
-              </h2>
-              <p className="text-orange-100 text-sm mb-4">
-                What do I want? Plan your financial independence with withdrawal
-                strategies and identify when work becomes optional.
-              </p>
-              <ul className="text-orange-100 text-xs space-y-1">
-                <li>
-                  <i className="fas fa-check mr-2"></i>Withdrawal strategies
-                </li>
-                <li>
-                  <i className="fas fa-check mr-2"></i>Inflation modeling
-                </li>
-                <li>
-                  <i className="fas fa-check mr-2"></i>FIRE calculations
-                </li>
-              </ul>
-              <div className="mt-4 flex items-center text-white font-medium">
-                Independence Plans
-                <i className="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
-              </div>
-            </div>
-          </Link>
+            </Link>
 
-          {/* Invest - Green */}
-          <Link
-            href={cardHref.strategy}
-            className="group relative overflow-hidden rounded-2xl bg-linear-to-br from-emerald-500 to-emerald-700 p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
-          >
-            <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white/10"></div>
-            <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-32 w-32 rounded-full bg-white/5"></div>
-            <div className="relative">
-              <div className="mb-4">
-                <i className="fas fa-balance-scale text-4xl text-white/90"></i>
+            {/* Invest - Green */}
+            <Link
+              href={cardHref.strategy}
+              className="group relative overflow-hidden rounded-2xl bg-linear-to-br from-emerald-500 to-emerald-700 p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+            >
+              <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white/10"></div>
+              <div className="absolute bottom-0 left-0 -mb-8 -ml-8 h-32 w-32 rounded-full bg-white/5"></div>
+              <div className="relative">
+                <div className="mb-4">
+                  <i className="fas fa-balance-scale text-4xl text-white/90"></i>
+                </div>
+                <h2 className="text-2xl font-bold text-white mb-2">
+                  Investment Strategy
+                </h2>
+                <p className="text-emerald-100 text-sm mb-4">
+                  How will I get there? Turn goals and assets into coherent,
+                  rebalanceable investment strategies
+                </p>
+                <ul className="text-emerald-100 text-xs space-y-1">
+                  <li>
+                    <i className="fas fa-check mr-2"></i>Model portfolios
+                  </li>
+                  <li>
+                    <i className="fas fa-check mr-2"></i>Invest cash against
+                    models
+                  </li>
+                  <li>
+                    <i className="fas fa-check mr-2"></i>Rebalance portfolios to
+                    models
+                  </li>
+                </ul>
+                <div className="mt-4 flex items-center text-white font-medium">
+                  View Models
+                  <i className="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+                </div>
               </div>
-              <h2 className="text-2xl font-bold text-white mb-2">
-                Investment Strategy
-              </h2>
-              <p className="text-emerald-100 text-sm mb-4">
-                How will I get there? Turn goals and assets into coherent,
-                rebalanceable investment strategies
-              </p>
-              <ul className="text-emerald-100 text-xs space-y-1">
-                <li>
-                  <i className="fas fa-check mr-2"></i>Model portfolios
-                </li>
-                <li>
-                  <i className="fas fa-check mr-2"></i>Invest cash against
-                  models
-                </li>
-                <li>
-                  <i className="fas fa-check mr-2"></i>Rebalance portfolios to
-                  models
-                </li>
-              </ul>
-              <div className="mt-4 flex items-center text-white font-medium">
-                View Models
-                <i className="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
-              </div>
-            </div>
-          </Link>
-        </div>
+            </Link>
+          </div>
+        )}
 
         {/* Recent Milestones */}
         {isAuthed && <RecentMilestones />}
