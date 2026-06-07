@@ -380,31 +380,71 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
                 </p>
               </div>
             ) : (
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {modelsWithApprovedPlans.map((model) => (
-                  <button
-                    key={model.id}
-                    onClick={() => setSelectedModel(model)}
-                    className={`w-full text-left p-3 border rounded-lg transition-colors ${
-                      selectedModel?.id === model.id
-                        ? "border-blue-500 bg-blue-50"
-                        : "border-gray-200 hover:border-blue-300 hover:bg-gray-50"
-                    }`}
-                  >
-                    <div className="font-medium text-gray-900">
-                      {model.name}
-                    </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">
-                        {model.baseCurrency}
-                      </span>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">
-                        <i className="fas fa-check-circle mr-1"></i>v
-                        {model.currentPlanVersion}
-                      </span>
-                    </div>
-                  </button>
-                ))}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-72 overflow-y-auto pr-1">
+                {modelsWithApprovedPlans.map((model) => {
+                  const selected = selectedModel?.id === model.id
+                  return (
+                    <button
+                      key={model.id}
+                      type="button"
+                      onClick={() => setSelectedModel(model)}
+                      aria-pressed={selected}
+                      className={`group flex flex-col gap-2 text-left p-3 border rounded-xl transition-all ${
+                        selected
+                          ? "border-blue-500 ring-1 ring-blue-500 bg-blue-50"
+                          : "border-gray-200 bg-white hover:border-blue-300 hover:shadow-sm"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span
+                            className={`flex-none flex h-8 w-8 items-center justify-center rounded-lg ${
+                              selected
+                                ? "bg-blue-500 text-white"
+                                : "bg-gray-100 text-gray-500 group-hover:bg-blue-100 group-hover:text-blue-600"
+                            }`}
+                          >
+                            <i className="fas fa-layer-group"></i>
+                          </span>
+                          <span className="font-semibold text-gray-900 truncate">
+                            {model.name}
+                          </span>
+                        </div>
+                        <span className="flex-none inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-green-100 text-green-700">
+                          <i className="fas fa-check-circle mr-1"></i>v
+                          {model.currentPlanVersion}
+                        </span>
+                      </div>
+
+                      {model.objective && (
+                        <div className="text-[11px] font-semibold uppercase tracking-wide text-blue-600 truncate">
+                          {model.objective}
+                        </div>
+                      )}
+
+                      {model.description && (
+                        <p className="text-xs text-gray-500 line-clamp-2">
+                          {model.description}
+                        </p>
+                      )}
+
+                      <div className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-gray-500">
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-gray-100 text-gray-700 font-medium">
+                          {model.baseCurrency}
+                        </span>
+                        <span>
+                          {model.planCount}{" "}
+                          {model.planCount === 1 ? "plan" : "plans"}
+                        </span>
+                        {model.shared && (
+                          <span className="inline-flex items-center gap-1 text-indigo-600">
+                            <i className="fas fa-users"></i>Shared
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  )
+                })}
               </div>
             )}
 
