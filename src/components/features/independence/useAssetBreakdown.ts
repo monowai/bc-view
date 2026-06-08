@@ -13,7 +13,7 @@ export const DEFAULT_NON_SPENDABLE_CATEGORIES = ["Property", "Real Estate"]
  * ones that exclude them from the spendable pool so the value isn't
  * double-counted against the income column.
  */
-export const INCOME_STREAM_CATEGORIES = ["Policies"]
+export const INCOME_STREAM_CATEGORIES = ["Policies", "Pension"]
 
 export interface AssetBreakdown {
   /** Liquid/spendable assets (everything except property) */
