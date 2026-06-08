@@ -519,6 +519,26 @@ function PlanView(): React.ReactElement {
     ? (planInputsAges?.lifeExpectancy ?? lifeExpectancy)
     : lifeExpectancy
 
+  // Display totals: prefer the server's authoritative numbers from the
+  // projection echo so composite assets (CPF sub-accounts, future ILP/
+  // generic) are reflected in the tile. Local categorySlices roll-up
+  // omits composite assets because they aren't svc-position positions —
+  // the projection (via PlanAllocationService) is the single source of
+  // truth. Fall back to the local sum until the projection lands so the
+  // tile renders something on first paint.
+  const projectionTotals = adjustedProjection as unknown as
+    | { totalAssets?: number; liquidAssets?: number }
+    | null
+    | undefined
+  const displayTotalAssets =
+    projectionTotals?.totalAssets != null
+      ? projectionTotals.totalAssets
+      : totalAssets
+  const displayLiquidAssets =
+    projectionTotals?.liquidAssets != null
+      ? projectionTotals.liquidAssets
+      : liquidAssets
+
   // FIRE data is ready when backend projection has completed with valid metrics
   const fireDataReady =
     !!plan &&
@@ -908,8 +928,8 @@ function PlanView(): React.ReactElement {
               spendableCategories={spendableCategories}
               onToggleCategory={toggleCategory}
               pensionProjections={pensionProjections}
-              totalAssets={totalAssets}
-              liquidAssets={liquidAssets}
+              totalAssets={displayTotalAssets}
+              liquidAssets={displayLiquidAssets}
               blendedReturnRate={blendedReturnRate}
               currentAge={displayCurrentAge}
               retirementAge={displayRetirementAge}
