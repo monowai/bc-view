@@ -11,6 +11,7 @@ import ManagedPortfolios from "@components/features/portfolios/ManagedPortfolios
 import ShareInviteDialog from "@components/features/portfolios/ShareInviteDialog"
 import PortfolioImportDialog from "@components/features/portfolios/PortfolioImportDialog"
 import PortfoliosList from "@components/features/portfolios/PortfoliosList"
+import LinkCompositeBanner from "@components/features/portfolios/LinkCompositeBanner"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 import { usePortfolios } from "@hooks/usePortfolios"
 import { sharesManagedKey, simpleFetcher } from "@utils/api/fetchHelper"
@@ -187,17 +188,22 @@ export default withPageAuthRequired(function Portfolios({
 
       {/* Tab content */}
       {activeTab === "my" && !isLoading && (
-        <PortfoliosList
-          portfolios={activePortfolios}
-          displayCurrency={displayCurrency}
-          currencies={currencies}
-          fxRates={fxRates}
-          onCurrencyChange={setDisplayCurrency}
-          onImportClick={handleImportClick}
-          onShareClick={handleShareClick}
-          onCorporateActions={setCorporateActionsPortfolio}
-          onDelete={setDeleteTarget}
-        />
+        <>
+          <div className="px-4 pt-4">
+            <LinkCompositeBanner />
+          </div>
+          <PortfoliosList
+            portfolios={activePortfolios}
+            displayCurrency={displayCurrency}
+            currencies={currencies}
+            fxRates={fxRates}
+            onCurrencyChange={setDisplayCurrency}
+            onImportClick={handleImportClick}
+            onShareClick={handleShareClick}
+            onCorporateActions={setCorporateActionsPortfolio}
+            onDelete={setDeleteTarget}
+          />
+        </>
       )}
       {activeTab === "inactive" && !isLoading && (
         <PortfoliosList
