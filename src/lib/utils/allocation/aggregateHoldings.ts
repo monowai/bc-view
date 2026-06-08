@@ -22,6 +22,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   "Mutual Fund": "#8B5CF6", // purple
   Cash: "#6B7280", // gray
   Property: "#F59E0B", // amber
+  Pension: "#0EA5E9", // sky — composite assets (CPF / ILP / generic)
 }
 
 // Fallback colors for dynamic values
@@ -148,6 +149,35 @@ export function transformToAllocationSlices(
   // Sort by value descending
   slices.sort((a, b) => b.value - a.value)
 
+  return slices
+}
+
+/**
+ * Build chart slices from svc-retire's server-side asset breakdown. Used by
+ * the Independence plan page so composite assets (CPF / ILP / generic
+ * pensions) appear alongside portfolio categories without bc-view having to
+ * re-derive them from svc-position holdings (which never see composite
+ * balances). See `feedback_backend_drives_display_data`.
+ */
+export function serverBreakdownToAllocationSlices(
+  breakdown: Array<{ category: string; value: number }>,
+): AllocationSlice[] {
+  if (!breakdown || breakdown.length === 0) return []
+  const total = breakdown.reduce((sum, b) => sum + Number(b.value || 0), 0)
+  if (total <= 0) return []
+  const slices: AllocationSlice[] = breakdown.map((b, index) => {
+    const value = Number(b.value || 0)
+    return {
+      key: b.category,
+      label: b.category,
+      value,
+      percentage: (value / total) * 100,
+      color: getColor(b.category, index),
+      gainOnDay: 0,
+      irr: 0,
+    }
+  })
+  slices.sort((a, b) => b.value - a.value)
   return slices
 }
 

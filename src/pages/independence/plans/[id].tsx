@@ -4,7 +4,10 @@ import Head from "next/head"
 import Link from "next/link"
 import { useRouter } from "next/router"
 import { Position } from "types/beancounter"
-import { transformToAllocationSlices } from "@lib/allocation/aggregateHoldings"
+import {
+  serverBreakdownToAllocationSlices,
+  transformToAllocationSlices,
+} from "@lib/allocation/aggregateHoldings"
 import { ValueIn } from "@components/features/holdings/GroupByOptions"
 import {
   TabId,
@@ -539,6 +542,25 @@ function PlanView(): React.ReactElement {
       ? projectionTotals.liquidAssets
       : liquidAssets
 
+  // Server-side asset breakdown (projection echo) drives the headline
+  // category chart so composite policies (CPF / ILP / generic) appear
+  // alongside Cash / ETF without bc-view re-deriving from svc-position
+  // holdings (which don't see composite balances). Falls back to the
+  // local roll-up until the projection lands so the chart renders on
+  // first paint.
+  const projectionAssetBreakdown = (
+    adjustedProjection as unknown as
+      | { assetBreakdown?: Array<{ category: string; value: number }> }
+      | null
+      | undefined
+  )?.assetBreakdown
+  const displayCategorySlices = useMemo(() => {
+    if (projectionAssetBreakdown && projectionAssetBreakdown.length > 0) {
+      return serverBreakdownToAllocationSlices(projectionAssetBreakdown)
+    }
+    return categorySlices
+  }, [projectionAssetBreakdown, categorySlices])
+
   // FIRE data is ready when backend projection has completed with valid metrics
   const fireDataReady =
     !!plan &&
@@ -924,7 +946,7 @@ function PlanView(): React.ReactElement {
               effectiveCurrency={effectiveCurrency}
               planCurrency={planCurrency}
               onEditDetails={() => setShowEditDetailsModal(true)}
-              categorySlices={categorySlices}
+              categorySlices={displayCategorySlices}
               spendableCategories={spendableCategories}
               onToggleCategory={toggleCategory}
               pensionProjections={pensionProjections}
