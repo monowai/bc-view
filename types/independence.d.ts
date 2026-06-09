@@ -431,8 +431,14 @@ export interface YearlyAccumulation {
   lumpSumPayout?: number
   /** Balance at end of year */
   endingBalance: number
-  /** Non-spendable asset value for this year */
+  /** Non-spendable asset value (housing + CPF MA + CPF Annuity) for this year */
   nonSpendableValue: number
+  /** Real-estate / housing portion of nonSpendableValue. */
+  housingValue?: number
+  /** CPF MA (and future composite non-liquid) portion of nonSpendableValue. */
+  cpfNonLiquidValue?: number
+  /** CPF LIFE annuity principal portion of nonSpendableValue. */
+  annuitizedValue?: number
   /** Total wealth = endingBalance + nonSpendableValue */
   totalWealth: number
   /** Currency code */
@@ -472,14 +478,26 @@ export interface YearlyProjection {
   endingBalance: number
   inflationAdjustedExpenses: number
   currency: string
-  /** Non-spendable asset value (e.g., property) for this year */
+  /** Non-spendable asset value (housing + CPF MA + CPF Annuity) for this year */
   nonSpendableValue: number
+  /** Real-estate / housing portion of nonSpendableValue. Liquidatable. */
+  housingValue?: number
+  /** CPF MA (and future composite non-liquid) portion of nonSpendableValue. Locked. */
+  cpfNonLiquidValue?: number
+  /** CPF LIFE annuity principal portion of nonSpendableValue. Locked. */
+  annuitizedValue?: number
   /** Total wealth = endingBalance + nonSpendableValue */
   totalWealth: number
   /** True if property was liquidated this year (when liquid assets fell below 10%) */
   propertyLiquidated?: boolean
   /** Net life event amount (income - expense) for this year */
   lifeEventAmount?: number
+  /**
+   * Portion of `withdrawals` that couldn't be funded from this year's
+   * available cash. Zero on sustainable years; positive when the plan
+   * is insolvent.
+   */
+  unfundedExpense?: number
   /** Breakdown of income sources for this year */
   incomeBreakdown?: IncomeBreakdown
 }
@@ -1074,6 +1092,12 @@ export interface CompositeYearlyProjection {
   expenses: number
   endingBalance: number
   nonSpendableValue: number
+  /** Real-estate / housing portion of nonSpendableValue. */
+  housingValue?: number
+  /** CPF MA portion of nonSpendableValue. Locked. */
+  cpfNonLiquidValue?: number
+  /** CPF LIFE annuity principal portion of nonSpendableValue. Locked. */
+  annuitizedValue?: number
   totalWealth: number
   currency: string
   incomeBreakdown?: IncomeBreakdown
