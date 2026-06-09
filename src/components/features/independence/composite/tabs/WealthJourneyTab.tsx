@@ -75,6 +75,13 @@ export default function WealthJourneyTab(): React.ReactElement | null {
     return null
   }
 
+  // Drop stacked layers (and their legend entries) when the user holds none
+  // of that asset class. Plans without housing or CPF skip those bands so
+  // the legend stays focused on layers that actually appear in the chart.
+  const hasHousingLayer = chartData.some((p) => p.housingValue > 0)
+  const hasCpfNonLiquidLayer = chartData.some((p) => p.cpfNonLiquidValue > 0)
+  const hasAnnuitizedLayer = chartData.some((p) => p.annuitizedValue > 0)
+
   const phaseBoundaries = projection.phases.map((phase, idx) => ({
     ...phase,
     color: PHASE_COLORS[idx % PHASE_COLORS.length],
@@ -218,36 +225,42 @@ export default function WealthJourneyTab(): React.ReactElement | null {
               strokeWidth={2}
               name="liquidValue"
             />
-            <Area
-              type="monotone"
-              dataKey="housingValue"
-              stackId="wealth"
-              stroke="#c2410c"
-              fill="#f97316"
-              fillOpacity={0.3}
-              strokeWidth={1}
-              name="housingValue"
-            />
-            <Area
-              type="monotone"
-              dataKey="cpfNonLiquidValue"
-              stackId="wealth"
-              stroke="#737373"
-              fill="#a3a3a3"
-              fillOpacity={0.3}
-              strokeWidth={1}
-              name="cpfNonLiquidValue"
-            />
-            <Area
-              type="monotone"
-              dataKey="annuitizedValue"
-              stackId="wealth"
-              stroke="#64748b"
-              fill="#94a3b8"
-              fillOpacity={0.3}
-              strokeWidth={1}
-              name="annuitizedValue"
-            />
+            {hasHousingLayer && (
+              <Area
+                type="monotone"
+                dataKey="housingValue"
+                stackId="wealth"
+                stroke="#c2410c"
+                fill="#f97316"
+                fillOpacity={0.3}
+                strokeWidth={1}
+                name="housingValue"
+              />
+            )}
+            {hasCpfNonLiquidLayer && (
+              <Area
+                type="monotone"
+                dataKey="cpfNonLiquidValue"
+                stackId="wealth"
+                stroke="#737373"
+                fill="#a3a3a3"
+                fillOpacity={0.3}
+                strokeWidth={1}
+                name="cpfNonLiquidValue"
+              />
+            )}
+            {hasAnnuitizedLayer && (
+              <Area
+                type="monotone"
+                dataKey="annuitizedValue"
+                stackId="wealth"
+                stroke="#64748b"
+                fill="#94a3b8"
+                fillOpacity={0.3}
+                strokeWidth={1}
+                name="annuitizedValue"
+              />
+            )}
           </ComposedChart>
         </ResponsiveContainer>
       </div>

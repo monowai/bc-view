@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useState } from "react"
 import { RetirementProjection } from "types/independence"
 import { AllocationSlice } from "@lib/allocation/aggregateHoldings"
 import { HIDDEN_VALUE, PensionProjection } from "@lib/independence/planHelpers"
@@ -8,7 +8,6 @@ import {
   INCOME_STREAM_CATEGORIES,
 } from "@components/features/independence"
 import Spinner from "@components/ui/Spinner"
-import InfoTooltip from "@components/ui/Tooltip"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 
 interface AssetsBreakdownProps {
@@ -32,10 +31,11 @@ interface AssetsBreakdownProps {
   excludedPensionFV: number
   includedPensionFvDifferential: number
   /**
-   * Per-sub-account display rows for CPF policies. Empty array (or undefined)
-   * hides the breakdown panel — used to suppress for non-CPF plans.
+   * Sub-account rows grouped by the category-slice key their CPF parent
+   * resolves to. Slices listed here render with a chevron expander showing
+   * indented child rows. Missing or empty → no expander.
    */
-  cpfSubAccountRows?: CpfSubAccountRow[]
+  cpfSubAccountsByCategoryKey?: Record<string, CpfSubAccountRow[]>
 }
 
 /**
@@ -63,8 +63,19 @@ export default function AssetsBreakdown({
   onRefreshHoldings,
   excludedPensionFV,
   includedPensionFvDifferential,
-  cpfSubAccountRows,
+  cpfSubAccountsByCategoryKey,
 }: AssetsBreakdownProps): React.ReactElement {
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set())
+  const toggleExpand = (key: string): void => {
+    setExpandedKeys((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+  const subAccountsFor = (key: string): CpfSubAccountRow[] =>
+    cpfSubAccountsByCategoryKey?.[key] ?? []
   const { hideValues } = usePrivacyMode()
 
   return (
@@ -125,6 +136,9 @@ export default function AssetsBreakdown({
               )
               .map((slice) => {
                 const isSpendable = spendableCategories.includes(slice.key)
+                const subRows = subAccountsFor(slice.key)
+                const isExpandable = subRows.length > 0
+                const isExpanded = expandedKeys.has(slice.key)
                 return (
                   <div
                     key={slice.key}
@@ -134,8 +148,8 @@ export default function AssetsBreakdown({
                         : "border-gray-200 bg-gray-50"
                     }`}
                   >
-                    <label className="flex items-center justify-between cursor-pointer">
-                      <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-between">
+                      <label className="flex items-center gap-3 cursor-pointer flex-1 min-w-0">
                         <input
                           type="checkbox"
                           checked={isSpendable}
@@ -153,21 +167,73 @@ export default function AssetsBreakdown({
                         >
                           {slice.label}
                         </span>
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`font-medium ${
+                            hideValues
+                              ? "text-gray-400"
+                              : isSpendable
+                                ? "text-gray-900"
+                                : "text-gray-400"
+                          }`}
+                        >
+                          {hideValues
+                            ? HIDDEN_VALUE
+                            : `${effectiveCurrency}${Math.round(slice.value * effectiveFxRate).toLocaleString()}`}
+                        </span>
+                        {isExpandable && (
+                          <button
+                            type="button"
+                            onClick={() => toggleExpand(slice.key)}
+                            className="text-gray-500 hover:text-gray-700 px-1"
+                            aria-expanded={isExpanded}
+                            aria-label={
+                              isExpanded ? "Hide breakdown" : "Show breakdown"
+                            }
+                          >
+                            <i
+                              className={`fas fa-chevron-${isExpanded ? "up" : "down"}`}
+                            ></i>
+                          </button>
+                        )}
                       </div>
-                      <span
-                        className={`font-medium ${
-                          hideValues
-                            ? "text-gray-400"
-                            : isSpendable
-                              ? "text-gray-900"
-                              : "text-gray-400"
-                        }`}
-                      >
-                        {hideValues
-                          ? HIDDEN_VALUE
-                          : `${effectiveCurrency}${Math.round(slice.value * effectiveFxRate).toLocaleString()}`}
-                      </span>
-                    </label>
+                    </div>
+                    {isExpandable && isExpanded && (
+                      <div className="mt-2 ml-7 pl-3 border-l-2 border-teal-300 space-y-1.5">
+                        {subRows.map((row) => {
+                          const toneClasses =
+                            row.tagTone === "amber"
+                              ? "bg-amber-100 text-amber-800"
+                              : "bg-gray-200 text-gray-700"
+                          return (
+                            <div
+                              key={`${row.parentAssetId}-${row.code}`}
+                              className="flex items-center justify-between gap-2 text-sm"
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="font-medium text-gray-800 truncate">
+                                  {row.displayName}
+                                </span>
+                                <span
+                                  className={`text-xs px-2 py-0.5 rounded ${toneClasses}`}
+                                  title={row.tooltip}
+                                >
+                                  {row.tagLabel}
+                                </span>
+                              </div>
+                              <span
+                                className={`font-medium ${hideValues ? "text-gray-400" : "text-gray-800"}`}
+                              >
+                                {hideValues
+                                  ? HIDDEN_VALUE
+                                  : `${effectiveCurrency}${Math.round(row.balance * effectiveFxRate).toLocaleString()}`}
+                              </span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
                   </div>
                 )
               })}
@@ -215,56 +281,6 @@ export default function AssetsBreakdown({
                 )
               })}
           </div>
-
-          {cpfSubAccountRows && cpfSubAccountRows.length > 0 && (
-            <div className="mt-4 border-t pt-4">
-              <h3 className="text-sm font-medium text-gray-700 mb-3">
-                <i className="fas fa-layer-group mr-2 text-teal-500"></i>
-                CPF Sub-Accounts
-              </h3>
-              <p className="text-xs text-gray-500 mb-2">
-                {
-                  "Liquid totals above include CPF OA + SA + RA. Each sub-account has different access rules — only OA is reachable today, and SA/RA flow into CPF LIFE at age 55."
-                }
-              </p>
-              <div className="space-y-2">
-                {cpfSubAccountRows.map((row) => {
-                  const toneClasses =
-                    row.tagTone === "amber"
-                      ? "bg-amber-100 text-amber-800"
-                      : "bg-gray-200 text-gray-700"
-                  return (
-                    <div
-                      key={`${row.parentAssetId}-${row.code}`}
-                      className="p-3 rounded-lg border border-teal-200 bg-teal-50"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <span className="font-medium text-gray-800 truncate">
-                            {row.displayName}
-                          </span>
-                          <InfoTooltip text={row.tooltip}>
-                            <span
-                              className={`text-xs px-2 py-0.5 rounded ${toneClasses}`}
-                            >
-                              {row.tagLabel}
-                            </span>
-                          </InfoTooltip>
-                        </div>
-                        <span
-                          className={`font-medium ${hideValues ? "text-gray-400" : "text-gray-800"}`}
-                        >
-                          {hideValues
-                            ? HIDDEN_VALUE
-                            : `${effectiveCurrency}${Math.round(row.balance * effectiveFxRate).toLocaleString()}`}
-                        </span>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
 
           {pensionProjections.length > 0 && (
             <div className="mt-4 border-t pt-4">

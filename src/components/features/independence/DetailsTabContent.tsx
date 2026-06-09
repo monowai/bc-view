@@ -40,10 +40,11 @@ interface DetailsTabContentProps {
   excludedPensionFV: number
   includedPensionFvDifferential: number
   /**
-   * Per-CPF-sub-account display rows. Empty when the user has no CPF
-   * policy — the breakdown panel hides entirely in that case.
+   * Sub-account rows grouped by the category-slice key their CPF parent
+   * resolves to (e.g. "Retirement Fund"). Empty when the user has no CPF
+   * policy — the parent slice then renders without a chevron expander.
    */
-  cpfSubAccountRows?: CpfSubAccountRow[]
+  cpfSubAccountsByCategoryKey?: Record<string, CpfSubAccountRow[]>
   /**
    * Caller doesn't own the plan. Per-category holdings can't be resolved
    * server-side under the M2M path today, so the breakdown panel hides
@@ -79,7 +80,7 @@ export default function DetailsTabContent({
   onRefreshHoldings,
   excludedPensionFV,
   includedPensionFvDifferential,
-  cpfSubAccountRows,
+  cpfSubAccountsByCategoryKey,
   isSharedPlan = false,
 }: DetailsTabContentProps): React.ReactElement {
   const { hideValues } = usePrivacyMode()
@@ -315,7 +316,7 @@ export default function DetailsTabContent({
           onRefreshHoldings={onRefreshHoldings}
           excludedPensionFV={excludedPensionFV}
           includedPensionFvDifferential={includedPensionFvDifferential}
-          cpfSubAccountRows={cpfSubAccountRows}
+          cpfSubAccountsByCategoryKey={cpfSubAccountsByCategoryKey}
         />
       )}
     </div>

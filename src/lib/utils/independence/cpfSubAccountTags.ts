@@ -17,28 +17,28 @@ const TAGS: Record<
   { label: string; tone: "amber" | "gray"; tooltip: string }
 > = {
   OA: {
-    label: "Restricted — housing / edu pre-55",
+    label: "Accumulates, rolls into RA at retirement",
     tone: "amber",
     tooltip:
-      "Ordinary Account. Withdrawable for approved uses (housing, education, top-ups). At age 55 the balance flows into the Retirement Account up to the FRS cap to fund CPF LIFE.",
+      "Ordinary Account. Accumulates until the retirement age, then rolls into the Retirement Account to fund payouts.",
   },
   SA: {
-    label: "Locked — merges to RA at 55",
+    label: "Accumulates, rolls into RA at retirement",
     tone: "gray",
     tooltip:
-      "Special Account. Statutorily locked until 55, then absorbed into the Retirement Account to fund CPF LIFE annuity. Not spendable as a lump sum.",
+      "Special Account. Accumulates until the retirement age, then rolls into the Retirement Account to fund payouts.",
   },
   MA: {
     label: "Medical only",
     tone: "gray",
     tooltip:
-      "MediSave Account. Locked for approved healthcare expenses and MediShield premiums. Never enters the spendable pool.",
+      "MediSave Account. Reserved for approved healthcare expenses and insurance premiums. Not part of the spendable pool.",
   },
   RA: {
-    label: "CPF LIFE annuity source",
-    tone: "gray",
+    label: "Pays out from retirement age",
+    tone: "amber",
     tooltip:
-      "Retirement Account. Created at age 55 from OA/SA balances; pays out as the CPF LIFE annuity from the payout-start age.",
+      "Retirement Account. Holds OA + SA balances at retirement age and pays them out across retirement.",
   },
 }
 

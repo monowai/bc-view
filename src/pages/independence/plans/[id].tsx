@@ -8,6 +8,7 @@ import {
   serverBreakdownToAllocationSlices,
   transformToAllocationSlices,
 } from "@lib/allocation/aggregateHoldings"
+import { getReportCategory } from "@lib/categoryMapping"
 import { ValueIn } from "@components/features/holdings/GroupByOptions"
 import {
   TabId,
@@ -164,6 +165,31 @@ function PlanView(): React.ReactElement {
     () => buildCpfSubAccountRows(assetConfigs, assetConfigNames),
     [assetConfigs, assetConfigNames],
   )
+
+  // Group sub-account rows under the category-slice key their CPF parent
+  // resolves to via getReportCategory. Lets AssetsBreakdown expand the
+  // parent slice (e.g. "Retirement Fund") with indented child rows.
+  const cpfSubAccountsByCategoryKey = useMemo<
+    Record<string, typeof cpfSubAccountRows>
+  >(() => {
+    if (cpfSubAccountRows.length === 0) return {}
+    if (!holdingsData?.positions) return {}
+    const parentIds = new Set(cpfSubAccountRows.map((r) => r.parentAssetId))
+    const assetCategoryKey: Record<string, string> = {}
+    for (const p of Object.values(holdingsData.positions) as Position[]) {
+      if (parentIds.has(p.asset.id)) {
+        assetCategoryKey[p.asset.id] = getReportCategory(p.asset)
+      }
+    }
+    const grouped: Record<string, typeof cpfSubAccountRows> = {}
+    for (const row of cpfSubAccountRows) {
+      const key = assetCategoryKey[row.parentAssetId]
+      if (!key) continue
+      if (!grouped[key]) grouped[key] = []
+      grouped[key].push(row)
+    }
+    return grouped
+  }, [cpfSubAccountRows, holdingsData])
 
   // Resolve asset IDs belonging to excluded portfolios (for rental income filtering)
   const excludedAssetIds = useExcludedAssetIds(
@@ -974,7 +1000,7 @@ function PlanView(): React.ReactElement {
               onRefreshHoldings={() => refreshHoldings()}
               excludedPensionFV={excludedPensionFV}
               includedPensionFvDifferential={includedPensionFvDifferential}
-              cpfSubAccountRows={cpfSubAccountRows}
+              cpfSubAccountsByCategoryKey={cpfSubAccountsByCategoryKey}
               isSharedPlan={isSharedPlan}
             />
           )}

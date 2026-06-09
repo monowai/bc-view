@@ -137,6 +137,22 @@ export default function TimelineTabContent({
     return [...accumulationData, ...retirementData]
   }, [projection])
 
+  // Hide stacked layers (and their legend entries) when the user has none
+  // of that asset class. Mary has no housing → drop the Housing band.
+  // Mike has no CPF → drop CPF MA + CPF LIFE bands.
+  const hasHousingLayer = useMemo(
+    () => fullJourneyData.some((p) => (p.housingValue ?? 0) > 0),
+    [fullJourneyData],
+  )
+  const hasCpfNonLiquidLayer = useMemo(
+    () => fullJourneyData.some((p) => (p.cpfNonLiquidValue ?? 0) > 0),
+    [fullJourneyData],
+  )
+  const hasAnnuitizedLayer = useMemo(
+    () => fullJourneyData.some((p) => (p.annuitizedValue ?? 0) > 0),
+    [fullJourneyData],
+  )
+
   // Merge FIRE path projections into chart data
   const chartDataWithFirePath = useMemo(() => {
     const firePathProjections = projection?.firePathProjections
@@ -416,36 +432,42 @@ export default function TimelineTabContent({
                     strokeWidth={2}
                     name="liquidValue"
                   />
-                  <Area
-                    type="monotone"
-                    dataKey="housingValue"
-                    stackId="wealth"
-                    stroke="#c2410c"
-                    fill="#f97316"
-                    fillOpacity={0.3}
-                    strokeWidth={1}
-                    name="housingValue"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="cpfNonLiquidValue"
-                    stackId="wealth"
-                    stroke="#737373"
-                    fill="#a3a3a3"
-                    fillOpacity={0.3}
-                    strokeWidth={1}
-                    name="cpfNonLiquidValue"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="annuitizedValue"
-                    stackId="wealth"
-                    stroke="#64748b"
-                    fill="#94a3b8"
-                    fillOpacity={0.3}
-                    strokeWidth={1}
-                    name="annuitizedValue"
-                  />
+                  {hasHousingLayer && (
+                    <Area
+                      type="monotone"
+                      dataKey="housingValue"
+                      stackId="wealth"
+                      stroke="#c2410c"
+                      fill="#f97316"
+                      fillOpacity={0.3}
+                      strokeWidth={1}
+                      name="housingValue"
+                    />
+                  )}
+                  {hasCpfNonLiquidLayer && (
+                    <Area
+                      type="monotone"
+                      dataKey="cpfNonLiquidValue"
+                      stackId="wealth"
+                      stroke="#737373"
+                      fill="#a3a3a3"
+                      fillOpacity={0.3}
+                      strokeWidth={1}
+                      name="cpfNonLiquidValue"
+                    />
+                  )}
+                  {hasAnnuitizedLayer && (
+                    <Area
+                      type="monotone"
+                      dataKey="annuitizedValue"
+                      stackId="wealth"
+                      stroke="#64748b"
+                      fill="#94a3b8"
+                      fillOpacity={0.3}
+                      strokeWidth={1}
+                      name="annuitizedValue"
+                    />
+                  )}
                 </>
               )}
               {/* FIRE path */}
