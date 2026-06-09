@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react"
 import {
   ComposedChart,
   Line,
+  Area,
   Bar,
   XAxis,
   YAxis,
@@ -92,7 +93,10 @@ export default function TimelineTabContent({
   // adjusted projection. Used to gate the "compared to baseline" UI.
   const hasActiveWhatIf = baselineProjection !== null
 
-  // Combine accumulation and drawdown for chart
+  // Combine accumulation and drawdown for chart. Sub-bucket fields drive
+  // the stacked-area visualisation (Liquid + Housing + CPF MA + CPF Annuity).
+  // Locked layers grow even after liquid depletes, so the chart needs to
+  // show each separately instead of lumping into a single Total Wealth line.
   const fullJourneyData = useMemo(() => {
     if (!projection) return []
 
@@ -103,6 +107,10 @@ export default function TimelineTabContent({
         accumulationBalance: year.endingBalance,
         retirementBalance: null as number | null,
         totalWealth: year.totalWealth,
+        liquidValue: year.endingBalance,
+        housingValue: year.housingValue ?? 0,
+        cpfNonLiquidValue: year.cpfNonLiquidValue ?? 0,
+        annuitizedValue: year.annuitizedValue ?? 0,
         contribution: year.contribution,
         investmentGrowth: year.investmentGrowth,
         phase: "accumulation" as const,
@@ -116,8 +124,13 @@ export default function TimelineTabContent({
         index === 0 ? year.endingBalance : (null as number | null),
       retirementBalance: year.endingBalance,
       totalWealth: year.totalWealth,
+      liquidValue: year.endingBalance,
+      housingValue: year.housingValue ?? 0,
+      cpfNonLiquidValue: year.cpfNonLiquidValue ?? 0,
+      annuitizedValue: year.annuitizedValue ?? 0,
       withdrawals: year.withdrawals,
       investment: year.investment,
+      unfundedExpense: year.unfundedExpense ?? 0,
       phase: "retirement" as const,
     }))
 
@@ -276,11 +289,14 @@ export default function TimelineTabContent({
                   const formatted = hideValues
                     ? HIDDEN_VALUE
                     : `$${Number(value || 0).toLocaleString()}`
-                  if (name === "totalWealth") return [formatted, "Total Wealth"]
-                  if (name === "accumulationBalance")
-                    return [formatted, "Working Years"]
-                  if (name === "retirementBalance")
-                    return [formatted, "Independence Years"]
+                  if (name === "liquidValue")
+                    return [formatted, "Liquid (spendable)"]
+                  if (name === "housingValue")
+                    return [formatted, "Housing (locked)"]
+                  if (name === "cpfNonLiquidValue")
+                    return [formatted, "CPF MA (locked)"]
+                  if (name === "annuitizedValue")
+                    return [formatted, "CPF LIFE principal (locked)"]
                   if (name === "fireBalance") return [formatted, "FIRE Path"]
                   if (name === "baselineBalance") return [formatted, "Baseline"]
                   return [formatted, name]
@@ -291,17 +307,19 @@ export default function TimelineTabContent({
                 verticalAlign="top"
                 height={36}
                 formatter={(value) =>
-                  value === "totalWealth"
-                    ? "Total Wealth"
-                    : value === "accumulationBalance"
-                      ? "Working Years"
-                      : value === "retirementBalance"
-                        ? "Independence Years"
-                        : value === "fireBalance"
-                          ? "FIRE Path"
-                          : value === "baselineBalance"
-                            ? "Baseline"
-                            : value
+                  value === "liquidValue"
+                    ? "Liquid (spendable)"
+                    : value === "housingValue"
+                      ? "Housing (locked)"
+                      : value === "cpfNonLiquidValue"
+                        ? "CPF MA (locked)"
+                        : value === "annuitizedValue"
+                          ? "CPF LIFE principal (locked)"
+                          : value === "fireBalance"
+                            ? "FIRE Path"
+                            : value === "baselineBalance"
+                              ? "Baseline"
+                              : value
                 }
               />
               <ReferenceLine y={0} stroke="#ef4444" strokeWidth={2} />
@@ -378,41 +396,54 @@ export default function TimelineTabContent({
                   }}
                 />
               )}
-              {/* Total Wealth line - show in traditional view when non-spendable assets exist */}
-              {timelineViewMode === "traditional" &&
-                projection.nonSpendableAtRetirement > 0 && (
-                  <Line
+              {/* Stacked wealth journey — bottom-up: Liquid (spendable),
+                  Housing, CPF MA, CPF LIFE principal. Top of the stack
+                  equals total wealth at each age. Stack tells the user
+                  which slice of their wealth is actually spendable: as
+                  Liquid shrinks, the locked layers continue rising. */}
+              {timelineViewMode === "traditional" && (
+                <>
+                  <Area
                     type="monotone"
-                    dataKey="totalWealth"
-                    stroke="#22c55e"
+                    dataKey="liquidValue"
+                    stackId="wealth"
+                    stroke="#2563eb"
+                    fill="#3b82f6"
+                    fillOpacity={0.6}
                     strokeWidth={2}
-                    dot={{ r: 2, fill: "#22c55e" }}
-                    name="totalWealth"
+                    name="liquidValue"
                   />
-                )}
-              {/* Traditional path - Working years (blue) */}
-              {timelineViewMode === "traditional" && (
-                <Line
-                  type="monotone"
-                  dataKey="accumulationBalance"
-                  stroke="#3b82f6"
-                  strokeWidth={3}
-                  dot={{ r: 3, fill: "#3b82f6" }}
-                  name="accumulationBalance"
-                  connectNulls={false}
-                />
-              )}
-              {/* Traditional path - Independence years (purple) */}
-              {timelineViewMode === "traditional" && (
-                <Line
-                  type="monotone"
-                  dataKey="retirementBalance"
-                  stroke="#f97316"
-                  strokeWidth={3}
-                  dot={{ r: 3, fill: "#f97316" }}
-                  name="retirementBalance"
-                  connectNulls={false}
-                />
+                  <Area
+                    type="monotone"
+                    dataKey="housingValue"
+                    stackId="wealth"
+                    stroke="#a16207"
+                    fill="#eab308"
+                    fillOpacity={0.35}
+                    strokeWidth={1}
+                    name="housingValue"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="cpfNonLiquidValue"
+                    stackId="wealth"
+                    stroke="#0d9488"
+                    fill="#14b8a6"
+                    fillOpacity={0.35}
+                    strokeWidth={1}
+                    name="cpfNonLiquidValue"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="annuitizedValue"
+                    stackId="wealth"
+                    stroke="#16a34a"
+                    fill="#22c55e"
+                    fillOpacity={0.35}
+                    strokeWidth={1}
+                    name="annuitizedValue"
+                  />
+                </>
               )}
               {/* FIRE path */}
               {timelineViewMode === "fire" &&

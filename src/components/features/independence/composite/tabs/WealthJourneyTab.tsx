@@ -2,7 +2,6 @@ import React from "react"
 import {
   ComposedChart,
   Area,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -55,10 +54,17 @@ export default function WealthJourneyTab(): React.ReactElement | null {
     return null
   }
 
+  // Stacked-area data — bottom-up: Liquid (spendable) + Housing + CPF MA
+  // + CPF Annuity. Top of stack = totalWealth. Locked layers signal what
+  // share of net worth isn't actually drawdownable in retirement.
   const chartData = projection.yearlyProjections.map((row) => ({
     age: row.age,
     endingBalance: row.endingBalance,
     totalWealth: row.totalWealth,
+    liquidValue: row.endingBalance,
+    housingValue: row.housingValue ?? 0,
+    cpfNonLiquidValue: row.cpfNonLiquidValue ?? 0,
+    annuitizedValue: row.annuitizedValue ?? 0,
     income: row.income,
     expenses: row.expenses,
     planId: row.planId,
@@ -130,9 +136,14 @@ export default function WealthJourneyTab(): React.ReactElement | null {
                 const formatted = hideValues
                   ? HIDDEN_VALUE
                   : `${displayCurrency} ${Number(value || 0).toLocaleString()}`
-                if (name === "totalWealth") return [formatted, "Total Wealth"]
-                if (name === "endingBalance")
-                  return [formatted, "Liquid Assets"]
+                if (name === "liquidValue")
+                  return [formatted, "Liquid (spendable)"]
+                if (name === "housingValue")
+                  return [formatted, "Housing (locked)"]
+                if (name === "cpfNonLiquidValue")
+                  return [formatted, "CPF MA (locked)"]
+                if (name === "annuitizedValue")
+                  return [formatted, "CPF LIFE principal (locked)"]
                 return [formatted, String(name)]
               }}
               labelFormatter={(label) => {
@@ -146,11 +157,15 @@ export default function WealthJourneyTab(): React.ReactElement | null {
               verticalAlign="top"
               height={36}
               formatter={(value: string) =>
-                value === "totalWealth"
-                  ? "Total Wealth"
-                  : value === "endingBalance"
-                    ? "Liquid Assets"
-                    : value
+                value === "liquidValue"
+                  ? "Liquid (spendable)"
+                  : value === "housingValue"
+                    ? "Housing (locked)"
+                    : value === "cpfNonLiquidValue"
+                      ? "CPF MA (locked)"
+                      : value === "annuitizedValue"
+                        ? "CPF LIFE principal (locked)"
+                        : value
               }
             />
 
@@ -187,27 +202,49 @@ export default function WealthJourneyTab(): React.ReactElement | null {
               ) : null,
             )}
 
-            {/* Total Wealth area (liquid + property) */}
+            {/* Stacked-area wealth journey: Liquid (bottom) + Housing
+                + CPF MA + CPF LIFE principal. Top of stack = total
+                wealth. Layers tell the user which slice of net worth
+                is spendable as Liquid shrinks. */}
             <Area
               type="monotone"
-              dataKey="totalWealth"
-              fill="#22c55e"
-              fillOpacity={0.15}
-              stroke="#22c55e"
-              strokeWidth={1}
-              strokeDasharray="4 2"
-              dot={false}
-              name="totalWealth"
+              dataKey="liquidValue"
+              stackId="wealth"
+              stroke="#2563eb"
+              fill="#3b82f6"
+              fillOpacity={0.6}
+              strokeWidth={2}
+              name="liquidValue"
             />
-
-            {/* Liquid assets line */}
-            <Line
+            <Area
               type="monotone"
-              dataKey="endingBalance"
-              stroke="#3b82f6"
-              strokeWidth={2.5}
-              dot={false}
-              name="endingBalance"
+              dataKey="housingValue"
+              stackId="wealth"
+              stroke="#a16207"
+              fill="#eab308"
+              fillOpacity={0.35}
+              strokeWidth={1}
+              name="housingValue"
+            />
+            <Area
+              type="monotone"
+              dataKey="cpfNonLiquidValue"
+              stackId="wealth"
+              stroke="#0d9488"
+              fill="#14b8a6"
+              fillOpacity={0.35}
+              strokeWidth={1}
+              name="cpfNonLiquidValue"
+            />
+            <Area
+              type="monotone"
+              dataKey="annuitizedValue"
+              stackId="wealth"
+              stroke="#16a34a"
+              fill="#22c55e"
+              fillOpacity={0.35}
+              strokeWidth={1}
+              name="annuitizedValue"
             />
           </ComposedChart>
         </ResponsiveContainer>
