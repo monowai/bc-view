@@ -94,9 +94,10 @@ export default function TimelineTabContent({
   const hasActiveWhatIf = baselineProjection !== null
 
   // Combine accumulation and drawdown for chart. Sub-bucket fields drive
-  // the stacked-area visualisation (Liquid + Housing + CPF MA + CPF Annuity).
-  // Locked layers grow even after liquid depletes, so the chart needs to
-  // show each separately instead of lumping into a single Total Wealth line.
+  // the stacked-area visualisation (Liquid + Housing + CPF LIFE principal).
+  // Locked layers grow even after liquid depletes, so the chart shows
+  // each separately instead of lumping into a single Total Wealth line.
+  // CPF MA is excluded — see comment on hasAnnuitizedLayer.
   const fullJourneyData = useMemo(() => {
     if (!projection) return []
 
@@ -109,7 +110,6 @@ export default function TimelineTabContent({
         totalWealth: year.totalWealth,
         liquidValue: year.endingBalance,
         housingValue: year.housingValue ?? 0,
-        cpfNonLiquidValue: year.cpfNonLiquidValue ?? 0,
         annuitizedValue: year.annuitizedValue ?? 0,
         contribution: year.contribution,
         investmentGrowth: year.investmentGrowth,
@@ -126,7 +126,6 @@ export default function TimelineTabContent({
       totalWealth: year.totalWealth,
       liquidValue: year.endingBalance,
       housingValue: year.housingValue ?? 0,
-      cpfNonLiquidValue: year.cpfNonLiquidValue ?? 0,
       annuitizedValue: year.annuitizedValue ?? 0,
       withdrawals: year.withdrawals,
       investment: year.investment,
@@ -139,13 +138,11 @@ export default function TimelineTabContent({
 
   // Hide stacked layers (and their legend entries) when the user has none
   // of that asset class. Mary has no housing → drop the Housing band.
-  // Mike has no CPF → drop CPF MA + CPF LIFE bands.
+  // Mike has no CPF → drop the CPF LIFE band. CPF MA is never stacked here
+  // — it's an earmarked healthcare reserve, not drawdownable wealth — so
+  // the layer doesn't exist regardless of who's viewing.
   const hasHousingLayer = useMemo(
     () => fullJourneyData.some((p) => (p.housingValue ?? 0) > 0),
-    [fullJourneyData],
-  )
-  const hasCpfNonLiquidLayer = useMemo(
-    () => fullJourneyData.some((p) => (p.cpfNonLiquidValue ?? 0) > 0),
     [fullJourneyData],
   )
   const hasAnnuitizedLayer = useMemo(
@@ -309,8 +306,6 @@ export default function TimelineTabContent({
                     return [formatted, "Liquid (spendable)"]
                   if (name === "housingValue")
                     return [formatted, "Housing (locked)"]
-                  if (name === "cpfNonLiquidValue")
-                    return [formatted, "CPF MA (locked)"]
                   if (name === "annuitizedValue")
                     return [formatted, "CPF LIFE principal (locked)"]
                   if (name === "fireBalance") return [formatted, "FIRE Path"]
@@ -327,15 +322,13 @@ export default function TimelineTabContent({
                     ? "Liquid (spendable)"
                     : value === "housingValue"
                       ? "Housing (locked)"
-                      : value === "cpfNonLiquidValue"
-                        ? "CPF MA (locked)"
-                        : value === "annuitizedValue"
-                          ? "CPF LIFE principal (locked)"
-                          : value === "fireBalance"
-                            ? "FIRE Path"
-                            : value === "baselineBalance"
-                              ? "Baseline"
-                              : value
+                      : value === "annuitizedValue"
+                        ? "CPF LIFE principal (locked)"
+                        : value === "fireBalance"
+                          ? "FIRE Path"
+                          : value === "baselineBalance"
+                            ? "Baseline"
+                            : value
                 }
               />
               <ReferenceLine y={0} stroke="#ef4444" strokeWidth={2} />
@@ -413,11 +406,15 @@ export default function TimelineTabContent({
                 />
               )}
               {/* Stacked wealth journey — bottom-up: Liquid (spendable),
-                  Housing, CPF MA, CPF LIFE principal. Top of the stack
-                  equals total wealth at each age. Liquidity gradient
-                  palette: Liquid pops in bright blue; locked layers
-                  drop into muted oranges/greys so the user reads
-                  brightness as 'spendable' at a glance. Green is
+                  Housing, CPF LIFE principal. Top of the stack equals
+                  drawdownable + locked principal at each age. CPF MA is
+                  intentionally excluded — it's an earmarked healthcare
+                  reserve (MediShield / CareShield premiums + approved
+                  medical), not wealth available for retirement spending.
+                  Surface MA via the Assets-by-Category panel instead.
+                  Liquidity gradient palette: Liquid pops in bright blue;
+                  locked layers drop into muted oranges/greys so the user
+                  reads brightness as 'spendable' at a glance. Green is
                   deliberately avoided on locked layers — it carries a
                   'wealth growing' connotation that undoes the message. */}
               {timelineViewMode === "traditional" && (
@@ -442,18 +439,6 @@ export default function TimelineTabContent({
                       fillOpacity={0.3}
                       strokeWidth={1}
                       name="housingValue"
-                    />
-                  )}
-                  {hasCpfNonLiquidLayer && (
-                    <Area
-                      type="monotone"
-                      dataKey="cpfNonLiquidValue"
-                      stackId="wealth"
-                      stroke="#737373"
-                      fill="#a3a3a3"
-                      fillOpacity={0.3}
-                      strokeWidth={1}
-                      name="cpfNonLiquidValue"
                     />
                   )}
                   {hasAnnuitizedLayer && (
