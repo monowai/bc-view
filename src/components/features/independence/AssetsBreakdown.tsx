@@ -2,11 +2,13 @@ import React from "react"
 import { RetirementProjection } from "types/independence"
 import { AllocationSlice } from "@lib/allocation/aggregateHoldings"
 import { HIDDEN_VALUE, PensionProjection } from "@lib/independence/planHelpers"
+import { CpfSubAccountRow } from "@lib/independence/cpfSubAccountTags"
 import {
   DEFAULT_NON_SPENDABLE_CATEGORIES,
   INCOME_STREAM_CATEGORIES,
 } from "@components/features/independence"
 import Spinner from "@components/ui/Spinner"
+import InfoTooltip from "@components/ui/Tooltip"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 
 interface AssetsBreakdownProps {
@@ -29,6 +31,11 @@ interface AssetsBreakdownProps {
   onRefreshHoldings: () => void
   excludedPensionFV: number
   includedPensionFvDifferential: number
+  /**
+   * Per-sub-account display rows for CPF policies. Empty array (or undefined)
+   * hides the breakdown panel — used to suppress for non-CPF plans.
+   */
+  cpfSubAccountRows?: CpfSubAccountRow[]
 }
 
 /**
@@ -56,6 +63,7 @@ export default function AssetsBreakdown({
   onRefreshHoldings,
   excludedPensionFV,
   includedPensionFvDifferential,
+  cpfSubAccountRows,
 }: AssetsBreakdownProps): React.ReactElement {
   const { hideValues } = usePrivacyMode()
 
@@ -207,6 +215,56 @@ export default function AssetsBreakdown({
                 )
               })}
           </div>
+
+          {cpfSubAccountRows && cpfSubAccountRows.length > 0 && (
+            <div className="mt-4 border-t pt-4">
+              <h3 className="text-sm font-medium text-gray-700 mb-3">
+                <i className="fas fa-layer-group mr-2 text-teal-500"></i>
+                CPF Sub-Accounts
+              </h3>
+              <p className="text-xs text-gray-500 mb-2">
+                {
+                  "Liquid totals above include CPF OA + SA + RA. Each sub-account has different access rules — only OA is reachable today, and SA/RA flow into CPF LIFE at age 55."
+                }
+              </p>
+              <div className="space-y-2">
+                {cpfSubAccountRows.map((row) => {
+                  const toneClasses =
+                    row.tagTone === "amber"
+                      ? "bg-amber-100 text-amber-800"
+                      : "bg-gray-200 text-gray-700"
+                  return (
+                    <div
+                      key={`${row.parentAssetId}-${row.code}`}
+                      className="p-3 rounded-lg border border-teal-200 bg-teal-50"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span className="font-medium text-gray-800 truncate">
+                            {row.displayName}
+                          </span>
+                          <InfoTooltip text={row.tooltip}>
+                            <span
+                              className={`text-xs px-2 py-0.5 rounded ${toneClasses}`}
+                            >
+                              {row.tagLabel}
+                            </span>
+                          </InfoTooltip>
+                        </div>
+                        <span
+                          className={`font-medium ${hideValues ? "text-gray-400" : "text-gray-800"}`}
+                        >
+                          {hideValues
+                            ? HIDDEN_VALUE
+                            : `${effectiveCurrency}${Math.round(row.balance * effectiveFxRate).toLocaleString()}`}
+                        </span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {pensionProjections.length > 0 && (
             <div className="mt-4 border-t pt-4">

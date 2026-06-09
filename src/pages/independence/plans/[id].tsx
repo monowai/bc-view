@@ -54,6 +54,7 @@ import {
   hasManualAssets,
   manualAssetsToSlices,
 } from "@lib/independence/planHelpers"
+import { buildCpfSubAccountRows } from "@lib/independence/cpfSubAccountTags"
 
 function PlanView(): React.ReactElement {
   const router = useRouter()
@@ -151,8 +152,18 @@ function PlanView(): React.ReactElement {
   const planCurrency = plan?.expensesCurrency || "NZD"
 
   // Fetch rental income from RE asset configs
-  const { configs: assetConfigs, getNetRentalByCurrency } =
-    usePrivateAssetConfigs()
+  const {
+    configs: assetConfigs,
+    assetNames: assetConfigNames,
+    getNetRentalByCurrency,
+  } = usePrivateAssetConfigs()
+
+  // CPF sub-account breakdown rows — empty when the user has no CPF policy,
+  // so the panel hides for non-Singaporean plans.
+  const cpfSubAccountRows = useMemo(
+    () => buildCpfSubAccountRows(assetConfigs, assetConfigNames),
+    [assetConfigs, assetConfigNames],
+  )
 
   // Resolve asset IDs belonging to excluded portfolios (for rental income filtering)
   const excludedAssetIds = useExcludedAssetIds(
@@ -963,6 +974,7 @@ function PlanView(): React.ReactElement {
               onRefreshHoldings={() => refreshHoldings()}
               excludedPensionFV={excludedPensionFV}
               includedPensionFvDifferential={includedPensionFvDifferential}
+              cpfSubAccountRows={cpfSubAccountRows}
               isSharedPlan={isSharedPlan}
             />
           )}
