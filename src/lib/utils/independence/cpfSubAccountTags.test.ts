@@ -89,9 +89,9 @@ describe("buildCpfSubAccountRows", () => {
       tagTone: "amber",
       parentAssetName: "Mary CPF",
     })
-    expect(sa?.tagLabel).toContain("merges to RA")
+    expect(sa?.tagLabel).toContain("rolls into RA")
     expect(ma?.tagLabel).toBe("Medical only")
-    expect(ra?.tagLabel).toContain("CPF LIFE")
+    expect(ra?.tagLabel).toContain("Pays out")
     expect(ma?.liquid).toBe(false)
   })
 
