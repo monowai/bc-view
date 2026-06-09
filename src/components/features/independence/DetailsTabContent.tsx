@@ -3,6 +3,7 @@ import InfoTooltip from "@components/ui/Tooltip"
 import { RetirementPlan, RetirementProjection } from "types/independence"
 import { AllocationSlice } from "@lib/allocation/aggregateHoldings"
 import { HIDDEN_VALUE, PensionProjection } from "@lib/independence/planHelpers"
+import { CpfSubAccountRow } from "@lib/independence/cpfSubAccountTags"
 import {
   RentalIncomeData,
   AssetsBreakdown,
@@ -39,6 +40,11 @@ interface DetailsTabContentProps {
   excludedPensionFV: number
   includedPensionFvDifferential: number
   /**
+   * Per-CPF-sub-account display rows. Empty when the user has no CPF
+   * policy — the breakdown panel hides entirely in that case.
+   */
+  cpfSubAccountRows?: CpfSubAccountRow[]
+  /**
    * Caller doesn't own the plan. Per-category holdings can't be resolved
    * server-side under the M2M path today, so the breakdown panel hides
    * (showing the viewer's caller-scoped categories would be the same leak
@@ -73,6 +79,7 @@ export default function DetailsTabContent({
   onRefreshHoldings,
   excludedPensionFV,
   includedPensionFvDifferential,
+  cpfSubAccountRows,
   isSharedPlan = false,
 }: DetailsTabContentProps): React.ReactElement {
   const { hideValues } = usePrivacyMode()
@@ -308,6 +315,7 @@ export default function DetailsTabContent({
           onRefreshHoldings={onRefreshHoldings}
           excludedPensionFV={excludedPensionFV}
           includedPensionFvDifferential={includedPensionFvDifferential}
+          cpfSubAccountRows={cpfSubAccountRows}
         />
       )}
     </div>
