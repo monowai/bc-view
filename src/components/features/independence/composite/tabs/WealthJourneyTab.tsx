@@ -54,16 +54,19 @@ export default function WealthJourneyTab(): React.ReactElement | null {
     return null
   }
 
-  // Stacked-area data — bottom-up: Liquid (spendable) + Housing + CPF MA
-  // + CPF Annuity. Top of stack = totalWealth. Locked layers signal what
-  // share of net worth isn't actually drawdownable in retirement.
+  // Stacked-area data — bottom-up: Liquid (spendable) + Housing + CPF
+  // Annuity. Top of stack = totalWealth. Locked layers signal the share
+  // of net worth that isn't drawdownable in retirement. CPF MA is
+  // deliberately excluded — it's an earmarked healthcare reserve
+  // (MediShield / CareShield premiums + approved medical), not part of
+  // wealth available for spending. The MA balance is surfaced
+  // separately on the Assets-by-Category panel ("Medical only" tag).
   const chartData = projection.yearlyProjections.map((row) => ({
     age: row.age,
     endingBalance: row.endingBalance,
     totalWealth: row.totalWealth,
     liquidValue: row.endingBalance,
     housingValue: row.housingValue ?? 0,
-    cpfNonLiquidValue: row.cpfNonLiquidValue ?? 0,
     annuitizedValue: row.annuitizedValue ?? 0,
     income: row.income,
     expenses: row.expenses,
@@ -79,7 +82,6 @@ export default function WealthJourneyTab(): React.ReactElement | null {
   // of that asset class. Plans without housing or CPF skip those bands so
   // the legend stays focused on layers that actually appear in the chart.
   const hasHousingLayer = chartData.some((p) => p.housingValue > 0)
-  const hasCpfNonLiquidLayer = chartData.some((p) => p.cpfNonLiquidValue > 0)
   const hasAnnuitizedLayer = chartData.some((p) => p.annuitizedValue > 0)
 
   const phaseBoundaries = projection.phases.map((phase, idx) => ({
@@ -147,8 +149,6 @@ export default function WealthJourneyTab(): React.ReactElement | null {
                   return [formatted, "Liquid (spendable)"]
                 if (name === "housingValue")
                   return [formatted, "Housing (locked)"]
-                if (name === "cpfNonLiquidValue")
-                  return [formatted, "CPF MA (locked)"]
                 if (name === "annuitizedValue")
                   return [formatted, "CPF LIFE principal (locked)"]
                 return [formatted, String(name)]
@@ -168,11 +168,9 @@ export default function WealthJourneyTab(): React.ReactElement | null {
                   ? "Liquid (spendable)"
                   : value === "housingValue"
                     ? "Housing (locked)"
-                    : value === "cpfNonLiquidValue"
-                      ? "CPF MA (locked)"
-                      : value === "annuitizedValue"
-                        ? "CPF LIFE principal (locked)"
-                        : value
+                    : value === "annuitizedValue"
+                      ? "CPF LIFE principal (locked)"
+                      : value
               }
             />
 
@@ -210,11 +208,16 @@ export default function WealthJourneyTab(): React.ReactElement | null {
             )}
 
             {/* Stacked-area wealth journey: Liquid (bottom) + Housing
-                + CPF MA + CPF LIFE principal. Top of stack = total
-                wealth. Liquidity gradient palette — bright blue Liquid
-                pops, muted orange/grey locked layers recede. Green
-                deliberately avoided on locked layers; it would imply
-                "wealth growing" and undo the spendable-vs-locked story. */}
+                + CPF LIFE principal. Top of stack = drawdownable + locked
+                principal at each age. CPF MA is intentionally excluded —
+                it's an earmarked healthcare reserve (MediShield /
+                CareShield premiums + approved medical), not wealth
+                available for retirement spending. Surface MA via the
+                Assets-by-Category panel instead.
+                Liquidity gradient palette — bright blue Liquid pops,
+                muted orange/grey locked layers recede. Green deliberately
+                avoided on locked layers; it would imply "wealth growing"
+                and undo the spendable-vs-locked story. */}
             <Area
               type="monotone"
               dataKey="liquidValue"
@@ -235,18 +238,6 @@ export default function WealthJourneyTab(): React.ReactElement | null {
                 fillOpacity={0.3}
                 strokeWidth={1}
                 name="housingValue"
-              />
-            )}
-            {hasCpfNonLiquidLayer && (
-              <Area
-                type="monotone"
-                dataKey="cpfNonLiquidValue"
-                stackId="wealth"
-                stroke="#737373"
-                fill="#a3a3a3"
-                fillOpacity={0.3}
-                strokeWidth={1}
-                name="cpfNonLiquidValue"
               />
             )}
             {hasAnnuitizedLayer && (

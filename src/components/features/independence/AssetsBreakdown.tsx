@@ -65,6 +65,22 @@ export default function AssetsBreakdown({
   includedPensionFvDifferential,
   cpfSubAccountsByCategoryKey,
 }: AssetsBreakdownProps): React.ReactElement {
+  // Healthcare reserve — sum of CPF MA balances across every CPF parent.
+  // Surfaced as its own line in the totals block (and never on the wealth
+  // chart) so users see it for what it is: an earmarked pool that funds
+  // MediShield / CareShield premiums and approved medical, not retirement
+  // spending. Zero (or missing) → no line rendered.
+  const healthcareReserve = React.useMemo(() => {
+    if (!cpfSubAccountsByCategoryKey) return 0
+    let total = 0
+    for (const rows of Object.values(cpfSubAccountsByCategoryKey)) {
+      for (const row of rows) {
+        if (row.code.toUpperCase() === "MA") total += row.balance
+      }
+    }
+    return total
+  }, [cpfSubAccountsByCategoryKey])
+
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set())
   const toggleExpand = (key: string): void => {
     setExpandedKeys((prev) => {
@@ -378,6 +394,24 @@ export default function AssetsBreakdown({
                   security.
                 </p>
               </>
+            )}
+            {healthcareReserve > 0 && (
+              <div className="flex justify-between text-sm">
+                <span
+                  className="text-gray-500"
+                  title="CPF MediSave Account. Reserved for MediShield Life / CareShield premiums and approved medical expenses. Not drawdownable for retirement spending."
+                >
+                  <i className="fas fa-heart-pulse text-xs mr-1 text-rose-400"></i>
+                  Healthcare Reserve (CPF MA)
+                </span>
+                <span
+                  className={`font-medium ${hideValues ? "text-gray-400" : "text-rose-500"}`}
+                >
+                  {hideValues
+                    ? HIDDEN_VALUE
+                    : `${effectiveCurrency}${Math.round(healthcareReserve * effectiveFxRate).toLocaleString()}`}
+                </span>
+              </div>
             )}
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Blended Return Rate</span>
