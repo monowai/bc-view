@@ -204,15 +204,17 @@ export default function WealthJourneyTab(): React.ReactElement | null {
 
             {/* Stacked-area wealth journey: Liquid (bottom) + Housing
                 + CPF MA + CPF LIFE principal. Top of stack = total
-                wealth. Layers tell the user which slice of net worth
-                is spendable as Liquid shrinks. */}
+                wealth. Liquidity gradient palette — bright blue Liquid
+                pops, muted orange/grey locked layers recede. Green
+                deliberately avoided on locked layers; it would imply
+                "wealth growing" and undo the spendable-vs-locked story. */}
             <Area
               type="monotone"
               dataKey="liquidValue"
               stackId="wealth"
-              stroke="#2563eb"
-              fill="#3b82f6"
-              fillOpacity={0.6}
+              stroke="#1d4ed8"
+              fill="#2563eb"
+              fillOpacity={0.7}
               strokeWidth={2}
               name="liquidValue"
             />
@@ -220,9 +222,9 @@ export default function WealthJourneyTab(): React.ReactElement | null {
               type="monotone"
               dataKey="housingValue"
               stackId="wealth"
-              stroke="#a16207"
-              fill="#eab308"
-              fillOpacity={0.35}
+              stroke="#c2410c"
+              fill="#f97316"
+              fillOpacity={0.3}
               strokeWidth={1}
               name="housingValue"
             />
@@ -230,9 +232,9 @@ export default function WealthJourneyTab(): React.ReactElement | null {
               type="monotone"
               dataKey="cpfNonLiquidValue"
               stackId="wealth"
-              stroke="#0d9488"
-              fill="#14b8a6"
-              fillOpacity={0.35}
+              stroke="#737373"
+              fill="#a3a3a3"
+              fillOpacity={0.3}
               strokeWidth={1}
               name="cpfNonLiquidValue"
             />
@@ -240,9 +242,9 @@ export default function WealthJourneyTab(): React.ReactElement | null {
               type="monotone"
               dataKey="annuitizedValue"
               stackId="wealth"
-              stroke="#16a34a"
-              fill="#22c55e"
-              fillOpacity={0.35}
+              stroke="#64748b"
+              fill="#94a3b8"
+              fillOpacity={0.3}
               strokeWidth={1}
               name="annuitizedValue"
             />

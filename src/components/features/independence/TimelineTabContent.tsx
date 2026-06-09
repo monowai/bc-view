@@ -398,18 +398,21 @@ export default function TimelineTabContent({
               )}
               {/* Stacked wealth journey — bottom-up: Liquid (spendable),
                   Housing, CPF MA, CPF LIFE principal. Top of the stack
-                  equals total wealth at each age. Stack tells the user
-                  which slice of their wealth is actually spendable: as
-                  Liquid shrinks, the locked layers continue rising. */}
+                  equals total wealth at each age. Liquidity gradient
+                  palette: Liquid pops in bright blue; locked layers
+                  drop into muted oranges/greys so the user reads
+                  brightness as 'spendable' at a glance. Green is
+                  deliberately avoided on locked layers — it carries a
+                  'wealth growing' connotation that undoes the message. */}
               {timelineViewMode === "traditional" && (
                 <>
                   <Area
                     type="monotone"
                     dataKey="liquidValue"
                     stackId="wealth"
-                    stroke="#2563eb"
-                    fill="#3b82f6"
-                    fillOpacity={0.6}
+                    stroke="#1d4ed8"
+                    fill="#2563eb"
+                    fillOpacity={0.7}
                     strokeWidth={2}
                     name="liquidValue"
                   />
@@ -417,9 +420,9 @@ export default function TimelineTabContent({
                     type="monotone"
                     dataKey="housingValue"
                     stackId="wealth"
-                    stroke="#a16207"
-                    fill="#eab308"
-                    fillOpacity={0.35}
+                    stroke="#c2410c"
+                    fill="#f97316"
+                    fillOpacity={0.3}
                     strokeWidth={1}
                     name="housingValue"
                   />
@@ -427,9 +430,9 @@ export default function TimelineTabContent({
                     type="monotone"
                     dataKey="cpfNonLiquidValue"
                     stackId="wealth"
-                    stroke="#0d9488"
-                    fill="#14b8a6"
-                    fillOpacity={0.35}
+                    stroke="#737373"
+                    fill="#a3a3a3"
+                    fillOpacity={0.3}
                     strokeWidth={1}
                     name="cpfNonLiquidValue"
                   />
@@ -437,9 +440,9 @@ export default function TimelineTabContent({
                     type="monotone"
                     dataKey="annuitizedValue"
                     stackId="wealth"
-                    stroke="#16a34a"
-                    fill="#22c55e"
-                    fillOpacity={0.35}
+                    stroke="#64748b"
+                    fill="#94a3b8"
+                    fillOpacity={0.3}
                     strokeWidth={1}
                     name="annuitizedValue"
                   />
