@@ -1,4 +1,7 @@
-import { buildWealthJourneyChartData } from "./wealthJourneyChartData"
+import {
+  buildWealthJourneyChartData,
+  netHousingValue,
+} from "./wealthJourneyChartData"
 import type { CompositeYearlyProjection } from "types/independence"
 
 const makeYear = (
@@ -82,6 +85,28 @@ describe("buildWealthJourneyChartData", () => {
     expect(hasAnnuitizedLayer).toBe(true)
   })
 
+  it("collapses sub-cent housingValue residue from svc-retire rounding", () => {
+    // Real-world Mary case observed on kauri after the svc-retire fix:
+    // RetirementPhaseProjector leaves a 0.01–0.03 sub-cent BigDecimal
+    // residue in housingValue across all retirement years. cpfMA is
+    // large (~127k+), so netting collapses it to 0 and the Housing
+    // legend disappears.
+    const years: CompositeYearlyProjection[] = Array.from({ length: 25 }).map(
+      (_, i): CompositeYearlyProjection =>
+        makeYear({
+          age: 66 + i,
+          housingValue: 0.01 + i * 0.001,
+          cpfNonLiquidValue: 127_000 + i * 5_000,
+          annuitizedValue: 0,
+        }),
+    )
+
+    const { hasHousingLayer, chartData } = buildWealthJourneyChartData(years)
+
+    expect(hasHousingLayer).toBe(false)
+    expect(chartData.every((d) => d.housingValue === 0)).toBe(true)
+  })
+
   it("treats missing optional fields as zero", () => {
     const years: CompositeYearlyProjection[] = [
       makeYear({
@@ -98,5 +123,27 @@ describe("buildWealthJourneyChartData", () => {
     expect(hasAnnuitizedLayer).toBe(false)
     expect(chartData[0].housingValue).toBe(0)
     expect(chartData[0].annuitizedValue).toBe(0)
+  })
+
+  describe("netHousingValue", () => {
+    it("returns raw housing when no CPF MA exists", () => {
+      expect(netHousingValue({ housingValue: 500_000 })).toBe(500_000)
+    })
+
+    it("subtracts CPF MA from housing for the pure property share", () => {
+      expect(
+        netHousingValue({ housingValue: 558_000, cpfNonLiquidValue: 58_000 }),
+      ).toBe(500_000)
+    })
+
+    it("clamps to zero when CPF MA exceeds housing (residue case)", () => {
+      expect(
+        netHousingValue({ housingValue: 0.01, cpfNonLiquidValue: 127_000 }),
+      ).toBe(0)
+    })
+
+    it("returns zero when both fields are missing", () => {
+      expect(netHousingValue({})).toBe(0)
+    })
   })
 })
