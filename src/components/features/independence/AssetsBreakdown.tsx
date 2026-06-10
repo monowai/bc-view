@@ -3,6 +3,7 @@ import { RetirementProjection } from "types/independence"
 import { AllocationSlice } from "@lib/allocation/aggregateHoldings"
 import { HIDDEN_VALUE, PensionProjection } from "@lib/independence/planHelpers"
 import { CpfSubAccountRow } from "@lib/independence/cpfSubAccountTags"
+import { independenceFeatureFlags } from "@lib/independence/featureFlags"
 import {
   DEFAULT_NON_SPENDABLE_CATEGORIES,
   INCOME_STREAM_CATEGORIES,
@@ -82,6 +83,10 @@ export default function AssetsBreakdown({
   }, [cpfSubAccountsByCategoryKey])
 
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set())
+  // Reserved key for the Non-Spendable totals collapsible. Lives in the
+  // same Set as the per-slice expander keys; using a `__` prefix keeps
+  // it from ever colliding with a real category-slice key.
+  const NON_SPENDABLE_EXPAND_KEY = "__non_spendable__"
   const toggleExpand = (key: string): void => {
     setExpandedKeys((prev) => {
       const next = new Set(prev)
@@ -90,8 +95,15 @@ export default function AssetsBreakdown({
       return next
     })
   }
-  const subAccountsFor = (key: string): CpfSubAccountRow[] =>
-    cpfSubAccountsByCategoryKey?.[key] ?? []
+  const subAccountsFor = (key: string): CpfSubAccountRow[] => {
+    const rows = cpfSubAccountsByCategoryKey?.[key] ?? []
+    // MA is surfaced under Non-Spendable → Healthcare Reserve; listing it
+    // inside the Retirement Fund expander as well shows the same balance
+    // twice. Gated by a compile-time flag so we can flip the
+    // per-sub-account view back on without restructuring code.
+    if (independenceFeatureFlags.showCpfMaInRetirementExpander) return rows
+    return rows.filter((row) => row.code.toUpperCase() !== "MA")
+  }
   const { hideValues } = usePrivacyMode()
 
   return (
@@ -381,37 +393,57 @@ export default function AssetsBreakdown({
             </div>
             {totalAssets > liquidAssets && (
               <>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">{"Non-Spendable"}</span>
+                <div className="flex items-center justify-between text-sm">
+                  <button
+                    type="button"
+                    onClick={() => toggleExpand(NON_SPENDABLE_EXPAND_KEY)}
+                    className="flex items-center gap-1 text-gray-500 hover:text-gray-700 text-left"
+                    aria-expanded={expandedKeys.has(NON_SPENDABLE_EXPAND_KEY)}
+                    aria-label={
+                      expandedKeys.has(NON_SPENDABLE_EXPAND_KEY)
+                        ? "Hide non-spendable breakdown"
+                        : "Show non-spendable breakdown"
+                    }
+                  >
+                    {"Non-Spendable"}
+                    {healthcareReserve > 0 && (
+                      <i
+                        className={`fas fa-chevron-${expandedKeys.has(NON_SPENDABLE_EXPAND_KEY) ? "up" : "down"} text-xs`}
+                      ></i>
+                    )}
+                  </button>
                   <span className="font-medium text-gray-400">
                     {hideValues
                       ? HIDDEN_VALUE
                       : `${effectiveCurrency}${Math.round((totalAssets - liquidAssets) * effectiveFxRate).toLocaleString()}`}
                   </span>
                 </div>
+                {healthcareReserve > 0 &&
+                  expandedKeys.has(NON_SPENDABLE_EXPAND_KEY) && (
+                    <div className="ml-3 pl-3 border-l-2 border-rose-200 space-y-1.5">
+                      <div className="flex items-center justify-between text-sm">
+                        <span
+                          className="text-gray-500"
+                          title="CPF MediSave Account. Reserved for MediShield Life / CareShield premiums and approved medical expenses. Not drawdownable for retirement spending."
+                        >
+                          <i className="fas fa-heart-pulse text-xs mr-1 text-rose-400"></i>
+                          Healthcare Reserve (CPF MA)
+                        </span>
+                        <span
+                          className={`font-medium ${hideValues ? "text-gray-400" : "text-rose-500"}`}
+                        >
+                          {hideValues
+                            ? HIDDEN_VALUE
+                            : `${effectiveCurrency}${Math.round(healthcareReserve * effectiveFxRate).toLocaleString()}`}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 <p className="text-xs text-gray-400">
                   FI uses spendable assets; illiquid assets add long-term
                   security.
                 </p>
               </>
-            )}
-            {healthcareReserve > 0 && (
-              <div className="flex justify-between text-sm">
-                <span
-                  className="text-gray-500"
-                  title="CPF MediSave Account. Reserved for MediShield Life / CareShield premiums and approved medical expenses. Not drawdownable for retirement spending."
-                >
-                  <i className="fas fa-heart-pulse text-xs mr-1 text-rose-400"></i>
-                  Healthcare Reserve (CPF MA)
-                </span>
-                <span
-                  className={`font-medium ${hideValues ? "text-gray-400" : "text-rose-500"}`}
-                >
-                  {hideValues
-                    ? HIDDEN_VALUE
-                    : `${effectiveCurrency}${Math.round(healthcareReserve * effectiveFxRate).toLocaleString()}`}
-                </span>
-              </div>
             )}
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Blended Return Rate</span>
