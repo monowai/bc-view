@@ -16,6 +16,7 @@ import {
 import CollapsibleSection from "@components/ui/CollapsibleSection"
 import { RetirementProjection } from "types/independence"
 import { HIDDEN_VALUE } from "@lib/independence/planHelpers"
+import { netHousingValue } from "@lib/independence/wealthJourneyChartData"
 import { IncomeBreakdownTable } from "@components/features/independence"
 import Spinner from "@components/ui/Spinner"
 
@@ -109,7 +110,7 @@ export default function TimelineTabContent({
         retirementBalance: null as number | null,
         totalWealth: year.totalWealth,
         liquidValue: year.endingBalance,
-        housingValue: year.housingValue ?? 0,
+        housingValue: netHousingValue(year),
         annuitizedValue: year.annuitizedValue ?? 0,
         contribution: year.contribution,
         investmentGrowth: year.investmentGrowth,
@@ -125,7 +126,7 @@ export default function TimelineTabContent({
       retirementBalance: year.endingBalance,
       totalWealth: year.totalWealth,
       liquidValue: year.endingBalance,
-      housingValue: year.housingValue ?? 0,
+      housingValue: netHousingValue(year),
       annuitizedValue: year.annuitizedValue ?? 0,
       withdrawals: year.withdrawals,
       investment: year.investment,
