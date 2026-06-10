@@ -15,7 +15,7 @@ export type StrategyView = PrimaryStrategy | "ALL"
 export const STRATEGY_VIEW_LABELS: Record<StrategyView, string> = {
   FIRE: "FIRE",
   PENSION: "Pension",
-  HYBRID: "Bridge",
+  HYBRID: "Self-funded",
   ALL: "All",
 }
 

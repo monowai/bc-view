@@ -77,9 +77,7 @@ const CompleteStep: React.FC<CompleteStepProps> = ({
         <i className="fas fa-check-circle text-green-500"></i>
         {"You're all set!"}
       </h2>
-      <p className="text-sm text-gray-600 mb-3">
-        {"Created:"}
-      </p>
+      <p className="text-sm text-gray-600 mb-3">{"Created:"}</p>
 
       {/* Horizontal summary chips */}
       <div className="flex flex-wrap gap-2 mb-4">
@@ -125,7 +123,9 @@ const CompleteStep: React.FC<CompleteStepProps> = ({
           <p className="text-xs text-gray-600">
             {"Use the "}
             <strong>Wealth</strong>
-            {" menu to record assets BC doesn't natively support — collectibles, alt-investments, anything off-market."}
+            {
+              " menu to record assets BC doesn't natively support — collectibles, alt-investments, anything off-market."
+            }
           </p>
         </div>
       </div>

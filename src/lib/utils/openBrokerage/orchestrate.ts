@@ -136,7 +136,8 @@ async function ensureAsset(payload: {
     data: { [payload.code]: payload },
   })
   const asset = Object.values(resp.data)[0]
-  if (!asset?.id) throw new Error(`Asset lookup returned no id (${payload.code})`)
+  if (!asset?.id)
+    throw new Error(`Asset lookup returned no id (${payload.code})`)
   return asset.id
 }
 

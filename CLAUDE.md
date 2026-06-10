@@ -360,6 +360,7 @@ Output is `standalone` mode for containerized deployment.
    fails if not.
 
 Critical configuration:
+
 - `actions/upload-artifact@v6+`: `include-hidden-files: true` is **required**.
   Without it the action silently drops dot-prefixed paths like `.next/`. This
   is the trap PRs #762–#766 chased: artifact appeared to upload but `.next/`

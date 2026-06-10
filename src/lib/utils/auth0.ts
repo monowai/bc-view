@@ -36,9 +36,7 @@ export const auth0 = new Auth0Client({
   // eslint-disable-next-line require-await -- OnCallbackHook signature returns Promise<NextResponse>; async keyword keeps the implementation consistent with that contract.
   onCallback: async (error, ctx, session) => {
     const appBaseUrl =
-      ctx.appBaseUrl ||
-      process.env.APP_BASE_URL ||
-      "https://kauri.monowai.com"
+      ctx.appBaseUrl || process.env.APP_BASE_URL || "https://kauri.monowai.com"
     const target = new URL(ctx.returnTo || "/", appBaseUrl)
 
     if (error && !session) {

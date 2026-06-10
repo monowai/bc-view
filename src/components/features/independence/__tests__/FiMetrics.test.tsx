@@ -442,16 +442,16 @@ describe("FiMetrics", () => {
     it("renders Pension + Bridge sections for a pension saver", () => {
       render(<FiMetrics {...rubyPensionProps} />)
       expect(screen.getByText("Pension Strategy")).toBeInTheDocument()
-      expect(screen.getByText("Bridge Strategy")).toBeInTheDocument()
+      expect(screen.getByText("Self-funded Years")).toBeInTheDocument()
       expect(screen.getByText("Retirement-Age FI")).toBeInTheDocument()
       expect(screen.getByText("Income Coverage")).toBeInTheDocument()
-      expect(screen.getByText("Bridge to Pension")).toBeInTheDocument()
+      expect(screen.getByText("Self-funded years")).toBeInTheDocument()
     })
 
     it("hides Pension + Bridge when no guaranteed income configured", () => {
       render(<FiMetrics {...defaultProps} />)
       expect(screen.queryByText("Pension Strategy")).not.toBeInTheDocument()
-      expect(screen.queryByText("Bridge Strategy")).not.toBeInTheDocument()
+      expect(screen.queryByText("Self-funded Years")).not.toBeInTheDocument()
     })
 
     it("shows Pension but not Bridge when no years-to-retirement gap", () => {
@@ -464,7 +464,7 @@ describe("FiMetrics", () => {
       )
       expect(screen.getByText("Pension Strategy")).toBeInTheDocument()
       expect(screen.getByText("Income Coverage")).toBeInTheDocument()
-      expect(screen.queryByText("Bridge Strategy")).not.toBeInTheDocument()
+      expect(screen.queryByText("Self-funded Years")).not.toBeInTheDocument()
     })
 
     it("formats Retirement-Age FI as a percentage", () => {
@@ -475,10 +475,10 @@ describe("FiMetrics", () => {
       expect(row?.textContent).toContain("54.0%")
     })
 
-    it("formats Bridge to Pension as years out of needed", () => {
+    it("formats Self-funded years as years out of needed", () => {
       render(<FiMetrics {...rubyPensionProps} />)
       const row = screen
-        .getByText("Bridge to Pension")
+        .getByText("Self-funded years")
         .closest("div")?.parentElement
       expect(row?.textContent).toContain("3.3 / 13 years")
     })
@@ -623,9 +623,9 @@ describe("FiMetrics", () => {
       expect(row?.textContent).toContain("Active")
     })
 
-    it("shows Active badge on Bridge Strategy when effective strategy is HYBRID", () => {
+    it("shows Active badge on Self-funded Years when effective strategy is HYBRID", () => {
       render(<FiMetrics {...rubyPensionProps} effectiveStrategy="HYBRID" />)
-      const header = screen.getByText("Bridge Strategy")
+      const header = screen.getByText("Self-funded Years")
       const row = header.closest(".justify-between")
       expect(row?.textContent).toContain("Active")
     })
@@ -639,28 +639,28 @@ describe("FiMetrics", () => {
       render(<FiMetrics {...rubyPensionProps} view="ALL" />)
       expect(screen.getByText("FIRE Strategy")).toBeInTheDocument()
       expect(screen.getByText("Pension Strategy")).toBeInTheDocument()
-      expect(screen.getByText("Bridge Strategy")).toBeInTheDocument()
+      expect(screen.getByText("Self-funded Years")).toBeInTheDocument()
     })
 
     it("view=FIRE hides Pension + Bridge for Ruby", () => {
       render(<FiMetrics {...rubyPensionProps} view="FIRE" />)
       expect(screen.getByText("FIRE Strategy")).toBeInTheDocument()
       expect(screen.queryByText("Pension Strategy")).not.toBeInTheDocument()
-      expect(screen.queryByText("Bridge Strategy")).not.toBeInTheDocument()
+      expect(screen.queryByText("Self-funded Years")).not.toBeInTheDocument()
     })
 
     it("view=PENSION hides FIRE + Bridge for Ruby", () => {
       render(<FiMetrics {...rubyPensionProps} view="PENSION" />)
       expect(screen.queryByText("FIRE Strategy")).not.toBeInTheDocument()
       expect(screen.getByText("Pension Strategy")).toBeInTheDocument()
-      expect(screen.queryByText("Bridge Strategy")).not.toBeInTheDocument()
+      expect(screen.queryByText("Self-funded Years")).not.toBeInTheDocument()
     })
 
     it("view=HYBRID hides FIRE + Pension for Ruby", () => {
       render(<FiMetrics {...rubyPensionProps} view="HYBRID" />)
       expect(screen.queryByText("FIRE Strategy")).not.toBeInTheDocument()
       expect(screen.queryByText("Pension Strategy")).not.toBeInTheDocument()
-      expect(screen.getByText("Bridge Strategy")).toBeInTheDocument()
+      expect(screen.getByText("Self-funded Years")).toBeInTheDocument()
     })
 
     it("view defaults to ALL when omitted (plain FIRE user shows FIRE only)", () => {
@@ -668,7 +668,7 @@ describe("FiMetrics", () => {
       expect(screen.getByText("FIRE Strategy")).toBeInTheDocument()
       // No backend pension/bridge data → those sections still hidden.
       expect(screen.queryByText("Pension Strategy")).not.toBeInTheDocument()
-      expect(screen.queryByText("Bridge Strategy")).not.toBeInTheDocument()
+      expect(screen.queryByText("Self-funded Years")).not.toBeInTheDocument()
     })
 
     it("hides funded banner when classic FI already achieved", () => {

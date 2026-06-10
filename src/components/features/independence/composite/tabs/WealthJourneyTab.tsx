@@ -14,6 +14,7 @@ import {
 import Spinner from "@components/ui/Spinner"
 import Alert from "@components/ui/Alert"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
+import { buildWealthJourneyChartData } from "@lib/independence/wealthJourneyChartData"
 import { useCompositeProjectionContext } from "../CompositeProjectionContext"
 
 const HIDDEN_VALUE = "****"
@@ -61,28 +62,15 @@ export default function WealthJourneyTab(): React.ReactElement | null {
   // (MediShield / CareShield premiums + approved medical), not part of
   // wealth available for spending. The MA balance is surfaced
   // separately on the Assets-by-Category panel ("Medical only" tag).
-  const chartData = projection.yearlyProjections.map((row) => ({
-    age: row.age,
-    endingBalance: row.endingBalance,
-    totalWealth: row.totalWealth,
-    liquidValue: row.endingBalance,
-    housingValue: row.housingValue ?? 0,
-    annuitizedValue: row.annuitizedValue ?? 0,
-    income: row.income,
-    expenses: row.expenses,
-    planId: row.planId,
-    planName: row.planName,
-  }))
+  // buildWealthJourneyChartData also nets cpfNonLiquidValue out of
+  // housingValue so users with no real estate don't see a phantom
+  // Housing legend entry from the upstream svc-retire MA bleed.
+  const { chartData, hasHousingLayer, hasAnnuitizedLayer } =
+    buildWealthJourneyChartData(projection.yearlyProjections)
 
   if (chartData.length === 0) {
     return null
   }
-
-  // Drop stacked layers (and their legend entries) when the user holds none
-  // of that asset class. Plans without housing or CPF skip those bands so
-  // the legend stays focused on layers that actually appear in the chart.
-  const hasHousingLayer = chartData.some((p) => p.housingValue > 0)
-  const hasAnnuitizedLayer = chartData.some((p) => p.annuitizedValue > 0)
 
   const phaseBoundaries = projection.phases.map((phase, idx) => ({
     ...phase,

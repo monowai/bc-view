@@ -179,15 +179,15 @@ const BrokerageStep: React.FC<BrokerageStepProps> = ({
                 {`You have bank accounts in ${otherCurrencyBankAccounts
                   .map((b) => b.currency)
                   .filter((c, i, a) => a.indexOf(c) === i)
-                  .join(", ")} but the brokerage currency is ${currency}. Cross-currency funding (FX) isn't supported yet — the opening deposit will be recorded as a standalone cash injection on the new portfolio with no matching withdrawal.`}
+                  .join(
+                    ", ",
+                  )} but the brokerage currency is ${currency}. Cross-currency funding (FX) isn't supported yet — the opening deposit will be recorded as a standalone cash injection on the new portfolio with no matching withdrawal.`}
               </div>
             )}
             <select
               id="ob-source"
               value={source}
-              onChange={(e) =>
-                onSourceChange(e.target.value as SourceValue)
-              }
+              onChange={(e) => onSourceChange(e.target.value as SourceValue)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
             >
               <option value="">— None (standalone deposit) —</option>

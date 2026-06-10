@@ -34,7 +34,16 @@ interface FundingState {
 // Fallback list — used only if /api/currencies hasn't returned yet so the
 // dropdown isn't empty on first paint. Replaced by backend response as soon
 // as SWR resolves.
-const FALLBACK_CURRENCIES = ["USD", "SGD", "EUR", "GBP", "AUD", "NZD", "HKD", "JPY"]
+const FALLBACK_CURRENCIES = [
+  "USD",
+  "SGD",
+  "EUR",
+  "GBP",
+  "AUD",
+  "NZD",
+  "HKD",
+  "JPY",
+]
 
 const STEP_TITLES: Record<Exclude<Step, "done">, string> = {
   broker: "Broker",
@@ -50,7 +59,11 @@ const STEP_ORDER: Exclude<Step, "done">[] = [
   "review",
 ]
 
-function StepHeader({ step }: { step: Exclude<Step, "done"> }): React.ReactElement {
+function StepHeader({
+  step,
+}: {
+  step: Exclude<Step, "done">
+}): React.ReactElement {
   const idx = STEP_ORDER.indexOf(step) + 1
   return (
     <div className="mb-6">
@@ -98,10 +111,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
     simpleFetcher(ccyKey),
   )
   const brokers = useMemo(() => brokersData?.data ?? [], [brokersData])
-  const portfolios = useMemo(
-    () => portfoliosData?.data ?? [],
-    [portfoliosData],
-  )
+  const portfolios = useMemo(() => portfoliosData?.data ?? [], [portfoliosData])
   const currencyCodes = useMemo(() => {
     const codes = currenciesData?.data?.map((c) => c.code)
     return codes && codes.length > 0 ? codes : FALLBACK_CURRENCIES
@@ -242,8 +252,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
                 disabled={brokers.length === 0}
               />
               <span>
-                Use an existing broker{" "}
-                {brokers.length === 0 && "(none yet)"}
+                Use an existing broker {brokers.length === 0 && "(none yet)"}
               </span>
             </label>
           </fieldset>
@@ -251,7 +260,10 @@ export default function OpenBrokerageWizard(): React.ReactElement {
           {broker.mode === "new" ? (
             <div className="space-y-3">
               <div>
-                <label htmlFor="broker-name" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="broker-name"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   {"Broker name"}
                 </label>
                 <input
@@ -266,7 +278,10 @@ export default function OpenBrokerageWizard(): React.ReactElement {
                 />
               </div>
               <div>
-                <label htmlFor="broker-acct" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="broker-acct"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   {"Account number (optional)"}
                 </label>
                 <input
@@ -282,7 +297,10 @@ export default function OpenBrokerageWizard(): React.ReactElement {
             </div>
           ) : (
             <div>
-              <label htmlFor="broker-select" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="broker-select"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 {"Existing broker"}
               </label>
               <select
@@ -370,7 +388,10 @@ export default function OpenBrokerageWizard(): React.ReactElement {
           ) : (
             <>
               <div>
-                <label htmlFor="pf-code" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="pf-code"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   {"Portfolio code"}
                 </label>
                 <input
@@ -385,7 +406,10 @@ export default function OpenBrokerageWizard(): React.ReactElement {
                 />
               </div>
               <div>
-                <label htmlFor="pf-name" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="pf-name"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   {"Portfolio name"}
                 </label>
                 <input
@@ -434,7 +458,10 @@ export default function OpenBrokerageWizard(): React.ReactElement {
             {`Optional — fund the new portfolio in ${portfolio.currency}. Pick a source portfolio (must be in ${portfolio.currency}) to record a matching withdrawal, or leave blank for a standalone deposit.`}
           </p>
           <div>
-            <label htmlFor="fund-amount" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="fund-amount"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               {"Amount"}
             </label>
             <input
@@ -451,7 +478,10 @@ export default function OpenBrokerageWizard(): React.ReactElement {
             />
           </div>
           <div>
-            <label htmlFor="fund-source" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="fund-source"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               {"Source portfolio (optional)"}
             </label>
             <select
@@ -481,7 +511,8 @@ export default function OpenBrokerageWizard(): React.ReactElement {
               <dd className="col-span-2 text-gray-900">
                 {broker.mode === "new"
                   ? `${broker.newName} (new)`
-                  : brokers.find((b) => b.id === broker.existingId)?.name ?? ""}
+                  : (brokers.find((b) => b.id === broker.existingId)?.name ??
+                    "")}
               </dd>
               <dt className="text-gray-500">Portfolio</dt>
               <dd className="col-span-2 text-gray-900">

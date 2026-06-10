@@ -55,7 +55,7 @@ export function pickHeadlineGauge(
     fi.bridgeYearsNeeded != null
   ) {
     return {
-      label: "Bridge to Pension",
+      label: "Self-funded years",
       value: fi.bridgeProgress,
       display: `${fi.bridgeYears.toFixed(1)} / ${fi.bridgeYearsNeeded}y`,
       fillPercent: clamp(fi.bridgeProgress),
