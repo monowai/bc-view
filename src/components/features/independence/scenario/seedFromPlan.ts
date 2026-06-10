@@ -34,6 +34,7 @@ export function seedFromPlan(
     otherIncomeMonthly: plan.otherIncomeMonthly ?? 0,
     realReturn: null,
     inflation: plan.inflationRate,
+    cashToInvestPercent: 0,
   }
 }
 
@@ -59,6 +60,7 @@ export function isScenarioDirty(
     scenario.socialSecurityMonthly !== seed.socialSecurityMonthly ||
     scenario.otherIncomeMonthly !== seed.otherIncomeMonthly ||
     scenario.realReturn !== null ||
-    scenario.inflation !== seed.inflation
+    scenario.inflation !== seed.inflation ||
+    scenario.cashToInvestPercent !== seed.cashToInvestPercent
   )
 }

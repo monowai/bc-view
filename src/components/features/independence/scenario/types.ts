@@ -43,6 +43,17 @@ export interface ScenarioState {
   realReturn: number | null
   /** Absolute inflation rate as a decimal (e.g. 0.025 for 2.5%). */
   inflation: number
+  /**
+   * Wealth Transfer slider: how much of the plan's CASH allocation gets
+   * shifted into EQUITY for this scenario. 0 = leave allocations at the
+   * saved plan values; 100 = move every dollar of cash into equities.
+   * Drives a single (cashAllocation / equityAllocation) override pair on
+   * the projection request — backend recomputes the blended return and
+   * the headline FI gauges from there. Housing is untouched. Future
+   * siblings (OA → SA, ETF → CPF VC, etc.) will live alongside this
+   * field once we generalise into a `wealthTransfers[]` shape.
+   */
+  cashToInvestPercent: number
 }
 
 export const DEFAULT_SCENARIO_STATE: ScenarioState = {
@@ -56,4 +67,5 @@ export const DEFAULT_SCENARIO_STATE: ScenarioState = {
   otherIncomeMonthly: 0,
   realReturn: null,
   inflation: 0.025,
+  cashToInvestPercent: 0,
 }

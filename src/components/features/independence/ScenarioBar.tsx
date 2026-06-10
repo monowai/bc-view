@@ -262,6 +262,25 @@ export default function ScenarioBar({
               unit=""
               formatValue={PCT}
             />
+            {/* Wealth Transfer — cash → equities. Surfaces a Singapore-flavoured
+                question: "what if I moved part of my bank cash into
+                investments?" Slider stays at 0 (no shift) by default; moving
+                it changes plan.cashAllocation / equityAllocation via
+                scenarioToPayload. Future siblings (OA → SA, ETF → CPF VC)
+                will live alongside this once we generalise to
+                wealthTransfers[]. */}
+            <WhatIfSlider
+              label="Cash → Investments"
+              value={scenario.cashToInvestPercent}
+              onChange={(cashToInvestPercent) =>
+                onScenarioChange({ cashToInvestPercent })
+              }
+              min={0}
+              max={100}
+              step={5}
+              unit="%"
+              formatValue={(v) => `${Math.round(v)}%`}
+            />
           </div>
         )}
       </div>
