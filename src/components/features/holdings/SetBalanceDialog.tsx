@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react"
+import React, { useState, useEffect, useCallback } from "react"
 import {
   Asset,
   Portfolio,
@@ -19,16 +19,10 @@ import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
 import MathInput from "@components/ui/MathInput"
 import DateInput from "@components/ui/DateInput"
 import Dialog from "@components/ui/Dialog"
-import { buildCashRow } from "@lib/trns/tradeUtils"
-import { postData } from "@components/ui/DropZone"
 import { stripOwnerPrefix, getAssetCurrency } from "@lib/assets/assetUtils"
 
 interface PortfoliosResponse {
   data: Portfolio[]
-}
-
-interface AssetsResponse {
-  data: Record<string, Asset>
 }
 
 interface AssetPosition {
@@ -51,7 +45,6 @@ export default function SetBalanceDialog({
   const [targetBalance, setTargetBalance] = useState<number>(0)
   const [currentBalance, setCurrentBalance] = useState<number>(0)
   const [selectedPortfolioId, setSelectedPortfolioId] = useState("")
-  const [cashAccountId, setCashAccountId] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoadingBalance, setIsLoadingBalance] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -67,17 +60,6 @@ export default function SetBalanceDialog({
     portfoliosKey,
     simpleFetcher(portfoliosKey),
   )
-
-  // Fetch cash/bank accounts for withdrawal destination
-  const { data: cashAccountsData } = useSwr<AssetsResponse>(
-    "/api/assets?category=ACCOUNT",
-    simpleFetcher("/api/assets?category=ACCOUNT"),
-  )
-
-  const cashAccounts = useMemo(() => {
-    if (!cashAccountsData?.data) return []
-    return Object.values(cashAccountsData.data)
-  }, [cashAccountsData?.data])
 
   // Fetch asset config to check for sub-accounts
   useEffect(() => {
@@ -149,34 +131,10 @@ export default function SetBalanceDialog({
     fetchBalance()
   }, [asset.id, hasSubAccounts])
 
-  // Calculate transaction type and amount
-  const transactionInfo = useMemo(() => {
-    const diff = targetBalance - currentBalance
-    if (diff === 0) return null
-    return {
-      type: diff > 0 ? "DEPOSIT" : "WITHDRAWAL",
-      amount: Math.abs(diff),
-    }
-  }, [targetBalance, currentBalance])
-
-  const isWithdrawal = transactionInfo?.type === "WITHDRAWAL"
+  const balanceChanged = targetBalance !== currentBalance
 
   const handleSave = useCallback(async () => {
-    if (!transactionInfo || !selectedPortfolioId) return
-
-    // For withdrawals, require cash account
-    if (isWithdrawal && !cashAccountId) {
-      setError("Please select a cash account for the withdrawal")
-      return
-    }
-
-    const portfolio = portfoliosData?.data?.find(
-      (p) => p.id === selectedPortfolioId,
-    )
-    if (!portfolio) {
-      setError("Please select a portfolio")
-      return
-    }
+    if (!balanceChanged || !selectedPortfolioId) return
 
     setIsSubmitting(true)
     setError(null)
@@ -184,9 +142,11 @@ export default function SetBalanceDialog({
     try {
       const assetCurrency = getAssetCurrency(asset) || "USD"
 
-      // Build sub-accounts map for DEPOSIT transactions
+      // Composite policies (CPF / ILP) ship a per-sub-account map; the
+      // backend BalanceBehaviour overwrites the snapshot. Non-composite
+      // policies just set the total.
       let subAccountsMap: Record<string, number> | undefined
-      if (hasSubAccounts && transactionInfo.type === "DEPOSIT") {
+      if (hasSubAccounts) {
         const filtered = Object.entries(subAccountBalances).filter(
           ([, v]) => v > 0,
         )
@@ -195,17 +155,16 @@ export default function SetBalanceDialog({
         }
       }
 
-      // Use JSON API to support subAccounts
       const trnData: Record<string, unknown> = {
         assetId: asset.id,
-        trnType: transactionInfo.type,
-        quantity: transactionInfo.amount,
+        trnType: "BALANCE",
+        quantity: targetBalance,
+        tradeAmount: targetBalance,
         tradeDate: date,
         tradeCurrency: assetCurrency,
         cashCurrency: assetCurrency,
-        cashAssetId: asset.id,
         status: "SETTLED",
-        comments: `${transactionInfo.type === "DEPOSIT" ? "Add" : "Withdraw"} ${assetCurrency} ${transactionInfo.amount.toLocaleString()} ${transactionInfo.type === "DEPOSIT" ? "to" : "from"} ${asset.name || stripOwnerPrefix(asset.code)}`,
+        comments: `Set ${asset.name || stripOwnerPrefix(asset.code)} balance to ${assetCurrency} ${targetBalance.toLocaleString()}`,
       }
 
       if (subAccountsMap) {
@@ -229,23 +188,6 @@ export default function SetBalanceDialog({
         return
       }
 
-      // For withdrawals, also credit the cash account
-      if (isWithdrawal && cashAccountId) {
-        const cashAccount = cashAccounts.find((a) => a.id === cashAccountId)
-        if (cashAccount) {
-          const cashRow = buildCashRow({
-            type: "DEPOSIT",
-            currency: getAssetCurrency(cashAccount) || assetCurrency,
-            amount: transactionInfo.amount,
-            tradeDate: date,
-            comments: `Withdrawal from ${asset.name || stripOwnerPrefix(asset.code)}`,
-            market: "PRIVATE",
-            assetCode: stripOwnerPrefix(cashAccount.code),
-          })
-          await postData(portfolio, false, cashRow)
-        }
-      }
-
       await onComplete()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to set balance")
@@ -253,14 +195,11 @@ export default function SetBalanceDialog({
       setIsSubmitting(false)
     }
   }, [
-    transactionInfo,
+    balanceChanged,
     selectedPortfolioId,
-    isWithdrawal,
-    cashAccountId,
-    portfoliosData?.data,
     asset,
     date,
-    cashAccounts,
+    targetBalance,
     onComplete,
     hasSubAccounts,
     subAccountBalances,
@@ -279,11 +218,7 @@ export default function SetBalanceDialog({
             label={"Set Balance"}
             loadingLabel={"Saving..."}
             isSubmitting={isSubmitting}
-            disabled={
-              !transactionInfo ||
-              !selectedPortfolioId ||
-              (isWithdrawal && !cashAccountId)
-            }
+            disabled={!balanceChanged || !selectedPortfolioId}
             variant="amber"
           />
         </>
@@ -385,51 +320,19 @@ export default function SetBalanceDialog({
         </select>
       </div>
 
-      {/* Cash Account Selection (for withdrawals) */}
-      {isWithdrawal && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            {"Credit To"}
-          </label>
-          <select
-            value={cashAccountId}
-            onChange={(e) => setCashAccountId(e.target.value)}
-            className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-amber-500 focus:border-amber-500"
-          >
-            <option value="">{"Select cash account for withdrawal"}</option>
-            {cashAccounts.map((account) => (
-              <option key={account.id} value={account.id}>
-                {stripOwnerPrefix(account.code)} ({getAssetCurrency(account)})
-              </option>
-            ))}
-          </select>
-          <p className="text-xs text-gray-500 mt-1">
-            {"Withdrawn funds will be deposited to this account"}
-          </p>
-        </div>
-      )}
-
-      {/* Transaction Preview */}
-      {transactionInfo && (
-        <div
-          className={`rounded-lg p-3 text-sm ${
-            transactionInfo.type === "DEPOSIT"
-              ? "bg-green-50 border border-green-200 text-green-800"
-              : "bg-red-50 border border-red-200 text-red-800"
-          }`}
-        >
+      {/* Snapshot Preview */}
+      {balanceChanged && (
+        <div className="rounded-lg p-3 text-sm bg-amber-50 border border-amber-200 text-amber-800">
           <div className="flex items-center">
-            <i
-              className={`fas ${transactionInfo.type === "DEPOSIT" ? "fa-arrow-up" : "fa-arrow-down"} mr-2`}
-            ></i>
-            <span className="font-medium">
-              {transactionInfo.type === "DEPOSIT" ? "Deposit" : "Withdrawal"}:
-            </span>
+            <i className="fas fa-piggy-bank mr-2"></i>
+            <span className="font-medium">{"New snapshot"}:</span>
             <span className="ml-2">
-              {getAssetCurrency(asset)}{" "}
-              {transactionInfo.amount.toLocaleString()}
+              {getAssetCurrency(asset)} {targetBalance.toLocaleString()}
             </span>
           </div>
+          <p className="text-xs text-amber-700 mt-1">
+            {"Records a BALANCE trn — no cash impact, overwrites prior snapshot."}
+          </p>
         </div>
       )}
 
