@@ -61,9 +61,7 @@ export default function OffboardingWizard(): React.ReactElement {
         const modelsData = (await modelsRes.json()) as {
           data?: Array<{ isOwner?: boolean }>
         }
-        const owned = (modelsData.data ?? []).filter(
-          (m) => m.isOwner !== false,
-        )
+        const owned = (modelsData.data ?? []).filter((m) => m.isOwner !== false)
         setModelCount(owned.length)
       }
     } catch (error) {

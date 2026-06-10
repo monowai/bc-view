@@ -403,7 +403,8 @@ export function useRebalanceExecution(
 
   // Commit execution - create transactions
   const handleCommit = useCallback(async (): Promise<
-    { portfolioId: string; transactionStatus: "PROPOSED" | "SETTLED" } | undefined
+    | { portfolioId: string; transactionStatus: "PROPOSED" | "SETTLED" }
+    | undefined
   > => {
     if (!execution || execution.portfolioIds.length === 0) return undefined
 

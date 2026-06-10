@@ -12,78 +12,80 @@ const existingBrokers: Broker[] = [
   { id: "broker-dbs", name: "DBS Vickers" },
 ]
 
-const existingPortfolios: Pick<Portfolio, "id" | "code" | "name" | "currency">[] =
-  [
-    {
-      id: "src-pf",
-      code: "SAVINGS",
-      name: "Savings",
-      currency: { code: "USD", name: "US Dollar", symbol: "$" },
-    },
-  ]
+const existingPortfolios: Pick<
+  Portfolio,
+  "id" | "code" | "name" | "currency"
+>[] = [
+  {
+    id: "src-pf",
+    code: "SAVINGS",
+    name: "Savings",
+    currency: { code: "USD", name: "US Dollar", symbol: "$" },
+  },
+]
 
 function mockEndpoints(): void {
   fetchMock.mockResponse((req) => handleMock(req))
 }
 
 function handleMock(req: Request): Promise<string> {
-    const url = req.url
-    if (url.includes("/api/brokers") && req.method === "GET") {
-      return Promise.resolve(JSON.stringify({ data: existingBrokers }))
-    }
-    if (url.includes("/api/portfolios") && req.method === "GET") {
-      return Promise.resolve(JSON.stringify({ data: existingPortfolios }))
-    }
-    if (url.includes("/api/brokers") && req.method === "POST") {
-      // Echo the requested name so downstream broker-cash-asset codes
-      // (e.g. `IBRK-USD`) match the broker the wizard just created.
-      return req
-        .clone()
-        .json()
-        .then((body: { name?: string }) =>
-          JSON.stringify({
-            data: { id: "broker-new", name: body.name ?? "New Broker" },
-          }),
-        )
-    }
-    if (url.includes("/api/portfolios") && req.method === "POST") {
-      return Promise.resolve(
+  const url = req.url
+  if (url.includes("/api/brokers") && req.method === "GET") {
+    return Promise.resolve(JSON.stringify({ data: existingBrokers }))
+  }
+  if (url.includes("/api/portfolios") && req.method === "GET") {
+    return Promise.resolve(JSON.stringify({ data: existingPortfolios }))
+  }
+  if (url.includes("/api/brokers") && req.method === "POST") {
+    // Echo the requested name so downstream broker-cash-asset codes
+    // (e.g. `IBRK-USD`) match the broker the wizard just created.
+    return req
+      .clone()
+      .json()
+      .then((body: { name?: string }) =>
         JSON.stringify({
-          data: [
-            {
-              id: "pf-new",
-              code: "IBKR",
-              name: "IBKR USD",
-              currency: { code: "USD" },
-              base: { code: "USD" },
-            },
-          ],
+          data: { id: "broker-new", name: body.name ?? "New Broker" },
         }),
       )
-    }
-    if (url.includes("/api/assets") && req.method === "POST") {
-      // Echo the requested asset key + market so tests can assert on the
-      // exact code (e.g. broker-cash `IBRK-USD`, market: "PRIVATE").
-      return req
-        .clone()
-        .json()
-        .then(
-          (body: {
-            data?: Record<string, { market?: string; code?: string }>
-          }) => {
-            const code = Object.keys(body.data ?? {})[0] ?? "USD"
-            return JSON.stringify({
-              data: { [code]: { id: `asset-${code}`, code } },
-            })
+  }
+  if (url.includes("/api/portfolios") && req.method === "POST") {
+    return Promise.resolve(
+      JSON.stringify({
+        data: [
+          {
+            id: "pf-new",
+            code: "IBKR",
+            name: "IBKR USD",
+            currency: { code: "USD" },
+            base: { code: "USD" },
           },
-        )
-    }
-    if (url.includes("/api/trns") && req.method === "POST") {
-      return Promise.resolve(
-        JSON.stringify({ data: { trns: [{ id: "trn-1" }] } }),
+        ],
+      }),
+    )
+  }
+  if (url.includes("/api/assets") && req.method === "POST") {
+    // Echo the requested asset key + market so tests can assert on the
+    // exact code (e.g. broker-cash `IBRK-USD`, market: "PRIVATE").
+    return req
+      .clone()
+      .json()
+      .then(
+        (body: {
+          data?: Record<string, { market?: string; code?: string }>
+        }) => {
+          const code = Object.keys(body.data ?? {})[0] ?? "USD"
+          return JSON.stringify({
+            data: { [code]: { id: `asset-${code}`, code } },
+          })
+        },
       )
-    }
-    return Promise.resolve(JSON.stringify({}))
+  }
+  if (url.includes("/api/trns") && req.method === "POST") {
+    return Promise.resolve(
+      JSON.stringify({ data: { trns: [{ id: "trn-1" }] } }),
+    )
+  }
+  return Promise.resolve(JSON.stringify({}))
 }
 
 describe("<OpenBrokerageWizard />", () => {
@@ -106,11 +108,10 @@ describe("<OpenBrokerageWizard />", () => {
     // Step 1 — broker: create new. Use a name not in the existing list so
     // ensureBroker takes the POST branch (reuse-by-name is covered below).
     await screen.findByRole("heading", { name: /Broker/i })
-    await user.click(screen.getByRole("radio", { name: /Create a new broker/i }))
-    await user.type(
-      screen.getByLabelText(/Broker name/i),
-      "Brand New Broker",
+    await user.click(
+      screen.getByRole("radio", { name: /Create a new broker/i }),
     )
+    await user.type(screen.getByLabelText(/Broker name/i), "Brand New Broker")
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
     // Step 2 — portfolio: fill code + currency
@@ -190,7 +191,9 @@ describe("<OpenBrokerageWizard />", () => {
     const bodies = trnPosts.map((c) =>
       JSON.parse((c[1] as RequestInit).body as string),
     )
-    const types = bodies.flatMap((b) => b.data.map((d: { trnType: string }) => d.trnType))
+    const types = bodies.flatMap((b) =>
+      b.data.map((d: { trnType: string }) => d.trnType),
+    )
     expect(types).toContain("DEPOSIT")
     expect(types).toContain("WITHDRAWAL")
   })
@@ -201,7 +204,9 @@ describe("<OpenBrokerageWizard />", () => {
 
     // Step 1 — broker: create new, but type a name that already exists
     await screen.findByRole("heading", { name: /Broker/i })
-    await user.click(screen.getByRole("radio", { name: /Create a new broker/i }))
+    await user.click(
+      screen.getByRole("radio", { name: /Create a new broker/i }),
+    )
     await user.type(
       screen.getByLabelText(/Broker name/i),
       "Interactive Brokers",
@@ -304,7 +309,9 @@ describe("<OpenBrokerageWizard />", () => {
     const user = userEvent.setup()
     render(<OpenBrokerageWizard />)
     await screen.findByRole("heading", { name: /Broker/i })
-    await user.click(screen.getByRole("radio", { name: /Create a new broker/i }))
+    await user.click(
+      screen.getByRole("radio", { name: /Create a new broker/i }),
+    )
     await user.type(screen.getByLabelText(/Broker name/i), "Test Broker")
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 

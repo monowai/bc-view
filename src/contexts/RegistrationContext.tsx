@@ -43,7 +43,10 @@ function writeCachedRegistration(sub: string, since?: string): void {
   try {
     localStorage.setItem(
       registeredKey(sub),
-      JSON.stringify({ since, checkedAt: Date.now() } satisfies CachedRegistration),
+      JSON.stringify({
+        since,
+        checkedAt: Date.now(),
+      } satisfies CachedRegistration),
     )
   } catch {
     // localStorage may be unavailable (private mode, quota); just skip caching.
@@ -92,7 +95,7 @@ export function RegistrationProvider({
     }
 
     if (!user?.sub) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- terminal state when no auth user
+       
       setIsChecking(false)
       return
     }

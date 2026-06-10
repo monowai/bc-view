@@ -49,7 +49,12 @@ function SharesPage(): React.ReactElement {
   )
 
   const revokePortfolioShare = async (id: string): Promise<void> => {
-    if (!window.confirm("Revoke this share? The recipient loses access immediately.")) return
+    if (
+      !window.confirm(
+        "Revoke this share? The recipient loses access immediately.",
+      )
+    )
+      return
     setBusyId(id)
     setError(null)
     try {
@@ -70,7 +75,12 @@ function SharesPage(): React.ReactElement {
     id: string,
     refetch: () => Promise<unknown>,
   ): Promise<void> => {
-    if (!window.confirm("Revoke this share? The recipient loses access immediately.")) return
+    if (
+      !window.confirm(
+        "Revoke this share? The recipient loses access immediately.",
+      )
+    )
+      return
     setBusyId(id)
     setError(null)
     try {
@@ -127,7 +137,8 @@ function SharesPage(): React.ReactElement {
             id: s.id,
             label: s.portfolio?.name ?? s.portfolio?.code ?? "(unknown)",
             sub: s.portfolio?.code,
-            recipient: s.sharedWith?.email ?? s.targetUser?.email ?? "(pending)",
+            recipient:
+              s.sharedWith?.email ?? s.targetUser?.email ?? "(pending)",
             accessLevel: s.accessLevel,
             status: s.status,
           }))}
@@ -143,7 +154,8 @@ function SharesPage(): React.ReactElement {
             id: s.id,
             label: s.resourceName ?? "(unnamed plan)",
             sub: undefined,
-            recipient: s.sharedWith?.email ?? s.targetUser?.email ?? "(pending)",
+            recipient:
+              s.sharedWith?.email ?? s.targetUser?.email ?? "(pending)",
             accessLevel: s.accessLevel,
             status: s.status,
           }))}
@@ -159,7 +171,8 @@ function SharesPage(): React.ReactElement {
             id: s.id,
             label: s.resourceName ?? "(unnamed model)",
             sub: undefined,
-            recipient: s.sharedWith?.email ?? s.targetUser?.email ?? "(pending)",
+            recipient:
+              s.sharedWith?.email ?? s.targetUser?.email ?? "(pending)",
             accessLevel: s.accessLevel,
             status: s.status,
           }))}
@@ -201,7 +214,9 @@ function Section({
         <i className={`fas ${icon} text-gray-500`}></i>
         <h2 className="text-sm font-semibold text-gray-900">{title}</h2>
         <span className="ml-auto text-xs text-gray-500">
-          {loading ? "…" : `${shares.length} share${shares.length === 1 ? "" : "s"}`}
+          {loading
+            ? "…"
+            : `${shares.length} share${shares.length === 1 ? "" : "s"}`}
         </span>
       </header>
       {!loading && shares.length === 0 && (

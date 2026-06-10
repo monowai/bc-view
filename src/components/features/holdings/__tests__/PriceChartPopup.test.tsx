@@ -12,7 +12,12 @@ jest.mock("swr", () => ({
 }))
 const mockUseSwr = useSwr as jest.MockedFunction<typeof useSwr>
 
-const mockUsePermissions = jest.fn(() => ({ ai: false, preview: false, admin: false, isLoading: false }))
+const mockUsePermissions = jest.fn(() => ({
+  ai: false,
+  preview: false,
+  admin: false,
+  isLoading: false,
+}))
 jest.mock("@hooks/usePermissions", () => ({
   __esModule: true,
   usePermissions: () => mockUsePermissions(),
@@ -105,7 +110,12 @@ function renderPopup(
 describe("PriceChartPopup", () => {
   beforeEach(() => {
     mockUseSwr.mockReset()
-    mockUsePermissions.mockReturnValue({ ai: false, preview: false, admin: false, isLoading: false })
+    mockUsePermissions.mockReturnValue({
+      ai: false,
+      preview: false,
+      admin: false,
+      isLoading: false,
+    })
   })
 
   it("renders the chart with the asset name and close price", () => {
@@ -314,7 +324,12 @@ describe("PriceChartPopup", () => {
     })
 
     it("posts to the repair endpoint and surfaces the response when admin clicks", async () => {
-      mockUsePermissions.mockReturnValue({ ai: false, preview: false, admin: true, isLoading: false })
+      mockUsePermissions.mockReturnValue({
+        ai: false,
+        preview: false,
+        admin: true,
+        isLoading: false,
+      })
       mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
 
       const fetchSpy = jest.spyOn(global, "fetch").mockResolvedValue({
@@ -348,7 +363,12 @@ describe("PriceChartPopup", () => {
     })
 
     it("surfaces a forbidden error if the server rejects the admin gate", async () => {
-      mockUsePermissions.mockReturnValue({ ai: false, preview: false, admin: true, isLoading: false })
+      mockUsePermissions.mockReturnValue({
+        ai: false,
+        preview: false,
+        admin: true,
+        isLoading: false,
+      })
       mockUseSwr.mockImplementation(makeRouter({}) as typeof useSwr)
 
       const fetchSpy = jest.spyOn(global, "fetch").mockResolvedValue({

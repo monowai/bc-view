@@ -10,7 +10,7 @@ export interface StrategyGaugesStripProps {
   /**
    * When true, lays out the gauges in a 2-column grid (suitable for the
    * sticky ScenarioBar). When false, stacks them vertically (suitable for
-   * the Metrics tab Pension/Bridge sections).
+   * the Metrics tab Pension/Self-funded sections).
    */
   compact?: boolean
   /**
@@ -27,7 +27,7 @@ export interface StrategyGaugesStripProps {
 
 /**
  * Inline strip of the four pension-saver gauges: FIRE Progress,
- * Retirement-Age FI, Income Coverage, Bridge to Pension.
+ * Retirement-Age FI, Income Coverage, Self-funded years.
  *
  * Renders a placeholder when fiMetrics is undefined so the strip keeps its
  * layout slot during projection recalculations — avoids layout shift.
@@ -147,7 +147,7 @@ function buildGauges(
     const needed = fi.bridgeYearsNeeded
     out.push({
       key: "bridge",
-      label: "Bridge to Pension",
+      label: "Self-funded years",
       tooltip:
         "Years of full expenses your liquid pot covers vs years to your pension payout age.",
       value: fi.bridgeProgress,

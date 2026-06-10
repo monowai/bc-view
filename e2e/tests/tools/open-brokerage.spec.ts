@@ -4,9 +4,7 @@ import { createTestHelpers, generateTestId } from "../../fixtures/test-data"
 test.describe("/tools/open-brokerage", () => {
   test("renders wizard at the Broker step", async ({ page }) => {
     await page.goto("/tools/open-brokerage")
-    await expect(
-      page.getByRole("heading", { name: /^Broker$/i }),
-    ).toBeVisible()
+    await expect(page.getByRole("heading", { name: /^Broker$/i })).toBeVisible()
     await expect(page.getByText(/Step 1 of 4/i)).toBeVisible()
   })
 
@@ -80,9 +78,8 @@ test.describe("/tools/open-brokerage", () => {
         if (!r.ok) return null
         const j = await r.json()
         return (
-          j.data?.find(
-            (p: { code: string; id: string }) => p.code === code,
-          ) ?? null
+          j.data?.find((p: { code: string; id: string }) => p.code === code) ??
+          null
         )
       }, portfolioCode)
       expect(result).not.toBeNull()
@@ -173,7 +170,9 @@ test.describe("/tools/open-brokerage", () => {
       // Select by portfolio id (option `value`) to avoid building a runtime
       // regex from test data (ReDoS lint) and to be resilient to label
       // formatting changes.
-      await page.getByLabel(/Source portfolio/i).selectOption(sourcePortfolio.id)
+      await page
+        .getByLabel(/Source portfolio/i)
+        .selectOption(sourcePortfolio.id)
       await page.getByRole("button", { name: "Next →" }).click()
 
       // Step 4 — Review + submit

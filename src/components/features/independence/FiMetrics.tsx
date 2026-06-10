@@ -62,7 +62,7 @@ interface FiMetricsProps {
   effectiveStrategy?: "FIRE" | "PENSION" | "HYBRID"
   /**
    * Strategy view chosen at the page level. Drives which sections render —
-   * FIRE / Pension / Bridge focus on one; ALL shows every section.
+   * FIRE / Pension / Self-funded focus on one; ALL shows every section.
    */
   view?: StrategyView
   /** Current inflation rate from plan (as decimal) */
@@ -192,7 +192,7 @@ export default function FiMetrics({
 
   // Section visibility derived from the page-level view selection. ALL shows
   // every section; FIRE / PENSION / HYBRID focus on one — but only render
-  // Pension or Bridge when their backend data is actually present.
+  // Pension or Self-funded when their backend data is actually present.
   const showFire = view === "ALL" || view === "FIRE"
   const showPension =
     view === "PENSION" || (view === "ALL" && autoPensionEligible)
@@ -209,7 +209,7 @@ export default function FiMetrics({
       <div className="flex items-center mb-4 gap-3 flex-wrap">
         <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
           Retirement Strategies
-          <InfoTooltip text="Each user pursues one or more of three paths: FIRE (live off liquid investments), Pension (rely on guaranteed income), or Bridge (use liquid to cover the gap until pensions start). Pick a view at the top of the page to focus on one.">
+          <InfoTooltip text="Each user pursues one or more of three paths: FIRE (live off liquid investments), Pension (rely on guaranteed income), or Self-funded (use liquid to cover the years until pensions start). Pick a view at the top of the page to focus on one.">
             <span></span>
           </InfoTooltip>
         </h2>
@@ -713,7 +713,7 @@ interface BridgeStrategySectionProps {
 }
 
 /**
- * Bridge Strategy: liquid runway covering the gap between today and pension
+ * Self-funded Years: liquid runway covering the gap between today and pension
  * payout age. Shown only when the user has both guaranteed income (a pension
  * to bridge to) and working-years remaining.
  */
@@ -728,16 +728,16 @@ function BridgeStrategySection({
   return (
     <div className="pt-4 border-t border-gray-100 space-y-3">
       <StrategyHeader
-        title="Bridge Strategy"
-        tooltip="For savers whose pension covers retirement but who want to stop working before pensions start. Measures how many years of expenses your liquid pot can carry until the pension kicks in."
+        title="Self-funded Years"
+        tooltip="For savers whose pension covers retirement but who want to stop working before pensions start. Measures how many years of expenses your liquid pot can self-fund until the pension kicks in."
         iconClass="fas fa-bridge text-blue-500"
         active={active}
       />
 
       {hasData ? (
         <PensionGauge
-          label="Bridge to Pension"
-          tooltip={`Years of full expenses your liquid pot covers, capped at the ${bridgeYearsNeeded}-year gap to your pension payout age. 100% means you could stop working today and ride the bridge to your pension.`}
+          label="Self-funded years"
+          tooltip={`Years of full expenses your liquid pot covers, capped at the ${bridgeYearsNeeded}-year gap to your pension payout age. 100% means you could stop working today and self-fund every year until your pension starts.`}
           value={bridgeProgress}
           hideValues={hideValues}
           format={() =>
@@ -746,8 +746,8 @@ function BridgeStrategySection({
         />
       ) : (
         <p className="text-sm text-gray-500 italic">
-          No pension to bridge to, or no working-years gap. Configure pension
-          income on the plan to enable this view.
+          No pension payout configured, or no working-years gap. Configure
+          pension income on the plan to enable this view.
         </p>
       )}
     </div>

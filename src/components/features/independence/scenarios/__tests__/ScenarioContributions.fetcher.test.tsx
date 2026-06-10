@@ -48,8 +48,7 @@ const contributionsResponse = { data: [] }
 
 jest.mock("@utils/api/fetchHelper", () => {
   const simpleFetcher = jest.fn((url: string) => () => {
-    if (url === "/api/assets/config")
-      return Promise.resolve(configsResponse)
+    if (url === "/api/assets/config") return Promise.resolve(configsResponse)
     if (url.startsWith("/api/independence/work-scenarios/"))
       return Promise.resolve(contributionsResponse)
     if (url.startsWith("/api/independence/cpf/contribution-preview"))
@@ -88,9 +87,7 @@ describe("ScenarioContributions — SWR fetcher wiring", () => {
   it("invokes simpleFetcher with each SWR key (not the factory itself)", async () => {
     renderInFreshSwrCache()
     await waitFor(() => {
-      expect(
-        (simpleFetcher as jest.Mock).mock.calls.map((c) => c[0]),
-      ).toEqual(
+      expect((simpleFetcher as jest.Mock).mock.calls.map((c) => c[0])).toEqual(
         expect.arrayContaining([
           "/api/assets/config",
           "/api/independence/work-scenarios/scn-1/contributions",
