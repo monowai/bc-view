@@ -58,6 +58,20 @@ export function scenarioToPayload(
     targetBalance: ctx.plan.targetBalance,
   }
 
+  // Wealth Transfer: cash → investments. Translate the 0–100 slider into
+  // explicit allocation overrides so svc-retire's blended-return calc
+  // (and the FI gauges that read off it) react immediately. Slider at 0
+  // means "don't send the overrides at all" — keeps the projection
+  // request shape stable for the default case and lets a plan with no
+  // cashAllocation set fall through to plan defaults.
+  const shift =
+    Math.max(0, Math.min(100, scenario.cashToInvestPercent ?? 0)) / 100
+  if (shift > 0) {
+    const movedCash = ctx.plan.cashAllocation * shift
+    payload.cashAllocation = ctx.plan.cashAllocation - movedCash
+    payload.equityAllocation = ctx.plan.equityAllocation + movedCash
+  }
+
   // `portfolioIds` and `monthlyContribution` come from the viewer's own
   // holdings + contributions. On a shared plan svc-retire resolves the
   // OWNER's portfolios + contributions via the M2M path — sending the

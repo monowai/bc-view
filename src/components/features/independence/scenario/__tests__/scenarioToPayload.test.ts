@@ -47,6 +47,7 @@ const scenario: ScenarioState = {
   otherIncomeMonthly: 100,
   realReturn: null,
   inflation: 0.025,
+  cashToInvestPercent: 0,
 }
 
 const ctx: ScenarioPayloadCtx = {
@@ -168,6 +169,51 @@ describe("scenarioToPayload", () => {
       },
     })
     expect("rentalIncomeMonthly" in payload).toBe(false)
+  })
+
+  describe("cashToInvestPercent slider", () => {
+    it("omits allocation overrides when the slider is at zero", () => {
+      const payload = scenarioToPayload(scenario, ctx)
+      expect("cashAllocation" in payload).toBe(false)
+      expect("equityAllocation" in payload).toBe(false)
+    })
+
+    it("shifts half the cash into equity at 50%", () => {
+      // Plan: cash 0.3, equity 0.7. Slider 50 → move 0.15 of cash into equity.
+      // New cash 0.15, new equity 0.85.
+      const payload = scenarioToPayload(
+        { ...scenario, cashToInvestPercent: 50 },
+        ctx,
+      )
+      expect(payload.cashAllocation).toBeCloseTo(0.15, 5)
+      expect(payload.equityAllocation).toBeCloseTo(0.85, 5)
+    })
+
+    it("zeros the cash allocation at 100%", () => {
+      const payload = scenarioToPayload(
+        { ...scenario, cashToInvestPercent: 100 },
+        ctx,
+      )
+      expect(payload.cashAllocation).toBeCloseTo(0, 5)
+      expect(payload.equityAllocation).toBeCloseTo(1, 5)
+    })
+
+    it("clamps negative slider values to no shift", () => {
+      const payload = scenarioToPayload(
+        { ...scenario, cashToInvestPercent: -10 },
+        ctx,
+      )
+      expect("cashAllocation" in payload).toBe(false)
+    })
+
+    it("clamps above 100 to a full shift", () => {
+      const payload = scenarioToPayload(
+        { ...scenario, cashToInvestPercent: 250 },
+        ctx,
+      )
+      expect(payload.cashAllocation).toBeCloseTo(0, 5)
+      expect(payload.equityAllocation).toBeCloseTo(1, 5)
+    })
   })
 })
 
