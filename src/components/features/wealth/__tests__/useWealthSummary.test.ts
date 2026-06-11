@@ -31,6 +31,7 @@ describe("useWealthSummary", () => {
     )
     expect(result.current.totalValue).toBe(0)
     expect(result.current.portfolioCount).toBe(0)
+    expect(result.current.healthcareReserve).toBe(0)
   })
 
   it("sums portfolio market values converted via fxRates", () => {
@@ -55,10 +56,9 @@ describe("useWealthSummary", () => {
     expect(result.current.totalValue).toBeCloseTo(37000 + 40000 * 1.28, 2)
   })
 
-  it("includes custom-asset balances (e.g. CPF composite) in the net-worth total", () => {
-    // Repro: Mary has DBS+UOB+IBKR portfolios totalling SGD 88,200 and a
-    // CPF composite asset worth SGD 281,000 sitting outside any portfolio.
-    // Pre-fix the Net Worth tile reported SGD 88,200 — CPF was dropped.
+  it("adds standalone composite-asset balances (no parent portfolio trn) to net worth", () => {
+    // Caller pre-filters customAssetTotals to assets whose parent is NOT
+    // in any portfolio (i.e. config-only). The hook just adds them.
     const portfolios = [
       portfolio({
         code: "P-SGD",
@@ -66,15 +66,9 @@ describe("useWealthSummary", () => {
         base: SGD,
         currency: SGD,
       }),
-      portfolio({
-        code: "P-USD",
-        marketValue: 40000,
-        base: USD,
-        currency: USD,
-      }),
     ]
-    const fxRates = { SGD: 1, USD: 1.28 }
-    const customAssetTotals = { SGD: 281000 }
+    const fxRates = { SGD: 1 }
+    const customAssetTotals = { SGD: 100000 }
 
     const { result } = renderHook(() =>
       useWealthSummary(
@@ -85,10 +79,37 @@ describe("useWealthSummary", () => {
         customAssetTotals,
       ),
     )
-    expect(result.current.totalValue).toBeCloseTo(
-      37000 + 40000 * 1.28 + 281000,
-      2,
+    expect(result.current.totalValue).toBeCloseTo(37000 + 100000, 2)
+  })
+
+  it("nets Healthcare Reserve (CPF MA) out of totalValue and surfaces it separately", () => {
+    // Mary's case after the fix: SGD portfolio holds the CPF parent
+    // (276k incl. MA 58k) plus DBS 75k + UOB 12k → portfolio mv 363k.
+    // customAssetTotals is empty (CPF is in-portfolio), MA is the only
+    // composite contribution and is subtracted from Net Worth.
+    const portfolios = [
+      portfolio({
+        code: "SGD",
+        marketValue: 363000,
+        base: SGD,
+        currency: SGD,
+      }),
+    ]
+    const fxRates = { SGD: 1 }
+    const healthcareReserveTotals = { SGD: 58000 }
+
+    const { result } = renderHook(() =>
+      useWealthSummary(
+        portfolios,
+        fxRates,
+        NO_SORT,
+        NO_HOLDINGS,
+        {},
+        healthcareReserveTotals,
+      ),
     )
+    expect(result.current.totalValue).toBeCloseTo(363000 - 58000, 2)
+    expect(result.current.healthcareReserve).toBeCloseTo(58000, 2)
   })
 
   it("converts custom-asset balances using their currency's fxRate", () => {
@@ -133,5 +154,32 @@ describe("useWealthSummary", () => {
       ),
     )
     expect(result.current.totalValue).toBe(500)
+  })
+
+  it("converts Healthcare Reserve using its currency's fxRate when display ccy differs", () => {
+    const fxRates = { SGD: 0.78, USD: 1 }
+    const portfolios = [
+      portfolio({
+        code: "P-USD",
+        marketValue: 100000,
+        base: USD,
+        currency: USD,
+      }),
+    ]
+    const healthcareReserveTotals = { SGD: 58000 }
+
+    const { result } = renderHook(() =>
+      useWealthSummary(
+        portfolios,
+        fxRates,
+        NO_SORT,
+        NO_HOLDINGS,
+        {},
+        healthcareReserveTotals,
+      ),
+    )
+    const reserveInDisplay = 58000 * 0.78
+    expect(result.current.healthcareReserve).toBeCloseTo(reserveInDisplay, 2)
+    expect(result.current.totalValue).toBeCloseTo(100000 - reserveInDisplay, 2)
   })
 })

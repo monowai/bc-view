@@ -14,6 +14,7 @@ function makeSummary(overrides: Partial<WealthSummary> = {}): WealthSummary {
     totalValue: 100_000,
     totalGainOnDay: 0,
     portfolioCount: 1,
+    healthcareReserve: 0,
     classificationBreakdown: [],
     portfolioBreakdown: [],
     ...overrides,
@@ -68,5 +69,17 @@ describe("WealthHeroSection — today's gain percent", () => {
     renderHero(makeSummary({ totalValue: 500, totalGainOnDay: 500 }))
     expect(screen.queryByText(/%/)).not.toBeInTheDocument()
     expect(screen.getByText(/today/)).toBeInTheDocument()
+  })
+})
+
+describe("WealthHeroSection — Healthcare Reserve", () => {
+  it("renders the Healthcare Reserve line when summary.healthcareReserve > 0", () => {
+    renderHero(makeSummary({ healthcareReserve: 58_000 }))
+    expect(screen.getByText(/Healthcare Reserve/)).toBeInTheDocument()
+  })
+
+  it("hides the Healthcare Reserve line when summary.healthcareReserve is zero", () => {
+    renderHero(makeSummary({ healthcareReserve: 0 }))
+    expect(screen.queryByText(/Healthcare Reserve/)).not.toBeInTheDocument()
   })
 })

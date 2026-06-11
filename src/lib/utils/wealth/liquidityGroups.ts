@@ -64,6 +64,11 @@ export interface WealthSummary {
   totalValue: number
   totalGainOnDay: number
   portfolioCount: number
+  // Healthcare Reserve (e.g. CPF Medisave Account) — statutory, not
+  // spendable wealth. Reported separately so the UI can surface it as a
+  // sibling tile rather than rolling it into Net Worth. Already excluded
+  // from `totalValue`.
+  healthcareReserve: number
   classificationBreakdown: {
     classification: string
     value: number

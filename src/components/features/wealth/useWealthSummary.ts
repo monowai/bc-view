@@ -12,22 +12,28 @@ export function useWealthSummary(
   fxRates: Record<string, number>,
   sortConfig: SortConfig,
   holdingsData: HoldingContract | undefined,
-  // Per-currency sum of custom-asset balances that live outside any
-  // portfolio (e.g. CPF composite sub-account balances stored on
-  // PrivateAssetConfig). Each entry's value is in its currency key; the
-  // hook applies the same fxRates table used for portfolios.
+  // Sub-account balances for composite assets that DO NOT have a parent
+  // trn in any portfolio (e.g. a CPF the user added as a config-only
+  // pension). Excludes MA (healthcare reserve). Added to totalValue.
   customAssetTotals: Record<string, number> = {},
+  // CPF MA / Healthcare Reserve balances per currency. Subtracted from
+  // totalValue (parent CPF already includes MA via the portfolio BALANCE
+  // trn), and reported separately on WealthSummary.healthcareReserve so
+  // the UI can surface it as its own tile.
+  healthcareReserveTotals: Record<string, number> = {},
 ): WealthSummary {
   return useMemo(() => {
     const hasCustomAssets = Object.keys(customAssetTotals).length > 0
+    const hasReserve = Object.keys(healthcareReserveTotals).length > 0
     if (
-      (portfolios.length === 0 && !hasCustomAssets) ||
+      (portfolios.length === 0 && !hasCustomAssets && !hasReserve) ||
       Object.keys(fxRates).length === 0
     ) {
       return {
         totalValue: 0,
         totalGainOnDay: 0,
         portfolioCount: 0,
+        healthcareReserve: 0,
         classificationBreakdown: [],
         portfolioBreakdown: [],
       }
@@ -60,6 +66,19 @@ export function useWealthSummary(
     Object.entries(customAssetTotals).forEach(([currency, balance]) => {
       const rate = fxRates[currency] || 1
       totalValue += balance * rate
+    })
+
+    let healthcareReserve = 0
+    Object.entries(healthcareReserveTotals).forEach(([currency, balance]) => {
+      const rate = fxRates[currency] || 1
+      const converted = balance * rate
+      healthcareReserve += converted
+      // Net out of Net Worth — MA is statutory healthcare reserve, not
+      // spendable wealth. The parent composite asset's portfolio balance
+      // already includes MA, so this subtraction removes it from
+      // totalValue without double-debiting in the standalone case
+      // (where MA would not have been added by customAssetTotals).
+      totalValue -= converted
     })
 
     // Calculate liquidity breakdown and total gain on day from holdings
@@ -140,8 +159,16 @@ export function useWealthSummary(
       totalValue,
       totalGainOnDay,
       portfolioCount: portfolios.length,
+      healthcareReserve,
       classificationBreakdown,
       portfolioBreakdown,
     }
-  }, [portfolios, fxRates, sortConfig, holdingsData, customAssetTotals])
+  }, [
+    portfolios,
+    fxRates,
+    sortConfig,
+    holdingsData,
+    customAssetTotals,
+    healthcareReserveTotals,
+  ])
 }
