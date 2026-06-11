@@ -369,6 +369,9 @@ export default function AssetsBreakdown({
           )}
 
           <div className="border-t pt-4 space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+              {"Today"}
+            </p>
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">{"Total Assets"}</span>
               <span
@@ -454,6 +457,9 @@ export default function AssetsBreakdown({
           </div>
 
           <div className="border-t pt-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">
+              {"Projected to independence"}
+            </p>
             <div className="flex justify-between font-medium text-lg">
               <span>
                 {"Spendable at Independence"}
