@@ -90,6 +90,18 @@ const WealthHeroSection: React.FC<WealthHeroSectionProps> = ({
           Across {summary.portfolioCount} portfolio
           {summary.portfolioCount !== 1 ? "s" : ""}
         </p>
+        {summary.healthcareReserve > 0 && (
+          <p
+            className="text-white/70 text-sm mt-1"
+            title="CPF MA / Medisave is a statutory healthcare reserve, not spendable wealth — excluded from Net Worth."
+          >
+            + Healthcare Reserve{" "}
+            <span className="font-semibold text-white tabular-nums">
+              {displayCurrency?.symbol}
+              <FormatValue value={summary.healthcareReserve} />
+            </span>
+          </p>
+        )}
       </div>
 
       {/* Liquidity bar — inline in hero */}
