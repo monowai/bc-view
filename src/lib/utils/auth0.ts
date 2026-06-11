@@ -1,6 +1,7 @@
 import { Auth0Client } from "@auth0/nextjs-auth0/server"
 import { NextResponse } from "next/server"
 import * as Sentry from "@sentry/nextjs"
+import { extractAuth0Detail } from "./auth0Errors"
 
 // Scope and audience are configured here rather than via env vars because
 // Auth0 v4 removed AUTH0_SCOPE/AUTH0_AUDIENCE env var support.
@@ -39,11 +40,20 @@ export const auth0 = new Auth0Client({
       ctx.appBaseUrl || process.env.APP_BASE_URL || "https://kauri.monowai.com"
     const target = new URL(ctx.returnTo || "/", appBaseUrl)
 
+    // The SDK wraps the underlying OAuth2 error in an AuthorizationError
+    // with a generic message ("An error occurred during the authorization
+    // flow."). The real signal — invalid_grant / invalid_client / access_denied
+    // (e.g. an Action that threw post-login) — lives on `error.code` and
+    // `error.cause`. Surface them as Sentry extras so future occurrences
+    // identify the root cause without an Auth0 dashboard dive.
+    const auth0Detail = extractAuth0Detail(error)
+
     if (error && !session) {
       Sentry.captureException(error, {
         tags: { component: "auth0", phase: "callback", recovered: "false" },
+        extra: auth0Detail,
       })
-      console.error("[Auth0] callback failed (no session):", error)
+      console.error("[Auth0] callback failed (no session):", error, auth0Detail)
       return NextResponse.redirect(new URL("/auth/login", appBaseUrl))
     }
 
@@ -51,10 +61,12 @@ export const auth0 = new Auth0Client({
       Sentry.captureException(error, {
         level: "warning",
         tags: { component: "auth0", phase: "callback", recovered: "true" },
+        extra: auth0Detail,
       })
       console.warn(
         "[Auth0] post-callback non-fatal error (session persisted):",
         error,
+        auth0Detail,
       )
       return NextResponse.redirect(target)
     }
