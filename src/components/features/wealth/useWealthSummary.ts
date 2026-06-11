@@ -16,10 +16,13 @@ export function useWealthSummary(
   // trn in any portfolio (e.g. a CPF the user added as a config-only
   // pension). Excludes MA (healthcare reserve). Added to totalValue.
   customAssetTotals: Record<string, number> = {},
-  // CPF MA / Healthcare Reserve balances per currency. Subtracted from
-  // totalValue (parent CPF already includes MA via the portfolio BALANCE
-  // trn), and reported separately on WealthSummary.healthcareReserve so
-  // the UI can surface it as its own tile.
+  // CPF MA / Healthcare Reserve balances per currency. Reported on
+  // WealthSummary.healthcareReserve as an informational subset of
+  // totalValue — NOT subtracted, so Net Worth still reconciles with the
+  // sum of portfolio market values. The parent composite asset already
+  // counts MA via its BALANCE trn; this number lets the UI annotate
+  // "of which is statutory healthcare reserve" without breaking the
+  // top-line reconciliation.
   healthcareReserveTotals: Record<string, number> = {},
 ): WealthSummary {
   return useMemo(() => {
@@ -71,14 +74,7 @@ export function useWealthSummary(
     let healthcareReserve = 0
     Object.entries(healthcareReserveTotals).forEach(([currency, balance]) => {
       const rate = fxRates[currency] || 1
-      const converted = balance * rate
-      healthcareReserve += converted
-      // Net out of Net Worth — MA is statutory healthcare reserve, not
-      // spendable wealth. The parent composite asset's portfolio balance
-      // already includes MA, so this subtraction removes it from
-      // totalValue without double-debiting in the standalone case
-      // (where MA would not have been added by customAssetTotals).
-      totalValue -= converted
+      healthcareReserve += balance * rate
     })
 
     // Calculate liquidity breakdown and total gain on day from holdings

@@ -82,11 +82,11 @@ describe("useWealthSummary", () => {
     expect(result.current.totalValue).toBeCloseTo(37000 + 100000, 2)
   })
 
-  it("nets Healthcare Reserve (CPF MA) out of totalValue and surfaces it separately", () => {
-    // Mary's case after the fix: SGD portfolio holds the CPF parent
-    // (276k incl. MA 58k) plus DBS 75k + UOB 12k → portfolio mv 363k.
-    // customAssetTotals is empty (CPF is in-portfolio), MA is the only
-    // composite contribution and is subtracted from Net Worth.
+  it("reports Healthcare Reserve (CPF MA) as an informational subset; totalValue still reconciles with portfolios", () => {
+    // Mary's case: SGD portfolio holds the CPF parent (276k incl. MA 58k)
+    // plus DBS 75k + UOB 12k → portfolio mv 363k. Total wealth must equal
+    // the sum of portfolios; the MA is surfaced separately for the UI but
+    // is NOT subtracted from totalValue.
     const portfolios = [
       portfolio({
         code: "SGD",
@@ -108,7 +108,7 @@ describe("useWealthSummary", () => {
         healthcareReserveTotals,
       ),
     )
-    expect(result.current.totalValue).toBeCloseTo(363000 - 58000, 2)
+    expect(result.current.totalValue).toBeCloseTo(363000, 2)
     expect(result.current.healthcareReserve).toBeCloseTo(58000, 2)
   })
 
@@ -156,7 +156,7 @@ describe("useWealthSummary", () => {
     expect(result.current.totalValue).toBe(500)
   })
 
-  it("converts Healthcare Reserve using its currency's fxRate when display ccy differs", () => {
+  it("converts Healthcare Reserve using its currency's fxRate; does not change totalValue", () => {
     const fxRates = { SGD: 0.78, USD: 1 }
     const portfolios = [
       portfolio({
@@ -180,6 +180,6 @@ describe("useWealthSummary", () => {
     )
     const reserveInDisplay = 58000 * 0.78
     expect(result.current.healthcareReserve).toBeCloseTo(reserveInDisplay, 2)
-    expect(result.current.totalValue).toBeCloseTo(100000 - reserveInDisplay, 2)
+    expect(result.current.totalValue).toBeCloseTo(100000, 2)
   })
 })

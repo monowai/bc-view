@@ -73,9 +73,9 @@ describe("WealthHeroSection — today's gain percent", () => {
 })
 
 describe("WealthHeroSection — Healthcare Reserve", () => {
-  it("renders the Healthcare Reserve line when summary.healthcareReserve > 0", () => {
+  it("renders the 'Includes Healthcare Reserve' line when summary.healthcareReserve > 0", () => {
     renderHero(makeSummary({ healthcareReserve: 58_000 }))
-    expect(screen.getByText(/Healthcare Reserve/)).toBeInTheDocument()
+    expect(screen.getByText(/Includes Healthcare Reserve/)).toBeInTheDocument()
   })
 
   it("hides the Healthcare Reserve line when summary.healthcareReserve is zero", () => {

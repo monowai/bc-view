@@ -93,9 +93,9 @@ const WealthHeroSection: React.FC<WealthHeroSectionProps> = ({
         {summary.healthcareReserve > 0 && (
           <p
             className="text-white/70 text-sm mt-1"
-            title="CPF MA / Medisave is a statutory healthcare reserve, not spendable wealth — excluded from Net Worth."
+            title="CPF MA / Medisave is a statutory healthcare reserve — counted in Net Worth, but not freely spendable."
           >
-            + Healthcare Reserve{" "}
+            Includes Healthcare Reserve{" "}
             <span className="font-semibold text-white tabular-nums">
               {displayCurrency?.symbol}
               <FormatValue value={summary.healthcareReserve} />
