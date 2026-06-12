@@ -23,9 +23,6 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
   const router = useRouter()
   const [editModalOpen, setEditModalOpen] = useState(true)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  // After Unsettle, the server returns auto-emitted cash leg ids; we hold
-  // them here and prompt the user to delete via [showSiblingsConfirm].
-  const [siblingsToConfirm, setSiblingsToConfirm] = useState<string[]>([])
   const [unsettleError, setUnsettleError] = useState<string | null>(null)
   const [listDeleteTarget, setListDeleteTarget] = useState<{
     id: string
@@ -252,48 +249,20 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
           )
           return
         }
-        const body = await response.json().catch(() => ({}))
-        const siblings: string[] = body?.siblings ?? []
-        // Invalidate holdings cache so the row reflects the new PROPOSED status.
+        // The server cascade-deletes the auto-emitted cash legs on unsettle, so
+        // there is nothing for the user to confirm. Invalidate holdings so the row
+        // reflects the new PROPOSED status, then close.
         setTimeout(() => {
           mutate(holdingKey(transaction.portfolio.code, "today"))
           mutate("/api/holdings/aggregated?asAt=today")
         }, 1500)
-        if (siblings.length > 0) {
-          setSiblingsToConfirm(siblings)
-        } else {
-          router.back()
-        }
+        router.back()
       } catch (err) {
         console.error("Error unsettling transaction:", err)
         setUnsettleError(
           err instanceof Error ? err.message : "Failed to unsettle",
         )
       }
-    }
-
-    const handleSiblingsDelete = async (): Promise<void> => {
-      const ids = siblingsToConfirm
-      setSiblingsToConfirm([])
-      const failures: string[] = []
-      for (const id of ids) {
-        try {
-          const r = await fetch(`/api/trns/trades/${id}`, { method: "DELETE" })
-          if (!r.ok) failures.push(id)
-        } catch {
-          failures.push(id)
-        }
-      }
-      if (failures.length > 0) {
-        setUnsettleError(
-          `Failed to delete ${failures.length} of ${ids.length} cash legs`,
-        )
-      }
-      setTimeout(() => {
-        mutate(holdingKey(transaction.portfolio.code, "today"))
-        mutate("/api/holdings/aggregated?asAt=today")
-      }, 1500)
-      router.back()
     }
 
     // Use FxEditModal for FX transactions (FX, FX_BUY, FX_SELL)
@@ -334,20 +303,6 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
             variant="red"
             onConfirm={handleDeleteConfirm}
             onCancel={() => setShowDeleteConfirm(false)}
-          />
-        )}
-        {siblingsToConfirm.length > 0 && (
-          <ConfirmDialog
-            title={"Delete auto-settled cash transactions?"}
-            message={`Unsettling this trade leaves ${siblingsToConfirm.length} auto-emitted cash transaction(s). Delete them?`}
-            confirmLabel={"Delete cash legs"}
-            cancelLabel={"Keep"}
-            variant="red"
-            onConfirm={handleSiblingsDelete}
-            onCancel={() => {
-              setSiblingsToConfirm([])
-              router.back()
-            }}
           />
         )}
         {unsettleError && (
