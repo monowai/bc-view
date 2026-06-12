@@ -78,32 +78,20 @@ function isActiveRoute(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(href + "/")
 }
 
-const sectionColors: Record<
-  string,
-  { bg: string; text: string; border: string }
-> = {
-  Wealth: {
-    bg: "bg-wealth-50",
-    text: "text-wealth-600",
-    border: "border-wealth-600",
-  },
-  Invest: {
-    bg: "bg-invest-50",
-    text: "text-invest-600",
-    border: "border-invest-600",
-  },
-  Plan: {
-    bg: "bg-independence-50",
-    text: "text-independence-600",
-    border: "border-independence-600",
-  },
-  Tools: { bg: "bg-gray-50", text: "text-gray-600", border: "border-gray-600" },
+// Active-item colors. Text uses the 700 tier so it clears 4.5:1 on the matching
+// -50 background (600 fails for independence/invest). No left-stripe accent —
+// the tinted background + colored text carry the active state (see DESIGN.md:
+// no border-left > 1px as a colored stripe).
+const sectionColors: Record<string, { bg: string; text: string }> = {
+  Wealth: { bg: "bg-wealth-50", text: "text-wealth-700" },
+  Invest: { bg: "bg-invest-50", text: "text-invest-700" },
+  Plan: { bg: "bg-independence-50", text: "text-independence-700" },
+  Tools: { bg: "bg-gray-50", text: "text-gray-700" },
 }
 
 const defaultSectionColor = {
   bg: "bg-gray-50",
-  text: "text-gray-600",
-  border: "border-gray-600",
+  text: "text-gray-700",
 }
 
 // Desktop dropdown — opens on hover with a close delay, click also toggles
@@ -175,10 +163,17 @@ function DesktopDropdown({
           scheduleClose()
         }
       }}
+      onKeyDown={(e) => {
+        if (e.key === "Escape" && isOpen) {
+          setIsOpen(false)
+        }
+      }}
     >
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+        aria-expanded={isOpen}
+        aria-haspopup="true"
+        className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
           isActive
             ? "text-white bg-gray-700"
             : "text-gray-300 hover:text-white hover:bg-gray-700"
@@ -202,7 +197,7 @@ function DesktopDropdown({
                 onClick={() => setIsOpen(false)}
                 className={`flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
                   active
-                    ? `${colors.bg} ${colors.text} border-l-2 ${colors.border}`
+                    ? `${colors.bg} ${colors.text} font-medium`
                     : "text-gray-700 hover:bg-gray-50"
                 }`}
               >
@@ -310,7 +305,7 @@ function HeaderBrand(): React.ReactElement {
                             href={item.href}
                             className={`flex items-center gap-2.5 px-3 py-2 transition-colors ${
                               active
-                                ? `${colors.bg} border-l-2 ${colors.border} ${colors.text}`
+                                ? `${colors.bg} ${colors.text} font-medium`
                                 : "text-gray-700 hover:bg-gray-50"
                             }`}
                           >
@@ -342,14 +337,12 @@ function HeaderBrand(): React.ReactElement {
       )}
 
       {/* Brand */}
-      <a
-        className="text-xl font-bold cursor-pointer text-white hover:text-gray-200 transition-colors"
-        onClick={() => {
-          router.push("/")
-        }}
+      <Link
+        href="/"
+        className="text-xl font-bold text-white hover:text-gray-200 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
       >
         Holds<i>worth</i>
-      </a>
+      </Link>
 
       {/* Desktop Navigation — hidden when unauthenticated */}
       {isAuthed && (
