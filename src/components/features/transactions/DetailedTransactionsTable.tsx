@@ -102,7 +102,9 @@ export default function DetailedTransactionsTable({
                   type="checkbox"
                   checked={selectedIds.has(trn.id)}
                   onChange={(e) => onSelectOne(trn.id, e.target.checked)}
-                  disabled={trn.status !== "PROPOSED"}
+                  disabled={
+                    trn.status !== "PROPOSED" && trn.status !== "SETTLED"
+                  }
                   className="rounded border-gray-300 text-green-600 focus:ring-green-500 disabled:opacity-50"
                   title={
                     trn.status === "PROPOSED"

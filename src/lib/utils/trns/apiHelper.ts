@@ -6,8 +6,9 @@ export function deleteTrn(trnId: string): Promise<Response> {
 
 /**
  * PATCH /trns/{trnId}/status — Unsettle a SETTLED trn (sets PROPOSED).
- * Response: { updated, siblings: string[] } — siblings are the auto-emitted
- * cash legs (WITHDRAWAL + DEPOSIT) the UI prompts the user to delete.
+ * Response: { updated, siblings: string[] } — the server cascade-deletes the
+ * auto-emitted cash legs (WITHDRAWAL + DEPOSIT) on unsettle; `siblings` reports
+ * the removed ids for reference (no longer a delete prompt).
  */
 export function unsettleTrn(trnId: string): Promise<Response> {
   return fetch(`/api/trns/status/${trnId}`, {
