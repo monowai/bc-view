@@ -51,6 +51,7 @@ export default function ProposedTransactions(): React.JSX.Element {
   const [typeFilter, setTypeFilter] = useState<string>("ALL")
   const [scope, setScope] = useState<ProposedScope>("ALL")
   const [isSettling, setIsSettling] = useState(false)
+  const [isUnsettling, setIsUnsettling] = useState(false)
   const [aggregateView, setAggregateView] = useState(false)
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
   const [editTarget, setEditTarget] = useState<{
@@ -489,6 +490,9 @@ export default function ProposedTransactions(): React.JSX.Element {
   const selectedProposed = proposedTransactions.filter((trn) =>
     selectedIds.has(trn.id),
   )
+  const selectedSettled = transactions.filter(
+    (trn) => trn.status === "SETTLED" && selectedIds.has(trn.id),
+  )
   const allProposedSelected =
     proposedTransactions.length > 0 &&
     proposedTransactions.every((trn) => selectedIds.has(trn.id))
@@ -561,6 +565,54 @@ export default function ProposedTransactions(): React.JSX.Element {
       )
     } finally {
       setIsSettling(false)
+    }
+  }
+
+  const handleUnsettleSelected = async (): Promise<void> => {
+    if (selectedSettled.length === 0) return
+
+    setIsUnsettling(true)
+    setError(null)
+
+    try {
+      // Group selected SETTLED transactions by portfolio
+      const byPortfolio = new Map<string, string[]>()
+      selectedSettled.forEach((trn) => {
+        const ids = byPortfolio.get(trn.portfolio.id) || []
+        ids.push(trn.id)
+        byPortfolio.set(trn.portfolio.id, ids)
+      })
+
+      // Unsettle each portfolio's transactions. The server cascade-deletes each
+      // trade's auto-emitted cash legs.
+      for (const [portfolioId, trnIds] of byPortfolio) {
+        const response = await fetch(
+          `/api/trns/portfolio/${portfolioId}/unsettle`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ trnIds }),
+          },
+        )
+
+        if (!response.ok) {
+          setError(`Failed to unsettle: ${response.statusText}`)
+          setIsUnsettling(false)
+          return
+        }
+      }
+
+      // Refresh and clear selection
+      mutate(proposedKey)
+      mutate("/api/trns/proposed/count")
+      setSelectedIds(new Set())
+    } catch (err) {
+      console.error("Error unsettling transactions:", err)
+      setError(
+        err instanceof Error ? err.message : "Failed to unsettle transactions",
+      )
+    } finally {
+      setIsUnsettling(false)
     }
   }
 
@@ -815,6 +867,17 @@ export default function ProposedTransactions(): React.JSX.Element {
                   ? "Settling..."
                   : `Settle Selected (${selectedProposed.length})`}
               </button>
+              {selectedSettled.length > 0 && (
+                <button
+                  onClick={handleUnsettleSelected}
+                  disabled={isUnsettling}
+                  className="px-4 py-2 bg-amber-500 text-white rounded-md hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                >
+                  {isUnsettling
+                    ? "Unsettling..."
+                    : `Unsettle Selected (${selectedSettled.length})`}
+                </button>
+              )}
               <button
                 onClick={handleSave}
                 disabled={!anyChanges || isSaving}
