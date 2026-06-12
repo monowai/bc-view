@@ -1,15 +1,11 @@
-import React, { useState } from "react"
+import React from "react"
 import { Control, Controller, FieldErrors } from "react-hook-form"
 import { WizardFormData } from "types/independence"
-import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
-import IndependenceSettingsModal from "../IndependenceSettingsModal"
 
 interface PersonalInfoStepProps {
   control: Control<WizardFormData>
   errors: FieldErrors<WizardFormData>
 }
-
-const currentYear = new Date().getFullYear()
 
 const CURRENCIES = [
   { code: "NZD", name: "New Zealand Dollar", symbol: "NZ$" },
@@ -26,14 +22,6 @@ export default function PersonalInfoStep({
   control,
   errors,
 }: PersonalInfoStepProps): React.ReactElement {
-  const { settings, isLoading: settingsLoading } = useIndependenceSettings()
-  const [showSettingsModal, setShowSettingsModal] = useState(false)
-
-  const yearOfBirth = settings?.yearOfBirth
-  const currentAge = yearOfBirth ? currentYear - yearOfBirth : undefined
-  const targetIndependenceAge = settings?.targetIndependenceAge ?? 65
-  const lifeExpectancy = settings?.lifeExpectancy ?? 90
-
   return (
     <div className="space-y-4">
       <div>
@@ -251,75 +239,7 @@ export default function PersonalInfoStep({
           </p>
         </div>
 
-        {/* Read-only settings display */}
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-medium text-gray-700">
-              Your Independence Settings
-            </h3>
-            <button
-              type="button"
-              onClick={() => setShowSettingsModal(true)}
-              className="text-sm text-independence-600 hover:text-independence-700 font-medium"
-            >
-              <i className="fas fa-edit mr-1"></i>
-              Edit
-            </button>
-          </div>
-
-          {settingsLoading ? (
-            <p className="text-sm text-gray-500">Loading settings...</p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <p className="text-xs text-gray-500 mb-1">Year of Birth</p>
-                <p className="text-sm font-medium text-gray-900">
-                  {yearOfBirth ?? "Not set"}
-                </p>
-                {currentAge !== undefined && (
-                  <p className="text-xs text-gray-500">
-                    Currently {currentAge} years old
-                  </p>
-                )}
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 mb-1">
-                  Target Independence Age
-                </p>
-                <p className="text-sm font-medium text-gray-900">
-                  {targetIndependenceAge}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 mb-1">Life Expectancy</p>
-                <p className="text-sm font-medium text-gray-900">
-                  {lifeExpectancy}
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="bg-independence-50 border border-independence-200 rounded-lg p-4">
-          <div className="flex">
-            <i className="fas fa-info-circle text-independence-600 mt-0.5 mr-3"></i>
-            <div className="text-sm text-independence-700">
-              <p className="font-medium">Planning horizon</p>
-              <p className="mt-1">
-                Your planning horizon will be{" "}
-                {lifeExpectancy - targetIndependenceAge} years (from age{" "}
-                {targetIndependenceAge} to {lifeExpectancy}). These settings
-                apply across all your independence plans.
-              </p>
-            </div>
-          </div>
-        </div>
       </div>
-
-      <IndependenceSettingsModal
-        isOpen={showSettingsModal}
-        onClose={() => setShowSettingsModal(false)}
-      />
     </div>
   )
 }

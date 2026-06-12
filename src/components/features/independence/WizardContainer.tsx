@@ -6,6 +6,7 @@ import { mutate } from "swr"
 import WizardProgress from "./WizardProgress"
 import WizardNavigation from "./WizardNavigation"
 import WorkScenarioBanner from "./WorkScenarioBanner"
+import IndependenceSettingsSummary from "./IndependenceSettingsSummary"
 import PersonalInfoStep from "./steps/PersonalInfoStep"
 import AssetsStep from "./steps/AssetsStep"
 import AssumptionsStep from "./steps/AssumptionsStep"
@@ -374,6 +375,8 @@ export default function WizardContainer({
           stepErrors={stepErrors}
           onStepClick={handleStepClick}
         />
+
+        <IndependenceSettingsSummary />
 
         <WorkScenarioBanner />
 

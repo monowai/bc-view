@@ -73,6 +73,7 @@ const assets: AssetBreakdown = {
   nonSpendableAssets: 250_000,
   totalAssets: 750_000,
   hasAssets: true,
+  isLoaded: true,
 }
 
 import { DEFAULT_SCENARIO_STATE } from "../scenario/types"

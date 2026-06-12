@@ -174,6 +174,14 @@ const OnboardingWizard: React.FC = () => {
   const [independenceTargetAge, setIndependenceTargetAge] = useState(65)
   const [independencePlanCreated, setIndependencePlanCreated] = useState(false)
 
+  // Work plan state (collected in the Independence step)
+  const [workingIncomeMonthly, setWorkingIncomeMonthly] = useState(0)
+  const [workingExpensesMonthly, setWorkingExpensesMonthly] = useState(0)
+  const [taxesMonthly, setTaxesMonthly] = useState(0)
+  const [bonusMonthly, setBonusMonthly] = useState(0)
+  const [investmentAllocationPercent, setInvestmentAllocationPercent] =
+    useState(80)
+
   // Brokerage step (optional, post-default-portfolio creation)
   const [brokerageEnabled, setBrokerageEnabled] = useState(false)
   const [brokerageBrokerName, setBrokerageBrokerName] = useState("")
@@ -653,13 +661,18 @@ const OnboardingWizard: React.FC = () => {
       // Create independence plan if enabled
       if (independencePlanEnabled) {
         try {
-          // Create a default work scenario before the plan
+          // Create a work scenario with user-provided income/expense data
           await fetch("/api/independence/work-scenarios", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               name: "My Work Scenario",
               currency: baseCurrency,
+              workingIncomeMonthly,
+              workingExpensesMonthly,
+              taxesMonthly,
+              bonusMonthly,
+              investmentAllocationPercent: investmentAllocationPercent / 100,
             }),
           })
         } catch (scenarioErr) {
@@ -869,11 +882,21 @@ const OnboardingWizard: React.FC = () => {
             monthOfBirth={independenceMonthOfBirth}
             monthlyExpenses={independenceMonthlyExpenses}
             targetRetirementAge={independenceTargetAge}
+            workingIncomeMonthly={workingIncomeMonthly}
+            workingExpensesMonthly={workingExpensesMonthly}
+            taxesMonthly={taxesMonthly}
+            bonusMonthly={bonusMonthly}
+            investmentAllocationPercent={investmentAllocationPercent}
             onEnabledChange={setIndependencePlanEnabled}
             onYearOfBirthChange={setIndependenceYearOfBirth}
             onMonthOfBirthChange={setIndependenceMonthOfBirth}
             onMonthlyExpensesChange={setIndependenceMonthlyExpenses}
             onTargetRetirementAgeChange={setIndependenceTargetAge}
+            onWorkingIncomeMonthlyChange={setWorkingIncomeMonthly}
+            onWorkingExpensesMonthlyChange={setWorkingExpensesMonthly}
+            onTaxesMonthlyChange={setTaxesMonthly}
+            onBonusMonthlyChange={setBonusMonthly}
+            onInvestmentAllocationPercentChange={setInvestmentAllocationPercent}
             baseCurrency={baseCurrency}
           />
         )

@@ -520,6 +520,7 @@ function PlanView(): React.ReactElement {
       nonSpendableAssets,
       totalAssets,
       hasAssets,
+      isLoaded: true,
     },
     selectedPortfolioIds,
     monthlyInvestment,
@@ -1042,6 +1043,7 @@ function PlanView(): React.ReactElement {
                 nonSpendableAssets,
                 totalAssets,
                 hasAssets,
+                isLoaded: true,
               }}
               monthlyInvestment={monthlyInvestment}
               scenario={scenario}

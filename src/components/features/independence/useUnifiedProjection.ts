@@ -364,8 +364,9 @@ export function useFiProjectionSimple({
     ? `/api/independence/projection/${plan.id}`
     : null
 
-  // Track if we're waiting for assets - this is a "loading" state even though SWR isn't fetching
-  const waitingForAssets = !!projectionUrl && !assets.hasAssets
+  // Track if we're waiting for assets — only spin when holdings haven't loaded yet.
+  // An empty portfolio (isLoaded=true, hasAssets=false) should NOT spin indefinitely.
+  const waitingForAssets = !!projectionUrl && !assets.isLoaded
 
   // Fetch projection with asset values
   // Only fetch when we have both a plan and assets
