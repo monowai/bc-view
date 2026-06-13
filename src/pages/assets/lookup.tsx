@@ -102,6 +102,9 @@ function AssetLookupPage(): React.ReactElement {
     if (!router.isReady) return
     const hydrated = assetOptionFromQuery(router.query)
     if (!hydrated) return
+    // Syncing from the router query (external system, only populated after
+    // router.isReady) — deferring to render would read it before it's ready.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedAsset((prev) => {
       const prevId = prev?.assetId || prev?.value
       const nextId = hydrated.assetId || hydrated.value

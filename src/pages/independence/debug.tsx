@@ -332,44 +332,31 @@ function IndependenceDebug(): React.ReactElement {
     [selectedPlanId, sharedPlanIdSet],
   )
 
-  // Auto-select primary plan once data loads
-  useEffect(() => {
-    if (selectedPlanId || plans.length === 0) return
-    const primary = plans.find((p) => p.isPrimary) ?? plans[0]
-    setSelectedPlanId(primary.id)
-  }, [plans, selectedPlanId])
+  // Auto-select primary plan once data loads. Render-phase "store previous
+  // value" pattern keyed on the plans list so the selection is seeded once
+  // when data lands, without a set-state effect.
+  const [prevPlans, setPrevPlans] = useState(plans)
+  if (plans !== prevPlans) {
+    setPrevPlans(plans)
+    if (!selectedPlanId && plans.length > 0) {
+      const primary = plans.find((p) => p.isPrimary) ?? plans[0]
+      setSelectedPlanId(primary.id)
+    }
+  }
 
   // Seed sliders when plan, assets, projection, or settings change.
   // For shared plans the demographics come from the projection response
   // (plan owner's settings) and the liquid total comes from the backend
   // (M2M resolves owner's holdings); the viewer's own settings + holdings
   // are deliberately ignored.
-  useEffect(() => {
-    if (!selectedPlan) return
-    if (!isSharedPlan && !assets.hasAssets) return
-    const seedLiquid = isSharedPlan
-      ? (projection?.liquidAssets ?? 0)
-      : assets.liquidAssets
-    const seedYearOfBirth = isSharedPlan
-      ? projection?.planInputs?.yearOfBirth
-      : settings?.yearOfBirth
-    const seedLifeExpectancy = isSharedPlan
-      ? projection?.planInputs?.lifeExpectancy
-      : settings?.lifeExpectancy
-    const seedRetirementAge = isSharedPlan
-      ? projection?.planInputs?.retirementAge
-      : undefined
-    setSliders(
-      planToSliders(
-        selectedPlan,
-        seedLiquid,
-        seedYearOfBirth,
-        seedLifeExpectancy,
-        seedRetirementAge,
-      ),
-    )
-  }, [
-    selectedPlan,
+  //
+  // Render-phase "store previous value" pattern: re-seed whenever any of the
+  // trigger values change, preserving the original guards. Avoids a
+  // set-state-in-effect. The triggers mirror the former effect dep array —
+  // `selectedPlan` is compared by reference (it can change without its id
+  // changing, e.g. after the plans list refreshes) and the rest as a
+  // primitive signature.
+  const seedSignature = [
     assets.hasAssets,
     assets.liquidAssets,
     settings?.yearOfBirth,
@@ -379,7 +366,37 @@ function IndependenceDebug(): React.ReactElement {
     projection?.planInputs?.yearOfBirth,
     projection?.planInputs?.lifeExpectancy,
     projection?.planInputs?.retirementAge,
-  ])
+  ].join("|")
+  const [prevSeed, setPrevSeed] = useState<{
+    plan: typeof selectedPlan
+    signature: string
+  }>({ plan: selectedPlan, signature: seedSignature })
+  if (selectedPlan !== prevSeed.plan || seedSignature !== prevSeed.signature) {
+    setPrevSeed({ plan: selectedPlan, signature: seedSignature })
+    if (selectedPlan && (isSharedPlan || assets.hasAssets)) {
+      const seedLiquid = isSharedPlan
+        ? (projection?.liquidAssets ?? 0)
+        : assets.liquidAssets
+      const seedYearOfBirth = isSharedPlan
+        ? projection?.planInputs?.yearOfBirth
+        : settings?.yearOfBirth
+      const seedLifeExpectancy = isSharedPlan
+        ? projection?.planInputs?.lifeExpectancy
+        : settings?.lifeExpectancy
+      const seedRetirementAge = isSharedPlan
+        ? projection?.planInputs?.retirementAge
+        : undefined
+      setSliders(
+        planToSliders(
+          selectedPlan,
+          seedLiquid,
+          seedYearOfBirth,
+          seedLifeExpectancy,
+          seedRetirementAge,
+        ),
+      )
+    }
+  }
 
   // Debounced backend recalculation.
   // AbortController per scheduled request prevents stale responses (slider drag

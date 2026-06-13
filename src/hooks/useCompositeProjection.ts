@@ -118,10 +118,12 @@ export function useCompositeProjection(
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Initialize from saved settings or build defaults
-  useEffect(() => {
-    if (plans.length === 0 || !settings || initialized) return
-
+  // Initialize from saved settings or build defaults. Render-phase run-once
+  // pattern: `initialized` is the latch, so we perform the one-time seeding
+  // during render (guarded by !initialized) instead of in an effect, avoiding
+  // a cascading render. Behaviour matches the prior effect keyed on
+  // [plans, settings, currentAge, lifeExpectancy, initialized].
+  if (!initialized && plans.length > 0 && settings) {
     const savedExclusions = parseSavedExclusions(
       settings.compositeExcludedPlanIds,
     )
@@ -155,7 +157,7 @@ export function useCompositeProjection(
     }
 
     setInitialized(true)
-  }, [plans, settings, currentAge, lifeExpectancy, initialized])
+  }
 
   // Save composite config to settings (debounced)
   useEffect(() => {

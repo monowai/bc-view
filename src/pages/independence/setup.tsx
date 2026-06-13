@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/router"
 import Head from "next/head"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
@@ -27,14 +27,23 @@ function IndependenceSetupPage(): React.ReactElement {
   )
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [initialized, setInitialized] = useState(false)
+  // One-time init guard. A ref (not state) so flipping it neither triggers a
+  // render nor counts as a set-state-in-effect.
+  const initialized = useRef(false)
 
-  useEffect(() => {
-    if (initialized || !preferences) return
-
-    // Pre-fill DOB from user preferences
+  // Pre-fill DOB synchronously when preferences first arrive. Render-phase
+  // "store previous value" pattern keyed on `prefilledDob` + preferences, so
+  // it runs once without a set-state-in-effect.
+  const [prefilledDob, setPrefilledDob] = useState(false)
+  if (!prefilledDob && preferences) {
+    setPrefilledDob(true)
     if (preferences.yearOfBirth) setYearOfBirth(preferences.yearOfBirth)
     if (preferences.monthOfBirth) setMonthOfBirth(preferences.monthOfBirth)
+  }
+
+  useEffect(() => {
+    if (initialized.current || !preferences) return
+    initialized.current = true
 
     // Fetch existing work scenarios — pre-fill from current one if present
     fetch("/api/independence/work-scenarios")
@@ -56,9 +65,7 @@ function IndependenceSetupPage(): React.ReactElement {
         }
       })
       .catch(() => undefined)
-
-    setInitialized(true)
-  }, [preferences, initialized])
+  }, [preferences])
 
   const baseCurrency = preferences?.baseCurrencyCode ?? "USD"
 

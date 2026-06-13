@@ -397,6 +397,8 @@ const TradeInputForm: React.FC<{
       })
     }
 
+    // react-hook-form's watch() is a stable, non-memoizable library API; safe to read here.
+    // eslint-disable-next-line react-hooks/incompatible-library
     const market = option.market || watch("market")
     const assetCode = option.symbol || option.value
     // Skip price fetching for private assets - they don't have external market data

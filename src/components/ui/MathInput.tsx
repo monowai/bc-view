@@ -212,7 +212,6 @@ export default function MathInput({
   useEffect(() => {
     if (!isExpression && !isFocusedRef.current) {
       // Show empty string for zero values (better UX - cleaner form appearance)
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDisplayValue(value === 0 || value === undefined ? "" : String(value))
     }
   }, [value, isExpression])

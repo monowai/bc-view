@@ -69,14 +69,20 @@ const AssetClassifyPanel: React.FC<AssetClassifyPanelProps> = ({
     fetchSectors()
   }, [])
 
-  // Fetch current classification whenever assetId changes
-  useEffect(() => {
-    if (!assetId) return
-
+  // Reset the form synchronously during render when the asset changes, so we
+  // don't flash the previous asset's selection while the fetch below runs.
+  const [prevAssetId, setPrevAssetId] = useState(assetId)
+  if (assetId !== prevAssetId) {
+    setPrevAssetId(assetId)
     setSelectedSector("")
     setCustomSector("")
     setMessage(null)
     setCurrentAssetSector(null)
+  }
+
+  // Fetch current classification whenever assetId changes
+  useEffect(() => {
+    if (!assetId) return
 
     async function fetchCurrentSector(): Promise<void> {
       try {

@@ -58,8 +58,12 @@ function PlanDetailPage(): React.ReactElement {
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
-  // Initialize weights from plan
-  useEffect(() => {
+  // Initialize weights from plan. Render-phase "store previous value" pattern:
+  // when the fetched plan reference changes, re-seed the editable weights once
+  // (mirrors the prior effect keyed on [plan]) without a cascading effect.
+  const [prevPlan, setPrevPlan] = useState(plan)
+  if (plan !== prevPlan) {
+    setPrevPlan(plan)
     if (plan?.assets) {
       setWeights(
         plan.assets.map((asset) => ({
@@ -75,7 +79,7 @@ function PlanDetailPage(): React.ReactElement {
       )
       setHasChanges(false)
     }
-  }, [plan])
+  }
 
   const handleWeightsChange = (newWeights: AssetWeightWithDetails[]): void => {
     setWeights(newWeights)

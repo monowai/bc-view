@@ -87,8 +87,18 @@ export default function SetBalanceDialog({
 
   const hasSubAccounts = configSubAccounts.length > 0
 
-  // When sub-accounts change, update total target balance
-  useEffect(() => {
+  // When sub-accounts change, update total target balance. Render-phase sync
+  // (React's "store previous value" pattern) instead of an effect, to avoid
+  // cascading renders.
+  const [prevSubAccountState, setPrevSubAccountState] = useState({
+    subAccountBalances,
+    hasSubAccounts,
+  })
+  if (
+    prevSubAccountState.subAccountBalances !== subAccountBalances ||
+    prevSubAccountState.hasSubAccounts !== hasSubAccounts
+  ) {
+    setPrevSubAccountState({ subAccountBalances, hasSubAccounts })
     if (hasSubAccounts) {
       const total = Object.values(subAccountBalances).reduce(
         (sum, v) => sum + (v || 0),
@@ -96,7 +106,7 @@ export default function SetBalanceDialog({
       )
       setTargetBalance(total)
     }
-  }, [subAccountBalances, hasSubAccounts])
+  }
 
   // Check current balance
   useEffect(() => {

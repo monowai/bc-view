@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react"
+import React, { useState } from "react"
 import useSwr from "swr"
 import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
 import type { StandaloneCompositeConfig } from "@hooks/useStandaloneCompositeAssets"
@@ -36,15 +36,17 @@ export default function LinkCompositeDialog({
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
-  // Default to first same-currency portfolio.
-  useEffect(() => {
+  // Default to first same-currency portfolio once the list arrives.
+  const [prevPortfoliosData, setPrevPortfoliosData] = useState(portfoliosData)
+  if (portfoliosData !== prevPortfoliosData) {
+    setPrevPortfoliosData(portfoliosData)
     if (!portfolioId && portfoliosData?.data?.length) {
       const sameCcy = portfoliosData.data.find(
         (p) => p.currency.code === config.currency,
       )
       setPortfolioId((sameCcy ?? portfoliosData.data[0]).id)
     }
-  }, [portfoliosData, portfolioId, config.currency])
+  }
 
   async function submit(): Promise<void> {
     if (!portfolioId) return

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react"
+import React, { useMemo, useState, useCallback } from "react"
 import useSWR from "swr"
 import { PlanContribution } from "types/independence"
 import { simpleFetcher } from "@utils/api/fetchHelper"
@@ -146,15 +146,20 @@ export default function ScenarioContributions({
     .map((c) => `${c.assetId}=${c.monthlyAmount}`)
     .sort()
     .join("|")
-  useEffect(() => {
-    if (!contribsResp?.data) return
-    const seed: Record<string, string> = {}
-    for (const c of contribsResp.data) {
-      seed[c.assetId] = String(c.monthlyAmount)
+  // Render-phase "store previous value" pattern keyed on the signature so
+  // identical SWR refreshes don't reset local edits mid-typing.
+  const [prevContribsSignature, setPrevContribsSignature] =
+    useState(contribsSignature)
+  if (contribsSignature !== prevContribsSignature) {
+    setPrevContribsSignature(contribsSignature)
+    if (contribsResp?.data) {
+      const seed: Record<string, string> = {}
+      for (const c of contribsResp.data) {
+        seed[c.assetId] = String(c.monthlyAmount)
+      }
+      setEdits(seed)
     }
-    setEdits(seed)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contribsSignature])
+  }
 
   const saveOne = useCallback(
     async (asset: PensionAsset) => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react"
+import React, { useState, useMemo } from "react"
 import Dialog from "@components/ui/Dialog"
 import { Portfolio, CashTransferData, Asset } from "types/beancounter"
 import MathInput from "@components/ui/MathInput"
@@ -100,8 +100,12 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
     return { currencies, accounts }
   }, [ccyData, accountAssetsData, sourceData])
 
-  // Reset state when modal opens - default amount to current balance (market value)
-  useEffect(() => {
+  // Reset state when modal opens - default amount to current balance (market value).
+  // Render-phase reset on prop change (React's "store previous value" pattern)
+  // instead of an effect, to avoid cascading renders.
+  const [prevModalOpen, setPrevModalOpen] = useState(modalOpen)
+  if (modalOpen !== prevModalOpen) {
+    setPrevModalOpen(modalOpen)
     if (modalOpen) {
       setStep("amounts")
       const defaultAmount = String(sourceData.currentBalance)
@@ -114,7 +118,7 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
       setSubmitSuccess(false)
       setDescription("")
     }
-  }, [modalOpen, sourceData.portfolioId, sourceData.currentBalance])
+  }
 
   const parsedSentAmount = parseFloat(sentAmount) || 0
   const parsedReceivedAmount = parseFloat(receivedAmount) || 0
