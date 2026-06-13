@@ -17,6 +17,7 @@ import AssetSearch from "@components/features/assets/AssetSearch"
 import { useAssetReview } from "@components/features/assets/useAssetReview"
 import PriceChartPopup from "@components/features/holdings/PriceChartPopup"
 import Spinner from "@components/ui/Spinner"
+import AssetAdminDialog from "@components/features/assets/AssetAdminDialog"
 import { usePermissions } from "@hooks/usePermissions"
 
 interface AssetPosition {
@@ -87,6 +88,7 @@ function AssetLookupPage(): React.ReactElement {
   const canReviewAsset = canRunAi || canPreview
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [showAdminEdit, setShowAdminEdit] = useState(false)
   // Mirror selectedAsset into a ref so the in-flight delete handler can
   // identity-check against the LATEST selection at the time the response
   // resolves, not the value it closed over when invoked.
@@ -381,6 +383,18 @@ function AssetLookupPage(): React.ReactElement {
               {isAdmin && selectedAsset.assetId && (
                 <button
                   type="button"
+                  onClick={() => setShowAdminEdit(true)}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-gray-700 text-white text-sm font-medium hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-1"
+                  aria-label={`Edit asset ${selectedAsset.symbol || selectedAsset.assetId}`}
+                  title="Edit asset (admin)"
+                >
+                  <i className="fas fa-user-shield"></i>
+                  <span>{"Edit"}</span>
+                </button>
+              )}
+              {isAdmin && selectedAsset.assetId && (
+                <button
+                  type="button"
                   onClick={handleDeleteAsset}
                   disabled={
                     deleting || loadingPositions || positions.length > 0
@@ -407,6 +421,14 @@ function AssetLookupPage(): React.ReactElement {
             </div>
           )}
         </div>
+      )}
+      {/* Admin: edit (name/category) + classify popup, replaces the
+          separate Admin → Asset Classifications screen. */}
+      {isAdmin && selectedAsset?.assetId && showAdminEdit && (
+        <AssetAdminDialog
+          assetId={selectedAsset.assetId}
+          onClose={() => setShowAdminEdit(false)}
+        />
       )}
       {reviewPopup}
       {resolveError && (
