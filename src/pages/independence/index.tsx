@@ -11,7 +11,12 @@ import {
   resourceSharesPendingKey,
   resourceSharesManagedKey,
 } from "@utils/api/fetchHelper"
-import { PlansResponse, RetirementPlan, PlanExport } from "types/independence"
+import {
+  PlansResponse,
+  RetirementPlan,
+  PlanExport,
+  WorkScenariosResponse,
+} from "types/independence"
 import {
   HoldingContract,
   PendingResourceSharesResponse,
@@ -293,6 +298,14 @@ function RetirementPlanning(): React.ReactElement {
   const router = useRouter()
   const { hideValues } = usePrivacyMode()
   const { settings } = useIndependenceSettings()
+  const { data: scenariosData } = useSwr<WorkScenariosResponse>(
+    "/api/independence/work-scenarios",
+    simpleFetcher("/api/independence/work-scenarios"),
+  )
+  const hasNoWorkScenarios =
+    scenariosData !== undefined && (scenariosData.data?.length ?? 0) === 0
+  const profileIncomplete =
+    settings !== undefined && (!settings.yearOfBirth || !settings.monthOfBirth)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [activeView, setActiveView] = useState<
     "profile" | "work" | "plans" | "shared" | "composite"
@@ -682,9 +695,20 @@ function RetirementPlanning(): React.ReactElement {
                   ? "bg-white text-independence-700 shadow-sm"
                   : "text-gray-600 hover:text-gray-800"
               }`}
+              title={
+                profileIncomplete
+                  ? "Date of birth required for accurate projections"
+                  : "Profile settings"
+              }
             >
               <i className="fas fa-cog mr-2"></i>
               Profile
+              {profileIncomplete && (
+                <span
+                  className="ml-1.5 inline-block w-2 h-2 rounded-full bg-red-500"
+                  aria-label="Profile incomplete"
+                />
+              )}
             </button>
             <button
               onClick={() => setActiveView("work")}
@@ -693,9 +717,20 @@ function RetirementPlanning(): React.ReactElement {
                   ? "bg-white text-independence-700 shadow-sm"
                   : "text-gray-600 hover:text-gray-800"
               }`}
+              title={
+                hasNoWorkScenarios
+                  ? "Add a work scenario — your pre-independence income, salary and expenses"
+                  : "Work scenarios — pre-independence income, salary and expenses"
+              }
             >
               <i className="fas fa-briefcase mr-2"></i>
               Work
+              {hasNoWorkScenarios && (
+                <span
+                  className="ml-1.5 inline-block w-2 h-2 rounded-full bg-amber-400"
+                  aria-label="No work scenario configured"
+                />
+              )}
             </button>
             <button
               onClick={() => setActiveView("plans")}
