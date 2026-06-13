@@ -43,12 +43,15 @@ describe("HeaderBrand", () => {
   })
 
   it("locks background scroll while the mobile menu is open", () => {
+    window.scrollTo = jest.fn()
     render(<HeaderBrand />)
     const toggle = screen.getByRole("button", { name: /Navigation menu/i })
-    expect(document.body.style.overflow).toBe("")
+    expect(document.body.style.position).toBe("")
     fireEvent.click(toggle)
+    expect(document.body.style.position).toBe("fixed")
     expect(document.body.style.overflow).toBe("hidden")
     fireEvent.click(toggle)
+    expect(document.body.style.position).toBe("")
     expect(document.body.style.overflow).toBe("")
   })
 
