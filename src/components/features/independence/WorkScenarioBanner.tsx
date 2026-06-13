@@ -112,7 +112,7 @@ export default function WorkScenarioBanner(): React.ReactElement {
             onClick={() => setEditorOpen(true)}
             className="text-sm font-medium text-independence-600 hover:text-independence-700"
           >
-            <i className="fas fa-pen mr-1"></i>
+            <i className="fas fa-edit mr-1"></i>
             Edit
           </button>
         </div>

@@ -64,7 +64,7 @@ export default function PlanViewHeader({
               e.target.value === planCurrency ? null : e.target.value,
             )
           }
-          className="text-sm border border-gray-300 rounded px-2 py-1 bg-white"
+          className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
           title="Display currency"
         >
           {availableCurrencies.map((curr) => (
