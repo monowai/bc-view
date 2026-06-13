@@ -115,10 +115,15 @@ export default function ScenarioList(): React.ReactElement {
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold text-gray-900">
-          <i className="fas fa-briefcase text-independence-500 mr-2"></i>
-          Work Scenarios
-        </h2>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            <i className="fas fa-briefcase text-independence-500 mr-2"></i>
+            Work Scenarios
+          </h2>
+          <p className="text-sm text-gray-500 mt-0.5">
+            Pre-independence income, salary and expenses
+          </p>
+        </div>
         <button
           onClick={handleCreate}
           className="bg-independence-600 text-white px-4 py-2 rounded-lg hover:bg-independence-700 font-medium flex items-center text-sm"
@@ -132,7 +137,7 @@ export default function ScenarioList(): React.ReactElement {
         <EmptyState
           icon="fas fa-briefcase"
           title="No work scenarios yet"
-          description="Create a scenario to model your working income, expenses, and investment contributions."
+          description="Add your pre-independence income, salary and expenses to project how much you can invest each month."
           action={
             <button
               onClick={handleCreate}
