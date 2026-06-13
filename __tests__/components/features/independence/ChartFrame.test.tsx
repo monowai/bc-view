@@ -76,4 +76,24 @@ describe("ChartFrame", () => {
     fireEvent.touchStart(screen.getByTestId("point"))
     expect(onLeave).not.toHaveBeenCalled()
   })
+
+  it("dismisses the tooltip on viewport resize", () => {
+    render(
+      <ChartFrame>
+        <FakeChart onLeave={onLeave} />
+      </ChartFrame>,
+    )
+    fireEvent(window, new Event("resize"))
+    expect(onLeave).toHaveBeenCalledTimes(1)
+  })
+
+  it("dismisses the tooltip on orientation change", () => {
+    render(
+      <ChartFrame>
+        <FakeChart onLeave={onLeave} />
+      </ChartFrame>,
+    )
+    fireEvent(window, new Event("orientationchange"))
+    expect(onLeave).toHaveBeenCalledTimes(1)
+  })
 })
