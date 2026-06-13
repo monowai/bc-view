@@ -28,6 +28,7 @@ function PlanDetailPage(): React.ReactElement {
   const [deleting, setDeleting] = useState(false)
   const [saving, setSaving] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
   const [fetchingPrices, setFetchingPrices] = useState(false)
   const [creatingVersion, setCreatingVersion] = useState(false)
   const [showImportDropdown, setShowImportDropdown] = useState(false)
@@ -141,6 +142,7 @@ function PlanDetailPage(): React.ReactElement {
   const handleDelete = async (): Promise<void> => {
     setShowDeleteConfirm(false)
     setDeleting(true)
+    setActionError(null)
     try {
       const response = await fetch(
         `/api/rebalance/models/${modelId}/plans/${planId}`,
@@ -148,9 +150,13 @@ function PlanDetailPage(): React.ReactElement {
       )
       if (response.ok) {
         router.push(`/rebalance/models/${modelId}`)
+      } else {
+        const text = await response.text().catch(() => "")
+        setActionError(`Delete failed (${response.status})${text ? `: ${text}` : ""}`)
       }
     } catch (err) {
       console.error("Failed to delete plan:", err)
+      setActionError("Delete failed — please try again")
     } finally {
       setDeleting(false)
     }
@@ -515,6 +521,22 @@ function PlanDetailPage(): React.ReactElement {
           {"Plan"} v{plan.version}
         </span>
       </nav>
+
+      {/* Action error banner */}
+      {actionError && (
+        <div className="mb-4 max-w-5xl mx-auto bg-red-50 border border-red-200 rounded-lg px-4 py-3 flex items-center justify-between text-sm text-red-700">
+          <span>
+            <i className="fas fa-exclamation-circle mr-2"></i>
+            {actionError}
+          </span>
+          <button
+            onClick={() => setActionError(null)}
+            className="ml-4 text-red-500 hover:text-red-700"
+          >
+            <i className="fas fa-times"></i>
+          </button>
+        </div>
+      )}
 
       {/* Header */}
       <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6 max-w-5xl mx-auto mb-6">
