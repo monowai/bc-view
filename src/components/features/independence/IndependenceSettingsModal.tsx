@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import React, { useState } from "react"
 import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
 import { UpdateSettingsRequest } from "types/independence"
 import MathInput from "@components/ui/MathInput"
@@ -50,14 +50,27 @@ export default function IndependenceSettingsModal({
   const [error, setError] = useState<string | null>(null)
 
   const currentYear = new Date().getFullYear()
-  const [yearOfBirth, setYearOfBirth] = useState<number>(currentYear - 55)
-  const [monthOfBirth, setMonthOfBirth] = useState<number | undefined>(
-    undefined,
+  const [yearOfBirth, setYearOfBirth] = useState<number>(
+    settings?.yearOfBirth ?? currentYear - 55,
   )
-  const [targetIndependenceAge, setTargetIndependenceAge] = useState<number>(65)
-  const [lifeExpectancy, setLifeExpectancy] = useState<number>(90)
+  const [monthOfBirth, setMonthOfBirth] = useState<number | undefined>(
+    settings?.monthOfBirth ?? undefined,
+  )
+  const [targetIndependenceAge, setTargetIndependenceAge] = useState<number>(
+    settings?.targetIndependenceAge ?? 65,
+  )
+  const [lifeExpectancy, setLifeExpectancy] = useState<number>(
+    settings?.lifeExpectancy ?? 90,
+  )
 
-  useEffect(() => {
+  // Re-seed the form from settings whenever the modal opens or the settings
+  // change. Render-phase "store previous value" pattern keyed on a stable
+  // value signature (not the settings object ref, which may change identity
+  // each render). Mount is handled by the lazy initializers above.
+  const seedSignature = `${isOpen}:${settings?.yearOfBirth}:${settings?.monthOfBirth}:${settings?.targetIndependenceAge}:${settings?.lifeExpectancy}`
+  const [prevSeedSignature, setPrevSeedSignature] = useState(seedSignature)
+  if (seedSignature !== prevSeedSignature) {
+    setPrevSeedSignature(seedSignature)
     if (isOpen && settings) {
       setYearOfBirth(settings.yearOfBirth ?? currentYear - 55)
       setMonthOfBirth(settings.monthOfBirth ?? undefined)
@@ -65,7 +78,7 @@ export default function IndependenceSettingsModal({
       setLifeExpectancy(settings.lifeExpectancy ?? 90)
       setError(null)
     }
-  }, [isOpen, settings, currentYear])
+  }
 
   if (!isOpen) return null
 

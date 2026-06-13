@@ -1,4 +1,4 @@
-import React, { ReactElement, useState, useEffect } from "react"
+import React, { ReactElement, useState } from "react"
 import useSwr from "swr"
 import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
 import { Portfolio } from "types/beancounter"
@@ -14,9 +14,12 @@ export function Portfolios(selectedPortfolio: Portfolio): ReactElement {
   const [selected, setSelected] = useState(selectedPortfolio)
 
   // Update selected portfolio when prop changes (e.g., from "Loading..." to real portfolio)
-  useEffect(() => {
+  const [prevSelectedPortfolio, setPrevSelectedPortfolio] =
+    useState(selectedPortfolio)
+  if (selectedPortfolio !== prevSelectedPortfolio) {
+    setPrevSelectedPortfolio(selectedPortfolio)
     setSelected(selectedPortfolio)
-  }, [selectedPortfolio])
+  }
 
   // Show the selected portfolio immediately, even if the list hasn't loaded yet
   // Sort inactive portfolios last

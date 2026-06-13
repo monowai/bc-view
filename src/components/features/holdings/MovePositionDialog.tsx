@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import React, { useState } from "react"
 import Dialog from "@components/ui/Dialog"
 import { Portfolio, MovePositionData } from "types/beancounter"
 import { mutate } from "swr"
@@ -29,8 +29,12 @@ const MovePositionDialog: React.FC<MovePositionDialogProps> = ({
     (p) => p.id !== sourceData.portfolioId,
   )
 
-  // Reset state when modal opens
-  useEffect(() => {
+  // Reset state when modal opens. Render-phase reset on prop change (React's
+  // "store previous value" pattern) instead of an effect, to avoid cascading
+  // renders.
+  const [prevModalOpen, setPrevModalOpen] = useState(modalOpen)
+  if (modalOpen !== prevModalOpen) {
+    setPrevModalOpen(modalOpen)
     if (modalOpen) {
       setSelectedPortfolioId(
         targetPortfolios.length > 0 ? targetPortfolios[0].id : "",
@@ -40,7 +44,7 @@ const MovePositionDialog: React.FC<MovePositionDialogProps> = ({
       setSubmitError(null)
       setSubmitSuccess(false)
     }
-  }, [modalOpen]) // eslint-disable-line react-hooks/exhaustive-deps
+  }
 
   const handleMove = async (): Promise<void> => {
     if (!selectedPortfolioId) return

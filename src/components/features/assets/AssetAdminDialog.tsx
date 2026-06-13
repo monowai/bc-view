@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react"
+import React, { useState } from "react"
 import useSWR from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import Dialog from "@components/ui/Dialog"
@@ -42,20 +42,23 @@ const AssetAdminDialog: React.FC<AssetAdminDialogProps> = ({
   const categories = catResp?.data ?? []
 
   const [tab, setTab] = useState<Tab>("details")
-  const [name, setName] = useState("")
-  const [category, setCategory] = useState("")
+  const [name, setName] = useState(asset?.name || "")
+  const [category, setCategory] = useState(asset?.assetCategory?.id || "")
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
 
-  useEffect(() => {
+  // Initialise the editable form fields when the loaded asset changes.
+  const [prevAsset, setPrevAsset] = useState(asset)
+  if (asset !== prevAsset) {
+    setPrevAsset(asset)
     if (asset) {
       setName(asset.name || "")
       setCategory(asset.assetCategory?.id || "")
       setSaved(false)
       setError(null)
     }
-  }, [asset])
+  }
 
   const handleSave = async (): Promise<void> => {
     if (!asset) return

@@ -27,7 +27,6 @@ function DecimalInput({
   // derived state. Compiler warning is a false positive.
   useEffect(() => {
     if (!focusedRef.current) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDisplay(value != null && value !== 0 ? String(value) : "")
     }
   }, [value])

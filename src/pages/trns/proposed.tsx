@@ -60,7 +60,11 @@ export default function ProposedTransactions(): React.JSX.Element {
   } | null>(null)
   const [sessionInitialized, setSessionInitialized] = useState(false)
 
-  // Initialize filter states from session storage on mount
+  // Initialize filter states from session storage on mount. This must run
+  // post-hydration (sessionStorage is client-only) and gates the persistence
+  // effects via sessionInitialized; lazy useState initializers would read
+  // storage during SSR and cause a hydration mismatch, so an effect is required.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setIncludeSettled(getSessionValue(SESSION_KEY_INCLUDE_SETTLED, false))
     setSettledDate(getSessionValue(SESSION_KEY_SETTLED_DATE, getToday()))
@@ -76,6 +80,7 @@ export default function ProposedTransactions(): React.JSX.Element {
     }
     setSessionInitialized(true)
   }, [])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     if (sessionInitialized) {
@@ -107,9 +112,6 @@ export default function ProposedTransactions(): React.JSX.Element {
       setSessionValue(SESSION_KEY_AGGREGATE_VIEW, aggregateView)
     }
   }, [aggregateView, sessionInitialized])
-  const [aggregatedTransactions, setAggregatedTransactions] = useState<
-    AggregatedTransaction[]
-  >([])
 
   // Fetch proposed transactions across all portfolios, bounded to those due on or before asAtDate.
   const proposedKey = user
@@ -132,6 +134,9 @@ export default function ProposedTransactions(): React.JSX.Element {
   // Fetch settled transactions when checkbox is checked
   useEffect(() => {
     if (!includeSettled) {
+      // Clearing here keeps the async-fetched list and the checkbox in sync;
+      // the fetch below is the effect's primary external-sync purpose.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSettledTransactions([])
       return
     }
@@ -160,7 +165,11 @@ export default function ProposedTransactions(): React.JSX.Element {
     fetchSettled()
   }, [includeSettled, settledDate])
 
-  useEffect(() => {
+  // Rebuild the editable transaction list whenever the underlying data or
+  // filter changes. Render-phase "store previous value" pattern instead of an
+  // effect: rebuilding here (and discarding in-progress edits on data change)
+  // matches the prior effect behavior while avoiding a cascading render.
+  const buildTransactions = (): ProposedTransaction[] => {
     // Combine proposed transactions with settled transactions (if included)
     const proposed = proposedData?.data || []
     const settled = includeSettled ? settledTransactions : []
@@ -193,28 +202,55 @@ export default function ProposedTransactions(): React.JSX.Element {
         getAssetDisplayCode(b.asset),
       )
     })
-    setTransactions(
-      sorted.map((trn) => ({
-        ...trn,
-        editedPrice: trn.price,
-        editedFees: trn.fees,
-        editedStatus: trn.status,
-        editedTradeDate: trn.tradeDate,
-        editedBrokerId: trn.broker?.id || trn.brokerId,
-      })),
-    )
-  }, [proposedData, settledTransactions, includeSettled, typeFilter])
+    return sorted.map((trn) => ({
+      ...trn,
+      editedPrice: trn.price,
+      editedFees: trn.fees,
+      editedStatus: trn.status,
+      editedTradeDate: trn.tradeDate,
+      editedBrokerId: trn.broker?.id || trn.brokerId,
+    }))
+  }
 
-  // Clear selection when filter changes
-  useEffect(() => {
+  const [prevTrnInputs, setPrevTrnInputs] = useState<{
+    proposedData: typeof proposedData
+    settledTransactions: Transaction[]
+    includeSettled: boolean
+    typeFilter: string
+  }>({ proposedData, settledTransactions, includeSettled, typeFilter })
+  if (
+    prevTrnInputs.proposedData !== proposedData ||
+    prevTrnInputs.settledTransactions !== settledTransactions ||
+    prevTrnInputs.includeSettled !== includeSettled ||
+    prevTrnInputs.typeFilter !== typeFilter
+  ) {
+    setPrevTrnInputs({
+      proposedData,
+      settledTransactions,
+      includeSettled,
+      typeFilter,
+    })
+    setTransactions(buildTransactions())
+  }
+
+  // Clear selection when filter changes. Render-phase "store previous value"
+  // pattern instead of an effect — resets synchronously on the same render
+  // that the filter changed, avoiding a cascading render.
+  const [prevFilterKey, setPrevFilterKey] = useState(
+    `${typeFilter}:${aggregateView}`,
+  )
+  const filterKey = `${typeFilter}:${aggregateView}`
+  if (filterKey !== prevFilterKey) {
+    setPrevFilterKey(filterKey)
     setSelectedIds(new Set())
-  }, [typeFilter, aggregateView])
+  }
 
-  // Compute aggregated transactions when aggregate view is enabled
-  useEffect(() => {
+  // Compute aggregated transactions when aggregate view is enabled. Purely
+  // derived from transactions/brokers, so a useMemo replaces the prior effect
+  // (which recomputed from scratch on every transactions change anyway).
+  const aggregatedTransactions = useMemo<AggregatedTransaction[]>(() => {
     if (!aggregateView) {
-      setAggregatedTransactions([])
-      return
+      return []
     }
 
     // Group transactions by broker + asset + trnType
@@ -291,7 +327,7 @@ export default function ProposedTransactions(): React.JSX.Element {
       return a.assetCode.localeCompare(b.assetCode)
     })
 
-    setAggregatedTransactions(aggregated)
+    return aggregated
   }, [aggregateView, transactions, brokers])
 
   const handlePriceChange = (id: string, value: number): void => {
@@ -364,11 +400,8 @@ export default function ProposedTransactions(): React.JSX.Element {
           : trn,
       ),
     )
-    setAggregatedTransactions((prev) =>
-      prev.map((a) =>
-        a.aggregateKey === aggregateKey ? { ...a, editedPrice: value } : a,
-      ),
-    )
+    // aggregatedTransactions is a useMemo over transactions, so it recomputes
+    // automatically — no separate aggregated-state update needed.
   }
 
   const handleAggregatedStatusChange = (
@@ -390,18 +423,7 @@ export default function ProposedTransactions(): React.JSX.Element {
         agg.transactionIds.includes(trn.id) ? { ...trn, ...updates } : trn,
       ),
     )
-    setAggregatedTransactions((prev) =>
-      prev.map((a) =>
-        a.aggregateKey === aggregateKey
-          ? {
-              ...a,
-              editedStatus: value,
-              editedTradeDate:
-                value === "SETTLED" ? getToday() : a.editedTradeDate,
-            }
-          : a,
-      ),
-    )
+    // aggregatedTransactions recomputes from transactions via useMemo.
   }
 
   const handleAggregatedTradeDateChange = (
@@ -420,11 +442,7 @@ export default function ProposedTransactions(): React.JSX.Element {
           : trn,
       ),
     )
-    setAggregatedTransactions((prev) =>
-      prev.map((a) =>
-        a.aggregateKey === aggregateKey ? { ...a, editedTradeDate: value } : a,
-      ),
-    )
+    // aggregatedTransactions recomputes from transactions via useMemo.
   }
 
   // Selection handlers for aggregated view

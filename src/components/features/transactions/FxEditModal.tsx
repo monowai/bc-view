@@ -129,6 +129,8 @@ export default function FxEditModal({
     defaultValues,
   })
 
+  // react-hook-form's watch() is a stable, non-memoizable library API; safe to read here.
+  // eslint-disable-next-line react-hooks/incompatible-library
   const sellAmount = watch("sellAmount")
   const buyAmount = watch("buyAmount")
 

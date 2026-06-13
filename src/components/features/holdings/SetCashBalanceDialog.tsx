@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react"
+import React, { useState, useMemo } from "react"
 import { Portfolio } from "types/beancounter"
 import { postData } from "@components/ui/DropZone"
 import {
@@ -35,15 +35,19 @@ const SetCashBalanceDialog: React.FC<SetCashBalanceDialogProps> = ({
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitSuccess, setSubmitSuccess] = useState(false)
 
-  // Reset state when modal opens
-  useEffect(() => {
+  // Reset state when modal opens. Render-phase reset on prop change (React's
+  // "store previous value" pattern) instead of an effect, to avoid cascading
+  // renders.
+  const [prevModalOpen, setPrevModalOpen] = useState(modalOpen)
+  if (modalOpen !== prevModalOpen) {
+    setPrevModalOpen(modalOpen)
     if (modalOpen) {
       setTargetBalance("")
       setIsSubmitting(false)
       setSubmitError(null)
       setSubmitSuccess(false)
     }
-  }, [modalOpen])
+  }
 
   // Calculate required transaction using shared utility
   const calculation = useMemo((): CashBalanceAdjustment => {

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react"
+import React, { useState, useMemo, useCallback } from "react"
 import useSWR from "swr"
 import { useRouter } from "next/router"
 import Dialog from "@components/ui/Dialog"
@@ -75,12 +75,18 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
 
   // Convenience: if the user has exactly one broker, pre-select it
   // when the dialog opens. Skip if user already chose (or cleared it).
-  useEffect(() => {
+  // Render-phase trigger pattern: re-evaluate when modalOpen or the broker
+  // count changes (mirrors the prior effect deps) without a cascading effect.
+  const [prevBrokerTrigger, setPrevBrokerTrigger] = useState<string>(
+    `${modalOpen}:${brokers.length}`,
+  )
+  const brokerTrigger = `${modalOpen}:${brokers.length}`
+  if (brokerTrigger !== prevBrokerTrigger) {
+    setPrevBrokerTrigger(brokerTrigger)
     if (brokers.length === 1 && selectedBrokerId === undefined) {
       setSelectedBrokerId(brokers[0].id)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [brokers.length, modalOpen])
+  }
 
   const models: ModelDto[] = modelsData?.data || []
   const modelsWithApprovedPlans = models.filter(
