@@ -2,6 +2,7 @@ import React from "react"
 import { Control, Controller, FieldErrors, useWatch } from "react-hook-form"
 import { WizardFormData } from "types/independence"
 import { StepHeader, CurrencyInputWithPeriod, SummaryBox } from "../form"
+import MathInput from "@components/ui/MathInput"
 import { usePrivateAssetConfigs } from "@utils/assets/usePrivateAssetConfigs"
 import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
 import { currentAgeFromSettings } from "@lib/independence/age"
@@ -237,13 +238,10 @@ export default function IncomeSourcesStep({
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Starting Age
                   </label>
-                  <input
-                    type="number"
-                    value={field.value || ""}
-                    onChange={(e) =>
-                      field.onChange(
-                        e.target.value ? parseInt(e.target.value) : undefined,
-                      )
+                  <MathInput
+                    value={field.value ?? 0}
+                    onChange={(v) =>
+                      field.onChange(v ? Math.round(v) : undefined)
                     }
                     placeholder="e.g. 65"
                     min={50}

@@ -180,6 +180,7 @@ interface MathInputProps {
   step?: number | string
   disabled?: boolean
   id?: string
+  "aria-label"?: string
 }
 
 /**
@@ -196,6 +197,7 @@ export default function MathInput({
   step,
   disabled,
   id,
+  "aria-label": ariaLabel,
 }: MathInputProps): React.ReactElement {
   const [displayValue, setDisplayValue] = useState<string>(String(value || ""))
   const [isExpression, setIsExpression] = useState(false)
@@ -265,6 +267,7 @@ export default function MathInput({
   return (
     <input
       id={id}
+      aria-label={ariaLabel}
       type="text"
       inputMode="decimal"
       value={displayValue}

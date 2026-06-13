@@ -376,9 +376,9 @@ export default function WizardContainer({
           onStepClick={handleStepClick}
         />
 
-        <IndependenceSettingsSummary />
+        {currentStep === 1 && <IndependenceSettingsSummary />}
 
-        <WorkScenarioBanner />
+        {currentStep === 1 && <WorkScenarioBanner />}
 
         {error && (
           <div className="mb-6">

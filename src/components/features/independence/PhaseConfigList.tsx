@@ -1,5 +1,6 @@
 import React from "react"
 import type { RetirementPlan, CompositePhase } from "types/independence"
+import MathInput from "@components/ui/MathInput"
 
 interface PhaseConfigListProps {
   plans: RetirementPlan[]
@@ -124,12 +125,9 @@ export default function PhaseConfigList({
                 <span className="font-medium text-gray-800 truncate min-w-0 flex-1">
                   {getPlanName(plans, phase.planId)}
                 </span>
-                <input
-                  type="number"
+                <MathInput
                   value={phase.fromAge}
-                  onChange={(e) =>
-                    handleFromAgeChange(index, Number(e.target.value))
-                  }
+                  onChange={(v) => handleFromAgeChange(index, Math.round(v))}
                   className="w-14 px-1 py-0.5 border border-gray-300 rounded text-center text-sm focus:ring-1 focus:ring-independence-500 focus:border-independence-500"
                   min={18}
                   max={120}
@@ -139,12 +137,9 @@ export default function PhaseConfigList({
                 {isLast ? (
                   <span className="w-14 text-center text-gray-500">end</span>
                 ) : (
-                  <input
-                    type="number"
-                    value={phase.toAge ?? ""}
-                    onChange={(e) =>
-                      handleToAgeChange(index, Number(e.target.value))
-                    }
+                  <MathInput
+                    value={phase.toAge ?? 0}
+                    onChange={(v) => handleToAgeChange(index, Math.round(v))}
                     className="w-14 px-1 py-0.5 border border-gray-300 rounded text-center text-sm focus:ring-1 focus:ring-independence-500 focus:border-independence-500"
                     min={18}
                     max={120}

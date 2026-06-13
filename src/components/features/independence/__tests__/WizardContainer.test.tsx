@@ -91,17 +91,12 @@ describe("ExpensesStep - Custom Category", () => {
     )
 
     await waitFor(() => {
-      expect(
-        screen.getByPlaceholderText(/enter custom category name/i),
-      ).toBeInTheDocument()
+      expect(screen.getByPlaceholderText(/category name/i)).toBeInTheDocument()
     })
 
-    fireEvent.change(
-      screen.getByPlaceholderText(/enter custom category name/i),
-      {
-        target: { value: "Pet Insurance" },
-      },
-    )
+    fireEvent.change(screen.getByPlaceholderText(/category name/i), {
+      target: { value: "Pet Insurance" },
+    })
 
     act(() => {
       fireEvent.click(screen.getByRole("button", { name: /^add$/i }))
@@ -113,11 +108,12 @@ describe("ExpensesStep - Custom Category", () => {
     })
 
     // Find the input for the custom category (last one) and enter a value
-    const inputs = screen.getAllByRole("spinbutton")
+    // MathInput uses type="text" so role is "textbox", not "spinbutton"
+    const inputs = screen.getAllByRole("textbox")
     const customCategoryInput = inputs[inputs.length - 1]
 
-    // Verify initial value is empty (zero displays as empty)
-    expect(customCategoryInput).toHaveValue(null)
+    // Verify initial value is empty (MathInput shows "" for zero)
+    expect(customCategoryInput).toHaveValue("")
 
     // Change the value
     act(() => {
@@ -125,7 +121,7 @@ describe("ExpensesStep - Custom Category", () => {
     })
 
     // Verify the input value changed
-    expect(customCategoryInput).toHaveValue(75)
+    expect(customCategoryInput).toHaveValue("75")
 
     // Get form values and check
     expect(getValuesFn).not.toBeNull()

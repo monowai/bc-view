@@ -101,8 +101,8 @@ describe("IndependenceSettingsModal", () => {
   it("initializes with settings values", () => {
     render(<IndependenceSettingsModal {...defaultProps} />)
 
-    expect(screen.getByLabelText(/year of birth/i)).toHaveValue(1971)
-    expect(screen.getByLabelText(/target independence age/i)).toHaveValue(65)
-    expect(screen.getByLabelText(/life expectancy/i)).toHaveValue(90)
+    expect(screen.getByLabelText(/year of birth/i)).toHaveValue("1971")
+    expect(screen.getByLabelText(/target independence age/i)).toHaveValue("65")
+    expect(screen.getByLabelText(/life expectancy/i)).toHaveValue("90")
   })
 })

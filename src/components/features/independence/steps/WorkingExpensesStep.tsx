@@ -13,6 +13,7 @@ import { simpleFetcher } from "@utils/api/fetchHelper"
 import { WizardFormData, CategoryLabelsResponse } from "types/independence"
 import { wizardMessages } from "@lib/independence/messages"
 import Spinner from "@components/ui/Spinner"
+import MathInput from "@components/ui/MathInput"
 
 const msg = wizardMessages.steps.workingExpenses
 
@@ -132,7 +133,8 @@ export default function WorkingExpensesStep({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+      {/* Header */}
       <div>
         <h2 className="text-lg font-semibold text-gray-900 mb-1">
           {msg.title}
@@ -140,83 +142,109 @@ export default function WorkingExpensesStep({
         <p className="text-sm text-gray-600">{msg.description}</p>
       </div>
 
-      {(!isEditMode || totalMonthlyExpenses === 0) && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-start">
-          <i className="fas fa-check-circle text-green-600 mt-0.5 mr-2"></i>
-          <p className="text-sm text-green-700">{msg.skipHint}</p>
+      {/* Hero: Total */}
+      <div className="rounded-xl border border-independence-200 bg-independence-50 p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-independence-700">
+              {msg.totalLabel}
+            </p>
+            <p className="mt-0.5 text-xs text-independence-500 max-w-xs leading-relaxed">
+              Used to estimate how much your expenses might drop after
+              independence.
+            </p>
+          </div>
+          <div className="shrink-0 text-right">
+            <p className="text-3xl font-bold tabular-nums text-independence-800">
+              ${totalMonthlyExpenses.toLocaleString()}
+            </p>
+            <p className="text-xs text-independence-500 mt-0.5">per month</p>
+          </div>
         </div>
+      </div>
+
+      {(!isEditMode || totalMonthlyExpenses === 0) && (
+        <p className="text-xs text-gray-400">
+          <i className="fas fa-info-circle mr-1"></i>
+          {msg.skipHint}
+        </p>
       )}
 
-      <div className="space-y-3">
+      <div className="space-y-2">
+        <p className="text-xs text-gray-500">Adjust amounts by category:</p>
         {fields.map((field, index) => {
           const description = getCategoryDescription(field.categoryLabelId)
           const isCustom = isCustomCategory(field.categoryLabelId)
+          const amount = workingExpenses[index]?.monthlyAmount || 0
 
           return (
             <div
               key={field.id}
-              className="flex items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                amount > 0
+                  ? "bg-independence-50 border border-independence-100"
+                  : "bg-gray-50 border border-transparent hover:bg-gray-100"
+              }`}
             >
-              <div className="flex-1">
-                <div className="flex items-center">
-                  <span className="font-medium text-gray-900">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-gray-900 truncate">
                     {workingExpenses[index]?.categoryName || field.categoryName}
                   </span>
                   {isCustom && (
-                    <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
-                      Custom
-                    </span>
+                    <>
+                      <span className="shrink-0 text-xs bg-independence-100 text-independence-700 px-2 py-0.5 rounded-full">
+                        Custom
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => remove(index)}
+                        className="shrink-0 p-0.5 text-red-400 hover:text-red-600 rounded"
+                        title="Remove"
+                        aria-label="Remove custom category"
+                      >
+                        <i className="fas fa-times text-xs"></i>
+                      </button>
+                    </>
                   )}
                 </div>
                 {description && (
-                  <p className="text-sm text-gray-500 mt-0.5">{description}</p>
+                  <p className="text-xs text-gray-400 mt-0.5 truncate">
+                    {description}
+                  </p>
                 )}
               </div>
 
-              <div className="w-36">
+              <div className="shrink-0 w-32">
                 <div className="relative">
-                  <span className="absolute left-3 top-2.5 text-gray-500">
+                  <span className="absolute left-3 top-2.5 text-xs text-gray-400 pointer-events-none">
                     $
                   </span>
                   <Controller
                     name={`workingExpenses.${index}.monthlyAmount`}
                     control={control}
                     render={({ field: inputField }) => (
-                      <input
-                        type="number"
+                      <MathInput
+                        value={inputField.value || 0}
+                        onChange={(v) => {
+                          hasUserChanges.current = true
+                          inputField.onChange(v)
+                        }}
                         min={0}
                         step={50}
                         placeholder="0"
-                        value={inputField.value || ""}
-                        onChange={(e) => {
-                          hasUserChanges.current = true
-                          inputField.onChange(
-                            e.target.value === "" ? 0 : Number(e.target.value),
-                          )
-                        }}
-                        onBlur={inputField.onBlur}
-                        ref={inputField.ref}
-                        name={inputField.name}
-                        className={`
-                          w-full pl-8 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-right
-                          ${errors.workingExpenses?.[index]?.monthlyAmount ? "border-red-500" : "border-gray-300"}
-                        `}
+                        className={`w-full pl-7 pr-3 py-2 text-sm text-right border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 ${
+                          errors.workingExpenses?.[index]?.monthlyAmount
+                            ? "border-red-400"
+                            : amount > 0
+                              ? "border-independence-200 bg-white"
+                              : "border-gray-200 bg-white"
+                        }`}
                       />
                     )}
                   />
                 </div>
               </div>
-
-              {isCustom && (
-                <button
-                  type="button"
-                  onClick={() => remove(index)}
-                  className="ml-2 p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded"
-                  title="Remove custom category"
-                >
-                  <i className="fas fa-times"></i>
-                </button>
-              )}
             </div>
           )
         })}
@@ -228,27 +256,39 @@ export default function WorkingExpensesStep({
           </div>
         )}
 
-        {/* Add Custom Category */}
+        {errors.workingExpenses && !Array.isArray(errors.workingExpenses) && (
+          <p className="mt-2 text-sm text-red-600">
+            {errors.workingExpenses.message}
+          </p>
+        )}
+      </div>
+
+      {/* Add custom category */}
+      <div className="mt-1">
         {showAddCustom ? (
-          <div className="flex items-center space-x-2 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <div className="flex items-center gap-2 p-3 bg-independence-50 rounded-lg border border-independence-200">
             <input
               type="text"
               value={customCategoryName}
               onChange={(e) => setCustomCategoryName(e.target.value)}
-              placeholder="Enter custom category name..."
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Category name (e.g. Golf, Travel)"
+              className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault()
                   handleAddCustomCategory()
                 }
+                if (e.key === "Escape") {
+                  setShowAddCustom(false)
+                  setCustomCategoryName("")
+                }
               }}
             />
             <button
               type="button"
               onClick={handleAddCustomCategory}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="px-3 py-1.5 text-sm bg-independence-600 text-white rounded-lg hover:bg-independence-700"
             >
               Add
             </button>
@@ -258,7 +298,7 @@ export default function WorkingExpensesStep({
                 setShowAddCustom(false)
                 setCustomCategoryName("")
               }}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              className="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700"
             >
               Cancel
             </button>
@@ -267,30 +307,12 @@ export default function WorkingExpensesStep({
           <button
             type="button"
             onClick={() => setShowAddCustom(true)}
-            className="w-full py-3 border-2 border-dashed border-blue-300 text-blue-600 rounded-lg hover:bg-blue-50 hover:border-blue-400 transition-colors"
+            className="w-full py-2.5 text-sm border-2 border-dashed border-gray-200 text-gray-400 rounded-lg hover:border-independence-300 hover:text-independence-600 hover:bg-independence-50 transition-colors"
           >
-            <i className="fas fa-plus mr-2"></i>
-            Add Custom Category
+            <i className="fas fa-plus mr-1.5"></i>
+            Add custom category
           </button>
         )}
-
-        {errors.workingExpenses && !Array.isArray(errors.workingExpenses) && (
-          <p className="text-sm text-red-600">
-            {errors.workingExpenses.message}
-          </p>
-        )}
-      </div>
-
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center">
-            <i className="fas fa-calculator text-blue-600 mr-3"></i>
-            <span className="font-medium text-blue-800">{msg.totalLabel}</span>
-          </div>
-          <span className="text-xl font-bold text-blue-700">
-            ${totalMonthlyExpenses.toLocaleString()}
-          </span>
-        </div>
       </div>
     </div>
   )

@@ -99,33 +99,32 @@ describe("EditPlanDetailsModal", () => {
   it("initializes form with plan values", () => {
     render(<EditPlanDetailsModal {...defaultProps} />)
 
-    const inputs = screen.getAllByRole("spinbutton") as HTMLInputElement[]
-    // Pension
-    expect(inputs[0]).toHaveValue(1000)
-    // Government Benefits
-    expect(inputs[1]).toHaveValue(500)
-    // Benefits Start Age (empty by default)
-    expect(inputs[2]).toHaveValue(null)
-    // Other Income
-    expect(inputs[3]).toHaveValue(200)
-    // Monthly Expenses
-    expect(inputs[4]).toHaveValue(5000)
-    // Equity Return Rate (converted to %) - use closeTo for floating point
-    expect(parseFloat(inputs[5].value)).toBeCloseTo(7, 1)
-    // Cash Return Rate (converted to %)
-    expect(parseFloat(inputs[6].value)).toBeCloseTo(3, 1)
-    // Housing Return Rate (converted to %)
-    expect(parseFloat(inputs[7].value)).toBeCloseTo(4, 1)
-    // Equity Allocation (converted to %)
-    expect(parseFloat(inputs[8].value)).toBeCloseTo(50, 1)
-    // Cash Allocation (converted to %)
-    expect(parseFloat(inputs[9].value)).toBeCloseTo(30, 1)
-    // Housing Allocation (converted to %)
-    expect(parseFloat(inputs[10].value)).toBeCloseTo(20, 1)
-    // Inflation Rate (converted to %)
-    expect(parseFloat(inputs[11].value)).toBeCloseTo(2.5, 1)
-    // Target Balance
-    expect(inputs[12]).toHaveValue(100000)
+    // PrivacyMoneyInput fields remain type="number" (spinbutton)
+    const spinbuttons = screen.getAllByRole("spinbutton") as HTMLInputElement[]
+    expect(spinbuttons[0]).toHaveValue(1000) // Pension
+    expect(spinbuttons[1]).toHaveValue(500) // Government Benefits
+    expect(spinbuttons[2]).toHaveValue(200) // Other Income
+    expect(spinbuttons[3]).toHaveValue(5000) // Monthly Expenses
+    expect(spinbuttons[4]).toHaveValue(100000) // Target Balance
+
+    // Rate/allocation/age fields are now MathInput (type="text" textbox)
+    const textboxes = screen.getAllByRole("textbox") as HTMLInputElement[]
+    // [0] = benefitsStartAge (empty → "")
+    expect(textboxes[0].value).toBe("")
+    // [1] = equityReturnRate
+    expect(parseFloat(textboxes[1].value)).toBeCloseTo(7, 1)
+    // [2] = cashReturnRate
+    expect(parseFloat(textboxes[2].value)).toBeCloseTo(3, 1)
+    // [3] = housingReturnRate
+    expect(parseFloat(textboxes[3].value)).toBeCloseTo(4, 1)
+    // [4] = equityAllocation
+    expect(parseFloat(textboxes[4].value)).toBeCloseTo(50, 1)
+    // [5] = cashAllocation
+    expect(parseFloat(textboxes[5].value)).toBeCloseTo(30, 1)
+    // [6] = housingAllocation
+    expect(parseFloat(textboxes[6].value)).toBeCloseTo(20, 1)
+    // [7] = inflationRate
+    expect(parseFloat(textboxes[7].value)).toBeCloseTo(2.5, 1)
   })
 
   it("displays net monthly need calculation", () => {
@@ -188,8 +187,8 @@ describe("EditPlanDetailsModal", () => {
   it("converts inflation rate from percentage to decimal on apply", () => {
     render(<EditPlanDetailsModal {...defaultProps} />)
 
-    // Change inflation rate (index 11 now - after benefits start age + 3 allocation fields)
-    const inflationInput = screen.getAllByRole("spinbutton")[11]
+    // inflationRate is now a textbox (MathInput) at index 7
+    const inflationInput = screen.getAllByRole("textbox")[7]
     fireEvent.change(inflationInput, { target: { value: "3.5" } })
 
     const applyButton = screen.getByText("Apply")
@@ -205,8 +204,8 @@ describe("EditPlanDetailsModal", () => {
   it("sets targetBalance to undefined when empty", () => {
     render(<EditPlanDetailsModal {...defaultProps} />)
 
-    // Clear target balance (index 12 now - after benefits start age + 3 allocation fields)
-    const targetInput = screen.getAllByRole("spinbutton")[12]
+    // targetBalance is still a PrivacyMoneyInput (spinbutton) at index 4
+    const targetInput = screen.getAllByRole("spinbutton")[4]
     fireEvent.change(targetInput, { target: { value: "" } })
 
     const applyButton = screen.getByText("Apply")

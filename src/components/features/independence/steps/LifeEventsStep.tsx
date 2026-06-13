@@ -96,14 +96,12 @@ export default function LifeEventsStep({
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Age
             </label>
-            <input
-              type="number"
-              value={newEvent.age || ""}
-              onChange={(e) =>
-                setNewEvent({ ...newEvent, age: parseInt(e.target.value) })
-              }
+            <MathInput
+              value={newEvent.age || 0}
+              onChange={(v) => setNewEvent({ ...newEvent, age: Math.round(v) })}
               min={18}
               max={120}
+              placeholder="70"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
             />
           </div>
@@ -234,14 +232,10 @@ export default function LifeEventsStep({
                           <label className="block text-xs text-gray-500 mb-1">
                             Age
                           </label>
-                          <input
-                            type="number"
+                          <MathInput
                             value={event.age}
-                            onChange={(e) =>
-                              setValue(
-                                `lifeEvents.${index}.age`,
-                                parseInt(e.target.value) || 0,
-                              )
+                            onChange={(v) =>
+                              setValue(`lifeEvents.${index}.age`, Math.round(v))
                             }
                             min={18}
                             max={120}

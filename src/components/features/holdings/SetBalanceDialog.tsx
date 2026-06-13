@@ -331,7 +331,9 @@ export default function SetBalanceDialog({
             </span>
           </div>
           <p className="text-xs text-amber-700 mt-1">
-            {"Records a BALANCE trn — no cash impact, overwrites prior snapshot."}
+            {
+              "Records a BALANCE trn — no cash impact, overwrites prior snapshot."
+            }
           </p>
         </div>
       )}

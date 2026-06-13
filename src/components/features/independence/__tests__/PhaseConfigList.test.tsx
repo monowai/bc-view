@@ -78,8 +78,8 @@ describe("PhaseConfigList", () => {
 
     const fromInputs = screen.getAllByLabelText(/from age/)
     expect(fromInputs).toHaveLength(2)
-    expect(fromInputs[0]).toHaveValue(60)
-    expect(fromInputs[1]).toHaveValue(75)
+    expect(fromInputs[0]).toHaveValue("60")
+    expect(fromInputs[1]).toHaveValue("75")
   })
 
   it("shows 'end' for last phase toAge", () => {

@@ -96,10 +96,10 @@ describe("AssumptionsStep", () => {
       screen.getByRole("button", { name: /return assumptions/i }),
     )
 
-    expect(screen.getByLabelText(/equity return rate/i)).toHaveValue(8)
-    expect(screen.getByLabelText(/cash return rate/i)).toHaveValue(3)
-    expect(screen.getByLabelText(/housing return rate/i)).toHaveValue(4)
-    expect(screen.getByLabelText(/inflation rate/i)).toHaveValue(2.5)
+    expect(screen.getByLabelText(/equity return rate/i)).toHaveValue("8")
+    expect(screen.getByLabelText(/cash return rate/i)).toHaveValue("3")
+    expect(screen.getByLabelText(/housing return rate/i)).toHaveValue("4")
+    expect(screen.getByLabelText(/inflation rate/i)).toHaveValue("2.5")
   })
 
   it("shows target balance field when accordion is opened", async () => {
@@ -112,7 +112,7 @@ describe("AssumptionsStep", () => {
     await userEvent.click(screen.getByRole("button", { name: /legacy/i }))
 
     expect(
-      screen.getByRole("spinbutton", { name: /target amount/i }),
+      screen.getByRole("textbox", { name: /target amount/i }),
     ).toBeInTheDocument()
   })
 

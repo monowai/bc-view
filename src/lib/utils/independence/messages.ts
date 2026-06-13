@@ -142,11 +142,13 @@ export const wizardMessages = {
     },
     expenses: {
       name: "Expenses",
-      title: "Projected Monthly Expenses after Independence",
-      description: "Define your expected monthly expenses during independence.",
-      totalLabel: "Total Monthly Expenses",
-      skipHint:
-        "You can add expenses later — click Next to continue with defaults.",
+      title: "What will you spend each month after independence?",
+      description:
+        "This is the most important number in your plan. It drives your FI target and how long your savings last. Work in categories to check nothing is missing — the total is what gets used in projections.",
+      totalLabel: "Total monthly expenses",
+      totalHelper:
+        "Your retirement budget. Every dollar here raises the wealth you need to retire.",
+      skipHint: "Leave at zero to continue — you can refine this later.",
     },
   },
   fields: {

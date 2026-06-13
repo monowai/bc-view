@@ -10,6 +10,7 @@ import { WizardFormData } from "types/independence"
 import { AllocationResponse } from "types/beancounter"
 import { wizardMessages } from "@lib/independence/messages"
 import Spinner from "@components/ui/Spinner"
+import MathInput from "@components/ui/MathInput"
 
 const msg = wizardMessages.steps.assumptions
 const fields = wizardMessages.fields
@@ -238,18 +239,14 @@ export default function AssumptionsStep({
                   name="equityAllocation"
                   control={control}
                   render={({ field }) => (
-                    <input
-                      {...field}
+                    <MathInput
                       id="equityAllocation"
-                      type="number"
+                      value={field.value ?? 0}
+                      onChange={field.onChange}
                       min={0}
                       max={100}
                       step={5}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
-                      className={`
-                        w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
-                        ${errors.equityAllocation ? "border-red-500" : "border-gray-300"}
-                      `}
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 ${errors.equityAllocation ? "border-red-500" : "border-gray-300"}`}
                     />
                   )}
                 />
@@ -271,18 +268,14 @@ export default function AssumptionsStep({
                   name="cashAllocation"
                   control={control}
                   render={({ field }) => (
-                    <input
-                      {...field}
+                    <MathInput
                       id="cashAllocation"
-                      type="number"
+                      value={field.value ?? 0}
+                      onChange={field.onChange}
                       min={0}
                       max={100}
                       step={5}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
-                      className={`
-                        w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
-                        ${errors.cashAllocation ? "border-red-500" : "border-gray-300"}
-                      `}
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 ${errors.cashAllocation ? "border-red-500" : "border-gray-300"}`}
                     />
                   )}
                 />
@@ -304,18 +297,14 @@ export default function AssumptionsStep({
                   name="housingAllocation"
                   control={control}
                   render={({ field }) => (
-                    <input
-                      {...field}
+                    <MathInput
                       id="housingAllocation"
-                      type="number"
+                      value={field.value ?? 0}
+                      onChange={field.onChange}
                       min={0}
                       max={100}
                       step={5}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
-                      className={`
-                        w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
-                        ${errors.housingAllocation ? "border-red-500" : "border-gray-300"}
-                      `}
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 ${errors.housingAllocation ? "border-red-500" : "border-gray-300"}`}
                     />
                   )}
                 />
@@ -411,18 +400,14 @@ export default function AssumptionsStep({
                   name="equityReturnRate"
                   control={control}
                   render={({ field }) => (
-                    <input
-                      {...field}
+                    <MathInput
                       id="equityReturnRate"
-                      type="number"
+                      value={field.value ?? 0}
+                      onChange={field.onChange}
                       min={0}
                       max={30}
                       step={0.5}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
-                      className={`
-                        w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
-                        ${errors.equityReturnRate ? "border-red-500" : "border-gray-300"}
-                      `}
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 ${errors.equityReturnRate ? "border-red-500" : "border-gray-300"}`}
                     />
                   )}
                 />
@@ -444,18 +429,14 @@ export default function AssumptionsStep({
                   name="cashReturnRate"
                   control={control}
                   render={({ field }) => (
-                    <input
-                      {...field}
+                    <MathInput
                       id="cashReturnRate"
-                      type="number"
+                      value={field.value ?? 0}
+                      onChange={field.onChange}
                       min={0}
                       max={20}
                       step={0.5}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
-                      className={`
-                        w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
-                        ${errors.cashReturnRate ? "border-red-500" : "border-gray-300"}
-                      `}
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 ${errors.cashReturnRate ? "border-red-500" : "border-gray-300"}`}
                     />
                   )}
                 />
@@ -477,18 +458,14 @@ export default function AssumptionsStep({
                   name="housingReturnRate"
                   control={control}
                   render={({ field }) => (
-                    <input
-                      {...field}
+                    <MathInput
                       id="housingReturnRate"
-                      type="number"
+                      value={field.value ?? 0}
+                      onChange={field.onChange}
                       min={0}
                       max={20}
                       step={0.5}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
-                      className={`
-                        w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
-                        ${errors.housingReturnRate ? "border-red-500" : "border-gray-300"}
-                      `}
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 ${errors.housingReturnRate ? "border-red-500" : "border-gray-300"}`}
                     />
                   )}
                 />
@@ -498,9 +475,8 @@ export default function AssumptionsStep({
                   </p>
                 ) : (
                   <p className="mt-1 text-xs text-gray-500">
-                    Annual capital appreciation applied to your property
-                    balance — runs independently from your liquid portfolio
-                    return.
+                    Annual capital appreciation applied to your property balance
+                    — runs independently from your liquid portfolio return.
                   </p>
                 )}
               </div>
@@ -516,18 +492,14 @@ export default function AssumptionsStep({
                   name="inflationRate"
                   control={control}
                   render={({ field }) => (
-                    <input
-                      {...field}
+                    <MathInput
                       id="inflationRate"
-                      type="number"
+                      value={field.value ?? 0}
+                      onChange={field.onChange}
                       min={0}
                       max={10}
                       step={0.5}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
-                      className={`
-                        w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
-                        ${errors.inflationRate ? "border-red-500" : "border-gray-300"}
-                      `}
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 ${errors.inflationRate ? "border-red-500" : "border-gray-300"}`}
                     />
                   )}
                 />
@@ -586,23 +558,14 @@ export default function AssumptionsStep({
                   name="targetBalance"
                   control={control}
                   render={({ field }) => (
-                    <input
-                      {...field}
+                    <MathInput
                       id="targetBalance"
-                      type="number"
+                      value={field.value ?? 0}
+                      onChange={(v) => field.onChange(v || undefined)}
                       min={0}
                       step={10000}
-                      value={field.value || ""}
-                      onChange={(e) =>
-                        field.onChange(
-                          e.target.value ? Number(e.target.value) : undefined,
-                        )
-                      }
                       placeholder={msg.targetBalancePlaceholder}
-                      className={`
-                        w-full pl-8 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500
-                        ${errors.targetBalance ? "border-red-500" : "border-gray-300"}
-                      `}
+                      className={`w-full pl-8 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 ${errors.targetBalance ? "border-red-500" : "border-gray-300"}`}
                     />
                   )}
                 />
