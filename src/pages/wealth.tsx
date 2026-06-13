@@ -235,12 +235,12 @@ function WealthDashboard(): React.ReactElement {
         <Head>
           <title>Net Worth | Holdsworth</title>
         </Head>
-        <div className="min-h-screen bg-linear-to-br from-slate-50 to-blue-50 py-6">
+        <div className="min-h-screen bg-gray-50 py-6">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             {/* Hero banner */}
-            <div className="bg-linear-to-r from-blue-600 to-blue-700 rounded-2xl p-8 text-center text-white shadow-lg mb-8">
+            <div className="bg-blue-600 rounded-2xl p-8 text-center text-white shadow-lg mb-8">
               <h1 className="text-3xl font-bold mb-2">Net Worth</h1>
-              <p className="text-blue-100">
+              <p className="text-white/80">
                 {
                   "Add a portfolio to see your net worth across brokers, assets, and currencies"
                 }
@@ -300,7 +300,7 @@ function WealthDashboard(): React.ReactElement {
         <title>Net Worth | Holdsworth</title>
       </Head>
 
-      <div className="min-h-screen bg-linear-to-br from-slate-50 to-blue-50 py-6">
+      <div className="min-h-screen bg-gray-50 py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Hero — Net Worth */}
           <WealthHeroSection
