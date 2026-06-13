@@ -1,0 +1,287 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-12T00:00:00Z",
+  "title": "Design System: bc-view",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Action Blue",
+        "canonical": "#2563eb",
+        "tonalRamp": [
+          "#172554",
+          "#1e3a8a",
+          "#1d4ed8",
+          "#2563eb",
+          "#3b82f6",
+          "#60a5fa",
+          "#93c5fd",
+          "#dbeafe"
+        ]
+      },
+      "wealth": {
+        "role": "secondary",
+        "displayName": "Wealth Blue",
+        "canonical": "#3b82f6",
+        "tonalRamp": [
+          "#1e3a8a",
+          "#1d4ed8",
+          "#2563eb",
+          "#3b82f6",
+          "#60a5fa",
+          "#93c5fd",
+          "#bfdbfe",
+          "#eff6ff"
+        ]
+      },
+      "independence": {
+        "role": "secondary",
+        "displayName": "Independence Orange",
+        "canonical": "#f97316",
+        "tonalRamp": [
+          "#7c2d12",
+          "#9a3412",
+          "#c2410c",
+          "#ea580c",
+          "#f97316",
+          "#fdba74",
+          "#fed7aa",
+          "#fff7ed"
+        ]
+      },
+      "invest": {
+        "role": "secondary",
+        "displayName": "Invest Emerald",
+        "canonical": "#10b981",
+        "tonalRamp": [
+          "#064e3b",
+          "#047857",
+          "#059669",
+          "#10b981",
+          "#34d399",
+          "#6ee7b7",
+          "#a7f3d0",
+          "#ecfdf5"
+        ]
+      },
+      "gain": {
+        "role": "tertiary",
+        "displayName": "Gain Green",
+        "canonical": "#059669",
+        "tonalRamp": [
+          "#064e3b",
+          "#065f46",
+          "#047857",
+          "#059669",
+          "#10b981",
+          "#6ee7b7",
+          "#a7f3d0",
+          "#ecfdf5"
+        ]
+      },
+      "loss": {
+        "role": "tertiary",
+        "displayName": "Loss Red",
+        "canonical": "#dc2626",
+        "tonalRamp": [
+          "#7f1d1d",
+          "#991b1b",
+          "#b91c1c",
+          "#dc2626",
+          "#ef4444",
+          "#f87171",
+          "#fecaca",
+          "#fef2f2"
+        ]
+      },
+      "page-bg": {
+        "role": "neutral",
+        "displayName": "Page Field",
+        "canonical": "#f3f4f6",
+        "tonalRamp": [
+          "#111827",
+          "#1f2937",
+          "#374151",
+          "#6b7280",
+          "#9ca3af",
+          "#d1d5db",
+          "#e5e7eb",
+          "#f3f4f6"
+        ]
+      },
+      "header-bg": {
+        "role": "neutral",
+        "displayName": "Slate Spine",
+        "canonical": "#1f2937",
+        "tonalRamp": [
+          "#030712",
+          "#111827",
+          "#1f2937",
+          "#374151",
+          "#4b5563",
+          "#6b7280",
+          "#9ca3af",
+          "#d1d5db"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Page-level hero figure or title — net worth, plan name. One per page."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Default running text; cap prose at 65–75ch."
+      },
+      "data": {
+        "displayName": "Data (Mono)",
+        "purpose": "All currency, percentages, quantities, prices — JetBrains Mono with tabular-nums."
+      }
+    },
+    "shadows": [
+      {
+        "name": "action-rest",
+        "value": "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+        "purpose": "The only resting shadow — lifts the single primary CTA off the surface."
+      },
+      {
+        "name": "transient-lift",
+        "value": "0 2px 10px rgb(0 0 0 / 0.1)",
+        "purpose": "Flyout menus and toasts floating above content while active."
+      }
+    ],
+    "motion": [
+      {
+        "name": "state-transition",
+        "value": "150ms ease-out",
+        "purpose": "Default for hover/focus/background state changes (buttons, rows, inputs)."
+      },
+      {
+        "name": "toast-slide-up",
+        "value": "slide-up 0.3s ease-out",
+        "purpose": "Milestone toast entrance — opacity 0→1, translateY(1rem)→0."
+      }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single primary call-to-action per region. Action Blue, soft corners, the only resting shadow.",
+      "html": "<button class=\"ds-btn-primary\">Add transaction</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; padding: 10px 24px; border-radius: 8px; background: #2563eb; color: #fff; font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.875rem; font-weight: 600; border: none; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); cursor: pointer; transition: background-color 150ms ease-out; } .ds-btn-primary:hover { background: #1d4ed8; } .ds-btn-primary:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }"
+    },
+    {
+      "name": "Primary Button (Small)",
+      "kind": "button",
+      "refersTo": "button-primary-sm",
+      "description": "Compact primary action for toolbars and inline contexts.",
+      "html": "<button class=\"ds-btn-primary-sm\">Save</button>",
+      "css": ".ds-btn-primary-sm { display: inline-flex; align-items: center; padding: 6px 16px; border-radius: 6px; background: #2563eb; color: #fff; font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.875rem; font-weight: 600; border: none; cursor: pointer; transition: background-color 150ms ease-out; } .ds-btn-primary-sm:hover { background: #1d4ed8; } .ds-btn-primary-sm:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Default field — white fill, thin gray border, 40px height to align with react-select.",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"Search assets\" />",
+      "css": ".ds-input { height: 40px; width: 100%; padding: 0 12px; border: 1px solid #e5e7eb; border-radius: 6px; background: #fff; color: #111827; font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.875rem; transition: border-color 150ms ease-out, box-shadow 150ms ease-out; } .ds-input::placeholder { color: #6b7280; } .ds-input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgb(37 99 235 / 0.15); }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "White surface on the gray page field. Flat at rest; separation via tonal step + optional 1px border.",
+      "html": "<div class=\"ds-card\"><h3 class=\"ds-card-title\">Portfolio value</h3><p class=\"ds-card-figure\">$248,310.55</p></div>",
+      "css": ".ds-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; } .ds-card-title { margin: 0 0 4px; font-family: 'DM Sans', system-ui, sans-serif; font-size: 1.125rem; font-weight: 600; color: #111827; } .ds-card-figure { margin: 0; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 1.5rem; font-weight: 600; font-variant-numeric: tabular-nums; color: #111827; }"
+    },
+    {
+      "name": "Info Alert",
+      "kind": "custom",
+      "refersTo": "alert-info",
+      "description": "Full-bordered tint block — never a side-stripe. Four hue variants on the 50/200/700 ramp.",
+      "html": "<div class=\"ds-alert-info\">Prices last updated 18 minutes ago.</div>",
+      "css": ".ds-alert-info { border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px; background: #eff6ff; color: #1d4ed8; font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.875rem; }"
+    },
+    {
+      "name": "Gain / Loss Figure",
+      "kind": "custom",
+      "refersTo": "data",
+      "description": "Monetary delta — mono, tabular, hue paired with a directional arrow so it never relies on color alone.",
+      "html": "<span class=\"ds-gain\">▲ +$1,204.18</span> <span class=\"ds-loss\">▼ −$312.40</span>",
+      "css": ".ds-gain, .ds-loss { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.875rem; font-weight: 500; font-variant-numeric: tabular-nums; } .ds-gain { color: #059669; } .ds-loss { color: #dc2626; }"
+    },
+    {
+      "name": "Empty State",
+      "kind": "custom",
+      "refersTo": "card",
+      "description": "Teaching empty state — faint icon, muted title, optional description and action. Never 'nothing here'.",
+      "html": "<div class=\"ds-empty\"><div class=\"ds-empty-icon\">▢</div><p class=\"ds-empty-title\">No holdings yet</p><p class=\"ds-empty-desc\">Import a CSV or add your first transaction to start tracking value.</p></div>",
+      "css": ".ds-empty { text-align: center; padding: 48px 16px; font-family: 'DM Sans', system-ui, sans-serif; } .ds-empty-icon { font-size: 2.25rem; color: #d1d5db; margin-bottom: 16px; } .ds-empty-title { margin: 0; font-size: 1.125rem; color: #6b7280; } .ds-empty-desc { margin: 4px 0 0; font-size: 0.875rem; color: #9ca3af; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Almanac",
+    "overview": "bc-view is reference-grade. Like a good almanac, it earns trust by being right, plain, and well-ordered — charts, tables, and plain language that demystify wealth across a long horizon. The page is a quiet gray field on which white surfaces hold the figures; a dark slate header frames the work like the spine of the volume. Numbers are set in a monospace face so columns align to the decimal and the eye trusts them. The personality is calm, trustworthy, precise, with a warm and reassuring hand on the components — generous padding, soft corners, teaching empty states. Color is never ornament: it is status. It rejects the legacy-brokerage clutter, crypto/meme hype, and spreadsheet/enterprise intimidation.",
+    "keyCharacteristics": [
+      "Tonal layering, not shadows: gray page → white surface → slate header.",
+      "Monospace numerals; tabular alignment is non-negotiable for money.",
+      "Semantic color only — gain/loss and capability domains. Never decorative.",
+      "Warm, teaching defaults; depth available but never forced.",
+      "One primary blue CTA per region; the accent is rare on purpose."
+    ],
+    "rules": [
+      {
+        "name": "The Status-Only Color Rule",
+        "body": "Color carries meaning or it does not appear. Gain/loss hues, capability hues, and the one Action Blue are the entire working palette. No decorative gradients, no tinted backgrounds for warmth.",
+        "section": "colors"
+      },
+      {
+        "name": "The Colorblind Honesty Rule",
+        "body": "Gain and loss must never rely on hue alone. Always pair the green/red with a sign, arrow, or label.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tabular Numerals Rule",
+        "body": "Every figure that lives in a column is set in JetBrains Mono with tabular-nums. Money that doesn't align to the decimal reads as untrustworthy.",
+        "section": "typography"
+      },
+      {
+        "name": "The One Sans Rule",
+        "body": "DM Sans is the only proportional face. Never introduce a second sans for display; weight and size carry hierarchy.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-By-Default Rule",
+        "body": "Surfaces are flat at rest. Elevation is earned by interaction (hover, focus, float), not granted at rest.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do set every figure in JetBrains Mono with tabular-nums.",
+      "Do keep one Action Blue (#2563eb) CTA per region; the accent's rarity is its power.",
+      "Do convey depth with the gray→white→slate tonal layers; keep cards flat at rest.",
+      "Do use capability hues (Wealth #3b82f6 / Independence #f97316 / Invest #10b981) to signal which domain a screen belongs to.",
+      "Do pair gain/loss color with a sign or arrow so colorblind users read direction.",
+      "Do write empty states that teach the interface; give them an icon, a title, and a next action.",
+      "Do keep body text at Muted (#6b7280) or darker — never Faint for paragraphs (contrast floor 4.5:1)."
+    ],
+    "donts": [
+      "Don't look like a legacy bank / brokerage: no gray-on-gray clutter, no density without a clear primary figure.",
+      "Don't look like crypto / meme hype: no neon gradients, no gamified dopamine, no confetti, no casino energy.",
+      "Don't look like a spreadsheet / enterprise grid: every dense table still needs hierarchy and a scannable lead figure.",
+      "Don't use border-left/border-right > 1px as a colored accent stripe on cards or alerts.",
+      "Don't use gradient text or decorative glassmorphism anywhere.",
+      "Don't add a second proportional sans for display — DM Sans only.",
+      "Don't apply color decoratively; if it doesn't mean gain/loss, a capability domain, or the action, it doesn't appear.",
+      "Don't introduce fluid clamp() heading sizes; product UI uses the fixed rem scale."
+    ]
+  }
+}
