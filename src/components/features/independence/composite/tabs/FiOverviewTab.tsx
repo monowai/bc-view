@@ -9,8 +9,8 @@ import {
   Tooltip as ChartTooltip,
   ReferenceLine,
   ReferenceArea,
-  ResponsiveContainer,
 } from "recharts"
+import ChartFrame from "@components/features/independence/ChartFrame"
 import Spinner from "@components/ui/Spinner"
 import Alert from "@components/ui/Alert"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
@@ -383,174 +383,172 @@ export default function FiOverviewTab(): React.ReactElement | null {
           </div>
         </div>
 
-        <div className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart
-              data={chartData}
-              margin={{ top: 4, right: 16, bottom: 20, left: 0 }}
-            >
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="#f1f5f9"
-                vertical={false}
-              />
-              <XAxis
-                dataKey="age"
-                tick={{ fontSize: 11, fill: "#94a3b8" }}
-                tickLine={false}
-                axisLine={false}
-                label={{
-                  value: "Age",
-                  position: "insideBottom",
-                  offset: -10,
-                  fontSize: 11,
-                  fill: "#94a3b8",
-                }}
-              />
-              <YAxis
-                tickFormatter={hideValues ? () => "***" : fmtAxis}
-                tick={{ fontSize: 11, fill: "#94a3b8" }}
-                tickLine={false}
-                axisLine={false}
-                width={54}
-                domain={[0, yMax]}
-              />
-              <ChartTooltip
-                formatter={(val: any, name: any) => {
-                  if (hideValues) return [HIDDEN_VALUE, name ?? ""]
-                  const n = typeof val === "number" ? val : 0
-                  return [fmtShort(n), name ?? ""]
-                }}
-                labelFormatter={(age) => `Age ${age}`}
-                contentStyle={{
-                  fontSize: 12,
-                  border: "1px solid #e2e8f0",
-                  borderRadius: 8,
-                  boxShadow: "0 4px 6px -1px rgba(0,0,0,.08)",
-                  padding: "6px 10px",
-                }}
-              />
+        <ChartFrame heightClass="h-64 sm:h-80">
+          <ComposedChart
+            data={chartData}
+            margin={{ top: 4, right: 16, bottom: 20, left: 0 }}
+          >
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="#f1f5f9"
+              vertical={false}
+            />
+            <XAxis
+              dataKey="age"
+              tick={{ fontSize: 11, fill: "#94a3b8" }}
+              tickLine={false}
+              axisLine={false}
+              label={{
+                value: "Age",
+                position: "insideBottom",
+                offset: -10,
+                fontSize: 11,
+                fill: "#94a3b8",
+              }}
+            />
+            <YAxis
+              tickFormatter={hideValues ? () => "***" : fmtAxis}
+              tick={{ fontSize: 11, fill: "#94a3b8" }}
+              tickLine={false}
+              axisLine={false}
+              width={54}
+              domain={[0, yMax]}
+            />
+            <ChartTooltip
+              formatter={(val: any, name: any) => {
+                if (hideValues) return [HIDDEN_VALUE, name ?? ""]
+                const n = typeof val === "number" ? val : 0
+                return [fmtShort(n), name ?? ""]
+              }}
+              labelFormatter={(age) => `Age ${age}`}
+              contentStyle={{
+                fontSize: 12,
+                border: "1px solid #e2e8f0",
+                borderRadius: 8,
+                boxShadow: "0 4px 6px -1px rgba(0,0,0,.08)",
+                padding: "6px 10px",
+              }}
+            />
 
-              {/* MC outer band p10–p90 */}
-              {hasMc && (
-                <>
-                  <Area
-                    type="monotone"
-                    dataKey="p10Base"
-                    fill="transparent"
-                    stroke="none"
-                    stackId="outer"
-                    legendType="none"
-                    isAnimationActive={false}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="outerWidth"
-                    fill="rgba(34,197,94,0.09)"
-                    stroke="none"
-                    stackId="outer"
-                    legendType="none"
-                    isAnimationActive={false}
-                    name="p10–p90"
-                  />
-                  {/* MC inner band p25–p75 */}
-                  <Area
-                    type="monotone"
-                    dataKey="p25Base"
-                    fill="transparent"
-                    stroke="none"
-                    stackId="inner"
-                    legendType="none"
-                    isAnimationActive={false}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="innerWidth"
-                    fill="rgba(34,197,94,0.15)"
-                    stroke="none"
-                    stackId="inner"
-                    legendType="none"
-                    isAnimationActive={false}
-                    name="p25–p75"
-                  />
-                  {/* MC p50 median trace */}
-                  <Line
-                    type="monotone"
-                    dataKey="p50"
-                    stroke="rgba(34,197,94,0.55)"
-                    strokeWidth={1.5}
-                    strokeDasharray="5 4"
-                    dot={false}
-                    isAnimationActive={false}
-                    name="Median (MC)"
-                  />
-                </>
-              )}
-
-              {/* Post-FI success zone */}
-              {fiCrossingAge && (
-                <ReferenceArea
-                  x1={fiCrossingAge}
-                  fill="rgba(249,115,22,0.04)"
-                  strokeOpacity={0}
+            {/* MC outer band p10–p90 */}
+            {hasMc && (
+              <>
+                <Area
+                  type="monotone"
+                  dataKey="p10Base"
+                  fill="transparent"
+                  stroke="none"
+                  stackId="outer"
+                  legendType="none"
+                  isAnimationActive={false}
                 />
-              )}
-
-              {/* FI target reference line */}
-              {fiNumber > 0 && (
-                <ReferenceLine
-                  y={fiNumber}
-                  stroke="#f97316"
-                  strokeDasharray="6 4"
+                <Area
+                  type="monotone"
+                  dataKey="outerWidth"
+                  fill="rgba(34,197,94,0.09)"
+                  stroke="none"
+                  stackId="outer"
+                  legendType="none"
+                  isAnimationActive={false}
+                  name="p10–p90"
+                />
+                {/* MC inner band p25–p75 */}
+                <Area
+                  type="monotone"
+                  dataKey="p25Base"
+                  fill="transparent"
+                  stroke="none"
+                  stackId="inner"
+                  legendType="none"
+                  isAnimationActive={false}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="innerWidth"
+                  fill="rgba(34,197,94,0.15)"
+                  stroke="none"
+                  stackId="inner"
+                  legendType="none"
+                  isAnimationActive={false}
+                  name="p25–p75"
+                />
+                {/* MC p50 median trace */}
+                <Line
+                  type="monotone"
+                  dataKey="p50"
+                  stroke="rgba(34,197,94,0.55)"
                   strokeWidth={1.5}
-                  label={{
-                    value: hideValues
-                      ? "FI Target"
-                      : `FI Target: ${fmtShort(fiNumber)}`,
-                    position: "insideTopRight",
-                    fontSize: 11,
-                    fill: "#f97316",
-                    fontWeight: 600,
-                  }}
+                  strokeDasharray="5 4"
+                  dot={false}
+                  isAnimationActive={false}
+                  name="Median (MC)"
                 />
-              )}
+              </>
+            )}
 
-              {/* Vertical crosshair at FI crossing age */}
-              {fiCrossingAge && (
-                <ReferenceLine
-                  x={fiCrossingAge}
-                  stroke="#94a3b8"
-                  strokeDasharray="4 3"
-                  strokeWidth={1}
-                  label={{
-                    value: `Age ${fiCrossingAge}`,
-                    position: "insideTopLeft",
-                    fontSize: 11,
-                    fill: "#64748b",
-                    fontWeight: 500,
-                  }}
-                />
-              )}
+            {/* Post-FI success zone */}
+            {fiCrossingAge && (
+              <ReferenceArea
+                x1={fiCrossingAge}
+                fill="rgba(249,115,22,0.04)"
+                strokeOpacity={0}
+              />
+            )}
 
-              {/* Main deterministic trajectory */}
-              <Line
-                type="monotone"
-                dataKey="endingBalance"
-                stroke="#1e293b"
-                strokeWidth={2.5}
-                dot={false}
-                isAnimationActive={false}
-                name="Portfolio"
-                activeDot={{
-                  r: 4,
-                  fill: "#1e293b",
-                  stroke: "white",
-                  strokeWidth: 2,
+            {/* FI target reference line */}
+            {fiNumber > 0 && (
+              <ReferenceLine
+                y={fiNumber}
+                stroke="#f97316"
+                strokeDasharray="6 4"
+                strokeWidth={1.5}
+                label={{
+                  value: hideValues
+                    ? "FI Target"
+                    : `FI Target: ${fmtShort(fiNumber)}`,
+                  position: "insideTopRight",
+                  fontSize: 11,
+                  fill: "#f97316",
+                  fontWeight: 600,
                 }}
               />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </div>
+            )}
+
+            {/* Vertical crosshair at FI crossing age */}
+            {fiCrossingAge && (
+              <ReferenceLine
+                x={fiCrossingAge}
+                stroke="#94a3b8"
+                strokeDasharray="4 3"
+                strokeWidth={1}
+                label={{
+                  value: `Age ${fiCrossingAge}`,
+                  position: "insideTopLeft",
+                  fontSize: 11,
+                  fill: "#64748b",
+                  fontWeight: 500,
+                }}
+              />
+            )}
+
+            {/* Main deterministic trajectory */}
+            <Line
+              type="monotone"
+              dataKey="endingBalance"
+              stroke="#1e293b"
+              strokeWidth={2.5}
+              dot={false}
+              isAnimationActive={false}
+              name="Portfolio"
+              activeDot={{
+                r: 4,
+                fill: "#1e293b",
+                stroke: "white",
+                strokeWidth: 2,
+              }}
+            />
+          </ComposedChart>
+        </ChartFrame>
       </div>
 
       {/* ——— Monte Carlo section ——— */}
