@@ -7,10 +7,10 @@ import {
   CartesianGrid,
   Tooltip as ChartTooltip,
   Legend,
-  ResponsiveContainer,
   ReferenceLine,
   ReferenceArea,
 } from "recharts"
+import ChartFrame from "@components/features/independence/ChartFrame"
 import Spinner from "@components/ui/Spinner"
 import Alert from "@components/ui/Alert"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
@@ -95,146 +95,143 @@ export default function WealthJourneyTab(): React.ReactElement | null {
         <i className="fas fa-chart-line text-blue-500 mr-2"></i>
         Wealth Journey
       </h3>
-      <div className="h-72">
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart
-            data={chartData}
-            margin={{ top: 10, right: 30, left: 20, bottom: 20 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            <XAxis
-              dataKey="age"
-              label={{
-                value: "Age",
-                position: "insideBottom",
-                offset: -10,
-              }}
-              tick={{ fontSize: 12 }}
-              ticks={(() => {
-                const ages = chartData.map((d) => d.age)
-                if (ages.length === 0) return undefined
-                const minAge = Math.min(...ages)
-                const maxAge = Math.max(...ages)
-                const range = maxAge - minAge
-                const step = range <= 30 ? 5 : 10
-                const ticks: number[] = []
-                for (
-                  let age = Math.ceil(minAge / step) * step;
-                  age <= maxAge;
-                  age += step
-                ) {
-                  ticks.push(age)
-                }
-                // Include phase boundaries
-                for (const pb of phaseBoundaries) {
-                  if (!ticks.includes(pb.fromAge)) ticks.push(pb.fromAge)
-                }
-                // Include liquidation age so label always has an axis anchor
-                if (
-                  propertyLiquidationAge != null &&
-                  !ticks.includes(propertyLiquidationAge)
-                ) {
-                  ticks.push(propertyLiquidationAge)
-                }
-                return ticks.sort((a, b) => a - b)
-              })()}
-            />
-            <YAxis
-              tickFormatter={(value) =>
-                hideValues
-                  ? "****"
-                  : `${displayCurrency} ${(value / 1000).toFixed(0)}k`
+      <ChartFrame heightClass="h-56 sm:h-72">
+        <ComposedChart
+          data={chartData}
+          margin={{ top: 10, right: 30, left: 20, bottom: 20 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+          <XAxis
+            dataKey="age"
+            label={{
+              value: "Age",
+              position: "insideBottom",
+              offset: -10,
+            }}
+            tick={{ fontSize: 12 }}
+            ticks={(() => {
+              const ages = chartData.map((d) => d.age)
+              if (ages.length === 0) return undefined
+              const minAge = Math.min(...ages)
+              const maxAge = Math.max(...ages)
+              const range = maxAge - minAge
+              const step = range <= 30 ? 5 : 10
+              const ticks: number[] = []
+              for (
+                let age = Math.ceil(minAge / step) * step;
+                age <= maxAge;
+                age += step
+              ) {
+                ticks.push(age)
               }
-              tick={{ fontSize: 12 }}
-            />
-            <ChartTooltip
-              formatter={(value, name) => {
-                const formatted = hideValues
-                  ? HIDDEN_VALUE
-                  : `${displayCurrency} ${Number(value || 0).toLocaleString()}`
-                if (name === "liquidValue")
-                  return [formatted, "Liquid (spendable)"]
-                if (name === "housingValue")
-                  return [formatted, "Housing (locked)"]
-                if (name === "annuitizedValue")
-                  return [formatted, "CPF LIFE principal (locked)"]
-                return [formatted, String(name)]
-              }}
-              labelFormatter={(label) => {
-                const point = chartData.find((d) => d.age === label)
-                return point
-                  ? `Age ${label} — ${point.planName}`
-                  : `Age ${label}`
-              }}
-            />
-            <Legend
-              verticalAlign="top"
-              height={36}
-              formatter={(value: string) =>
-                value === "liquidValue"
-                  ? "Liquid (spendable)"
-                  : value === "housingValue"
-                    ? "Housing (locked)"
-                    : value === "annuitizedValue"
-                      ? "CPF LIFE principal (locked)"
-                      : value
+              // Include phase boundaries
+              for (const pb of phaseBoundaries) {
+                if (!ticks.includes(pb.fromAge)) ticks.push(pb.fromAge)
               }
-            />
+              // Include liquidation age so label always has an axis anchor
+              if (
+                propertyLiquidationAge != null &&
+                !ticks.includes(propertyLiquidationAge)
+              ) {
+                ticks.push(propertyLiquidationAge)
+              }
+              return ticks.sort((a, b) => a - b)
+            })()}
+          />
+          <YAxis
+            tickFormatter={(value) =>
+              hideValues
+                ? "****"
+                : `${displayCurrency} ${(value / 1000).toFixed(0)}k`
+            }
+            tick={{ fontSize: 12 }}
+          />
+          <ChartTooltip
+            formatter={(value, name) => {
+              const formatted = hideValues
+                ? HIDDEN_VALUE
+                : `${displayCurrency} ${Number(value || 0).toLocaleString()}`
+              if (name === "liquidValue")
+                return [formatted, "Liquid (spendable)"]
+              if (name === "housingValue")
+                return [formatted, "Housing (locked)"]
+              if (name === "annuitizedValue")
+                return [formatted, "CPF LIFE principal (locked)"]
+              return [formatted, String(name)]
+            }}
+            labelFormatter={(label) => {
+              const point = chartData.find((d) => d.age === label)
+              return point ? `Age ${label} — ${point.planName}` : `Age ${label}`
+            }}
+          />
+          <Legend
+            verticalAlign="top"
+            height={36}
+            formatter={(value: string) =>
+              value === "liquidValue"
+                ? "Liquid (spendable)"
+                : value === "housingValue"
+                  ? "Housing (locked)"
+                  : value === "annuitizedValue"
+                    ? "CPF LIFE principal (locked)"
+                    : value
+            }
+          />
 
-            {/* Zero line */}
-            <ReferenceLine y={0} stroke="#ef4444" strokeWidth={2} />
+          {/* Zero line */}
+          <ReferenceLine y={0} stroke="#ef4444" strokeWidth={2} />
 
-            {/* Property liquidation warning — amber dashed line.
+          {/* Property liquidation warning — amber dashed line.
                 Selling property is a safety-net fallback (liquid depleted),
                 not a FIRE success event. isFront ensures the label renders
                 above area layers regardless of which age the sale occurs. */}
-            {hasHousingLayer && propertyLiquidationAge != null && (
+          {hasHousingLayer && propertyLiquidationAge != null && (
+            <ReferenceLine
+              x={propertyLiquidationAge}
+              stroke="#d97706"
+              strokeDasharray="4 4"
+              strokeWidth={2}
+              label={{
+                value: `⚠ Property sold (${propertyLiquidationAge})`,
+                position: "insideTopRight",
+                fill: "#d97706",
+                fontSize: 11,
+                fontWeight: 600,
+              }}
+            />
+          )}
+
+          {/* Phase background shading */}
+          {phaseBoundaries.map((pb) => (
+            <ReferenceArea
+              key={`phase-bg-${pb.planId}-${pb.fromAge}`}
+              x1={pb.fromAge}
+              x2={pb.toAge}
+              fill={pb.color.fill}
+              fillOpacity={0.08}
+            />
+          ))}
+
+          {/* Phase boundary lines with labels */}
+          {phaseBoundaries.map((pb, idx) =>
+            idx > 0 ? (
               <ReferenceLine
-                x={propertyLiquidationAge}
-                stroke="#d97706"
-                strokeDasharray="4 4"
+                key={`phase-line-${pb.planId}-${pb.fromAge}`}
+                x={pb.fromAge}
+                stroke={pb.color.stroke}
+                strokeDasharray="5 5"
                 strokeWidth={2}
                 label={{
-                  value: `⚠ Property sold (${propertyLiquidationAge})`,
-                  position: "insideTopRight",
-                  fill: "#d97706",
+                  value: pb.planName,
+                  position: "top",
+                  fill: pb.color.stroke,
                   fontSize: 11,
-                  fontWeight: 600,
                 }}
               />
-            )}
+            ) : null,
+          )}
 
-            {/* Phase background shading */}
-            {phaseBoundaries.map((pb) => (
-              <ReferenceArea
-                key={`phase-bg-${pb.planId}-${pb.fromAge}`}
-                x1={pb.fromAge}
-                x2={pb.toAge}
-                fill={pb.color.fill}
-                fillOpacity={0.08}
-              />
-            ))}
-
-            {/* Phase boundary lines with labels */}
-            {phaseBoundaries.map((pb, idx) =>
-              idx > 0 ? (
-                <ReferenceLine
-                  key={`phase-line-${pb.planId}-${pb.fromAge}`}
-                  x={pb.fromAge}
-                  stroke={pb.color.stroke}
-                  strokeDasharray="5 5"
-                  strokeWidth={2}
-                  label={{
-                    value: pb.planName,
-                    position: "top",
-                    fill: pb.color.stroke,
-                    fontSize: 11,
-                  }}
-                />
-              ) : null,
-            )}
-
-            {/* Stacked-area wealth journey: Liquid (bottom) + Housing
+          {/* Stacked-area wealth journey: Liquid (bottom) + Housing
                 + CPF LIFE principal. Top of stack = drawdownable + locked
                 principal at each age. CPF MA is intentionally excluded —
                 it's an earmarked healthcare reserve (MediShield /
@@ -245,43 +242,42 @@ export default function WealthJourneyTab(): React.ReactElement | null {
                 muted orange/grey locked layers recede. Green deliberately
                 avoided on locked layers; it would imply "wealth growing"
                 and undo the spendable-vs-locked story. */}
+          <Area
+            type="monotone"
+            dataKey="liquidValue"
+            stackId="wealth"
+            stroke="#1d4ed8"
+            fill="#2563eb"
+            fillOpacity={0.7}
+            strokeWidth={2}
+            name="liquidValue"
+          />
+          {hasHousingLayer && (
             <Area
               type="monotone"
-              dataKey="liquidValue"
+              dataKey="housingValue"
               stackId="wealth"
-              stroke="#1d4ed8"
-              fill="#2563eb"
-              fillOpacity={0.7}
-              strokeWidth={2}
-              name="liquidValue"
+              stroke="#c2410c"
+              fill="#f97316"
+              fillOpacity={0.3}
+              strokeWidth={1}
+              name="housingValue"
             />
-            {hasHousingLayer && (
-              <Area
-                type="monotone"
-                dataKey="housingValue"
-                stackId="wealth"
-                stroke="#c2410c"
-                fill="#f97316"
-                fillOpacity={0.3}
-                strokeWidth={1}
-                name="housingValue"
-              />
-            )}
-            {hasAnnuitizedLayer && (
-              <Area
-                type="monotone"
-                dataKey="annuitizedValue"
-                stackId="wealth"
-                stroke="#64748b"
-                fill="#94a3b8"
-                fillOpacity={0.3}
-                strokeWidth={1}
-                name="annuitizedValue"
-              />
-            )}
-          </ComposedChart>
-        </ResponsiveContainer>
-      </div>
+          )}
+          {hasAnnuitizedLayer && (
+            <Area
+              type="monotone"
+              dataKey="annuitizedValue"
+              stackId="wealth"
+              stroke="#64748b"
+              fill="#94a3b8"
+              fillOpacity={0.3}
+              strokeWidth={1}
+              name="annuitizedValue"
+            />
+          )}
+        </ComposedChart>
+      </ChartFrame>
 
       {/* Phase legend */}
       <div className="flex flex-wrap gap-3 mt-3 pt-3 border-t border-gray-100">

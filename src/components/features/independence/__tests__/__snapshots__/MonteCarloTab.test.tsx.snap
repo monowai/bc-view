@@ -121,7 +121,7 @@ exports[`MonteCarloTab snapshot baseline matches snapshot with fixture result 1`
         </h3>
       </div>
       <div
-        class="h-72"
+        class="h-56 sm:h-72"
       >
         <div
           style="width: 800px; height: 400px;"
@@ -431,7 +431,7 @@ exports[`MonteCarloTab snapshot baseline matches snapshot with fixture result 1`
         Depletion Age Distribution
       </h3>
       <div
-        class="h-48"
+        class="h-40 sm:h-48"
       >
         <div
           style="width: 800px; height: 400px;"
