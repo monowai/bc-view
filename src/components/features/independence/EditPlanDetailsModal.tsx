@@ -30,6 +30,7 @@ import {
   parseExcludedPortfolioIds,
   parseExcludedRentalAssetIds,
 } from "@lib/independence/planHelpers"
+import MathInput from "@components/ui/MathInput"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import { usePrivateAssetConfigs } from "@utils/assets/usePrivateAssetConfigs"
 import { useExcludedAssetIds } from "@hooks/useExcludedAssetIds"
@@ -231,15 +232,12 @@ export default function EditPlanDetailsModal({
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Start Age
               </label>
-              <input
-                type="number"
-                value={formData.benefitsStartAge ?? ""}
-                onChange={(e) =>
+              <MathInput
+                value={formData.benefitsStartAge ?? 0}
+                onChange={(v) =>
                   setFormData((prev) => ({
                     ...prev,
-                    benefitsStartAge: e.target.value
-                      ? parseInt(e.target.value)
-                      : undefined,
+                    benefitsStartAge: v ? Math.round(v) : undefined,
                   }))
                 }
                 placeholder="e.g. 65"
@@ -289,14 +287,10 @@ export default function EditPlanDetailsModal({
                   Equity
                 </label>
                 <div className="relative">
-                  <input
-                    type="number"
+                  <MathInput
                     value={formData.equityReturnRate}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        equityReturnRate: parseFloat(e.target.value) || 0,
-                      }))
+                    onChange={(v) =>
+                      setFormData((prev) => ({ ...prev, equityReturnRate: v }))
                     }
                     className="w-full pl-2 pr-6 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
                     min={0}
@@ -311,14 +305,10 @@ export default function EditPlanDetailsModal({
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Cash</label>
                 <div className="relative">
-                  <input
-                    type="number"
+                  <MathInput
                     value={formData.cashReturnRate}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        cashReturnRate: parseFloat(e.target.value) || 0,
-                      }))
+                    onChange={(v) =>
+                      setFormData((prev) => ({ ...prev, cashReturnRate: v }))
                     }
                     className="w-full pl-2 pr-6 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
                     min={0}
@@ -335,14 +325,10 @@ export default function EditPlanDetailsModal({
                   Housing
                 </label>
                 <div className="relative">
-                  <input
-                    type="number"
+                  <MathInput
                     value={formData.housingReturnRate}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        housingReturnRate: parseFloat(e.target.value) || 0,
-                      }))
+                    onChange={(v) =>
+                      setFormData((prev) => ({ ...prev, housingReturnRate: v }))
                     }
                     className="w-full pl-2 pr-6 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
                     min={0}
@@ -368,14 +354,10 @@ export default function EditPlanDetailsModal({
                   Equity
                 </label>
                 <div className="relative">
-                  <input
-                    type="number"
+                  <MathInput
                     value={formData.equityAllocation}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        equityAllocation: parseFloat(e.target.value) || 0,
-                      }))
+                    onChange={(v) =>
+                      setFormData((prev) => ({ ...prev, equityAllocation: v }))
                     }
                     className="w-full pl-2 pr-6 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
                     min={0}
@@ -390,14 +372,10 @@ export default function EditPlanDetailsModal({
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Cash</label>
                 <div className="relative">
-                  <input
-                    type="number"
+                  <MathInput
                     value={formData.cashAllocation}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        cashAllocation: parseFloat(e.target.value) || 0,
-                      }))
+                    onChange={(v) =>
+                      setFormData((prev) => ({ ...prev, cashAllocation: v }))
                     }
                     className="w-full pl-2 pr-6 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
                     min={0}
@@ -414,14 +392,10 @@ export default function EditPlanDetailsModal({
                   Housing
                 </label>
                 <div className="relative">
-                  <input
-                    type="number"
+                  <MathInput
                     value={formData.housingAllocation}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        housingAllocation: parseFloat(e.target.value) || 0,
-                      }))
+                    onChange={(v) =>
+                      setFormData((prev) => ({ ...prev, housingAllocation: v }))
                     }
                     className="w-full pl-2 pr-6 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
                     min={0}
@@ -449,14 +423,10 @@ export default function EditPlanDetailsModal({
               Inflation Rate (%)
             </label>
             <div className="relative">
-              <input
-                type="number"
+              <MathInput
                 value={formData.inflationRate}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    inflationRate: parseFloat(e.target.value) || 0,
-                  }))
+                onChange={(v) =>
+                  setFormData((prev) => ({ ...prev, inflationRate: v }))
                 }
                 className="w-full pl-4 pr-8 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
                 min={0}

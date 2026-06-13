@@ -29,7 +29,10 @@ export default function YearByYearTab(): React.ReactElement | null {
     if (!projection) return null
     const rows = projection.yearlyProjections
     for (let i = 1; i < rows.length; i++) {
-      if ((rows[i - 1].housingValue ?? 0) > 0 && (rows[i].housingValue ?? 0) === 0) {
+      if (
+        (rows[i - 1].housingValue ?? 0) > 0 &&
+        (rows[i].housingValue ?? 0) === 0
+      ) {
         return i
       }
     }
@@ -37,7 +40,9 @@ export default function YearByYearTab(): React.ReactElement | null {
   }, [projection])
 
   const hasHousingData = useMemo(
-    () => projection?.yearlyProjections.some((r) => (r.housingValue ?? 0) > 0) ?? false,
+    () =>
+      projection?.yearlyProjections.some((r) => (r.housingValue ?? 0) > 0) ??
+      false,
     [projection],
   )
 
@@ -93,46 +98,48 @@ export default function YearByYearTab(): React.ReactElement | null {
                         </td>
                       </tr>
                     )}
-                  <tr
-                    className={`border-b border-gray-50 ${
-                      isPhaseStart ? "border-t-2 border-t-independence-200" : ""
-                    } ${row.endingBalance <= 0 ? "bg-red-50" : ""}`}
-                  >
-                    <td className="py-1.5 px-2 text-gray-600">{row.age}</td>
-                    <td className="py-1.5 px-2 text-gray-700">
-                      {isPhaseStart ? (
-                        <span className="font-medium">{row.planName}</span>
-                      ) : (
-                        <span className="text-gray-400">&mdash;</span>
-                      )}
-                    </td>
-                    <td className="py-1.5 px-2 text-right">
-                      {formatMoney(
-                        row.startingBalance,
-                        displayCurrency,
-                        hideValues,
-                      )}
-                    </td>
-                    <td className="py-1.5 px-2 text-right text-green-600">
-                      {formatMoney(row.income, displayCurrency, hideValues)}
-                    </td>
-                    <td className="py-1.5 px-2 text-right text-red-600">
-                      {formatMoney(row.expenses, displayCurrency, hideValues)}
-                    </td>
-                    <td
-                      className={`py-1.5 px-2 text-right font-medium ${
-                        row.endingBalance <= 0
-                          ? "text-red-600"
-                          : "text-gray-800"
-                      }`}
+                    <tr
+                      className={`border-b border-gray-50 ${
+                        isPhaseStart
+                          ? "border-t-2 border-t-independence-200"
+                          : ""
+                      } ${row.endingBalance <= 0 ? "bg-red-50" : ""}`}
                     >
-                      {formatMoney(
-                        row.endingBalance,
-                        displayCurrency,
-                        hideValues,
-                      )}
-                    </td>
-                  </tr>
+                      <td className="py-1.5 px-2 text-gray-600">{row.age}</td>
+                      <td className="py-1.5 px-2 text-gray-700">
+                        {isPhaseStart ? (
+                          <span className="font-medium">{row.planName}</span>
+                        ) : (
+                          <span className="text-gray-400">&mdash;</span>
+                        )}
+                      </td>
+                      <td className="py-1.5 px-2 text-right">
+                        {formatMoney(
+                          row.startingBalance,
+                          displayCurrency,
+                          hideValues,
+                        )}
+                      </td>
+                      <td className="py-1.5 px-2 text-right text-green-600">
+                        {formatMoney(row.income, displayCurrency, hideValues)}
+                      </td>
+                      <td className="py-1.5 px-2 text-right text-red-600">
+                        {formatMoney(row.expenses, displayCurrency, hideValues)}
+                      </td>
+                      <td
+                        className={`py-1.5 px-2 text-right font-medium ${
+                          row.endingBalance <= 0
+                            ? "text-red-600"
+                            : "text-gray-800"
+                        }`}
+                      >
+                        {formatMoney(
+                          row.endingBalance,
+                          displayCurrency,
+                          hideValues,
+                        )}
+                      </td>
+                    </tr>
                   </React.Fragment>
                 )
               },

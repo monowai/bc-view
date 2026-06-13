@@ -238,7 +238,6 @@ export default function PersonalInfoStep({
             management tab.
           </p>
         </div>
-
       </div>
     </div>
   )

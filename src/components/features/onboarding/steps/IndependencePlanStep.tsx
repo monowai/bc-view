@@ -350,7 +350,6 @@ const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
               </div>
             )}
           </div>
-
         </div>
       )}
 

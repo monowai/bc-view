@@ -10,7 +10,6 @@ import {
 } from "@lib/independence/schema"
 import { WizardFormData } from "types/independence"
 
-
 const TestWrapper: React.FC<{ children: React.ReactNode }> = () => {
   const methods = useForm<WizardFormData>({
     resolver: yupResolver(personalInfoSchema) as any,
@@ -42,7 +41,6 @@ describe("PersonalInfoStep", () => {
     expect(screen.getByLabelText(/currency/i)).toBeInTheDocument()
   })
 
-
   it("shows validation error for empty plan name", async () => {
     render(
       <TestWrapper>
@@ -71,5 +69,4 @@ describe("PersonalInfoStep", () => {
 
     expect(input).toHaveValue("My Retirement Plan")
   })
-
 })

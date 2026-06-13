@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react"
 import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
 import { UpdateSettingsRequest } from "types/independence"
+import MathInput from "@components/ui/MathInput"
 
 const MONTHS = [
   "January",
@@ -170,11 +171,10 @@ export default function IndependenceSettingsModal({
               >
                 Year of Birth
               </label>
-              <input
+              <MathInput
                 id="settings-yearOfBirth"
-                type="number"
                 value={yearOfBirth}
-                onChange={(e) => setYearOfBirth(Number(e.target.value))}
+                onChange={(v) => setYearOfBirth(Math.round(v))}
                 min={1920}
                 max={currentYear - 18}
                 className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 border-gray-300"
@@ -190,11 +190,10 @@ export default function IndependenceSettingsModal({
             >
               Target Independence Age
             </label>
-            <input
+            <MathInput
               id="settings-targetIndependenceAge"
-              type="number"
               value={targetIndependenceAge}
-              onChange={(e) => setTargetIndependenceAge(Number(e.target.value))}
+              onChange={(v) => setTargetIndependenceAge(Math.round(v))}
               min={18}
               max={100}
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 border-gray-300"
@@ -212,11 +211,10 @@ export default function IndependenceSettingsModal({
             >
               Life Expectancy
             </label>
-            <input
+            <MathInput
               id="settings-lifeExpectancy"
-              type="number"
               value={lifeExpectancy}
-              onChange={(e) => setLifeExpectancy(Number(e.target.value))}
+              onChange={(v) => setLifeExpectancy(Math.round(v))}
               min={50}
               max={120}
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 border-gray-300"

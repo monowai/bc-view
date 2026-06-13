@@ -91,7 +91,7 @@ describe("ExpensesStep", () => {
     )
 
     expect(
-      screen.getByRole("heading", { name: /monthly expenses/i }),
+      screen.getByRole("heading", { name: /spend each month/i }),
     ).toBeInTheDocument()
   })
 
@@ -130,9 +130,7 @@ describe("ExpensesStep", () => {
     fireEvent.click(addButton)
 
     await waitFor(() => {
-      expect(
-        screen.getByPlaceholderText(/enter custom category name/i),
-      ).toBeInTheDocument()
+      expect(screen.getByPlaceholderText(/category name/i)).toBeInTheDocument()
     })
   })
 
@@ -179,13 +177,11 @@ describe("ExpensesStep", () => {
       })
 
       // Banner should be visible
-      expect(
-        screen.getByText(/pre-fill from your working expenses/i),
-      ).toBeInTheDocument()
+      expect(screen.getByText(/working expenses on file/i)).toBeInTheDocument()
 
-      // Default is 80%
+      // Default is 80% (MathInput is textbox)
       const percentInput = screen.getByLabelText(/copy percentage/i)
-      expect(percentInput).toHaveValue(80)
+      expect(percentInput).toHaveValue("80")
 
       // Click Apply
       fireEvent.click(screen.getByRole("button", { name: /apply/i }))
@@ -209,9 +205,10 @@ describe("ExpensesStep", () => {
         expect(screen.getByText("Housing")).toBeInTheDocument()
       })
 
-      // Change to 70%
+      // Change to 70% (MathInput fires onChange with parsed number on change)
       const percentInput = screen.getByLabelText(/copy percentage/i)
       fireEvent.change(percentInput, { target: { value: "70" } })
+      fireEvent.blur(percentInput)
 
       fireEvent.click(screen.getByRole("button", { name: /apply/i }))
 
@@ -235,11 +232,11 @@ describe("ExpensesStep", () => {
       })
 
       expect(
-        screen.queryByText(/pre-fill from your working expenses/i),
+        screen.queryByText(/working expenses on file/i),
       ).not.toBeInTheDocument()
     })
 
-    it("overrides existing values via Copy from working button", async () => {
+    it("shows re-apply button after initial apply and re-applies at same percent", async () => {
       render(
         <TestWrapper workingExpenses={workingExpenses}>
           <div />
@@ -251,33 +248,30 @@ describe("ExpensesStep", () => {
         expect(screen.getByText("Housing")).toBeInTheDocument()
       })
 
-      // Use the banner first at 80% to set initial values
+      // Apply at 80% via banner
       fireEvent.click(screen.getByRole("button", { name: /^apply$/i }))
       await waitFor(() => {
         expect(screen.getByText("$3,040")).toBeInTheDocument()
       })
 
-      // Now use the persistent "Copy from working" button to override
+      // Banner copy section is gone (expenses no longer all zero), re-apply button appears
+      expect(
+        screen.queryByText(/working expenses on file/i),
+      ).not.toBeInTheDocument()
+      expect(
+        screen.getByRole("button", { name: /re-apply working expenses/i }),
+      ).toBeInTheDocument()
+
+      // Re-apply at same 80% keeps same total
       fireEvent.click(
-        screen.getByRole("button", { name: /copy from working/i }),
+        screen.getByRole("button", { name: /re-apply working expenses/i }),
       )
-
-      // Prompt should appear with percentage input
-      const overrideInput = screen.getByLabelText(/override percentage/i)
-      expect(overrideInput).toBeInTheDocument()
-
-      // Change to 50% and apply
-      fireEvent.change(overrideInput, { target: { value: "50" } })
-      fireEvent.click(screen.getAllByRole("button", { name: /^apply$/i })[0])
-
-      // Housing: round(2500*50/100)=1250, Food: round(800*50/100)=400, Transport: round(500*50/100)=250
-      // Total = 1900
       await waitFor(() => {
-        expect(screen.getByText("$1,900")).toBeInTheDocument()
+        expect(screen.getByText("$3,040")).toBeInTheDocument()
       })
     })
 
-    it("hides Copy from working button when no working expenses", async () => {
+    it("hides re-apply button when no working expenses", async () => {
       render(
         <TestWrapper>
           <div />
@@ -289,7 +283,7 @@ describe("ExpensesStep", () => {
       })
 
       expect(
-        screen.queryByRole("button", { name: /copy from working/i }),
+        screen.queryByRole("button", { name: /re-apply working expenses/i }),
       ).not.toBeInTheDocument()
     })
   })

@@ -95,7 +95,6 @@ export function RegistrationProvider({
     }
 
     if (!user?.sub) {
-       
       setIsChecking(false)
       return
     }

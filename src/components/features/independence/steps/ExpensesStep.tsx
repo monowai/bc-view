@@ -12,6 +12,7 @@ import useSwr from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 import { WizardFormData, CategoryLabelsResponse } from "types/independence"
 import { wizardMessages } from "@lib/independence/messages"
+import MathInput from "@components/ui/MathInput"
 import Spinner from "@components/ui/Spinner"
 
 const msg = wizardMessages.steps.expenses
@@ -41,10 +42,7 @@ export default function ExpensesStep({
   const [showAddCustom, setShowAddCustom] = useState(false)
   const [customCategoryName, setCustomCategoryName] = useState("")
   const [copyPercent, setCopyPercent] = useState(80)
-  const [showCopyBanner, setShowCopyBanner] = useState(true)
   const [copyApplied, setCopyApplied] = useState(false)
-  const [showPercentPrompt, setShowPercentPrompt] = useState(false)
-  const [promptPercent, setPromptPercent] = useState(80)
 
   const { data: categoriesData } = useSwr<CategoryLabelsResponse>(
     categoriesKey,
@@ -57,7 +55,6 @@ export default function ExpensesStep({
   )
   const expenses = useWatch({ control, name: "expenses" }) || []
 
-  // Check if working expenses have non-zero values
   const workingExpenses = getValues("workingExpenses") || []
   const hasWorkingExpenses = workingExpenses.some(
     (e) => (e?.monthlyAmount || 0) > 0,
@@ -65,18 +62,11 @@ export default function ExpensesStep({
   const allRetirementExpensesZero = expenses.every(
     (e) => (e?.monthlyAmount || 0) === 0,
   )
-  const canCopyFromWorking =
-    hasWorkingExpenses && allRetirementExpensesZero && showCopyBanner
+  const canCopyFromWorking = hasWorkingExpenses && allRetirementExpensesZero
 
-  // Initialize / re-order expenses against the canonical system-category
-  // sequence once the categories endpoint resolves. New plans get one row per
-  // system category at zero. Edit plans get their stored amounts re-merged
-  // into the same order — backend persists rows in insertion / id order, so
-  // without this two plans created in different sessions surfaced their
-  // categories in different orders. Custom rows (categoryLabelId starts with
-  // `custom-`) are appended at the end, preserving their relative order.
-  // Uses getValues() instead of useWatch to avoid a race where useWatch
-  // returns [] on first render before defaultValues have propagated.
+  // Initialise / re-order expenses against canonical system-category sequence.
+  // New plans get one row per category at zero. Edit plans get stored amounts
+  // re-merged. Custom rows are appended at the end preserving relative order.
   useEffect(() => {
     if (systemCategories.length === 0 || hasInitialized.current) return
     hasInitialized.current = true
@@ -120,19 +110,8 @@ export default function ExpensesStep({
         : expense.monthlyAmount,
     }))
     setValue("expenses", updated)
-    setCopyPercent(percent)
     setCopyApplied(true)
     setTimeout(() => setCopyApplied(false), 3000)
-  }
-
-  const handleCopyFromWorking = (): void => {
-    applyCopyFromWorking(copyPercent)
-    setShowCopyBanner(false)
-  }
-
-  const handlePromptApply = (): void => {
-    applyCopyFromWorking(promptPercent)
-    setShowPercentPrompt(false)
   }
 
   const handleAddCustomCategory = (): void => {
@@ -157,7 +136,8 @@ export default function ExpensesStep({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+      {/* Header */}
       <div>
         <h2 className="text-lg font-semibold text-gray-900 mb-1">
           {msg.title}
@@ -165,243 +145,238 @@ export default function ExpensesStep({
         <p className="text-sm text-gray-600">{msg.description}</p>
       </div>
 
-      {(!isEditMode || totalMonthlyExpenses === 0) && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-start">
-          <i className="fas fa-check-circle text-green-600 mt-0.5 mr-2"></i>
-          <p className="text-sm text-green-700">{msg.skipHint}</p>
-        </div>
-      )}
-
-      {canCopyFromWorking && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <i className="fas fa-copy text-blue-600"></i>
-            <span className="text-sm font-medium text-blue-800">
-              Pre-fill from your working expenses?
-            </span>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min={10}
-                max={100}
-                step={5}
-                value={copyPercent}
-                onChange={(e) => setCopyPercent(Number(e.target.value))}
-                aria-label="Copy percentage"
-                className="w-16 px-2 py-1 text-sm text-center border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-              <span className="text-sm text-blue-700">%</span>
-            </div>
-            <button
-              type="button"
-              onClick={handleCopyFromWorking}
-              className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              Apply
-            </button>
-          </div>
-        </div>
-      )}
-
-      {copyApplied && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center">
-          <i className="fas fa-check text-green-600 mr-2"></i>
-          <span className="text-sm text-green-700">
-            Working expenses copied at {copyPercent}%
-          </span>
-        </div>
-      )}
-
-      <div className="bg-independence-50 border border-independence-200 rounded-lg p-4">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center">
-            <i className="fas fa-calculator text-independence-600 mr-3"></i>
-            <span className="font-medium text-independence-700">
+      {/* Hero: Total monthly expenses */}
+      <div className="rounded-xl border border-independence-200 bg-independence-50 p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-independence-700">
               {msg.totalLabel}
-            </span>
+            </p>
+            <p className="mt-0.5 text-xs text-independence-500 max-w-xs leading-relaxed">
+              {msg.totalHelper}
+            </p>
           </div>
-          <div className="flex items-center gap-3">
-            {hasWorkingExpenses && (
+          <div className="shrink-0 text-right">
+            <p className="text-3xl font-bold tabular-nums text-independence-800">
+              ${totalMonthlyExpenses.toLocaleString()}
+            </p>
+            <p className="text-xs text-independence-500 mt-0.5">per month</p>
+          </div>
+        </div>
+
+        {/* Copy from working — surfaced when relevant */}
+        {canCopyFromWorking && (
+          <div className="mt-4 pt-4 border-t border-independence-200">
+            <p className="text-xs text-independence-600 mb-2.5 font-medium">
+              <i className="fas fa-copy mr-1.5"></i>
+              You have working expenses on file — pre-fill from those?
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm text-independence-700">Apply at</span>
+              <div className="flex items-center gap-1">
+                <MathInput
+                  value={copyPercent}
+                  onChange={setCopyPercent}
+                  min={10}
+                  max={100}
+                  placeholder="80"
+                  aria-label="Copy percentage"
+                  className="w-16 px-2 py-1 text-sm text-center border border-independence-300 rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
+                />
+                <span className="text-sm text-independence-700">%</span>
+              </div>
+              <span className="text-sm text-independence-500">
+                of working expenses
+              </span>
               <button
                 type="button"
-                onClick={() => setShowPercentPrompt(!showPercentPrompt)}
-                className="px-3 py-1 text-sm text-independence-700 border border-independence-300 rounded hover:bg-independence-100 transition-colors"
+                onClick={() => applyCopyFromWorking(copyPercent)}
+                className="px-3 py-1.5 text-sm bg-independence-600 text-white rounded-lg hover:bg-independence-700 font-medium transition-colors"
               >
-                <i className="fas fa-copy mr-1"></i>
-                Copy from working
+                Apply
               </button>
-            )}
-            <span className="text-xl font-bold text-independence-700">
-              ${totalMonthlyExpenses.toLocaleString()}
-            </span>
-          </div>
-        </div>
-        {showPercentPrompt && (
-          <div className="mt-3 pt-3 border-t border-independence-200 flex flex-wrap items-center gap-3">
-            <span className="text-sm text-independence-700">
-              Apply working expenses at
-            </span>
-            <div className="flex items-center gap-1">
-              <input
-                type="number"
-                min={10}
-                max={100}
-                step={5}
-                value={promptPercent}
-                onChange={(e) => setPromptPercent(Number(e.target.value))}
-                aria-label="Override percentage"
-                className="w-16 px-2 py-1 text-sm text-center border border-independence-300 rounded focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
-              />
-              <span className="text-sm text-independence-700">%</span>
             </div>
+          </div>
+        )}
+
+        {/* Copy success flash */}
+        {copyApplied && (
+          <div className="mt-3 flex items-center gap-1.5 text-sm text-independence-700">
+            <i className="fas fa-check-circle"></i>
+            <span>Working expenses applied at {copyPercent}%</span>
+          </div>
+        )}
+
+        {/* Repeat copy trigger when already applied */}
+        {hasWorkingExpenses && !canCopyFromWorking && (
+          <div className="mt-4 pt-3 border-t border-independence-200">
             <button
               type="button"
-              onClick={handlePromptApply}
-              className="px-3 py-1 text-sm bg-independence-600 text-white rounded hover:bg-independence-700"
+              onClick={() => applyCopyFromWorking(copyPercent)}
+              className="text-xs text-independence-600 hover:text-independence-800 flex items-center gap-1.5"
             >
-              Apply
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowPercentPrompt(false)}
-              className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
-            >
-              Cancel
+              <i className="fas fa-copy"></i>
+              Re-apply working expenses at {copyPercent}%
             </button>
           </div>
         )}
       </div>
 
-      <div className="space-y-3">
-        {fields.map((field, index) => {
-          const description = getCategoryDescription(field.categoryLabelId)
-          const isCustom = isCustomCategory(field.categoryLabelId)
+      {/* Breakdown */}
+      <div>
+        <p className="text-xs text-gray-500 mb-3">
+          Adjust amounts by category to check nothing is missing:
+        </p>
 
-          return (
-            <div
-              key={field.id}
-              className="flex items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              <div className="flex-1">
-                <div className="flex items-center">
-                  <span className="font-medium text-gray-900">
-                    {expenses[index]?.categoryName || field.categoryName}
-                  </span>
-                  {isCustom && (
-                    <>
-                      <span className="ml-2 text-xs bg-independence-100 text-independence-700 px-2 py-0.5 rounded">
-                        Custom
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => remove(index)}
-                        className="ml-2 p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded"
-                        title="Remove custom category"
-                        aria-label="Remove custom category"
-                      >
-                        <i className="fas fa-times text-xs"></i>
-                      </button>
-                    </>
-                  )}
-                </div>
-                {description && (
-                  <p className="text-sm text-gray-500 mt-0.5">{description}</p>
-                )}
-              </div>
-
-              <div className="w-36">
-                <div className="relative">
-                  <span className="absolute left-3 top-2.5 text-gray-500">
-                    $
-                  </span>
-                  <Controller
-                    name={`expenses.${index}.monthlyAmount`}
-                    control={control}
-                    render={({ field: inputField }) => (
-                      <input
-                        type="number"
-                        min={0}
-                        step={50}
-                        placeholder="0"
-                        value={inputField.value || ""}
-                        onChange={(e) =>
-                          inputField.onChange(
-                            e.target.value === "" ? 0 : Number(e.target.value),
-                          )
-                        }
-                        onBlur={inputField.onBlur}
-                        ref={inputField.ref}
-                        name={inputField.name}
-                        className={`
-                          w-full pl-8 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 text-right
-                          ${errors.expenses?.[index]?.monthlyAmount ? "border-red-500" : "border-gray-300"}
-                        `}
-                      />
-                    )}
-                  />
-                </div>
-              </div>
+        <div className="space-y-2">
+          {fields.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 rounded-lg border-2 border-dashed border-gray-200">
+              <Spinner size="lg" className="text-gray-300 mb-2" />
+              <p className="text-sm text-gray-400">Loading categories…</p>
             </div>
-          )
-        })}
+          ) : (
+            fields.map((field, index) => {
+              const description = getCategoryDescription(field.categoryLabelId)
+              const isCustom = isCustomCategory(field.categoryLabelId)
+              const amount = expenses[index]?.monthlyAmount || 0
 
-        {fields.length === 0 && (
-          <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-            <Spinner size="4xl" className="text-gray-400 mb-2" />
-            <p className="text-gray-500">Loading categories...</p>
-          </div>
-        )}
+              return (
+                <div
+                  key={field.id}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                    amount > 0
+                      ? "bg-independence-50 border border-independence-100"
+                      : "bg-gray-50 border border-transparent hover:bg-gray-100"
+                  }`}
+                >
+                  {/* Category label */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-gray-900 truncate">
+                        {expenses[index]?.categoryName || field.categoryName}
+                      </span>
+                      {isCustom && (
+                        <>
+                          <span className="shrink-0 text-xs bg-independence-100 text-independence-700 px-2 py-0.5 rounded-full">
+                            Custom
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => remove(index)}
+                            className="shrink-0 p-0.5 text-red-400 hover:text-red-600 rounded"
+                            title="Remove"
+                            aria-label="Remove custom category"
+                          >
+                            <i className="fas fa-times text-xs"></i>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                    {description && (
+                      <p className="text-xs text-gray-400 mt-0.5 truncate">
+                        {description}
+                      </p>
+                    )}
+                  </div>
 
-        {/* Add Custom Category */}
-        {showAddCustom ? (
-          <div className="flex items-center space-x-2 p-4 bg-independence-50 rounded-lg border border-independence-200">
-            <input
-              type="text"
-              value={customCategoryName}
-              onChange={(e) => setCustomCategoryName(e.target.value)}
-              placeholder="Enter custom category name..."
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault()
-                  handleAddCustomCategory()
-                }
-              }}
-            />
+                  {/* Amount input */}
+                  <div className="shrink-0 w-32">
+                    <div className="relative">
+                      <span className="absolute left-3 top-2.5 text-xs text-gray-400 pointer-events-none">
+                        $
+                      </span>
+                      <Controller
+                        name={`expenses.${index}.monthlyAmount`}
+                        control={control}
+                        render={({ field: inputField }) => (
+                          <MathInput
+                            value={inputField.value || 0}
+                            onChange={inputField.onChange}
+                            placeholder="0"
+                            min={0}
+                            step={50}
+                            className={`w-full pl-7 pr-3 py-2 text-sm text-right border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 ${
+                              errors.expenses?.[index]?.monthlyAmount
+                                ? "border-red-400"
+                                : amount > 0
+                                  ? "border-independence-200 bg-white"
+                                  : "border-gray-200 bg-white"
+                            }`}
+                          />
+                        )}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
+
+        {/* Add custom category */}
+        <div className="mt-3">
+          {showAddCustom ? (
+            <div className="flex items-center gap-2 p-3 bg-independence-50 rounded-lg border border-independence-200">
+              <input
+                type="text"
+                value={customCategoryName}
+                onChange={(e) => setCustomCategoryName(e.target.value)}
+                placeholder="Category name (e.g. Golf, Travel)"
+                className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault()
+                    handleAddCustomCategory()
+                  }
+                  if (e.key === "Escape") {
+                    setShowAddCustom(false)
+                    setCustomCategoryName("")
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={handleAddCustomCategory}
+                className="px-3 py-1.5 text-sm bg-independence-600 text-white rounded-lg hover:bg-independence-700"
+              >
+                Add
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddCustom(false)
+                  setCustomCategoryName("")
+                }}
+                className="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
             <button
               type="button"
-              onClick={handleAddCustomCategory}
-              className="px-4 py-2 bg-independence-600 text-white rounded-lg hover:bg-independence-700"
+              onClick={() => setShowAddCustom(true)}
+              className="w-full py-2.5 text-sm border-2 border-dashed border-gray-200 text-gray-400 rounded-lg hover:border-independence-300 hover:text-independence-600 hover:bg-independence-50 transition-colors"
             >
-              Add
+              <i className="fas fa-plus mr-1.5"></i>
+              Add custom category
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                setShowAddCustom(false)
-                setCustomCategoryName("")
-              }}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800"
-            >
-              Cancel
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setShowAddCustom(true)}
-            className="w-full py-3 border-2 border-dashed border-independence-200 text-independence-600 rounded-lg hover:bg-independence-50 hover:border-independence-500 transition-colors"
-          >
-            <i className="fas fa-plus mr-2"></i>
-            Add Custom Category
-          </button>
-        )}
+          )}
+        </div>
 
         {errors.expenses && !Array.isArray(errors.expenses) && (
-          <p className="text-sm text-red-600">{errors.expenses.message}</p>
+          <p className="mt-2 text-sm text-red-600">{errors.expenses.message}</p>
         )}
       </div>
+
+      {/* Skip hint */}
+      {(!isEditMode || totalMonthlyExpenses === 0) && (
+        <p className="text-xs text-gray-400">
+          <i className="fas fa-info-circle mr-1"></i>
+          {msg.skipHint}
+        </p>
+      )}
     </div>
   )
 }
