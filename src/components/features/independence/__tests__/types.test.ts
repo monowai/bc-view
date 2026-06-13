@@ -9,9 +9,10 @@ describe("types constants", () => {
 
   describe("TABS", () => {
     it("has all expected tabs", () => {
-      expect(TABS).toHaveLength(4)
+      expect(TABS).toHaveLength(5)
       expect(TABS.map((t) => t.id)).toEqual([
         "details",
+        "fi",
         "assets",
         "timeline",
         "simulation",
@@ -19,6 +20,7 @@ describe("types constants", () => {
     })
 
     it("has correct labels", () => {
+      expect(TABS.find((t) => t.id === "fi")?.label).toBe("FI Overview")
       expect(TABS.find((t) => t.id === "details")?.label).toBe("My Plan")
       expect(TABS.find((t) => t.id === "assets")?.label).toBe("Metrics")
       expect(TABS.find((t) => t.id === "timeline")?.label).toBe("My Path")
@@ -26,6 +28,7 @@ describe("types constants", () => {
     })
 
     it("has correct icons", () => {
+      expect(TABS.find((t) => t.id === "fi")?.icon).toBe("fa-bullseye")
       expect(TABS.find((t) => t.id === "details")?.icon).toBe(
         "fa-clipboard-list",
       )
@@ -39,6 +42,7 @@ describe("types constants", () => {
         expect(tab.byline).toBeDefined()
         expect(tab.byline.length).toBeGreaterThan(0)
       }
+      expect(TABS.find((t) => t.id === "fi")?.byline).toContain("FI target")
       expect(TABS.find((t) => t.id === "details")?.byline).toContain(
         "inputs that drive everything",
       )

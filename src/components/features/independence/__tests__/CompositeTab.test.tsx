@@ -55,6 +55,16 @@ jest.mock("@hooks/usePrivacyMode", () => ({
   usePrivacyMode: () => ({ hideValues: false }),
 }))
 
+jest.mock("@hooks/useIndependenceSettings", () => ({
+  useIndependenceSettings: () => ({
+    settings: { yearOfBirth: 1970, lifeExpectancy: 90 },
+    isLoading: false,
+    settingsError: undefined,
+    updateSettings: jest.fn(),
+    mutateSettings: jest.fn(),
+  }),
+}))
+
 jest.mock("@hooks/useCompositeMonteCarloSimulation", () => ({
   __esModule: true,
   default: jest.fn(() => ({
@@ -176,8 +186,9 @@ describe("CompositeTab", () => {
     expect(screen.getByLabelText("Display Currency")).toBeInTheDocument()
   })
 
-  it("renders all four sub-tabs in the navigation", () => {
+  it("renders all five sub-tabs in the navigation", () => {
     render(<CompositeTab plans={plans} settings={settings} />)
+    expect(screen.getByRole("tab", { name: /FI Overview/ })).toBeInTheDocument()
     expect(screen.getByRole("tab", { name: /Plans/ })).toBeInTheDocument()
     expect(
       screen.getByRole("tab", { name: /Wealth Journey/ }),
@@ -188,11 +199,12 @@ describe("CompositeTab", () => {
     ).toBeInTheDocument()
   })
 
-  it("defaults to the Plans tab and shows phase configuration", () => {
+  it("defaults to the FI Overview tab", () => {
     render(<CompositeTab plans={plans} settings={settings} />)
-    expect(screen.getByText("Phase Configuration")).toBeInTheDocument()
+    const overviewTab = screen.getByRole("tab", { name: /FI Overview/ })
+    expect(overviewTab).toHaveAttribute("aria-selected", "true")
     const plansTab = screen.getByRole("tab", { name: /Plans/ })
-    expect(plansTab).toHaveAttribute("aria-selected", "true")
+    expect(plansTab).toHaveAttribute("aria-selected", "false")
   })
 
   it("does not render Year-by-Year timeline by default", () => {
@@ -282,7 +294,7 @@ describe("CompositeTab", () => {
     expect(screen.getByText("Something went wrong")).toBeInTheDocument()
   })
 
-  it("renders loading spinner inside Plans tab when loading", () => {
+  it("renders loading spinner on FI Overview tab when loading", () => {
     const { useCompositeProjection } = jest.requireMock(
       "@hooks/useCompositeProjection",
     )
@@ -300,8 +312,6 @@ describe("CompositeTab", () => {
     })
 
     render(<CompositeTab plans={plans} settings={settings} />)
-    expect(
-      screen.getByText("Calculating composite projection..."),
-    ).toBeInTheDocument()
+    expect(screen.getByText("Computing projection…")).toBeInTheDocument()
   })
 })

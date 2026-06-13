@@ -13,13 +13,14 @@ import PlansTab from "./composite/tabs/PlansTab"
 import WealthJourneyTab from "./composite/tabs/WealthJourneyTab"
 import StressTestTab from "./composite/tabs/StressTestTab"
 import YearByYearTab from "./composite/tabs/YearByYearTab"
+import FiOverviewTab from "./composite/tabs/FiOverviewTab"
 
 interface CompositeTabProps {
   plans: RetirementPlan[]
   settings: UserIndependenceSettings | undefined
 }
 
-type CompositeSubTabId = "plans" | "wealth" | "stress" | "timeline"
+type CompositeSubTabId = "overview" | "plans" | "wealth" | "stress" | "timeline"
 
 interface CompositeSubTabConfig {
   id: CompositeSubTabId
@@ -29,6 +30,7 @@ interface CompositeSubTabConfig {
 
 const COMPOSITE_SUB_TABS: CompositeSubTabConfig[] = [
   { id: "plans", label: "Plans", icon: "fa-clipboard-list" },
+  { id: "overview", label: "FI Overview", icon: "fa-bullseye" },
   { id: "wealth", label: "Wealth Journey", icon: "fa-chart-line" },
   { id: "stress", label: "Stress Test", icon: "fa-dice" },
   { id: "timeline", label: "Year-by-Year", icon: "fa-table" },
@@ -87,7 +89,7 @@ export default function CompositeTab({
   settings,
 }: CompositeTabProps): React.ReactElement {
   const projectionState = useCompositeProjection(plans, settings)
-  const [activeTab, setActiveTab] = useState<CompositeSubTabId>("plans")
+  const [activeTab, setActiveTab] = useState<CompositeSubTabId>("overview")
 
   const contextValue: CompositeProjectionValue = {
     plans,
@@ -103,6 +105,7 @@ export default function CompositeTab({
             activeTab={activeTab}
             onTabChange={setActiveTab}
           />
+          {activeTab === "overview" && <FiOverviewTab />}
           {activeTab === "plans" && <PlansTab />}
           {activeTab === "wealth" && <WealthJourneyTab />}
           {activeTab === "stress" && <StressTestTab />}
