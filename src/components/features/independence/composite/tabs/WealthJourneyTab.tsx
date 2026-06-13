@@ -68,6 +68,18 @@ export default function WealthJourneyTab(): React.ReactElement | null {
   const { chartData, hasHousingLayer, hasAnnuitizedLayer } =
     buildWealthJourneyChartData(projection.yearlyProjections)
 
+  // First year where housingValue drops to 0 after being > 0 = property sold.
+  // CompositeYearlyProjection lacks propertyLiquidated, so we detect from the
+  // value transition. When this fires the user's liquid balance was below the
+  // threshold — a safety-net event, not a FIRE success milestone.
+  let propertyLiquidationAge: number | null = null
+  for (let i = 1; i < chartData.length; i++) {
+    if (chartData[i - 1].housingValue > 0 && chartData[i].housingValue === 0) {
+      propertyLiquidationAge = chartData[i].age
+      break
+    }
+  }
+
   if (chartData.length === 0) {
     return null
   }
@@ -117,6 +129,13 @@ export default function WealthJourneyTab(): React.ReactElement | null {
                 for (const pb of phaseBoundaries) {
                   if (!ticks.includes(pb.fromAge)) ticks.push(pb.fromAge)
                 }
+                // Include liquidation age so label always has an axis anchor
+                if (
+                  propertyLiquidationAge != null &&
+                  !ticks.includes(propertyLiquidationAge)
+                ) {
+                  ticks.push(propertyLiquidationAge)
+                }
                 return ticks.sort((a, b) => a - b)
               })()}
             />
@@ -164,6 +183,26 @@ export default function WealthJourneyTab(): React.ReactElement | null {
 
             {/* Zero line */}
             <ReferenceLine y={0} stroke="#ef4444" strokeWidth={2} />
+
+            {/* Property liquidation warning — amber dashed line.
+                Selling property is a safety-net fallback (liquid depleted),
+                not a FIRE success event. isFront ensures the label renders
+                above area layers regardless of which age the sale occurs. */}
+            {hasHousingLayer && propertyLiquidationAge != null && (
+              <ReferenceLine
+                x={propertyLiquidationAge}
+                stroke="#d97706"
+                strokeDasharray="4 4"
+                strokeWidth={2}
+                label={{
+                  value: `⚠ Property sold (${propertyLiquidationAge})`,
+                  position: "insideTopRight",
+                  fill: "#d97706",
+                  fontSize: 11,
+                  fontWeight: 600,
+                }}
+              />
+            )}
 
             {/* Phase background shading */}
             {phaseBoundaries.map((pb) => (
