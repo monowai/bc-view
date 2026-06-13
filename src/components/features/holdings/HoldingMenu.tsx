@@ -1,4 +1,4 @@
-import React, { ReactElement, useState, useCallback } from "react"
+import React, { ReactElement, useState, useCallback, useEffect } from "react"
 import { HideEmpty } from "@components/ui/HideEmpty"
 import { Portfolios } from "@components/features/portfolios/Portfolios"
 import { Portfolio } from "types/beancounter"
@@ -24,6 +24,16 @@ const HoldingMenu: React.FC<HoldingMenuOptions> = ({
     setMenuOpen(!menuOpen)
   }
 
+  // Close on Escape — keyboard parity with the click-outside backdrop.
+  useEffect(() => {
+    if (!menuOpen) return () => {}
+    function onKey(event: KeyboardEvent): void {
+      if (event.key === "Escape") setMenuOpen(false)
+    }
+    document.addEventListener("keydown", onKey)
+    return () => document.removeEventListener("keydown", onKey)
+  }, [menuOpen])
+
   return (
     <div className="relative">
       <header className="main-header">{/* Main header content */}</header>
@@ -32,7 +42,7 @@ const HoldingMenu: React.FC<HoldingMenuOptions> = ({
       {menuOpen && (
         <div
           data-testid="menu-backdrop"
-          className="fixed inset-0 bg-black bg-opacity-50 z-40"
+          className="fixed inset-0 bg-black/50 z-40"
           onClick={closeMenu}
         />
       )}
@@ -40,7 +50,9 @@ const HoldingMenu: React.FC<HoldingMenuOptions> = ({
       {/* Menu Trigger - with visual cue */}
       <button
         aria-label="Open menu"
-        className="fixed top-0 left-0 h-full w-[8px] bg-gray-800 z-50 cursor-pointer flex items-center justify-center hover:bg-gray-700 transition-colors"
+        aria-expanded={menuOpen}
+        aria-haspopup="true"
+        className="fixed top-0 left-0 h-full w-[8px] bg-gray-800 z-50 cursor-pointer flex items-center justify-center hover:bg-gray-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
         onMouseEnter={() => setMenuOpen(true)}
         onClick={toggleMenu}
       >
@@ -70,7 +82,7 @@ const HoldingMenu: React.FC<HoldingMenuOptions> = ({
         {/* Close Button */}
         <button
           aria-label="Close menu"
-          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 transition-colors"
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
           onClick={closeMenu}
         >
           <svg
