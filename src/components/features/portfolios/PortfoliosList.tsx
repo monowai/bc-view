@@ -330,7 +330,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                       )
                       if (selected) onCurrencyChange(selected)
                     }}
-                    className="border border-gray-300 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                    className="border border-gray-300 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-wealth-500 bg-gray-50"
                     title={"Display Currency"}
                   >
                     {currencies.map((c) => (
@@ -552,7 +552,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                       className="text-blue-500 hover:text-blue-700 p-1"
                       title={"Edit"}
                     >
-                      <i className="far fa-edit"></i>
+                      <i className="fas fa-edit"></i>
                     </Link>
                     <button
                       onClick={() =>
@@ -564,7 +564,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                       className="text-red-500 hover:text-red-700 p-1"
                       title={"Delete"}
                     >
-                      <i className="far fa-trash-alt"></i>
+                      <i className="fas fa-trash-alt"></i>
                     </button>
                   </div>
                 </div>
@@ -573,7 +573,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
           ))}
 
           {/* Mobile total */}
-          <div className="bg-gradient-to-r from-wealth-500 to-wealth-600 rounded-xl shadow-sm p-4">
+          <div className="bg-wealth-600 rounded-xl shadow-sm p-4">
             <div className="flex justify-between items-center">
               <span className="font-semibold text-white/90">
                 {"Total"}: {displayCurrency?.code}
@@ -611,9 +611,9 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
 
         {/* Desktop: Table layout */}
         <div className="hidden md:block px-4 py-4">
-          <div className="bg-white shadow-sm border border-slate-200 rounded-xl overflow-hidden">
+          <div className="bg-white shadow-sm border border-gray-200 rounded-xl overflow-hidden">
             <table className="min-w-full">
-              <thead className="bg-gradient-to-r from-wealth-500 to-wealth-600 text-white">
+              <thead className="bg-wealth-600 text-white">
                 <tr>
                   <th className="px-4 py-3 text-center w-12">
                     <input
@@ -683,7 +683,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-gray-100">
                 {sortedPortfolios.map((portfolio, index) => (
                   <React.Fragment key={portfolio.id}>
                     <tr
@@ -691,8 +691,8 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                         effectiveSelected.has(portfolio.code)
                           ? "bg-wealth-50 hover:bg-wealth-100"
                           : index % 2 === 0
-                            ? "bg-white hover:bg-sky-50"
-                            : "bg-slate-50/40 hover:bg-sky-50"
+                            ? "bg-white hover:bg-gray-50"
+                            : "bg-gray-50/60 hover:bg-gray-100"
                       }`}
                       onClick={(e) => {
                         if (
@@ -715,7 +715,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                             togglePortfolioSelection(portfolio.code)
                           }
                           onClick={(e) => e.stopPropagation()}
-                          className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
+                          className="w-4 h-4 text-wealth-600 rounded border-gray-300 focus:ring-wealth-500 cursor-pointer"
                         />
                       </td>
                       <td className="px-4 py-3">
@@ -723,10 +723,10 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                           {portfolio.code}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-slate-900 font-medium">
+                      <td className="px-4 py-3 text-gray-900 font-medium">
                         {portfolio.name}
                       </td>
-                      <td className="px-4 py-3 text-right font-semibold text-slate-900 tabular-nums">
+                      <td className="px-4 py-3 text-right font-semibold text-gray-900 tabular-nums">
                         <FormatValue
                           value={
                             (portfolio.marketValue
@@ -757,7 +757,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                             </span>
                           </QuickTooltip>
                         ) : (
-                          <span className="text-slate-400">-</span>
+                          <span className="text-gray-500">-</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -781,7 +781,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                           className={
                             isStale(portfolio.valuedAt)
                               ? "text-amber-500"
-                              : "text-slate-600"
+                              : "text-gray-600"
                           }
                           title={
                             portfolio.valuedAt
@@ -808,7 +808,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                                   name: portfolio.name,
                                 })
                               }}
-                              className="transition-colors text-slate-400 hover:text-purple-600"
+                              className="transition-colors text-gray-500 hover:text-purple-600"
                               title={"AI Summary"}
                               aria-label={"AI Summary"}
                             >
@@ -820,7 +820,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                               e.stopPropagation()
                               onShareClick(portfolio.id)
                             }}
-                            className="text-slate-400 hover:text-blue-600 transition-colors"
+                            className="text-gray-500 hover:text-blue-600 transition-colors"
                             title={"Share"}
                           >
                             <i className="fas fa-share-alt text-lg"></i>
@@ -830,18 +830,18 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                               e.stopPropagation()
                               onCorporateActions(portfolio)
                             }}
-                            className="text-slate-400 hover:text-blue-600 transition-colors"
+                            className="text-gray-500 hover:text-blue-600 transition-colors"
                             title={"Scan Corporate Actions"}
                           >
                             <i className="fas fa-calendar-check text-lg"></i>
                           </button>
                           <Link
                             href={`/portfolios/${portfolio.id}`}
-                            className="text-slate-400 hover:text-blue-600 transition-colors"
+                            className="text-gray-500 hover:text-blue-600 transition-colors"
                             title={"Edit Portfolio"}
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <i className="far fa-edit text-lg"></i>
+                            <i className="fas fa-edit text-lg"></i>
                           </Link>
                           <button
                             onClick={(e) => {
@@ -851,10 +851,10 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                                 code: portfolio.code,
                               })
                             }}
-                            className="text-slate-400 hover:text-red-600 transition-colors"
+                            className="text-gray-500 hover:text-red-600 transition-colors"
                             title={"Delete Portfolio"}
                           >
-                            <i className="far fa-trash-alt text-lg"></i>
+                            <i className="fas fa-trash-alt text-lg"></i>
                           </button>
                         </div>
                       </td>
@@ -862,7 +862,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
                   </React.Fragment>
                 ))}
               </tbody>
-              <tfoot className="bg-gradient-to-r from-wealth-500 to-wealth-600 text-white border-t-2 border-wealth-500">
+              <tfoot className="bg-wealth-600 text-white border-t-2 border-wealth-500">
                 <tr>
                   <td
                     colSpan={3}
