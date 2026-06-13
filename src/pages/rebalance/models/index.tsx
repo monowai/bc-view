@@ -25,7 +25,7 @@ function ModelsPage(): React.ReactElement {
         </div>
         <button
           onClick={() => router.push("/rebalance/models/__NEW__")}
-          className="bg-invest-600 text-white px-4 py-2 rounded hover:bg-invest-700 transition-colors flex items-center"
+          className="bg-invest-600 text-white px-4 py-2 rounded-lg hover:bg-invest-700 transition-colors flex items-center"
         >
           <i className="fas fa-plus mr-2"></i>
           {"Create Model"}

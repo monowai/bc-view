@@ -731,7 +731,7 @@ export default function ProposedTransactions(): React.JSX.Element {
                 onClick={() => setScope(s)}
                 className={`px-3 py-1 ${
                   scope === s
-                    ? "bg-blue-600 text-white"
+                    ? "bg-invest-600 text-white"
                     : "bg-white text-gray-700 hover:bg-gray-100"
                 }`}
               >
@@ -962,33 +962,33 @@ export default function ProposedTransactions(): React.JSX.Element {
                           : transactions.length}
                       </div>
                       {aggregateView && (
-                        <div className="text-xs text-gray-400">
+                        <div className="text-xs text-gray-500">
                           ({transactions.length} underlying)
                         </div>
                       )}
                     </div>
                     <div>
                       <div className="text-gray-500">Total Fees</div>
-                      <div className="font-semibold font-mono">
+                      <div className="font-semibold font-mono tabular-nums">
                         {totals.fees.toFixed(2)}
                       </div>
                     </div>
                     <div>
                       <div className="text-gray-500">Sales</div>
-                      <div className="font-semibold font-mono text-emerald-700">
+                      <div className="font-semibold font-mono tabular-nums text-emerald-700">
                         {totals.sales.toFixed(2)}
                       </div>
                     </div>
                     <div>
                       <div className="text-gray-500">Purchases</div>
-                      <div className="font-semibold font-mono text-red-700">
+                      <div className="font-semibold font-mono tabular-nums text-red-700">
                         {totals.purchases.toFixed(2)}
                       </div>
                     </div>
                     <div>
                       <div className="text-gray-500">Balance</div>
                       <div
-                        className={`font-semibold font-mono ${
+                        className={`font-semibold font-mono tabular-nums ${
                           balance >= 0 ? "text-emerald-700" : "text-red-700"
                         }`}
                       >
