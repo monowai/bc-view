@@ -319,9 +319,14 @@ export default function AssumptionsStep({
                     />
                   )}
                 />
-                {errors.housingAllocation && (
+                {errors.housingAllocation ? (
                   <p className="mt-1 text-sm text-red-600">
                     {errors.housingAllocation.message}
+                  </p>
+                ) : (
+                  <p className="mt-1 text-xs text-gray-500">
+                    Weights housing in the blended return calculation. Your
+                    actual property balance comes from your portfolio valuation.
                   </p>
                 )}
               </div>
@@ -487,9 +492,15 @@ export default function AssumptionsStep({
                     />
                   )}
                 />
-                {errors.housingReturnRate && (
+                {errors.housingReturnRate ? (
                   <p className="mt-1 text-sm text-red-600">
                     {errors.housingReturnRate.message}
+                  </p>
+                ) : (
+                  <p className="mt-1 text-xs text-gray-500">
+                    Annual capital appreciation applied to your property
+                    balance — runs independently from your liquid portfolio
+                    return.
                   </p>
                 )}
               </div>

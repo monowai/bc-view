@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useMemo } from "react"
 import type { CompositeYearlyProjection } from "types/independence"
 import Spinner from "@components/ui/Spinner"
 import Alert from "@components/ui/Alert"
@@ -20,6 +20,26 @@ export default function YearByYearTab(): React.ReactElement | null {
   const { hideValues } = usePrivacyMode()
   const { displayCurrency, projection, isLoading, error } =
     useCompositeProjectionContext()
+
+  // Index of the row where housing drops to 0 (property liquidated).
+  // CompositeYearlyProjection lacks the propertyLiquidated flag, so we
+  // detect from the housingValue transition. This is a warning event —
+  // it means liquid assets were depleted and property was force-sold.
+  const propertyLiquidationIndex = useMemo(() => {
+    if (!projection) return null
+    const rows = projection.yearlyProjections
+    for (let i = 1; i < rows.length; i++) {
+      if ((rows[i - 1].housingValue ?? 0) > 0 && (rows[i].housingValue ?? 0) === 0) {
+        return i
+      }
+    }
+    return null
+  }, [projection])
+
+  const hasHousingData = useMemo(
+    () => projection?.yearlyProjections.some((r) => (r.housingValue ?? 0) > 0) ?? false,
+    [projection],
+  )
 
   if (isLoading) {
     return (
@@ -61,8 +81,19 @@ export default function YearByYearTab(): React.ReactElement | null {
                   idx === 0 ||
                   row.planId !== projection.yearlyProjections[idx - 1]?.planId
                 return (
+                  <React.Fragment key={`${row.year}-${row.planId}`}>
+                    {propertyLiquidationIndex === idx && (
+                      <tr>
+                        <td
+                          colSpan={6}
+                          className="py-1.5 px-2 bg-amber-50 border-t border-b border-amber-200 text-xs text-amber-700 font-medium"
+                        >
+                          <i className="fas fa-exclamation-triangle mr-1.5"></i>
+                          Property sold — liquid assets depleted below threshold
+                        </td>
+                      </tr>
+                    )}
                   <tr
-                    key={`${row.year}-${row.planId}`}
                     className={`border-b border-gray-50 ${
                       isPhaseStart ? "border-t-2 border-t-independence-200" : ""
                     } ${row.endingBalance <= 0 ? "bg-red-50" : ""}`}
@@ -102,12 +133,20 @@ export default function YearByYearTab(): React.ReactElement | null {
                       )}
                     </td>
                   </tr>
+                  </React.Fragment>
                 )
               },
             )}
           </tbody>
         </table>
       </div>
+      {hasHousingData && (
+        <p className="mt-2 text-xs text-gray-400">
+          <i className="fas fa-info-circle mr-1"></i>
+          Balances show liquid (spendable) assets only. Property and other
+          locked assets are shown in the Wealth Journey chart.
+        </p>
+      )}
     </div>
   )
 }
