@@ -248,6 +248,17 @@ function HeaderBrand(): React.ReactElement {
     return () => router.events.off("routeChangeStart", close)
   }, [router.events])
 
+  // Lock background scroll while the mobile menu is open. Without this the
+  // page behind the dropdown scrolls instead of the menu's own scroll area.
+  useEffect(() => {
+    if (!mobileMenuOpen) return () => {}
+    const previous = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    return () => {
+      document.body.style.overflow = previous
+    }
+  }, [mobileMenuOpen])
+
   const handleKeyDown = (e: React.KeyboardEvent): void => {
     if (e.key === "Escape") {
       setMobileMenuOpen(false)
@@ -277,7 +288,7 @@ function HeaderBrand(): React.ReactElement {
           {/* Mobile Dropdown */}
           {mobileMenuOpen && (
             <div className="absolute left-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden text-gray-800">
-              <div className="py-2 max-h-[75vh] overflow-y-auto">
+              <div className="py-2 max-h-[75vh] overflow-y-auto overscroll-contain">
                 {navSections.map((section, sectionIdx) => {
                   const filteredItems = section.items.filter(
                     (item) =>

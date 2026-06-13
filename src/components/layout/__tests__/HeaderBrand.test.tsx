@@ -42,6 +42,16 @@ describe("HeaderBrand", () => {
     expect(link).toHaveAttribute("href", "/tools/cost-stack")
   })
 
+  it("locks background scroll while the mobile menu is open", () => {
+    render(<HeaderBrand />)
+    const toggle = screen.getByRole("button", { name: /Navigation menu/i })
+    expect(document.body.style.overflow).toBe("")
+    fireEvent.click(toggle)
+    expect(document.body.style.overflow).toBe("hidden")
+    fireEvent.click(toggle)
+    expect(document.body.style.overflow).toBe("")
+  })
+
   it("hides nav dropdowns when unauthenticated", () => {
     mockUseUser.mockReturnValueOnce({
       user: undefined,
