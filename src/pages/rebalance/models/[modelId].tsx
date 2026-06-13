@@ -38,7 +38,7 @@ function ModelDetailPage(): React.ReactElement {
   return (
     <div className="w-full py-4">
       {/* Breadcrumb */}
-      <nav className="text-sm text-gray-500 mb-4 max-w-2xl mx-auto">
+      <nav className="text-sm text-gray-500 mb-4 max-w-4xl mx-auto">
         <Link href="/rebalance/models" className="hover:text-invest-600">
           {"Model Portfolios"}
         </Link>
@@ -49,7 +49,7 @@ function ModelDetailPage(): React.ReactElement {
       </nav>
 
       {/* Model Summary/Edit Section */}
-      <div className="bg-white shadow-sm border border-gray-200 rounded-lg max-w-2xl mx-auto mb-6">
+      <div className="bg-white shadow-sm border border-gray-200 rounded-lg max-w-4xl mx-auto mb-6">
         {isNew ? (
           /* New Model - Show full form */
           <div className="p-6">
@@ -127,7 +127,7 @@ function ModelDetailPage(): React.ReactElement {
 
       {/* Plans Section (for existing models) */}
       {!isNew && model && (
-        <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6 max-w-2xl mx-auto">
+        <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6 max-w-4xl mx-auto">
           <ModelPlans modelId={model.id} />
         </div>
       )}

@@ -27,6 +27,7 @@ function PlanDetailPage(): React.ReactElement {
   const [approving, setApproving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [copied, setCopied] = useState(false)
   const [fetchingPrices, setFetchingPrices] = useState(false)
   const [creatingVersion, setCreatingVersion] = useState(false)
   const [showImportDropdown, setShowImportDropdown] = useState(false)
@@ -326,10 +327,7 @@ function PlanDetailPage(): React.ReactElement {
     return `${(weight * 100).toFixed(2)}%`
   }
 
-  // Export allocations to CSV file
-  const handleExportCSV = (): void => {
-    if (!weights.length) return
-
+  const buildCSV = (): string => {
     const headers = ["Asset", "Weight %", "Price", "Currency", "Description"]
     const rows = weights.map((w) => [
       escapeCSV(w.assetCode || w.assetId),
@@ -338,10 +336,23 @@ function PlanDetailPage(): React.ReactElement {
       w.priceCurrency || "",
       escapeCSV(w.rationale || ""),
     ])
+    return [headers.join(","), ...rows.map((r) => r.join(","))].join("\n")
+  }
 
-    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n")
+  // Export allocations to CSV file
+  const handleExportCSV = (): void => {
+    if (!weights.length) return
+    const csv = buildCSV()
     const filename = `plan-${model?.name || "model"}-v${plan?.version || "1"}-${new Date().toISOString().split("T")[0]}.csv`
     downloadCsv(filename, csv)
+  }
+
+  // Copy allocations as CSV to clipboard
+  const handleCopyCSV = async (): Promise<void> => {
+    if (!weights.length) return
+    await navigator.clipboard.writeText(buildCSV())
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   // Parse CSV line handling quoted fields
@@ -476,7 +487,7 @@ function PlanDetailPage(): React.ReactElement {
   if (error || !plan) {
     return (
       <div className="w-full py-4">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 max-w-2xl mx-auto">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 max-w-5xl mx-auto">
           {"Failed to load plan"}
         </div>
       </div>
@@ -488,7 +499,7 @@ function PlanDetailPage(): React.ReactElement {
   return (
     <div className="w-full py-4">
       {/* Breadcrumb */}
-      <nav className="text-sm text-gray-500 mb-4 max-w-2xl mx-auto">
+      <nav className="text-sm text-gray-500 mb-4 max-w-5xl mx-auto">
         <Link href="/rebalance/models" className="hover:text-invest-600">
           {"Model Portfolios"}
         </Link>
@@ -506,39 +517,39 @@ function PlanDetailPage(): React.ReactElement {
       </nav>
 
       {/* Header */}
-      <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6 max-w-2xl mx-auto mb-6">
+      <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6 max-w-5xl mx-auto mb-6">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              {"Plan"} v{plan.version}
-            </h1>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-2xl font-bold text-gray-900">
+                {"Plan"} v{plan.version}
+              </h1>
+              <span
+                className={`px-2.5 py-1 text-xs font-semibold rounded-full ${
+                  plan.status === "APPROVED"
+                    ? "bg-green-100 text-green-800"
+                    : "bg-yellow-100 text-yellow-800"
+                }`}
+              >
+                {plan.status}
+              </span>
+            </div>
             {plan.description && (
               <p className="text-sm text-gray-600 mt-1">{plan.description}</p>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleCreateNewVersion}
-              disabled={creatingVersion}
-              className="bg-invest-600 text-white px-3 py-1.5 rounded text-sm hover:bg-invest-700 transition-colors flex items-center disabled:opacity-50"
-            >
-              {creatingVersion ? (
-                <Spinner className="mr-2" />
-              ) : (
-                <i className="fas fa-copy mr-2"></i>
-              )}
-              {"New Version"}
-            </button>
-            <span
-              className={`px-3 py-1.5 text-sm font-medium rounded ${
-                plan.status === "APPROVED"
-                  ? "bg-green-100 text-green-800"
-                  : "bg-yellow-100 text-yellow-800"
-              }`}
-            >
-              {plan.status}
-            </span>
-          </div>
+          <button
+            onClick={handleCreateNewVersion}
+            disabled={creatingVersion}
+            className="ml-4 text-sm text-invest-600 hover:text-invest-700 transition-colors flex items-center disabled:opacity-50 shrink-0"
+          >
+            {creatingVersion ? (
+              <Spinner className="mr-2" />
+            ) : (
+              <i className="fas fa-code-branch mr-2"></i>
+            )}
+            {"New Version"}
+          </button>
         </div>
 
         <div className="grid grid-cols-2 gap-4 text-sm">
@@ -565,7 +576,7 @@ function PlanDetailPage(): React.ReactElement {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="bg-invest-600 text-white px-4 py-2 rounded hover:bg-invest-700 transition-colors flex items-center disabled:opacity-50"
+                className="bg-invest-600 text-white px-4 py-2 rounded-lg hover:bg-invest-700 transition-colors flex items-center disabled:opacity-50"
               >
                 {saving ? (
                   <Spinner className="mr-2" />
@@ -578,7 +589,7 @@ function PlanDetailPage(): React.ReactElement {
             <button
               onClick={() => setShowApproveConfirm(true)}
               disabled={approving || weights.length === 0}
-              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors flex items-center disabled:opacity-50"
+              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center disabled:opacity-50"
             >
               {approving ? (
                 <Spinner className="mr-2" />
@@ -590,7 +601,7 @@ function PlanDetailPage(): React.ReactElement {
             <button
               onClick={() => setShowDeleteConfirm(true)}
               disabled={deleting}
-              className="bg-red-100 text-red-700 px-4 py-2 rounded hover:bg-red-200 transition-colors flex items-center disabled:opacity-50"
+              className="bg-red-100 text-red-700 px-4 py-2 rounded-lg hover:bg-red-200 transition-colors flex items-center disabled:opacity-50"
             >
               {deleting ? (
                 <Spinner className="mr-2" />
@@ -604,21 +615,32 @@ function PlanDetailPage(): React.ReactElement {
       </div>
 
       {/* Assets Editor/Table */}
-      <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6 max-w-2xl mx-auto">
+      <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6 max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-medium text-gray-900">
             {"Target Allocations"}
           </h2>
           <div className="flex gap-2">
-            {/* Export button - available for both draft and approved plans */}
+            {/* Export / Copy buttons - available for both draft and approved plans */}
             {weights.length > 0 && (
-              <button
-                onClick={handleExportCSV}
-                className="text-sm bg-gray-100 text-gray-700 px-3 py-1.5 rounded hover:bg-gray-200 transition-colors flex items-center"
-              >
-                <i className="fas fa-download mr-1.5"></i>
-                {"Export"}
-              </button>
+              <>
+                <button
+                  onClick={handleCopyCSV}
+                  className="text-sm bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition-colors flex items-center"
+                >
+                  <i
+                    className={`fas ${copied ? "fa-check text-green-600" : "fa-clipboard"} mr-1.5`}
+                  ></i>
+                  {copied ? "Copied!" : "Copy"}
+                </button>
+                <button
+                  onClick={handleExportCSV}
+                  className="text-sm bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition-colors flex items-center"
+                >
+                  <i className="fas fa-download mr-1.5"></i>
+                  {"Export"}
+                </button>
+              </>
             )}
             {/* Import dropdown - only for draft plans */}
             {isDraft && (
@@ -626,7 +648,7 @@ function PlanDetailPage(): React.ReactElement {
                 <div className="relative" ref={importDropdownRef}>
                   <button
                     onClick={() => setShowImportDropdown(!showImportDropdown)}
-                    className="text-sm bg-gray-100 text-gray-700 px-3 py-1.5 rounded hover:bg-gray-200 transition-colors flex items-center"
+                    className="text-sm bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition-colors flex items-center"
                   >
                     <i className="fas fa-upload mr-1.5"></i>
                     {"Import"}
