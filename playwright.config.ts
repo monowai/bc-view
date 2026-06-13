@@ -30,6 +30,18 @@ export default defineConfig({
   },
 
   projects: [
+    // Public / logged-out surfaces (marketing landing). No auth session and no
+    // backend dependency — only needs the Next dev server, so this project runs
+    // even when the API stack and Auth0 are unavailable. Kept out of the authed
+    // projects via testIgnore below (the landing only renders when signed out).
+    {
+      name: "public",
+      testDir: "./e2e/tests/public",
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: { cookies: [], origins: [] },
+      },
+    },
     // Health check - verify backends are up before anything else
     {
       name: "health-check",
@@ -46,6 +58,7 @@ export default defineConfig({
     // Desktop Chrome
     {
       name: "chromium",
+      testIgnore: "**/tests/public/**",
       use: {
         ...devices["Desktop Chrome"],
         storageState: path.join(__dirname, "e2e/.auth/user.json"),
@@ -55,6 +68,7 @@ export default defineConfig({
     // Mobile Chrome
     {
       name: "mobile-chrome",
+      testIgnore: "**/tests/public/**",
       use: {
         ...devices["Pixel 5"],
         storageState: path.join(__dirname, "e2e/.auth/user.json"),

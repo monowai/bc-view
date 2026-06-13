@@ -9,6 +9,7 @@ import { Portfolio } from "types/beancounter"
 import { useRegistration } from "@contexts/RegistrationContext"
 import MilestoneBadge from "@components/features/milestones/MilestoneBadge"
 import { MilestoneTier } from "@utils/milestones/types"
+import MarketingLanding from "@components/features/landing/MarketingLanding"
 
 const capitalize = (str: string): string =>
   str ? str.charAt(0).toUpperCase() + str.slice(1) : ""
@@ -100,14 +101,17 @@ export default function Home(): React.ReactElement {
       </div>
     )
 
-  const isAuthed = !!user
+  // Logged-out visitors get the marketing landing; everything below is the
+  // authenticated hub.
+  if (!user) return <MarketingLanding />
+
   // Authed user with no portfolios sees the guided "Getting Started" card.
   // In that state the three pillar cards are noise, so they're hidden.
-  const isGettingStarted = isAuthed && portfoliosData?.data?.length === 0
+  const isGettingStarted = portfoliosData?.data?.length === 0
   const cardHref = {
-    wealth: isAuthed ? "/wealth" : "/learn/wealth",
-    independence: isAuthed ? "/independence" : "/learn/independence",
-    strategy: isAuthed ? "/rebalance/models" : "/learn/strategy",
+    wealth: "/wealth",
+    independence: "/independence",
+    strategy: "/rebalance/models",
   }
 
   return (
@@ -115,27 +119,12 @@ export default function Home(): React.ReactElement {
       {/* Hero Section */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-8">
         <div className="text-center">
-          {isAuthed ? (
-            <>
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-                {"Welcome!"}{" "}
-                <span className="text-gray-700">{displayName}</span>
-              </h1>
-              <p className="text-gray-500 text-lg">
-                Connecting goals, strategy, and assets — making progress visible
-              </p>
-            </>
-          ) : (
-            <>
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-                {"Welcome."}
-              </h1>
-              <p className="text-gray-500 text-lg mb-6">{"Login or Signup"}</p>
-              <Link href="/auth/login" className="btn-primary">
-                {"Sign In"}
-              </Link>
-            </>
-          )}
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+            {"Welcome!"} <span className="text-gray-700">{displayName}</span>
+          </h1>
+          <p className="text-gray-500 text-lg">
+            Connecting goals, strategy, and assets — making progress visible
+          </p>
         </div>
       </div>
 
@@ -312,7 +301,7 @@ export default function Home(): React.ReactElement {
         )}
 
         {/* Recent Milestones */}
-        {isAuthed && <RecentMilestones />}
+        <RecentMilestones />
 
         {/* Tagline */}
         <p className="text-center text-gray-500 mt-8">

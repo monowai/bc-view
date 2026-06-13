@@ -95,28 +95,29 @@ describe("<Home />", () => {
 
     render(<Home />)
 
+    // Logged-out visitors get the marketing landing.
     await waitFor(() => {
       expect(
-        screen.getByRole("heading", { name: /Welcome\./i }),
+        screen.getByRole("heading", {
+          level: 1,
+          name: /your whole financial picture/i,
+        }),
       ).toBeInTheDocument()
     })
-    expect(screen.getByText(/Login or Signup/i)).toBeInTheDocument()
 
-    const signIn = screen.getByRole("link", { name: /Sign In/i })
+    const signIn = screen.getByRole("link", { name: /^Sign in$/i })
     expect(signIn).toHaveAttribute("href", "/auth/login")
 
-    // Cards still rendered, but pointing to marketing routes
-    expect(
-      screen.getByRole("link", { name: /Manage Wealth/i }),
-    ).toHaveAttribute("href", "/learn/wealth")
-    expect(
-      screen.getByRole("link", { name: /Plan Independence/i }),
-    ).toHaveAttribute("href", "/learn/independence")
-    expect(
-      screen.getByRole("link", { name: /Investment Strategy/i }),
-    ).toHaveAttribute("href", "/learn/strategy")
+    // The three pillars link to their learn pages.
+    const learn = screen.getAllByRole("link", { name: /learn more/i })
+    expect(learn.map((l) => l.getAttribute("href"))).toEqual([
+      "/learn/wealth",
+      "/learn/independence",
+      "/learn/strategy",
+    ])
 
-    // No portfolio "Getting Started" prompt for unauth
+    // No authed-only chrome on the marketing landing.
     expect(screen.queryByText(/Let's Get You Started/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Welcome!/i)).not.toBeInTheDocument()
   })
 })
