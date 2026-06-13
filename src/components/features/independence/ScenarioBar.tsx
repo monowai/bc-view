@@ -79,8 +79,18 @@ export default function ScenarioBar({
   return (
     <div className="sticky top-0 z-30 bg-white border-b shadow-sm mb-3">
       <div className="px-4 py-2">
-        {/* Single top row — toggle + headline gauge + view + actions. Keeps
-            the sticky bar to one row when sliders are collapsed. */}
+        {/* Headline gauge (horizontal bar) on its own row. */}
+        <div className="mb-2">
+          <StrategyGaugesStrip
+            fiMetrics={fiMetrics}
+            compact
+            view={view}
+            singleHeadline
+          />
+        </div>
+
+        {/* Control row — accordion toggle on the left, view/reset/save on the
+            right. Save only appears once the scenario has been altered. */}
         <div className="flex items-center gap-3 flex-wrap">
           <button
             type="button"
@@ -104,50 +114,43 @@ export default function ScenarioBar({
             </span>
           )}
 
-          {/* Headline gauge inline */}
-          <div className="flex-1 min-w-[12rem] max-w-[28rem]">
-            <StrategyGaugesStrip
-              fiMetrics={fiMetrics}
-              compact
-              view={view}
-              singleHeadline
-            />
-          </div>
-
-          <label className="flex items-center gap-1 text-sm text-gray-600 shrink-0">
-            <span>View:</span>
-            <select
-              value={view}
-              onChange={(e) => onViewChange(e.target.value as StrategyView)}
-              className="px-2 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-independence-500"
-              aria-label="Strategy view"
+          <div className="flex items-center gap-3 ml-auto">
+            <label className="flex items-center gap-1 text-sm text-gray-600 shrink-0">
+              <span>View:</span>
+              <select
+                value={view}
+                onChange={(e) => onViewChange(e.target.value as StrategyView)}
+                className="px-2 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-independence-500"
+                aria-label="Strategy view"
+              >
+                {(["FIRE", "PENSION", "HYBRID", "ALL"] as StrategyView[]).map(
+                  (v) => (
+                    <option key={v} value={v}>
+                      {STRATEGY_VIEW_LABELS[v]}
+                    </option>
+                  ),
+                )}
+              </select>
+            </label>
+            <button
+              type="button"
+              onClick={onReset}
+              disabled={!isDirty}
+              className="text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
             >
-              {(["FIRE", "PENSION", "HYBRID", "ALL"] as StrategyView[]).map(
-                (v) => (
-                  <option key={v} value={v}>
-                    {STRATEGY_VIEW_LABELS[v]}
-                  </option>
-                ),
-              )}
-            </select>
-          </label>
-          <button
-            type="button"
-            onClick={onReset}
-            disabled={!isDirty}
-            className="text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-          >
-            <i className="fas fa-undo mr-1"></i>
-            Reset
-          </button>
-          <button
-            type="button"
-            onClick={onSave}
-            disabled={!isDirty}
-            className="text-sm bg-independence-600 hover:bg-independence-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-3 py-1.5 rounded-md font-medium shrink-0"
-          >
-            Save Scenario
-          </button>
+              <i className="fas fa-undo mr-1"></i>
+              Reset
+            </button>
+            {isDirty && (
+              <button
+                type="button"
+                onClick={onSave}
+                className="text-sm bg-independence-600 hover:bg-independence-700 text-white px-3 py-1.5 rounded-md font-medium shrink-0"
+              >
+                Save Scenario
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Slider grid — only when expanded. */}
