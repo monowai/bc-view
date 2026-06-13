@@ -24,6 +24,7 @@ import {
   DetailsTabContent,
   AssetsTabContent,
   TimelineTabContent,
+  PlanFiOverviewTab,
   ScenarioBar,
 } from "@components/features/independence"
 import { useScenario } from "@components/features/independence/scenario/useScenario"
@@ -64,7 +65,7 @@ function PlanView(): React.ReactElement {
   const { settings: independenceSettings } = useIndependenceSettings()
   const hasAutoSelected = useRef(false)
   const hasCategoriesInitialized = useRef(false)
-  const [activeTab, setActiveTab] = useState<TabId>("details")
+  const [activeTab, setActiveTab] = useState<TabId>("fi")
   const [selectedPortfolioIds, setSelectedPortfolioIds] = useState<string[]>([])
   const [spendableCategories, setSpendableCategories] = useState<string[]>([])
 
@@ -975,6 +976,28 @@ function PlanView(): React.ReactElement {
           />
 
           {/* Tab Content */}
+          {activeTab === "fi" && (
+            <PlanFiOverviewTab
+              plan={plan}
+              projection={adjustedProjection}
+              scenario={scenario}
+              assets={{
+                liquidAssets,
+                nonSpendableAssets,
+                totalAssets,
+                hasAssets,
+                isLoaded: true,
+              }}
+              monthlyInvestment={monthlyInvestment}
+              rentalIncome={rentalIncome}
+              displayCurrency={displayCurrency ?? undefined}
+              effectiveCurrency={effectiveCurrency}
+              currentAge={displayCurrentAge}
+              isCalculating={isCalculating}
+              hideValues={hideValues}
+            />
+          )}
+
           {activeTab === "details" && (
             <DetailsTabContent
               plan={plan}
