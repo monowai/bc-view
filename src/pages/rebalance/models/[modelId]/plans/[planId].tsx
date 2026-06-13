@@ -8,7 +8,10 @@ import { useModel } from "@components/features/rebalance/hooks/useModel"
 import { TableSkeletonLoader } from "@components/ui/SkeletonLoader"
 import ModelWeightsEditor from "@components/features/rebalance/models/ModelWeightsEditor"
 import ImportHoldingsDialog from "@components/features/rebalance/models/ImportHoldingsDialog"
+import AssetInsightPopup from "@components/features/rebalance/models/AssetInsightPopup"
+import PriceChartPopup from "@components/features/holdings/PriceChartPopup"
 import { PlanAssetDto, AssetWeightWithDetails } from "types/rebalance"
+import { Asset, Market } from "types/beancounter"
 import { escapeCSV, downloadCsv } from "@lib/csvExport"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 import Spinner from "@components/ui/Spinner"
@@ -38,6 +41,9 @@ function PlanDetailPage(): React.ReactElement {
   const [hasChanges, setHasChanges] = useState(false)
   const [showApproveConfirm, setShowApproveConfirm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [chartAsset, setChartAsset] = useState<Asset | null>(null)
+  const [insightAsset, setInsightAsset] =
+    useState<AssetWeightWithDetails | null>(null)
   const importDropdownRef = useRef<HTMLDivElement>(null)
   const csvInputRef = useRef<HTMLInputElement>(null)
 
@@ -58,8 +64,12 @@ function PlanDetailPage(): React.ReactElement {
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
-  // Initialize weights from plan
-  useEffect(() => {
+  // Initialize weights from plan. Render-phase "store previous value" pattern:
+  // when the fetched plan reference changes, re-seed the editable weights once
+  // (mirrors the prior effect keyed on [plan]) without a cascading effect.
+  const [prevPlan, setPrevPlan] = useState(plan)
+  if (plan !== prevPlan) {
+    setPrevPlan(plan)
     if (plan?.assets) {
       setWeights(
         plan.assets.map((asset) => ({
@@ -75,7 +85,7 @@ function PlanDetailPage(): React.ReactElement {
       )
       setHasChanges(false)
     }
-  }, [plan])
+  }
 
   const handleWeightsChange = (newWeights: AssetWeightWithDetails[]): void => {
     setWeights(newWeights)
@@ -152,7 +162,9 @@ function PlanDetailPage(): React.ReactElement {
         router.push(`/rebalance/models/${modelId}`)
       } else {
         const text = await response.text().catch(() => "")
-        setActionError(`Delete failed (${response.status})${text ? `: ${text}` : ""}`)
+        setActionError(
+          `Delete failed (${response.status})${text ? `: ${text}` : ""}`,
+        )
       }
     } catch (err) {
       console.error("Failed to delete plan:", err)
@@ -223,6 +235,19 @@ function PlanDetailPage(): React.ReactElement {
     return standardUuid.test(id) || base64Uuid.test(id)
   }
 
+  const handleShowPriceChart = (w: AssetWeightWithDetails): void => {
+    const [market, code] = w.assetCode?.includes(":")
+      ? w.assetCode.split(":")
+      : ["US", w.assetCode || w.assetId]
+    setChartAsset({
+      id: w.assetId,
+      code,
+      name: w.assetName || code,
+      assetCategory: { id: "EQUITY", name: "EQUITY" },
+      market: { code: market } as Market,
+    } as Asset)
+  }
+
   const handleFetchPrices = async (
     weightsOverride?: AssetWeightWithDetails[],
   ): Promise<void> => {
@@ -274,6 +299,26 @@ function PlanDetailPage(): React.ReactElement {
           setHasChanges(true)
         }
       }
+
+      // Silently save current weights so the backend has the full asset list
+      // before fetching prices — newly added assets won't appear in prices
+      // otherwise (backend reads from DB, not from the in-memory state).
+      await fetch(`/api/rebalance/models/${modelId}/plans/${planId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          assets: updatedWeights.map((w, index) => ({
+            assetId: w.assetId,
+            weight: Math.round(w.weight * 100) / 10000,
+            assetCode: w.assetCode,
+            assetName: w.assetName,
+            capturedPrice: w.capturedPrice,
+            priceCurrency: w.priceCurrency,
+            rationale: w.rationale || undefined,
+            sortOrder: w.sortOrder ?? index,
+          })),
+        }),
+      })
 
       // Now fetch prices for all assets
       const response = await fetch(
@@ -733,6 +778,8 @@ function PlanDetailPage(): React.ReactElement {
             onFetchPrices={handleFetchPrices}
             fetchingPrices={fetchingPrices}
             showPrice={true}
+            onShowPriceChart={handleShowPriceChart}
+            onShowAssetInsight={(w) => setInsightAsset(w)}
           />
         ) : (
           <>
@@ -761,9 +808,41 @@ function PlanDetailPage(): React.ReactElement {
                       <tr key={asset.id}>
                         <td className="px-3 sm:px-4 py-3">
                           <div>
-                            <span className="font-medium text-gray-900">
-                              {asset.assetCode || asset.assetId}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-gray-900">
+                                {asset.assetCode || asset.assetId}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleShowPriceChart({
+                                    assetId: asset.assetId,
+                                    assetCode: asset.assetCode,
+                                    assetName: asset.assetName,
+                                    weight: Number(asset.weight) * 100,
+                                  })
+                                }
+                                className="p-0.5 text-gray-400 hover:text-gray-600 transition-colors"
+                                title={"Price history chart"}
+                              >
+                                <i className="fas fa-chart-line text-xs"></i>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setInsightAsset({
+                                    assetId: asset.assetId,
+                                    assetCode: asset.assetCode,
+                                    assetName: asset.assetName,
+                                    weight: Number(asset.weight) * 100,
+                                  })
+                                }
+                                className="p-0.5 text-gray-400 hover:text-blue-500 transition-colors"
+                                title={"AI asset insight"}
+                              >
+                                <i className="fas fa-robot text-xs"></i>
+                              </button>
+                            </div>
                             {asset.assetName && (
                               <div className="text-xs text-gray-500">
                                 {asset.assetName}
@@ -846,6 +925,19 @@ function PlanDetailPage(): React.ReactElement {
           variant="red"
           onConfirm={handleDelete}
           onCancel={() => setShowDeleteConfirm(false)}
+        />
+      )}
+      {chartAsset && (
+        <PriceChartPopup
+          asset={chartAsset}
+          onClose={() => setChartAsset(null)}
+        />
+      )}
+      {insightAsset && (
+        <AssetInsightPopup
+          asset={insightAsset}
+          modelName={model?.name || ""}
+          onClose={() => setInsightAsset(null)}
         />
       )}
     </div>

@@ -11,6 +11,8 @@ interface ModelWeightsEditorProps {
   fetchingPrices?: boolean
   readOnly?: boolean
   showPrice?: boolean
+  onShowPriceChart?: (weight: AssetWeightWithDetails) => void
+  onShowAssetInsight?: (weight: AssetWeightWithDetails) => void
 }
 
 const ModelWeightsEditor: React.FC<ModelWeightsEditorProps> = ({
@@ -20,6 +22,8 @@ const ModelWeightsEditor: React.FC<ModelWeightsEditorProps> = ({
   fetchingPrices = false,
   readOnly = false,
   showPrice = false,
+  onShowPriceChart,
+  onShowAssetInsight,
 }) => {
   const [addAssetModalOpen, setAddAssetModalOpen] = useState(false)
 
@@ -140,6 +144,14 @@ const ModelWeightsEditor: React.FC<ModelWeightsEditorProps> = ({
               }
               onPriceChange={(price) => handlePriceChange(index, price)}
               onRemove={readOnly ? undefined : () => handleRemove(index)}
+              onShowPriceChart={
+                onShowPriceChart ? () => onShowPriceChart(weight) : undefined
+              }
+              onShowAssetInsight={
+                onShowAssetInsight
+                  ? () => onShowAssetInsight(weight)
+                  : undefined
+              }
               readOnly={readOnly}
               showPrice={showPrice}
             />
