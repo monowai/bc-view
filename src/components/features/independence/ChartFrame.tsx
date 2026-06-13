@@ -19,9 +19,11 @@ const DEFAULT_HEIGHT = "h-56 sm:h-72 lg:h-80"
 /**
  * Shared wrapper for every Independence projection chart.
  *
- * Solves two mobile problems Recharts doesn't handle on its own:
+ * Solves mobile problems Recharts doesn't handle on its own:
  *  1. Stuck tooltips — touch devices fire no mouseleave, so a tapped tooltip
- *     never clears. We dismiss it when the user taps outside the chart.
+ *     never clears. We dismiss it when the user taps outside the chart, and
+ *     also on viewport resize / orientation change (a rotate re-measures the
+ *     chart but leaves the old tooltip floating at stale coordinates).
  *  2. Fixed heights — a single hard px height squashes charts on phones; the
  *     default responsive height scales with the viewport.
  */
@@ -33,20 +35,29 @@ export function ChartFrame({
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    function dismiss(e: Event): void {
+    // Recharts hides the active tooltip via React's onMouseLeave, which React
+    // derives from a delegated, bubbling `mouseout` (a raw `mouseleave` won't
+    // trigger it). Touch / resize never send one, so synthesise it.
+    function clearTooltip(): void {
+      const wrapper = ref.current?.querySelector(".recharts-wrapper")
+      wrapper?.dispatchEvent(new MouseEvent("mouseout", { bubbles: true }))
+    }
+    function onTouch(e: Event): void {
       const root = ref.current
       if (!root) return
       const target = e.target as Node | null
       // Taps inside the chart select a point — leave those alone.
       if (target && root.contains(target)) return
-      // Recharts hides the active tooltip via React's onMouseLeave, which React
-      // derives from a delegated, bubbling `mouseout` (a raw `mouseleave` won't
-      // trigger it). Touch devices never send one, so synthesise it.
-      const wrapper = root.querySelector(".recharts-wrapper")
-      wrapper?.dispatchEvent(new MouseEvent("mouseout", { bubbles: true }))
+      clearTooltip()
     }
-    document.addEventListener("touchstart", dismiss, { passive: true })
-    return () => document.removeEventListener("touchstart", dismiss)
+    document.addEventListener("touchstart", onTouch, { passive: true })
+    window.addEventListener("resize", clearTooltip)
+    window.addEventListener("orientationchange", clearTooltip)
+    return () => {
+      document.removeEventListener("touchstart", onTouch)
+      window.removeEventListener("resize", clearTooltip)
+      window.removeEventListener("orientationchange", clearTooltip)
+    }
   }, [])
 
   return (
