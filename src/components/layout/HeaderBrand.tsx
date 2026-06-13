@@ -248,14 +248,31 @@ function HeaderBrand(): React.ReactElement {
     return () => router.events.off("routeChangeStart", close)
   }, [router.events])
 
-  // Lock background scroll while the mobile menu is open. Without this the
-  // page behind the dropdown scrolls instead of the menu's own scroll area.
+  // Lock background scroll while the mobile menu is open. Plain
+  // `overflow: hidden` on body is ignored by iOS Safari for touch scrolling,
+  // so freeze the body with `position: fixed` (offset by the current scroll)
+  // and restore the scroll position on close — the only reliable cross-browser
+  // lock.
   useEffect(() => {
     if (!mobileMenuOpen) return () => {}
-    const previous = document.body.style.overflow
-    document.body.style.overflow = "hidden"
+    const { body } = document
+    const scrollY = window.scrollY
+    const prev = {
+      position: body.style.position,
+      top: body.style.top,
+      width: body.style.width,
+      overflow: body.style.overflow,
+    }
+    body.style.position = "fixed"
+    body.style.top = `-${scrollY}px`
+    body.style.width = "100%"
+    body.style.overflow = "hidden"
     return () => {
-      document.body.style.overflow = previous
+      body.style.position = prev.position
+      body.style.top = prev.top
+      body.style.width = prev.width
+      body.style.overflow = prev.overflow
+      window.scrollTo(0, scrollY)
     }
   }, [mobileMenuOpen])
 
