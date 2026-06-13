@@ -755,7 +755,7 @@ function RetirementPlanning(): React.ReactElement {
 
           {error && <Alert>Failed to load plans. Please try again.</Alert>}
 
-          {!isLoading && !error && plans.length === 0 && (
+          {!isLoading && !error && plans.length === 0 && activeView === "plans" && (
             <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
               <div className="w-20 h-20 bg-independence-100 rounded-full flex items-center justify-center mx-auto mb-6">
                 <i className="fas fa-umbrella-beach text-3xl text-independence-600"></i>
@@ -764,16 +764,25 @@ function RetirementPlanning(): React.ReactElement {
                 No independence plans yet
               </h2>
               <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                Create your first independence plan to start projecting your
-                financial runway and exploring different scenarios.
+                Answer a few quick questions to create your first independence
+                plan and start projecting your financial freedom timeline.
               </p>
-              <Link
-                href="/independence/wizard"
-                className="inline-flex items-center bg-independence-600 text-white px-6 py-3 rounded-lg hover:bg-independence-700 font-medium"
-              >
-                <i className="fas fa-plus mr-2"></i>
-                Create Your First Plan
-              </Link>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Link
+                  href="/independence/setup"
+                  className="inline-flex items-center bg-independence-600 text-white px-6 py-3 rounded-lg hover:bg-independence-700 font-medium"
+                >
+                  <i className="fas fa-magic mr-2"></i>
+                  Get Started
+                </Link>
+                <Link
+                  href="/independence/wizard"
+                  className="inline-flex items-center border border-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-50 font-medium"
+                >
+                  <i className="fas fa-sliders-h mr-2"></i>
+                  Advanced Setup
+                </Link>
+              </div>
             </div>
           )}
 

@@ -24,6 +24,8 @@ export interface AssetBreakdown {
   totalAssets: number
   /** Whether holdings data is available */
   hasAssets: boolean
+  /** Whether holdings data has been received (true even when portfolio is empty) */
+  isLoaded: boolean
 }
 
 /**
@@ -61,12 +63,23 @@ export function calculateAssetBreakdown(
   valueIn: ValueInOption = "PORTFOLIO",
   nonSpendableCategories: string[] = DEFAULT_NON_SPENDABLE_CATEGORIES,
 ): AssetBreakdown {
-  if (!holdingsData?.positions) {
+  if (holdingsData == null) {
     return {
       liquidAssets: 0,
       nonSpendableAssets: 0,
       totalAssets: 0,
       hasAssets: false,
+      isLoaded: false,
+    }
+  }
+
+  if (!holdingsData.positions) {
+    return {
+      liquidAssets: 0,
+      nonSpendableAssets: 0,
+      totalAssets: 0,
+      hasAssets: false,
+      isLoaded: true,
     }
   }
 
@@ -89,5 +102,6 @@ export function calculateAssetBreakdown(
     nonSpendableAssets: nonSpendable,
     totalAssets: liquid + nonSpendable,
     hasAssets: liquid > 0 || nonSpendable > 0,
+    isLoaded: true,
   }
 }
