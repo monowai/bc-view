@@ -85,7 +85,7 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
         </p>
         <button
           onClick={() => router.push("/rebalance/models/__NEW__")}
-          className="bg-invest-600 text-white px-4 py-2 rounded hover:bg-invest-700 transition-colors inline-flex items-center"
+          className="bg-invest-600 text-white px-4 py-2 rounded-lg hover:bg-invest-700 transition-colors inline-flex items-center"
         >
           <i className="fas fa-plus mr-2"></i>
           {"Create Model"}
@@ -97,7 +97,7 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
   return (
     <div className="bg-white shadow-sm border border-gray-200 rounded-lg overflow-hidden">
       <table className="min-w-full">
-        <thead className="bg-gray-100">
+        <thead className="bg-gray-50">
           <tr className="border-b border-gray-200">
             {selectable && <th className="px-4 py-3 w-10"></th>}
             <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
@@ -135,7 +135,7 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
                   router.push(`/rebalance/models/${model.id}`)
                 }
               }}
-              className={`hover:bg-slate-100 transition-colors cursor-pointer ${
+              className={`hover:bg-gray-50 transition-colors cursor-pointer ${
                 selectable && selectedId === model.id ? "bg-invest-50" : ""
               }`}
             >
@@ -234,7 +234,7 @@ const ModelPortfolioList: React.FC<ModelListProps> = ({
                         className="text-invest-500 hover:text-invest-700 transition-colors"
                         title={"Edit"}
                       >
-                        <i className="far fa-edit"></i>
+                        <i className="fas fa-edit"></i>
                       </button>
                       <button
                         onClick={(e) => {

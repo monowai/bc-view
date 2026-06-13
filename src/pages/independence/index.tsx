@@ -182,7 +182,7 @@ function PlanCard({
       </div>
 
       {/* FI Number and Progress */}
-      <div className="bg-gradient-to-r from-independence-50 to-independence-100 rounded-lg p-3 mb-4 border border-independence-100">
+      <div className="bg-independence-50 rounded-lg p-3 mb-4 border border-independence-100">
         {fiLoading ? (
           <div className="flex items-center text-xs text-gray-400">
             <Spinner label="Calculating..." />
@@ -195,7 +195,7 @@ function PlanCard({
                 FI Number
               </span>
               <span
-                className={`font-bold ${hideValues ? "text-gray-400" : "text-independence-600"}`}
+                className={`font-bold tabular-nums ${hideValues ? "text-gray-400" : "text-independence-600"}`}
               >
                 {hideValues
                   ? HIDDEN_VALUE
@@ -205,10 +205,10 @@ function PlanCard({
             <div className="mt-2">
               <div className="flex justify-between items-center mb-1">
                 <span className="text-xs text-gray-500">
-                  Early Retirement Progress
+                  FI Progress
                 </span>
                 <span
-                  className={`text-xs font-medium ${hideValues ? "text-gray-400" : getProgressColor(fiProgress)}`}
+                  className={`text-xs font-medium tabular-nums ${hideValues ? "text-gray-400" : getProgressColor(fiProgress)}`}
                 >
                   {hideValues ? HIDDEN_VALUE : `${fiProgress.toFixed(1)}%`}
                 </span>
@@ -286,9 +286,9 @@ function PlanCard({
 
       <Link
         href={`/independence/plans/${plan.id}`}
-        className="w-full block text-center bg-independence-50 text-independence-600 px-4 py-2 rounded-lg hover:bg-independence-100 font-medium"
+        className="w-full block text-center bg-independence-600 text-white px-4 py-2 rounded-lg hover:bg-independence-700 font-medium transition-colors"
       >
-        View Projections
+        View Plan
       </Link>
     </div>
   )
@@ -652,14 +652,16 @@ function RetirementPlanning(): React.ReactElement {
                   </>
                 )}
               </button>
-              <Link
-                href="/independence/debug"
-                className="hidden sm:flex border border-gray-300 text-gray-700 px-4 py-3 rounded-lg hover:bg-gray-50 font-medium items-center"
-                title="Cross-check svc-retire metrics against local formulas"
-              >
-                <i className="fas fa-bug mr-2"></i>
-                Debug
-              </Link>
+              {process.env.NODE_ENV === "development" && (
+                <Link
+                  href="/independence/debug"
+                  className="hidden sm:flex border border-gray-300 text-gray-700 px-4 py-3 rounded-lg hover:bg-gray-50 font-medium items-center"
+                  title="Cross-check svc-retire metrics against local formulas"
+                >
+                  <i className="fas fa-bug mr-2"></i>
+                  Debug
+                </Link>
+              )}
               <Link
                 href="/independence/wizard"
                 className="bg-independence-600 text-white px-6 py-3 rounded-lg hover:bg-independence-700 font-medium flex items-center"

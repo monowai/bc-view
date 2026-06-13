@@ -85,7 +85,7 @@ function KpiCard({
       >
         {value}
       </span>
-      {sub && <span className="mt-1 text-xs text-gray-400">{sub}</span>}
+      {sub && <span className="mt-1 text-xs text-gray-500">{sub}</span>}
     </div>
   )
 }
@@ -320,7 +320,7 @@ export default function PlanFiOverviewTab({
               {hasMc ? " · with Monte Carlo confidence bands" : ""}
             </p>
           </div>
-          <div className="flex items-center gap-4 text-xs text-gray-400 flex-wrap">
+          <div className="flex items-center gap-4 text-xs text-gray-500 flex-wrap">
             <span className="flex items-center gap-1.5">
               <span className="inline-block w-6 h-0.5 bg-slate-900 rounded" />
               Portfolio
@@ -618,7 +618,7 @@ export default function PlanFiOverviewTab({
       {/* ——— Income breakdown ——— */}
       {fiMetrics && (
         <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
-          <h3 className="text-xs font-semibold text-gray-500 mb-3">
+          <h3 className="text-xs font-semibold text-gray-600 mb-3">
             Monthly income &amp; FI number basis
           </h3>
           <div className="space-y-2">
@@ -655,7 +655,7 @@ export default function PlanFiOverviewTab({
                   : fmtFull(fiMetrics.netMonthlyExpenses, effectiveCurrency)}
               </span>
             </div>
-            <p className="text-xs text-gray-400 pt-0.5">
+            <p className="text-xs text-gray-500 pt-0.5">
               FI Number ={" "}
               {hideValues
                 ? HIDDEN_VALUE

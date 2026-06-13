@@ -333,7 +333,7 @@ function AssetLookupPage(): React.ReactElement {
 
       {/* Selected Asset Info */}
       {selectedAsset && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <div className="bg-invest-50 border border-invest-200 rounded-lg p-4 mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-gray-900">
@@ -492,13 +492,13 @@ function AssetLookupPage(): React.ReactElement {
                             Sub-account roll-up (no portfolio)
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-right text-gray-900">
+                        <td className="px-4 py-3 text-right text-gray-900 tabular-nums">
                           {formatQuantity(ap.balance)}
                         </td>
                         <td className="px-4 py-3 text-right text-gray-500 hidden sm:table-cell">
                           -
                         </td>
-                        <td className="px-4 py-3 text-right text-gray-900 font-medium">
+                        <td className="px-4 py-3 text-right text-gray-900 font-medium tabular-nums">
                           {currencyCode
                             ? formatValue(ap.balance, currencyCode)
                             : formatQuantity(ap.balance)}
@@ -533,7 +533,7 @@ function AssetLookupPage(): React.ReactElement {
                               `/holdings/${portfolio.code}#asset-${encodeURIComponent(assetId)}`,
                             )
                           }}
-                          className="font-medium text-blue-600 hover:text-blue-800 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+                          className="font-medium text-invest-600 hover:text-invest-700 hover:underline focus:outline-none focus:ring-2 focus:ring-invest-500 rounded"
                           title={`View holdings for ${portfolio.code}`}
                         >
                           {portfolio.code}
@@ -542,10 +542,10 @@ function AssetLookupPage(): React.ReactElement {
                           {portfolio.name}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-right text-gray-900">
+                      <td className="px-4 py-3 text-right text-gray-900 tabular-nums">
                         {formatQuantity(ap.balance)}
                       </td>
-                      <td className="px-4 py-3 text-right text-gray-700 hidden sm:table-cell">
+                      <td className="px-4 py-3 text-right text-gray-700 hidden sm:table-cell tabular-nums">
                         {moneyValues
                           ? formatValue(
                               moneyValues.costValue || 0,
@@ -553,7 +553,7 @@ function AssetLookupPage(): React.ReactElement {
                             )
                           : "-"}
                       </td>
-                      <td className="px-4 py-3 text-right text-gray-900 font-medium">
+                      <td className="px-4 py-3 text-right text-gray-900 font-medium tabular-nums">
                         {moneyValues
                           ? formatValue(
                               moneyValues.marketValue || 0,
@@ -561,7 +561,7 @@ function AssetLookupPage(): React.ReactElement {
                             )
                           : "-"}
                       </td>
-                      <td className="px-4 py-3 text-right hidden md:table-cell">
+                      <td className="px-4 py-3 text-right hidden md:table-cell tabular-nums">
                         {moneyValues ? (
                           <div
                             className={
@@ -656,7 +656,7 @@ function AssetLookupPage(): React.ReactElement {
                     <td className="px-4 py-3 text-right text-gray-700">
                       v{model.planVersion}
                     </td>
-                    <td className="px-4 py-3 text-right text-gray-900 font-medium">
+                    <td className="px-4 py-3 text-right text-gray-900 font-medium tabular-nums">
                       {formatWeight(model.targetWeight)}
                     </td>
                   </tr>

@@ -395,7 +395,7 @@ export default function LifeEventsStep({
                           className="text-gray-400 hover:text-independence-500 p-1"
                           title="Edit"
                         >
-                          <i className="fas fa-pen text-xs"></i>
+                          <i className="fas fa-edit text-xs"></i>
                         </button>
                         <button
                           type="button"

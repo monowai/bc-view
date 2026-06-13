@@ -78,7 +78,7 @@ export default function IndependenceMetrics({
             className={`grid grid-cols-1 ${projectionData ? "sm:grid-cols-2 lg:grid-cols-4" : ""} gap-4`}
           >
             {/* Monthly Investment Progress */}
-            <div className="bg-linear-to-br from-blue-50 to-indigo-50 rounded-lg p-4">
+            <div className="bg-blue-50 rounded-lg p-4">
               <p className="text-sm text-gray-600 mb-1">Monthly Investment</p>
               {(() => {
                 // Monthly investment target = surplus × allocation %
@@ -112,7 +112,7 @@ export default function IndependenceMetrics({
                       ) : (
                         <>
                           <span
-                            className={`text-3xl font-bold ${isNegative ? "text-red-600" : progress >= 100 ? "text-green-600" : "text-blue-600"}`}
+                            className={`text-3xl font-bold tabular-nums ${isNegative ? "text-red-600" : progress >= 100 ? "text-green-600" : "text-blue-600"}`}
                           >
                             {isNegative ? "-" : ""}
                             {currencySymbol}
@@ -156,7 +156,7 @@ export default function IndependenceMetrics({
                   projectionData?.fiMetrics,
                 )
                 return (
-                  <div className="bg-linear-to-br from-green-50 to-emerald-50 rounded-lg p-4">
+                  <div className="bg-green-50 rounded-lg p-4">
                     <p className="text-sm text-gray-600 mb-1">
                       {headline.label}
                     </p>
@@ -176,7 +176,7 @@ export default function IndependenceMetrics({
                               ****
                             </span>
                           ) : (
-                            <span className="text-3xl font-bold text-green-600">
+                            <span className="text-3xl font-bold tabular-nums text-green-600">
                               {headline.display}
                             </span>
                           )}
@@ -207,7 +207,7 @@ export default function IndependenceMetrics({
 
             {/* Years to FI */}
             {(projectionLoading || projectionData) && (
-              <div className="bg-linear-to-br from-orange-50 to-amber-50 rounded-lg p-4">
+              <div className="bg-amber-50 rounded-lg p-4">
                 <p className="text-sm text-gray-600 mb-1">Years to FI</p>
                 {projectionLoading && !projectionData ? (
                   <>
@@ -228,7 +228,7 @@ export default function IndependenceMetrics({
                         </span>
                       ) : projectionData?.fiMetrics?.realYearsToFi != null ? (
                         <>
-                          <span className="text-3xl font-bold text-orange-600">
+                          <span className="text-3xl font-bold tabular-nums text-orange-600">
                             {Math.round(projectionData.fiMetrics.realYearsToFi)}
                           </span>
                           <span className="text-sm text-gray-500">years</span>
@@ -246,7 +246,7 @@ export default function IndependenceMetrics({
                           ? "You've reached financial independence!"
                           : projectionData?.fiAchievementAge
                             ? `FI at age ${projectionData.fiAchievementAge}`
-                            : "Keep investing to reach FIRE"}
+                            : "Keep investing to reach FI"}
                     </p>
                   </>
                 )}
@@ -255,7 +255,7 @@ export default function IndependenceMetrics({
 
             {/* Property Liquidation Age */}
             {(projectionLoading || projectionData) && (
-              <div className="bg-linear-to-br from-purple-50 to-violet-50 rounded-lg p-4">
+              <div className="bg-purple-50 rounded-lg p-4">
                 <p className="text-sm text-gray-600 mb-1">
                   <i className="fas fa-home text-purple-600 mr-1"></i>
                   Property Sale Age
@@ -282,7 +282,7 @@ export default function IndependenceMetrics({
                             </span>
                           ) : liquidationYear?.age ? (
                             <>
-                              <span className="text-3xl font-bold text-purple-600">
+                              <span className="text-3xl font-bold tabular-nums text-purple-600">
                                 {liquidationYear.age}
                               </span>
                               <span className="text-sm text-gray-500">
