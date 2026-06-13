@@ -1,6 +1,9 @@
 import React, { useState } from "react"
 import MathInput from "@components/ui/MathInput"
 
+const UUID_RE =
+  /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[A-Za-z0-9_-]{22})$/i
+
 interface AssetWeightInputProps {
   assetId: string
   assetCode?: string
@@ -13,6 +16,8 @@ interface AssetWeightInputProps {
   onRationaleChange?: (rationale: string) => void
   onPriceChange?: (price: number | undefined) => void
   onRemove?: () => void
+  onShowPriceChart?: () => void
+  onShowAssetInsight?: () => void
   readOnly?: boolean
   showPrice?: boolean
 }
@@ -29,9 +34,12 @@ const AssetWeightInput: React.FC<AssetWeightInputProps> = ({
   onRationaleChange,
   onPriceChange,
   onRemove,
+  onShowPriceChart,
+  onShowAssetInsight,
   readOnly = false,
   showPrice = false,
 }) => {
+  const isResolved = UUID_RE.test(assetId)
   const [showRationale, setShowRationale] = useState(!!rationale)
 
   return (
@@ -96,6 +104,26 @@ const AssetWeightInput: React.FC<AssetWeightInputProps> = ({
               title={"Investment rationale"}
             >
               <i className="fas fa-comment-alt"></i>
+            </button>
+          )}
+          {onShowPriceChart && isResolved && (
+            <button
+              type="button"
+              onClick={onShowPriceChart}
+              className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+              title={"Price history chart"}
+            >
+              <i className="fas fa-chart-line"></i>
+            </button>
+          )}
+          {onShowAssetInsight && isResolved && (
+            <button
+              type="button"
+              onClick={onShowAssetInsight}
+              className="p-1 text-gray-400 hover:text-blue-500 transition-colors"
+              title={"AI asset insight"}
+            >
+              <i className="fas fa-robot"></i>
             </button>
           )}
           {onRemove && !readOnly && (
