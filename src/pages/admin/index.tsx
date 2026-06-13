@@ -49,13 +49,6 @@ export default withPageAuthRequired(function AdminPage(): React.ReactElement {
       icon: "fa-server",
     },
     {
-      title: "Asset Classifications",
-      description:
-        "Manage sector classifications for assets. Assign custom sectors to group holdings.",
-      href: "/admin/classifications",
-      icon: "fa-tags",
-    },
-    {
       title: "Asset Admin",
       description:
         "Search for any asset and manage its name, status, and enrichment.",
