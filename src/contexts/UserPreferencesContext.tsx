@@ -88,6 +88,8 @@ export function UserPreferencesProvider({
   useEffect(() => {
     // Wait for both user loading and registration to complete
     if (!userLoading && !registrationChecking) {
+      // Syncs preferences from /api/me (external system) once auth resolves.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchPreferences()
     }
   }, [userLoading, registrationChecking, fetchPreferences])

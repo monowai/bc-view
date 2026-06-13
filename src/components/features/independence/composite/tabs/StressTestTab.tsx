@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react"
+import React, { useState } from "react"
 import { useCompositeProjectionContext } from "../CompositeProjectionContext"
 import useCompositeMonteCarloSimulation from "@hooks/useCompositeMonteCarloSimulation"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
@@ -21,20 +21,19 @@ export default function StressTestTab(): React.ReactElement {
     useCompositeMonteCarloSimulation()
   const [iterations, setIterations] = useState(1000)
   const [isStale, setIsStale] = useState(false)
-  const isFirstRender = useRef(true)
 
   // Mark result stale when user changes phases/currency after a run.
-  // Skip the very first render so a result that is already present (e.g.
-  // restored from a parent / hook) is not immediately flagged as stale.
-  useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false
-      return
-    }
+  // Render-phase "store previous value" pattern: track the last
+  // phases/currency we saw and flag stale on change. The first render
+  // simply records the initial values, so a result that is already present
+  // (e.g. restored from a parent / hook) is not immediately flagged as stale.
+  const [prevPhases, setPrevPhases] = useState(phases)
+  const [prevCurrency, setPrevCurrency] = useState(displayCurrency)
+  if (phases !== prevPhases || displayCurrency !== prevCurrency) {
+    setPrevPhases(phases)
+    setPrevCurrency(displayCurrency)
     if (result) setIsStale(true)
-    // We intentionally only react to phases/currency changes, not result.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phases, displayCurrency])
+  }
 
   const hasPhases = phases.length > 0
   const canRun = hasPhases && !isRunning

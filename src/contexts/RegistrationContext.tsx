@@ -95,6 +95,9 @@ export function RegistrationProvider({
     }
 
     if (!user?.sub) {
+      // Checking flag for the backend registration flow (external system);
+      // cleared here when there is no user to register.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsChecking(false)
       return
     }

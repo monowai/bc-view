@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react"
+import React, { useState } from "react"
 import useSwr from "swr"
 import Dialog from "@components/ui/Dialog"
 import { simpleFetcher } from "@utils/api/fetchHelper"
@@ -39,11 +39,16 @@ const AdminAssetEditDialog: React.FC<AdminAssetEditDialogProps> = ({
     simpleFetcher("/api/classifications/sectors"),
   )
 
-  useEffect(() => {
+  // Re-initialise form fields when the asset prop changes. Render-phase reset
+  // (React's "store previous value" pattern) instead of an effect, to avoid
+  // cascading renders.
+  const [prevAsset, setPrevAsset] = useState(asset)
+  if (asset !== prevAsset) {
+    setPrevAsset(asset)
     setName(asset.name || "")
     setCategory(asset.assetCategory?.id || "")
     setSector(asset.sector || "")
-  }, [asset])
+  }
 
   const handleSave = async (): Promise<void> => {
     if (!category) {

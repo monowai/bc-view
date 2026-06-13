@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react"
+import React, { useState, useCallback } from "react"
 import { WorkScenario, WorkScenarioRequest } from "types/independence"
 import Dialog from "@components/ui/Dialog"
 import ScenarioContributions from "@components/features/independence/scenarios/ScenarioContributions"
@@ -45,7 +45,11 @@ export default function ScenarioEditor({
   const { settings: independenceSettings } = useIndependenceSettings()
   const currentAge = currentAgeFromSettings(independenceSettings)
 
-  useEffect(() => {
+  // Seed the form from the scenario prop when it changes. Render-phase
+  // "store previous value" pattern keyed on scenario, preserving the guard.
+  const [prevScenario, setPrevScenario] = useState(scenario)
+  if (scenario !== prevScenario) {
+    setPrevScenario(scenario)
     if (scenario) {
       setForm({
         name: scenario.name,
@@ -59,7 +63,7 @@ export default function ScenarioEditor({
         currency: scenario.currency,
       })
     }
-  }, [scenario])
+  }
 
   const handleChange = useCallback(
     (field: keyof WorkScenarioRequest, value: string | number) => {

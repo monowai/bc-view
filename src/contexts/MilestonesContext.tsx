@@ -62,6 +62,9 @@ export function MilestonesProvider({
   // Fetch earned milestones from backend
   useEffect(() => {
     if (userLoading || isChecking || !user || !isRegistered) {
+      // Loading flag for the backend milestones fetch (external system);
+      // cleared here when there is nothing to fetch.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsLoading(false)
       return
     }

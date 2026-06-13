@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import React, { useState } from "react"
 interface ClientSelectorProps {
   clientId: string
   onChange: (clientId: string) => void
@@ -14,9 +14,12 @@ const ClientSelector: React.FC<ClientSelectorProps> = ({
 }) => {
   const [isEnabled, setIsEnabled] = useState(clientId !== "")
 
-  useEffect(() => {
+  // Sync enabled toggle when the clientId prop changes (e.g. parent reset).
+  const [prevClientId, setPrevClientId] = useState(clientId)
+  if (clientId !== prevClientId) {
+    setPrevClientId(clientId)
     setIsEnabled(clientId !== "")
-  }, [clientId])
+  }
 
   const handleToggle = (): void => {
     if (isEnabled) {

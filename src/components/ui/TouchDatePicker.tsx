@@ -73,24 +73,24 @@ export default function TouchDatePicker({
   const [selectedMonth, setSelectedMonth] = useState(parsed.month)
   const [selectedDay, setSelectedDay] = useState(parsed.day)
 
-  // Update local state when value prop changes
-  useEffect(() => {
+  // Re-sync local state when the value prop changes (render-phase reset).
+  const [prevParsed, setPrevParsed] = useState(parsed)
+  if (parsed !== prevParsed) {
+    setPrevParsed(parsed)
     setSelectedYear(parsed.year)
     setSelectedMonth(parsed.month)
     setSelectedDay(parsed.day)
-  }, [parsed])
+  }
 
   // Days in selected month
   const daysInMonth = useMemo(() => {
     return new Date(selectedYear, selectedMonth + 1, 0).getDate()
   }, [selectedYear, selectedMonth])
 
-  // Clamp day if month changes
-  useEffect(() => {
-    if (selectedDay > daysInMonth) {
-      setSelectedDay(daysInMonth)
-    }
-  }, [daysInMonth, selectedDay])
+  // Clamp day if the month changes to one with fewer days (render-phase).
+  if (selectedDay > daysInMonth) {
+    setSelectedDay(daysInMonth)
+  }
 
   // Generate year options
   const years = useMemo(() => {

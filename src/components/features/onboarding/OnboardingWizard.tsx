@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react"
+import React, { useState, useMemo, useCallback } from "react"
 import { useRouter } from "next/router"
 import useSwr from "swr"
 import { useUser } from "@auth0/nextjs-auth0/client"
@@ -116,40 +116,6 @@ const OnboardingWizard: React.FC = () => {
   const [baseCurrency, setBaseCurrency] = useState("")
   const [reportingCurrency, setReportingCurrency] = useState("")
   const [prefsInitialized, setPrefsInitialized] = useState(false)
-
-  // Pre-fill fields from user preferences or Auth0 profile
-  useEffect(() => {
-    if (!prefsInitialized && preferences) {
-      // Pre-fill name
-      const existingName =
-        preferences.preferredName ||
-        (user?.nickname as string) ||
-        (user?.name as string) ||
-        ""
-      if (existingName) {
-        setPreferredName(existingName)
-      }
-
-      // Pre-fill currencies
-      if (preferences.baseCurrencyCode) {
-        setBaseCurrency(preferences.baseCurrencyCode)
-      }
-      if (preferences.reportingCurrencyCode) {
-        setReportingCurrency(preferences.reportingCurrencyCode)
-      }
-
-      // Pre-fill date of birth so a known DOB wins over the currentYear-55
-      // default (otherwise everyone defaulted to ~55 years old).
-      if (preferences.yearOfBirth) {
-        setIndependenceYearOfBirth(preferences.yearOfBirth)
-      }
-      if (preferences.monthOfBirth) {
-        setIndependenceMonthOfBirth(preferences.monthOfBirth)
-      }
-
-      setPrefsInitialized(true)
-    }
-  }, [preferences, user, prefsInitialized])
   const [portfolioCode, setPortfolioCode] = useState("")
   const [portfolioName, setPortfolioName] = useState("")
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([])
@@ -189,6 +155,39 @@ const OnboardingWizard: React.FC = () => {
   const [brokerageAmount, setBrokerageAmount] = useState("")
   const [brokerageCurrency, setBrokerageCurrency] = useState("")
   const [brokerageCreated, setBrokerageCreated] = useState(false)
+
+  // Pre-fill fields from user preferences or Auth0 profile (render-phase
+  // one-time init — guarded so it runs once when preferences first arrive).
+  if (!prefsInitialized && preferences) {
+    // Pre-fill name
+    const existingName =
+      preferences.preferredName ||
+      (user?.nickname as string) ||
+      (user?.name as string) ||
+      ""
+    if (existingName) {
+      setPreferredName(existingName)
+    }
+
+    // Pre-fill currencies
+    if (preferences.baseCurrencyCode) {
+      setBaseCurrency(preferences.baseCurrencyCode)
+    }
+    if (preferences.reportingCurrencyCode) {
+      setReportingCurrency(preferences.reportingCurrencyCode)
+    }
+
+    // Pre-fill date of birth so a known DOB wins over the currentYear-55
+    // default (otherwise everyone defaulted to ~55 years old).
+    if (preferences.yearOfBirth) {
+      setIndependenceYearOfBirth(preferences.yearOfBirth)
+    }
+    if (preferences.monthOfBirth) {
+      setIndependenceMonthOfBirth(preferences.monthOfBirth)
+    }
+
+    setPrefsInitialized(true)
+  }
 
   // Steps configuration
   const steps = useMemo(

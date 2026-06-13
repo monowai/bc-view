@@ -72,6 +72,11 @@ export default function OffboardingWizard(): React.ReactElement {
   }, [])
 
   useEffect(() => {
+    // Legitimate external sync: fetch offboarding summary counts from the
+    // services on mount. fetchSummary flips `loading` synchronously, which the
+    // rule flags, but there is no derived-state refactor here — it is a
+    // genuine data fetch, so the effect is the correct place for it.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchSummary()
   }, [fetchSummary])
 

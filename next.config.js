@@ -26,11 +26,6 @@ const nextConfig = {
     includePaths: [path.join(__dirname, "styles")],
   },
   output: "standalone",
-  // Performance optimizations
-  experimental: {
-    // Enable faster builds with optimizeCss
-    optimizeCss: true,
-  },
   // Turbopack configuration (for dev mode with --turbopack)
   turbopack: {
     rules: {

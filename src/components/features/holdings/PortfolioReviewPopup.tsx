@@ -123,6 +123,10 @@ export default function PortfolioReviewPopup({
   useEffect(() => {
     const cached = reviewCache.get(key)
     if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
+      // Effect genuinely syncs an external system (cached SSE stream result);
+      // populating state from the module-level cache on mount is the intended
+      // behaviour and cannot move to render without re-running the fetch.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setResponse(cached.response)
       setIsLoading(false)
       return () => {}

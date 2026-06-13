@@ -122,13 +122,16 @@ export function useRebalanceExecution(
   // Convenience default: if the user has exactly one broker, pre-select it.
   // No reason to make them pick from a single-item list. We only set this
   // once (when brokers first resolve) — if the user has explicitly cleared
-  // the selection back to "No broker" we don't re-apply.
-  useEffect(() => {
+  // the selection back to "No broker" we don't re-apply. Render-phase "store
+  // previous value" pattern (mirrors the prior effect keyed on [brokers])
+  // avoids a cascading effect.
+  const [prevBrokers, setPrevBrokers] = useState(brokers)
+  if (brokers !== prevBrokers) {
+    setPrevBrokers(brokers)
     if (brokers.length === 1 && selectedBrokerId === undefined) {
       setSelectedBrokerId(brokers[0].id)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [brokers])
+  }
 
   // --- Operations ---
 
@@ -219,6 +222,10 @@ export function useRebalanceExecution(
       !error &&
       (executionId || (planId && portfolioIds.length > 0))
     ) {
+      // Genuine async data-load orchestration: fetches/creates an execution
+      // and sets state from the awaited result. Guarded against re-entry by
+      // the execution/loading/error checks above. Not derivable in render.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       initializeExecution()
     }
   }, [

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import React, { useState } from "react"
 import useSWR from "swr"
 import Dialog from "@components/ui/Dialog"
 import Spinner from "@components/ui/Spinner"
@@ -43,14 +43,18 @@ const ImportHoldingsDialog: React.FC<ImportHoldingsDialogProps> = ({
   )
   const portfolios = portfoliosData?.data || []
 
-  // Reset state when dialog opens/closes
-  useEffect(() => {
+  // Reset state when the dialog closes. Render-phase "store previous value"
+  // pattern: when modalOpen transitions, clear the dialog's local state once
+  // without a cascading effect.
+  const [prevModalOpen, setPrevModalOpen] = useState(modalOpen)
+  if (modalOpen !== prevModalOpen) {
+    setPrevModalOpen(modalOpen)
     if (!modalOpen) {
       setSelectedPortfolioId("")
       setWeights([])
       setError(null)
     }
-  }, [modalOpen])
+  }
 
   // Fetch weights from backend when portfolio is selected
   const handlePortfolioSelect = async (portfolioId: string): Promise<void> => {

@@ -147,12 +147,16 @@ export default function AssetsStep({
     simpleFetcher(portfoliosKey),
   )
 
-  // Auto-select balance portfolio when only one exists
-  useEffect(() => {
+  // Auto-select balance portfolio when only one exists. Render-phase
+  // "store previous value" pattern keyed on the portfolios list so the
+  // selection is seeded once when data lands, without a set-state effect.
+  const [prevPortfolios, setPrevPortfolios] = useState(portfoliosData?.data)
+  if (portfoliosData?.data !== prevPortfolios) {
+    setPrevPortfolios(portfoliosData?.data)
     if (portfoliosData?.data?.length === 1 && !selectedBalancePortfolioId) {
       setSelectedBalancePortfolioId(portfoliosData.data[0].id)
     }
-  }, [portfoliosData?.data, selectedBalancePortfolioId])
+  }
 
   // Fetch cash/bank accounts for withdrawal destination
   const { data: cashAccountsData } = useSwr<AssetsResponse>(
@@ -160,10 +164,14 @@ export default function AssetsStep({
     simpleFetcher("/api/assets?category=ACCOUNT"),
   )
 
+  // Hoist the optional-chain access to a local so the manual useMemo's
+  // dependency (`cashAccountsMap`) matches what the React Compiler infers;
+  // `[cashAccountsData?.data]` directly could not be preserved.
+  const cashAccountsMap = cashAccountsData?.data
   const cashAccounts = useMemo(() => {
-    if (!cashAccountsData?.data) return []
-    return Object.values(cashAccountsData.data)
-  }, [cashAccountsData?.data])
+    if (!cashAccountsMap) return []
+    return Object.values(cashAccountsMap)
+  }, [cashAccountsMap])
 
   // Get plan currency from form
   const planCurrency = useWatch({ control, name: "expensesCurrency" }) || "NZD"
