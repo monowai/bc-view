@@ -72,10 +72,23 @@ describe("ScenarioBar", () => {
     expect(screen.getByText("Modified")).toBeInTheDocument()
   })
 
-  it("disables Reset and Save when not dirty", () => {
+  it("disables Reset and hides Save when not dirty", () => {
     render(<ScenarioBar {...baseProps} />)
     expect(screen.getByRole("button", { name: /Reset/ })).toBeDisabled()
-    expect(screen.getByRole("button", { name: /Save Scenario/ })).toBeDisabled()
+    expect(
+      screen.queryByRole("button", { name: /Save Scenario/ }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("shows Save only once the scenario is dirty", () => {
+    const { rerender } = render(<ScenarioBar {...baseProps} />)
+    expect(
+      screen.queryByRole("button", { name: /Save Scenario/ }),
+    ).not.toBeInTheDocument()
+    rerender(<ScenarioBar {...baseProps} isDirty />)
+    expect(
+      screen.getByRole("button", { name: /Save Scenario/ }),
+    ).toBeInTheDocument()
   })
 
   it("calls onSave + onReset when buttons clicked while dirty", () => {
