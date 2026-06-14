@@ -2605,7 +2605,7 @@ attr-accept@^2.2.4:
     undici-types "^6.15.0"
     uuid "11.1.1"
 
-auth0@^5.7.0:
+auth0@^5.12.0:
   version "5.12.0"
   resolved "https://registry.yarnpkg.com/auth0/-/auth0-5.12.0.tgz#f7b4b8ded718fe3a4033872e75383725972c2a0d"
   integrity sha512-cYILCJs1p8b3As5uqD5BhDWi7HL0tZrd8ISrO4RZfFJdz5zFPrt/GVEpK4HEZZ9YmBBZuImp/VFwDNaD8oDh4g==
