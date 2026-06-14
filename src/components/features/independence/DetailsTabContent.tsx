@@ -7,6 +7,7 @@ import {
   SustainableSpendingCard,
   SpendableAtIndependenceCard,
   SetDateOfBirthNotice,
+  PlanFindingsCard,
 } from "@components/features/independence"
 import { applyRealReturn } from "@components/features/independence/scenario/scenarioToPayload"
 import type { ScenarioState } from "@components/features/independence/scenario/types"
@@ -243,26 +244,29 @@ export default function DetailsTabContent({
       {currentAge == null ? (
         <SetDateOfBirthNotice />
       ) : (
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-            <SustainableSpendingCard
-              embedded
-              projection={projection}
-              currency={effectiveCurrency}
-            />
-            <SpendableAtIndependenceCard
-              embedded
-              projection={projection}
-              liquidAssets={liquidAssets}
-              excludedPensionFV={excludedPensionFV}
-              includedPensionFvDifferential={includedPensionFvDifferential}
-              effectiveFxRate={effectiveFxRate}
-              currentAge={currentAge}
-              retirementAge={retirementAge}
-              currency={effectiveCurrency}
-            />
+        <>
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+              <SustainableSpendingCard
+                embedded
+                projection={projection}
+                currency={effectiveCurrency}
+              />
+              <SpendableAtIndependenceCard
+                embedded
+                projection={projection}
+                liquidAssets={liquidAssets}
+                excludedPensionFV={excludedPensionFV}
+                includedPensionFvDifferential={includedPensionFvDifferential}
+                effectiveFxRate={effectiveFxRate}
+                currentAge={currentAge}
+                retirementAge={retirementAge}
+                currency={effectiveCurrency}
+              />
+            </div>
           </div>
-        </div>
+          <PlanFindingsCard findings={projection?.findings} />
+        </>
       )}
     </div>
   )
