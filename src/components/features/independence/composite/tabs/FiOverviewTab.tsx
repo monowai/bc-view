@@ -11,6 +11,7 @@ import {
   ReferenceArea,
 } from "recharts"
 import ChartFrame from "@components/features/independence/ChartFrame"
+import { ageAxisDomain, ageAxisTicks } from "@lib/independence/ageAxis"
 import Spinner from "@components/ui/Spinner"
 import Alert from "@components/ui/Alert"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
@@ -181,6 +182,27 @@ export default function FiOverviewTab(): React.ReactElement | null {
     if (fiNumber <= 0 || !chartData.length) return null
     return chartData.find((r) => r.endingBalance >= fiNumber)?.age ?? null
   }, [chartData, fiNumber])
+
+  // Always span current age → life expectancy (longest plan horizon in the
+  // composite), even when the trajectory depletes earlier or runs past it.
+  const ageAxis = useMemo(() => {
+    const lifeExpectancy = plans.length
+      ? Math.max(...plans.map((p) => p.lifeExpectancy))
+      : undefined
+    const [minAge, maxAge] = ageAxisDomain(
+      currentAge,
+      lifeExpectancy,
+      chartData.map((r) => r.age),
+    )
+    return {
+      domain: [minAge, maxAge] as [number, number],
+      ticks: ageAxisTicks(
+        minAge,
+        maxAge,
+        fiCrossingAge != null ? [fiCrossingAge] : [],
+      ),
+    }
+  }, [chartData, currentAge, plans, fiCrossingAge])
 
   const currentLiquid = projection?.liquidAssets ?? 0
   const isAchieved = fiNumber > 0 && currentLiquid >= fiNumber
@@ -395,6 +417,11 @@ export default function FiOverviewTab(): React.ReactElement | null {
             />
             <XAxis
               dataKey="age"
+              type="number"
+              scale="linear"
+              domain={ageAxis.domain}
+              ticks={ageAxis.ticks}
+              allowDataOverflow
               tick={{ fontSize: 11, fill: "#94a3b8" }}
               tickLine={false}
               axisLine={false}
