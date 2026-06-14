@@ -50,8 +50,10 @@ export default function IndependenceSettingsModal({
   const [error, setError] = useState<string | null>(null)
 
   const currentYear = new Date().getFullYear()
-  const [yearOfBirth, setYearOfBirth] = useState<number>(
-    settings?.yearOfBirth ?? currentYear - 55,
+  // Empty when unset — never seed a plausible default the user might save
+  // unchanged (it silently mis-models the whole projection).
+  const [yearOfBirth, setYearOfBirth] = useState<number | undefined>(
+    settings?.yearOfBirth ?? undefined,
   )
   const [monthOfBirth, setMonthOfBirth] = useState<number | undefined>(
     settings?.monthOfBirth ?? undefined,
@@ -72,7 +74,7 @@ export default function IndependenceSettingsModal({
   if (seedSignature !== prevSeedSignature) {
     setPrevSeedSignature(seedSignature)
     if (isOpen && settings) {
-      setYearOfBirth(settings.yearOfBirth ?? currentYear - 55)
+      setYearOfBirth(settings.yearOfBirth ?? undefined)
       setMonthOfBirth(settings.monthOfBirth ?? undefined)
       setTargetIndependenceAge(settings.targetIndependenceAge ?? 65)
       setLifeExpectancy(settings.lifeExpectancy ?? 90)
@@ -82,12 +84,15 @@ export default function IndependenceSettingsModal({
 
   if (!isOpen) return null
 
-  const { years: currentAge, display: ageDisplay } = calculateAge(
-    yearOfBirth,
-    monthOfBirth,
-  )
+  const { years: currentAge, display: ageDisplay } =
+    yearOfBirth != null
+      ? calculateAge(yearOfBirth, monthOfBirth)
+      : { years: 0, display: "—" }
 
   const validate = (): string | null => {
+    if (yearOfBirth == null) {
+      return "Year of birth is required"
+    }
     if (yearOfBirth < 1920 || yearOfBirth > currentYear - 18) {
       return `Year of birth must be between 1920 and ${currentYear - 18}`
     }
