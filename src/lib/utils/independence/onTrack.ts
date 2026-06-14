@@ -22,8 +22,14 @@ export interface OnTrackStatus {
 export function deriveOnTrackStatus(
   depletionAge: number | null | undefined,
   lifeExpectancy: number | undefined,
+  currentAge?: number,
 ): OnTrackStatus | null {
   if (lifeExpectancy == null || lifeExpectancy <= 0) return null
+  // Without a current age the projection can't model the accumulation
+  // (working) years, so a depletion at the default retirement age is an
+  // artefact of missing inputs, not a real shortfall — don't render a
+  // misleading "savings run out" verdict.
+  if (currentAge == null) return null
   const depletes = depletionAge != null && depletionAge < lifeExpectancy
   return {
     onTrack: !depletes,

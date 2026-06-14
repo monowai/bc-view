@@ -977,6 +977,7 @@ function PlanView(): React.ReactElement {
               onTrack={deriveOnTrackStatus(
                 adjustedProjection?.depletionAge,
                 scenario.lifeExpectancy,
+                displayCurrentAge,
               )}
               view={
                 strategyView ??
