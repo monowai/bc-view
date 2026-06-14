@@ -17,6 +17,8 @@ interface SpendableAtIndependenceCardProps {
   retirementAge: number
   /** Display currency symbol/code prefix. */
   currency: string
+  /** Render without the outer card chrome (for grouping in a shared section). */
+  embedded?: boolean
 }
 
 /**
@@ -35,6 +37,7 @@ export default function SpendableAtIndependenceCard({
   currentAge,
   retirementAge,
   currency,
+  embedded = false,
 }: SpendableAtIndependenceCardProps): React.ReactElement {
   const { hideValues } = usePrivacyMode()
 
@@ -44,7 +47,7 @@ export default function SpendableAtIndependenceCard({
     : (liquidAssets + includedPensionFvDifferential) * effectiveFxRate
 
   return (
-    <div className="bg-white rounded-xl shadow-md p-6">
+    <div className={embedded ? "" : "bg-white rounded-xl shadow-md p-6"}>
       <h2 className="text-lg font-semibold text-gray-900 mb-4">
         Spendable at Independence
       </h2>
