@@ -23,6 +23,7 @@ import {
   PlanTabNavigation,
   DetailsTabContent,
   AssetsTabContent,
+  AssetsBreakdown,
   TimelineTabContent,
   PlanFiOverviewTab,
   ScenarioBar,
@@ -976,6 +977,7 @@ function PlanView(): React.ReactElement {
               onTrack={deriveOnTrackStatus(
                 adjustedProjection?.depletionAge,
                 scenario.lifeExpectancy,
+                displayCurrentAge,
               )}
               view={
                 strategyView ??
@@ -1028,27 +1030,48 @@ function PlanView(): React.ReactElement {
               effectiveCurrency={effectiveCurrency}
               planCurrency={planCurrency}
               onEditDetails={() => setShowEditDetailsModal(true)}
-              categorySlices={displayCategorySlices}
-              spendableCategories={spendableCategories}
-              onToggleCategory={toggleCategory}
-              pensionProjections={pensionProjections}
-              totalAssets={displayTotalAssets}
               liquidAssets={displayLiquidAssets}
               blendedReturnRate={blendedReturnRate}
               currentAge={displayCurrentAge}
               retirementAge={displayRetirementAge}
               effectiveFxRate={effectiveFxRate}
-              isCalculating={isCalculating}
-              holdingsLoaded={!!holdingsData}
-              usingManualAssets={usingManualAssets}
-              isRefreshingHoldings={isRefreshingHoldings}
-              onRefreshHoldings={() => refreshHoldings()}
               excludedPensionFV={excludedPensionFV}
               includedPensionFvDifferential={includedPensionFvDifferential}
-              cpfSubAccountsByCategoryKey={cpfSubAccountsByCategoryKey}
-              isSharedPlan={isSharedPlan}
             />
           )}
+
+          {effectiveTab === "breakdown" &&
+            (isSharedPlan && displayCategorySlices.length === 0 ? (
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-900">
+                <p className="font-medium mb-1">
+                  <i className="fas fa-share-alt mr-2"></i>
+                  Owner-scoped projection
+                </p>
+                <p>
+                  Per-category asset breakdown for this shared plan needs the
+                  plan owner to also share their portfolios with you. The
+                  projection uses the owner&apos;s holdings via a server-side
+                  fetch.
+                </p>
+              </div>
+            ) : (
+              <AssetsBreakdown
+                categorySlices={displayCategorySlices}
+                spendableCategories={spendableCategories}
+                onToggleCategory={toggleCategory}
+                pensionProjections={pensionProjections}
+                totalAssets={displayTotalAssets}
+                liquidAssets={displayLiquidAssets}
+                effectiveCurrency={effectiveCurrency}
+                effectiveFxRate={effectiveFxRate}
+                isCalculating={isCalculating}
+                holdingsLoaded={!!holdingsData}
+                usingManualAssets={usingManualAssets}
+                isRefreshingHoldings={isRefreshingHoldings}
+                onRefreshHoldings={() => refreshHoldings()}
+                cpfSubAccountsByCategoryKey={cpfSubAccountsByCategoryKey}
+              />
+            ))}
 
           {effectiveTab === "assets" && (
             <AssetsTabContent

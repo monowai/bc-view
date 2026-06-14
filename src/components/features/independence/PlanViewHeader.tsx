@@ -32,10 +32,6 @@ export default function PlanViewHeader({
   planName,
   planId,
   planningHorizonYears,
-  planCurrency,
-  displayCurrency,
-  availableCurrencies,
-  onCurrencyChange,
   onExport,
 }: PlanViewHeaderProps): React.ReactElement {
   return (
@@ -48,31 +44,15 @@ export default function PlanViewHeader({
         >
           <i className="fas fa-arrow-left"></i>
         </Link>
-        <div>
+        {/* Horizon sits inline with the name to cut vertical chrome. */}
+        <div className="flex items-baseline gap-2">
           <h1 className="text-xl font-bold text-gray-900">{planName}</h1>
-          <p className="text-sm text-gray-500">
-            {planningHorizonYears} year horizon
-          </p>
+          <span className="text-sm text-gray-500">
+            · {planningHorizonYears} year horizon
+          </span>
         </div>
       </div>
       <div className="flex items-center gap-3">
-        {/* Currency selector */}
-        <select
-          value={displayCurrency || planCurrency}
-          onChange={(e) =>
-            onCurrencyChange(
-              e.target.value === planCurrency ? null : e.target.value,
-            )
-          }
-          className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
-          title="Display currency"
-        >
-          {availableCurrencies.map((curr) => (
-            <option key={curr.code} value={curr.code}>
-              {curr.code}
-            </option>
-          ))}
-        </select>
         <button
           onClick={onExport}
           className="text-gray-400 hover:text-gray-600 p-2"

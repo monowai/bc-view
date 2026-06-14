@@ -90,38 +90,59 @@ export default function ScenarioBar({
         {/* Headline gauge (horizontal bar) on its own row, with the on-track
             verdict beneath it — the gauge shows today's progress, the verdict
             shows whether the projected plan actually lasts to life expectancy. */}
-        <div className="mb-2">
-          <StrategyGaugesStrip
-            fiMetrics={fiMetrics}
-            compact
-            view={view}
-            singleHeadline
-          />
-          {onTrack && (
-            <div
-              className={`mt-1.5 flex items-center gap-1.5 text-sm font-medium ${
-                onTrack.onTrack ? "text-green-600" : "text-amber-600"
-              }`}
-            >
-              <i
-                className={`fas ${
-                  onTrack.onTrack
-                    ? "fa-circle-check"
-                    : "fa-triangle-exclamation"
+        <div className="mb-2 flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <StrategyGaugesStrip
+              fiMetrics={fiMetrics}
+              compact
+              view={view}
+              singleHeadline
+            />
+            {onTrack && (
+              <div
+                className={`mt-1.5 flex items-center gap-1.5 text-sm font-medium ${
+                  onTrack.onTrack ? "text-green-600" : "text-amber-600"
                 }`}
-              ></i>
-              {onTrack.onTrack ? (
-                <span>
-                  On track — funds last to age {onTrack.lifeExpectancy}
-                </span>
-              ) : (
-                <span>
-                  Off track — savings run out at age {onTrack.depletionAge} (~
-                  {onTrack.yearsShort}yr short of age {onTrack.lifeExpectancy})
-                </span>
+              >
+                <i
+                  className={`fas ${
+                    onTrack.onTrack
+                      ? "fa-circle-check"
+                      : "fa-triangle-exclamation"
+                  }`}
+                ></i>
+                {onTrack.onTrack ? (
+                  <span>
+                    On track — funds last to age {onTrack.lifeExpectancy}
+                  </span>
+                ) : (
+                  <span>
+                    Off track — savings run out at age {onTrack.depletionAge} (~
+                    {onTrack.yearsShort}yr short of age {onTrack.lifeExpectancy}
+                    )
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+          {/* View selector on the progress-bar row. */}
+          <label className="flex items-center gap-1 text-sm text-gray-600 shrink-0">
+            <span>View:</span>
+            <select
+              value={view}
+              onChange={(e) => onViewChange(e.target.value as StrategyView)}
+              className="px-2 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-independence-500"
+              aria-label="Strategy view"
+            >
+              {(["FIRE", "PENSION", "HYBRID", "ALL"] as StrategyView[]).map(
+                (v) => (
+                  <option key={v} value={v}>
+                    {STRATEGY_VIEW_LABELS[v]}
+                  </option>
+                ),
               )}
-            </div>
-          )}
+            </select>
+          </label>
         </div>
 
         {/* Control row — accordion toggle on the left, view/reset/save on the
@@ -150,23 +171,6 @@ export default function ScenarioBar({
           )}
 
           <div className="flex items-center gap-3 ml-auto">
-            <label className="flex items-center gap-1 text-sm text-gray-600 shrink-0">
-              <span>View:</span>
-              <select
-                value={view}
-                onChange={(e) => onViewChange(e.target.value as StrategyView)}
-                className="px-2 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-independence-500"
-                aria-label="Strategy view"
-              >
-                {(["FIRE", "PENSION", "HYBRID", "ALL"] as StrategyView[]).map(
-                  (v) => (
-                    <option key={v} value={v}>
-                      {STRATEGY_VIEW_LABELS[v]}
-                    </option>
-                  ),
-                )}
-              </select>
-            </label>
             <button
               type="button"
               onClick={onReset}
