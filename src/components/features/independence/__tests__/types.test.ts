@@ -9,9 +9,10 @@ describe("types constants", () => {
 
   describe("TABS", () => {
     it("has all expected tabs", () => {
-      expect(TABS).toHaveLength(5)
+      expect(TABS).toHaveLength(6)
       expect(TABS.map((t) => t.id)).toEqual([
         "details",
+        "breakdown",
         "fi",
         "assets",
         "timeline",
@@ -23,6 +24,7 @@ describe("types constants", () => {
       expect(TABS.find((t) => t.id === "fi")?.label).toBe("FI Overview")
       expect(TABS.find((t) => t.id === "details")?.label).toBe("My Plan")
       expect(TABS.find((t) => t.id === "assets")?.label).toBe("Metrics")
+      expect(TABS.find((t) => t.id === "breakdown")?.label).toBe("Assets")
       expect(TABS.find((t) => t.id === "timeline")?.label).toBe("My Path")
       expect(TABS.find((t) => t.id === "simulation")?.label).toBe("Stress Test")
     })
