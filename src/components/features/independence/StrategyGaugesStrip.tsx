@@ -55,13 +55,17 @@ export default function StrategyGaugesStrip({
   )
 }
 
-/** Maps a strategy view to the gauge key that should sit in the headline slot. */
-const VIEW_HEADLINE_KEY: Record<StrategyView, string> = {
-  FIRE: "fire",
-  PENSION: "retirement-age-fi",
-  HYBRID: "bridge",
-  // ALL has no "single most relevant" gauge; fall through to FIRE.
-  ALL: "fire",
+/**
+ * Headline-slot gauge per view, in priority order — the first one that exists
+ * wins. Coast FI sits ahead of the static FIRE Progress so the headline
+ * responds to the scenario's blended return (FIRE Progress is a today snapshot
+ * and never moves with returns).
+ */
+const VIEW_HEADLINE_KEYS: Record<StrategyView, string[]> = {
+  FIRE: ["coast-fi", "fire"],
+  PENSION: ["retirement-age-fi", "coast-fi", "fire"],
+  HYBRID: ["bridge", "coast-fi", "fire"],
+  ALL: ["coast-fi", "fire"],
 }
 
 /**
@@ -73,10 +77,11 @@ function orderGauges(
   gauges: PensionGaugeProps[],
   view: StrategyView,
 ): PensionGaugeProps[] {
-  const headlineKey = VIEW_HEADLINE_KEY[view]
-  const headline = gauges.find((g) => g.key === headlineKey)
+  const headline = VIEW_HEADLINE_KEYS[view]
+    .map((key) => gauges.find((g) => g.key === key))
+    .find((g): g is PensionGaugeProps => g != null)
   if (!headline) return gauges
-  const rest = gauges.filter((g) => g.key !== headlineKey)
+  const rest = gauges.filter((g) => g.key !== headline.key)
   return [headline, ...rest]
 }
 
@@ -97,13 +102,23 @@ function buildGauges(
     },
   ]
 
-  // Always emit the retirement-age-fi gauge so the PENSION view headline
-  // slot has the right LABEL even before pension income is configured
-  // (e.g., CPF LIFE not yet set up). Without this the picker falls
-  // through to "FIRE Progress" on pension-strategy plans and the headline
-  // reads as a FIRE metric instead of a pension metric. Use coastFiProgress
-  // as the most-informative pension-strategy fallback when retirement-age
-  // FI is unavailable.
+  // Coast FI: how close current assets are to compounding (no further
+  // contributions) to the FI Number by retirement. Uses the plan's blended
+  // return, so unlike FIRE Progress it MOVES as the scenario's return changes.
+  if (fi?.coastFiProgress != null) {
+    out.push({
+      key: "coast-fi",
+      label: "Coast FI Progress",
+      tooltip:
+        "How close your current liquid assets are to compounding — on the scenario's blended return, with no further contributions — to your FI Number by retirement age. Moves as you change the return assumptions.",
+      value: fi.coastFiProgress,
+      hideValues,
+      format: (v) => `${v.toFixed(1)}%`,
+    })
+  }
+
+  // Pension-strategy headline: liquid + the present value of guaranteed
+  // pension income vs the FI Number. Only when pension income is configured.
   if (fi?.retirementAgeFiProgress != null) {
     out.push({
       key: "retirement-age-fi",
@@ -111,16 +126,6 @@ function buildGauges(
       tooltip:
         "Liquid plus the present value of your guaranteed pension income, compared to your FI Number.",
       value: fi.retirementAgeFiProgress,
-      hideValues,
-      format: (v) => `${v.toFixed(1)}%`,
-    })
-  } else if (fi?.coastFiProgress != null) {
-    out.push({
-      key: "retirement-age-fi",
-      label: "Coast FI Progress",
-      tooltip:
-        "On-track signal for pension-strategy plans without configured guaranteed income. Compares current liquid assets to the amount that would compound to your FI Number by retirement age.",
-      value: fi.coastFiProgress,
       hideValues,
       format: (v) => `${v.toFixed(1)}%`,
     })
