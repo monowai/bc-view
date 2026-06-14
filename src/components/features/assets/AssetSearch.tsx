@@ -86,7 +86,7 @@ export default function AssetSearch({
   inputId,
   usePortal = false,
   defaultOptions,
-  cacheOptions = false,
+  cacheOptions = true,
   fallbackOptions,
 }: AssetSearchProps): React.ReactElement {
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
@@ -338,7 +338,7 @@ export default function AssetSearch({
   return (
     <AsyncSelect<AssetOption>
       {...sharedProps}
-      cacheOptions={false}
+      cacheOptions={cacheOptions}
       loadOptions={loadOptions}
       value={displayValue}
     />
