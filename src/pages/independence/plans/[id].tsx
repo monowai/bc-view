@@ -58,7 +58,6 @@ import {
   manualAssetsToSlices,
 } from "@lib/independence/planHelpers"
 import { buildCpfSubAccountRows } from "@lib/independence/cpfSubAccountTags"
-import { deriveOnTrackStatus } from "@lib/independence/onTrack"
 
 function PlanView(): React.ReactElement {
   const router = useRouter()
@@ -974,11 +973,6 @@ function PlanView(): React.ReactElement {
               isDirty={scenarioIsDirty}
               currency={effectiveCurrency}
               fiMetrics={adjustedProjection?.fiMetrics}
-              onTrack={deriveOnTrackStatus(
-                adjustedProjection?.depletionAge,
-                scenario.lifeExpectancy,
-                displayCurrentAge,
-              )}
               view={
                 strategyView ??
                 defaultStrategyView(adjustedProjection?.effectiveStrategy)

@@ -5,7 +5,6 @@ import type { ScenarioState } from "./scenario/types"
 import StrategyGaugesStrip from "./StrategyGaugesStrip"
 import { STRATEGY_VIEW_LABELS, type StrategyView } from "./strategyView"
 import WhatIfSlider from "./WhatIfSlider"
-import type { OnTrackStatus } from "@lib/independence/onTrack"
 
 export interface ScenarioBarProps {
   scenario: ScenarioState
@@ -21,12 +20,6 @@ export interface ScenarioBarProps {
   currency: string
   /** Live FiMetrics from the most recent projection. */
   fiMetrics?: FiMetrics
-  /**
-   * Whether the projected plan covers retirement (funds last to life
-   * expectancy). Distinct from the accumulation gauge — null while
-   * calculating or when life expectancy is unknown.
-   */
-  onTrack?: OnTrackStatus | null
   /** Active strategy view — drives the headline gauge + FiMetrics sections. */
   view: StrategyView
   onViewChange: (next: StrategyView) => void
@@ -63,7 +56,6 @@ export default function ScenarioBar({
   isDirty,
   currency,
   fiMetrics,
-  onTrack,
   view,
   onViewChange,
   derivedLiquidAssets,
@@ -87,9 +79,8 @@ export default function ScenarioBar({
   return (
     <div className="sticky top-0 z-30 bg-white border-b shadow-sm mb-3">
       <div className="px-4 py-2">
-        {/* Headline gauge (horizontal bar) on its own row, with the on-track
-            verdict beneath it — the gauge shows today's progress, the verdict
-            shows whether the projected plan actually lasts to life expectancy. */}
+        {/* Headline gauge (horizontal bar). The on/off-track verdict now lives
+            in the Plan Insights list on My Plan, not under the bar. */}
         <div className="mb-2 flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <StrategyGaugesStrip
@@ -98,32 +89,6 @@ export default function ScenarioBar({
               view={view}
               singleHeadline
             />
-            {onTrack && (
-              <div
-                className={`mt-1.5 flex items-center gap-1.5 text-sm font-medium ${
-                  onTrack.onTrack ? "text-green-600" : "text-amber-600"
-                }`}
-              >
-                <i
-                  className={`fas ${
-                    onTrack.onTrack
-                      ? "fa-circle-check"
-                      : "fa-triangle-exclamation"
-                  }`}
-                ></i>
-                {onTrack.onTrack ? (
-                  <span>
-                    On track — funds last to age {onTrack.lifeExpectancy}
-                  </span>
-                ) : (
-                  <span>
-                    Off track — savings run out at age {onTrack.depletionAge} (~
-                    {onTrack.yearsShort}yr short of age {onTrack.lifeExpectancy}
-                    )
-                  </span>
-                )}
-              </div>
-            )}
           </div>
           {/* View selector on the progress-bar row. */}
           <label className="flex items-center gap-1 text-sm text-gray-600 shrink-0">
