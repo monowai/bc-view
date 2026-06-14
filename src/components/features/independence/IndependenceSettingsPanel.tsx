@@ -42,8 +42,10 @@ export default function IndependenceSettingsPanel(): React.ReactElement {
   const [error, setError] = useState<string | null>(null)
 
   const currentYear = new Date().getFullYear()
-  const [yearOfBirth, setYearOfBirth] = useState<number>(
-    settings?.yearOfBirth ?? currentYear - 55,
+  // Leave empty when unset — don't seed a plausible-looking default the user
+  // might save unchanged (which silently mis-models their whole projection).
+  const [yearOfBirth, setYearOfBirth] = useState<number | undefined>(
+    settings?.yearOfBirth ?? undefined,
   )
   const [monthOfBirth, setMonthOfBirth] = useState<number | undefined>(
     settings?.monthOfBirth ?? undefined,
@@ -63,19 +65,22 @@ export default function IndependenceSettingsPanel(): React.ReactElement {
   if (seedSignature !== prevSeedSignature) {
     setPrevSeedSignature(seedSignature)
     if (settings) {
-      setYearOfBirth(settings.yearOfBirth ?? currentYear - 55)
+      setYearOfBirth(settings.yearOfBirth ?? undefined)
       setMonthOfBirth(settings.monthOfBirth ?? undefined)
       setTargetIndependenceAge(settings.targetIndependenceAge ?? 65)
       setLifeExpectancy(settings.lifeExpectancy ?? 90)
     }
   }
 
-  const { years: currentAge, display: ageDisplay } = calculateAge(
-    yearOfBirth,
-    monthOfBirth,
-  )
+  const { years: currentAge, display: ageDisplay } =
+    yearOfBirth != null
+      ? calculateAge(yearOfBirth, monthOfBirth)
+      : { years: 0, display: "—" }
 
   const validate = (): string | null => {
+    if (yearOfBirth == null) {
+      return "Year of birth is required"
+    }
     if (yearOfBirth < 1920 || yearOfBirth > currentYear - 18) {
       return `Year of birth must be between 1920 and ${currentYear - 18}`
     }
@@ -182,10 +187,15 @@ export default function IndependenceSettingsPanel(): React.ReactElement {
             <input
               id="settings-yearOfBirth"
               type="number"
-              value={yearOfBirth}
-              onChange={(e) => setYearOfBirth(Number(e.target.value))}
+              value={yearOfBirth ?? ""}
+              onChange={(e) =>
+                setYearOfBirth(
+                  e.target.value ? Number(e.target.value) : undefined,
+                )
+              }
               min={1920}
               max={currentYear - 18}
+              placeholder="YYYY"
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 border-gray-300"
             />
           </div>

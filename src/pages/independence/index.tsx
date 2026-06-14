@@ -305,9 +305,19 @@ function RetirementPlanning(): React.ReactElement {
   const profileIncomplete =
     settings !== undefined && (!settings.yearOfBirth || !settings.monthOfBirth)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  // Allow deep-linking to a view, e.g. `/independence?view=profile` from the
+  // "set your date of birth" notice on the plan page.
+  const initialView =
+    router.query.view === "profile" ||
+    router.query.view === "work" ||
+    router.query.view === "plans" ||
+    router.query.view === "shared" ||
+    router.query.view === "composite"
+      ? router.query.view
+      : "plans"
   const [activeView, setActiveView] = useState<
     "profile" | "work" | "plans" | "shared" | "composite"
-  >("plans")
+  >(initialView)
   const [isImporting, setIsImporting] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
   const [showShareDialog, setShowShareDialog] = useState(false)
