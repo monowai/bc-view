@@ -28,7 +28,7 @@
     "prepare": "husky install"
   },
   "dependencies": {
-    "@auth0/nextjs-auth0": "^4.16.1",
+    "@auth0/nextjs-auth0": "^4.22.0",
     "@fortawesome/fontawesome-free": "^7.2.0",
     "@hookstate/core": "^4.0.2",
     "@opentelemetry/api": "^1.9.1",
