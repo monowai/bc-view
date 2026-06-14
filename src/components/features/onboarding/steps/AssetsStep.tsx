@@ -676,33 +676,44 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
               </div>
             </div>
 
-            {/* Monthly Contribution */}
-            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                <i className="fas fa-calendar-alt text-purple-500 mr-2"></i>
-                {"Monthly Contribution"}
-              </label>
-              <div className="flex items-center">
-                <span className="text-gray-500 mr-2">
-                  {newPension.currency}
-                </span>
-                <MathInput
-                  value={newPension.monthlyContribution}
-                  onChange={(value) =>
-                    setNewPension({
-                      ...newPension,
-                      monthlyContribution: value || undefined,
-                    })
-                  }
-                  placeholder="0"
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
-                />
-                <span className="text-gray-500 ml-2">/month</span>
+            {/* Monthly Contribution — CPF is statutory and derived from
+                salary, so we don't ask for an amount on a CPF plan. */}
+            {newPension.policyType === "CPF" ? (
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                <p className="text-sm text-gray-600">
+                  <i className="fas fa-calculator text-purple-500 mr-2"></i>
+                  CPF contributions are calculated automatically from your
+                  salary — no need to enter an amount.
+                </p>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                {"Supports expressions: 12h/12 = 100, 1k*12 = 12000"}
-              </p>
-            </div>
+            ) : (
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <i className="fas fa-calendar-alt text-purple-500 mr-2"></i>
+                  {"Monthly Contribution"}
+                </label>
+                <div className="flex items-center">
+                  <span className="text-gray-500 mr-2">
+                    {newPension.currency}
+                  </span>
+                  <MathInput
+                    value={newPension.monthlyContribution}
+                    onChange={(value) =>
+                      setNewPension({
+                        ...newPension,
+                        monthlyContribution: value || undefined,
+                      })
+                    }
+                    placeholder="0"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                  <span className="text-gray-500 ml-2">/month</span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  {"Supports expressions: 12h/12 = 100, 1k*12 = 12000"}
+                </p>
+              </div>
+            )}
 
             {/* Composite Policy Type */}
             <CompositeAssetEditor
@@ -711,7 +722,16 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
               lockedUntilDate={newPension.lockedUntilDate || ""}
               subAccounts={newPension.subAccounts || []}
               onPolicyTypeChange={(value: PolicyType | undefined) =>
-                setNewPension({ ...newPension, policyType: value })
+                setNewPension({
+                  ...newPension,
+                  policyType: value,
+                  // CPF contributions are salary-derived; drop any amount the
+                  // user may have typed before switching the policy to CPF.
+                  monthlyContribution:
+                    value === "CPF"
+                      ? undefined
+                      : newPension.monthlyContribution,
+                })
               }
               onCpfLifePlanChange={(value) =>
                 setNewPension({ ...newPension, cpfLifePlan: value })

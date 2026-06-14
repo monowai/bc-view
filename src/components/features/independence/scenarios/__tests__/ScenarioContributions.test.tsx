@@ -62,16 +62,25 @@ describe("ScenarioContributions", () => {
     expect(screen.queryByText("House")).not.toBeInTheDocument()
   })
 
-  it("renders ANNUAL / MONTHLY frequency labels from asset config", () => {
+  it("renders the MONTHLY frequency label for a non-CPF pension", () => {
     render(<ScenarioContributions scenarioId="s1" currency="SGD" />)
-    expect(screen.getByText(/SGD per year/i)).toBeInTheDocument()
     expect(screen.getByText(/SGD per month/i)).toBeInTheDocument()
   })
 
-  it("posts to the scenario contributions endpoint on blur", async () => {
+  it("shows CPF read-only (no editable input) — it is salary-derived", () => {
+    render(<ScenarioContributions scenarioId="s1" currency="SGD" />)
+    // No editable field for the CPF asset...
+    expect(
+      screen.queryByLabelText("Contribution for My CPF"),
+    ).not.toBeInTheDocument()
+    // ...and without salary/age it reads as auto-from-salary.
+    expect(screen.getByText(/Auto from salary/i)).toBeInTheDocument()
+  })
+
+  it("posts to the scenario contributions endpoint on blur (non-CPF)", async () => {
     render(<ScenarioContributions scenarioId="s1" currency="SGD" />)
 
-    const input = screen.getByLabelText("Contribution for My CPF")
+    const input = screen.getByLabelText("Contribution for Kiwi Saver")
     fireEvent.change(input, { target: { value: "8000" } })
     fireEvent.blur(input)
 

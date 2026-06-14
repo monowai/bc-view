@@ -222,6 +222,12 @@ export default function ScenarioContributions({
           const isSaving = savingAssetId === asset.assetId
           const frequencyLabel =
             asset.contributionFrequency === "ANNUAL" ? "per year" : "per month"
+          // CPF is statutory — the projection derives it from salary × the
+          // age-band rate, so we SHOW the computed figure rather than asking
+          // the user to type one. salaryAnnual is employer + employee combined.
+          const isCpf = asset.policyType === "CPF"
+          const cpfMonthly =
+            salaryAnnual != null ? Math.round(salaryAnnual / 12) : null
           return (
             <li key={asset.assetId} className="py-2 flex items-center gap-3">
               <span className="flex-1 text-sm text-gray-700">
@@ -231,35 +237,37 @@ export default function ScenarioContributions({
                     {asset.policyType}
                   </span>
                 )}
-                {asset.policyType === "CPF" && salaryAnnual != null && (
-                  <span
-                    className="ml-2 text-xs text-gray-500 cursor-help"
-                    title={`Your salary-based CPF contribution would be ${currency} ${salaryAnnual.toLocaleString()}/yr (employer + employee combined at the age-${currentAge} band). Entering an amount here overrides that figure for the projection.`}
-                  >
-                    {" "}
-                    ⓘ salary-based: {currency}{" "}
-                    {Math.round(salaryAnnual).toLocaleString()}/yr
-                  </span>
-                )}
               </span>
-              <input
-                type="number"
-                min={0}
-                step="any"
-                value={value}
-                aria-label={`Contribution for ${asset.assetName}`}
-                onChange={(e) =>
-                  setEdits((prev) => ({
-                    ...prev,
-                    [asset.assetId]: e.target.value,
-                  }))
-                }
-                onBlur={() => saveOne(asset)}
-                disabled={isSaving}
-                className="w-32 border border-gray-300 rounded px-2 py-1 text-sm focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
-              />
+              {isCpf ? (
+                <span
+                  className="w-32 text-sm text-right text-gray-700 cursor-help"
+                  title={`Calculated from salary (employer + employee at the age-${currentAge} band). Not editable — CPF is statutory.`}
+                  aria-label={`Calculated CPF contribution for ${asset.assetName}`}
+                >
+                  {cpfMonthly != null
+                    ? `${currency} ${cpfMonthly.toLocaleString()}`
+                    : "Auto from salary"}
+                </span>
+              ) : (
+                <input
+                  type="number"
+                  min={0}
+                  step="any"
+                  value={value}
+                  aria-label={`Contribution for ${asset.assetName}`}
+                  onChange={(e) =>
+                    setEdits((prev) => ({
+                      ...prev,
+                      [asset.assetId]: e.target.value,
+                    }))
+                  }
+                  onBlur={() => saveOne(asset)}
+                  disabled={isSaving}
+                  className="w-32 border border-gray-300 rounded px-2 py-1 text-sm focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
+                />
+              )}
               <span className="text-xs text-gray-500 w-20">
-                {currency} {frequencyLabel}
+                {isCpf ? "/mo · auto" : `${currency} ${frequencyLabel}`}
               </span>
               <button
                 type="button"
@@ -282,7 +290,8 @@ export default function ScenarioContributions({
       </ul>
       <p className="text-xs text-gray-400">
         Contributions are saved when you leave the field. Frequency comes from
-        the asset itself (Edit Asset → Contribution).
+        the asset itself (Edit Asset → Contribution). CPF is calculated from
+        your salary and shown for reference.
       </p>
       {projectionAsset && currentAge && (
         <PensionProjectionModal
