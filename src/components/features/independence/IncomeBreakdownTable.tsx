@@ -115,7 +115,12 @@ export default function IncomeBreakdownTable({
               </th>
               {columnVisibility.investment && (
                 <th className="text-right py-2 px-2 font-medium text-gray-600">
-                  <span className="text-green-600">Investment</span>
+                  <span
+                    className="text-green-600 cursor-help"
+                    title="Net-of-fee return your investment portfolio (cash + equities) earns each year. Compounds every year, including in independence — while you also draw down capital (see Withdrawals). CPF, pensions and property grow separately in their own columns."
+                  >
+                    Investment Growth
+                  </span>
                 </th>
               )}
               {columnVisibility.pension && (
@@ -311,8 +316,12 @@ export default function IncomeBreakdownTable({
         <p className="flex flex-wrap gap-x-3">
           {columnVisibility.investment && (
             <span>
-              <span className="font-medium text-green-600">Investment:</span>{" "}
-              Returns on portfolio
+              <span className="font-medium text-green-600">
+                Investment Growth:
+              </span>{" "}
+              Net-of-fee return on your investment portfolio (cash + equities) —
+              compounds each year, including in independence while you also draw
+              down capital. Excludes CPF, pensions &amp; property.
             </span>
           )}
           {columnVisibility.pension && (
