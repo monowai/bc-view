@@ -1,9 +1,6 @@
 import React from "react"
 import { RetirementProjection } from "types/independence"
-import {
-  FiMetrics,
-  SustainableSpendingCard,
-} from "@components/features/independence"
+import { FiMetrics } from "@components/features/independence"
 import type { StrategyView } from "./strategyView"
 
 interface EffectivePlanValues {
@@ -65,11 +62,6 @@ export default function AssetsTabContent({
           cashAllocation={effectivePlanValues?.cashAllocation ?? 0.2}
         />
       )}
-
-      <SustainableSpendingCard
-        projection={projection}
-        currency={effectiveCurrency}
-      />
     </div>
   )
 }

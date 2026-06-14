@@ -614,7 +614,9 @@ function PlanView(): React.ReactElement {
   // back to My Plan if it was the active tab.
   const resolvedStrategyView =
     strategyView ?? defaultStrategyView(adjustedProjection?.effectiveStrategy)
-  const showFiTab = resolvedStrategyView === "FIRE"
+  // FI Overview is relevant to FIRE and Self-funded (HYBRID) plans — and the
+  // "All" lens — but not to pure Pension plans, which lead with My Plan.
+  const showFiTab = resolvedStrategyView !== "PENSION"
   // Derive (don't mutate) the displayed tab so a hidden FI Overview never
   // leaves the view blank if the strategy flips while it was active.
   const effectiveTab: TabId =
