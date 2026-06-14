@@ -67,10 +67,17 @@ function PlanDetailPage(): React.ReactElement {
   // Initialize weights from plan. Render-phase "store previous value" pattern:
   // when the fetched plan reference changes, re-seed the editable weights once
   // (mirrors the prior effect keyed on [plan]) without a cascading effect.
+  //
+  // Guard on !hasChanges: SWR hands back a NEW plan object reference on every
+  // revalidation (focus/reconnect/mutate) even when the data is unchanged. Re-
+  // seeding unconditionally would wipe locally-added-but-unsaved assets the
+  // moment any background revalidation fires — the asset vanishes before Save.
+  // Only re-seed from the server when there are no pending local edits (initial
+  // load and after a successful save, which resets hasChanges).
   const [prevPlan, setPrevPlan] = useState(plan)
   if (plan !== prevPlan) {
     setPrevPlan(plan)
-    if (plan?.assets) {
+    if (plan?.assets && !hasChanges) {
       setWeights(
         plan.assets.map((asset) => ({
           assetId: asset.assetId,
@@ -83,7 +90,6 @@ function PlanDetailPage(): React.ReactElement {
           sortOrder: asset.sortOrder,
         })),
       )
-      setHasChanges(false)
     }
   }
 
