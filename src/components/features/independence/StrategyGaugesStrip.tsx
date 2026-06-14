@@ -90,7 +90,7 @@ function buildGauges(
       key: "fire",
       label: "FIRE Progress",
       tooltip:
-        "Classic FIRE: liquid investments vs 25× net annual expenses (4% safe withdrawal rate).",
+        "Classic FIRE: liquid investments vs 25× net annual expenses (4% safe withdrawal rate). A snapshot of today's assets — not affected by return or inflation assumptions (those drive the on-track verdict and the My Path chart).",
       value: fiProgress,
       hideValues,
       format: (v) => `${v.toFixed(1)}%`,

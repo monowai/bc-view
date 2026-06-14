@@ -302,12 +302,29 @@ function RetirementPlanning(): React.ReactElement {
   )
   const hasNoWorkScenarios =
     scenariosData !== undefined && (scenariosData.data?.length ?? 0) === 0
+  // Critical profile defaults that must be set for a meaningful projection.
+  // None are seeded with a fake value, so "missing" means the user hasn't
+  // chosen one yet — flag the Profile tab red until they have.
   const profileIncomplete =
-    settings !== undefined && (!settings.yearOfBirth || !settings.monthOfBirth)
+    settings !== undefined &&
+    (!settings.yearOfBirth ||
+      !settings.monthOfBirth ||
+      !settings.targetIndependenceAge ||
+      !settings.lifeExpectancy)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  // Allow deep-linking to a view, e.g. `/independence?view=profile` from the
+  // "set your date of birth" notice on the plan page.
+  const initialView =
+    router.query.view === "profile" ||
+    router.query.view === "work" ||
+    router.query.view === "plans" ||
+    router.query.view === "shared" ||
+    router.query.view === "composite"
+      ? router.query.view
+      : "plans"
   const [activeView, setActiveView] = useState<
     "profile" | "work" | "plans" | "shared" | "composite"
-  >("plans")
+  >(initialView)
   const [isImporting, setIsImporting] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
   const [showShareDialog, setShowShareDialog] = useState(false)
@@ -692,16 +709,22 @@ function RetirementPlanning(): React.ReactElement {
               onClick={() => setActiveView("profile")}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 activeView === "profile"
-                  ? "bg-white text-independence-700 shadow-sm"
-                  : "text-gray-600 hover:text-gray-800"
+                  ? profileIncomplete
+                    ? "bg-white text-red-600 shadow-sm"
+                    : "bg-white text-independence-700 shadow-sm"
+                  : profileIncomplete
+                    ? "text-red-600 hover:text-red-700"
+                    : "text-gray-600 hover:text-gray-800"
               }`}
               title={
                 profileIncomplete
-                  ? "Date of birth required for accurate projections"
+                  ? "Set your date of birth, target age and life expectancy for accurate projections"
                   : "Profile settings"
               }
             >
-              <i className="fas fa-cog mr-2"></i>
+              <i
+                className={`fas ${profileIncomplete ? "fa-triangle-exclamation" : "fa-cog"} mr-2`}
+              ></i>
               Profile
               {profileIncomplete && (
                 <span

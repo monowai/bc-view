@@ -6,6 +6,7 @@ import {
   RentalIncomeData,
   SustainableSpendingCard,
   SpendableAtIndependenceCard,
+  SetDateOfBirthNotice,
 } from "@components/features/independence"
 import { applyRealReturn } from "@components/features/independence/scenario/scenarioToPayload"
 import type { ScenarioState } from "@components/features/independence/scenario/types"
@@ -236,27 +237,33 @@ export default function DetailsTabContent({
 
       {/* Both headline outcome figures share one section: what you'll have to
           spend at independence, and the budget that lasts the plan. Assets by
-          Category now lives on its own "Assets" tab. */}
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-          <SpendableAtIndependenceCard
-            embedded
-            projection={projection}
-            liquidAssets={liquidAssets}
-            excludedPensionFV={excludedPensionFV}
-            includedPensionFvDifferential={includedPensionFvDifferential}
-            effectiveFxRate={effectiveFxRate}
-            currentAge={currentAge}
-            retirementAge={retirementAge}
-            currency={effectiveCurrency}
-          />
-          <SustainableSpendingCard
-            embedded
-            projection={projection}
-            currency={effectiveCurrency}
-          />
+          Category now lives on its own "Assets" tab. Without a date of birth
+          the projection can't model the working years, so we surface that gap
+          instead of showing misleading figures. */}
+      {currentAge == null ? (
+        <SetDateOfBirthNotice />
+      ) : (
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+            <SustainableSpendingCard
+              embedded
+              projection={projection}
+              currency={effectiveCurrency}
+            />
+            <SpendableAtIndependenceCard
+              embedded
+              projection={projection}
+              liquidAssets={liquidAssets}
+              excludedPensionFV={excludedPensionFV}
+              includedPensionFvDifferential={includedPensionFvDifferential}
+              effectiveFxRate={effectiveFxRate}
+              currentAge={currentAge}
+              retirementAge={retirementAge}
+              currency={effectiveCurrency}
+            />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
