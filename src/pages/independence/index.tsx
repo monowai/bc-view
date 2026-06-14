@@ -872,7 +872,13 @@ function RetirementPlanning(): React.ReactElement {
             </>
           )}
 
-          {activeView === "work" && <ScenarioList />}
+          {activeView === "work" && (
+            <ScenarioList
+              defaultCurrency={
+                (plans.find((p) => p.isPrimary) ?? plans[0])?.expensesCurrency
+              }
+            />
+          )}
 
           {!isLoading && plans.length > 1 && activeView === "composite" && (
             <CompositeTab plans={plans} settings={settings} />

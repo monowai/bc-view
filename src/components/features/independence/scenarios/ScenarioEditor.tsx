@@ -7,18 +7,45 @@ import { currentAgeFromSettings } from "@lib/independence/age"
 
 interface ScenarioEditorProps {
   scenario?: WorkScenario | null
+  /** Currency to default a NEW scenario to — typically the plan currency. */
+  defaultCurrency?: string
   onSave: (data: WorkScenarioRequest) => Promise<void>
   onClose: () => void
 }
 
-const DEFAULT_FORM: WorkScenarioRequest = {
-  name: "",
-  workingIncomeMonthly: 0,
-  workingExpensesMonthly: 0,
-  taxesMonthly: 0,
-  bonusMonthly: 0,
-  investmentAllocationPercent: 80,
-  currency: "NZD",
+// Same set (and order) as the onboarding / asset currency pickers.
+const CURRENCIES = ["NZD", "USD", "AUD", "GBP", "EUR", "SGD", "CAD", "JPY"]
+
+const FALLBACK_CURRENCY = "SGD"
+
+// Seed the editor form: hydrate from an existing scenario, otherwise start
+// blank with the supplied plan/default currency.
+function seedForm(
+  scenario: WorkScenario | null | undefined,
+  defaultCurrency: string | undefined,
+): WorkScenarioRequest {
+  if (scenario) {
+    return {
+      name: scenario.name,
+      workingIncomeMonthly: scenario.workingIncomeMonthly,
+      workingExpensesMonthly: scenario.workingExpensesMonthly,
+      taxesMonthly: scenario.taxesMonthly,
+      bonusMonthly: scenario.bonusMonthly,
+      // API stores allocation as a decimal fraction (0.5 = 50%); the form edits
+      // a 0–100 percent, so scale up on read and back down on save.
+      investmentAllocationPercent: scenario.investmentAllocationPercent * 100,
+      currency: scenario.currency,
+    }
+  }
+  return {
+    name: "",
+    workingIncomeMonthly: 0,
+    workingExpensesMonthly: 0,
+    taxesMonthly: 0,
+    bonusMonthly: 0,
+    investmentAllocationPercent: 80,
+    currency: defaultCurrency || FALLBACK_CURRENCY,
+  }
 }
 
 function computeContribution(form: WorkScenarioRequest): number {
@@ -32,11 +59,17 @@ function computeContribution(form: WorkScenarioRequest): number {
 
 export default function ScenarioEditor({
   scenario,
+  defaultCurrency,
   onSave,
   onClose,
 }: ScenarioEditorProps): React.ReactElement {
   const isEditing = !!scenario
-  const [form, setForm] = useState<WorkScenarioRequest>(DEFAULT_FORM)
+  // Lazy-init so the very first render of an Edit hydrates from the scenario;
+  // a plain DEFAULT seed left the form at zeros because the prevScenario guard
+  // below only fires when the prop *changes* after mount.
+  const [form, setForm] = useState<WorkScenarioRequest>(() =>
+    seedForm(scenario, defaultCurrency),
+  )
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   // yearOfBirth lives in user-level Independence settings (svc-retire) now,
@@ -45,24 +78,12 @@ export default function ScenarioEditor({
   const { settings: independenceSettings } = useIndependenceSettings()
   const currentAge = currentAgeFromSettings(independenceSettings)
 
-  // Seed the form from the scenario prop when it changes. Render-phase
-  // "store previous value" pattern keyed on scenario, preserving the guard.
+  // Reseed if the scenario prop changes while mounted. Render-phase
+  // "store previous value" pattern keyed on scenario.
   const [prevScenario, setPrevScenario] = useState(scenario)
   if (scenario !== prevScenario) {
     setPrevScenario(scenario)
-    if (scenario) {
-      setForm({
-        name: scenario.name,
-        workingIncomeMonthly: scenario.workingIncomeMonthly,
-        workingExpensesMonthly: scenario.workingExpensesMonthly,
-        taxesMonthly: scenario.taxesMonthly,
-        bonusMonthly: scenario.bonusMonthly,
-        // API stores allocation as a decimal fraction (0.5 = 50%); the form edits
-        // a 0–100 percent, so scale up on read and back down on save.
-        investmentAllocationPercent: scenario.investmentAllocationPercent * 100,
-        currency: scenario.currency,
-      })
-    }
+    setForm(seedForm(scenario, defaultCurrency))
   }
 
   const handleChange = useCallback(
@@ -129,7 +150,7 @@ export default function ScenarioEditor({
             value={form.name}
             onChange={(e) => handleChange("name", e.target.value)}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
-            placeholder="e.g. Full-time NZ"
+            placeholder="e.g. My Job"
             autoFocus
           />
         </div>
@@ -225,19 +246,24 @@ export default function ScenarioEditor({
             </p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="scenario-currency"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Currency
             </label>
-            <input
-              type="text"
-              value={form.currency ?? "NZD"}
-              onChange={(e) =>
-                handleChange("currency", e.target.value.toUpperCase())
-              }
-              maxLength={3}
+            <select
+              id="scenario-currency"
+              value={form.currency ?? FALLBACK_CURRENCY}
+              onChange={(e) => handleChange("currency", e.target.value)}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
-              placeholder="NZD"
-            />
+            >
+              {CURRENCIES.map((code) => (
+                <option key={code} value={code}>
+                  {code}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -248,7 +274,7 @@ export default function ScenarioEditor({
             </h4>
             <ScenarioContributions
               scenarioId={scenario.id}
-              currency={form.currency || "NZD"}
+              currency={form.currency || FALLBACK_CURRENCY}
               monthlySalary={form.workingIncomeMonthly}
               currentAge={currentAge}
             />
