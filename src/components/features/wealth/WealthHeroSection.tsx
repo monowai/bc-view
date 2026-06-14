@@ -28,9 +28,7 @@ const WealthHeroSection: React.FC<WealthHeroSectionProps> = ({
     <div className="bg-linear-to-br from-blue-500 to-blue-700 rounded-2xl shadow-xl mb-8 overflow-hidden">
       {/* Title */}
       <div className="px-8 pt-6 pb-3">
-        <h1 className="text-sm font-semibold text-white/90">
-          Net Worth
-        </h1>
+        <h1 className="text-sm font-semibold text-white/90">Net Worth</h1>
       </div>
 
       {/* Total value + currency selector */}
