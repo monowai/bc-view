@@ -15,7 +15,14 @@ import ConfirmDialog from "@components/ui/ConfirmDialog"
 
 const scenariosKey = "/api/independence/work-scenarios"
 
-export default function ScenarioList(): React.ReactElement {
+interface ScenarioListProps {
+  /** Plan currency used to default a NEW scenario. */
+  defaultCurrency?: string
+}
+
+export default function ScenarioList({
+  defaultCurrency,
+}: ScenarioListProps = {}): React.ReactElement {
   const [editorOpen, setEditorOpen] = useState(false)
   const [editingScenario, setEditingScenario] = useState<WorkScenario | null>(
     null,
@@ -166,6 +173,7 @@ export default function ScenarioList(): React.ReactElement {
       {editorOpen && (
         <ScenarioEditor
           scenario={editingScenario}
+          defaultCurrency={defaultCurrency}
           onSave={handleSave}
           onClose={handleEditorClose}
         />
