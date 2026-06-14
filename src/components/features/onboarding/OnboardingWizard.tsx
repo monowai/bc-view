@@ -24,6 +24,7 @@ import { useRegistration } from "@contexts/RegistrationContext"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import Spinner from "@components/ui/Spinner"
 import { buildMePatchBody } from "./buildMePatchBody"
+import { buildPensionTrn } from "./buildPensionTrn"
 
 export interface BankAccount {
   name: string
@@ -488,17 +489,30 @@ const OnboardingWizard: React.FC = () => {
           }),
         })
 
-        // Create ADD transaction for initial balance if provided (doesn't impact cash)
-        if (pension.balance && pension.balance > 0) {
-          await createTransaction(
-            portfolioId,
-            asset.id,
-            "ADD",
-            pension.balance,
-            1,
-            pension.currency,
-            new Date().toISOString().split("T")[0],
-          )
+        // Link the pension to the default portfolio so a freshly
+        // onboarded user never sees the "isn't in a portfolio yet"
+        // banner. Composite pensions (CPF) carry their balance in
+        // sub-accounts, so post a BALANCE trn with the per-sub-account
+        // map exactly as LinkCompositeDialog does; plain pensions keep
+        // the cash-neutral ADD. Both are skipped when there's nothing
+        // to link. See buildPensionTrn for the shape.
+        const trnRow = buildPensionTrn(
+          pension,
+          asset.id,
+          new Date().toISOString().split("T")[0],
+        )
+        if (trnRow) {
+          const response = await fetch("/api/trns", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ portfolioId, data: [trnRow] }),
+          })
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}))
+            throw new Error(
+              errorData.error || `Failed to link ${pension.name} to portfolio`,
+            )
+          }
         }
       }
     }
