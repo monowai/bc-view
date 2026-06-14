@@ -48,7 +48,29 @@ const AssetWeightInput: React.FC<AssetWeightInputProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
         {/* Asset info - always visible */}
         <div className="flex-1 min-w-0">
-          <div className="font-medium text-sm">{assetCode || assetId}</div>
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-sm">{assetCode || assetId}</span>
+            {onShowPriceChart && isResolved && (
+              <button
+                type="button"
+                onClick={onShowPriceChart}
+                className="p-0.5 text-gray-400 hover:text-gray-600 transition-colors"
+                title={"Price history chart"}
+              >
+                <i className="fas fa-chart-line text-xs"></i>
+              </button>
+            )}
+            {onShowAssetInsight && isResolved && (
+              <button
+                type="button"
+                onClick={onShowAssetInsight}
+                className="p-0.5 text-gray-400 hover:text-blue-500 transition-colors"
+                title={"AI asset insight"}
+              >
+                <i className="fas fa-robot text-xs"></i>
+              </button>
+            )}
+          </div>
           {assetName && (
             <div className="text-xs text-gray-500 truncate">{assetName}</div>
           )}
@@ -104,26 +126,6 @@ const AssetWeightInput: React.FC<AssetWeightInputProps> = ({
               title={"Investment rationale"}
             >
               <i className="fas fa-comment-alt"></i>
-            </button>
-          )}
-          {onShowPriceChart && isResolved && (
-            <button
-              type="button"
-              onClick={onShowPriceChart}
-              className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
-              title={"Price history chart"}
-            >
-              <i className="fas fa-chart-line"></i>
-            </button>
-          )}
-          {onShowAssetInsight && isResolved && (
-            <button
-              type="button"
-              onClick={onShowAssetInsight}
-              className="p-1 text-gray-400 hover:text-blue-500 transition-colors"
-              title={"AI asset insight"}
-            >
-              <i className="fas fa-robot"></i>
             </button>
           )}
           {onRemove && !readOnly && (
