@@ -9,13 +9,33 @@ import { TableSkeletonLoader } from "@components/ui/SkeletonLoader"
 
 function ModelDetailPage(): React.ReactElement {
   const router = useRouter()
-  const { modelId } = router.query
+  // router.query is empty until router.isReady on client-side navigation;
+  // reading modelId before then yields a null SWR key that never refetches,
+  // leaving the page blank until a manual refresh.
+  const modelId = router.isReady ? (router.query.modelId as string) : undefined
 
   const isNew = modelId === "__NEW__"
   const { model, isLoading, error, mutate } = useModel(
-    isNew ? undefined : (modelId as string),
+    isNew ? undefined : modelId,
   )
-  const [isEditing, setIsEditing] = useState(isNew)
+  // Open straight into the editor for a brand-new model. isNew is only known
+  // once the router is ready, so seed the edit state on the render where that
+  // first becomes true (render-phase "store previous value" pattern) rather
+  // than via the state initialiser, which runs before the query is populated.
+  const [isEditing, setIsEditing] = useState(false)
+  const [prevIsNew, setPrevIsNew] = useState(isNew)
+  if (isNew !== prevIsNew) {
+    setPrevIsNew(isNew)
+    if (isNew) setIsEditing(true)
+  }
+
+  if (!router.isReady) {
+    return (
+      <div className="w-full py-4">
+        <TableSkeletonLoader rows={5} />
+      </div>
+    )
+  }
 
   if (!isNew && isLoading) {
     return (

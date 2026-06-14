@@ -18,14 +18,16 @@ import Spinner from "@components/ui/Spinner"
 
 function PlanDetailPage(): React.ReactElement {
   const router = useRouter()
-  const { modelId, planId } = router.query
+  // On client-side navigation router.query is empty until router.isReady flips
+  // true. Reading the params before then yields undefined SWR keys (no fetch),
+  // which would otherwise render the empty/error state and never recover until a
+  // manual refresh. Gate the param reads on readiness so they fetch once known.
+  const modelId = router.isReady ? (router.query.modelId as string) : undefined
+  const planId = router.isReady ? (router.query.planId as string) : undefined
 
-  const { model } = useModel(modelId as string)
-  const { plan, isLoading, error, mutate } = useModelPlan(
-    modelId as string,
-    planId as string,
-  )
-  const { plans } = useModelPlans(modelId as string)
+  const { model } = useModel(modelId)
+  const { plan, isLoading, error, mutate } = useModelPlan(modelId, planId)
+  const { plans } = useModelPlans(modelId)
 
   const [approving, setApproving] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -533,7 +535,7 @@ function PlanDetailPage(): React.ReactElement {
     event.target.value = ""
   }
 
-  if (isLoading) {
+  if (!router.isReady || isLoading) {
     return (
       <div className="w-full py-4">
         <TableSkeletonLoader rows={5} />
