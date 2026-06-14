@@ -31,6 +31,16 @@ const navSections: NavSection[] = [
     ],
   },
   {
+    title: "Plan",
+    items: [
+      {
+        href: "/independence",
+        label: "Independence",
+        icon: "fa-umbrella-beach",
+      },
+    ],
+  },
+  {
     title: "Invest",
     items: [
       { href: "/rebalance/models", label: "Models", icon: "fa-balance-scale" },
@@ -41,16 +51,6 @@ const navSections: NavSection[] = [
       },
       { href: "/assets/lookup", label: "Asset Lookup", icon: "fa-search" },
       { href: "/news", label: "News", icon: "fa-newspaper" },
-    ],
-  },
-  {
-    title: "Plan",
-    items: [
-      {
-        href: "/independence",
-        label: "Independence",
-        icon: "fa-umbrella-beach",
-      },
     ],
   },
   {
@@ -72,6 +72,56 @@ const navSections: NavSection[] = [
       { href: "/tax-rates", label: "Tax Rates", icon: "fa-percent" },
     ],
   },
+  // Admin is a top-level section; every item is adminOnly so the whole
+  // section hides for non-admins (NavDropdown returns null on no items).
+  {
+    title: "Admin",
+    items: [
+      { href: "/admin", label: "Overview", icon: "fa-gauge", adminOnly: true },
+      {
+        href: "/admin/services",
+        label: "Services",
+        icon: "fa-server",
+        adminOnly: true,
+      },
+      {
+        href: "/admin/tasks",
+        label: "Tasks",
+        icon: "fa-list-check",
+        adminOnly: true,
+      },
+      {
+        href: "/admin/metrics",
+        label: "Metrics",
+        icon: "fa-chart-line",
+        adminOnly: true,
+      },
+      {
+        href: "/admin/loggers",
+        label: "Loggers",
+        icon: "fa-file-lines",
+        adminOnly: true,
+      },
+      {
+        href: "/admin/assets",
+        label: "Assets",
+        icon: "fa-gem",
+        adminOnly: true,
+      },
+      {
+        href: "/admin/accounting-types",
+        label: "Accounting Types",
+        icon: "fa-list",
+        adminOnly: true,
+      },
+      {
+        href: "/admin/scenarios",
+        label: "Scenarios",
+        icon: "fa-diagram-project",
+        adminOnly: true,
+      },
+    ],
+  },
 ]
 
 function isActiveRoute(pathname: string, href: string): boolean {
@@ -87,6 +137,7 @@ const sectionColors: Record<string, { bg: string; text: string }> = {
   Invest: { bg: "bg-invest-50", text: "text-invest-700" },
   Plan: { bg: "bg-independence-50", text: "text-independence-700" },
   Tools: { bg: "bg-gray-50", text: "text-gray-700" },
+  Admin: { bg: "bg-gray-50", text: "text-gray-700" },
 }
 
 const defaultSectionColor = {
@@ -105,7 +156,7 @@ function DesktopDropdown({
   isAdmin: boolean
   canRunAi: boolean
   router: ReturnType<typeof useRouter>
-}): React.ReactElement {
+}): React.ReactElement | null {
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const closeTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -147,6 +198,10 @@ function DesktopDropdown({
   const isActive = filteredItems.some((item) =>
     isActiveRoute(router.pathname, item.href),
   )
+
+  // Hide a section with nothing visible (e.g. the Admin section for
+  // non-admins) so we don't render an empty dropdown button.
+  if (filteredItems.length === 0) return null
 
   return (
     <div
