@@ -7,6 +7,7 @@ import { CpfSubAccountRow } from "@lib/independence/cpfSubAccountTags"
 import {
   RentalIncomeData,
   AssetsBreakdown,
+  SustainableSpendingCard,
 } from "@components/features/independence"
 import { applyRealReturn } from "@components/features/independence/scenario/scenarioToPayload"
 import type { ScenarioState } from "@components/features/independence/scenario/types"
@@ -256,6 +257,18 @@ export default function DetailsTabContent({
               {(effectiveHousingReturn * 100).toFixed(0)}%
             </span>
           </div>
+          <div className="flex justify-between">
+            <InfoTooltip
+              text={
+                "Allocation-weighted return across your cash and equity mix, net of fees — the single rate that drives portfolio growth."
+              }
+            >
+              <span className="text-gray-500">Blended Return Rate</span>
+            </InfoTooltip>
+            <span className="font-medium text-blue-600">
+              {(blendedReturnRate * 100).toFixed(1)}%
+            </span>
+          </div>
           {effectiveTarget && effectiveTarget > 0 && (
             <div className="flex justify-between">
               <InfoTooltip
@@ -276,6 +289,14 @@ export default function DetailsTabContent({
           )}
         </div>
       </div>
+
+      {/* Key projection figures surfaced on My Plan: the sustainable monthly
+          budget, paired with Spendable at Independence (shown at the top of
+          the Assets by Category card below). */}
+      <SustainableSpendingCard
+        projection={projection}
+        currency={effectiveCurrency}
+      />
 
       {/* Assets by Category — swapped in from the Metrics tab.
           For shared plans we filter to portfolios owned by the plan
@@ -304,7 +325,6 @@ export default function DetailsTabContent({
           pensionProjections={pensionProjections}
           totalAssets={totalAssets}
           liquidAssets={liquidAssets}
-          blendedReturnRate={blendedReturnRate}
           currentAge={currentAge}
           retirementAge={retirementAge}
           effectiveCurrency={effectiveCurrency}
