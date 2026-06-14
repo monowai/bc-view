@@ -252,24 +252,28 @@ export default function DetailsTabContent({
         </div>
       </div>
 
-      {/* Headline outcome figures, side by side: what you'll have to spend at
-          independence, and the budget that lasts the plan. Assets by Category
-          now lives on its own "Assets" tab. */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <SpendableAtIndependenceCard
-          projection={projection}
-          liquidAssets={liquidAssets}
-          excludedPensionFV={excludedPensionFV}
-          includedPensionFvDifferential={includedPensionFvDifferential}
-          effectiveFxRate={effectiveFxRate}
-          currentAge={currentAge}
-          retirementAge={retirementAge}
-          currency={effectiveCurrency}
-        />
-        <SustainableSpendingCard
-          projection={projection}
-          currency={effectiveCurrency}
-        />
+      {/* Both headline outcome figures share one section: what you'll have to
+          spend at independence, and the budget that lasts the plan. Assets by
+          Category now lives on its own "Assets" tab. */}
+      <div className="bg-white rounded-xl shadow-md p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+          <SpendableAtIndependenceCard
+            embedded
+            projection={projection}
+            liquidAssets={liquidAssets}
+            excludedPensionFV={excludedPensionFV}
+            includedPensionFvDifferential={includedPensionFvDifferential}
+            effectiveFxRate={effectiveFxRate}
+            currentAge={currentAge}
+            retirementAge={retirementAge}
+            currency={effectiveCurrency}
+          />
+          <SustainableSpendingCard
+            embedded
+            projection={projection}
+            currency={effectiveCurrency}
+          />
+        </div>
       </div>
     </div>
   )

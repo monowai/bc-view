@@ -11,6 +11,8 @@ interface SustainableSpendingCardProps {
    * necessarily the plan currency).
    */
   currency: string
+  /** Render without the outer card chrome (for grouping in a shared section). */
+  embedded?: boolean
 }
 
 /**
@@ -22,6 +24,7 @@ interface SustainableSpendingCardProps {
 export default function SustainableSpendingCard({
   projection,
   currency,
+  embedded = false,
 }: SustainableSpendingCardProps): React.ReactElement | null {
   const { hideValues } = usePrivacyMode()
 
@@ -30,7 +33,7 @@ export default function SustainableSpendingCard({
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-md p-6">
+    <div className={embedded ? "" : "bg-white rounded-xl shadow-md p-6"}>
       <h2 className="text-lg font-semibold text-gray-900 mb-4">
         Sustainable Spending
       </h2>
