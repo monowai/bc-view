@@ -651,6 +651,16 @@ export interface ResolvedInputs {
   portfolioIds: string[]
 }
 
+export type FindingSeverity = "CRITICAL" | "WARNING" | "POSITIVE" | "INFO"
+
+export interface Finding {
+  /** Stable identifier the UI maps to an icon and optional call-to-action. */
+  code: string
+  severity: FindingSeverity
+  title: string
+  detail: string
+}
+
 export interface RetirementProjection {
   planId: string
   asOfDate: string
@@ -710,6 +720,8 @@ export interface RetirementProjection {
   liquidationAge?: number
   /** Data quality warnings - empty means all data fetched successfully */
   warnings?: ProjectionWarning[]
+  /** Plan-level insights derived from the projection (Plan Insights list). */
+  findings?: Finding[]
   /**
    * Explicit primary strategy set on the plan, or undefined if auto-detected.
    * Used by the plan-edit dropdown to show which option is currently pinned.
