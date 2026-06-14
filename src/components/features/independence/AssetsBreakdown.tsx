@@ -197,19 +197,6 @@ export default function AssetsBreakdown({
                         </span>
                       </label>
                       <div className="flex items-center gap-2">
-                        <span
-                          className={`font-medium ${
-                            hideValues
-                              ? "text-gray-400"
-                              : isSpendable
-                                ? "text-gray-900"
-                                : "text-gray-400"
-                          }`}
-                        >
-                          {hideValues
-                            ? HIDDEN_VALUE
-                            : `${effectiveCurrency}${Math.round(slice.value * effectiveFxRate).toLocaleString()}`}
-                        </span>
                         {isExpandable && (
                           <button
                             type="button"
@@ -225,29 +212,35 @@ export default function AssetsBreakdown({
                             ></i>
                           </button>
                         )}
+                        <span
+                          className={`font-medium ${
+                            hideValues
+                              ? "text-gray-400"
+                              : isSpendable
+                                ? "text-gray-900"
+                                : "text-gray-400"
+                          }`}
+                        >
+                          {hideValues
+                            ? HIDDEN_VALUE
+                            : `${effectiveCurrency}${Math.round(slice.value * effectiveFxRate).toLocaleString()}`}
+                        </span>
                       </div>
                     </div>
                     {isExpandable && isExpanded && (
                       <div className="mt-2 ml-7 pl-3 border-l-2 border-teal-300 space-y-1.5">
                         {subRows.map((row) => {
-                          const toneClasses =
-                            row.tagTone === "amber"
-                              ? "bg-amber-100 text-amber-800"
-                              : "bg-gray-200 text-gray-700"
                           return (
                             <div
                               key={`${row.parentAssetId}-${row.code}`}
                               className="flex items-center justify-between gap-2 text-sm"
                             >
                               <div className="flex items-center gap-2 min-w-0">
-                                <span className="font-medium text-gray-800 truncate">
-                                  {row.displayName}
-                                </span>
                                 <span
-                                  className={`text-xs px-2 py-0.5 rounded ${toneClasses}`}
-                                  title={row.tooltip}
+                                  className="font-medium text-gray-800 truncate cursor-help decoration-dotted underline underline-offset-2 decoration-gray-300"
+                                  title={`${row.tagLabel}. ${row.tooltip}`}
                                 >
-                                  {row.tagLabel}
+                                  {row.displayName}
                                 </span>
                               </div>
                               <span
