@@ -1,5 +1,4 @@
 import React, { useState } from "react"
-import { RetirementProjection } from "types/independence"
 import { AllocationSlice } from "@lib/allocation/aggregateHoldings"
 import { HIDDEN_VALUE, PensionProjection } from "@lib/independence/planHelpers"
 import { CpfSubAccountRow } from "@lib/independence/cpfSubAccountTags"
@@ -12,15 +11,12 @@ import Spinner from "@components/ui/Spinner"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 
 interface AssetsBreakdownProps {
-  projection: RetirementProjection | null
   categorySlices: AllocationSlice[]
   spendableCategories: string[]
   onToggleCategory: (category: string) => void
   pensionProjections: PensionProjection[]
   totalAssets: number
   liquidAssets: number
-  currentAge: number | undefined
-  retirementAge: number
   effectiveCurrency: string
   effectiveFxRate: number
   isCalculating: boolean
@@ -28,8 +24,6 @@ interface AssetsBreakdownProps {
   usingManualAssets: boolean
   isRefreshingHoldings: boolean
   onRefreshHoldings: () => void
-  excludedPensionFV: number
-  includedPensionFvDifferential: number
   /**
    * Sub-account rows grouped by the category-slice key their CPF parent
    * resolves to. Slices listed here render with a chevron expander showing
@@ -44,15 +38,12 @@ interface AssetsBreakdownProps {
  * summary totals. Lives next to Plan Details on the My Plan tab.
  */
 export default function AssetsBreakdown({
-  projection,
   categorySlices,
   spendableCategories,
   onToggleCategory,
   pensionProjections,
   totalAssets,
   liquidAssets,
-  currentAge,
-  retirementAge,
   effectiveCurrency,
   effectiveFxRate,
   isCalculating,
@@ -60,8 +51,6 @@ export default function AssetsBreakdown({
   usingManualAssets,
   isRefreshingHoldings,
   onRefreshHoldings,
-  excludedPensionFV,
-  includedPensionFvDifferential,
   cpfSubAccountsByCategoryKey,
 }: AssetsBreakdownProps): React.ReactElement {
   // Healthcare reserve — sum of CPF MA balances across every CPF parent.
@@ -106,44 +95,6 @@ export default function AssetsBreakdown({
 
   return (
     <div className="bg-white rounded-xl shadow-md p-6">
-      {/* Headline figure first: spendable liquid assets projected to the
-          independence date — the number the rest of this card supports. */}
-      <div className="mb-4 pb-4 border-b border-gray-100">
-        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">
-          {"Projected to independence"}
-        </p>
-        <div className="flex justify-between font-medium text-lg">
-          <span>
-            {"Spendable at Independence"}
-            {currentAge !== undefined && retirementAge && (
-              <span className="font-normal text-sm text-gray-500">
-                {" "}
-                (age {retirementAge},{" "}
-                {retirementAge - currentAge > 0
-                  ? `${retirementAge - currentAge}yr`
-                  : "now"}
-                )
-              </span>
-            )}
-          </span>
-          <span
-            className={hideValues ? "text-gray-400" : "text-independence-600"}
-          >
-            {hideValues
-              ? HIDDEN_VALUE
-              : `${effectiveCurrency}${Math.round(
-                  projection?.preRetirementAccumulation
-                    ?.liquidAssetsAtRetirement
-                    ? projection.preRetirementAccumulation
-                        .liquidAssetsAtRetirement -
-                        excludedPensionFV * effectiveFxRate
-                    : (liquidAssets + includedPensionFvDifferential) *
-                        effectiveFxRate,
-                ).toLocaleString()}`}
-          </span>
-        </div>
-      </div>
-
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-semibold text-gray-900">
           {"Assets by Category"}

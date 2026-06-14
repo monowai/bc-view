@@ -1,13 +1,11 @@
 import React from "react"
 import InfoTooltip from "@components/ui/Tooltip"
 import { RetirementPlan, RetirementProjection } from "types/independence"
-import { AllocationSlice } from "@lib/allocation/aggregateHoldings"
-import { HIDDEN_VALUE, PensionProjection } from "@lib/independence/planHelpers"
-import { CpfSubAccountRow } from "@lib/independence/cpfSubAccountTags"
+import { HIDDEN_VALUE } from "@lib/independence/planHelpers"
 import {
   RentalIncomeData,
-  AssetsBreakdown,
   SustainableSpendingCard,
+  SpendableAtIndependenceCard,
 } from "@components/features/independence"
 import { applyRealReturn } from "@components/features/independence/scenario/scenarioToPayload"
 import type { ScenarioState } from "@components/features/independence/scenario/types"
@@ -22,38 +20,14 @@ interface DetailsTabContentProps {
   effectiveCurrency: string
   planCurrency: string
   onEditDetails: () => void
-  // Props for Assets by Category — swapped in from the Metrics tab.
-  categorySlices: AllocationSlice[]
-  spendableCategories: string[]
-  onToggleCategory: (category: string) => void
-  pensionProjections: PensionProjection[]
-  totalAssets: number
+  // Headline outcome figures (Spendable at Independence) shown on My Plan.
   liquidAssets: number
   blendedReturnRate: number
   currentAge: number | undefined
   retirementAge: number
   effectiveFxRate: number
-  isCalculating: boolean
-  holdingsLoaded: boolean
-  usingManualAssets: boolean
-  isRefreshingHoldings: boolean
-  onRefreshHoldings: () => void
   excludedPensionFV: number
   includedPensionFvDifferential: number
-  /**
-   * Sub-account rows grouped by the category-slice key their CPF parent
-   * resolves to (e.g. "Retirement Fund"). Empty when the user has no CPF
-   * policy — the parent slice then renders without a chevron expander.
-   */
-  cpfSubAccountsByCategoryKey?: Record<string, CpfSubAccountRow[]>
-  /**
-   * Caller doesn't own the plan. Per-category holdings can't be resolved
-   * server-side under the M2M path today, so the breakdown panel hides
-   * (showing the viewer's caller-scoped categories would be the same leak
-   * we just plugged on the projection request). Plan-detail values + the
-   * projection's owner-scoped totals remain visible.
-   */
-  isSharedPlan?: boolean
 }
 
 export default function DetailsTabContent({
@@ -64,25 +38,13 @@ export default function DetailsTabContent({
   effectiveCurrency,
   planCurrency,
   onEditDetails,
-  categorySlices,
-  spendableCategories,
-  onToggleCategory,
-  pensionProjections,
-  totalAssets,
   liquidAssets,
   blendedReturnRate,
   currentAge,
   retirementAge,
   effectiveFxRate,
-  isCalculating,
-  holdingsLoaded,
-  usingManualAssets,
-  isRefreshingHoldings,
-  onRefreshHoldings,
   excludedPensionFV,
   includedPensionFvDifferential,
-  cpfSubAccountsByCategoryKey,
-  isSharedPlan = false,
 }: DetailsTabContentProps): React.ReactElement {
   const { hideValues } = usePrivacyMode()
 
@@ -202,24 +164,6 @@ export default function DetailsTabContent({
               </span>
             </div>
           )}
-          {planInputs?.definedContribution != null &&
-            planInputs.definedContribution > 0 && (
-              <div className="flex justify-between">
-                <InfoTooltip text="CPF employee contribution deducted from your investable income while you're still working. Stops at retirement age.">
-                  <span className="text-gray-500">
-                    <i className="fas fa-building text-xs mr-1"></i>
-                    CPF Employee Deduction
-                  </span>
-                </InfoTooltip>
-                <span
-                  className={`font-medium ${hideValues ? "text-gray-400" : "text-teal-600"}`}
-                >
-                  {hideValues
-                    ? HIDDEN_VALUE
-                    : `-${detailsCurrency}${Math.round(planInputs.definedContribution).toLocaleString()}`}
-                </span>
-              </div>
-            )}
           <div className="flex justify-between">
             <InfoTooltip
               text={
@@ -290,55 +234,29 @@ export default function DetailsTabContent({
         </div>
       </div>
 
-      {/* Key projection figures surfaced on My Plan: the sustainable monthly
-          budget, paired with Spendable at Independence (shown at the top of
-          the Assets by Category card below). */}
-      <SustainableSpendingCard
-        projection={projection}
-        currency={effectiveCurrency}
-      />
-
-      {/* Assets by Category — swapped in from the Metrics tab.
-          For shared plans we filter to portfolios owned by the plan
-          owner (via accepted portfolio shares). When the caller has
-          plan-share but no portfolio-shares, categorySlices is empty —
-          show a small notice explaining what's missing. */}
-      {isSharedPlan && categorySlices.length === 0 ? (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-900">
-          <p className="font-medium mb-1">
-            <i className="fas fa-share-alt mr-2"></i>
-            Owner-scoped projection
-          </p>
-          <p>
-            Per-category asset breakdown for this shared plan needs the plan
-            owner to also share their portfolios with you. The projection (left
-            panel and Metrics tab) uses the owner&apos;s holdings via a
-            server-side fetch.
-          </p>
+      {/* Both headline outcome figures share one section: what you'll have to
+          spend at independence, and the budget that lasts the plan. Assets by
+          Category now lives on its own "Assets" tab. */}
+      <div className="bg-white rounded-xl shadow-md p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+          <SpendableAtIndependenceCard
+            embedded
+            projection={projection}
+            liquidAssets={liquidAssets}
+            excludedPensionFV={excludedPensionFV}
+            includedPensionFvDifferential={includedPensionFvDifferential}
+            effectiveFxRate={effectiveFxRate}
+            currentAge={currentAge}
+            retirementAge={retirementAge}
+            currency={effectiveCurrency}
+          />
+          <SustainableSpendingCard
+            embedded
+            projection={projection}
+            currency={effectiveCurrency}
+          />
         </div>
-      ) : (
-        <AssetsBreakdown
-          projection={projection}
-          categorySlices={categorySlices}
-          spendableCategories={spendableCategories}
-          onToggleCategory={onToggleCategory}
-          pensionProjections={pensionProjections}
-          totalAssets={totalAssets}
-          liquidAssets={liquidAssets}
-          currentAge={currentAge}
-          retirementAge={retirementAge}
-          effectiveCurrency={effectiveCurrency}
-          effectiveFxRate={effectiveFxRate}
-          isCalculating={isCalculating}
-          holdingsLoaded={holdingsLoaded}
-          usingManualAssets={usingManualAssets}
-          isRefreshingHoldings={isRefreshingHoldings}
-          onRefreshHoldings={onRefreshHoldings}
-          excludedPensionFV={excludedPensionFV}
-          includedPensionFvDifferential={includedPensionFvDifferential}
-          cpfSubAccountsByCategoryKey={cpfSubAccountsByCategoryKey}
-        />
-      )}
+      </div>
     </div>
   )
 }

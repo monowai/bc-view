@@ -8,7 +8,13 @@ import {
 export { DEFAULT_NON_SPENDABLE_CATEGORIES, INCOME_STREAM_CATEGORIES }
 
 // Tab identifiers for plan view
-export type TabId = "fi" | "details" | "assets" | "timeline" | "simulation"
+export type TabId =
+  | "fi"
+  | "details"
+  | "assets"
+  | "breakdown"
+  | "timeline"
+  | "simulation"
 
 // Tab configuration
 export interface TabConfig {
@@ -25,6 +31,13 @@ export const TABS: TabConfig[] = [
     icon: "fa-clipboard-list",
     byline:
       "Your income, expenses, and assumptions — the inputs that drive everything.",
+  },
+  {
+    id: "breakdown",
+    label: "Assets",
+    icon: "fa-layer-group",
+    byline:
+      "Your holdings by category — choose which are spendable in retirement.",
   },
   {
     id: "fi",
