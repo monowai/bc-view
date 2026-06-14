@@ -103,7 +103,11 @@ describe("AssetAdminDialog", () => {
   it("POSTs /api/assets/{id}/enrich and notifies onUpdated when Enrich is clicked", async () => {
     const onUpdated = jest.fn()
     render(
-      <AssetAdminDialog assetId="a1" onClose={jest.fn()} onUpdated={onUpdated} />,
+      <AssetAdminDialog
+        assetId="a1"
+        onClose={jest.fn()}
+        onUpdated={onUpdated}
+      />,
     )
     fireEvent.click(screen.getByRole("button", { name: /enrich/i }))
     await waitFor(() => {
