@@ -245,6 +245,11 @@ export default function DetailsTabContent({
       ) : (
         <div className="bg-white rounded-xl shadow-md p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+            <SustainableSpendingCard
+              embedded
+              projection={projection}
+              currency={effectiveCurrency}
+            />
             <SpendableAtIndependenceCard
               embedded
               projection={projection}
@@ -254,11 +259,6 @@ export default function DetailsTabContent({
               effectiveFxRate={effectiveFxRate}
               currentAge={currentAge}
               retirementAge={retirementAge}
-              currency={effectiveCurrency}
-            />
-            <SustainableSpendingCard
-              embedded
-              projection={projection}
               currency={effectiveCurrency}
             />
           </div>
