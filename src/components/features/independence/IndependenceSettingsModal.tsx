@@ -58,11 +58,11 @@ export default function IndependenceSettingsModal({
   const [monthOfBirth, setMonthOfBirth] = useState<number | undefined>(
     settings?.monthOfBirth ?? undefined,
   )
-  const [targetIndependenceAge, setTargetIndependenceAge] = useState<number>(
-    settings?.targetIndependenceAge ?? 65,
-  )
-  const [lifeExpectancy, setLifeExpectancy] = useState<number>(
-    settings?.lifeExpectancy ?? 90,
+  const [targetIndependenceAge, setTargetIndependenceAge] = useState<
+    number | undefined
+  >(settings?.targetIndependenceAge ?? undefined)
+  const [lifeExpectancy, setLifeExpectancy] = useState<number | undefined>(
+    settings?.lifeExpectancy ?? undefined,
   )
 
   // Re-seed the form from settings whenever the modal opens or the settings
@@ -76,8 +76,8 @@ export default function IndependenceSettingsModal({
     if (isOpen && settings) {
       setYearOfBirth(settings.yearOfBirth ?? undefined)
       setMonthOfBirth(settings.monthOfBirth ?? undefined)
-      setTargetIndependenceAge(settings.targetIndependenceAge ?? 65)
-      setLifeExpectancy(settings.lifeExpectancy ?? 90)
+      setTargetIndependenceAge(settings.targetIndependenceAge ?? undefined)
+      setLifeExpectancy(settings.lifeExpectancy ?? undefined)
       setError(null)
     }
   }
@@ -96,14 +96,23 @@ export default function IndependenceSettingsModal({
     if (yearOfBirth < 1920 || yearOfBirth > currentYear - 18) {
       return `Year of birth must be between 1920 and ${currentYear - 18}`
     }
-    if (monthOfBirth !== undefined && (monthOfBirth < 1 || monthOfBirth > 12)) {
+    if (monthOfBirth == null) {
+      return "Month of birth is required"
+    }
+    if (monthOfBirth < 1 || monthOfBirth > 12) {
       return "Month must be between 1 and 12"
+    }
+    if (targetIndependenceAge == null) {
+      return "Target independence age is required"
     }
     if (targetIndependenceAge < currentAge) {
       return "Target independence age must be at or after your current age"
     }
     if (targetIndependenceAge < 18 || targetIndependenceAge > 100) {
       return "Target independence age must be between 18 and 100"
+    }
+    if (lifeExpectancy == null) {
+      return "Life expectancy is required"
     }
     if (lifeExpectancy <= targetIndependenceAge) {
       return "Life expectancy must be after target independence age"
@@ -239,19 +248,21 @@ export default function IndependenceSettingsModal({
             />
           </div>
 
-          <div className="bg-independence-50 border border-independence-200 rounded-lg p-4">
-            <div className="flex">
-              <i className="fas fa-info-circle text-independence-600 mt-0.5 mr-3"></i>
-              <div className="text-sm text-independence-700">
-                <p className="font-medium">Planning horizon</p>
-                <p className="mt-1">
-                  Your planning horizon will be{" "}
-                  {lifeExpectancy - targetIndependenceAge} years (from age{" "}
-                  {targetIndependenceAge} to {lifeExpectancy}).
-                </p>
+          {targetIndependenceAge != null && lifeExpectancy != null && (
+            <div className="bg-independence-50 border border-independence-200 rounded-lg p-4">
+              <div className="flex">
+                <i className="fas fa-info-circle text-independence-600 mt-0.5 mr-3"></i>
+                <div className="text-sm text-independence-700">
+                  <p className="font-medium">Planning horizon</p>
+                  <p className="mt-1">
+                    Your planning horizon will be{" "}
+                    {lifeExpectancy - targetIndependenceAge} years (from age{" "}
+                    {targetIndependenceAge} to {lifeExpectancy}).
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         <div className="flex gap-3 mt-6">

@@ -50,11 +50,11 @@ export default function IndependenceSettingsPanel(): React.ReactElement {
   const [monthOfBirth, setMonthOfBirth] = useState<number | undefined>(
     settings?.monthOfBirth ?? undefined,
   )
-  const [targetIndependenceAge, setTargetIndependenceAge] = useState<number>(
-    settings?.targetIndependenceAge ?? 65,
-  )
-  const [lifeExpectancy, setLifeExpectancy] = useState<number>(
-    settings?.lifeExpectancy ?? 90,
+  const [targetIndependenceAge, setTargetIndependenceAge] = useState<
+    number | undefined
+  >(settings?.targetIndependenceAge ?? undefined)
+  const [lifeExpectancy, setLifeExpectancy] = useState<number | undefined>(
+    settings?.lifeExpectancy ?? undefined,
   )
 
   // Re-seed the form whenever settings change. Render-phase "store previous
@@ -67,8 +67,8 @@ export default function IndependenceSettingsPanel(): React.ReactElement {
     if (settings) {
       setYearOfBirth(settings.yearOfBirth ?? undefined)
       setMonthOfBirth(settings.monthOfBirth ?? undefined)
-      setTargetIndependenceAge(settings.targetIndependenceAge ?? 65)
-      setLifeExpectancy(settings.lifeExpectancy ?? 90)
+      setTargetIndependenceAge(settings.targetIndependenceAge ?? undefined)
+      setLifeExpectancy(settings.lifeExpectancy ?? undefined)
     }
   }
 
@@ -84,14 +84,23 @@ export default function IndependenceSettingsPanel(): React.ReactElement {
     if (yearOfBirth < 1920 || yearOfBirth > currentYear - 18) {
       return `Year of birth must be between 1920 and ${currentYear - 18}`
     }
-    if (monthOfBirth !== undefined && (monthOfBirth < 1 || monthOfBirth > 12)) {
+    if (monthOfBirth == null) {
+      return "Month of birth is required"
+    }
+    if (monthOfBirth < 1 || monthOfBirth > 12) {
       return "Month must be between 1 and 12"
+    }
+    if (targetIndependenceAge == null) {
+      return "Target independence age is required"
     }
     if (targetIndependenceAge < currentAge) {
       return "Target independence age must be at or after your current age"
     }
     if (targetIndependenceAge < 18 || targetIndependenceAge > 100) {
       return "Target independence age must be between 18 and 100"
+    }
+    if (lifeExpectancy == null) {
+      return "Life expectancy is required"
     }
     if (lifeExpectancy <= targetIndependenceAge) {
       return "Life expectancy must be after target independence age"
@@ -212,10 +221,15 @@ export default function IndependenceSettingsPanel(): React.ReactElement {
           <input
             id="settings-targetIndependenceAge"
             type="number"
-            value={targetIndependenceAge}
-            onChange={(e) => setTargetIndependenceAge(Number(e.target.value))}
+            value={targetIndependenceAge ?? ""}
+            onChange={(e) =>
+              setTargetIndependenceAge(
+                e.target.value ? Number(e.target.value) : undefined,
+              )
+            }
             min={18}
             max={100}
+            placeholder="e.g. 65"
             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 border-gray-300"
           />
           <p className="mt-1 text-sm text-gray-500">
@@ -234,27 +248,34 @@ export default function IndependenceSettingsPanel(): React.ReactElement {
           <input
             id="settings-lifeExpectancy"
             type="number"
-            value={lifeExpectancy}
-            onChange={(e) => setLifeExpectancy(Number(e.target.value))}
+            value={lifeExpectancy ?? ""}
+            onChange={(e) =>
+              setLifeExpectancy(
+                e.target.value ? Number(e.target.value) : undefined,
+              )
+            }
             min={50}
             max={120}
+            placeholder="e.g. 90"
             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500 border-gray-300"
           />
         </div>
 
-        <div className="bg-independence-50 border border-independence-200 rounded-lg p-4">
-          <div className="flex">
-            <i className="fas fa-info-circle text-independence-600 mt-0.5 mr-3"></i>
-            <div className="text-sm text-independence-700">
-              <p className="font-medium">Planning horizon</p>
-              <p className="mt-1">
-                Your planning horizon will be{" "}
-                {lifeExpectancy - targetIndependenceAge} years (from age{" "}
-                {targetIndependenceAge} to {lifeExpectancy}).
-              </p>
+        {targetIndependenceAge != null && lifeExpectancy != null && (
+          <div className="bg-independence-50 border border-independence-200 rounded-lg p-4">
+            <div className="flex">
+              <i className="fas fa-info-circle text-independence-600 mt-0.5 mr-3"></i>
+              <div className="text-sm text-independence-700">
+                <p className="font-medium">Planning horizon</p>
+                <p className="mt-1">
+                  Your planning horizon will be{" "}
+                  {lifeExpectancy - targetIndependenceAge} years (from age{" "}
+                  {targetIndependenceAge} to {lifeExpectancy}).
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         <button
           onClick={handleSave}
