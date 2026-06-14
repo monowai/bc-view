@@ -45,6 +45,7 @@ const AssetAdminDialog: React.FC<AssetAdminDialogProps> = ({
   const [name, setName] = useState(asset?.name || "")
   const [category, setCategory] = useState(asset?.assetCategory?.id || "")
   const [isSaving, setIsSaving] = useState(false)
+  const [isEnriching, setIsEnriching] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
 
@@ -91,6 +92,31 @@ const AssetAdminDialog: React.FC<AssetAdminDialogProps> = ({
       setError(err instanceof Error ? err.message : "Update failed")
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  // Re-pull market data for the asset (name/category/price symbol) from the
+  // provider via svc-data. On success the SWR mutate re-seeds the form fields.
+  const handleEnrich = async (): Promise<void> => {
+    if (!asset) return
+    setIsEnriching(true)
+    setError(null)
+    setSaved(false)
+    try {
+      const res = await fetch(`/api/assets/${assetId}/enrich`, {
+        method: "POST",
+      })
+      if (!res.ok) {
+        const body = await res.text()
+        throw new Error(body || `Enrich failed (${res.status})`)
+      }
+      setSaved(true)
+      await mutate()
+      onUpdated?.()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Enrich failed")
+    } finally {
+      setIsEnriching(false)
     }
   }
 
@@ -189,11 +215,19 @@ const AssetAdminDialog: React.FC<AssetAdminDialogProps> = ({
             <Alert variant="success">{"Asset updated"}</Alert>
           )}
 
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={handleEnrich}
+              disabled={isEnriching || isSaving}
+              className="px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-700 text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {isEnriching ? <Spinner label={"Enriching..."} /> : "Enrich"}
+            </button>
             <button
               type="button"
               onClick={handleSave}
-              disabled={isSaving}
+              disabled={isSaving || isEnriching}
               className="px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {isSaving ? <Spinner label={"Saving..."} /> : "Save"}

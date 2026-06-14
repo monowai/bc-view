@@ -100,6 +100,21 @@ describe("AssetAdminDialog", () => {
     })
   })
 
+  it("POSTs /api/assets/{id}/enrich and notifies onUpdated when Enrich is clicked", async () => {
+    const onUpdated = jest.fn()
+    render(
+      <AssetAdminDialog assetId="a1" onClose={jest.fn()} onUpdated={onUpdated} />,
+    )
+    fireEvent.click(screen.getByRole("button", { name: /enrich/i }))
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/assets/a1/enrich",
+        expect.objectContaining({ method: "POST" }),
+      )
+    })
+    await waitFor(() => expect(onUpdated).toHaveBeenCalled())
+  })
+
   it("closes when the backdrop/Esc handler fires", () => {
     const onClose = jest.fn()
     render(<AssetAdminDialog assetId="a1" onClose={onClose} />)
