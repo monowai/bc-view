@@ -204,9 +204,7 @@ function PlanCard({
             </div>
             <div className="mt-2">
               <div className="flex justify-between items-center mb-1">
-                <span className="text-xs text-gray-500">
-                  FI Progress
-                </span>
+                <span className="text-xs text-gray-500">FI Progress</span>
                 <span
                   className={`text-xs font-medium tabular-nums ${hideValues ? "text-gray-400" : getProgressColor(fiProgress)}`}
                 >
