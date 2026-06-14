@@ -8,6 +8,8 @@ interface PlanTabNavigationProps {
   onTabChange: (tabId: TabId) => void
   /** Whether the plan has assets loaded (some tabs require assets) */
   hasAssets: boolean
+  /** Show the FI Overview tab. Only relevant to FIRE-strategy plans. */
+  showFiTab?: boolean
 }
 
 /** Tabs that require assets to show meaningful data */
@@ -21,11 +23,13 @@ export default function PlanTabNavigation({
   activeTab,
   onTabChange,
   hasAssets,
+  showFiTab = true,
 }: PlanTabNavigationProps): React.ReactElement {
+  const visibleTabs = TABS.filter((tab) => tab.id !== "fi" || showFiTab)
   return (
     <div className="border-b border-gray-200 mb-4">
       <nav className="flex space-x-6 overflow-x-auto">
-        {TABS.map((tab) => {
+        {visibleTabs.map((tab) => {
           const requiresAssets = TABS_REQUIRING_ASSETS.includes(tab.id)
           const isDisabled = requiresAssets && !hasAssets
 

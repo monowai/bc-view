@@ -19,7 +19,6 @@ interface AssetsBreakdownProps {
   pensionProjections: PensionProjection[]
   totalAssets: number
   liquidAssets: number
-  blendedReturnRate: number
   currentAge: number | undefined
   retirementAge: number
   effectiveCurrency: string
@@ -52,7 +51,6 @@ export default function AssetsBreakdown({
   pensionProjections,
   totalAssets,
   liquidAssets,
-  blendedReturnRate,
   currentAge,
   retirementAge,
   effectiveCurrency,
@@ -108,6 +106,44 @@ export default function AssetsBreakdown({
 
   return (
     <div className="bg-white rounded-xl shadow-md p-6">
+      {/* Headline figure first: spendable liquid assets projected to the
+          independence date — the number the rest of this card supports. */}
+      <div className="mb-4 pb-4 border-b border-gray-100">
+        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">
+          {"Projected to independence"}
+        </p>
+        <div className="flex justify-between font-medium text-lg">
+          <span>
+            {"Spendable at Independence"}
+            {currentAge !== undefined && retirementAge && (
+              <span className="font-normal text-sm text-gray-500">
+                {" "}
+                (age {retirementAge},{" "}
+                {retirementAge - currentAge > 0
+                  ? `${retirementAge - currentAge}yr`
+                  : "now"}
+                )
+              </span>
+            )}
+          </span>
+          <span
+            className={hideValues ? "text-gray-400" : "text-independence-600"}
+          >
+            {hideValues
+              ? HIDDEN_VALUE
+              : `${effectiveCurrency}${Math.round(
+                  projection?.preRetirementAccumulation
+                    ?.liquidAssetsAtRetirement
+                    ? projection.preRetirementAccumulation
+                        .liquidAssetsAtRetirement -
+                        excludedPensionFV * effectiveFxRate
+                    : (liquidAssets + includedPensionFvDifferential) *
+                        effectiveFxRate,
+                ).toLocaleString()}`}
+          </span>
+        </div>
+      </div>
+
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-semibold text-gray-900">
           {"Assets by Category"}
@@ -441,50 +477,6 @@ export default function AssetsBreakdown({
                 </p>
               </>
             )}
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Blended Return Rate</span>
-              <span className="font-medium text-blue-600">
-                {(blendedReturnRate * 100).toFixed(1)}%
-              </span>
-            </div>
-          </div>
-
-          <div className="border-t pt-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">
-              {"Projected to independence"}
-            </p>
-            <div className="flex justify-between font-medium text-lg">
-              <span>
-                {"Spendable at Independence"}
-                {currentAge !== undefined && retirementAge && (
-                  <span className="font-normal text-sm text-gray-500">
-                    {" "}
-                    (age {retirementAge},{" "}
-                    {retirementAge - currentAge > 0
-                      ? `${retirementAge - currentAge}yr`
-                      : "now"}
-                    )
-                  </span>
-                )}
-              </span>
-              <span
-                className={
-                  hideValues ? "text-gray-400" : "text-independence-600"
-                }
-              >
-                {hideValues
-                  ? HIDDEN_VALUE
-                  : `${effectiveCurrency}${Math.round(
-                      projection?.preRetirementAccumulation
-                        ?.liquidAssetsAtRetirement
-                        ? projection.preRetirementAccumulation
-                            .liquidAssetsAtRetirement -
-                            excludedPensionFV * effectiveFxRate
-                        : (liquidAssets + includedPensionFvDifferential) *
-                            effectiveFxRate,
-                    ).toLocaleString()}`}
-              </span>
-            </div>
           </div>
 
           {isCalculating && (

@@ -65,7 +65,9 @@ function PlanView(): React.ReactElement {
   const { settings: independenceSettings } = useIndependenceSettings()
   const hasAutoSelected = useRef(false)
   const hasCategoriesInitialized = useRef(false)
-  const [activeTab, setActiveTab] = useState<TabId>("fi")
+  // Land on "My Plan" by default — the FI Overview is only the home tab for
+  // FIRE-strategy plans (see resolvedStrategyView / showFiTab below).
+  const [activeTab, setActiveTab] = useState<TabId>("details")
   const [selectedPortfolioIds, setSelectedPortfolioIds] = useState<string[]>([])
   const [spendableCategories, setSpendableCategories] = useState<string[]>([])
 
@@ -607,6 +609,17 @@ function PlanView(): React.ReactElement {
     isAllocationValid &&
     !isCalculating
 
+  // The FI Overview tab is only relevant to FIRE-strategy plans; pension /
+  // hybrid plans lead with "My Plan". Hide it otherwise and bounce the user
+  // back to My Plan if it was the active tab.
+  const resolvedStrategyView =
+    strategyView ?? defaultStrategyView(adjustedProjection?.effectiveStrategy)
+  const showFiTab = resolvedStrategyView === "FIRE"
+  // Derive (don't mutate) the displayed tab so a hidden FI Overview never
+  // leaves the view blank if the strategy flips while it was active.
+  const effectiveTab: TabId =
+    !showFiTab && activeTab === "fi" ? "details" : activeTab
+
   // Toggle category spendable status
   const toggleCategory = (category: string): void => {
     setSpendableCategories((prev) =>
@@ -970,13 +983,14 @@ function PlanView(): React.ReactElement {
 
           {/* Tab Navigation */}
           <PlanTabNavigation
-            activeTab={activeTab}
+            activeTab={effectiveTab}
             onTabChange={setActiveTab}
             hasAssets={hasAssets}
+            showFiTab={showFiTab}
           />
 
           {/* Tab Content */}
-          {activeTab === "fi" && (
+          {effectiveTab === "fi" && (
             <PlanFiOverviewTab
               plan={plan}
               projection={adjustedProjection}
@@ -998,7 +1012,7 @@ function PlanView(): React.ReactElement {
             />
           )}
 
-          {activeTab === "details" && (
+          {effectiveTab === "details" && (
             <DetailsTabContent
               plan={plan}
               scenario={scenario}
@@ -1029,7 +1043,7 @@ function PlanView(): React.ReactElement {
             />
           )}
 
-          {activeTab === "assets" && (
+          {effectiveTab === "assets" && (
             <AssetsTabContent
               projection={adjustedProjection}
               effectivePlanValues={effectivePlanValues}
@@ -1045,7 +1059,7 @@ function PlanView(): React.ReactElement {
             />
           )}
 
-          {activeTab === "timeline" && (
+          {effectiveTab === "timeline" && (
             <TimelineTabContent
               projection={adjustedProjection}
               baselineProjection={baselineProjection}
@@ -1058,7 +1072,7 @@ function PlanView(): React.ReactElement {
           )}
 
           {/* Simulation Tab - Monte Carlo Analysis */}
-          {activeTab === "simulation" && (
+          {effectiveTab === "simulation" && (
             <MonteCarloTab
               plan={plan}
               assets={{
