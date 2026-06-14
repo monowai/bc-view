@@ -11,6 +11,7 @@ import {
   ReferenceArea,
 } from "recharts"
 import ChartFrame from "@components/features/independence/ChartFrame"
+import { ageAxisDomain, ageAxisTicks } from "@lib/independence/ageAxis"
 import Spinner from "@components/ui/Spinner"
 import type { RetirementPlan, RetirementProjection } from "types/independence"
 import type { ScenarioState } from "./scenario/types"
@@ -167,6 +168,24 @@ export default function PlanFiOverviewTab({
     if (fiNumber <= 0 || !chartData.length) return null
     return chartData.find((r) => r.endingBalance >= fiNumber)?.age ?? null
   }, [chartData, fiNumber])
+
+  // Always span current age → life expectancy, even when the trajectory
+  // depletes earlier or runs past it.
+  const ageAxis = useMemo(() => {
+    const [minAge, maxAge] = ageAxisDomain(
+      currentAge,
+      plan.lifeExpectancy,
+      chartData.map((r) => r.age),
+    )
+    return {
+      domain: [minAge, maxAge] as [number, number],
+      ticks: ageAxisTicks(
+        minAge,
+        maxAge,
+        fiCrossingAge != null ? [fiCrossingAge] : [],
+      ),
+    }
+  }, [chartData, currentAge, plan.lifeExpectancy, fiCrossingAge])
 
   const gap = Math.abs(fiMetrics?.gapToFi ?? fiNumber - currentLiquid)
   const fiProgress =
@@ -360,6 +379,11 @@ export default function PlanFiOverviewTab({
             />
             <XAxis
               dataKey="age"
+              type="number"
+              scale="linear"
+              domain={ageAxis.domain}
+              ticks={ageAxis.ticks}
+              allowDataOverflow
               tick={{ fontSize: 11, fill: "#94a3b8" }}
               tickLine={false}
               axisLine={false}

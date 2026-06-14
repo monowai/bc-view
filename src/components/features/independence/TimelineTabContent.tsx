@@ -17,6 +17,7 @@ import CollapsibleSection from "@components/ui/CollapsibleSection"
 import { RetirementProjection } from "types/independence"
 import { HIDDEN_VALUE } from "@lib/independence/planHelpers"
 import { netHousingValue } from "@lib/independence/wealthJourneyChartData"
+import { ageAxisDomain, ageAxisTicks } from "@lib/independence/ageAxis"
 import { IncomeBreakdownTable } from "@components/features/independence"
 import Spinner from "@components/ui/Spinner"
 
@@ -151,6 +152,23 @@ export default function TimelineTabContent({
     [fullJourneyData],
   )
 
+  // Age axis pinned to (current age → life expectancy) so both charts share
+  // the same horizon even when the trajectory depletes before life expectancy.
+  const ageAxis = useMemo(() => {
+    const ages = fullJourneyData
+      .map((d) => d.age)
+      .filter((a): a is number => a !== undefined)
+    const [minAge, maxAge] = ageAxisDomain(undefined, lifeExpectancy, ages)
+    return {
+      domain: [minAge, maxAge] as [number, number],
+      ticks: ageAxisTicks(
+        minAge,
+        maxAge,
+        [retirementAge, fiAchievementAge].filter((a): a is number => a != null),
+      ),
+    }
+  }, [fullJourneyData, lifeExpectancy, retirementAge, fiAchievementAge])
+
   // Merge FIRE path projections into chart data
   const chartDataWithFirePath = useMemo(() => {
     const firePathProjections = projection?.firePathProjections
@@ -256,40 +274,11 @@ export default function TimelineTabContent({
                 offset: -10,
               }}
               tick={{ fontSize: 12 }}
-              domain={[
-                (dataMin: number) =>
-                  Math.min(
-                    dataMin,
-                    retirementAge ? retirementAge - 3 : dataMin,
-                  ),
-                "dataMax",
-              ]}
+              type="number"
+              scale="linear"
+              domain={ageAxis.domain}
+              ticks={ageAxis.ticks}
               allowDataOverflow={true}
-              ticks={(() => {
-                const ages = fullJourneyData
-                  .map((d) => d.age)
-                  .filter((a): a is number => a !== undefined)
-                if (ages.length === 0) return undefined
-                const minAge = Math.min(...ages)
-                const maxAge = Math.max(...ages)
-                const range = maxAge - minAge
-                const step = range <= 30 ? 5 : 10
-                const ticks: number[] = []
-                for (
-                  let age = Math.ceil(minAge / step) * step;
-                  age <= maxAge;
-                  age += step
-                ) {
-                  ticks.push(age)
-                }
-                if (retirementAge && !ticks.includes(retirementAge)) {
-                  ticks.push(retirementAge)
-                }
-                if (fiAchievementAge && !ticks.includes(fiAchievementAge)) {
-                  ticks.push(fiAchievementAge)
-                }
-                return ticks.sort((a, b) => a - b)
-              })()}
             />
             <YAxis
               tickFormatter={(value) =>
@@ -525,6 +514,11 @@ export default function TimelineTabContent({
                 offset: -10,
               }}
               tick={{ fontSize: 12 }}
+              type="number"
+              scale="linear"
+              domain={ageAxis.domain}
+              ticks={ageAxis.ticks}
+              allowDataOverflow={true}
             />
             <YAxis
               tickFormatter={(value) =>
