@@ -1,17 +1,50 @@
 import React, { useState, useMemo } from "react"
-import { YearlyProjection } from "types/independence"
+import { YearlyProjection, ValueBasis } from "types/independence"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
+import { isStreamInflationIndexed } from "@lib/independence/valueBasis"
 
 const HIDDEN_VALUE = "****"
+
+/**
+ * Small inline tag showing whether an income column goes up each year with
+ * rising prices ("rises") or stays the same ("stays same"). Driven entirely by
+ * the backend `valueBasis` flag (via {@link isStreamInflationIndexed}).
+ * Renders nothing when the flag is unknown.
+ */
+function IndexationTag({
+  indexed,
+}: {
+  indexed: boolean | undefined
+}): React.ReactElement | null {
+  if (indexed === undefined) return null
+  return indexed ? (
+    <span
+      className="ml-1 align-middle text-[10px] font-medium text-emerald-700 bg-emerald-100 rounded px-1 py-0.5 cursor-help"
+      title="Goes up each year to keep up with rising prices (inflation)."
+    >
+      rises
+    </span>
+  ) : (
+    <span
+      className="ml-1 align-middle text-[10px] font-medium text-amber-700 bg-amber-100 rounded px-1 py-0.5 cursor-help"
+      title="Stays the same every year, so it buys less over time as prices rise."
+    >
+      stays same
+    </span>
+  )
+}
 
 interface IncomeBreakdownTableProps {
   projections: YearlyProjection[]
   embedded?: boolean
+  /** Backend-supplied value basis driving the inflation-indexed indicators. */
+  valueBasis?: ValueBasis
 }
 
 export default function IncomeBreakdownTable({
   projections,
   embedded = false,
+  valueBasis,
 }: IncomeBreakdownTableProps): React.ReactElement {
   const [isExpanded, setIsExpanded] = useState(false)
   const { hideValues } = usePrivacyMode()
@@ -106,6 +139,19 @@ export default function IncomeBreakdownTable({
 
   const tableContent = (
     <>
+      <p className="mb-3 text-xs text-gray-600 flex items-start gap-1.5">
+        <i className="fas fa-info-circle text-gray-400 mt-0.5"></i>
+        <span>
+          All amounts are shown in{" "}
+          <span className="font-semibold">future dollars</span> — what
+          you&apos;d actually receive or spend in each year, not today&apos;s
+          prices. Income marked{" "}
+          <span className="text-emerald-700 font-medium">rises</span> goes up
+          each year to keep up with rising prices;{" "}
+          <span className="text-amber-700 font-medium">stays same</span> is a
+          flat amount that buys less over time.
+        </span>
+      </p>
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead>
@@ -126,11 +172,20 @@ export default function IncomeBreakdownTable({
               {columnVisibility.pension && (
                 <th className="text-right py-2 px-2 font-medium text-gray-600">
                   <span className="text-blue-600">Pension</span>
+                  <IndexationTag
+                    indexed={isStreamInflationIndexed(valueBasis, "pension")}
+                  />
                 </th>
               )}
               {columnVisibility.assetPensions && (
                 <th className="text-right py-2 px-2 font-medium text-gray-600">
                   <span className="text-indigo-600">Private Pension</span>
+                  <IndexationTag
+                    indexed={isStreamInflationIndexed(
+                      valueBasis,
+                      "assetPensions",
+                    )}
+                  />
                 </th>
               )}
               {columnVisibility.lumpSum && (
@@ -141,16 +196,34 @@ export default function IncomeBreakdownTable({
               {columnVisibility.socialSecurity && (
                 <th className="text-right py-2 px-2 font-medium text-gray-600">
                   <span className="text-purple-600">Govt Benefits</span>
+                  <IndexationTag
+                    indexed={isStreamInflationIndexed(
+                      valueBasis,
+                      "socialSecurity",
+                    )}
+                  />
                 </th>
               )}
               {columnVisibility.otherIncome && (
                 <th className="text-right py-2 px-2 font-medium text-gray-600">
                   <span className="text-independence-600">Other</span>
+                  <IndexationTag
+                    indexed={isStreamInflationIndexed(
+                      valueBasis,
+                      "otherIncome",
+                    )}
+                  />
                 </th>
               )}
               {columnVisibility.rentalIncome && (
                 <th className="text-right py-2 px-2 font-medium text-gray-600">
                   <span className="text-teal-600">Rental</span>
+                  <IndexationTag
+                    indexed={isStreamInflationIndexed(
+                      valueBasis,
+                      "rentalIncome",
+                    )}
+                  />
                 </th>
               )}
               {columnVisibility.lifeEvents && (
@@ -349,13 +422,13 @@ export default function IncomeBreakdownTable({
               <span className="font-medium text-purple-600">
                 Govt Benefits:
               </span>{" "}
-              Inflation-indexed
+              Rises with inflation
             </span>
           )}
           {columnVisibility.otherIncome && (
             <span>
               <span className="font-medium text-independence-600">Other:</span>{" "}
-              Not indexed
+              Stays the same
             </span>
           )}
           {columnVisibility.rentalIncome && (
