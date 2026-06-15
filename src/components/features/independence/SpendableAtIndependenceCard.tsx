@@ -22,7 +22,7 @@ interface SpendableAtIndependenceCardProps {
 }
 
 /**
- * Spendable at Independence — projected liquid assets available to draw down
+ * Projected funds at Retirement — projected liquid assets available to draw down
  * at the independence date. Paired with Sustainable Spending on My Plan so the
  * two headline outcome figures sit together. The figure prefers the backend's
  * pre-retirement accumulation (net of excluded pension FV) and falls back to
@@ -49,7 +49,7 @@ export default function SpendableAtIndependenceCard({
   return (
     <div className={embedded ? "" : "bg-white rounded-xl shadow-md p-6"}>
       <h2 className="text-lg font-semibold text-gray-900 mb-4">
-        Spendable at Independence
+        Projected funds at Retirement
       </h2>
       <div className="space-y-3">
         <div>
