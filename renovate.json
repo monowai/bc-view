@@ -6,7 +6,7 @@
     ":dependencyDashboard",
     ":semanticCommits"
   ],
-  "timezone": "Pacific/Auckland",
+  "timezone": "Asia/Singapore",
   "labels": ["dependencies"],
   "assignees": ["@mikeh"],
   "reviewers": ["@mikeh"],
