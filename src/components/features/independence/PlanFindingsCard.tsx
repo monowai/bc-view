@@ -35,6 +35,17 @@ const SEVERITY_STYLE: Record<FindingSeverity, SeverityStyle> = {
   },
 }
 
+/**
+ * Findings that only matter under a FIRE / early-retirement lens (4% SWR,
+ * 25× expenses, Coast FI). The backend emits them regardless of strategy, so
+ * we tag them in the UI — a PENSION/HYBRID planner can ignore them.
+ */
+const FIRE_FINDING_CODES = new Set([
+  "HORIZON_EXCEEDS_FIRE_WINDOW",
+  "REAL_RETURN_BELOW_SWR",
+  "COAST_FI_REACHED",
+])
+
 /** Maps a finding code to an optional call-to-action. */
 function ctaFor(code: string): { label: string; href: string } | null {
   if (code === "PROFILE_INCOMPLETE") {
@@ -77,6 +88,15 @@ export default function PlanFindingsCard({
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-900">
                     {finding.title}
+                    {FIRE_FINDING_CODES.has(finding.code) && (
+                      <span
+                        className="ml-2 inline-flex items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700 align-middle"
+                        title="FIRE-specific — assumes the 4% safe-withdrawal / 25× rule. Ignore if you're not planning early retirement."
+                      >
+                        <i className="fas fa-fire text-xs"></i>
+                        FIRE
+                      </span>
+                    )}
                   </p>
                   <p className="text-sm text-gray-500">{finding.detail}</p>
                   {cta && (

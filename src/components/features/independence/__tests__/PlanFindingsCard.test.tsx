@@ -23,6 +23,32 @@ describe("PlanFindingsCard", () => {
     expect(screen.getByText(/before age 90/i)).toBeInTheDocument()
   })
 
+  it("tags FIRE-specific findings with a FIRE badge", () => {
+    const findings: Finding[] = [
+      {
+        code: "REAL_RETURN_BELOW_SWR",
+        severity: "WARNING",
+        title: "Real return below safe-withdrawal rate",
+        detail: "Assumes the 4% FIRE rule.",
+      },
+    ]
+    render(<PlanFindingsCard findings={findings} />)
+    expect(screen.getByText("FIRE")).toBeInTheDocument()
+  })
+
+  it("does not tag non-FIRE findings with a FIRE badge", () => {
+    const findings: Finding[] = [
+      {
+        code: "OFF_TRACK",
+        severity: "WARNING",
+        title: "Off track",
+        detail: "Savings run out early.",
+      },
+    ]
+    render(<PlanFindingsCard findings={findings} />)
+    expect(screen.queryByText("FIRE")).not.toBeInTheDocument()
+  })
+
   it("shows a CTA for the profile-incomplete finding", () => {
     const findings: Finding[] = [
       {
