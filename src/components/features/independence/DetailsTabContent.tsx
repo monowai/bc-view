@@ -10,6 +10,7 @@ import {
   PlanFindingsCard,
 } from "@components/features/independence"
 import { applyRealReturn } from "@components/features/independence/scenario/scenarioToPayload"
+import { isStreamInflationIndexed } from "@lib/independence/valueBasis"
 import type { ScenarioState } from "@components/features/independence/scenario/types"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 
@@ -86,6 +87,14 @@ export default function DetailsTabContent({
       displayRentalIncome,
   )
 
+  // Backend-driven: is the pension stream inflation-indexed? When false (the
+  // common case for employer pensions) we flag the figure as fixed nominal so
+  // users don't misread it as today's value.
+  const pensionIndexed = isStreamInflationIndexed(
+    projection?.valueBasis,
+    "pension",
+  )
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Plan Details */}
@@ -119,15 +128,23 @@ export default function DetailsTabContent({
                 : `${detailsCurrency}${Math.round(displayExpenses).toLocaleString()}`}
             </span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-gray-500">{"Pension"}</span>
-            <span
-              className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
-            >
-              {hideValues
-                ? HIDDEN_VALUE
-                : `${detailsCurrency}${Math.round(displayPension).toLocaleString()}`}
-            </span>
+          <div>
+            <div className="flex justify-between">
+              <span className="text-gray-500">{"Pension"}</span>
+              <span
+                className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
+              >
+                {hideValues
+                  ? HIDDEN_VALUE
+                  : `${detailsCurrency}${Math.round(displayPension).toLocaleString()}`}
+              </span>
+            </div>
+            {pensionIndexed === false && displayPension > 0 && (
+              <p className="text-xs text-amber-700 mt-0.5">
+                This amount stays the same every year, so it buys less over time
+                as prices rise.
+              </p>
+            )}
           </div>
           <div className="flex justify-between">
             <span className="text-gray-500">{"Government Benefits"}</span>

@@ -661,6 +661,32 @@ export interface Finding {
   detail: string
 }
 
+/**
+ * Inflation treatment for a single income stream within a projection.
+ * `inflationIndexed: true` => the stream rises with inflation each year.
+ * `false` => the stream is a FIXED nominal amount (e.g. most employer
+ * pensions) and does NOT keep pace with inflation in future dollars.
+ */
+export interface IncomeStreamBasis {
+  /** Stream identifier, e.g. "pension", "socialSecurity", "rentalIncome". */
+  key: string
+  /** True when the stream is inflation-indexed; false when fixed nominal. */
+  inflationIndexed: boolean
+}
+
+/**
+ * Describes the value basis of a projection so the UI can tell users
+ * whether figures are in today's or future (nominal) dollars, and which
+ * income streams keep pace with inflation. Backend-driven — the frontend
+ * must NOT re-derive indexation from its own assumptions.
+ */
+export interface ValueBasis {
+  /** e.g. "NOMINAL_FUTURE" — all balances/expenses are inflated future dollars. */
+  balanceBasis: string
+  /** Per-stream inflation treatment. */
+  incomeStreams: IncomeStreamBasis[]
+}
+
 export interface RetirementProjection {
   planId: string
   asOfDate: string
@@ -745,6 +771,12 @@ export interface RetirementProjection {
    * plan projection used the plan owner's data rather than the viewer's.
    */
   debug?: ProjectionDebug
+  /**
+   * Value basis of the projection: whether figures are nominal/future and
+   * which income streams are inflation-indexed. Optional — older backend
+   * responses omit it, in which case the UI falls back to known defaults.
+   */
+  valueBasis?: ValueBasis
 }
 
 export interface ProjectionResponse {
