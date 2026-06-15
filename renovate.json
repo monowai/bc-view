@@ -26,9 +26,10 @@
       "matchPackageNames": ["/^@types//"]
     },
     {
-      "description": "Group ESLint packages together",
+      "description": "Group ESLint packages together, separate major versions",
       "groupName": "ESLint packages",
-      "matchPackageNames": ["/eslint/", "/@typescript-eslint//"]
+      "matchPackageNames": ["/eslint/", "/@typescript-eslint//"],
+      "separateMajorMinor": true
     },
     {
       "description": "Group testing packages together",
@@ -54,11 +55,18 @@
       "separateMinorPatch": true
     },
     {
-      "description": "Auto-merge minor and patch updates for dev dependencies",
+      "description": "Do NOT auto-merge major versions for ESLint/TypeScript in devDependencies",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "matchPackageNames": ["/eslint/", "/@typescript-eslint//", "/^typescript$/"]
+    },
+    {
+      "description": "Auto-merge minor and patch updates for other dev dependencies",
       "matchDepTypes": ["devDependencies"],
       "matchUpdateTypes": ["minor", "patch"],
       "automerge": true,
-      "matchPackageNames": ["!/^typescript$/", "!/^@typescript-eslint//"]
+      "matchPackageNames": ["!/^typescript$/", "!/^@typescript-eslint//", "!/eslint/"]
     }
   ],
   "vulnerabilityAlerts": {
@@ -80,6 +88,5 @@
   "prTitle": "{{commitMessagePrefix}} {{commitMessageAction}} {{commitMessageTopic}} {{commitMessageExtra}}",
   "prBodyTemplate": "This PR updates {{depName}} from `{{currentVersion}}` to `{{newVersion}}`.\n\n{{#if hasReleaseNotes}}**Release Notes:**\n{{{releaseNotes}}}{{/if}}\n\n{{#if hasChangelog}}**Changelog:**\n{{{changelog}}}{{/if}}\n\n---\n*This PR was generated automatically by Renovate Bot.*",
   "rangeStrategy": "bump",
-  "ignoreTests": false,
   "automergeStrategy": "squash"
 }
