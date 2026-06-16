@@ -680,7 +680,7 @@ function IndependenceDebug(): React.ReactElement {
                 />
 
                 <Gauge
-                  title="Option A — Retirement-Age FI"
+                  title="Option A — Retirement-Age Progress"
                   formula="(liquid + PV(guaranteed income)) / fiNumber"
                   backendPct={fiMetrics?.retirementAgeFiProgress}
                   localPct={local?.raPct}
