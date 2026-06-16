@@ -1,5 +1,5 @@
 import React from "react"
-import { render, screen } from "@testing-library/react"
+import { render, screen, fireEvent } from "@testing-library/react"
 import type { FiMetrics as FiMetricsType } from "types/independence"
 import FiMetrics from "../FiMetrics"
 
@@ -715,12 +715,23 @@ describe("FiMetrics", () => {
       expect(screen.queryByText(/Add ~NZD800\/mo/)).not.toBeInTheDocument()
     })
 
-    it("still caveats the Retirement-Age Progress gauge when off-track", () => {
+    it("keeps the off-track caveat OUT of the Retirement-Age gauge value", () => {
       render(<FiMetrics {...offTrackProps} />)
-      // The gauge caveat ("— based on the 4% rule") stays so a green % can't
-      // read as success.
+      // The value stays clean ("125.0%"); the 4%-rule explanation now lives in
+      // the gauge tooltip so a green % can't read as success on its own.
+      expect(screen.getByText("125.0%")).toBeInTheDocument()
       expect(
-        screen.getByText(/125\.0% — based on the 4% rule/),
+        screen.queryByText(/125\.0% — based on the 4% rule/),
+      ).not.toBeInTheDocument()
+    })
+
+    it("moves the off-track 4%-rule explanation into the gauge tooltip", () => {
+      render(<FiMetrics {...offTrackProps} />)
+      fireEvent.mouseEnter(screen.getByText("Retirement-Age Progress"))
+      expect(
+        screen.getByText(
+          /uses the 4% rule, which this plan's returns don't meet/,
+        ),
       ).toBeInTheDocument()
     })
 
