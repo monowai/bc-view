@@ -272,13 +272,14 @@ function DesktopDropdown({
               ></i>
             )
             if (item.action) {
+              const action = item.action
               return (
                 <button
                   key={item.href}
                   type="button"
                   onClick={() => {
                     setIsOpen(false)
-                    onAction(item.action!)
+                    onAction(action)
                   }}
                   className={`${itemClass} w-full text-left`}
                 >
@@ -434,13 +435,14 @@ function HeaderBrand(): React.ReactElement {
                           ></i>
                         )
                         if (item.action) {
+                          const action = item.action
                           return (
                             <button
                               key={item.href}
                               type="button"
                               onClick={() => {
                                 setMobileMenuOpen(false)
-                                openAction(item.action!)
+                                openAction(action)
                               }}
                               className={`${itemClass} w-full text-left`}
                             >
