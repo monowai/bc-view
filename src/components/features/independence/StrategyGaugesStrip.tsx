@@ -3,6 +3,10 @@ import type { FiMetrics } from "types/independence"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import PensionGauge, { type PensionGaugeProps } from "./PensionGauge"
 import type { StrategyView } from "./strategyView"
+import {
+  RETIREMENT_PROGRESS_TOOLTIP,
+  RETIREMENT_PROGRESS_OFFTRACK_TOOLTIP,
+} from "@lib/independence/gaugeTooltips"
 
 export interface StrategyGaugesStripProps {
   /** Live FiMetrics from the latest projection. Undefined while calculating. */
@@ -140,8 +144,8 @@ function buildGauges(
       key: "retirement-age-fi",
       label: "Retirement-Age Progress",
       tooltip: offTrack
-        ? "This % uses the 4% rule, which this plan's returns don't meet — see Plan Insights for what it takes. Adds the present value of your guaranteed pension income (discounted to today) to your liquid pot before comparing against the FI Number."
-        : "Liquid plus the present value of your guaranteed pension income, compared to your FI Number.",
+        ? RETIREMENT_PROGRESS_OFFTRACK_TOOLTIP
+        : RETIREMENT_PROGRESS_TOOLTIP,
       value: fi.retirementAgeFiProgress,
       hideValues,
       format: (v) => `${v.toFixed(1)}%`,
