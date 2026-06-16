@@ -1,4 +1,4 @@
-import { buildPayslipPayload } from "../payslipPayload"
+import { buildPayslipPayload } from "@lib/trns/payslipPayload"
 
 const base = {
   portfolioId: "pf-1",
@@ -101,6 +101,32 @@ describe("buildPayslipPayload", () => {
         "DEDUCTION",
         "ADD",
       ])
+    })
+
+    it("rounds .005 amounts half-up to cents (float-safe)", () => {
+      const payload = buildPayslipPayload({
+        ...base,
+        grossSalary: 100.005,
+        cpfAssetId: "cpf-asset",
+        employeeContribution: 1.005,
+        buckets: [
+          { code: "OA", amount: 1.005 },
+          { code: "SA", amount: 2.005 },
+        ],
+      })
+      const salary = payload.data[0]
+      expect(salary.cashAmount).toBe(100.01)
+      expect(salary.tradeAmount).toBe(100.01)
+      expect(salary.price).toBe(100.01)
+
+      const employee = payload.data[1]
+      expect(employee.cashAmount).toBe(-1.01)
+
+      const cpf = payload.data[payload.data.length - 1]
+      expect(cpf.subAccounts).toEqual({ OA: 1.01, SA: 2.01 })
+      // sum-then-round: 1.005 + 2.005 = 3.0099… → 3.01
+      expect(cpf.quantity).toBe(3.01)
+      expect(cpf.tradeAmount).toBe(3.01)
     })
 
     it("supports RA bucket code (post-retirement)", () => {

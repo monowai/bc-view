@@ -206,10 +206,8 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
       }
 
       const portfolio = portfolios.find((p) => p.id === portfolioId)
-      setTimeout(() => {
-        if (portfolio) globalMutate(holdingKey(portfolio.code, "today"))
-        globalMutate("/api/holdings/aggregated?asAt=today")
-      }, 1500)
+      if (portfolio) globalMutate(holdingKey(portfolio.code, "today"))
+      globalMutate("/api/holdings/aggregated?asAt=today")
 
       setSubmitSuccess(true)
       setTimeout(() => onClose(), 1000)
