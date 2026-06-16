@@ -48,7 +48,7 @@ export default function StrategyGaugesStrip({
 }: StrategyGaugesStripProps): React.ReactElement {
   const { hideValues } = usePrivacyMode()
   const ordered = orderGauges(
-    buildGauges(fiMetrics, hideValues, offTrack),
+    buildGauges(fiMetrics, hideValues, offTrack, view),
     view,
   )
   const gauges = singleHeadline ? ordered.slice(0, 1) : ordered
@@ -74,7 +74,10 @@ export default function StrategyGaugesStrip({
  */
 const VIEW_HEADLINE_KEYS: Record<StrategyView, string[]> = {
   FIRE: ["coast-fi", "fire"],
-  PENSION: ["retirement-age-fi", "coast-fi", "fire"],
+  // Pensions have no FI — the meaningful progress is how much of retirement
+  // expenses guaranteed income covers. Fall back to retirement-age FI when
+  // income coverage isn't available.
+  PENSION: ["income-coverage", "retirement-age-fi", "coast-fi", "fire"],
   HYBRID: ["bridge", "coast-fi", "fire"],
   ALL: ["coast-fi", "fire"],
 }
@@ -100,6 +103,7 @@ function buildGauges(
   fi: FiMetrics | undefined,
   hideValues: boolean,
   offTrack: boolean,
+  view: StrategyView,
 ): PensionGaugeProps[] {
   const fiProgress = fi?.fiProgress ?? 0
   const out: PensionGaugeProps[] = [
@@ -136,23 +140,22 @@ function buildGauges(
       key: "retirement-age-fi",
       label: "Retirement-Age Progress",
       tooltip: offTrack
-        ? "Based on the 4% rule, which this plan's returns don't meet — the off-track guidance above carries the real headline. Adds the present value of your guaranteed pension income (discounted to today) to your liquid pot before comparing against the FI Number."
+        ? "This % uses the 4% rule, which this plan's returns don't meet — see Plan Insights for what it takes. Adds the present value of your guaranteed pension income (discounted to today) to your liquid pot before comparing against the FI Number."
         : "Liquid plus the present value of your guaranteed pension income, compared to your FI Number.",
       value: fi.retirementAgeFiProgress,
       hideValues,
-      format: (v) =>
-        offTrack
-          ? `${v.toFixed(1)}% — based on the 4% rule`
-          : `${v.toFixed(1)}%`,
+      format: (v) => `${v.toFixed(1)}%`,
     })
   }
 
   if (fi?.incomeCoverageAtRetirement != null) {
     out.push({
       key: "income-coverage",
-      label: "Income Coverage",
+      // In the Pension view this gauge is the headline: a pension has no FI, so
+      // the meaningful progress is how much of expenses guaranteed income covers.
+      label: view === "PENSION" ? "Pension Progress" : "Income Coverage",
       tooltip:
-        "Share of monthly expenses covered by guaranteed income (pension, social security, other) at retirement age.",
+        "Share of your retirement expenses covered by your guaranteed income (pension, social security, etc.) at retirement age.",
       value: fi.incomeCoverageAtRetirement,
       hideValues,
       format: (v) => `${v.toFixed(1)}%`,

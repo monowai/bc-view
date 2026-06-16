@@ -616,14 +616,11 @@ function PensionStrategySection({
       key: "retirement-age-fi",
       label: "Retirement-Age Progress",
       tooltip: offTrack
-        ? "Based on the 4% rule, which this plan's returns don't meet — the off-track guidance above carries the real headline. Adds the present value of guaranteed income (discounted to today) to your liquid pot before comparing against the FI Number."
+        ? "This % uses the 4% rule, which this plan's returns don't meet — see Plan Insights for what it takes. Adds the present value of guaranteed income (discounted to today) to your liquid pot before comparing against the FI Number."
         : "Adds the present value of guaranteed pension/policy income (discounted to today) to your liquid pot before comparing against the FI Number.",
       value: retirementAgeFiProgress,
       hideValues,
-      format: (v) =>
-        offTrack
-          ? `${v.toFixed(1)}% — based on the 4% rule`
-          : `${v.toFixed(1)}%`,
+      format: (v) => `${v.toFixed(1)}%`,
     })
   }
 

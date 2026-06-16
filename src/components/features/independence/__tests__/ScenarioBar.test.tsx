@@ -147,7 +147,7 @@ describe("ScenarioBar", () => {
       expect(screen.queryByText(/SGD1,800/)).not.toBeInTheDocument()
     })
 
-    it("still caveats the Retirement-Age Progress headline gauge when off-track", () => {
+    it("keeps the off-track caveat out of the headline gauge value", () => {
       render(
         <ScenarioBar
           {...baseProps}
@@ -158,9 +158,11 @@ describe("ScenarioBar", () => {
           pathToHorizon={offTrack}
         />,
       )
+      // Value stays clean; the 4%-rule explanation moved to the gauge tooltip.
+      expect(screen.getByText("125.3%")).toBeInTheDocument()
       expect(
-        screen.getByText(/125\.3% — based on the 4% rule/),
-      ).toBeInTheDocument()
+        screen.queryByText(/125\.3% — based on the 4% rule/),
+      ).not.toBeInTheDocument()
     })
 
     it("labels the headline gauge 'Retirement-Age Progress'", () => {
