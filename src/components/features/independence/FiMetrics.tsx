@@ -31,6 +31,10 @@ import {
   getGapColorScheme,
   getSavingsRateTextColor,
 } from "@utils/independence/fiColorThemes"
+import {
+  RETIREMENT_PROGRESS_TOOLTIP,
+  RETIREMENT_PROGRESS_OFFTRACK_TOOLTIP,
+} from "@utils/independence/gaugeTooltips"
 import FiAgeExplorer from "./FiAgeExplorer"
 
 interface FiMetricsProps {
@@ -616,8 +620,8 @@ function PensionStrategySection({
       key: "retirement-age-fi",
       label: "Retirement-Age Progress",
       tooltip: offTrack
-        ? "This % uses the 4% rule, which this plan's returns don't meet — see Plan Insights for what it takes. Adds the present value of guaranteed income (discounted to today) to your liquid pot before comparing against the FI Number."
-        : "Adds the present value of guaranteed pension/policy income (discounted to today) to your liquid pot before comparing against the FI Number.",
+        ? RETIREMENT_PROGRESS_OFFTRACK_TOOLTIP
+        : RETIREMENT_PROGRESS_TOOLTIP,
       value: retirementAgeFiProgress,
       hideValues,
       format: (v) => `${v.toFixed(1)}%`,
