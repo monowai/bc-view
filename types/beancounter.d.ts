@@ -508,6 +508,10 @@ export interface UserPreferences {
   yearOfBirth?: number
   monthOfBirth?: number
   lifeExpectancy?: number
+  // Enter-Payslip defaults: last portfolio + cash asset used so the dialog
+  // can prefill on the next pay run.
+  defaultPayslipPortfolioId?: string | null
+  defaultPayslipCashAssetId?: string | null
 }
 
 export interface UserPreferencesRequest {
@@ -525,6 +529,8 @@ export interface UserPreferencesRequest {
   yearOfBirth?: number
   monthOfBirth?: number
   lifeExpectancy?: number
+  defaultPayslipPortfolioId?: string | null
+  defaultPayslipCashAssetId?: string | null
 }
 
 export interface RegistrationResponse {
