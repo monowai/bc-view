@@ -54,6 +54,7 @@ export default function AssetsTabContent({
           retirementAge={retirementAge}
           backendFiMetrics={projection.fiMetrics}
           effectiveStrategy={projection.effectiveStrategy}
+          pathToHorizon={projection.pathToHorizon}
           view={view}
           inflationRate={effectivePlanValues?.inflationRate ?? 0.025}
           equityReturnRate={effectivePlanValues?.equityReturnRate ?? 0.08}

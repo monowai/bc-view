@@ -28,3 +28,40 @@ describe("StrategyGaugesStrip headline", () => {
     expect(screen.getByText("FIRE Progress")).toBeInTheDocument()
   })
 })
+
+describe("StrategyGaugesStrip off-track caveat", () => {
+  // Pension headline showing 125% would otherwise read as success even though
+  // the plan's returns fall short of the 4% rule the gauge assumes.
+  const pensionFi = {
+    fiProgress: 80,
+    retirementAgeFiProgress: 125.3,
+  } as unknown as FiMetrics
+
+  it("caveats the Retirement-Age FI gauge value when off-track", () => {
+    render(
+      <StrategyGaugesStrip
+        fiMetrics={pensionFi}
+        view="PENSION"
+        singleHeadline
+        offTrack
+      />,
+    )
+    expect(screen.getByText("Retirement-Age FI")).toBeInTheDocument()
+    // Value still shown, but appended with the plain-language 4%-rule caveat.
+    expect(
+      screen.getByText(/125\.3% — based on the 4% rule/),
+    ).toBeInTheDocument()
+  })
+
+  it("leaves the Retirement-Age FI gauge uncaveated when on-track", () => {
+    render(
+      <StrategyGaugesStrip
+        fiMetrics={pensionFi}
+        view="PENSION"
+        singleHeadline
+      />,
+    )
+    expect(screen.getByText("125.3%")).toBeInTheDocument()
+    expect(screen.queryByText(/based on the 4% rule/)).not.toBeInTheDocument()
+  })
+})

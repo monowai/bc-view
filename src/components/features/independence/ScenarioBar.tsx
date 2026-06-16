@@ -1,6 +1,8 @@
 import React, { useState } from "react"
-import type { FiMetrics } from "types/independence"
+import type { FiMetrics, PathToHorizon } from "types/independence"
 import InfoTooltip from "@components/ui/Tooltip"
+import { usePrivacyMode } from "@hooks/usePrivacyMode"
+import { formatHorizonHeader } from "@utils/independence/pathToHorizon"
 import type { ScenarioState } from "./scenario/types"
 import StrategyGaugesStrip from "./StrategyGaugesStrip"
 import { STRATEGY_VIEW_LABELS, type StrategyView } from "./strategyView"
@@ -36,6 +38,13 @@ export interface ScenarioBarProps {
   planBlendedReturn: number
   /** Plan's own inflation rate, used to anchor realReturn = blended − inflation. */
   planInflation: number
+  /**
+   * Off-track diagnostic from the latest projection: present ONLY when the
+   * plan's money runs out before life expectancy. Drives the warning banner
+   * above the headline gauge and caveats the Retirement-Age FI gauge so a high
+   * % can't read as success. Null/absent when on-track.
+   */
+  pathToHorizon?: PathToHorizon | null
 }
 
 const N0 = (n: number): string => Math.round(n).toLocaleString()
@@ -61,11 +70,24 @@ export default function ScenarioBar({
   derivedLiquidAssets,
   planBlendedReturn,
   planInflation,
+  pathToHorizon,
 }: ScenarioBarProps): React.ReactElement {
+  const { hideValues } = usePrivacyMode()
   // Sliders default-collapsed at every viewport to keep the page chrome
   // minimal. Gauges + action row stay visible. User clicks "Scenario" to
   // expand the slider grid.
   const [collapsed, setCollapsed] = useState(true)
+
+  // Off-track headline (backend-driven). Present only when the plan depletes
+  // before life expectancy — surfaced above the headline gauge so the first
+  // thing users see is what it takes to reach the target age, not a green %.
+  // Numeric copy is suppressed in privacy mode like the rest of the
+  // path-to-horizon text.
+  const offTrack = pathToHorizon != null
+  const horizonHeader =
+    offTrack && !hideValues
+      ? formatHorizonHeader(pathToHorizon, currency)
+      : null
 
   const effectiveLiquidAssets = scenario.liquidAssets ?? derivedLiquidAssets
   const planRealReturn = planBlendedReturn - planInflation
@@ -79,6 +101,23 @@ export default function ScenarioBar({
   return (
     <div className="sticky top-0 z-30 bg-white border-b shadow-sm mb-3">
       <div className="px-4 py-2">
+        {/* Off-track banner — the primary surface. When the plan won't last to
+            life expectancy this warning sits ABOVE the headline gauge so a
+            high Retirement-Age FI % can't read as success. */}
+        {horizonHeader && (
+          <div className="mb-2 p-2 rounded-lg border bg-amber-50 border-amber-200">
+            <div className="flex items-center gap-2 text-amber-700">
+              <i className="fas fa-exclamation-triangle"></i>
+              <span className="font-medium text-sm">
+                Won&apos;t last to age {pathToHorizon?.targetAge}
+              </span>
+            </div>
+            <p className="text-xs text-amber-700 mt-0.5">
+              {horizonHeader.text}
+            </p>
+          </div>
+        )}
+
         {/* Headline gauge (horizontal bar). The on/off-track verdict now lives
             in the Plan Insights list on My Plan, not under the bar. */}
         <div className="mb-2 flex items-start justify-between gap-3">
@@ -88,6 +127,7 @@ export default function ScenarioBar({
               compact
               view={view}
               singleHeadline
+              offTrack={offTrack}
             />
           </div>
           {/* View selector on the progress-bar row. */}

@@ -1,6 +1,13 @@
 import React from "react"
-import type { FiMetrics as FiMetricsType } from "types/independence"
+import type {
+  FiMetrics as FiMetricsType,
+  PathToHorizon,
+} from "types/independence"
 import type { StrategyView } from "./strategyView"
+import {
+  formatHorizonHeader,
+  formatHorizonGap,
+} from "@utils/independence/pathToHorizon"
 import InfoTooltip from "@components/ui/Tooltip"
 import PrivateCurrency, {
   PrivatePercentage,
@@ -75,6 +82,13 @@ interface FiMetricsProps {
   equityAllocation?: number
   /** Current cash allocation from plan (as decimal) */
   cashAllocation?: number
+  /**
+   * Off-track diagnostic from the backend: present ONLY when the plan's money
+   * runs out before life expectancy. Drives the off-track header + contribution
+   * gap, and suppresses the green "funded" success styling that would otherwise
+   * contradict the My Path chart. Null/absent when on-track.
+   */
+  pathToHorizon?: PathToHorizon | null
 }
 
 /**
@@ -102,6 +116,7 @@ export default function FiMetrics({
   cashReturnRate = 0.03,
   equityAllocation = 0.8,
   cashAllocation = 0.2,
+  pathToHorizon,
 }: FiMetricsProps): React.ReactElement {
   // Per-field aliases keep the rendering code below readable. All fall back
   // to undefined when the backend hasn't computed a value; the render path
@@ -198,6 +213,17 @@ export default function FiMetrics({
     view === "PENSION" || (view === "ALL" && autoPensionEligible)
   const showBridge = view === "HYBRID" || (view === "ALL" && autoBridgeEligible)
 
+  // Off-track path-to-horizon copy (backend-driven). Present only when the plan
+  // depletes before life expectancy — we surface what it takes to reach the
+  // target age rather than letting a green Retirement-Age FI % mislead.
+  const offTrack = pathToHorizon != null
+  const horizonHeader =
+    offTrack && !hideValues
+      ? formatHorizonHeader(pathToHorizon, currency)
+      : null
+  const horizonGap =
+    offTrack && !hideValues ? formatHorizonGap(pathToHorizon, currency) : null
+
   // Active badge tracks the effective (real) strategy, even when the user is
   // peeking at a different view — so the original picture isn't lost.
   const fireActive = effectiveStrategy === "FIRE"
@@ -216,6 +242,21 @@ export default function FiMetrics({
       </div>
 
       <div className="space-y-4">
+        {horizonHeader && (
+          <div className="p-3 rounded-lg border bg-amber-50 border-amber-200">
+            <div className="flex items-center gap-2 text-amber-700">
+              <i className="fas fa-exclamation-triangle"></i>
+              <span className="font-medium">
+                Won&apos;t last to age {pathToHorizon?.targetAge}
+              </span>
+            </div>
+            <p className="text-xs text-amber-700 mt-1">{horizonHeader.text}</p>
+            {horizonGap && (
+              <p className="text-xs text-amber-600 mt-1">{horizonGap}</p>
+            )}
+          </div>
+        )}
+
         {showFire && (
           <>
             <StrategyHeader
@@ -503,6 +544,7 @@ export default function FiMetrics({
             incomeCoverage={backendIncomeCoverageAtRetirement}
             bridgeProgress={backendBridgeProgress}
             isClassicFi={isFi}
+            offTrack={offTrack}
             active={pensionActive}
             hideValues={hideValues}
           />
@@ -565,6 +607,13 @@ interface PensionStrategySectionProps {
    */
   bridgeProgress?: number
   isClassicFi: boolean
+  /**
+   * True when the backend says the plan depletes before life expectancy. When
+   * set, the green "funded" success banner is suppressed and the Retirement-Age
+   * FI gauge is caveated — the off-track header (rendered above) carries the
+   * real headline so a high RETIREMENT_AGE_FI % can't read as success.
+   */
+  offTrack?: boolean
   active?: boolean
   hideValues: boolean
 }
@@ -579,6 +628,7 @@ function PensionStrategySection({
   incomeCoverage,
   bridgeProgress,
   isClassicFi,
+  offTrack,
   active,
   hideValues,
 }: PensionStrategySectionProps): React.ReactElement {
@@ -588,11 +638,15 @@ function PensionStrategySection({
     gauges.push({
       key: "retirement-age-fi",
       label: "Retirement-Age FI",
-      tooltip:
-        "Adds the present value of guaranteed pension/policy income (discounted to today) to your liquid pot before comparing against the FI Number.",
+      tooltip: offTrack
+        ? "Based on the 4% rule, which this plan's returns don't meet — the off-track guidance above carries the real headline. Adds the present value of guaranteed income (discounted to today) to your liquid pot before comparing against the FI Number."
+        : "Adds the present value of guaranteed pension/policy income (discounted to today) to your liquid pot before comparing against the FI Number.",
       value: retirementAgeFiProgress,
       hideValues,
-      format: (v) => `${v.toFixed(1)}%`,
+      format: (v) =>
+        offTrack
+          ? `${v.toFixed(1)}% — based on the 4% rule`
+          : `${v.toFixed(1)}%`,
     })
   }
 
@@ -616,8 +670,11 @@ function PensionStrategySection({
   // user to cut SGD950/mo — the exact contradiction Ruby surfaced.
   const lifetimeFunded =
     retirementAgeFiProgress != null && retirementAgeFiProgress >= 100
+  // Off-track plans never show the green funded banner — the off-track header
+  // above is the authoritative headline; a green "Funded" here would
+  // contradict the My Path chart showing money running out early.
   const fundedBanner: FundedBanner | null =
-    !isClassicFi && !hideValues && lifetimeFunded
+    !isClassicFi && !hideValues && lifetimeFunded && !offTrack
       ? deriveFundedBanner(bridgeProgress)
       : null
 

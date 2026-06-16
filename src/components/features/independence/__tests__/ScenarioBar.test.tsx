@@ -129,6 +129,56 @@ describe("ScenarioBar", () => {
     expect(props.onScenarioChange).toHaveBeenCalledWith({ liquidAssets: null })
   })
 
+  describe("path-to-horizon header", () => {
+    const offTrack = {
+      targetAge: 90,
+      currentMonthlyContribution: 1000,
+      requiredMonthlyContribution: 1800,
+      currentReturnRate: 0.015,
+      requiredReturnRate: 0.0432,
+    }
+
+    it("shows the off-track banner above the gauge strip when pathToHorizon is present", () => {
+      render(<ScenarioBar {...baseProps} pathToHorizon={offTrack} />)
+      expect(screen.getByText(/Won.t last to age 90/)).toBeInTheDocument()
+      expect(screen.getByText(/To last to age 90/)).toBeInTheDocument()
+      expect(screen.getByText(/SGD1,800/)).toBeInTheDocument()
+    })
+
+    it("hides the off-track banner when on-track (no pathToHorizon)", () => {
+      render(<ScenarioBar {...baseProps} />)
+      expect(screen.queryByText(/Won.t last to age/)).not.toBeInTheDocument()
+    })
+
+    it("caveats the Retirement-Age FI headline gauge when off-track", () => {
+      render(
+        <ScenarioBar
+          {...baseProps}
+          view="PENSION"
+          fiMetrics={
+            { fiProgress: 80, retirementAgeFiProgress: 125.3 } as never
+          }
+          pathToHorizon={offTrack}
+        />,
+      )
+      expect(
+        screen.getByText(/125\.3% — based on the 4% rule/),
+      ).toBeInTheDocument()
+    })
+
+    it("hides the numeric banner copy in privacy mode", () => {
+      const { usePrivacyMode } = jest.requireMock("@hooks/usePrivacyMode")
+      usePrivacyMode.mockReturnValueOnce({
+        hideValues: true,
+        toggleHideValues: jest.fn(),
+      })
+      render(<ScenarioBar {...baseProps} pathToHorizon={offTrack} />)
+      // Numeric levers must not leak when values are hidden.
+      expect(screen.queryByText(/SGD1,800/)).not.toBeInTheDocument()
+      expect(screen.queryByText(/To last to age 90/)).not.toBeInTheDocument()
+    })
+  })
+
   it("restores realReturn=null when slider returns within half a step of plan real", () => {
     // planRealReturn = 0.058 - 0.025 = 0.033. Start with a non-null override.
     const props = {
