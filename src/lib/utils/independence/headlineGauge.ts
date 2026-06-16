@@ -32,7 +32,7 @@ export function pickHeadlineGauge(
   }
   if (metric === "RETIREMENT_AGE_FI" && fi?.retirementAgeFiProgress != null) {
     return {
-      label: "Retirement-Age FI",
+      label: "Retirement-Age Progress",
       value: fi.retirementAgeFiProgress,
       display: `${fi.retirementAgeFiProgress.toFixed(1)}%`,
       fillPercent: clamp(fi.retirementAgeFiProgress),

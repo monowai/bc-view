@@ -37,7 +37,7 @@ describe("StrategyGaugesStrip off-track caveat", () => {
     retirementAgeFiProgress: 125.3,
   } as unknown as FiMetrics
 
-  it("caveats the Retirement-Age FI gauge value when off-track", () => {
+  it("caveats the Retirement-Age Progress gauge value when off-track", () => {
     render(
       <StrategyGaugesStrip
         fiMetrics={pensionFi}
@@ -46,14 +46,14 @@ describe("StrategyGaugesStrip off-track caveat", () => {
         offTrack
       />,
     )
-    expect(screen.getByText("Retirement-Age FI")).toBeInTheDocument()
+    expect(screen.getByText("Retirement-Age Progress")).toBeInTheDocument()
     // Value still shown, but appended with the plain-language 4%-rule caveat.
     expect(
       screen.getByText(/125\.3% — based on the 4% rule/),
     ).toBeInTheDocument()
   })
 
-  it("leaves the Retirement-Age FI gauge uncaveated when on-track", () => {
+  it("leaves the Retirement-Age Progress gauge uncaveated when on-track", () => {
     render(
       <StrategyGaugesStrip
         fiMetrics={pensionFi}

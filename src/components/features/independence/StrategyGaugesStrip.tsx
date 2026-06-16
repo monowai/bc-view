@@ -134,7 +134,7 @@ function buildGauges(
   if (fi?.retirementAgeFiProgress != null) {
     out.push({
       key: "retirement-age-fi",
-      label: "Retirement-Age FI",
+      label: "Retirement-Age Progress",
       tooltip: offTrack
         ? "Based on the 4% rule, which this plan's returns don't meet — the off-track guidance above carries the real headline. Adds the present value of your guaranteed pension income (discounted to today) to your liquid pot before comparing against the FI Number."
         : "Liquid plus the present value of your guaranteed pension income, compared to your FI Number.",

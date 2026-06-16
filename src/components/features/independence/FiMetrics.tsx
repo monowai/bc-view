@@ -4,10 +4,6 @@ import type {
   PathToHorizon,
 } from "types/independence"
 import type { StrategyView } from "./strategyView"
-import {
-  formatHorizonHeader,
-  formatHorizonGap,
-} from "@utils/independence/pathToHorizon"
 import InfoTooltip from "@components/ui/Tooltip"
 import PrivateCurrency, {
   PrivatePercentage,
@@ -213,16 +209,12 @@ export default function FiMetrics({
     view === "PENSION" || (view === "ALL" && autoPensionEligible)
   const showBridge = view === "HYBRID" || (view === "ALL" && autoBridgeEligible)
 
-  // Off-track path-to-horizon copy (backend-driven). Present only when the plan
-  // depletes before life expectancy — we surface what it takes to reach the
-  // target age rather than letting a green Retirement-Age FI % mislead.
+  // Off-track flag (backend-driven). Present only when the plan depletes
+  // before life expectancy. The off-track "what it takes" guidance now lives
+  // in the backend OFF_TRACK Plan Insight (rendered by PlanFindingsCard);
+  // here it only caveats the Retirement-Age Progress gauge so a green % can't
+  // read as success.
   const offTrack = pathToHorizon != null
-  const horizonHeader =
-    offTrack && !hideValues
-      ? formatHorizonHeader(pathToHorizon, currency)
-      : null
-  const horizonGap =
-    offTrack && !hideValues ? formatHorizonGap(pathToHorizon, currency) : null
 
   // Active badge tracks the effective (real) strategy, even when the user is
   // peeking at a different view — so the original picture isn't lost.
@@ -242,21 +234,6 @@ export default function FiMetrics({
       </div>
 
       <div className="space-y-4">
-        {horizonHeader && (
-          <div className="p-3 rounded-lg border bg-amber-50 border-amber-200">
-            <div className="flex items-center gap-2 text-amber-700">
-              <i className="fas fa-exclamation-triangle"></i>
-              <span className="font-medium">
-                Won&apos;t last to age {pathToHorizon?.targetAge}
-              </span>
-            </div>
-            <p className="text-xs text-amber-700 mt-1">{horizonHeader.text}</p>
-            {horizonGap && (
-              <p className="text-xs text-amber-600 mt-1">{horizonGap}</p>
-            )}
-          </div>
-        )}
-
         {showFire && (
           <>
             <StrategyHeader
@@ -637,7 +614,7 @@ function PensionStrategySection({
   if (retirementAgeFiProgress != null) {
     gauges.push({
       key: "retirement-age-fi",
-      label: "Retirement-Age FI",
+      label: "Retirement-Age Progress",
       tooltip: offTrack
         ? "Based on the 4% rule, which this plan's returns don't meet — the off-track guidance above carries the real headline. Adds the present value of guaranteed income (discounted to today) to your liquid pot before comparing against the FI Number."
         : "Adds the present value of guaranteed pension/policy income (discounted to today) to your liquid pot before comparing against the FI Number.",

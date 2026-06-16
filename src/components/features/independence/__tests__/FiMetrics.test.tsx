@@ -443,7 +443,7 @@ describe("FiMetrics", () => {
       render(<FiMetrics {...rubyPensionProps} />)
       expect(screen.getByText("Pension Strategy")).toBeInTheDocument()
       expect(screen.getByText("Self-funded Years")).toBeInTheDocument()
-      expect(screen.getByText("Retirement-Age FI")).toBeInTheDocument()
+      expect(screen.getByText("Retirement-Age Progress")).toBeInTheDocument()
       expect(screen.getByText("Income Coverage")).toBeInTheDocument()
       expect(screen.getByText("Self-funded years")).toBeInTheDocument()
     })
@@ -467,10 +467,10 @@ describe("FiMetrics", () => {
       expect(screen.queryByText("Self-funded Years")).not.toBeInTheDocument()
     })
 
-    it("formats Retirement-Age FI as a percentage", () => {
+    it("formats Retirement-Age Progress as a percentage", () => {
       render(<FiMetrics {...rubyPensionProps} />)
       const row = screen
-        .getByText("Retirement-Age FI")
+        .getByText("Retirement-Age Progress")
         .closest("div")?.parentElement
       expect(row?.textContent).toContain("54.0%")
     })
@@ -498,7 +498,7 @@ describe("FiMetrics", () => {
       })
       render(<FiMetrics {...rubyPensionProps} />)
       const row = screen
-        .getByText("Retirement-Age FI")
+        .getByText("Retirement-Age Progress")
         .closest("div")?.parentElement
       expect(row?.textContent).not.toContain("54.0%")
     })
@@ -518,14 +518,14 @@ describe("FiMetrics", () => {
     })
 
     it("orders Pension gauges by value descending so best news leads", () => {
-      // Ruby: Retirement-Age FI 54 > Income Coverage 44.44
+      // Ruby: Retirement-Age Progress 54 > Income Coverage 44.44
       render(<FiMetrics {...rubyPensionProps} />)
       const pensionHeader = screen.getByText("Pension Strategy")
       const section = pensionHeader.closest(".pt-4")
       const labels = Array.from(
         section?.querySelectorAll("span.text-gray-600") ?? [],
       ).map((el) => el.textContent)
-      expect(labels).toEqual(["Retirement-Age FI", "Income Coverage"])
+      expect(labels).toEqual(["Retirement-Age Progress", "Income Coverage"])
     })
 
     it("shows green funded banner when bridge is covered (bridgeProgress >= 100)", () => {
@@ -687,7 +687,7 @@ describe("FiMetrics", () => {
   })
 
   describe("Path to Horizon (off-track)", () => {
-    // Off-track plan: green Retirement-Age FI 125% would otherwise mislead.
+    // Off-track plan: green Retirement-Age Progress 125% would otherwise mislead.
     const offTrackProps = {
       ...defaultProps,
       backendFiMetrics: mkFi({ retirementAgeFiProgress: 125 }),
@@ -700,11 +700,28 @@ describe("FiMetrics", () => {
       },
     }
 
-    it("shows the off-track header with the levers to reach life expectancy", () => {
+    it("does NOT render the off-track header (now a backend Plan Insight)", () => {
       render(<FiMetrics {...offTrackProps} />)
-      expect(screen.getByText(/To last to age 90/)).toBeInTheDocument()
-      expect(screen.getByText(/NZD1,800/)).toBeInTheDocument()
-      expect(screen.getByText(/4\.3%/)).toBeInTheDocument()
+      // The "what it takes" guidance moved to the backend OFF_TRACK finding
+      // (PlanFindingsCard) — it must not be re-rendered here.
+      expect(screen.queryByText(/Won.t last to age/)).not.toBeInTheDocument()
+      expect(screen.queryByText(/To last to age 90/)).not.toBeInTheDocument()
+      expect(screen.queryByText(/NZD1,800/)).not.toBeInTheDocument()
+    })
+
+    it("does NOT render the contribution-gap detail", () => {
+      render(<FiMetrics {...offTrackProps} />)
+      // gap = 1800 - 1000 = 800; this body detail moved to the backend finding.
+      expect(screen.queryByText(/Add ~NZD800\/mo/)).not.toBeInTheDocument()
+    })
+
+    it("still caveats the Retirement-Age Progress gauge when off-track", () => {
+      render(<FiMetrics {...offTrackProps} />)
+      // The gauge caveat ("— based on the 4% rule") stays so a green % can't
+      // read as success.
+      expect(
+        screen.getByText(/125\.0% — based on the 4% rule/),
+      ).toBeInTheDocument()
     })
 
     it("suppresses the green funded banner when off-track", () => {
@@ -712,12 +729,6 @@ describe("FiMetrics", () => {
       // retirementAgeFiProgress 125% would normally fire the green banner
       expect(screen.queryByText(/Funded — /)).not.toBeInTheDocument()
       expect(screen.queryByText(/Lifetime funded/)).not.toBeInTheDocument()
-    })
-
-    it("shows the contribution-gap detail in the body", () => {
-      render(<FiMetrics {...offTrackProps} />)
-      // gap = 1800 - 1000 = 800
-      expect(screen.getByText(/Add ~NZD800\/mo/)).toBeInTheDocument()
     })
 
     it("keeps the existing funded banner when on-track (no pathToHorizon)", () => {
