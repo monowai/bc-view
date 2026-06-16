@@ -685,4 +685,55 @@ describe("FiMetrics", () => {
       expect(screen.queryByText(/Lifetime funded/)).not.toBeInTheDocument()
     })
   })
+
+  describe("Path to Horizon (off-track)", () => {
+    // Off-track plan: green Retirement-Age FI 125% would otherwise mislead.
+    const offTrackProps = {
+      ...defaultProps,
+      backendFiMetrics: mkFi({ retirementAgeFiProgress: 125 }),
+      pathToHorizon: {
+        targetAge: 90,
+        currentMonthlyContribution: 1000,
+        requiredMonthlyContribution: 1800,
+        currentReturnRate: 0.015,
+        requiredReturnRate: 0.0432,
+      },
+    }
+
+    it("shows the off-track header with the levers to reach life expectancy", () => {
+      render(<FiMetrics {...offTrackProps} />)
+      expect(screen.getByText(/To last to age 90/)).toBeInTheDocument()
+      expect(screen.getByText(/NZD1,800/)).toBeInTheDocument()
+      expect(screen.getByText(/4\.3%/)).toBeInTheDocument()
+    })
+
+    it("suppresses the green funded banner when off-track", () => {
+      render(<FiMetrics {...offTrackProps} />)
+      // retirementAgeFiProgress 125% would normally fire the green banner
+      expect(screen.queryByText(/Funded — /)).not.toBeInTheDocument()
+      expect(screen.queryByText(/Lifetime funded/)).not.toBeInTheDocument()
+    })
+
+    it("shows the contribution-gap detail in the body", () => {
+      render(<FiMetrics {...offTrackProps} />)
+      // gap = 1800 - 1000 = 800
+      expect(screen.getByText(/Add ~NZD800\/mo/)).toBeInTheDocument()
+    })
+
+    it("keeps the existing funded banner when on-track (no pathToHorizon)", () => {
+      render(
+        <FiMetrics
+          {...defaultProps}
+          backendFiMetrics={mkFi({
+            retirementAgeFiProgress: 106.6,
+            bridgeProgress: 120,
+            bridgeYearsNeeded: 13,
+          })}
+        />,
+      )
+      expect(
+        screen.getByText("Funded — liquid covers the gap to your pension"),
+      ).toBeInTheDocument()
+    })
+  })
 })

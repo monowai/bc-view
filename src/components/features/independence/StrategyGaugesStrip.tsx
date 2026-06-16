@@ -23,6 +23,13 @@ export interface StrategyGaugesStripProps {
    * full strip. Used by the sticky ScenarioBar so the header stays compact.
    */
   singleHeadline?: boolean
+  /**
+   * Backend says the plan depletes before life expectancy. When set, the
+   * Retirement-Age FI gauge is caveated ("based on the 4% rule") so a high %
+   * can't read as success while the off-track header carries the real
+   * headline. Other gauges are unaffected.
+   */
+  offTrack?: boolean
 }
 
 /**
@@ -37,9 +44,13 @@ export default function StrategyGaugesStrip({
   compact = false,
   view = "ALL",
   singleHeadline = false,
+  offTrack = false,
 }: StrategyGaugesStripProps): React.ReactElement {
   const { hideValues } = usePrivacyMode()
-  const ordered = orderGauges(buildGauges(fiMetrics, hideValues), view)
+  const ordered = orderGauges(
+    buildGauges(fiMetrics, hideValues, offTrack),
+    view,
+  )
   const gauges = singleHeadline ? ordered.slice(0, 1) : ordered
 
   const containerClass = compact
@@ -88,6 +99,7 @@ function orderGauges(
 function buildGauges(
   fi: FiMetrics | undefined,
   hideValues: boolean,
+  offTrack: boolean,
 ): PensionGaugeProps[] {
   const fiProgress = fi?.fiProgress ?? 0
   const out: PensionGaugeProps[] = [
@@ -123,11 +135,15 @@ function buildGauges(
     out.push({
       key: "retirement-age-fi",
       label: "Retirement-Age FI",
-      tooltip:
-        "Liquid plus the present value of your guaranteed pension income, compared to your FI Number.",
+      tooltip: offTrack
+        ? "Based on the 4% rule, which this plan's returns don't meet — the off-track guidance above carries the real headline. Adds the present value of your guaranteed pension income (discounted to today) to your liquid pot before comparing against the FI Number."
+        : "Liquid plus the present value of your guaranteed pension income, compared to your FI Number.",
       value: fi.retirementAgeFiProgress,
       hideValues,
-      format: (v) => `${v.toFixed(1)}%`,
+      format: (v) =>
+        offTrack
+          ? `${v.toFixed(1)}% — based on the 4% rule`
+          : `${v.toFixed(1)}%`,
     })
   }
 
