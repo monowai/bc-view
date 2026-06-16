@@ -3,6 +3,11 @@ import { useRouter } from "next/router"
 import Link from "next/link"
 import { useUser } from "@auth0/nextjs-auth0/client"
 import { usePermissions } from "@hooks/usePermissions"
+import PayslipModal from "@components/features/transactions/PayslipModal"
+
+// Sentinel `action` values for nav items that open a modal instead of
+// navigating. The href is kept (as a hash) so existing rendering still works.
+type NavAction = "payslip"
 
 interface NavItem {
   href: string
@@ -11,6 +16,7 @@ interface NavItem {
   description?: string
   adminOnly?: boolean
   aiOnly?: boolean
+  action?: NavAction
 }
 
 interface NavSection {
@@ -57,6 +63,12 @@ const navSections: NavSection[] = [
     title: "Tools",
     items: [
       { href: "/chat", label: "Chat", icon: "fa-robot", aiOnly: true },
+      {
+        href: "#enter-payslip",
+        label: "Enter Payslip",
+        icon: "fa-money-check-dollar",
+        action: "payslip",
+      },
       {
         href: "/tools/open-brokerage",
         label: "Open Brokerage",
@@ -151,11 +163,13 @@ function DesktopDropdown({
   isAdmin,
   canRunAi,
   router,
+  onAction,
 }: {
   section: NavSection
   isAdmin: boolean
   canRunAi: boolean
   router: ReturnType<typeof useRouter>
+  onAction: (action: NavAction) => void
 }): React.ReactElement | null {
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -245,22 +259,42 @@ function DesktopDropdown({
           {filteredItems.map((item) => {
             const active = isActiveRoute(router.pathname, item.href)
             const colors = sectionColors[section.title] || defaultSectionColor
+            const itemClass = `flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
+              active
+                ? `${colors.bg} ${colors.text} font-medium`
+                : "text-gray-700 hover:bg-gray-50"
+            }`
+            const itemIcon = (
+              <i
+                className={`fas ${item.icon} w-4 text-center text-xs ${
+                  active ? colors.text : "text-gray-400"
+                }`}
+              ></i>
+            )
+            if (item.action) {
+              return (
+                <button
+                  key={item.href}
+                  type="button"
+                  onClick={() => {
+                    setIsOpen(false)
+                    onAction(item.action!)
+                  }}
+                  className={`${itemClass} w-full text-left`}
+                >
+                  {itemIcon}
+                  {item.label}
+                </button>
+              )
+            }
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={() => setIsOpen(false)}
-                className={`flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
-                  active
-                    ? `${colors.bg} ${colors.text} font-medium`
-                    : "text-gray-700 hover:bg-gray-50"
-                }`}
+                className={itemClass}
               >
-                <i
-                  className={`fas ${item.icon} w-4 text-center text-xs ${
-                    active ? colors.text : "text-gray-400"
-                  }`}
-                ></i>
+                {itemIcon}
                 {item.label}
               </Link>
             )
@@ -276,8 +310,13 @@ function HeaderBrand(): React.ReactElement {
   const { user } = useUser()
   const { admin: isAdmin, ai: canRunAi } = usePermissions()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [payslipOpen, setPayslipOpen] = useState(false)
   const mobileMenuRef = useRef<HTMLDivElement>(null)
   const isAuthed = !!user
+
+  const openAction = useCallback((action: NavAction): void => {
+    if (action === "payslip") setPayslipOpen(true)
+  }, [])
 
   // Close mobile menu when clicking outside
   useEffect(() => {
@@ -382,21 +421,41 @@ function HeaderBrand(): React.ReactElement {
                         const active = isActiveRoute(router.pathname, item.href)
                         const colors =
                           sectionColors[section.title] || defaultSectionColor
+                        const itemClass = `flex items-center gap-2.5 px-3 py-2 transition-colors ${
+                          active
+                            ? `${colors.bg} ${colors.text} font-medium`
+                            : "text-gray-700 hover:bg-gray-50"
+                        }`
+                        const itemIcon = (
+                          <i
+                            className={`fas ${item.icon} w-4 text-center text-xs ${
+                              active ? colors.text : "text-gray-400"
+                            }`}
+                          ></i>
+                        )
+                        if (item.action) {
+                          return (
+                            <button
+                              key={item.href}
+                              type="button"
+                              onClick={() => {
+                                setMobileMenuOpen(false)
+                                openAction(item.action!)
+                              }}
+                              className={`${itemClass} w-full text-left`}
+                            >
+                              {itemIcon}
+                              <span className="text-sm">{item.label}</span>
+                            </button>
+                          )
+                        }
                         return (
                           <Link
                             key={item.href}
                             href={item.href}
-                            className={`flex items-center gap-2.5 px-3 py-2 transition-colors ${
-                              active
-                                ? `${colors.bg} ${colors.text} font-medium`
-                                : "text-gray-700 hover:bg-gray-50"
-                            }`}
+                            className={itemClass}
                           >
-                            <i
-                              className={`fas ${item.icon} w-4 text-center text-xs ${
-                                active ? colors.text : "text-gray-400"
-                              }`}
-                            ></i>
+                            {itemIcon}
                             <span className="text-sm">{item.label}</span>
                           </Link>
                         )
@@ -437,9 +496,18 @@ function HeaderBrand(): React.ReactElement {
               isAdmin={isAdmin}
               canRunAi={canRunAi}
               router={router}
+              onAction={openAction}
             />
           ))}
         </nav>
+      )}
+
+      {/* Tools → Enter Payslip modal, rendered once for the whole header. */}
+      {isAuthed && (
+        <PayslipModal
+          modalOpen={payslipOpen}
+          onClose={() => setPayslipOpen(false)}
+        />
       )}
     </div>
   )
