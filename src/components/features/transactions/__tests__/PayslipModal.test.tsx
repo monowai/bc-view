@@ -17,6 +17,28 @@ const mockCash = {
     },
   ],
 }
+const mockTradeAccounts = {
+  data: [
+    {
+      id: "wise-usd",
+      code: "WISE",
+      name: "Wise USD",
+      priceSymbol: "USD",
+      market: { code: "US", currency: { code: "USD" } },
+    },
+  ],
+}
+const mockBankAccounts = {
+  data: [
+    {
+      id: "dbs-sgd",
+      code: "DBS",
+      name: "DBS Savings",
+      priceSymbol: "SGD",
+      market: { code: "SG", currency: { code: "SGD" } },
+    },
+  ],
+}
 
 // Synchronous SWR: route by key substring.
 jest.mock("swr", () => ({
@@ -25,6 +47,10 @@ jest.mock("swr", () => ({
     if (!key) return { data: undefined, error: undefined, isLoading: false }
     if (key.includes("portfolios"))
       return { data: mockPortfolios, error: undefined, isLoading: false }
+    if (key.includes("category=TRADE"))
+      return { data: mockTradeAccounts, error: undefined, isLoading: false }
+    if (key.includes("category=ACCOUNT"))
+      return { data: mockBankAccounts, error: undefined, isLoading: false }
     if (key.includes("cash"))
       return { data: mockCash, error: undefined, isLoading: false }
     return { data: { data: [] }, error: undefined, isLoading: false }
@@ -36,9 +62,10 @@ const mockPreferences = {
   preferences: {
     id: "u1",
     yearOfBirth: 1985,
+    reportingCurrencyCode: "USD",
     defaultPayslipPortfolioId: "pf-1",
     defaultPayslipCashAssetId: "cash-sgd",
-  },
+  } as Record<string, unknown>,
   isLoading: false,
   refetch: jest.fn(),
 }
@@ -84,6 +111,38 @@ describe("PayslipModal", () => {
     expect(screen.getByLabelText("Tax deducted")).toBeInTheDocument()
   })
 
+  it("lists private TRADE/ACCOUNT accounts in Pay into, not just cash balances", () => {
+    render(<PayslipModal modalOpen onClose={jest.fn()} />)
+    const payInto = screen.getByLabelText("Pay into")
+    const labels = Array.from(payInto.querySelectorAll("option")).map(
+      (o) => o.textContent,
+    )
+    // Generic cash balance still present
+    expect(labels).toContain("SGD Cash")
+    // Named private accounts now offered (bank + brokerage cash)
+    expect(labels).toContain("DBS Savings (SGD)")
+    expect(labels).toContain("Wise USD (USD)")
+  })
+
+  it("defaults Pay into to the reporting-currency account when no saved pref", () => {
+    const prev = mockPreferences.preferences
+    mockPreferences.preferences = {
+      ...prev,
+      defaultPayslipCashAssetId: undefined,
+      reportingCurrencyCode: "SGD",
+    }
+    try {
+      render(<PayslipModal modalOpen onClose={jest.fn()} />)
+      // Reporting currency SGD → the SGD bank account is preferred over the
+      // generic SGD cash balance.
+      expect(
+        (screen.getByLabelText("Pay into") as HTMLSelectElement).value,
+      ).toBe("dbs-sgd")
+    } finally {
+      mockPreferences.preferences = prev
+    }
+  })
+
   it("hides the pension section when there is no CPF asset", () => {
     render(<PayslipModal modalOpen onClose={jest.fn()} />)
     expect(screen.queryByTestId("pension-section")).not.toBeInTheDocument()
@@ -112,6 +171,25 @@ describe("PayslipModal", () => {
     expect(screen.getByLabelText("CPF OA")).toBeInTheDocument()
     expect(screen.getByLabelText("CPF SA")).toBeInTheDocument()
     expect(screen.getByLabelText("CPF MA")).toBeInTheDocument()
+  })
+
+  it("shows a total contribution summing employee and employer", () => {
+    mockConfigs = [{ assetId: "cpf-asset", policyType: "CPF" }]
+    mockDc = {
+      employeeContribution: 1200,
+      employerContribution: 1020,
+      employeeRate: 0.2,
+      cappedSalary: 6000,
+      hasDefinedContribution: true,
+      buckets: [{ code: "OA", amount: 2220 }],
+    }
+    render(<PayslipModal modalOpen onClose={jest.fn()} />)
+    fireEvent.change(screen.getByLabelText("Gross salary"), {
+      target: { value: "6000" },
+    })
+    const total = screen.getByTestId("pension-total")
+    // 1200 + 1020 = 2220
+    expect(total).toHaveTextContent("2,220.00")
   })
 
   it("submits a 4-leg payload with employee-only cash debit and overridden buckets", async () => {
