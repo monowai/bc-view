@@ -1,4 +1,4 @@
-import { TradeFormData } from "types/beancounter"
+import { TradeFormData, Transaction } from "types/beancounter"
 import { stripOwnerPrefix } from "@lib/assets/assetUtils"
 
 // Cash transaction types
@@ -416,3 +416,40 @@ export const convert = (tradeFormData: TradeFormData): string => {
     ? getCashRow(tradeFormData)
     : getTradeRow(tradeFormData)
 }
+
+export interface TradeGroupTotals {
+  quantity: number
+  tradeAmount: number
+  cashAmount: number
+  fees: number
+  tax: number
+}
+
+/**
+ * Accumulate the display totals for a collection of trades on one asset.
+ *
+ * A BALANCE transaction states the absolute position held as at its trade date
+ * (it has no cash impact), so the running quantity must RESET to the BALANCE
+ * quantity rather than add to the prior sum. Trades dated on/after the most
+ * recent BALANCE then accumulate on top of it. Input order is irrelevant — the
+ * trades endpoint returns newest-first, so we sort chronologically before
+ * folding. Cash-side totals (tradeAmount/cashAmount/fees/tax) are plain sums.
+ */
+export const computeTradeGroupTotals = (
+  transactions: Transaction[],
+): TradeGroupTotals =>
+  [...transactions]
+    .sort((a, b) => a.tradeDate.localeCompare(b.tradeDate))
+    .reduce<TradeGroupTotals>(
+      (totals, trn) => ({
+        quantity:
+          trn.trnType === "BALANCE"
+            ? trn.quantity || 0
+            : totals.quantity + (trn.quantity || 0),
+        tradeAmount: totals.tradeAmount + (trn.tradeAmount || 0),
+        cashAmount: totals.cashAmount + (trn.cashAmount || 0),
+        fees: totals.fees + (trn.fees || 0),
+        tax: totals.tax + (trn.tax || 0),
+      }),
+      { quantity: 0, tradeAmount: 0, cashAmount: 0, fees: 0, tax: 0 },
+    )
