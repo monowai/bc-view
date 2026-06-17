@@ -37,6 +37,8 @@ export interface TrnUpdatePayload {
   brokerId?: string
   /** Model ID for tracking which rebalance model this transaction belongs to */
   modelId?: string
+  /** Per-sub-account split for composite policies (e.g. CPF OA/SA/MA). */
+  subAccounts?: Record<string, number>
 }
 
 export function updateTrn(
