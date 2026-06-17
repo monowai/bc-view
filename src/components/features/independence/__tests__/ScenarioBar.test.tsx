@@ -129,6 +129,57 @@ describe("ScenarioBar", () => {
     expect(props.onScenarioChange).toHaveBeenCalledWith({ liquidAssets: null })
   })
 
+  describe("path-to-horizon", () => {
+    const offTrack = {
+      targetAge: 90,
+      currentMonthlyContribution: 1000,
+      requiredMonthlyContribution: 1800,
+      currentReturnRate: 0.015,
+      requiredReturnRate: 0.0432,
+    }
+
+    it("does NOT render the off-track banner (now a backend Plan Insight)", () => {
+      render(<ScenarioBar {...baseProps} pathToHorizon={offTrack} />)
+      // The "what it takes" guidance moved to the backend OFF_TRACK finding
+      // (PlanFindingsCard) — it must not be re-rendered here.
+      expect(screen.queryByText(/Won.t last to age/)).not.toBeInTheDocument()
+      expect(screen.queryByText(/To last to age 90/)).not.toBeInTheDocument()
+      expect(screen.queryByText(/SGD1,800/)).not.toBeInTheDocument()
+    })
+
+    it("keeps the off-track caveat out of the headline gauge value", () => {
+      render(
+        <ScenarioBar
+          {...baseProps}
+          view="PENSION"
+          fiMetrics={
+            { fiProgress: 80, retirementAgeFiProgress: 125.3 } as never
+          }
+          pathToHorizon={offTrack}
+        />,
+      )
+      // Value stays clean; the 4%-rule explanation moved to the gauge tooltip.
+      expect(screen.getByText("125.3%")).toBeInTheDocument()
+      expect(
+        screen.queryByText(/125\.3% — based on the 4% rule/),
+      ).not.toBeInTheDocument()
+    })
+
+    it("labels the headline gauge 'Retirement-Age Progress'", () => {
+      render(
+        <ScenarioBar
+          {...baseProps}
+          view="PENSION"
+          fiMetrics={
+            { fiProgress: 80, retirementAgeFiProgress: 125.3 } as never
+          }
+          pathToHorizon={offTrack}
+        />,
+      )
+      expect(screen.getByText("Retirement-Age Progress")).toBeInTheDocument()
+    })
+  })
+
   it("restores realReturn=null when slider returns within half a step of plan real", () => {
     // planRealReturn = 0.058 - 0.025 = 0.033. Start with a non-null override.
     const props = {

@@ -4,7 +4,6 @@ import type { User } from "@auth0/nextjs-auth0/types"
 import Link from "next/link"
 import Image from "next/image"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
-import { usePermissions } from "@hooks/usePermissions"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 
 function Avatar({
@@ -31,7 +30,6 @@ export default function HeaderUserControls(): React.ReactElement {
   // and show the Sign In CTA.
   const { user, isLoading } = useUser()
   const { preferences } = useUserPreferences()
-  const { admin: isAdmin } = usePermissions()
   const { hideValues, toggleHideValues } = usePrivacyMode()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -123,16 +121,6 @@ export default function HeaderUserControls(): React.ReactElement {
             <i className="fas fa-share-alt w-4 text-center text-xs text-gray-400"></i>
             {"Shares"}
           </Link>
-          {isAdmin && (
-            <Link
-              href="/admin"
-              className="flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-              onClick={() => setDropdownOpen(false)}
-            >
-              <i className="fas fa-tools w-4 text-center text-xs text-gray-400"></i>
-              {"Admin"}
-            </Link>
-          )}
           <hr className="my-1 border-gray-100" />
           <a
             href="/auth/logout"

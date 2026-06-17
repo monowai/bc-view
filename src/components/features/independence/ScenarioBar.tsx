@@ -1,5 +1,5 @@
 import React, { useState } from "react"
-import type { FiMetrics } from "types/independence"
+import type { FiMetrics, PathToHorizon } from "types/independence"
 import InfoTooltip from "@components/ui/Tooltip"
 import type { ScenarioState } from "./scenario/types"
 import StrategyGaugesStrip from "./StrategyGaugesStrip"
@@ -36,6 +36,14 @@ export interface ScenarioBarProps {
   planBlendedReturn: number
   /** Plan's own inflation rate, used to anchor realReturn = blended − inflation. */
   planInflation: number
+  /**
+   * Off-track diagnostic from the latest projection: present ONLY when the
+   * plan's money runs out before life expectancy. Caveats the Retirement-Age
+   * Progress gauge so a high % can't read as success. The off-track guidance
+   * copy itself lives in the backend OFF_TRACK Plan Insight on My Plan.
+   * Null/absent when on-track.
+   */
+  pathToHorizon?: PathToHorizon | null
 }
 
 const N0 = (n: number): string => Math.round(n).toLocaleString()
@@ -61,11 +69,19 @@ export default function ScenarioBar({
   derivedLiquidAssets,
   planBlendedReturn,
   planInflation,
+  pathToHorizon,
 }: ScenarioBarProps): React.ReactElement {
   // Sliders default-collapsed at every viewport to keep the page chrome
   // minimal. Gauges + action row stay visible. User clicks "Scenario" to
   // expand the slider grid.
   const [collapsed, setCollapsed] = useState(true)
+
+  // Off-track flag (backend-driven). Present only when the plan depletes
+  // before life expectancy. The off-track guidance itself now lives in the
+  // backend OFF_TRACK Plan Insight (rendered by PlanFindingsCard); here it
+  // only caveats the Retirement-Age Progress gauge so a high % can't read as
+  // success.
+  const offTrack = pathToHorizon != null
 
   const effectiveLiquidAssets = scenario.liquidAssets ?? derivedLiquidAssets
   const planRealReturn = planBlendedReturn - planInflation
@@ -79,8 +95,9 @@ export default function ScenarioBar({
   return (
     <div className="sticky top-0 z-30 bg-white border-b shadow-sm mb-3">
       <div className="px-4 py-2">
-        {/* Headline gauge (horizontal bar). The on/off-track verdict now lives
-            in the Plan Insights list on My Plan, not under the bar. */}
+        {/* Headline gauge (horizontal bar). The on/off-track verdict and the
+            off-track "what it takes" guidance now live in the Plan Insights
+            list on My Plan (backend OFF_TRACK finding), not under the bar. */}
         <div className="mb-2 flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <StrategyGaugesStrip
@@ -88,6 +105,7 @@ export default function ScenarioBar({
               compact
               view={view}
               singleHeadline
+              offTrack={offTrack}
             />
           </div>
           {/* View selector on the progress-bar row. */}

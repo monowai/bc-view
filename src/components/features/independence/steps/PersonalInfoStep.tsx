@@ -227,7 +227,9 @@ export default function PersonalInfoStep({
                 <option value="EARLY_RETIREMENT_PROGRESS">
                   Early Retirement Progress
                 </option>
-                <option value="RETIREMENT_AGE_FI">Retirement-Age FI</option>
+                <option value="RETIREMENT_AGE_FI">
+                  Retirement-Age Progress
+                </option>
                 <option value="INCOME_COVERAGE">Income Coverage</option>
                 <option value="BRIDGE_PROGRESS">Bridge Progress</option>
               </select>

@@ -981,6 +981,7 @@ function PlanView(): React.ReactElement {
               derivedLiquidAssets={liquidAssets}
               planBlendedReturn={computeBlendedReturnRate(plan)}
               planInflation={plan.inflationRate}
+              pathToHorizon={adjustedProjection?.pathToHorizon}
             />
           )}
 
