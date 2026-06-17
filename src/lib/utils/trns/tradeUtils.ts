@@ -1,4 +1,4 @@
-import { TradeFormData } from "types/beancounter"
+import { TradeFormData, Transaction } from "types/beancounter"
 import { stripOwnerPrefix } from "@lib/assets/assetUtils"
 
 // Cash transaction types
@@ -416,3 +416,51 @@ export const convert = (tradeFormData: TradeFormData): string => {
     ? getCashRow(tradeFormData)
     : getTradeRow(tradeFormData)
 }
+
+export interface TradeGroupTotals {
+  quantity: number
+  tradeAmount: number
+  cashAmount: number
+  fees: number
+  tax: number
+}
+
+/**
+ * Accumulate the display totals for a collection of trades on one asset.
+ *
+ * A BALANCE transaction states the absolute position held as at its trade date
+ * (it has no cash impact), so the running quantity must RESET to the BALANCE
+ * quantity rather than add to the prior sum. Trades dated on/after the most
+ * recent BALANCE then accumulate on top of it. Input order is irrelevant — the
+ * trades endpoint returns newest-first, so we sort chronologically before
+ * folding. Cash-side totals (tradeAmount/cashAmount/fees/tax) are plain sums.
+ *
+ * Same-date tiebreak: a BALANCE is the authoritative position as at end of its
+ * trade date, so any non-BALANCE trade sharing that date is already subsumed by
+ * it. We therefore sort BALANCE last on equal dates so the reset wins, keeping
+ * the result deterministic regardless of input order.
+ */
+export const computeTradeGroupTotals = (
+  transactions: Transaction[],
+): TradeGroupTotals =>
+  [...transactions]
+    .sort((a, b) => {
+      const byDate = a.tradeDate.localeCompare(b.tradeDate)
+      if (byDate !== 0) return byDate
+      if (a.trnType === "BALANCE" && b.trnType !== "BALANCE") return 1
+      if (a.trnType !== "BALANCE" && b.trnType === "BALANCE") return -1
+      return 0
+    })
+    .reduce<TradeGroupTotals>(
+      (totals, trn) => ({
+        quantity:
+          trn.trnType === "BALANCE"
+            ? trn.quantity || 0
+            : totals.quantity + (trn.quantity || 0),
+        tradeAmount: totals.tradeAmount + (trn.tradeAmount || 0),
+        cashAmount: totals.cashAmount + (trn.cashAmount || 0),
+        fees: totals.fees + (trn.fees || 0),
+        tax: totals.tax + (trn.tax || 0),
+      }),
+      { quantity: 0, tradeAmount: 0, cashAmount: 0, fees: 0, tax: 0 },
+    )

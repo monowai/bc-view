@@ -19,6 +19,7 @@ import FxEditModal from "@components/features/transactions/FxEditModal"
 import SubAccountTrnEditModal from "@components/features/transactions/SubAccountTrnEditModal"
 import TradeInputForm from "@components/features/transactions/TradeInputForm"
 import { unsettleTrn } from "@utils/trns/apiHelper"
+import { computeTradeGroupTotals } from "@utils/trns/tradeUtils"
 
 export default withPageAuthRequired(function Trades(): React.ReactElement {
   const router = useRouter()
@@ -99,13 +100,6 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
       {
         broker: { id: string; name: string } | null
         transactions: Transaction[]
-        totals: {
-          quantity: number
-          tradeAmount: number
-          cashAmount: number
-          fees: number
-          tax: number
-        }
       }
     > = {}
 
@@ -115,25 +109,21 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
         groups[brokerKey] = {
           broker: trn.broker || null,
           transactions: [],
-          totals: {
-            quantity: 0,
-            tradeAmount: 0,
-            cashAmount: 0,
-            fees: 0,
-            tax: 0,
-          },
         }
       }
       groups[brokerKey].transactions.push(trn)
-      groups[brokerKey].totals.quantity += trn.quantity || 0
-      groups[brokerKey].totals.tradeAmount += trn.tradeAmount || 0
-      groups[brokerKey].totals.cashAmount += trn.cashAmount || 0
-      groups[brokerKey].totals.fees += trn.fees || 0
-      groups[brokerKey].totals.tax += trn.tax || 0
     })
 
+    // A BALANCE transaction states the absolute position as at its trade date,
+    // so the running quantity must reset to it — computeTradeGroupTotals folds
+    // the trades chronologically rather than naively summing every quantity.
+    const withTotals = Object.values(groups).map((group) => ({
+      ...group,
+      totals: computeTradeGroupTotals(group.transactions),
+    }))
+
     // Sort: brokers with names first (alphabetically), then "No Broker" last
-    return Object.values(groups).sort((a, b) => {
+    return withTotals.sort((a, b) => {
       if (!a.broker && b.broker) return 1
       if (a.broker && !b.broker) return -1
       if (!a.broker && !b.broker) return 0

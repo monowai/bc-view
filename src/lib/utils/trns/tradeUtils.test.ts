@@ -17,8 +17,9 @@ import {
   getQtyPriceTint,
   getAssetCurrency,
   deriveDefaultMarket,
+  computeTradeGroupTotals,
 } from "./tradeUtils"
-import { TradeFormData } from "types/beancounter"
+import { TradeFormData, Transaction } from "types/beancounter"
 
 describe("TradeUtils", () => {
   test("calculateTradeAmount for BUY type", () => {
@@ -929,5 +930,98 @@ describe("TradeUtils", () => {
       const result = convertToTradeImport(data)
       expect(result.cashAccount).toBe("MY-USD-ACCOUNT")
     })
+  })
+})
+
+describe("computeTradeGroupTotals", () => {
+  const trn = (over: Partial<Transaction>): Transaction =>
+    ({
+      trnType: "BUY",
+      tradeDate: "2025-01-01",
+      quantity: 0,
+      tradeAmount: 0,
+      cashAmount: 0,
+      fees: 0,
+      tax: 0,
+      ...over,
+    }) as Transaction
+
+  test("sums quantity when no BALANCE present", () => {
+    const totals = computeTradeGroupTotals([
+      trn({ tradeDate: "2025-01-01", quantity: 10 }),
+      trn({ tradeDate: "2025-02-01", quantity: 5 }),
+    ])
+    expect(totals.quantity).toBe(15)
+  })
+
+  test("resets running quantity to the BALANCE quantity", () => {
+    const totals = computeTradeGroupTotals([
+      trn({ tradeDate: "2025-01-01", quantity: 10 }),
+      trn({ tradeDate: "2025-02-01", quantity: 7 }),
+      trn({ trnType: "BALANCE", tradeDate: "2025-03-01", quantity: 100 }),
+    ])
+    expect(totals.quantity).toBe(100)
+  })
+
+  test("accumulates trades dated after the BALANCE on top of it", () => {
+    const totals = computeTradeGroupTotals([
+      trn({ tradeDate: "2025-01-01", quantity: 10 }),
+      trn({ trnType: "BALANCE", tradeDate: "2025-02-01", quantity: 100 }),
+      trn({ tradeDate: "2025-03-01", quantity: 5 }),
+    ])
+    expect(totals.quantity).toBe(105)
+  })
+
+  test("is order-independent (input arrives newest-first)", () => {
+    const totals = computeTradeGroupTotals([
+      trn({ tradeDate: "2025-03-01", quantity: 5 }),
+      trn({ trnType: "BALANCE", tradeDate: "2025-02-01", quantity: 100 }),
+      trn({ tradeDate: "2025-01-01", quantity: 10 }),
+    ])
+    expect(totals.quantity).toBe(105)
+  })
+
+  test("BALANCE wins over a same-date trade regardless of input order", () => {
+    const trade = trn({ tradeDate: "2025-02-01", quantity: 7 })
+    const balance = trn({
+      trnType: "BALANCE",
+      tradeDate: "2025-02-01",
+      quantity: 100,
+    })
+    expect(computeTradeGroupTotals([trade, balance]).quantity).toBe(100)
+    expect(computeTradeGroupTotals([balance, trade]).quantity).toBe(100)
+  })
+
+  test("the latest BALANCE wins when several exist", () => {
+    const totals = computeTradeGroupTotals([
+      trn({ trnType: "BALANCE", tradeDate: "2025-01-01", quantity: 50 }),
+      trn({ tradeDate: "2025-02-01", quantity: 5 }),
+      trn({ trnType: "BALANCE", tradeDate: "2025-03-01", quantity: 200 }),
+    ])
+    expect(totals.quantity).toBe(200)
+  })
+
+  test("still sums cash-side totals across the group", () => {
+    const totals = computeTradeGroupTotals([
+      trn({
+        tradeDate: "2025-01-01",
+        tradeAmount: 1000,
+        cashAmount: -1000,
+        fees: 2,
+        tax: 1,
+      }),
+      trn({ trnType: "BALANCE", tradeDate: "2025-02-01", quantity: 100 }),
+      trn({
+        tradeDate: "2025-03-01",
+        tradeAmount: 500,
+        cashAmount: -500,
+        fees: 3,
+        tax: 4,
+      }),
+    ])
+    expect(totals.tradeAmount).toBe(1500)
+    expect(totals.cashAmount).toBe(-1500)
+    expect(totals.fees).toBe(5)
+    expect(totals.tax).toBe(5)
   })
 })
