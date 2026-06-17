@@ -18,6 +18,7 @@ import { ValueIn } from "@components/features/holdings/GroupByOptions"
 import { getLocalValue, setLocalValue } from "@lib/storage/localState"
 
 const GROUP_BY_STORAGE_KEY = "wealth-allocation-groupby"
+const PAGE_SIZE = 10
 
 const GROUP_LABELS: Record<GroupingMode, string> = {
   category: "Category",
@@ -47,9 +48,11 @@ const AssetAllocationCharts: React.FC<AssetAllocationChartsProps> = ({
   const [groupBy, setGroupBy] = useState<GroupingMode>(() =>
     getLocalValue<GroupingMode>(GROUP_BY_STORAGE_KEY, "asset"),
   )
+  const [page, setPage] = useState(0)
   const handleGroupByChange = useCallback((next: GroupingMode): void => {
     setGroupBy(next)
     setLocalValue(GROUP_BY_STORAGE_KEY, next)
+    setPage(0) // item count differs per grouping; restart paging
   }, [])
 
   const allocationData = useMemo(
@@ -57,6 +60,12 @@ const AssetAllocationCharts: React.FC<AssetAllocationChartsProps> = ({
       holdings ? transformFxAllocationSlices(holdings, groupBy, fxRates) : [],
     [holdings, groupBy, fxRates],
   )
+
+  // Clamp the active page if the underlying data shrinks beneath it.
+  const pageCount = Math.max(1, Math.ceil(allocationData.length / PAGE_SIZE))
+  const safePage = Math.min(page, pageCount - 1)
+  const pageStart = safePage * PAGE_SIZE
+  const pagedSlices = allocationData.slice(pageStart, pageStart + PAGE_SIZE)
 
   if (summary.portfolioBreakdown.length === 0) return null
 
@@ -84,17 +93,20 @@ const AssetAllocationCharts: React.FC<AssetAllocationChartsProps> = ({
             hideValueIn
           />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Grouped Allocation Chart — driven by the group-by control */}
+            {/* Grouped Allocation — driven by the group-by control. A pie reads
+                well for a short set (≤ PAGE_SIZE slices); a long holdings tail
+                (e.g. grouping by asset) renders as a paged list instead, so the
+                chart never degenerates into an unreadable wheel of slivers. */}
             <div className="bg-gray-50 rounded-lg p-4">
               <h3 className="text-md font-medium text-gray-700 mb-4">
                 {`By ${GROUP_LABELS[groupBy]}`}
               </h3>
-              <div className="h-64">
-                {allocationData.length === 0 ? (
-                  <div className="flex items-center justify-center h-full text-gray-500">
-                    No allocation data available
-                  </div>
-                ) : (
+              {allocationData.length === 0 ? (
+                <div className="flex items-center justify-center h-64 text-gray-500">
+                  No allocation data available
+                </div>
+              ) : allocationData.length <= PAGE_SIZE ? (
+                <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -120,8 +132,64 @@ const AssetAllocationCharts: React.FC<AssetAllocationChartsProps> = ({
                       <Legend />
                     </PieChart>
                   </ResponsiveContainer>
-                )}
-              </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex flex-col gap-2">
+                    {pagedSlices.map((slice) => (
+                      <div
+                        key={slice.key}
+                        className="flex items-center justify-between gap-2"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div
+                            className="w-3 h-3 rounded-full shrink-0"
+                            style={{ backgroundColor: slice.color }}
+                          />
+                          <span className="text-sm text-gray-700 truncate">
+                            {slice.label}
+                          </span>
+                        </div>
+                        <div className="flex items-baseline gap-2 shrink-0">
+                          <span className="text-sm font-semibold text-gray-900 tabular-nums">
+                            {displayCurrency?.symbol}
+                            {Number(slice.value).toLocaleString(undefined, {
+                              maximumFractionDigits: 0,
+                            })}
+                          </span>
+                          <span className="text-xs text-gray-500 tabular-nums w-12 text-right">
+                            {Number(slice.percentage).toFixed(1)}%
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-200">
+                    <button
+                      type="button"
+                      onClick={() => setPage(safePage - 1)}
+                      disabled={safePage === 0}
+                      className="text-sm text-gray-600 hover:text-gray-900 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <i className="fas fa-chevron-left mr-1"></i>Prev
+                    </button>
+                    <span className="text-xs text-gray-500 tabular-nums">
+                      {pageStart + 1}–
+                      {Math.min(pageStart + PAGE_SIZE, allocationData.length)}{" "}
+                      of {allocationData.length}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setPage(safePage + 1)}
+                      disabled={safePage >= pageCount - 1}
+                      className="text-sm text-gray-600 hover:text-gray-900 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      Next<i className="fas fa-chevron-right ml-1"></i>
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Liquidity Breakdown */}
