@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react"
+import React, { useCallback, useMemo, useState } from "react"
 import { Currency, HoldingContract } from "types/beancounter"
 import {
   PieChart,
@@ -47,10 +47,10 @@ const AssetAllocationCharts: React.FC<AssetAllocationChartsProps> = ({
   const [groupBy, setGroupBy] = useState<GroupingMode>(() =>
     getLocalValue<GroupingMode>(GROUP_BY_STORAGE_KEY, "asset"),
   )
-  const handleGroupByChange = (next: GroupingMode): void => {
+  const handleGroupByChange = useCallback((next: GroupingMode): void => {
     setGroupBy(next)
     setLocalValue(GROUP_BY_STORAGE_KEY, next)
-  }
+  }, [])
 
   const allocationData = useMemo(
     () =>
