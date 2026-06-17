@@ -19,6 +19,7 @@ import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
 import MathInput from "@components/ui/MathInput"
 import DateInput from "@components/ui/DateInput"
 import Dialog from "@components/ui/Dialog"
+import SubAccountBalanceInputs from "@components/features/holdings/SubAccountBalanceInputs"
 import { stripOwnerPrefix, getAssetCurrency } from "@lib/assets/assetUtils"
 
 interface PortfoliosResponse {
@@ -266,37 +267,15 @@ export default function SetBalanceDialog({
 
       {/* Sub-account balances (for POLICY assets with sub-accounts) */}
       {hasSubAccounts ? (
-        <div className="space-y-3">
-          <label className="block text-sm font-medium text-gray-700">
-            {"Sub-Account Balances"}
-          </label>
-          {configSubAccounts.map((sa) => (
-            <div key={sa.code} className="flex items-center space-x-3">
-              <span className="text-sm text-gray-700 w-24 flex-shrink-0">
-                {sa.displayName || sa.code}
-              </span>
-              <MathInput
-                value={subAccountBalances[sa.code] || 0}
-                onChange={(value) =>
-                  setSubAccountBalances((prev) => ({
-                    ...prev,
-                    [sa.code]: value,
-                  }))
-                }
-                placeholder="0"
-                className="flex-1 border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-amber-500 focus:border-amber-500"
-              />
-            </div>
-          ))}
-          <div className="flex justify-between items-center pt-2 border-t border-gray-200">
-            <span className="text-sm font-medium text-gray-700">
-              {"Target Balance"}
-            </span>
-            <span className="text-sm font-medium">
-              {getAssetCurrency(asset)} {targetBalance.toLocaleString()}
-            </span>
-          </div>
-        </div>
+        <SubAccountBalanceInputs
+          subAccounts={configSubAccounts}
+          values={subAccountBalances}
+          onChange={(code, value) =>
+            setSubAccountBalances((prev) => ({ ...prev, [code]: value }))
+          }
+          currency={getAssetCurrency(asset)}
+          total={targetBalance}
+        />
       ) : (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
