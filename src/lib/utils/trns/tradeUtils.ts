@@ -434,12 +434,23 @@ export interface TradeGroupTotals {
  * recent BALANCE then accumulate on top of it. Input order is irrelevant — the
  * trades endpoint returns newest-first, so we sort chronologically before
  * folding. Cash-side totals (tradeAmount/cashAmount/fees/tax) are plain sums.
+ *
+ * Same-date tiebreak: a BALANCE is the authoritative position as at end of its
+ * trade date, so any non-BALANCE trade sharing that date is already subsumed by
+ * it. We therefore sort BALANCE last on equal dates so the reset wins, keeping
+ * the result deterministic regardless of input order.
  */
 export const computeTradeGroupTotals = (
   transactions: Transaction[],
 ): TradeGroupTotals =>
   [...transactions]
-    .sort((a, b) => a.tradeDate.localeCompare(b.tradeDate))
+    .sort((a, b) => {
+      const byDate = a.tradeDate.localeCompare(b.tradeDate)
+      if (byDate !== 0) return byDate
+      if (a.trnType === "BALANCE" && b.trnType !== "BALANCE") return 1
+      if (a.trnType !== "BALANCE" && b.trnType === "BALANCE") return -1
+      return 0
+    })
     .reduce<TradeGroupTotals>(
       (totals, trn) => ({
         quantity:

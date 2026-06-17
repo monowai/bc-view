@@ -981,6 +981,17 @@ describe("computeTradeGroupTotals", () => {
     expect(totals.quantity).toBe(105)
   })
 
+  test("BALANCE wins over a same-date trade regardless of input order", () => {
+    const trade = trn({ tradeDate: "2025-02-01", quantity: 7 })
+    const balance = trn({
+      trnType: "BALANCE",
+      tradeDate: "2025-02-01",
+      quantity: 100,
+    })
+    expect(computeTradeGroupTotals([trade, balance]).quantity).toBe(100)
+    expect(computeTradeGroupTotals([balance, trade]).quantity).toBe(100)
+  })
+
   test("the latest BALANCE wins when several exist", () => {
     const totals = computeTradeGroupTotals([
       trn({ trnType: "BALANCE", tradeDate: "2025-01-01", quantity: 50 }),
