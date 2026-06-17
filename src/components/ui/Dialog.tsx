@@ -46,7 +46,7 @@ export default function Dialog({
         onClick={onClose}
       ></div>
       <div
-        className={`bg-white rounded-lg shadow-lg w-full ${maxWidthClasses[maxWidth]} mx-4 z-50 ${scrollable ? "max-h-[90vh] overflow-hidden flex flex-col" : ""}`}
+        className={`bg-white text-gray-900 rounded-lg shadow-lg w-full ${maxWidthClasses[maxWidth]} mx-4 z-50 ${scrollable ? "max-h-[90vh] overflow-hidden flex flex-col" : ""}`}
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex justify-between items-center border-b p-4">
