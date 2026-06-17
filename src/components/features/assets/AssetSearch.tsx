@@ -238,6 +238,10 @@ export default function AssetSearch({
         ...base,
         backgroundColor: "#ffffff",
         color: "#111827",
+        // Inline (non-portal) menu defaults to react-select z-index 1, which
+        // loses to the page's sticky header/toolbar (z-10) and z-50 chrome,
+        // leaving options painted behind them. Lift above all page chrome.
+        zIndex: 60,
       }),
       menuList: (base: Record<string, unknown>) => ({
         ...base,
