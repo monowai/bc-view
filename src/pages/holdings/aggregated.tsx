@@ -34,6 +34,7 @@ import IncomeView from "@components/features/holdings/IncomeView"
 import { ViewMode } from "@components/features/holdings/ViewToggle"
 import { usePermissions } from "@hooks/usePermissions"
 import { usePortfolioReview } from "@components/features/holdings/usePortfolioReview"
+import { useUserPreferences } from "@contexts/UserPreferencesContext"
 
 /** View mode icon component */
 const ViewModeIcon: React.FC<{ mode: string; className?: string }> = ({
@@ -219,20 +220,31 @@ function AggregatedHoldingsPage(): React.ReactElement {
   const router = useRouter()
   const holdingState = useHoldingState()
   const groupOptions = useGroupOptions()
+  const { preferences } = useUserPreferences()
   const { ai: canRunAi, isLoading: permsLoading } = usePermissions()
   const { popup: reviewPopup, showReview } = usePortfolioReview()
   // Get portfolio codes from URL query parameter
   const codes = router.query.codes as string | undefined
   const portfolioCodes = useMemo(() => (codes ? codes.split(",") : []), [codes])
 
-  // Build the API URL with optional codes parameter
+  // Report aggregate values in the user's preferred reporting currency
+  // (falling back to base). Without this the backend prices the consolidated
+  // bucket in the first portfolio's currency, which is wrong for users whose
+  // reporting currency differs from that portfolio (e.g. SGD shown as USD).
+  const reportCurrency =
+    preferences?.reportingCurrencyCode || preferences?.baseCurrencyCode
+
+  // Build the API URL with optional codes + currency parameters
   const aggregatedHoldingsKey = codes
     ? `/api/holdings/aggregated?asAt=today&codes=${encodeURIComponent(codes)}`
     : "/api/holdings/aggregated?asAt=today"
+  const aggregatedHoldingsUrl = reportCurrency
+    ? `${aggregatedHoldingsKey}&currency=${encodeURIComponent(reportCurrency)}`
+    : aggregatedHoldingsKey
 
   const { data, error, isLoading } = useSwr(
-    aggregatedHoldingsKey,
-    simpleFetcher(aggregatedHoldingsKey),
+    aggregatedHoldingsUrl,
+    simpleFetcher(aggregatedHoldingsUrl),
   )
 
   // Use shared hook for view state and calculations
