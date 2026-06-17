@@ -312,6 +312,16 @@ function WealthDashboard(): React.ReactElement {
             onShareClick={() => setShowShareDialog(true)}
           />
 
+          {/* Asset Allocation — surfaced above Independence metrics */}
+          <AssetAllocationCharts
+            summary={summary}
+            holdings={holdingsData}
+            fxRates={fxRates}
+            displayCurrency={displayCurrency}
+            collapsed={collapsedSections.charts}
+            onToggle={() => toggleSection("charts")}
+          />
+
           {/* Independence Metrics - shown if user has an independence plan */}
           {primaryPlan && (
             <IndependenceMetrics
@@ -325,7 +335,7 @@ function WealthDashboard(): React.ReactElement {
             />
           )}
 
-          {/* Wealth Performance — after IndependenceMetrics, before Charts */}
+          {/* Wealth Performance */}
           {preferences?.enableTwr && (
             <WealthPerformanceChart
               portfolios={portfolios}
@@ -334,14 +344,6 @@ function WealthDashboard(): React.ReactElement {
               onToggle={() => toggleSection("performance")}
             />
           )}
-
-          {/* Charts Row */}
-          <AssetAllocationCharts
-            summary={summary}
-            displayCurrency={displayCurrency}
-            collapsed={collapsedSections.charts}
-            onToggle={() => toggleSection("charts")}
-          />
 
           {/* Portfolio Details Table */}
           <PortfolioDetailsTable
