@@ -114,6 +114,25 @@ describe("PayslipModal", () => {
     expect(screen.getByLabelText("CPF MA")).toBeInTheDocument()
   })
 
+  it("shows a total contribution summing employee and employer", () => {
+    mockConfigs = [{ assetId: "cpf-asset", policyType: "CPF" }]
+    mockDc = {
+      employeeContribution: 1200,
+      employerContribution: 1020,
+      employeeRate: 0.2,
+      cappedSalary: 6000,
+      hasDefinedContribution: true,
+      buckets: [{ code: "OA", amount: 2220 }],
+    }
+    render(<PayslipModal modalOpen onClose={jest.fn()} />)
+    fireEvent.change(screen.getByLabelText("Gross salary"), {
+      target: { value: "6000" },
+    })
+    const total = screen.getByTestId("pension-total")
+    // 1200 + 1020 = 2220
+    expect(total).toHaveTextContent("2,220.00")
+  })
+
   it("submits a 4-leg payload with employee-only cash debit and overridden buckets", async () => {
     mockConfigs = [{ assetId: "cpf-asset", policyType: "CPF" }]
     mockDc = {

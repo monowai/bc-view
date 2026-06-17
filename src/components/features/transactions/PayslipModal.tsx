@@ -374,7 +374,7 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
                   }))
                 }
                 aria-label={`CPF ${b.code}`}
-                className="flex-1 border-gray-300 rounded-md shadow-sm px-3 py-2 border"
+                className="flex-1 border-gray-300 rounded-md shadow-sm px-3 py-2 border text-right"
               />
             </div>
           ))}
@@ -387,6 +387,17 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
             <div className="flex justify-between">
               <span>{"Employer contribution"}</span>
               <span>{formatAmount(dc.employerContribution)}</span>
+            </div>
+            <div
+              className="flex justify-between pt-1 border-t border-amber-200 font-semibold text-gray-800"
+              data-testid="pension-total"
+            >
+              <span>{"Total contribution"}</span>
+              <span>
+                {formatAmount(
+                  dc.employeeContribution + dc.employerContribution,
+                )}
+              </span>
             </div>
           </div>
         </div>
