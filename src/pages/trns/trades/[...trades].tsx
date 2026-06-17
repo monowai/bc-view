@@ -16,6 +16,7 @@ import { errorOut } from "@components/errors/ErrorOut"
 import useSwr, { mutate } from "swr"
 import { getDisplayCode } from "@lib/assets/assetUtils"
 import FxEditModal from "@components/features/transactions/FxEditModal"
+import SubAccountTrnEditModal from "@components/features/transactions/SubAccountTrnEditModal"
 import TradeInputForm from "@components/features/transactions/TradeInputForm"
 import { unsettleTrn } from "@utils/trns/apiHelper"
 
@@ -269,10 +270,22 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
     const isFxType =
       transaction.trnType === "FX" || transaction.trnType.startsWith("FX_")
 
+    // Composite-policy trns (e.g. CPF) carry a per-sub-account split; edit them
+    // with the same bucket data-entry display as "set balance".
+    const hasSubAccounts =
+      !!transaction.subAccounts &&
+      Object.keys(transaction.subAccounts).length > 0
+
     return (
       <>
         {editModalOpen ? (
-          isFxType ? (
+          hasSubAccounts ? (
+            <SubAccountTrnEditModal
+              trn={transaction}
+              onClose={handleClose}
+              onDelete={() => setShowDeleteConfirm(true)}
+            />
+          ) : isFxType ? (
             <FxEditModal
               trn={transaction}
               onClose={handleClose}

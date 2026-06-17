@@ -1,8 +1,8 @@
 name: Renovate
 on:
   schedule:
-    # Run every Monday at 6:00 AM Pacific/Auckland time (UTC+12/+13)
-    - cron: "0 17 * * 0" # Sunday 5 PM UTC = Monday 6 AM NZDT / Monday 5 AM NZST
+    # Run every Monday at 6:00 AM Singapore time (UTC+8)
+    - cron: "0 22 * * 0" # Sunday 10 PM UTC = Monday 6 AM SGT
   workflow_dispatch:
     inputs:
       logLevel:

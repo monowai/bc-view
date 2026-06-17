@@ -3,6 +3,11 @@ import { useRouter } from "next/router"
 import Link from "next/link"
 import { useUser } from "@auth0/nextjs-auth0/client"
 import { usePermissions } from "@hooks/usePermissions"
+import PayslipModal from "@components/features/transactions/PayslipModal"
+
+// Sentinel `action` values for nav items that open a modal instead of
+// navigating. The href is kept (as a hash) so existing rendering still works.
+type NavAction = "payslip"
 
 interface NavItem {
   href: string
@@ -11,6 +16,7 @@ interface NavItem {
   description?: string
   adminOnly?: boolean
   aiOnly?: boolean
+  action?: NavAction
 }
 
 interface NavSection {
@@ -31,6 +37,16 @@ const navSections: NavSection[] = [
     ],
   },
   {
+    title: "Plan",
+    items: [
+      {
+        href: "/independence",
+        label: "Independence",
+        icon: "fa-umbrella-beach",
+      },
+    ],
+  },
+  {
     title: "Invest",
     items: [
       { href: "/rebalance/models", label: "Models", icon: "fa-balance-scale" },
@@ -44,19 +60,15 @@ const navSections: NavSection[] = [
     ],
   },
   {
-    title: "Plan",
-    items: [
-      {
-        href: "/independence",
-        label: "Independence",
-        icon: "fa-umbrella-beach",
-      },
-    ],
-  },
-  {
     title: "Tools",
     items: [
       { href: "/chat", label: "Chat", icon: "fa-robot", aiOnly: true },
+      {
+        href: "#enter-payslip",
+        label: "Enter Payslip",
+        icon: "fa-money-check-dollar",
+        action: "payslip",
+      },
       {
         href: "/tools/open-brokerage",
         label: "Open Brokerage",
@@ -70,6 +82,56 @@ const navSections: NavSection[] = [
       { href: "/fx", label: "FX Rates", icon: "fa-exchange-alt" },
       { href: "/fx/calculator", label: "FX Calculator", icon: "fa-calculator" },
       { href: "/tax-rates", label: "Tax Rates", icon: "fa-percent" },
+    ],
+  },
+  // Admin is a top-level section; every item is adminOnly so the whole
+  // section hides for non-admins (NavDropdown returns null on no items).
+  {
+    title: "Admin",
+    items: [
+      { href: "/admin", label: "Overview", icon: "fa-gauge", adminOnly: true },
+      {
+        href: "/admin/services",
+        label: "Services",
+        icon: "fa-server",
+        adminOnly: true,
+      },
+      {
+        href: "/admin/tasks",
+        label: "Tasks",
+        icon: "fa-list-check",
+        adminOnly: true,
+      },
+      {
+        href: "/admin/metrics",
+        label: "Metrics",
+        icon: "fa-chart-line",
+        adminOnly: true,
+      },
+      {
+        href: "/admin/loggers",
+        label: "Loggers",
+        icon: "fa-file-lines",
+        adminOnly: true,
+      },
+      {
+        href: "/admin/assets",
+        label: "Assets",
+        icon: "fa-gem",
+        adminOnly: true,
+      },
+      {
+        href: "/admin/accounting-types",
+        label: "Accounting Types",
+        icon: "fa-list",
+        adminOnly: true,
+      },
+      {
+        href: "/admin/scenarios",
+        label: "Scenarios",
+        icon: "fa-diagram-project",
+        adminOnly: true,
+      },
     ],
   },
 ]
@@ -87,6 +149,7 @@ const sectionColors: Record<string, { bg: string; text: string }> = {
   Invest: { bg: "bg-invest-50", text: "text-invest-700" },
   Plan: { bg: "bg-independence-50", text: "text-independence-700" },
   Tools: { bg: "bg-gray-50", text: "text-gray-700" },
+  Admin: { bg: "bg-gray-50", text: "text-gray-700" },
 }
 
 const defaultSectionColor = {
@@ -100,12 +163,14 @@ function DesktopDropdown({
   isAdmin,
   canRunAi,
   router,
+  onAction,
 }: {
   section: NavSection
   isAdmin: boolean
   canRunAi: boolean
   router: ReturnType<typeof useRouter>
-}): React.ReactElement {
+  onAction: (action: NavAction) => void
+}): React.ReactElement | null {
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const closeTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -147,6 +212,10 @@ function DesktopDropdown({
   const isActive = filteredItems.some((item) =>
     isActiveRoute(router.pathname, item.href),
   )
+
+  // Hide a section with nothing visible (e.g. the Admin section for
+  // non-admins) so we don't render an empty dropdown button.
+  if (filteredItems.length === 0) return null
 
   return (
     <div
@@ -190,22 +259,43 @@ function DesktopDropdown({
           {filteredItems.map((item) => {
             const active = isActiveRoute(router.pathname, item.href)
             const colors = sectionColors[section.title] || defaultSectionColor
+            const itemClass = `flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
+              active
+                ? `${colors.bg} ${colors.text} font-medium`
+                : "text-gray-700 hover:bg-gray-50"
+            }`
+            const itemIcon = (
+              <i
+                className={`fas ${item.icon} w-4 text-center text-xs ${
+                  active ? colors.text : "text-gray-400"
+                }`}
+              ></i>
+            )
+            if (item.action) {
+              const action = item.action
+              return (
+                <button
+                  key={item.href}
+                  type="button"
+                  onClick={() => {
+                    setIsOpen(false)
+                    onAction(action)
+                  }}
+                  className={`${itemClass} w-full text-left`}
+                >
+                  {itemIcon}
+                  {item.label}
+                </button>
+              )
+            }
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={() => setIsOpen(false)}
-                className={`flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
-                  active
-                    ? `${colors.bg} ${colors.text} font-medium`
-                    : "text-gray-700 hover:bg-gray-50"
-                }`}
+                className={itemClass}
               >
-                <i
-                  className={`fas ${item.icon} w-4 text-center text-xs ${
-                    active ? colors.text : "text-gray-400"
-                  }`}
-                ></i>
+                {itemIcon}
                 {item.label}
               </Link>
             )
@@ -221,8 +311,13 @@ function HeaderBrand(): React.ReactElement {
   const { user } = useUser()
   const { admin: isAdmin, ai: canRunAi } = usePermissions()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [payslipOpen, setPayslipOpen] = useState(false)
   const mobileMenuRef = useRef<HTMLDivElement>(null)
   const isAuthed = !!user
+
+  const openAction = useCallback((action: NavAction): void => {
+    if (action === "payslip") setPayslipOpen(true)
+  }, [])
 
   // Close mobile menu when clicking outside
   useEffect(() => {
@@ -327,21 +422,42 @@ function HeaderBrand(): React.ReactElement {
                         const active = isActiveRoute(router.pathname, item.href)
                         const colors =
                           sectionColors[section.title] || defaultSectionColor
+                        const itemClass = `flex items-center gap-2.5 px-3 py-2 transition-colors ${
+                          active
+                            ? `${colors.bg} ${colors.text} font-medium`
+                            : "text-gray-700 hover:bg-gray-50"
+                        }`
+                        const itemIcon = (
+                          <i
+                            className={`fas ${item.icon} w-4 text-center text-xs ${
+                              active ? colors.text : "text-gray-400"
+                            }`}
+                          ></i>
+                        )
+                        if (item.action) {
+                          const action = item.action
+                          return (
+                            <button
+                              key={item.href}
+                              type="button"
+                              onClick={() => {
+                                setMobileMenuOpen(false)
+                                openAction(action)
+                              }}
+                              className={`${itemClass} w-full text-left`}
+                            >
+                              {itemIcon}
+                              <span className="text-sm">{item.label}</span>
+                            </button>
+                          )
+                        }
                         return (
                           <Link
                             key={item.href}
                             href={item.href}
-                            className={`flex items-center gap-2.5 px-3 py-2 transition-colors ${
-                              active
-                                ? `${colors.bg} ${colors.text} font-medium`
-                                : "text-gray-700 hover:bg-gray-50"
-                            }`}
+                            className={itemClass}
                           >
-                            <i
-                              className={`fas ${item.icon} w-4 text-center text-xs ${
-                                active ? colors.text : "text-gray-400"
-                              }`}
-                            ></i>
+                            {itemIcon}
                             <span className="text-sm">{item.label}</span>
                           </Link>
                         )
@@ -382,9 +498,18 @@ function HeaderBrand(): React.ReactElement {
               isAdmin={isAdmin}
               canRunAi={canRunAi}
               router={router}
+              onAction={openAction}
             />
           ))}
         </nav>
+      )}
+
+      {/* Tools → Enter Payslip modal, rendered once for the whole header. */}
+      {isAuthed && (
+        <PayslipModal
+          modalOpen={payslipOpen}
+          onClose={() => setPayslipOpen(false)}
+        />
       )}
     </div>
   )

@@ -1,12 +1,24 @@
 import useSwr from "swr"
 import { simpleFetcher } from "@utils/api/fetchHelper"
 
+/**
+ * A single defined-contribution bucket (e.g. CPF OA / SA|RA / MA). `amount` is
+ * the TOTAL employee + employer contribution allocated to that bucket.
+ */
+export interface DefinedContributionBucket {
+  code: string
+  amount: number
+}
+
 export interface DefinedContributionResponse {
   employeeContribution: number
   employerContribution: number
   employeeRate: number
   cappedSalary: number
   hasDefinedContribution: boolean
+  // Per-bucket split of the total contribution. Empty when there is no
+  // defined-contribution scheme (e.g. no CPF). Codes: "OA", "SA"|"RA", "MA".
+  buckets?: DefinedContributionBucket[]
 }
 
 /**

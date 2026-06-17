@@ -3,6 +3,10 @@ import type { FiMetrics } from "types/independence"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import PensionGauge, { type PensionGaugeProps } from "./PensionGauge"
 import type { StrategyView } from "./strategyView"
+import {
+  RETIREMENT_PROGRESS_TOOLTIP,
+  RETIREMENT_PROGRESS_OFFTRACK_TOOLTIP,
+} from "@lib/independence/gaugeTooltips"
 
 export interface StrategyGaugesStripProps {
   /** Live FiMetrics from the latest projection. Undefined while calculating. */
@@ -23,6 +27,13 @@ export interface StrategyGaugesStripProps {
    * full strip. Used by the sticky ScenarioBar so the header stays compact.
    */
   singleHeadline?: boolean
+  /**
+   * Backend says the plan depletes before life expectancy. When set, the
+   * Retirement-Age FI gauge is caveated ("based on the 4% rule") so a high %
+   * can't read as success while the off-track header carries the real
+   * headline. Other gauges are unaffected.
+   */
+  offTrack?: boolean
 }
 
 /**
@@ -37,9 +48,13 @@ export default function StrategyGaugesStrip({
   compact = false,
   view = "ALL",
   singleHeadline = false,
+  offTrack = false,
 }: StrategyGaugesStripProps): React.ReactElement {
   const { hideValues } = usePrivacyMode()
-  const ordered = orderGauges(buildGauges(fiMetrics, hideValues), view)
+  const ordered = orderGauges(
+    buildGauges(fiMetrics, hideValues, offTrack, view),
+    view,
+  )
   const gauges = singleHeadline ? ordered.slice(0, 1) : ordered
 
   const containerClass = compact
@@ -63,7 +78,10 @@ export default function StrategyGaugesStrip({
  */
 const VIEW_HEADLINE_KEYS: Record<StrategyView, string[]> = {
   FIRE: ["coast-fi", "fire"],
-  PENSION: ["retirement-age-fi", "coast-fi", "fire"],
+  // Pensions have no FI — the meaningful progress is how much of retirement
+  // expenses guaranteed income covers. Fall back to retirement-age FI when
+  // income coverage isn't available.
+  PENSION: ["income-coverage", "retirement-age-fi", "coast-fi", "fire"],
   HYBRID: ["bridge", "coast-fi", "fire"],
   ALL: ["coast-fi", "fire"],
 }
@@ -88,6 +106,8 @@ function orderGauges(
 function buildGauges(
   fi: FiMetrics | undefined,
   hideValues: boolean,
+  offTrack: boolean,
+  view: StrategyView,
 ): PensionGaugeProps[] {
   const fiProgress = fi?.fiProgress ?? 0
   const out: PensionGaugeProps[] = [
@@ -122,9 +142,10 @@ function buildGauges(
   if (fi?.retirementAgeFiProgress != null) {
     out.push({
       key: "retirement-age-fi",
-      label: "Retirement-Age FI",
-      tooltip:
-        "Liquid plus the present value of your guaranteed pension income, compared to your FI Number.",
+      label: "Retirement-Age Progress",
+      tooltip: offTrack
+        ? RETIREMENT_PROGRESS_OFFTRACK_TOOLTIP
+        : RETIREMENT_PROGRESS_TOOLTIP,
       value: fi.retirementAgeFiProgress,
       hideValues,
       format: (v) => `${v.toFixed(1)}%`,
@@ -134,9 +155,11 @@ function buildGauges(
   if (fi?.incomeCoverageAtRetirement != null) {
     out.push({
       key: "income-coverage",
-      label: "Income Coverage",
+      // In the Pension view this gauge is the headline: a pension has no FI, so
+      // the meaningful progress is how much of expenses guaranteed income covers.
+      label: view === "PENSION" ? "Pension Progress" : "Income Coverage",
       tooltip:
-        "Share of monthly expenses covered by guaranteed income (pension, social security, other) at retirement age.",
+        "Share of your retirement expenses covered by your guaranteed income (pension, social security, etc.) at retirement age.",
       value: fi.incomeCoverageAtRetirement,
       hideValues,
       format: (v) => `${v.toFixed(1)}%`,

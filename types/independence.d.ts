@@ -661,6 +661,55 @@ export interface Finding {
   detail: string
 }
 
+/**
+ * Inflation treatment for a single income stream within a projection.
+ * `inflationIndexed: true` => the stream rises with inflation each year.
+ * `false` => the stream is a FIXED nominal amount (e.g. most employer
+ * pensions) and does NOT keep pace with inflation in future dollars.
+ */
+export interface IncomeStreamBasis {
+  /** Stream identifier, e.g. "pension", "socialSecurity", "rentalIncome". */
+  key: string
+  /** True when the stream is inflation-indexed; false when fixed nominal. */
+  inflationIndexed: boolean
+}
+
+/**
+ * Describes the value basis of a projection so the UI can tell users
+ * whether figures are in today's or future (nominal) dollars, and which
+ * income streams keep pace with inflation. Backend-driven — the frontend
+ * must NOT re-derive indexation from its own assumptions.
+ */
+export interface ValueBasis {
+  /** e.g. "NOMINAL_FUTURE" — all balances/expenses are inflated future dollars. */
+  balanceBasis: string
+  /** Per-stream inflation treatment. */
+  incomeStreams: IncomeStreamBasis[]
+}
+
+/**
+ * Off-track diagnostic block returned by svc-retire ONLY when the plan's money
+ * runs out before life expectancy. Describes what it would take — extra monthly
+ * contribution OR a higher return rate — to carry the plan all the way to
+ * `targetAge`. Null/absent when the plan is on-track.
+ *
+ * All amounts are in the plan currency (`projection.currency`). A null lever
+ * means the solver could not find a value within its bounds (unsolvable).
+ * Return rates are DECIMALS (e.g. 0.0432 = 4.32%).
+ */
+export interface PathToHorizon {
+  /** Age the plan must last to — equals life expectancy (e.g. 90). */
+  targetAge: number
+  /** Current monthly contribution, plan currency. */
+  currentMonthlyContribution: number
+  /** Monthly contribution needed to reach targetAge; null = unsolvable. */
+  requiredMonthlyContribution: number | null
+  /** Current blended return rate as a decimal (e.g. 0.015 = 1.5%). */
+  currentReturnRate: number
+  /** Return rate needed to reach targetAge as a decimal; null = unsolvable. */
+  requiredReturnRate: number | null
+}
+
 export interface RetirementProjection {
   planId: string
   asOfDate: string
@@ -745,6 +794,18 @@ export interface RetirementProjection {
    * plan projection used the plan owner's data rather than the viewer's.
    */
   debug?: ProjectionDebug
+  /**
+   * Value basis of the projection: whether figures are nominal/future and
+   * which income streams are inflation-indexed. Optional — older backend
+   * responses omit it, in which case the UI falls back to known defaults.
+   */
+  valueBasis?: ValueBasis
+  /**
+   * Off-track path to life expectancy. Present ONLY when the plan's money runs
+   * out before life expectancy; null/absent when on-track. Tells the user what
+   * extra contribution OR return rate would carry the plan to `targetAge`.
+   */
+  pathToHorizon?: PathToHorizon | null
 }
 
 export interface ProjectionResponse {

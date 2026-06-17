@@ -650,6 +650,7 @@ export default function TimelineTabContent({
               }),
             ]
           })()}
+          valueBasis={projection.valueBasis}
           embedded
         />
       </CollapsibleSection>
