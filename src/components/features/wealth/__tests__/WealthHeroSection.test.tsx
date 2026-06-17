@@ -2,8 +2,9 @@ import React from "react"
 import { render, screen, RenderResult } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import WealthHeroSection from "../WealthHeroSection"
-import { USD } from "@test-fixtures/beancounter"
+import { USD, makePortfolio } from "@test-fixtures/beancounter"
 import { WealthSummary } from "@lib/wealth/liquidityGroups"
+import { Portfolio } from "types/beancounter"
 
 jest.mock("@hooks/usePrivacyMode", () => ({
   usePrivacyMode: () => ({ hideValues: false }),
@@ -21,13 +22,16 @@ function makeSummary(overrides: Partial<WealthSummary> = {}): WealthSummary {
   }
 }
 
-function renderHero(summary: WealthSummary): RenderResult {
+function renderHero(
+  summary: WealthSummary,
+  portfolios: Portfolio[] = [],
+): RenderResult {
   return render(
     <WealthHeroSection
       summary={summary}
       displayCurrency={USD}
       currencies={[USD]}
-      portfolios={[]}
+      portfolios={portfolios}
       onCurrencyChange={() => {}}
       onShareClick={() => {}}
     />,
@@ -69,6 +73,26 @@ describe("WealthHeroSection — today's gain percent", () => {
     renderHero(makeSummary({ totalValue: 500, totalGainOnDay: 500 }))
     expect(screen.queryByText(/%/)).not.toBeInTheDocument()
     expect(screen.getByText(/today/)).toBeInTheDocument()
+  })
+})
+
+describe("WealthHeroSection — net worth links to aggregate holdings", () => {
+  it("links the net worth figure to the aggregated holdings view", () => {
+    renderHero(makeSummary({ totalValue: 100_000 }))
+    const link = screen.getByTitle(/holdings contributing to your net worth/i)
+    expect(link).toHaveAttribute("href", "/holdings/aggregated")
+  })
+
+  it("passes the contributing portfolio codes when portfolios are present", () => {
+    renderHero(makeSummary({ totalValue: 100_000, portfolioCount: 2 }), [
+      makePortfolio({ code: "ALPHA" }),
+      makePortfolio({ code: "BETA" }),
+    ])
+    const link = screen.getByTitle(/holdings contributing to your net worth/i)
+    expect(link).toHaveAttribute(
+      "href",
+      "/holdings/aggregated?codes=ALPHA%2CBETA",
+    )
   })
 })
 

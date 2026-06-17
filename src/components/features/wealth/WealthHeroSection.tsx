@@ -24,6 +24,17 @@ const WealthHeroSection: React.FC<WealthHeroSectionProps> = ({
 }) => {
   const { hideValues } = usePrivacyMode()
 
+  // Net worth is the sum across every contributing portfolio — clicking it
+  // drills into the aggregated holdings of exactly those portfolios. Pass the
+  // codes explicitly so the drill-down matches the wealth total even if the
+  // backend's notion of "all portfolios" ever diverges from this view's set.
+  const aggregateHref =
+    portfolios.length > 0
+      ? `/holdings/aggregated?codes=${encodeURIComponent(
+          portfolios.map((p) => p.code).join(","),
+        )}`
+      : "/holdings/aggregated"
+
   return (
     <div className="bg-linear-to-br from-blue-500 to-blue-700 rounded-2xl shadow-xl mb-8 overflow-hidden">
       {/* Title */}
@@ -34,10 +45,14 @@ const WealthHeroSection: React.FC<WealthHeroSectionProps> = ({
       {/* Total value + currency selector */}
       <div className="px-8">
         <div className="flex items-baseline gap-3 flex-wrap">
-          <span className="text-4xl sm:text-5xl font-bold text-white tracking-tight tabular-nums">
+          <Link
+            href={aggregateHref}
+            title="View all holdings contributing to your net worth"
+            className="text-4xl sm:text-5xl font-bold text-white tracking-tight tabular-nums rounded transition-colors hover:text-white/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+          >
             {displayCurrency?.symbol}
             <FormatValue value={summary.totalValue} />
-          </span>
+          </Link>
           {currencies.length > 0 && displayCurrency && (
             <select
               value={displayCurrency.code}
