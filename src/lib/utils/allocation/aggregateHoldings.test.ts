@@ -1,6 +1,9 @@
 import { HoldingContract } from "types/beancounter"
 import { ValueIn } from "@components/features/holdings/GroupByOptions"
-import { transformToAllocationSlices } from "./aggregateHoldings"
+import {
+  transformToAllocationSlices,
+  transformFxAllocationSlices,
+} from "./aggregateHoldings"
 import testHoldings from "../holdings/__fixtures__/test-holdings.json"
 
 describe("transformToAllocationSlices", () => {
@@ -207,6 +210,66 @@ describe("transformToAllocationSlices", () => {
 
       const cash = result.find((s) => s.key === "Cash")
       expect(cash?.color).toBe("#6B7280") // gray
+    })
+  })
+
+  describe("transformFxAllocationSlices", () => {
+    it("matches BASE valueIn slices at unit FX rate", () => {
+      const fx = transformFxAllocationSlices(holdingContract, "category", {
+        USD: 1,
+      })
+      const base = transformToAllocationSlices(
+        holdingContract,
+        "category",
+        ValueIn.BASE,
+      )
+
+      expect(fx.map((s) => s.key)).toEqual(base.map((s) => s.key))
+      fx.forEach((slice, i) => {
+        expect(slice.value).toBeCloseTo(base[i].value, 2)
+      })
+    })
+
+    it("applies per-currency FX rate to market values", () => {
+      const fx = transformFxAllocationSlices(holdingContract, "category", {
+        USD: 2,
+      })
+
+      // All positions are USD in the fixture → every value doubles.
+      const cash = fx.find((s) => s.key === "Cash")
+      expect(cash?.value).toBeCloseTo(5741.0 * 2, 2)
+
+      // Percentages are rate-invariant.
+      const percentSum = fx.reduce((sum, s) => sum + s.percentage, 0)
+      expect(percentSum).toBeCloseTo(100, 1)
+    })
+
+    it("defaults to a rate of 1 for currencies missing from the map", () => {
+      const withRate = transformFxAllocationSlices(holdingContract, "asset", {
+        USD: 1,
+      })
+      const noRate = transformFxAllocationSlices(holdingContract, "asset", {})
+
+      withRate.forEach((slice, i) => {
+        expect(slice.value).toBeCloseTo(noRate[i].value, 2)
+      })
+    })
+
+    it("suppresses zero-value holdings", () => {
+      const fx = transformFxAllocationSlices(holdingContract, "asset", {
+        USD: 1,
+      })
+
+      // SMH is held at 0 value in the fixture — it must not appear.
+      expect(fx.map((s) => s.key)).not.toContain("SMH")
+      fx.forEach((slice) => expect(slice.value).not.toBe(0))
+    })
+
+    it("returns [] for holdings with no positions", () => {
+      const empty: HoldingContract = { ...holdingContract, positions: {} }
+      expect(
+        transformFxAllocationSlices(empty, "category", { USD: 1 }),
+      ).toEqual([])
     })
   })
 

@@ -153,6 +153,76 @@ export function transformToAllocationSlices(
 }
 
 /**
+ * FX-aware variant of {@link transformToAllocationSlices} for the Net Worth
+ * (wealth) view, where positions span multiple base currencies. Values are
+ * taken from each position's BASE money values and converted to the display
+ * currency via `fxRates[baseCurrencyCode]` — the same per-position rule
+ * `useWealthSummary` applies — so the grouped allocation reconciles with the
+ * rest of the wealth page rather than mixing raw currencies.
+ */
+export function transformFxAllocationSlices(
+  holdingContract: HoldingContract,
+  groupBy: GroupingMode,
+  fxRates: Record<string, number>,
+): AllocationSlice[] {
+  if (!holdingContract.positions) {
+    return []
+  }
+
+  const aggregated = new Map<string, AggregatedData>()
+
+  for (const positionKey of Object.keys(holdingContract.positions)) {
+    const position = holdingContract.positions[positionKey]
+    const moneyValues = position.moneyValues?.BASE
+    if (!moneyValues) continue
+
+    const currency = moneyValues.currency?.code
+    const rate = currency ? fxRates[currency] || 1 : 1
+    const { key, label } = getGroupKey(position, groupBy)
+    const marketValue = (moneyValues.marketValue || 0) * rate
+    const gainOnDay = (moneyValues.gainOnDay || 0) * rate
+    const irr = moneyValues.irr || 0
+
+    const existing = aggregated.get(key)
+    if (existing) {
+      existing.value += marketValue
+      existing.gainOnDay += gainOnDay
+      existing.weightedIrrSum += marketValue * irr
+    } else {
+      aggregated.set(key, {
+        label,
+        value: marketValue,
+        gainOnDay,
+        weightedIrrSum: marketValue * irr,
+      })
+    }
+  }
+
+  const entries = Array.from(aggregated.entries())
+  const total = entries.reduce((sum, [, data]) => sum + data.value, 0)
+  if (total === 0) {
+    return []
+  }
+
+  // Suppress zero-value holdings (e.g. fully-exited positions) — they add
+  // noise to the legend and render as invisible slices.
+  const slices: AllocationSlice[] = entries
+    .filter(([, data]) => data.value !== 0)
+    .map(([key, data], index) => ({
+      key,
+      label: data.label,
+      value: data.value,
+      percentage: (data.value / total) * 100,
+      color: getColor(key, index),
+      gainOnDay: data.gainOnDay,
+      irr: data.value > 0 ? data.weightedIrrSum / data.value : 0,
+    }))
+
+  slices.sort((a, b) => b.value - a.value)
+  return slices
+}
+
+/**
  * Build chart slices from svc-retire's server-side asset breakdown. Used by
  * the Independence plan page so composite assets (CPF / ILP / generic
  * pensions) appear alongside portfolio categories without bc-view having to
