@@ -191,12 +191,28 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
     [dc?.buckets, bucketOverrides],
   )
 
+  // Best "Pay into" match for the user's reporting currency. Preference order
+  // mirrors the dropdown: private accounts (bank, then brokerage) before a
+  // generic currency balance.
+  const reportingCurrency = preferences?.reportingCurrencyCode ?? "USD"
+  const preferredCashAssetId = useMemo(() => {
+    const match = [...accountOptions, ...cashOptions].find(
+      (o) => o.currency === reportingCurrency,
+    )
+    return match?.value ?? ""
+  }, [accountOptions, cashOptions, reportingCurrency])
+
+  // Derived selection: the user's explicit pick, else the reporting-currency
+  // default. Derived (not effect-set) so the React Compiler is happy and the
+  // default appears the moment the account lists load.
+  const effectiveCashAssetId = cashAssetId || preferredCashAssetId
+
   const selectedCashCurrency = useMemo(() => {
     const opt = [...cashOptions, ...accountOptions].find(
-      (o) => o.value === cashAssetId,
+      (o) => o.value === effectiveCashAssetId,
     )
     return opt?.currency ?? ""
-  }, [cashOptions, accountOptions, cashAssetId])
+  }, [cashOptions, accountOptions, effectiveCashAssetId])
 
   const buildPayload = (): PayslipPayload =>
     buildPayslipPayload({
@@ -204,14 +220,14 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
       tradeDate: todayIso(),
       grossSalary: grossNum,
       tax: parseNum(tax),
-      cashAssetId,
+      cashAssetId: effectiveCashAssetId,
       cashCurrency: selectedCashCurrency,
       cpfAssetId: showPension ? cpfConfig?.assetId : undefined,
       employeeContribution: showPension ? dc?.employeeContribution : undefined,
       buckets: showPension ? effectiveBuckets : undefined,
     })
 
-  const canSubmit = grossNum > 0 && !!portfolioId && !!cashAssetId
+  const canSubmit = grossNum > 0 && !!portfolioId && !!effectiveCashAssetId
 
   const handleSave = async (): Promise<void> => {
     if (!canSubmit) return
@@ -239,7 +255,7 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             defaultPayslipPortfolioId: portfolioId,
-            defaultPayslipCashAssetId: cashAssetId,
+            defaultPayslipCashAssetId: effectiveCashAssetId,
           }),
         })
       } catch {
@@ -348,7 +364,7 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
         </label>
         <select
           id="payslip-cash-asset"
-          value={cashAssetId}
+          value={effectiveCashAssetId}
           onChange={(e) => setCashAssetId(e.target.value)}
           className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border bg-white"
         >

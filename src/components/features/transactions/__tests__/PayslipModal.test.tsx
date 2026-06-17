@@ -62,9 +62,10 @@ const mockPreferences = {
   preferences: {
     id: "u1",
     yearOfBirth: 1985,
+    reportingCurrencyCode: "USD",
     defaultPayslipPortfolioId: "pf-1",
     defaultPayslipCashAssetId: "cash-sgd",
-  },
+  } as Record<string, unknown>,
   isLoading: false,
   refetch: jest.fn(),
 }
@@ -121,6 +122,25 @@ describe("PayslipModal", () => {
     // Named private accounts now offered (bank + brokerage cash)
     expect(labels).toContain("DBS Savings (SGD)")
     expect(labels).toContain("Wise USD (USD)")
+  })
+
+  it("defaults Pay into to the reporting-currency account when no saved pref", () => {
+    const prev = mockPreferences.preferences
+    mockPreferences.preferences = {
+      ...prev,
+      defaultPayslipCashAssetId: undefined,
+      reportingCurrencyCode: "SGD",
+    }
+    try {
+      render(<PayslipModal modalOpen onClose={jest.fn()} />)
+      // Reporting currency SGD → the SGD bank account is preferred over the
+      // generic SGD cash balance.
+      expect(
+        (screen.getByLabelText("Pay into") as HTMLSelectElement).value,
+      ).toBe("dbs-sgd")
+    } finally {
+      mockPreferences.preferences = prev
+    }
   })
 
   it("hides the pension section when there is no CPF asset", () => {
