@@ -17,6 +17,28 @@ const mockCash = {
     },
   ],
 }
+const mockTradeAccounts = {
+  data: [
+    {
+      id: "wise-usd",
+      code: "WISE",
+      name: "Wise USD",
+      priceSymbol: "USD",
+      market: { code: "US", currency: { code: "USD" } },
+    },
+  ],
+}
+const mockBankAccounts = {
+  data: [
+    {
+      id: "dbs-sgd",
+      code: "DBS",
+      name: "DBS Savings",
+      priceSymbol: "SGD",
+      market: { code: "SG", currency: { code: "SGD" } },
+    },
+  ],
+}
 
 // Synchronous SWR: route by key substring.
 jest.mock("swr", () => ({
@@ -25,6 +47,10 @@ jest.mock("swr", () => ({
     if (!key) return { data: undefined, error: undefined, isLoading: false }
     if (key.includes("portfolios"))
       return { data: mockPortfolios, error: undefined, isLoading: false }
+    if (key.includes("category=TRADE"))
+      return { data: mockTradeAccounts, error: undefined, isLoading: false }
+    if (key.includes("category=ACCOUNT"))
+      return { data: mockBankAccounts, error: undefined, isLoading: false }
     if (key.includes("cash"))
       return { data: mockCash, error: undefined, isLoading: false }
     return { data: { data: [] }, error: undefined, isLoading: false }
@@ -82,6 +108,19 @@ describe("PayslipModal", () => {
     expect(screen.getByLabelText("Portfolio")).toBeInTheDocument()
     expect(screen.getByLabelText("Pay into")).toBeInTheDocument()
     expect(screen.getByLabelText("Tax deducted")).toBeInTheDocument()
+  })
+
+  it("lists private TRADE/ACCOUNT accounts in Pay into, not just cash balances", () => {
+    render(<PayslipModal modalOpen onClose={jest.fn()} />)
+    const payInto = screen.getByLabelText("Pay into")
+    const labels = Array.from(payInto.querySelectorAll("option")).map(
+      (o) => o.textContent,
+    )
+    // Generic cash balance still present
+    expect(labels).toContain("SGD Cash")
+    // Named private accounts now offered (bank + brokerage cash)
+    expect(labels).toContain("DBS Savings (SGD)")
+    expect(labels).toContain("Wise USD (USD)")
   })
 
   it("hides the pension section when there is no CPF asset", () => {

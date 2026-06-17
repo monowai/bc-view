@@ -4,12 +4,17 @@ import Dialog from "@components/ui/Dialog"
 import MathInput from "@components/ui/MathInput"
 import { Asset, Portfolio } from "types/beancounter"
 import {
+  accountsKey,
   cashKey,
   holdingKey,
   portfoliosKey,
   simpleFetcher,
+  tradeAccountsKey,
 } from "@utils/api/fetchHelper"
-import { toCashAssetOptions } from "@components/features/transactions/SettlementAccountSelect"
+import {
+  toCashAssetOptions,
+  toSettlementAccountOptions,
+} from "@components/features/transactions/SettlementAccountSelect"
 import { usePrivateAssetConfigs } from "@lib/assets/usePrivateAssetConfigs"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import {
@@ -34,6 +39,12 @@ const formatAmount = (n: number): string =>
 const parseNum = (s: string): number => {
   const n = parseFloat(s)
   return isNaN(n) ? 0 : n
+}
+
+// SWR payloads arrive as either an array or a keyed object; normalise to array.
+const toAssetArray = (raw: unknown): Asset[] => {
+  if (!raw) return []
+  return Array.isArray(raw) ? raw : (Object.values(raw) as Asset[])
 }
 
 /**
@@ -72,19 +83,47 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
     modalOpen ? cashKey : null,
     simpleFetcher(cashKey),
   )
+  // Private cash-bearing assets held across the account: TRADE (brokerage cash)
+  // and ACCOUNT (bank) categories. Mirrors trade-settlement so "Pay into" can
+  // target a named private account, not just a generic currency balance.
+  const { data: tradeAccountsData } = useSWR(
+    modalOpen ? tradeAccountsKey : null,
+    simpleFetcher(tradeAccountsKey),
+  )
+  const { data: bankAccountsData } = useSWR(
+    modalOpen ? accountsKey : null,
+    simpleFetcher(accountsKey),
+  )
 
   const portfolios: Portfolio[] = useMemo(
     () => portfoliosData?.data ?? [],
     [portfoliosData],
   )
-  const cashAssets: Asset[] = useMemo(() => {
-    const raw = cashData?.data
-    if (!raw) return []
-    return Array.isArray(raw) ? raw : (Object.values(raw) as Asset[])
-  }, [cashData])
+  const cashAssets: Asset[] = useMemo(
+    () => toAssetArray(cashData?.data),
+    [cashData],
+  )
+  const tradeAccounts: Asset[] = useMemo(
+    () => toAssetArray(tradeAccountsData?.data),
+    [tradeAccountsData],
+  )
+  const bankAccounts: Asset[] = useMemo(
+    () => toAssetArray(bankAccountsData?.data),
+    [bankAccountsData],
+  )
+
+  // Generic currency balances (CASH market) shown as one group...
   const cashOptions = useMemo(
     () => toCashAssetOptions(cashAssets),
     [cashAssets],
+  )
+  // ...and named private accounts (bank first, then brokerage) as another.
+  const accountOptions = useMemo(
+    () => [
+      ...toSettlementAccountOptions(bankAccounts),
+      ...toSettlementAccountOptions(tradeAccounts),
+    ],
+    [bankAccounts, tradeAccounts],
   )
 
   // The user's CPF policy asset, if any.
@@ -153,9 +192,11 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
   )
 
   const selectedCashCurrency = useMemo(() => {
-    const opt = cashOptions.find((o) => o.value === cashAssetId)
+    const opt = [...cashOptions, ...accountOptions].find(
+      (o) => o.value === cashAssetId,
+    )
     return opt?.currency ?? ""
-  }, [cashOptions, cashAssetId])
+  }, [cashOptions, accountOptions, cashAssetId])
 
   const buildPayload = (): PayslipPayload =>
     buildPayslipPayload({
@@ -312,11 +353,24 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
           className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border bg-white"
         >
           <option value="">{"Select a cash account..."}</option>
-          {cashOptions.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
+          {accountOptions.length > 0 && (
+            <optgroup label="Accounts">
+              {accountOptions.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </optgroup>
+          )}
+          {cashOptions.length > 0 && (
+            <optgroup label="Cash balances">
+              {cashOptions.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </optgroup>
+          )}
         </select>
       </div>
 
