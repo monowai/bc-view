@@ -89,6 +89,10 @@ export const assetKey = (assetId: string): string =>
   `${apiRoot}/assets/${assetId}`
 export const tradeKey = (portfolioId: string, assetId: string): string =>
   `${trnsKey}/trades/${portfolioId}/${assetId}`
+export const tradeKeyMulti = (
+  assetId: string,
+  portfolioIds: string[],
+): string => `${trnsKey}/trades/${assetId}?portfolios=${portfolioIds.join(",")}`
 export const eventKey = (portfolioId: string, assetId: string): string =>
   `${trnsKey}/events/${portfolioId}/${assetId}`
 

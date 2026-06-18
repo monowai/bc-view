@@ -21,6 +21,7 @@ import {
 } from "@components/ui/MoneyUtils"
 import {
   buildTradesHref,
+  buildAggregatedTradesHref,
   getPositionDisplayName,
   isCash,
   isCashRelated,
@@ -64,6 +65,7 @@ interface RowsProps extends HoldingValues {
   onPriceChart?: (data: PriceChartData) => void
   onPortfolioBreakdown?: (data: PortfolioBreakdownData) => void
   onEditAsset?: (asset: Asset) => void
+  onGoToPortfolio?: (asset: Asset) => void
 }
 
 // Helper function to truncate text with ellipsis
@@ -95,6 +97,7 @@ export default function Rows({
   onPriceChart,
   onPortfolioBreakdown,
   onEditAsset,
+  onGoToPortfolio,
 }: RowsProps): React.ReactElement {
   const router = useRouter()
   const { popup: newsPopup, showNews } = useNewsAsset()
@@ -148,7 +151,14 @@ export default function Rows({
             onDoubleClick={() =>
               supportsBalanceSetting(asset)
                 ? router.push(`/trns/cash-ladder/${portfolio.id}/${asset.id}`)
-                : router.push(buildTradesHref(portfolio.id, asset.id))
+                : portfolioBreakdown && portfolioBreakdown.length > 0
+                  ? router.push(
+                      buildAggregatedTradesHref(
+                        asset.id,
+                        portfolioBreakdown.map((b) => b.portfolioId),
+                      ),
+                    )
+                  : router.push(buildTradesHref(portfolio.id, asset.id))
             }
             title={"Double-click to open"}
           >
@@ -189,7 +199,8 @@ export default function Rows({
                     isConstantPrice(asset)) ||
                   (asset.assetCategory?.id === "RE" &&
                     (onRecordIncome || onRecordExpense)) ||
-                  onEditAsset) ? (
+                  onEditAsset ||
+                  onGoToPortfolio) ? (
                   <div className="flex items-center">
                     <ActionsMenu
                       asset={asset}
@@ -224,6 +235,7 @@ export default function Rows({
                       onRecordIncome={onRecordIncome}
                       onRecordExpense={onRecordExpense}
                       onEditAsset={onEditAsset}
+                      onGoToPortfolio={onGoToPortfolio}
                     />
                   </div>
                 ) : null}
@@ -233,6 +245,7 @@ export default function Rows({
                     onCashTransaction ||
                     onRecordIncome ||
                     onRecordExpense ||
+                    onGoToPortfolio ||
                     (onEditAsset && asset.market?.code === "PRIVATE")) && (
                     <div className="flex items-center">
                       <CashActionsMenu
@@ -248,6 +261,7 @@ export default function Rows({
                         onRecordIncome={onRecordIncome}
                         onRecordExpense={onRecordExpense}
                         onEditAsset={onEditAsset}
+                        onGoToPortfolio={onGoToPortfolio}
                       />
                     </div>
                   )}

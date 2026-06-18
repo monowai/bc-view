@@ -18,6 +18,7 @@ import {
 import { FormatValue, PrivateQuantity } from "@components/ui/MoneyUtils"
 import {
   buildTradesHref,
+  buildAggregatedTradesHref,
   getPositionDisplayName,
   isCashRelated,
   isConstantPrice,
@@ -54,6 +55,7 @@ interface SharedActionHandlers {
   onPriceChart?: (data: PriceChartData) => void
   onPortfolioBreakdown?: (data: PortfolioBreakdownData) => void
   onEditAsset?: (asset: Asset) => void
+  onGoToPortfolio?: (asset: Asset) => void
 }
 
 interface CardViewProps extends SharedActionHandlers {
@@ -279,6 +281,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
   onPriceChart,
   onPortfolioBreakdown,
   onEditAsset,
+  onGoToPortfolio,
 }) => {
   const router = useRouter()
   const { popup, showNews } = useNewsAsset()
@@ -304,7 +307,13 @@ const PositionCard: React.FC<PositionCardProps> = ({
   const hasDistinctName = name.length > 0 && name !== asset.code
   const truncatedName = name.length > 30 ? name.substring(0, 30) + "..." : name
 
-  const tradesHref = buildTradesHref(portfolio.id, asset.id)
+  const tradesHref =
+    portfolioBreakdown && portfolioBreakdown.length > 0
+      ? buildAggregatedTradesHref(
+          asset.id,
+          portfolioBreakdown.map((b) => b.portfolioId),
+        )
+      : buildTradesHref(portfolio.id, asset.id)
   const cashLadderHref = `/trns/cash-ladder/${portfolio.id}/${asset.id}`
 
   const hasActions =
@@ -323,7 +332,8 @@ const PositionCard: React.FC<PositionCardProps> = ({
       (!!onSectorWeightings && asset.assetCategory?.id === "ETF") ||
       (asset.assetCategory?.id === "RE" &&
         (!!onRecordIncome || !!onRecordExpense)) ||
-      !!onEditAsset)
+      !!onEditAsset ||
+      !!onGoToPortfolio)
 
   const hasCashActions =
     supportsBalanceSetting(asset) &&
@@ -332,6 +342,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
       !!onCashTransaction ||
       !!onRecordIncome ||
       !!onRecordExpense ||
+      !!onGoToPortfolio ||
       (!!onEditAsset && asset.market?.code === "PRIVATE"))
 
   const tradeMoney = moneyValues["TRADE"]
@@ -365,6 +376,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
             onRecordIncome={onRecordIncome}
             onRecordExpense={onRecordExpense}
             onEditAsset={onEditAsset}
+            onGoToPortfolio={onGoToPortfolio}
           />
         )}
         {hasCashActions && (
@@ -376,6 +388,7 @@ const PositionCard: React.FC<PositionCardProps> = ({
             onRecordIncome={onRecordIncome}
             onRecordExpense={onRecordExpense}
             onEditAsset={onEditAsset}
+            onGoToPortfolio={onGoToPortfolio}
             onSetCashBalance={onSetCashBalance}
             onCashTransfer={onCashTransfer}
             onCashTransaction={onCashTransaction}
@@ -528,6 +541,7 @@ const CardView: React.FC<CardViewProps> = ({
   onPriceChart,
   onPortfolioBreakdown,
   onEditAsset,
+  onGoToPortfolio,
 }) => {
   // Group positions by holdingGroups, sorted by group comparator
   const groupedPositions = useMemo((): GroupedPositions[] => {
@@ -778,6 +792,7 @@ const CardView: React.FC<CardViewProps> = ({
                     onPriceChart={onPriceChart}
                     onPortfolioBreakdown={onPortfolioBreakdown}
                     onEditAsset={onEditAsset}
+                    onGoToPortfolio={onGoToPortfolio}
                   />
                 ))}
               </div>

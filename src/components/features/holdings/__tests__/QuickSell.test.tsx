@@ -104,6 +104,7 @@ describe("Quick Sell Feature via Actions Menu", () => {
       // holdings/[code].tsx) applies `type: "BUY"`.
       expect(mockOnTrade).toHaveBeenCalledWith({
         asset: "AAPL",
+        assetId: "asset-AAPL",
         market: "NASDAQ",
         quantity: 100,
         price: 150,
@@ -189,6 +190,7 @@ describe("Quick Sell Feature via Actions Menu", () => {
       expect(mockOnQuickSell).toHaveBeenCalledTimes(1)
       expect(mockOnQuickSell).toHaveBeenCalledWith({
         asset: "AAPL",
+        assetId: "asset-AAPL",
         market: "NASDAQ",
         quantity: 100,
         price: 150,

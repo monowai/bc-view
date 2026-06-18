@@ -6,16 +6,30 @@ import {
 import { useRouter } from "next/router"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import useSwr from "swr"
-import { simpleFetcher } from "@utils/api/fetchHelper"
+import { simpleFetcher, portfoliosKey } from "@utils/api/fetchHelper"
 import { errorOut } from "@components/errors/ErrorOut"
 import { useHoldingState } from "@lib/holdings/holdingState"
 import { useHoldingsView } from "@lib/holdings/useHoldingsView"
+import {
+  indexBreakdownByAssetId,
+  resolveTarget,
+} from "@lib/holdings/aggregatedActions"
 import HoldingsHeader from "@components/features/holdings/HoldingsHeader"
 import HoldingMenu from "@components/features/holdings/HoldingMenu"
 import Rows from "@components/features/holdings/Rows"
 import PriceChartPopup from "@components/features/holdings/PriceChartPopup"
 import PortfolioBreakdownPopup from "@components/features/holdings/PortfolioBreakdownPopup"
-import { PortfolioBreakdownData, PriceChartData } from "types/beancounter"
+import SetCashBalanceDialog from "@components/features/holdings/SetCashBalanceDialog"
+import TradeInputForm from "@components/features/transactions/TradeInputForm"
+import {
+  Asset,
+  Portfolio,
+  PortfolioBreakdown,
+  PortfolioBreakdownData,
+  PriceChartData,
+  QuickSellData,
+  SetCashBalanceData,
+} from "types/beancounter"
 import SubTotal from "@components/features/holdings/SubTotal"
 import Header from "@components/features/holdings/Header"
 import GrandTotal from "@components/features/holdings/GrandTotal"
@@ -289,6 +303,156 @@ function AggregatedHoldingsPage(): React.ReactElement {
     setPortfolioBreakdownData(undefined)
   }, [])
 
+  // --- Aggregated trading -------------------------------------------------
+  // The aggregated context portfolio is synthetic, so actions must target a
+  // real portfolio. We resolve it from each asset's portfolioBreakdown: act
+  // directly when held in one, prompt to choose when held in several.
+  const { data: portfoliosData } = useSwr<{ data: Portfolio[] }>(
+    portfoliosKey,
+    simpleFetcher(portfoliosKey),
+  )
+  const portfolioById = useMemo(() => {
+    const map = new Map<string, Portfolio>()
+    for (const p of portfoliosData?.data ?? []) map.set(p.id, p)
+    return map
+  }, [portfoliosData])
+
+  const breakdownByAssetId = useMemo(
+    () => indexBreakdownByAssetId(holdings?.holdingGroups ?? {}),
+    [holdings],
+  )
+  const assetById = useMemo(() => {
+    const map = new Map<string, Asset>()
+    for (const group of Object.values(holdings?.holdingGroups ?? {})) {
+      for (const pos of group.positions) map.set(pos.asset.id, pos.asset)
+    }
+    return map
+  }, [holdings])
+
+  // Trade modal bound to the resolved portfolio
+  const [tradePortfolio, setTradePortfolio] = useState<Portfolio | undefined>(
+    undefined,
+  )
+  const [quickSellData, setQuickSellData] = useState<QuickSellData | undefined>(
+    undefined,
+  )
+  // Set-balance dialog bound to the resolved portfolio
+  const [cashPortfolio, setCashPortfolio] = useState<Portfolio | undefined>(
+    undefined,
+  )
+  const [cashBalanceData, setCashBalanceData] = useState<
+    SetCashBalanceData | undefined
+  >(undefined)
+  // Portfolio chooser for assets held in multiple portfolios
+  const [pendingChoice, setPendingChoice] = useState<{
+    asset?: Asset
+    title: string
+    options: PortfolioBreakdown[]
+    onPick: (row: PortfolioBreakdown) => void
+  } | null>(null)
+
+  // Resolve the target portfolio for an asset, then run `act`. Held in one →
+  // run immediately; held in several → open the chooser; held in none → no-op.
+  const withTargetPortfolio = useCallback(
+    (
+      assetId: string | undefined,
+      title: string,
+      act: (portfolio: Portfolio, row: PortfolioBreakdown) => void,
+    ): void => {
+      const resolution = resolveTarget(
+        assetId ? breakdownByAssetId.get(assetId) : undefined,
+      )
+      if (resolution.kind === "none") return
+      const run = (row: PortfolioBreakdown): void => {
+        const portfolio = portfolioById.get(row.portfolioId)
+        if (portfolio) act(portfolio, row)
+      }
+      if (resolution.kind === "direct") {
+        run(resolution.target)
+        return
+      }
+      setPendingChoice({
+        asset: assetId ? assetById.get(assetId) : undefined,
+        title,
+        options: resolution.options,
+        onPick: run,
+      })
+    },
+    [breakdownByAssetId, portfolioById, assetById],
+  )
+
+  const openTrade = useCallback(
+    (data: QuickSellData, type: NonNullable<QuickSellData["type"]>): void => {
+      withTargetPortfolio(
+        data.assetId,
+        `${data.asset} — choose portfolio`,
+        (portfolio, row) => {
+          setTradePortfolio(portfolio)
+          // Selling acts on the chosen portfolio's holding, not the aggregate.
+          const quantity = type === "SELL" ? row.quantity : data.quantity
+          setQuickSellData({ ...data, type, quantity })
+        },
+      )
+    },
+    [withTargetPortfolio],
+  )
+
+  const handleTrade = useCallback(
+    (data: QuickSellData) => openTrade(data, "BUY"),
+    [openTrade],
+  )
+  const handleQuickSell = useCallback(
+    (data: QuickSellData) => openTrade(data, "SELL"),
+    [openTrade],
+  )
+  const handleRecordIncome = useCallback(
+    (data: QuickSellData) => openTrade(data, "INCOME"),
+    [openTrade],
+  )
+  const handleRecordExpense = useCallback(
+    (data: QuickSellData) => openTrade(data, "EXPENSE"),
+    [openTrade],
+  )
+
+  const handleSetCashBalance = useCallback(
+    (data: SetCashBalanceData) => {
+      withTargetPortfolio(
+        data.assetId,
+        `${data.assetCode ?? data.currency} — choose portfolio`,
+        (portfolio) => {
+          setCashPortfolio(portfolio)
+          setCashBalanceData(data)
+        },
+      )
+    },
+    [withTargetPortfolio],
+  )
+
+  const handleGoToPortfolio = useCallback(
+    (asset: Asset) => {
+      const resolution = resolveTarget(breakdownByAssetId.get(asset.id))
+      if (resolution.kind === "none") return
+      if (resolution.kind === "direct") {
+        router.push(`/holdings/${resolution.target.portfolioCode}`)
+        return
+      }
+      // Multiple holders → reuse the breakdown popup (navigates on select)
+      setPortfolioBreakdownData({ asset, breakdown: resolution.options })
+    },
+    [breakdownByAssetId, router],
+  )
+
+  const handleTradeClose = useCallback((open: boolean) => {
+    if (!open) {
+      setQuickSellData(undefined)
+      setTradePortfolio(undefined)
+    }
+  }, [])
+  const handleCashBalanceClose = useCallback(() => {
+    setCashBalanceData(undefined)
+    setCashPortfolio(undefined)
+  }, [])
+
   // Determine the subtitle based on selected portfolios
   const subtitle = useMemo(() => {
     if (portfolioCodes.length === 0) {
@@ -478,6 +642,12 @@ function AggregatedHoldingsPage(): React.ReactElement {
                             onColumnsChange={setColumns}
                             onPriceChart={handlePriceChart}
                             onPortfolioBreakdown={handlePortfolioBreakdown}
+                            onTrade={handleTrade}
+                            onQuickSell={handleQuickSell}
+                            onRecordIncome={handleRecordIncome}
+                            onRecordExpense={handleRecordExpense}
+                            onSetCashBalance={handleSetCashBalance}
+                            onGoToPortfolio={handleGoToPortfolio}
                           />
                           <SubTotal
                             groupBy={groupKey}
@@ -511,6 +681,12 @@ function AggregatedHoldingsPage(): React.ReactElement {
               isMixedCurrencies={holdingResults.isMixedCurrencies}
               onPriceChart={handlePriceChart}
               onPortfolioBreakdown={handlePortfolioBreakdown}
+              onTrade={handleTrade}
+              onQuickSell={handleQuickSell}
+              onRecordIncome={handleRecordIncome}
+              onRecordExpense={handleRecordExpense}
+              onSetCashBalance={handleSetCashBalance}
+              onGoToPortfolio={handleGoToPortfolio}
             />
           </div>
         ) : viewMode === "heatmap" ? (
@@ -584,6 +760,39 @@ function AggregatedHoldingsPage(): React.ReactElement {
             asset={portfolioBreakdownData.asset}
             breakdown={portfolioBreakdownData.breakdown}
             onClose={handlePortfolioBreakdownClose}
+          />
+        )}
+        {pendingChoice && (
+          <PortfolioBreakdownPopup
+            asset={pendingChoice.asset}
+            breakdown={pendingChoice.options}
+            title={pendingChoice.title}
+            onSelect={(row) => {
+              const pick = pendingChoice.onPick
+              setPendingChoice(null)
+              pick(row)
+            }}
+            onClose={() => setPendingChoice(null)}
+          />
+        )}
+        {quickSellData && tradePortfolio && (
+          <TradeInputForm
+            portfolio={tradePortfolio}
+            modalOpen={true}
+            setModalOpen={handleTradeClose}
+            initialValues={quickSellData}
+          />
+        )}
+        {cashBalanceData && cashPortfolio && (
+          <SetCashBalanceDialog
+            modalOpen={true}
+            onClose={handleCashBalanceClose}
+            portfolio={cashPortfolio}
+            currency={cashBalanceData.currency}
+            currentBalance={cashBalanceData.currentBalance}
+            market={cashBalanceData.market}
+            assetCode={cashBalanceData.assetCode}
+            assetName={cashBalanceData.assetName}
           />
         )}
         {reviewPopup}

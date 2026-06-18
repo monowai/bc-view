@@ -6,28 +6,43 @@ import { PrivateQuantity } from "@components/ui/MoneyUtils"
 import { stripOwnerPrefix } from "@lib/assets/assetUtils"
 
 interface PortfolioBreakdownPopupProps {
-  asset: Asset
+  /** Used for the default "Held by — CODE" title; omit when `title` is set. */
+  asset?: Asset
   breakdown: PortfolioBreakdown[]
   onClose: () => void
+  /**
+   * When provided, picking a portfolio calls this instead of navigating to its
+   * holdings — used by the aggregated actions to choose which portfolio to act
+   * on. Default behaviour (no handler) navigates to the portfolio.
+   */
+  onSelect?: (row: PortfolioBreakdown) => void
+  /** Overrides the default "Held by — CODE" dialog title. */
+  title?: string
 }
 
 const PortfolioBreakdownPopup: React.FC<PortfolioBreakdownPopupProps> = ({
   asset,
   breakdown,
   onClose,
+  onSelect,
+  title,
 }) => {
   const router = useRouter()
 
-  const handleSelect = (portfolioCode: string): void => {
+  const handleSelect = (row: PortfolioBreakdown): void => {
     onClose()
-    router.push(`/holdings/${portfolioCode}`)
+    if (onSelect) {
+      onSelect(row)
+    } else {
+      router.push(`/holdings/${row.portfolioCode}`)
+    }
   }
 
   const sorted = [...breakdown].sort((a, b) => b.quantity - a.quantity)
 
   return (
     <Dialog
-      title={`Held by — ${stripOwnerPrefix(asset.code)}`}
+      title={title ?? `Held by — ${asset ? stripOwnerPrefix(asset.code) : ""}`}
       onClose={onClose}
       maxWidth="md"
       scrollable
@@ -38,7 +53,7 @@ const PortfolioBreakdownPopup: React.FC<PortfolioBreakdownPopupProps> = ({
             <button
               type="button"
               className="w-full flex items-center justify-between gap-3 px-2 py-3 text-left rounded-md hover:bg-slate-50 focus:bg-slate-100 focus:outline-none"
-              onClick={() => handleSelect(row.portfolioCode)}
+              onClick={() => handleSelect(row)}
               aria-label={`Open ${row.portfolioCode} holdings`}
             >
               <span className="min-w-0">
