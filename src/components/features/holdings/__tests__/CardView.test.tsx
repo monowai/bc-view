@@ -14,6 +14,18 @@ import {
 
 jest.mock("@hooks/usePrivacyMode")
 
+const mockPush = jest.fn()
+jest.mock("next/router", () => ({
+  useRouter: () => ({
+    push: mockPush,
+    query: {},
+    isReady: true,
+    events: { on: jest.fn(), off: jest.fn() },
+    prefetch: jest.fn(),
+    beforePopState: jest.fn(),
+  }),
+}))
+
 const mockedUsePrivacyMode = usePrivacyMode as jest.MockedFunction<
   typeof usePrivacyMode
 >
@@ -470,6 +482,75 @@ describe("CardView footer (Quantity / Price / Weight)", () => {
           market: "CASH",
           currentBalance: 5000,
         }),
+      )
+    })
+  })
+
+  describe("trade-history drill-down", () => {
+    beforeEach(() => mockPush.mockClear())
+
+    it("double-click routes to the single-portfolio trades page when not aggregated", () => {
+      const portfolio = makePortfolio()
+      const asset = makeAsset({ id: "asset-aapl" })
+      const position = makePosition({ asset, quantityValues: { total: 100 } })
+      const holdings = makeHoldings({
+        portfolio,
+        holdingGroups: { Equity: makeHoldingGroup({ positions: [position] }) },
+      })
+      render(
+        <CardView
+          holdings={holdings}
+          portfolio={portfolio}
+          valueIn={ValueIn.PORTFOLIO}
+        />,
+      )
+
+      fireEvent.doubleClick(document.getElementById("asset-asset-aapl")!)
+
+      expect(mockPush).toHaveBeenCalledWith(
+        `/trns/trades/${portfolio.id}/asset-aapl`,
+      )
+    })
+
+    it("double-click routes to the aggregated trades page when the asset is held across portfolios", () => {
+      const portfolio = makePortfolio()
+      const asset = makeAsset({ id: "asset-aapl" })
+      const position = makePosition({
+        asset,
+        quantityValues: { total: 100 },
+        overrides: {
+          portfolioBreakdown: [
+            {
+              portfolioId: "p-1",
+              portfolioCode: "GROWTH",
+              portfolioName: "Growth",
+              quantity: 60,
+            },
+            {
+              portfolioId: "p-2",
+              portfolioCode: "KIDS",
+              portfolioName: "Kids",
+              quantity: 40,
+            },
+          ],
+        },
+      })
+      const holdings = makeHoldings({
+        portfolio,
+        holdingGroups: { Equity: makeHoldingGroup({ positions: [position] }) },
+      })
+      render(
+        <CardView
+          holdings={holdings}
+          portfolio={portfolio}
+          valueIn={ValueIn.PORTFOLIO}
+        />,
+      )
+
+      fireEvent.doubleClick(document.getElementById("asset-asset-aapl")!)
+
+      expect(mockPush).toHaveBeenCalledWith(
+        "/trns/trades/asset-aapl?portfolios=p-1,p-2",
       )
     })
   })

@@ -18,6 +18,7 @@ import {
 import { FormatValue, PrivateQuantity } from "@components/ui/MoneyUtils"
 import {
   buildTradesHref,
+  buildAggregatedTradesHref,
   getPositionDisplayName,
   isCashRelated,
   isConstantPrice,
@@ -304,7 +305,13 @@ const PositionCard: React.FC<PositionCardProps> = ({
   const hasDistinctName = name.length > 0 && name !== asset.code
   const truncatedName = name.length > 30 ? name.substring(0, 30) + "..." : name
 
-  const tradesHref = buildTradesHref(portfolio.id, asset.id)
+  const tradesHref =
+    portfolioBreakdown && portfolioBreakdown.length > 0
+      ? buildAggregatedTradesHref(
+          asset.id,
+          portfolioBreakdown.map((b) => b.portfolioId),
+        )
+      : buildTradesHref(portfolio.id, asset.id)
   const cashLadderHref = `/trns/cash-ladder/${portfolio.id}/${asset.id}`
 
   const hasActions =

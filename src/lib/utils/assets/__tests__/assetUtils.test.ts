@@ -5,6 +5,7 @@ import {
   isNonTradeable,
   getPositionDisplayName,
   buildTradesHref,
+  buildAggregatedTradesHref,
   buildNewsAsset,
 } from "../assetUtils"
 import { makeAsset, makeCashAsset } from "@test-fixtures/beancounter"
@@ -133,6 +134,14 @@ describe("buildTradesHref", () => {
   it("returns canonical trades route", () => {
     expect(buildTradesHref("p-1", "asset-aapl")).toBe(
       "/trns/trades/p-1/asset-aapl",
+    )
+  })
+})
+
+describe("buildAggregatedTradesHref", () => {
+  it("routes by asset with portfolios as a query param", () => {
+    expect(buildAggregatedTradesHref("asset-aapl", ["p-1", "p-2"])).toBe(
+      "/trns/trades/asset-aapl?portfolios=p-1,p-2",
     )
   })
 })

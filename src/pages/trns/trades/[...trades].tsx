@@ -6,6 +6,7 @@ import {
   assetKey,
   simpleFetcher,
   tradeKey,
+  tradeKeyMulti,
   trnKey,
   holdingKey,
 } from "@utils/api/fetchHelper"
@@ -37,14 +38,30 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
   // Detect if this is an edit request: /trns/trades/edit/[portfolioId]/[trnId]
   const isEditMode = tradesParam && tradesParam[0] === "edit"
 
+  // Aggregated drill-down: /trns/trades/[assetId]?portfolios=a,b — one asset
+  // held in several portfolios, grouped by portfolio instead of broker.
+  const portfoliosParam = router.query.portfolios as string | undefined
+  const isMulti = !isEditMode && !!portfoliosParam
+  const portfolioIds = useMemo(
+    () => (portfoliosParam ? portfoliosParam.split(",").filter(Boolean) : []),
+    [portfoliosParam],
+  )
+
   // For edit mode: trades[1] = portfolioId, trades[2] = trnId
-  // For list mode: trades[0] = portfolioId, trades[1] = assetId
+  // For single-portfolio list mode: trades[0] = portfolioId, trades[1] = assetId
+  // For aggregated mode: trades[0] = assetId (portfolios come from the query)
   const portfolioId = isEditMode
     ? tradesParam![1]
+    : isMulti
+      ? undefined
+      : tradesParam
+        ? tradesParam[0]
+        : undefined
+  const assetId = isMulti
+    ? tradesParam?.[0]
     : tradesParam
-      ? tradesParam[0]
+      ? tradesParam[1]
       : undefined
-  const assetId = tradesParam ? tradesParam[1] : undefined
   const trnId = isEditMode ? tradesParam![2] : undefined
 
   // Reset modal state when entering edit mode with a new transaction
@@ -78,58 +95,72 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
       ? simpleFetcher(assetKey(assetId as string))
       : null,
   )
-  const trades = useSwr(
-    router.isReady && !isEditMode && portfolioId && assetId
-      ? tradeKey(portfolioId as string, assetId as string)
-      : null,
-    router.isReady && !isEditMode && portfolioId && assetId
-      ? simpleFetcher(tradeKey(portfolioId as string, assetId as string))
-      : null,
-  )
+  const tradesUrl =
+    router.isReady && !isEditMode && assetId
+      ? isMulti
+        ? portfolioIds.length > 0
+          ? tradeKeyMulti(assetId as string, portfolioIds)
+          : null
+        : portfolioId
+          ? tradeKey(portfolioId as string, assetId as string)
+          : null
+      : null
+  const trades = useSwr(tradesUrl, tradesUrl ? simpleFetcher(tradesUrl) : null)
 
   // Group transactions by broker (must be called before any early returns for hooks rules)
   const trnResults = useMemo(
     (): Transaction[] => trades.data?.data || [],
     [trades.data?.data],
   )
-  const groupedByBroker = useMemo(() => {
+  // Single-portfolio view groups by broker; the aggregated drill-down groups by
+  // portfolio (one asset held across several portfolios).
+  const groups = useMemo(() => {
     if (!trnResults || trnResults.length === 0) return []
 
-    const groups: Record<
+    const acc: Record<
       string,
       {
-        broker: { id: string; name: string } | null
+        id: string
+        label: string
+        sortName: string
         transactions: Transaction[]
       }
     > = {}
 
     trnResults.forEach((trn: Transaction) => {
-      const brokerKey = trn.broker?.id || "__no_broker__"
-      if (!groups[brokerKey]) {
-        groups[brokerKey] = {
-          broker: trn.broker || null,
+      const key = isMulti
+        ? trn.portfolio?.id || "__no_portfolio__"
+        : trn.broker?.id || "__no_broker__"
+      const named = isMulti ? !!trn.portfolio : !!trn.broker
+      const label = isMulti
+        ? trn.portfolio?.code || "Unknown Portfolio"
+        : trn.broker?.name || "No Broker"
+      if (!acc[key]) {
+        acc[key] = {
+          id: key,
+          label,
+          sortName: named ? label : "",
           transactions: [],
         }
       }
-      groups[brokerKey].transactions.push(trn)
+      acc[key].transactions.push(trn)
     })
 
     // A BALANCE transaction states the absolute position as at its trade date,
     // so the running quantity must reset to it — computeTradeGroupTotals folds
     // the trades chronologically rather than naively summing every quantity.
-    const withTotals = Object.values(groups).map((group) => ({
+    const withTotals = Object.values(acc).map((group) => ({
       ...group,
       totals: computeTradeGroupTotals(group.transactions),
     }))
 
-    // Sort: brokers with names first (alphabetically), then "No Broker" last
+    // Named groups first (alphabetically), unnamed ("No Broker") last
     return withTotals.sort((a, b) => {
-      if (!a.broker && b.broker) return 1
-      if (a.broker && !b.broker) return -1
-      if (!a.broker && !b.broker) return 0
-      return (a.broker?.name || "").localeCompare(b.broker?.name || "")
+      if (!a.sortName && b.sortName) return 1
+      if (a.sortName && !b.sortName) return -1
+      return a.sortName.localeCompare(b.sortName)
     })
-  }, [trnResults])
+  }, [trnResults, isMulti])
 
   // Copy row data to clipboard as tab-separated values
   const copyRowToClipboard = useCallback(
@@ -372,40 +403,44 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
         </div>
       </nav>
 
-      {/* Tabs for switching between Trades and Events */}
-      <div className="bg-white border-b">
-        <div className="container mx-auto px-4">
-          <div className="flex">
-            <button
-              className="px-4 py-2 font-medium border-b-2 border-blue-500 text-blue-600"
-              onClick={() =>
-                router.replace(`/trns/trades/${portfolioId}/${assetId}`)
-              }
-            >
-              {"Trades"}
-            </button>
-            <button
-              className="px-4 py-2 font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700"
-              onClick={() =>
-                router.replace(`/trns/events/${portfolioId}/${assetId}`)
-              }
-            >
-              {"Events"}
-            </button>
+      {/* Tabs for switching between Trades and Events.
+          Events are per-portfolio, so they are hidden in the aggregated
+          (multi-portfolio) drill-down. */}
+      {!isMulti && (
+        <div className="bg-white border-b">
+          <div className="container mx-auto px-4">
+            <div className="flex">
+              <button
+                className="px-4 py-2 font-medium border-b-2 border-blue-500 text-blue-600"
+                onClick={() =>
+                  router.replace(`/trns/trades/${portfolioId}/${assetId}`)
+                }
+              >
+                {"Trades"}
+              </button>
+              <button
+                className="px-4 py-2 font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700"
+                onClick={() =>
+                  router.replace(`/trns/events/${portfolioId}/${assetId}`)
+                }
+              >
+                {"Events"}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="container mx-auto px-4 py-4">
         {/* Mobile: Card layout grouped by broker */}
         <div className="md:hidden space-y-4">
-          {groupedByBroker.map((group) => (
-            <div key={group.broker?.id || "no-broker"}>
+          {groups.map((group) => (
+            <div key={group.id}>
               {/* Broker Header */}
               <div className="bg-indigo-50 border border-indigo-200 rounded-t-lg px-4 py-2 flex justify-between items-center">
                 <span className="font-medium text-indigo-900">
                   <i className="fas fa-building mr-2 text-indigo-400"></i>
-                  {group.broker?.name || "No Broker"}
+                  {group.label}
                 </span>
                 <span className="text-sm text-indigo-600">
                   {group.transactions.length}{" "}
@@ -596,16 +631,16 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
 
         {/* Desktop: Table layout grouped by broker */}
         <div className="hidden md:block space-y-4">
-          {groupedByBroker.map((group) => (
+          {groups.map((group) => (
             <div
-              key={group.broker?.id || "no-broker"}
+              key={group.id}
               className="bg-white rounded-lg shadow overflow-hidden"
             >
               {/* Broker Header */}
               <div className="bg-indigo-50 border-b border-indigo-200 px-4 py-3 flex justify-between items-center">
                 <span className="font-medium text-indigo-900">
                   <i className="fas fa-building mr-2 text-indigo-400"></i>
-                  {group.broker?.name || "No Broker"}
+                  {group.label}
                 </span>
                 <span className="text-sm text-indigo-600">
                   {group.transactions.length}{" "}

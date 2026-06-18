@@ -126,6 +126,18 @@ export function buildTradesHref(portfolioId: string, assetId: string): string {
   return `/trns/trades/${portfolioId}/${assetId}`
 }
 
+/**
+ * Href for an asset's trade history across multiple portfolios — used by the
+ * aggregated holdings drill-down. The trades page switches to portfolio-grouped
+ * mode when the `portfolios` query param is present.
+ */
+export function buildAggregatedTradesHref(
+  assetId: string,
+  portfolioIds: string[],
+): string {
+  return `/trns/trades/${assetId}?portfolios=${portfolioIds.join(",")}`
+}
+
 export interface NewsAssetRef {
   ticker: string
   market: string

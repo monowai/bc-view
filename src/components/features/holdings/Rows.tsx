@@ -21,6 +21,7 @@ import {
 } from "@components/ui/MoneyUtils"
 import {
   buildTradesHref,
+  buildAggregatedTradesHref,
   getPositionDisplayName,
   isCash,
   isCashRelated,
@@ -148,7 +149,14 @@ export default function Rows({
             onDoubleClick={() =>
               supportsBalanceSetting(asset)
                 ? router.push(`/trns/cash-ladder/${portfolio.id}/${asset.id}`)
-                : router.push(buildTradesHref(portfolio.id, asset.id))
+                : portfolioBreakdown && portfolioBreakdown.length > 0
+                  ? router.push(
+                      buildAggregatedTradesHref(
+                        asset.id,
+                        portfolioBreakdown.map((b) => b.portfolioId),
+                      ),
+                    )
+                  : router.push(buildTradesHref(portfolio.id, asset.id))
             }
             title={"Double-click to open"}
           >
