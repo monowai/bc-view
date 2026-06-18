@@ -71,6 +71,7 @@ export default function ManagedPortfolios({
   const activeShares = managed.filter(
     (s: PortfolioShare) => s.status === "ACTIVE",
   )
+  const ownerGroups = groupByOwner(activeShares)
 
   return (
     <div className="px-4 py-4">
@@ -112,89 +113,103 @@ export default function ManagedPortfolios({
             </button>
           </div>
 
-          {/* Managed portfolio cards */}
-          {activeShares.map((share) => (
+          {/* Managed portfolios grouped by owner */}
+          {ownerGroups.map((group) => (
             <div
-              key={share.id}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 cursor-pointer hover:border-wealth-200 hover:shadow-md transition-all"
-              onClick={() => {
-                // Route via portfolio.id (?byId=1) — code is only unique
-                // within an owner, so an adviser opening a managed portfolio
-                // could otherwise collide with one of their own with the
-                // same code.
-                if (share.portfolio?.id) {
-                  router.push(`/holdings/${share.portfolio.id}?byId=1`)
-                }
-              }}
+              key={group.key}
+              data-testid="owner-group"
+              className="space-y-2"
             >
-              <div className="flex justify-between items-start">
-                <div>
-                  <div className="flex items-center space-x-2">
-                    <span className="font-semibold text-wealth-600">
-                      {share.portfolio?.code || "N/A"}
-                    </span>
-                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-                      {share.accessLevel === "VIEW"
-                        ? "View Only"
-                        : "Full Access"}
-                    </span>
-                  </div>
-                  <div className="text-gray-900 mt-1">
-                    {share.portfolio?.name}
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    {"Owner"}:{" "}
-                    {share.portfolio?.owner?.email
-                      ? maskEmail(share.portfolio.owner.email)
-                      : "Owner"}
-                  </div>
-                </div>
-                <div
-                  className="flex items-center space-x-2"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {canRunAi && share.portfolio && (
-                    <button
-                      onClick={() =>
-                        showReview({
-                          kind: "portfolio",
-                          id: share.portfolio!.id,
-                          code: share.portfolio!.code,
-                          name: share.portfolio!.name,
-                        })
-                      }
-                      className="p-1 text-purple-500 hover:text-purple-700"
-                      title={"AI Summary"}
-                      aria-label={"AI Summary"}
-                    >
-                      <i className="fas fa-wand-magic-sparkles"></i>
-                    </button>
-                  )}
-                  {onCorporateActions && share.portfolio && (
-                    <button
-                      onClick={() => onCorporateActions(share.portfolio!)}
-                      className="text-blue-500 hover:text-blue-700 p-1"
-                      title={"Scan Corporate Actions"}
-                      aria-label={"Scan Corporate Actions"}
-                    >
-                      <i className="fas fa-calendar-check"></i>
-                    </button>
-                  )}
-                  {share.acceptedAt && (
-                    <span className="text-xs text-gray-400">
-                      {"Since"}{" "}
-                      {new Date(share.acceptedAt).toLocaleDateString(
-                        undefined,
-                        { month: "short", day: "numeric" },
-                      )}
-                    </span>
-                  )}
-                  <RevokeButton
-                    shareId={share.id}
-                    onRevoked={handlePendingAction}
-                  />
-                </div>
+              <div className="flex items-center space-x-2 px-1">
+                <i className="fas fa-user text-xs text-gray-400"></i>
+                <span className="text-sm font-semibold text-gray-700">
+                  {group.label}
+                </span>
+                <span className="text-xs text-gray-400">
+                  {"("}
+                  {group.shares.length}
+                  {")"}
+                </span>
               </div>
+
+              {group.shares.map((share) => (
+                <div
+                  key={share.id}
+                  className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 cursor-pointer hover:border-wealth-200 hover:shadow-md transition-all"
+                  onClick={() => {
+                    // Route via portfolio.id (?byId=1) — code is only unique
+                    // within an owner, so an adviser opening a managed portfolio
+                    // could otherwise collide with one of their own with the
+                    // same code.
+                    if (share.portfolio?.id) {
+                      router.push(`/holdings/${share.portfolio.id}?byId=1`)
+                    }
+                  }}
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <span className="font-semibold text-wealth-600">
+                          {share.portfolio?.code || "N/A"}
+                        </span>
+                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                          {share.accessLevel === "VIEW"
+                            ? "View Only"
+                            : "Full Access"}
+                        </span>
+                      </div>
+                      <div className="text-gray-900 mt-1">
+                        {share.portfolio?.name}
+                      </div>
+                    </div>
+                    <div
+                      className="flex items-center space-x-2"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {canRunAi && share.portfolio && (
+                        <button
+                          onClick={() =>
+                            showReview({
+                              kind: "portfolio",
+                              id: share.portfolio!.id,
+                              code: share.portfolio!.code,
+                              name: share.portfolio!.name,
+                            })
+                          }
+                          className="p-1 text-purple-500 hover:text-purple-700"
+                          title={"AI Summary"}
+                          aria-label={"AI Summary"}
+                        >
+                          <i className="fas fa-wand-magic-sparkles"></i>
+                        </button>
+                      )}
+                      {onCorporateActions && share.portfolio && (
+                        <button
+                          onClick={() => onCorporateActions(share.portfolio!)}
+                          className="text-blue-500 hover:text-blue-700 p-1"
+                          title={"Scan Corporate Actions"}
+                          aria-label={"Scan Corporate Actions"}
+                        >
+                          <i className="fas fa-calendar-check"></i>
+                        </button>
+                      )}
+                      {share.acceptedAt && (
+                        <span className="text-xs text-gray-400">
+                          {"Since"}{" "}
+                          {new Date(share.acceptedAt).toLocaleDateString(
+                            undefined,
+                            { month: "short", day: "numeric" },
+                          )}
+                        </span>
+                      )}
+                      <RevokeButton
+                        shareId={share.id}
+                        onRevoked={handlePendingAction}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           ))}
         </div>
@@ -208,6 +223,35 @@ export default function ManagedPortfolios({
       )}
       {reviewPopup}
     </div>
+  )
+}
+
+interface OwnerGroup {
+  key: string
+  label: string
+  shares: PortfolioShare[]
+}
+
+/**
+ * Group active shares by their portfolio owner. Keyed on owner id (falling
+ * back to email) so two owners that happen to share a masked label stay
+ * distinct. Groups are sorted by label for a stable order.
+ */
+function groupByOwner(shares: PortfolioShare[]): OwnerGroup[] {
+  const groups = new Map<string, OwnerGroup>()
+  for (const share of shares) {
+    const owner = share.portfolio?.owner
+    const key = owner?.id ?? owner?.email ?? "unknown"
+    const label = owner?.email ? maskEmail(owner.email) : "Owner"
+    const existing = groups.get(key)
+    if (existing) {
+      existing.shares.push(share)
+    } else {
+      groups.set(key, { key, label, shares: [share] })
+    }
+  }
+  return Array.from(groups.values()).sort((a, b) =>
+    a.label.localeCompare(b.label),
   )
 }
 
