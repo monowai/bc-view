@@ -64,19 +64,19 @@ function renderCharts(holdings: HoldingContract): RenderResult {
 
 void React
 
-describe("AssetAllocationCharts — paged asset list", () => {
-  it("renders a pie (not a list) for 10 or fewer slices", () => {
-    const { container } = renderCharts(makeHoldings(10))
-    // recharts pie wrapper present; the paged list / paging are not rendered.
-    expect(
-      container.querySelector(".recharts-responsive-container"),
-    ).toBeInTheDocument()
-    expect(screen.queryByText("Asset 0")).toBeNull()
+describe("AssetAllocationCharts — asset view always lists", () => {
+  it("renders the asset view as a list (never a pie), even for 10 or fewer", () => {
+    // Default grouping is "asset"; the asset view must always read as a list.
+    const { container } = renderCharts(makeHoldings(8))
+    expect(container.querySelector(".recharts-responsive-container")).toBeNull()
+    expect(screen.getByText("Asset 0")).toBeInTheDocument()
+    expect(screen.getByText("Asset 7")).toBeInTheDocument()
+    // A single page of ≤10 assets shows no pagination chrome.
     expect(screen.queryByRole("button", { name: /Next/i })).toBeNull()
-    expect(screen.queryByText(/of 10/)).toBeNull()
+    expect(screen.queryByText(/of 8/)).toBeNull()
   })
 
-  it("renders a paged list (no pie) when there are more than 10 assets", () => {
+  it("paginates the asset list after 10 assets", () => {
     const { container } = renderCharts(makeHoldings(15))
     expect(container.querySelector(".recharts-responsive-container")).toBeNull()
     // First page: assets 0..9 (descending value), asset 10 not yet shown.
@@ -95,5 +95,19 @@ describe("AssetAllocationCharts — paged asset list", () => {
     expect(screen.getByText("Asset 14")).toBeInTheDocument()
     expect(screen.queryByText("Asset 0")).toBeNull()
     expect(screen.getByText(/11–15 of 15/)).toBeInTheDocument()
+  })
+})
+
+describe("AssetAllocationCharts — non-asset groupings keep the pie", () => {
+  it("renders a pie for a short non-asset grouping (≤10 slices)", () => {
+    // All holdings share one market → grouping by Market yields a single slice.
+    const { container } = renderCharts(makeHoldings(8))
+    fireEvent.click(screen.getByRole("button", { name: "Market" }))
+    expect(
+      container.querySelector(".recharts-responsive-container"),
+    ).toBeInTheDocument()
+    // The per-asset list rows are gone under a non-asset grouping.
+    expect(screen.queryByText("Asset 0")).toBeNull()
+    expect(screen.queryByRole("button", { name: /Next/i })).toBeNull()
   })
 })
