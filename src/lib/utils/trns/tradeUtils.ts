@@ -435,11 +435,23 @@ export interface TradeGroupTotals {
  * trades endpoint returns newest-first, so we sort chronologically before
  * folding. Cash-side totals (tradeAmount/cashAmount/fees/tax) are plain sums.
  *
- * Same-date tiebreak: a BALANCE is the authoritative position as at end of its
- * trade date, so any non-BALANCE trade sharing that date is already subsumed by
- * it. We therefore sort BALANCE last on equal dates so the reset wins, keeping
- * the result deterministic regardless of input order.
+ * Same-date ordering is by trade kind, because a BALANCE is the authoritative
+ * position as at end of its trade date:
+ *   1. plain trades (BUY/SELL/DIVI…) — subsumed by an end-of-day BALANCE
+ *   2. BALANCE — resets the running position to its stated figure
+ *   3. position adjustments (ADD/REDUCE) — applied on top of the BALANCE
+ * So a same-date BUY is overridden by the BALANCE, while a same-date ADD (e.g. a
+ * CPF contribution recorded alongside the statement) accumulates on top of it.
+ * Input order is irrelevant — the trades endpoint returns newest-first.
+ *
+ * A BALANCE that carries a value (non-zero tradeAmount) is a value snapshot, so
+ * it resets the running tradeAmount the same way it resets quantity; a
+ * value-less BALANCE leaves the cash-flow sum untouched. Other cash-side totals
+ * (cashAmount/fees/tax) are plain sums — a BALANCE has no cash impact.
  */
+const sameDateRank = (trnType: string): number =>
+  trnType === "BALANCE" ? 1 : isPositionAdjustment(trnType) ? 2 : 0
+
 export const computeTradeGroupTotals = (
   transactions: Transaction[],
 ): TradeGroupTotals =>
@@ -447,20 +459,24 @@ export const computeTradeGroupTotals = (
     .sort((a, b) => {
       const byDate = a.tradeDate.localeCompare(b.tradeDate)
       if (byDate !== 0) return byDate
-      if (a.trnType === "BALANCE" && b.trnType !== "BALANCE") return 1
-      if (a.trnType !== "BALANCE" && b.trnType === "BALANCE") return -1
-      return 0
+      return sameDateRank(a.trnType) - sameDateRank(b.trnType)
     })
     .reduce<TradeGroupTotals>(
-      (totals, trn) => ({
-        quantity:
-          trn.trnType === "BALANCE"
+      (totals, trn) => {
+        const isBalance = trn.trnType === "BALANCE"
+        const tradeAmount = trn.tradeAmount || 0
+        return {
+          quantity: isBalance
             ? trn.quantity || 0
             : totals.quantity + (trn.quantity || 0),
-        tradeAmount: totals.tradeAmount + (trn.tradeAmount || 0),
-        cashAmount: totals.cashAmount + (trn.cashAmount || 0),
-        fees: totals.fees + (trn.fees || 0),
-        tax: totals.tax + (trn.tax || 0),
-      }),
+          tradeAmount:
+            isBalance && tradeAmount !== 0
+              ? tradeAmount
+              : totals.tradeAmount + tradeAmount,
+          cashAmount: totals.cashAmount + (trn.cashAmount || 0),
+          fees: totals.fees + (trn.fees || 0),
+          tax: totals.tax + (trn.tax || 0),
+        }
+      },
       { quantity: 0, tradeAmount: 0, cashAmount: 0, fees: 0, tax: 0 },
     )
