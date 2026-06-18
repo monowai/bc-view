@@ -91,6 +91,26 @@ export default function TimelineTabContent({
     return year?.age ?? null
   }, [projection])
 
+  // Age at which CPF savings first lock into the CPF LIFE annuity — the year
+  // annuitizedValue transitions 0 → >0 (Singapore's age-55 OA/SA → RA
+  // transfer). This is what makes the blue Liquid line dip: the money isn't
+  // lost, it moves into the grey "CPF LIFE principal" band and becomes a
+  // lifelong income stream from the payout age. Surfaced as a chart marker +
+  // caption so the dip reads as "locked", not "gone".
+  const cpfLockAge = useMemo(() => {
+    if (!projection) return null
+    const series = [
+      ...(projection.accumulationProjections ?? []),
+      ...projection.yearlyProjections,
+    ]
+    for (let i = 1; i < series.length; i++) {
+      const prev = series[i - 1].annuitizedValue ?? 0
+      const cur = series[i].annuitizedValue ?? 0
+      if (prev === 0 && cur > 0) return series[i].age ?? null
+    }
+    return null
+  }, [projection])
+
   // Active scenario = backend captured a baseline overlay alongside the
   // adjusted projection. Used to gate the "compared to baseline" UI.
   const hasActiveWhatIf = baselineProjection !== null
@@ -394,6 +414,28 @@ export default function TimelineTabContent({
                 }}
               />
             )}
+            {/* CPF LIFE lock marker — the age savings move from spendable
+                  CPF (OA/SA) into the locked CPF LIFE annuity (RA). Slate to
+                  match the grey annuitized band so the dip + the band read as
+                  the same event. Traditional view only (the band is hidden in
+                  FIRE view). */}
+            {timelineViewMode === "traditional" &&
+              hasAnnuitizedLayer &&
+              cpfLockAge != null && (
+                <ReferenceLine
+                  x={cpfLockAge}
+                  stroke="#64748b"
+                  strokeDasharray="4 4"
+                  strokeWidth={1.5}
+                  label={{
+                    value: `🔒 CPF LIFE (${cpfLockAge})`,
+                    position: "insideTopLeft",
+                    fill: "#64748b",
+                    fontSize: 11,
+                    fontWeight: 500,
+                  }}
+                />
+              )}
             {/* Stacked wealth journey — bottom-up: Liquid (spendable),
                   Housing, CPF LIFE principal. Top of the stack equals
                   drawdownable + locked principal at each age. CPF MA is
@@ -471,6 +513,25 @@ export default function TimelineTabContent({
             )}
           </ComposedChart>
         </ChartFrame>
+        {timelineViewMode === "traditional" &&
+          hasAnnuitizedLayer &&
+          cpfLockAge != null && (
+            <p
+              data-testid="cpf-lock-note"
+              className="mt-2 text-xs text-gray-500 flex items-start gap-1.5"
+            >
+              <i className="fas fa-lock text-slate-400 mt-0.5"></i>
+              <span>
+                At age {cpfLockAge}, CPF savings move from spendable into the{" "}
+                <span className="text-slate-600 font-medium">
+                  CPF LIFE principal
+                </span>{" "}
+                (grey band). The Liquid line dips because that money is now
+                locked — not spent — and returns as guaranteed lifelong income
+                from your payout age.
+              </span>
+            </p>
+          )}
       </CollapsibleSection>
 
       <CollapsibleSection
