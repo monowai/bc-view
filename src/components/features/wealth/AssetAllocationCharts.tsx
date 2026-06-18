@@ -67,6 +67,13 @@ const AssetAllocationCharts: React.FC<AssetAllocationChartsProps> = ({
   const pageStart = safePage * PAGE_SIZE
   const pagedSlices = allocationData.slice(pageStart, pageStart + PAGE_SIZE)
 
+  // The asset grouping always reads as a list (one row per holding) so every
+  // holding stays legible; other groupings keep the pie while the slice count
+  // is small and only fall back to the list for a long tail. Pagination chrome
+  // shows once there is more than one page, regardless of grouping.
+  const asList = groupBy === "asset" || allocationData.length > PAGE_SIZE
+  const showPagination = allocationData.length > PAGE_SIZE
+
   if (summary.portfolioBreakdown.length === 0) return null
 
   return (
@@ -93,10 +100,10 @@ const AssetAllocationCharts: React.FC<AssetAllocationChartsProps> = ({
             hideValueIn
           />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Grouped Allocation — driven by the group-by control. A pie reads
-                well for a short set (≤ PAGE_SIZE slices); a long holdings tail
-                (e.g. grouping by asset) renders as a paged list instead, so the
-                chart never degenerates into an unreadable wheel of slivers. */}
+            {/* Grouped Allocation — driven by the group-by control. The asset
+                grouping always renders as a (paged) list so every holding is
+                legible; other groupings show a pie while the slice count is
+                short and fall back to the list only for a long tail. */}
             <div className="bg-gray-50 rounded-lg p-4">
               <h3 className="text-md font-medium text-gray-700 mb-4">
                 {`By ${GROUP_LABELS[groupBy]}`}
@@ -105,7 +112,7 @@ const AssetAllocationCharts: React.FC<AssetAllocationChartsProps> = ({
                 <div className="flex items-center justify-center h-64 text-gray-500">
                   No allocation data available
                 </div>
-              ) : allocationData.length <= PAGE_SIZE ? (
+              ) : !asList ? (
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -165,29 +172,31 @@ const AssetAllocationCharts: React.FC<AssetAllocationChartsProps> = ({
                     ))}
                   </div>
 
-                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-200">
-                    <button
-                      type="button"
-                      onClick={() => setPage(safePage - 1)}
-                      disabled={safePage === 0}
-                      className="text-sm text-gray-600 hover:text-gray-900 disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      <i className="fas fa-chevron-left mr-1"></i>Prev
-                    </button>
-                    <span className="text-xs text-gray-500 tabular-nums">
-                      {pageStart + 1}–
-                      {Math.min(pageStart + PAGE_SIZE, allocationData.length)}{" "}
-                      of {allocationData.length}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setPage(safePage + 1)}
-                      disabled={safePage >= pageCount - 1}
-                      className="text-sm text-gray-600 hover:text-gray-900 disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      Next<i className="fas fa-chevron-right ml-1"></i>
-                    </button>
-                  </div>
+                  {showPagination && (
+                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-200">
+                      <button
+                        type="button"
+                        onClick={() => setPage(safePage - 1)}
+                        disabled={safePage === 0}
+                        className="text-sm text-gray-600 hover:text-gray-900 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <i className="fas fa-chevron-left mr-1"></i>Prev
+                      </button>
+                      <span className="text-xs text-gray-500 tabular-nums">
+                        {pageStart + 1}–
+                        {Math.min(pageStart + PAGE_SIZE, allocationData.length)}{" "}
+                        of {allocationData.length}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setPage(safePage + 1)}
+                        disabled={safePage >= pageCount - 1}
+                        className="text-sm text-gray-600 hover:text-gray-900 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        Next<i className="fas fa-chevron-right ml-1"></i>
+                      </button>
+                    </div>
+                  )}
                 </>
               )}
             </div>
