@@ -1066,8 +1066,13 @@ describe("computeTradeGroupTotals", () => {
       quantity: 100,
       tradeAmount: 100,
     })
-    expect(computeTradeGroupTotals([buy, balance]).quantity).toBe(100)
-    expect(computeTradeGroupTotals([balance, buy]).quantity).toBe(100)
-    expect(computeTradeGroupTotals([buy, balance]).tradeAmount).toBe(100)
+    for (const input of [
+      [buy, balance],
+      [balance, buy],
+    ]) {
+      const totals = computeTradeGroupTotals(input)
+      expect(totals.quantity).toBe(100)
+      expect(totals.tradeAmount).toBe(100)
+    }
   })
 })

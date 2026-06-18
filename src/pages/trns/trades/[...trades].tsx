@@ -40,7 +40,11 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
 
   // Aggregated drill-down: /trns/trades/[assetId]?portfolios=a,b — one asset
   // held in several portfolios, grouped by portfolio instead of broker.
-  const portfoliosParam = router.query.portfolios as string | undefined
+  // router.query gives string[] when the param repeats — normalise to a string.
+  const portfoliosQuery = router.query.portfolios
+  const portfoliosParam = Array.isArray(portfoliosQuery)
+    ? portfoliosQuery.join(",")
+    : portfoliosQuery
   const isMulti = !isEditMode && !!portfoliosParam
   const portfolioIds = useMemo(
     () => (portfoliosParam ? portfoliosParam.split(",").filter(Boolean) : []),

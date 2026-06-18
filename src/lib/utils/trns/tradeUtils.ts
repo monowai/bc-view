@@ -433,7 +433,8 @@ export interface TradeGroupTotals {
  * quantity rather than add to the prior sum. Trades dated on/after the most
  * recent BALANCE then accumulate on top of it. Input order is irrelevant — the
  * trades endpoint returns newest-first, so we sort chronologically before
- * folding. Cash-side totals (tradeAmount/cashAmount/fees/tax) are plain sums.
+ * folding. cashAmount/fees/tax are plain sums; tradeAmount may reset on a
+ * value-bearing BALANCE (see below).
  *
  * Same-date ordering is by trade kind, because a BALANCE is the authoritative
  * position as at end of its trade date:
