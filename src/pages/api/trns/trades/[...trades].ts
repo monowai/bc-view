@@ -9,7 +9,12 @@ export default createApiHandler({
   url: (req) => {
     const trades = req.query.trades as string[]
     // Aggregated drill-down: /api/trns/trades/{assetId}?portfolios=a,b
-    const portfolios = req.query.portfolios as string | undefined
+    // Next.js gives string[] when the param repeats (?portfolios=a&portfolios=b),
+    // so normalise to a single comma string before splitting.
+    const portfoliosRaw = req.query.portfolios
+    const portfolios = Array.isArray(portfoliosRaw)
+      ? portfoliosRaw.join(",")
+      : portfoliosRaw
     if (portfolios && req.method !== "DELETE") {
       const assetId = sanitizePathParam(trades[0], "assetId")
       const portfolioIds = portfolios

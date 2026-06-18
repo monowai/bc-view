@@ -1024,4 +1024,55 @@ describe("computeTradeGroupTotals", () => {
     expect(totals.fees).toBe(5)
     expect(totals.tax).toBe(5)
   })
+
+  test("adds a same-date ADD on top of the BALANCE (CPF contribution)", () => {
+    const totals = computeTradeGroupTotals([
+      // Newest-first, as the endpoint returns them
+      trn({
+        trnType: "ADD",
+        tradeDate: "2026-06-17",
+        quantity: 2877.49,
+        tradeAmount: 2877.49,
+      }),
+      trn({
+        trnType: "BALANCE",
+        tradeDate: "2026-06-17",
+        quantity: 185900,
+        tradeAmount: 185900,
+      }),
+      trn({
+        trnType: "BALANCE",
+        tradeDate: "2026-06-14",
+        quantity: 281000,
+        tradeAmount: 281000,
+      }),
+    ])
+    // BALANCE resets to 185,900, then the same-date ADD accumulates on top.
+    expect(totals.quantity).toBeCloseTo(188777.49)
+    // A value-bearing BALANCE resets the amount too — snapshots are not summed.
+    expect(totals.tradeAmount).toBeCloseTo(188777.49)
+  })
+
+  test("a value-bearing same-date BALANCE still overrides a regular BUY", () => {
+    const buy = trn({
+      trnType: "BUY",
+      tradeDate: "2025-02-01",
+      quantity: 7,
+      tradeAmount: 700,
+    })
+    const balance = trn({
+      trnType: "BALANCE",
+      tradeDate: "2025-02-01",
+      quantity: 100,
+      tradeAmount: 100,
+    })
+    for (const input of [
+      [buy, balance],
+      [balance, buy],
+    ]) {
+      const totals = computeTradeGroupTotals(input)
+      expect(totals.quantity).toBe(100)
+      expect(totals.tradeAmount).toBe(100)
+    }
+  })
 })
