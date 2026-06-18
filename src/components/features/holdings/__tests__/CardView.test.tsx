@@ -358,6 +358,7 @@ describe("CardView footer (Quantity / Price / Weight)", () => {
 
       expect(onQuickSell).toHaveBeenCalledWith({
         asset: "AAPL",
+        assetId: "asset-aapl",
         market: "NASDAQ",
         quantity: 100,
         price: 150,

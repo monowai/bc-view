@@ -65,6 +65,7 @@ interface RowsProps extends HoldingValues {
   onPriceChart?: (data: PriceChartData) => void
   onPortfolioBreakdown?: (data: PortfolioBreakdownData) => void
   onEditAsset?: (asset: Asset) => void
+  onGoToPortfolio?: (asset: Asset) => void
 }
 
 // Helper function to truncate text with ellipsis
@@ -96,6 +97,7 @@ export default function Rows({
   onPriceChart,
   onPortfolioBreakdown,
   onEditAsset,
+  onGoToPortfolio,
 }: RowsProps): React.ReactElement {
   const router = useRouter()
   const { popup: newsPopup, showNews } = useNewsAsset()
@@ -197,7 +199,8 @@ export default function Rows({
                     isConstantPrice(asset)) ||
                   (asset.assetCategory?.id === "RE" &&
                     (onRecordIncome || onRecordExpense)) ||
-                  onEditAsset) ? (
+                  onEditAsset ||
+                  onGoToPortfolio) ? (
                   <div className="flex items-center">
                     <ActionsMenu
                       asset={asset}
@@ -232,6 +235,7 @@ export default function Rows({
                       onRecordIncome={onRecordIncome}
                       onRecordExpense={onRecordExpense}
                       onEditAsset={onEditAsset}
+                      onGoToPortfolio={onGoToPortfolio}
                     />
                   </div>
                 ) : null}
@@ -241,6 +245,7 @@ export default function Rows({
                     onCashTransaction ||
                     onRecordIncome ||
                     onRecordExpense ||
+                    onGoToPortfolio ||
                     (onEditAsset && asset.market?.code === "PRIVATE")) && (
                     <div className="flex items-center">
                       <CashActionsMenu
@@ -256,6 +261,7 @@ export default function Rows({
                         onRecordIncome={onRecordIncome}
                         onRecordExpense={onRecordExpense}
                         onEditAsset={onEditAsset}
+                        onGoToPortfolio={onGoToPortfolio}
                       />
                     </div>
                   )}

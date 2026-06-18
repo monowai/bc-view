@@ -156,6 +156,8 @@ export interface ActionsMenuProps {
   onRecordIncome?: (data: QuickSellData) => void
   onRecordExpense?: (data: QuickSellData) => void
   onEditAsset?: (asset: Asset) => void
+  /** Aggregated holdings: jump to one of the portfolios holding this asset. */
+  onGoToPortfolio?: (asset: Asset) => void
 }
 
 export const ActionsMenu: React.FC<ActionsMenuProps> = ({
@@ -180,6 +182,7 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
   onRecordIncome,
   onRecordExpense,
   onEditAsset,
+  onGoToPortfolio,
 }) => {
   const { isOpen, buttonRef, menuRef, menuPos, toggle, close } =
     useDropdownMenu()
@@ -187,6 +190,7 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
 
   const tradePayload = (): QuickSellData => ({
     asset: assetCode,
+    assetId: asset.id,
     market: asset.market.code,
     quantity,
     price,
@@ -332,6 +336,13 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
                   )}
                 />
               )}
+              {onGoToPortfolio && (
+                <MenuItem
+                  iconClass="fas fa-folder-open text-slate-500 w-4"
+                  label="Go to portfolio"
+                  onClick={handle(() => onGoToPortfolio(asset))}
+                />
+              )}
               {onEditAsset && (
                 <MenuItem
                   iconClass="fas fa-pen-to-square text-slate-500 w-4"
@@ -358,6 +369,8 @@ export interface CashActionsMenuProps {
   onRecordIncome?: (data: QuickSellData) => void
   onRecordExpense?: (data: QuickSellData) => void
   onEditAsset?: (asset: Asset) => void
+  /** Aggregated holdings: jump to one of the portfolios holding this asset. */
+  onGoToPortfolio?: (asset: Asset) => void
 }
 
 export const CashActionsMenu: React.FC<CashActionsMenuProps> = ({
@@ -371,6 +384,7 @@ export const CashActionsMenu: React.FC<CashActionsMenuProps> = ({
   onRecordIncome,
   onRecordExpense,
   onEditAsset,
+  onGoToPortfolio,
 }) => {
   const { isOpen, buttonRef, menuRef, menuPos, toggle, close } =
     useDropdownMenu()
@@ -419,6 +433,7 @@ export const CashActionsMenu: React.FC<CashActionsMenuProps> = ({
                       market: isAccountAsset ? "PRIVATE" : "CASH",
                       assetCode: isAccountAsset ? asset.code : undefined,
                       assetName: isAccountAsset ? asset.name : undefined,
+                      assetId: asset.id,
                     })
                   })}
                 />
@@ -486,6 +501,13 @@ export const CashActionsMenu: React.FC<CashActionsMenuProps> = ({
                       type: "EXPENSE",
                     }),
                   )}
+                />
+              )}
+              {onGoToPortfolio && (
+                <MenuItem
+                  iconClass="fas fa-folder-open text-slate-500 w-4"
+                  label="Go to portfolio"
+                  onClick={handle(() => onGoToPortfolio(asset))}
                 />
               )}
               {onEditAsset && asset.market?.code === "PRIVATE" && (

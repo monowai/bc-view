@@ -53,6 +53,7 @@ export interface SetCashBalanceData {
   market?: string // Market code: "CASH" for currencies, "PRIVATE" for bank accounts
   assetCode?: string // Asset code for bank accounts (e.g., "WISE", "USD-SAVINGS")
   assetName?: string // Asset name for display
+  assetId?: string // Asset id — lets aggregated holdings resolve the target portfolio
 }
 
 export interface CashTransferData {

@@ -85,4 +85,26 @@ describe("PortfolioBreakdownPopup", () => {
     expect(onClose).toHaveBeenCalled()
     expect(push).toHaveBeenCalledWith("/holdings/MAIN")
   })
+
+  it("calls onSelect with the row instead of navigating when provided", () => {
+    const onSelect = jest.fn()
+    const onClose = jest.fn()
+    render(
+      <PortfolioBreakdownPopup
+        breakdown={breakdown}
+        title="Trade AAPL — choose portfolio"
+        onSelect={onSelect}
+        onClose={onClose}
+      />,
+    )
+    expect(
+      screen.getByText("Trade AAPL — choose portfolio"),
+    ).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: /Open MAIN holdings/i }))
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ portfolioId: "p1", portfolioCode: "MAIN" }),
+    )
+    expect(onClose).toHaveBeenCalled()
+    expect(push).not.toHaveBeenCalled()
+  })
 })
