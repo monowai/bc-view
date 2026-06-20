@@ -221,6 +221,7 @@ describe("useChat", () => {
           query: "test query",
           context: undefined,
           deepThink: false,
+          think: false,
         }),
       }),
     )
@@ -240,7 +241,12 @@ describe("useChat", () => {
     expect(mockFetch).toHaveBeenCalledWith(
       "/api/agent/query/stream",
       expect.objectContaining({
-        body: JSON.stringify({ query: "help", context: ctx, deepThink: false }),
+        body: JSON.stringify({
+          query: "help",
+          context: ctx,
+          deepThink: false,
+          think: false,
+        }),
       }),
     )
   })
@@ -309,6 +315,7 @@ describe("useChat", () => {
           query: "explain",
           context: undefined,
           deepThink: true,
+          think: false,
         }),
       }),
     )

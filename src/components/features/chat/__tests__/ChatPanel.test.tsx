@@ -40,7 +40,12 @@ describe("ChatPanel", () => {
     const input = screen.getByRole("textbox")
     fireEvent.change(input, { target: { value: "show portfolios" } })
     fireEvent.submit(input.closest("form")!)
-    expect(defaultProps.onSend).toHaveBeenCalledWith("show portfolios", false)
+    // Free-text Chat FAB query → think=true (thinking mode).
+    expect(defaultProps.onSend).toHaveBeenCalledWith(
+      "show portfolios",
+      false,
+      true,
+    )
   })
 
   it("forwards deepThink=true to onSend when the toggle is on", () => {
@@ -54,6 +59,7 @@ describe("ChatPanel", () => {
     fireEvent.submit(input.closest("form")!)
     expect(defaultProps.onSend).toHaveBeenCalledWith(
       "analyse my retirement plan",
+      true,
       true,
     )
   })
