@@ -1,4 +1,5 @@
 import React from "react"
+import { holdingYears, formatHoldingPeriod } from "@lib/holdings/holdingPeriod"
 
 interface ProgressBarProps {
   value: number
@@ -69,12 +70,8 @@ export const AlphaProgress: React.FC<AlphaProgressProps> = ({
     irr: number,
     lastTradeDate?: string,
   ): number => {
-    if (!lastTradeDate) return irr
-
-    const tradeDate = new Date(lastTradeDate)
-    const now = new Date()
-    const holdingPeriodYears =
-      (now.getTime() - tradeDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000)
+    const holdingPeriodYears = holdingYears(lastTradeDate)
+    if (holdingPeriodYears === undefined) return irr
 
     // Apply time penalty/bonus to alpha
     // Shorter holding periods get penalty, longer periods get stability bonus
@@ -100,23 +97,7 @@ export const AlphaProgress: React.FC<AlphaProgressProps> = ({
     return "gray" // <3% = gray (poor)
   }
 
-  // Calculate holding period for display
-  const getHoldingPeriod = (lastTradeDate?: string): string => {
-    if (!lastTradeDate) return ""
-
-    const tradeDate = new Date(lastTradeDate)
-    const now = new Date()
-    const holdingPeriodYears =
-      (now.getTime() - tradeDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000)
-
-    if (holdingPeriodYears < 1) {
-      const months = Math.floor(holdingPeriodYears * 12)
-      return `${months}m`
-    }
-    return `${holdingPeriodYears.toFixed(1)}y`
-  }
-
-  const holdingPeriod = getHoldingPeriod(lastTradeDate)
+  const holdingPeriod = formatHoldingPeriod(lastTradeDate)
 
   return (
     <div className={`relative group flex items-center space-x-2 ${className}`}>

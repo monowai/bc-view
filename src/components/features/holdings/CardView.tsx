@@ -29,6 +29,8 @@ import {
 import { useDisplayCurrencyConversion } from "@lib/hooks/useDisplayCurrencyConversion"
 import { getGroupComparator } from "@lib/categoryMapping"
 import { useRouter } from "next/router"
+import { AlphaProgress } from "@components/ui/ProgressBar"
+import { QuickTooltip } from "@components/ui/Tooltip"
 import AssetNewsButton from "@components/features/holdings/AssetNewsButton"
 import { useNewsAsset } from "@components/features/holdings/useNewsAsset"
 import {
@@ -101,6 +103,7 @@ interface PositionFooterProps {
   quantity: number
   precision: number
   price: number | undefined
+  priceDate?: string
   weight: number
   currencySymbol: string
   onPriceClick?: (e: React.MouseEvent) => void
@@ -113,6 +116,7 @@ const PositionFooter: React.FC<PositionFooterProps> = ({
   quantity,
   precision,
   price,
+  priceDate,
   weight,
   currencySymbol,
   onPriceClick,
@@ -126,7 +130,7 @@ const PositionFooter: React.FC<PositionFooterProps> = ({
       {price?.toFixed(2) || "-"}
     </>
   )
-  const priceValue = onPriceClick ? (
+  const priceButton = onPriceClick ? (
     <button
       type="button"
       aria-label={priceAriaLabel}
@@ -137,6 +141,13 @@ const PositionFooter: React.FC<PositionFooterProps> = ({
     </button>
   ) : (
     priceText
+  )
+  // Surface the price's as-at date on hover (mirrors the table view, which
+  // shows priceDate inline beneath the price).
+  const priceValue = priceDate ? (
+    <QuickTooltip text={`Price as at ${priceDate}`}>{priceButton}</QuickTooltip>
+  ) : (
+    priceButton
   )
   const quantityText = (
     <PrivateQuantity value={quantity} precision={precision} />
@@ -468,25 +479,36 @@ const PositionCard: React.FC<PositionCardProps> = ({
               }
             : undefined
           return (
-            <PositionFooter
-              quantity={quantityValues.total}
-              precision={quantityValues.precision}
-              price={values.priceData?.close}
-              weight={values.weight}
-              currencySymbol={currencySymbol}
-              onPriceClick={handlePriceClick}
-              priceAriaLabel={
-                isChartable
-                  ? `Show price chart for ${stripOwnerPrefix(asset.code)}`
-                  : undefined
-              }
-              onQuantityClick={handleQuantityClick}
-              quantityAriaLabel={
-                isBreakdownable
-                  ? `Show portfolios holding ${stripOwnerPrefix(asset.code)}`
-                  : undefined
-              }
-            />
+            <>
+              <PositionFooter
+                quantity={quantityValues.total}
+                precision={quantityValues.precision}
+                price={values.priceData?.close}
+                priceDate={values.priceData?.priceDate}
+                weight={values.weight}
+                currencySymbol={currencySymbol}
+                onPriceClick={handlePriceClick}
+                priceAriaLabel={
+                  isChartable
+                    ? `Show price chart for ${stripOwnerPrefix(asset.code)}`
+                    : undefined
+                }
+                onQuantityClick={handleQuantityClick}
+                quantityAriaLabel={
+                  isBreakdownable
+                    ? `Show portfolios holding ${stripOwnerPrefix(asset.code)}`
+                    : undefined
+                }
+              />
+              {/* Alpha bar — holding period + time-weighted alpha, shared with
+                  the table view. Tooltip explains the figure on hover. */}
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                <AlphaProgress
+                  irr={values.irr}
+                  lastTradeDate={dateValues?.opened || undefined}
+                />
+              </div>
+            </>
           )
         })()}
     </div>
