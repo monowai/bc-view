@@ -133,6 +133,10 @@ jobs:
           # the browser revalidates against /api/register. Set via repo Variable
           # (Settings → Variables), defaults to 30 if unset.
           NEXT_PUBLIC_REGISTRATION_TTL_DAYS: ${{ vars.NEXT_PUBLIC_REGISTRATION_TTL_DAYS || '30' }}
+          # Browser trace sample rate. Empty by default → the client derives a
+          # per-environment default (local 1.0 / deployed 0.2). Set repo Variable
+          # to override (e.g. 1.0 to debug deployed tracing).
+          NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE: ${{ vars.NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE }}
         run: yarn build
 
       - name: Verify Sentry DSN is inlined into client bundle
@@ -273,6 +277,7 @@ jobs:
             BUILD_ID=${{ github.run_number }}
             NEXT_PUBLIC_SENTRY_DSN=${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
             NEXT_PUBLIC_REGISTRATION_TTL_DAYS=${{ vars.NEXT_PUBLIC_REGISTRATION_TTL_DAYS || '30' }}
+            NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE=${{ vars.NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE }}
           cache-from: type=gha,scope=${{ matrix.platform }}
           # mode=min stores only final-stage layers, not every intermediate
           # builder layer. mode=max ballooned the GHA cache pool.

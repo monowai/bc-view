@@ -41,6 +41,25 @@ function detectEnvironment(): string {
 const environment = detectEnvironment()
 const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN
 
+// Browser trace sampling. The client bundle cannot read the runtime ConfigMap
+// env (NEXT_PUBLIC_* is inlined by the bundler at build time, like the DSN), so
+// the server-side SENTRY_TRACES_SAMPLE_RATE never reaches the browser. Derive a
+// per-environment default here (local → 1.0 for full-fidelity debugging;
+// deployed → 0.2 to cap volume), overridable at build via the
+// NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE build-arg (repo Variable). Empty/unset
+// falls through to the environment default; non-numeric or out-of-range values
+// are ignored — the override must parse to a number within Sentry's [0, 1] range.
+const sampleRateOverride = process.env.NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE
+const parsedSampleRate = sampleRateOverride ? Number(sampleRateOverride) : NaN
+const tracesSampleRate =
+  Number.isFinite(parsedSampleRate) &&
+  parsedSampleRate >= 0 &&
+  parsedSampleRate <= 1
+    ? parsedSampleRate
+    : environment === "local"
+      ? 1.0
+      : 0.2
+
 if (!dsn) {
   console.log("[Sentry Client] No DSN configured, skipping initialization")
 } else {
@@ -50,8 +69,9 @@ if (!dsn) {
     dsn,
     environment,
 
-    // Define how likely traces are sampled. Adjust this value in production.
-    tracesSampleRate: 0.2,
+    // Environment-derived default, overridable via the
+    // NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE build-arg (computed above).
+    tracesSampleRate,
 
     // Setting this option to true will print useful information to the console while you're setting up Sentry.
     debug: false,

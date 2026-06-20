@@ -38,13 +38,28 @@ export default async function handler(
       return
     }
 
+    // Forward distributed-tracing headers so the SSE path stays on the same
+    // Sentry trace as the browser → bc-view request (mirrors fetchHelper.ts,
+    // which the non-streaming /api/agent/query path uses via createApiHandler).
+    const sentryTrace = req.headers["sentry-trace"]
+    const baggage = req.headers["baggage"]
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+      Accept: "text/event-stream",
+    }
+    if (sentryTrace) {
+      headers["sentry-trace"] = Array.isArray(sentryTrace)
+        ? sentryTrace[0]
+        : sentryTrace
+    }
+    if (baggage) {
+      headers["baggage"] = Array.isArray(baggage) ? baggage[0] : baggage
+    }
+
     const upstream = await fetch(getAgentUrl("/agent/query/stream"), {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-        Accept: "text/event-stream",
-      },
+      headers,
       body: JSON.stringify(req.body),
     })
 

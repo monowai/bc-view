@@ -15,6 +15,11 @@ ARG NEXT_PUBLIC_SENTRY_DSN
 # browser revalidates against /api/register. Inlined at build time; defaults
 # in code to 30 if absent. Configurable via repo Variable NEXT_PUBLIC_REGISTRATION_TTL_DAYS.
 ARG NEXT_PUBLIC_REGISTRATION_TTL_DAYS
+# Browser Sentry trace sample rate. Inlined at build time; when empty/unset the
+# client derives a per-environment default (local 1.0 / deployed 0.2). Override
+# via repo Variable NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE (e.g. 1.0 to debug a
+# deployed env). Runtime ConfigMap env never reaches the browser bundle.
+ARG NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE
 
 # Environment variables - Build info
 ENV GIT_BRANCH=$GIT_BRANCH
@@ -37,6 +42,8 @@ ARG NEXT_PUBLIC_SENTRY_DSN
 ENV NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN
 ARG NEXT_PUBLIC_REGISTRATION_TTL_DAYS
 ENV NEXT_PUBLIC_REGISTRATION_TTL_DAYS=$NEXT_PUBLIC_REGISTRATION_TTL_DAYS
+ARG NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE
+ENV NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE=$NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE
 COPY . .
 
 RUN yarn install --frozen-lockfile --prefer-offline --production=false
