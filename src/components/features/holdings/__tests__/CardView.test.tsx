@@ -556,3 +556,50 @@ describe("CardView footer (Quantity / Price / Weight)", () => {
     })
   })
 })
+
+describe("CardView price tooltip + alpha bar", () => {
+  beforeEach(() => {
+    mockedUsePrivacyMode.mockReturnValue({
+      hideValues: false,
+      toggleHideValues: jest.fn(),
+    })
+  })
+
+  const renderCard = (): void => {
+    const portfolio = makePortfolio()
+    // Fixture defaults: priceData.priceDate "2024-01-15", dateValues.opened
+    // "2023-01-01" — enough to exercise the tooltip + alpha bar.
+    const position = makePosition({
+      price: 150,
+      quantityValues: { total: 100 },
+    })
+    const holdings = makeHoldings({
+      portfolio,
+      holdingGroups: { Equity: makeHoldingGroup({ positions: [position] }) },
+    })
+    render(
+      <CardView
+        holdings={holdings}
+        portfolio={portfolio}
+        valueIn={ValueIn.PORTFOLIO}
+      />,
+    )
+  }
+
+  it("shows the price as-at date on hover", () => {
+    renderCard()
+    const priceHost = screen.getByText("$150.00").closest("span.cursor-help")
+    expect(priceHost).not.toBeNull()
+    fireEvent.mouseEnter(priceHost!)
+    expect(screen.getByText("Price as at 2024-01-15")).toBeInTheDocument()
+  })
+
+  it("renders the shared alpha bar (held-duration) on the card", () => {
+    renderCard()
+    // AlphaProgress's tooltip content is always in the DOM (revealed on hover).
+    expect(screen.getByText("Time-Weighted Alpha")).toBeInTheDocument()
+    expect(
+      screen.getByText(/Position opened: /, { exact: false }),
+    ).toBeInTheDocument()
+  })
+})
