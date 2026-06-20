@@ -14,7 +14,11 @@ interface ChatPanelProps {
    * parent does not need to plumb state through unless it wants to persist
    * the preference across mounts.
    */
-  onSend: (query: string, deepThink: boolean) => void
+  /**
+   * `think` enables DeepSeek thinking mode. Free-text Chat FAB queries pass
+   * `true`; suggested/pre-canned prompts pass `false` for the fastest response.
+   */
+  onSend: (query: string, deepThink: boolean, think: boolean) => void
   onClear: () => void
   /**
    * Aborts an in-flight stream. When provided and `isLoading` is true the
@@ -94,7 +98,8 @@ export default function ChatPanel({
     // the streaming answer immediately, even if they were scrolled up
     // reading earlier output.
     stickToBottomRef.current = true
-    onSend(trimmed, deepThink)
+    // Free-text Chat FAB query → thinking mode on.
+    onSend(trimmed, deepThink, true)
     setInput("")
   }
 
@@ -207,7 +212,7 @@ export default function ChatPanel({
                 {suggestions.map((suggestion) => (
                   <button
                     key={suggestion}
-                    onClick={() => onSend(suggestion, deepThink)}
+                    onClick={() => onSend(suggestion, deepThink, false)}
                     className="text-left text-xs px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 hover:border-blue-300 text-gray-500 hover:text-blue-600 transition-colors"
                   >
                     {suggestion}
@@ -218,7 +223,11 @@ export default function ChatPanel({
           </div>
         )}
         {messages.map((msg) => (
-          <ChatBubble key={msg.id} message={msg} onRetry={onSend} />
+          <ChatBubble
+            key={msg.id}
+            message={msg}
+            onRetry={(content, deepThink) => onSend(content, deepThink, true)}
+          />
         ))}
         {isLoading && (
           <div className="flex items-center gap-2 text-gray-400 text-sm">
