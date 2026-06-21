@@ -234,6 +234,20 @@ function SettingsPage(): React.ReactElement {
       })
 
       if (response.ok) {
+        // Date of birth lives in two stores: UserPreferences (here) and the
+        // independence settings the plan wizard / projections read. Keep them
+        // in sync so a DOB edited here is reflected when creating a plan.
+        if (yearOfBirth !== "") {
+          try {
+            await fetch("/api/independence/settings", {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ yearOfBirth, monthOfBirth }),
+            })
+          } catch {
+            // Non-fatal — preferences already saved.
+          }
+        }
         await refetchPreferences()
         setSuccess("Settings saved successfully")
         setTimeout(() => setSuccess(null), 3000)

@@ -131,20 +131,8 @@ export default function CompositeAssetEditor({
     [subAccounts, onSubAccountsChange],
   )
 
-  const handleApplyTemplate = useCallback(
-    (template: SubAccountRequest[]) => {
-      onSubAccountsChange(template.map((t) => ({ ...t })))
-      // Belt-and-braces: if someone reaches the CPF template button with
-      // the plan still unset (e.g. policyType was already CPF from a
-      // prior session), seed STANDARD here too.
-      if (policyType === "CPF" && !cpfLifePlan) {
-        onCpfLifePlanChange?.("STANDARD")
-      }
-    },
-    [onSubAccountsChange, policyType, cpfLifePlan, onCpfLifePlanChange],
-  )
-
   const isComposite = policyType !== undefined
+  const isCpf = policyType === "CPF"
 
   return (
     <div className="space-y-4">
@@ -162,12 +150,18 @@ export default function CompositeAssetEditor({
               if (val === "" && subAccounts.length > 0) {
                 onSubAccountsChange([])
               }
-              // Default CPF LIFE plan to Standard the moment policy turns
-              // CPF — otherwise projections silently report zero pension
-              // income (svc-retire's enrichCpfConfigs gates on the plan
-              // being set). User can switch to Basic/Escalating after.
-              if (val === "CPF" && !cpfLifePlan) {
-                onCpfLifePlanChange?.("STANDARD")
+              if (val === "CPF") {
+                // CPF is fully prescribed: auto-apply the OA/SA/MA/RA template
+                // (the user can't add codes) and default CPF LIFE to Standard
+                // — otherwise svc-retire's enrichCpfConfigs reports zero
+                // pension income. Both gate on "not already set" so we don't
+                // stomp a returning user's edits.
+                if (subAccounts.length === 0) {
+                  onSubAccountsChange(CPF_TEMPLATE.map((t) => ({ ...t })))
+                }
+                if (!cpfLifePlan) {
+                  onCpfLifePlanChange?.("STANDARD")
+                }
               }
             }}
             className="flex-1 border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500"
@@ -187,29 +181,18 @@ export default function CompositeAssetEditor({
 
       {isComposite && (
         <>
-          {/* Locked Until Date - Touch-friendly picker */}
-          <TouchDatePicker
-            value={lockedUntilDate}
-            onChange={onLockedUntilDateChange}
-            label="Locked Until Date"
-            hint="Asset cannot be liquidated before this date."
-            minYear={new Date().getFullYear()}
-            maxYear={new Date().getFullYear() + 40}
-          />
-
-          {/* Template Buttons */}
-          <div className="flex space-x-2">
-            {policyType === "CPF" && (
-              <button
-                type="button"
-                onClick={() => handleApplyTemplate(CPF_TEMPLATE)}
-                className="text-xs px-3 py-1.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
-              >
-                <i className="fas fa-magic mr-1"></i>
-                Apply CPF Template
-              </button>
-            )}
-          </div>
+          {/* Locked Until Date — CPF has a statutory lock, so we don't prompt
+              for it; only non-CPF composites expose a manual lock date. */}
+          {policyType !== "CPF" && (
+            <TouchDatePicker
+              value={lockedUntilDate}
+              onChange={onLockedUntilDateChange}
+              label="Locked Until Date"
+              hint="Asset cannot be liquidated before this date."
+              minYear={new Date().getFullYear()}
+              maxYear={new Date().getFullYear() + 40}
+            />
+          )}
 
           {/* CPF LIFE Settings */}
           {policyType === "CPF" && (
@@ -401,14 +384,16 @@ export default function CompositeAssetEditor({
                       />
                     </td>
                     <td className="px-3 py-2">
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveSubAccount(index)}
-                        className="text-red-400 hover:text-red-600"
-                        title="Remove sub-account"
-                      >
-                        <i className="fas fa-times"></i>
-                      </button>
+                      {!isCpf && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSubAccount(index)}
+                          className="text-red-400 hover:text-red-600"
+                          title="Remove sub-account"
+                        >
+                          <i className="fas fa-times"></i>
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -422,31 +407,34 @@ export default function CompositeAssetEditor({
             )}
           </div>
 
-          {/* Add Sub-Account Row */}
-          <div className="flex items-center space-x-2">
-            <input
-              type="text"
-              value={newCode}
-              onChange={(e) => setNewCode(e.target.value.toUpperCase())}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault()
-                  handleAddSubAccount()
-                }
-              }}
-              placeholder="Sub-account code"
-              className="flex-1 border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-            />
-            <button
-              type="button"
-              onClick={handleAddSubAccount}
-              disabled={!newCode.trim()}
-              className="px-3 py-2 bg-indigo-600 text-white rounded-md text-sm hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <i className="fas fa-plus mr-1"></i>
-              Add
-            </button>
-          </div>
+          {/* Add Sub-Account Row — CPF's sub-accounts are fixed (OA/SA/MA/RA),
+              so adding codes is disabled for CPF. */}
+          {!isCpf && (
+            <div className="flex items-center space-x-2">
+              <input
+                type="text"
+                value={newCode}
+                onChange={(e) => setNewCode(e.target.value.toUpperCase())}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault()
+                    handleAddSubAccount()
+                  }
+                }}
+                placeholder="Sub-account code"
+                className="flex-1 border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+              />
+              <button
+                type="button"
+                onClick={handleAddSubAccount}
+                disabled={!newCode.trim()}
+                className="px-3 py-2 bg-indigo-600 text-white rounded-md text-sm hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <i className="fas fa-plus mr-1"></i>
+                Add
+              </button>
+            </div>
+          )}
 
           {/* Balance Summary */}
           {subAccounts.length > 0 && (
