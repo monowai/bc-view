@@ -238,14 +238,27 @@ function SettingsPage(): React.ReactElement {
         // independence settings the plan wizard / projections read. Keep them
         // in sync so a DOB edited here is reflected when creating a plan.
         if (yearOfBirth !== "") {
+          // Best-effort + bounded: don't let a slow/failed sync hold up the
+          // (already-succeeded) preferences save.
+          const controller = new AbortController()
+          const timeoutId = setTimeout(() => controller.abort(), 3000)
           try {
-            await fetch("/api/independence/settings", {
+            const syncRes = await fetch("/api/independence/settings", {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ yearOfBirth, monthOfBirth }),
+              signal: controller.signal,
             })
+            if (!syncRes.ok) {
+              console.warn(
+                "DOB saved, but independence-settings sync failed:",
+                syncRes.status,
+              )
+            }
           } catch {
             // Non-fatal — preferences already saved.
+          } finally {
+            clearTimeout(timeoutId)
           }
         }
         await refetchPreferences()

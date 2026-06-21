@@ -638,6 +638,7 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
             <CompositeAssetEditor
               policyType={newPension.policyType}
               cpfLifePlan={newPension.cpfLifePlan}
+              cpfPayoutStartAge={newPension.payoutAge}
               lockedUntilDate={newPension.lockedUntilDate || ""}
               subAccounts={newPension.subAccounts || []}
               onPolicyTypeChange={(value: PolicyType | undefined) =>
@@ -662,6 +663,9 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
               }
               onSubAccountsChange={(accounts: SubAccountRequest[]) =>
                 setNewPension((prev) => ({ ...prev, subAccounts: accounts }))
+              }
+              onCpfPayoutStartAgeChange={(value) =>
+                setNewPension((prev) => ({ ...prev, payoutAge: value }))
               }
             />
 

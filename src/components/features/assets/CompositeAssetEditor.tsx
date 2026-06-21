@@ -160,6 +160,12 @@ export default function CompositeAssetEditor({
                 if (!cpfLifePlan) {
                   onCpfLifePlanChange?.("STANDARD")
                 }
+                // CPF's lock is statutory and the field is hidden — drop any
+                // manual lock date carried over from a previous policy type so
+                // it can't leak into the CPF save.
+                if (lockedUntilDate) {
+                  onLockedUntilDateChange("")
+                }
               } else {
                 // ILP / Generic / None have no prescribed buckets — start from
                 // an empty template and drop CPF-only settings.
@@ -168,6 +174,9 @@ export default function CompositeAssetEditor({
                 }
                 if (cpfLifePlan) {
                   onCpfLifePlanChange?.(undefined)
+                }
+                if (cpfPayoutStartAge != null) {
+                  onCpfPayoutStartAgeChange?.(undefined)
                 }
               }
             }}
