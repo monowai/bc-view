@@ -133,12 +133,27 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
   )
   const hasCpfAsset = !!cpfConfig
 
+  // The portfolio that holds the CPF asset — the payslip defaults to it so the
+  // contribution lands in the right place. Uses the asset "where held" endpoint
+  // (one targeted lookup) rather than scanning every portfolio's holdings.
+  const cpfAssetId = cpfConfig?.assetId
+  const { data: cpfPortfolioId } = useSWR(
+    modalOpen && cpfAssetId
+      ? `/api/assets/${cpfAssetId}/positions?date=today`
+      : null,
+    async (url: string): Promise<string> => {
+      const res = await fetch(url)
+      if (!res.ok) return ""
+      const json = await res.json().catch(() => null)
+      return json?.data?.[0]?.portfolio?.id ?? ""
+    },
+  )
+
   // Form state. Portfolio + cash asset prefill from saved preferences (also
   // re-applied on each open below).
   const [grossSalary, setGrossSalary] = useState<string>("")
-  const [portfolioId, setPortfolioId] = useState<string>(
-    () => preferences?.defaultPayslipPortfolioId ?? "",
-  )
+  // Explicit user pick; "" follows the derived default (CPF portfolio first).
+  const [portfolioId, setPortfolioId] = useState<string>("")
   const [cashAssetId, setCashAssetId] = useState<string>(
     () => preferences?.defaultPayslipCashAssetId ?? "",
   )
@@ -162,7 +177,7 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
       setIsSubmitting(false)
       setSubmitError(null)
       setSubmitSuccess(false)
-      setPortfolioId(preferences?.defaultPayslipPortfolioId ?? "")
+      setPortfolioId("")
       setCashAssetId(preferences?.defaultPayslipCashAssetId ?? "")
     }
   }
@@ -193,19 +208,26 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
 
   // Best "Pay into" match for the user's reporting currency. Preference order
   // mirrors the dropdown: private accounts (bank, then brokerage) before a
-  // generic currency balance.
-  const reportingCurrency = preferences?.reportingCurrencyCode ?? "USD"
+  // generic currency balance. Never hardcode USD — fall back to the user's
+  // first actual account so a wholly-SGD user defaults to SGD, not USD.
+  const reportingCurrency = preferences?.reportingCurrencyCode
   const preferredCashAssetId = useMemo(() => {
-    const match = [...accountOptions, ...cashOptions].find(
-      (o) => o.currency === reportingCurrency,
-    )
-    return match?.value ?? ""
+    const all = [...accountOptions, ...cashOptions]
+    const match = reportingCurrency
+      ? all.find((o) => o.currency === reportingCurrency)
+      : undefined
+    return (match ?? all[0])?.value ?? ""
   }, [accountOptions, cashOptions, reportingCurrency])
 
   // Derived selection: the user's explicit pick, else the reporting-currency
   // default. Derived (not effect-set) so the React Compiler is happy and the
   // default appears the moment the account lists load.
   const effectiveCashAssetId = cashAssetId || preferredCashAssetId
+
+  // Portfolio default order: explicit pick → CPF-holding portfolio → saved
+  // pref. CPF wins over the generic saved default so contributions land right.
+  const effectivePortfolioId =
+    portfolioId || cpfPortfolioId || preferences?.defaultPayslipPortfolioId || ""
 
   const selectedCashCurrency = useMemo(() => {
     const opt = [...cashOptions, ...accountOptions].find(
@@ -216,7 +238,7 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
 
   const buildPayload = (): PayslipPayload =>
     buildPayslipPayload({
-      portfolioId,
+      portfolioId: effectivePortfolioId,
       tradeDate: todayIso(),
       grossSalary: grossNum,
       tax: parseNum(tax),
@@ -227,7 +249,8 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
       buckets: showPension ? effectiveBuckets : undefined,
     })
 
-  const canSubmit = grossNum > 0 && !!portfolioId && !!effectiveCashAssetId
+  const canSubmit =
+    grossNum > 0 && !!effectivePortfolioId && !!effectiveCashAssetId
 
   const handleSave = async (): Promise<void> => {
     if (!canSubmit) return
@@ -254,7 +277,7 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            defaultPayslipPortfolioId: portfolioId,
+            defaultPayslipPortfolioId: effectivePortfolioId,
             defaultPayslipCashAssetId: effectiveCashAssetId,
           }),
         })
@@ -262,7 +285,7 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
         // Non-fatal — the transactions already posted.
       }
 
-      const portfolio = portfolios.find((p) => p.id === portfolioId)
+      const portfolio = portfolios.find((p) => p.id === effectivePortfolioId)
       if (portfolio) globalMutate(holdingKey(portfolio.code, "today"))
       globalMutate("/api/holdings/aggregated?asAt=today")
 
@@ -341,7 +364,7 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
         </label>
         <select
           id="payslip-portfolio"
-          value={portfolioId}
+          value={effectivePortfolioId}
           onChange={(e) => setPortfolioId(e.target.value)}
           className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border bg-white"
         >

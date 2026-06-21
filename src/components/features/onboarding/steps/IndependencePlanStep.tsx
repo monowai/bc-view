@@ -19,6 +19,12 @@ const MONTHS = [
 export interface IndependencePlanStepProps {
   enabled: boolean
   hideToggle?: boolean
+  /**
+   * When true (a CPF pension was set up), date of birth is mandatory and the
+   * fields are shown even if the user skips the independence plan — CPF
+   * contribution rates are age-banded.
+   */
+  cpfRequiresDob?: boolean
   yearOfBirth: number
   monthOfBirth: number
   monthlyExpenses: number
@@ -55,6 +61,7 @@ function computeMonthlyContribution(
 const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
   enabled,
   hideToggle = false,
+  cpfRequiresDob = false,
   yearOfBirth,
   monthOfBirth,
   monthlyExpenses,
@@ -82,6 +89,48 @@ const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
     taxesMonthly,
     bonusMonthly,
     investmentAllocationPercent,
+  )
+
+  const dateOfBirthSection = (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        {"Date of Birth"}
+      </label>
+      <div className="grid grid-cols-2 gap-3">
+        <select
+          id="independenceMonthOfBirth"
+          aria-label="Month of birth"
+          value={monthOfBirth}
+          onChange={(e) => onMonthOfBirthChange(Number(e.target.value))}
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
+        >
+          {MONTHS.map((label, i) => (
+            <option key={label} value={i + 1}>
+              {label}
+            </option>
+          ))}
+        </select>
+        <input
+          id="independenceYearOfBirth"
+          type="number"
+          aria-label="Year of birth"
+          value={yearOfBirth}
+          min={1920}
+          max={currentYear - 18}
+          onChange={(e) => onYearOfBirthChange(Number(e.target.value))}
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
+        />
+      </div>
+      <p className="mt-1 text-sm text-gray-500">
+        {`Currently ${currentYear - yearOfBirth} years old`}
+      </p>
+      {cpfRequiresDob && (
+        <p className="mt-1 text-sm text-amber-700">
+          <i className="fas fa-circle-info mr-1"></i>
+          {"Required to calculate your CPF contributions."}
+        </p>
+      )}
+    </div>
   )
 
   return (
@@ -125,39 +174,7 @@ const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
               {"Independence Settings"}
             </h3>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {"Date of Birth"}
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <select
-                  id="independenceMonthOfBirth"
-                  aria-label="Month of birth"
-                  value={monthOfBirth}
-                  onChange={(e) => onMonthOfBirthChange(Number(e.target.value))}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
-                >
-                  {MONTHS.map((label, i) => (
-                    <option key={label} value={i + 1}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  id="independenceYearOfBirth"
-                  type="number"
-                  aria-label="Year of birth"
-                  value={yearOfBirth}
-                  min={1920}
-                  max={currentYear - 18}
-                  onChange={(e) => onYearOfBirthChange(Number(e.target.value))}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
-                />
-              </div>
-              <p className="mt-1 text-sm text-gray-500">
-                {`Currently ${currentYear - yearOfBirth} years old`}
-              </p>
-            </div>
+            {dateOfBirthSection}
 
             <div>
               <label
@@ -350,6 +367,17 @@ const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {!enabled && cpfRequiresDob && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 space-y-2">
+          <p className="text-sm text-amber-800">
+            {
+              "You set up a CPF pension. Confirm your date of birth below so we can calculate your CPF contributions."
+            }
+          </p>
+          {dateOfBirthSection}
         </div>
       )}
 
