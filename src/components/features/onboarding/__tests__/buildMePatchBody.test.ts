@@ -43,6 +43,23 @@ describe("buildMePatchBody", () => {
     expect(body.baseCurrencyCode).toBe("SGD")
   })
 
+  it("saves date of birth (but not target age) when a CPF pension requires it, even if the plan was skipped", () => {
+    // CPF contribution rates are age-banded; without yearOfBirth the payslip
+    // DC calc never fires and no CPF deduction is recorded. So a CPF pension
+    // forces the demographic fields onto the PATCH even when the independence
+    // plan itself is skipped.
+    const body = buildMePatchBody({
+      ...baseInput,
+      independencePlanEnabled: false,
+      cpfRequiresDob: true,
+    })
+
+    expect(body.yearOfBirth).toBe(1981)
+    expect(body.monthOfBirth).toBe(1)
+    // targetIndependenceAge is plan-only — still omitted.
+    expect(body.targetIndependenceAge).toBeUndefined()
+  })
+
   it("collapses an empty preferredName to undefined so the field is omitted", () => {
     const body = buildMePatchBody({ ...baseInput, preferredName: "" })
 

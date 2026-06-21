@@ -12,7 +12,6 @@ import {
 import OnboardingProgress from "./OnboardingProgress"
 import WelcomeStep from "./steps/WelcomeStep"
 import CurrencyStep from "./steps/CurrencyStep"
-import PortfolioStep from "./steps/PortfolioStep"
 import AssetsStep from "./steps/AssetsStep"
 import ReviewStep from "./steps/ReviewStep"
 import CompleteStep from "./steps/CompleteStep"
@@ -114,8 +113,10 @@ const OnboardingWizard: React.FC = () => {
   // Wizard state - no pre-selection, user must explicitly choose
   const [currentStep, setCurrentStep] = useState(1)
   const [preferredName, setPreferredName] = useState("")
-  const [baseCurrency, setBaseCurrency] = useState("")
-  const [reportingCurrency, setReportingCurrency] = useState("")
+  // Default to SGD; the preferences effect below overrides with any saved
+  // currency preference for returning users.
+  const [baseCurrency, setBaseCurrency] = useState("SGD")
+  const [reportingCurrency, setReportingCurrency] = useState("SGD")
   const [prefsInitialized, setPrefsInitialized] = useState(false)
   const [portfolioCode, setPortfolioCode] = useState("")
   const [portfolioName, setPortfolioName] = useState("")
@@ -195,12 +196,11 @@ const OnboardingWizard: React.FC = () => {
     () => [
       { id: 1, label: "Welcome" },
       { id: 2, label: "Currency" },
-      { id: 3, label: "Portfolio" },
-      { id: 4, label: "Assets" },
-      { id: 5, label: "Review" },
-      { id: 6, label: "Independence" },
-      { id: 7, label: "Brokerage" },
-      { id: 8, label: "Complete" },
+      { id: 3, label: "Assets" },
+      { id: 4, label: "Review" },
+      { id: 5, label: "Independence" },
+      { id: 6, label: "Brokerage" },
+      { id: 7, label: "Complete" },
     ],
     [],
   )
@@ -222,6 +222,16 @@ const OnboardingWizard: React.FC = () => {
     setInsurances((prev) => prev.filter((_, i) => i !== index))
   }
 
+  // A CPF pension makes date of birth mandatory — CPF contribution rates are
+  // age-banded, so the payslip / DC calc is broken without a real birth year.
+  const hasCpfPension = useMemo(
+    () => pensions.some((p) => p.policyType === "CPF"),
+    [pensions],
+  )
+  const cpfDobValid =
+    independenceYearOfBirth >= 1920 &&
+    independenceYearOfBirth <= currentYear - 16
+
   // Validation
   const canProceed = useMemo(() => {
     switch (currentStep) {
@@ -230,31 +240,29 @@ const OnboardingWizard: React.FC = () => {
       case 2:
         return baseCurrency !== ""
       case 3:
-        return portfolioCode.trim() !== "" && portfolioName.trim() !== ""
-      case 4:
         return true // Assets are optional
-      case 5:
+      case 4:
         return true // Review - always can proceed
+      case 5:
+        // Independence is optional, BUT if a CPF pension was added the date of
+        // birth must be valid (age-banded CPF rates).
+        return !hasCpfPension || cpfDobValid
       case 6:
-        return true // Independence - always can proceed (optional step)
-      case 7:
         return true // Brokerage - always can proceed (optional step)
-      case 8:
-        return true
+      case 7:
+        return true // Complete
       default:
         return false
     }
-  }, [currentStep, baseCurrency, portfolioCode, portfolioName])
+  }, [currentStep, baseCurrency, hasCpfPension, cpfDobValid])
 
   const handleNext = (): void => {
     if (currentStep < steps.length && canProceed) {
-      // Auto-set portfolio code/name when moving from currency step
+      // Auto-create the portfolio from the base currency when leaving the
+      // currency step (the dedicated portfolio step was removed).
       if (currentStep === 2 && baseCurrency) {
         setPortfolioCode(baseCurrency)
         setPortfolioName(`${baseCurrency} Portfolio`)
-        // Skip portfolio step, go directly to assets
-        setCurrentStep(4)
-        return
       }
       setCurrentStep(currentStep + 1)
     }
@@ -262,11 +270,6 @@ const OnboardingWizard: React.FC = () => {
 
   const handleBack = (): void => {
     if (currentStep > 1) {
-      // Skip portfolio step when going back from assets, review, or independence
-      if (currentStep === 4 || currentStep === 5 || currentStep === 6) {
-        setCurrentStep(currentStep - 1 === 3 ? 2 : currentStep - 1)
-        return
-      }
       setCurrentStep(currentStep - 1)
     }
   }
@@ -274,18 +277,18 @@ const OnboardingWizard: React.FC = () => {
   const handleSkip = useCallback(() => {
     // Skip moves to the next step
     if (currentStep === 2) {
-      // Skipping currency - use USD as default and auto-create portfolio
-      const currency = baseCurrency || "USD"
+      // Skipping currency - default to SGD and auto-create the portfolio.
+      const currency = baseCurrency || "SGD"
       setBaseCurrency(currency)
       setReportingCurrency(currency)
       setPortfolioCode(currency)
       setPortfolioName(`${currency} Portfolio`)
-      setCurrentStep(4) // Skip to assets
+      setCurrentStep(3) // Move to assets
       return
     }
-    if (currentStep === 4) {
+    if (currentStep === 3) {
       // Skipping assets step - go to review
-      setCurrentStep(5)
+      setCurrentStep(4)
       return
     }
     if (currentStep < steps.length) {
@@ -598,6 +601,7 @@ const OnboardingWizard: React.FC = () => {
             baseCurrency,
             reportingCurrency,
             independencePlanEnabled,
+            cpfRequiresDob: hasCpfPension,
             independenceYearOfBirth,
             independenceMonthOfBirth,
             independenceTargetAge,
@@ -816,7 +820,7 @@ const OnboardingWizard: React.FC = () => {
       }
 
       // Move to complete step
-      setCurrentStep(8)
+      setCurrentStep(7)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Setup failed")
     } finally {
@@ -850,17 +854,6 @@ const OnboardingWizard: React.FC = () => {
         )
       case 3:
         return (
-          <PortfolioStep
-            portfolioCode={portfolioCode}
-            portfolioName={portfolioName}
-            baseCurrency={baseCurrency}
-            reportingCurrency={reportingCurrency}
-            onCodeChange={setPortfolioCode}
-            onNameChange={setPortfolioName}
-          />
-        )
-      case 4:
-        return (
           <AssetsStep
             baseCurrency={baseCurrency}
             bankAccounts={bankAccounts}
@@ -873,7 +866,7 @@ const OnboardingWizard: React.FC = () => {
             onInsurancesChange={setInsurances}
           />
         )
-      case 5:
+      case 4:
         return (
           <ReviewStep
             baseCurrency={baseCurrency}
@@ -887,10 +880,11 @@ const OnboardingWizard: React.FC = () => {
             onRemoveInsurance={handleRemoveInsurance}
           />
         )
-      case 6:
+      case 5:
         return (
           <IndependencePlanStep
             enabled={independencePlanEnabled}
+            cpfRequiresDob={hasCpfPension}
             yearOfBirth={independenceYearOfBirth}
             monthOfBirth={independenceMonthOfBirth}
             monthlyExpenses={independenceMonthlyExpenses}
@@ -913,7 +907,7 @@ const OnboardingWizard: React.FC = () => {
             baseCurrency={baseCurrency}
           />
         )
-      case 7:
+      case 6:
         return (
           <BrokerageStep
             enabled={brokerageEnabled}
@@ -936,7 +930,7 @@ const OnboardingWizard: React.FC = () => {
             onCurrencyChange={setBrokerageCurrency}
           />
         )
-      case 8:
+      case 7:
         return (
           <CompleteStep
             portfolioName={portfolioName}
@@ -1005,7 +999,7 @@ const OnboardingWizard: React.FC = () => {
       {/* Navigation */}
       <div className="flex justify-between mt-6">
         <div>
-          {currentStep > 1 && currentStep < 8 && (
+          {currentStep > 1 && currentStep < 7 && (
             <button
               type="button"
               onClick={handleBack}
@@ -1017,7 +1011,7 @@ const OnboardingWizard: React.FC = () => {
         </div>
 
         <div className="flex gap-3">
-          {(currentStep === 2 || currentStep === 4) && (
+          {(currentStep === 2 || currentStep === 3) && (
             <button
               type="button"
               onClick={handleSkip}
@@ -1027,7 +1021,7 @@ const OnboardingWizard: React.FC = () => {
             </button>
           )}
 
-          {currentStep < 7 && (
+          {currentStep < 6 && (
             <button
               type="button"
               onClick={handleNext}
@@ -1042,7 +1036,7 @@ const OnboardingWizard: React.FC = () => {
             </button>
           )}
 
-          {currentStep === 7 && (
+          {currentStep === 6 && (
             <button
               type="button"
               onClick={handleComplete}
@@ -1064,7 +1058,7 @@ const OnboardingWizard: React.FC = () => {
             </button>
           )}
 
-          {currentStep === 8 && (
+          {currentStep === 7 && (
             <button
               type="button"
               onClick={handleFinish}

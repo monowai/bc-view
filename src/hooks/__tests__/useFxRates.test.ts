@@ -29,6 +29,11 @@ const GBP: Currency = {
   name: "Pound",
   symbol: "£",
 } as Currency
+const SGD: Currency = {
+  code: "SGD",
+  name: "Singapore Dollar",
+  symbol: "$",
+} as Currency
 
 function withPreferences(baseCurrencyCode: string | undefined): void {
   mockUseUserPreferences.mockReturnValue({
@@ -100,6 +105,28 @@ describe("useFxRates", () => {
 
       await waitFor(() => {
         expect(result.current.displayCurrency).toEqual(NZD)
+      })
+    })
+
+    it("defaults to the source (portfolio base) currency over a USD in the list", async () => {
+      // Regression: an all-SGD user must default to SGD even though USD is
+      // present (and first) in the available currencies.
+      withPreferences(undefined)
+
+      const { result } = renderHook(() => useFxRates([USD, SGD], ["SGD"]))
+
+      await waitFor(() => {
+        expect(result.current.displayCurrency).toEqual(SGD)
+      })
+    })
+
+    it("a genuine USD source still defaults to USD", async () => {
+      withPreferences(undefined)
+
+      const { result } = renderHook(() => useFxRates([SGD, USD], ["USD"]))
+
+      await waitFor(() => {
+        expect(result.current.displayCurrency).toEqual(USD)
       })
     })
 

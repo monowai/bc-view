@@ -45,6 +45,9 @@ jest.mock("swr", () => ({
   __esModule: true,
   default: (key: string | null) => {
     if (!key) return { data: undefined, error: undefined, isLoading: false }
+    // CPF "where held" lookup → the CPF asset lives in pf-1.
+    if (key.includes("/positions"))
+      return { data: "pf-1", error: undefined, isLoading: false }
     if (key.includes("portfolios"))
       return { data: mockPortfolios, error: undefined, isLoading: false }
     if (key.includes("category=TRADE"))
@@ -138,6 +141,43 @@ describe("PayslipModal", () => {
       expect(
         (screen.getByLabelText("Pay into") as HTMLSelectElement).value,
       ).toBe("dbs-sgd")
+    } finally {
+      mockPreferences.preferences = prev
+    }
+  })
+
+  it("defaults Pay into to the first account (never USD) when no reporting currency is set", () => {
+    const prev = mockPreferences.preferences
+    mockPreferences.preferences = {
+      ...prev,
+      defaultPayslipCashAssetId: undefined,
+      reportingCurrencyCode: undefined,
+    }
+    try {
+      render(<PayslipModal modalOpen onClose={jest.fn()} />)
+      // No reporting currency → fall back to the first real account (the SGD
+      // bank), NOT a hardcoded USD balance.
+      expect(
+        (screen.getByLabelText("Pay into") as HTMLSelectElement).value,
+      ).toBe("dbs-sgd")
+    } finally {
+      mockPreferences.preferences = prev
+    }
+  })
+
+  it("defaults the Portfolio to the CPF-holding portfolio, over a different saved default", () => {
+    mockConfigs = [{ assetId: "cpf-asset", policyType: "CPF" }]
+    const prev = mockPreferences.preferences
+    mockPreferences.preferences = {
+      ...prev,
+      defaultPayslipPortfolioId: "pf-other",
+    }
+    try {
+      render(<PayslipModal modalOpen onClose={jest.fn()} />)
+      // The CPF lookup resolves to pf-1 and wins over the stale saved default.
+      expect(
+        (screen.getByLabelText("Portfolio") as HTMLSelectElement).value,
+      ).toBe("pf-1")
     } finally {
       mockPreferences.preferences = prev
     }

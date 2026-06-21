@@ -41,6 +41,22 @@ const COUNTRY_OPTIONS = [
   { code: "US", name: "United States" },
 ]
 
+const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+]
+const currentYear = new Date().getFullYear()
+
 const SETTINGS_LABELS: Record<string, string> = {
   "settings.holdingsView.summary": "Summary",
   "settings.holdingsView.cards": "Cards",
@@ -100,6 +116,8 @@ function SettingsPage(): React.ReactElement {
   const [newTaxRate, setNewTaxRate] = useState("")
   const [taxRateSaving, setTaxRateSaving] = useState(false)
   const [preferredName, setPreferredName] = useState<string>("")
+  const [yearOfBirth, setYearOfBirth] = useState<number | "">("")
+  const [monthOfBirth, setMonthOfBirth] = useState<number>(1)
   const [defaultHoldingsView, setDefaultHoldingsView] =
     useState<HoldingsView>("SUMMARY")
   const [defaultValueIn, setDefaultValueIn] = useState<ValueInOption>(
@@ -135,6 +153,8 @@ function SettingsPage(): React.ReactElement {
           const meData: RegistrationResponse = await meResponse.json()
           if (meData.preferences) {
             setPreferredName(meData.preferences.preferredName || "")
+            setYearOfBirth(meData.preferences.yearOfBirth ?? "")
+            setMonthOfBirth(meData.preferences.monthOfBirth ?? 1)
             setDefaultHoldingsView(meData.preferences.defaultHoldingsView)
             setDefaultValueIn(
               meData.preferences.defaultValueIn || VALUE_IN_OPTIONS.PORTFOLIO,
@@ -201,6 +221,10 @@ function SettingsPage(): React.ReactElement {
         showWeightedIrr,
         enableTwr,
         defaultMarket,
+        ...(yearOfBirth !== "" && {
+          yearOfBirth,
+          monthOfBirth,
+        }),
       }
 
       const response = await fetch("/api/me", {
@@ -380,6 +404,48 @@ function SettingsPage(): React.ReactElement {
               />
               <p className="mt-1 text-sm text-gray-500">
                 {"How you'd like to be greeted in the app"}
+              </p>
+            </div>
+
+            {/* Date of Birth */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {"Date of Birth"}
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <select
+                  id="monthOfBirth"
+                  aria-label="Month of birth"
+                  value={monthOfBirth}
+                  onChange={(e) => setMonthOfBirth(Number(e.target.value))}
+                  className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-500 focus:border-blue-500"
+                >
+                  {MONTHS.map((label, i) => (
+                    <option key={label} value={i + 1}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  id="yearOfBirth"
+                  type="number"
+                  aria-label="Year of birth"
+                  value={yearOfBirth}
+                  min={1920}
+                  max={currentYear - 16}
+                  placeholder={"Year"}
+                  onChange={(e) =>
+                    setYearOfBirth(
+                      e.target.value === "" ? "" : Number(e.target.value),
+                    )
+                  }
+                  className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              <p className="mt-1 text-sm text-gray-500">
+                {
+                  "Used to calculate age-based contributions such as CPF. Required if you track a CPF pension, even without an independence plan."
+                }
               </p>
             </div>
 

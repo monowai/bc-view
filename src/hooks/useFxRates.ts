@@ -44,7 +44,13 @@ export function useFxRates(
       const preferred = currencies.find((c) => c.code === baseCurrencyCode)
       if (preferred) return preferred
     }
-    return currencies.find((c) => c.code === "USD") || currencies[0]
+    // Fall back to the user's actual money: the first source (portfolio base)
+    // currency that we have a Currency entry for. Never hardcode USD — a
+    // wholly-SGD user must default to SGD, not USD.
+    const sourcePreferred = sourceCurrencyCodes
+      .map((code) => currencies.find((c) => c.code === code))
+      .find((c): c is Currency => Boolean(c))
+    return sourcePreferred || currencies[0]
   })()
 
   // User can override the default; null means "follow default".

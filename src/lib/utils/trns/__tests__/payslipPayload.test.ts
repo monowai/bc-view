@@ -36,11 +36,13 @@ describe("buildPayslipPayload", () => {
       ])
     })
 
-    it("credits gross salary as INCOME to the cash asset", () => {
+    it("credits gross salary as INCOME to the cash asset (cash convention: price 1, amount in quantity)", () => {
       const salary = payload.data[0]
       expect(salary.trnType).toBe("INCOME")
       expect(salary.assetId).toBe("cash-sgd")
       expect(salary.cashAssetId).toBe("cash-sgd")
+      expect(salary.price).toBe(1)
+      expect(salary.quantity).toBe(6000)
       expect(salary.cashAmount).toBe(6000)
       expect(salary.tradeAmount).toBe(6000)
       expect(salary.tradeCurrency).toBe("SGD")
@@ -50,12 +52,16 @@ describe("buildPayslipPayload", () => {
       const employee = payload.data[1]
       expect(employee.trnType).toBe("DEDUCTION")
       expect(employee.cashAssetId).toBe("cash-sgd")
+      expect(employee.price).toBe(1)
+      expect(employee.quantity).toBe(1200)
       expect(employee.cashAmount).toBe(-1200)
     })
 
     it("debits tax from cash when tax > 0", () => {
       const taxLeg = payload.data[2]
       expect(taxLeg.trnType).toBe("DEDUCTION")
+      expect(taxLeg.price).toBe(1)
+      expect(taxLeg.quantity).toBe(500)
       expect(taxLeg.cashAmount).toBe(-500)
       expect(taxLeg.tax).toBe(500)
     })
@@ -117,7 +123,8 @@ describe("buildPayslipPayload", () => {
       const salary = payload.data[0]
       expect(salary.cashAmount).toBe(100.01)
       expect(salary.tradeAmount).toBe(100.01)
-      expect(salary.price).toBe(100.01)
+      expect(salary.quantity).toBe(100.01)
+      expect(salary.price).toBe(1)
 
       const employee = payload.data[1]
       expect(employee.cashAmount).toBe(-1.01)

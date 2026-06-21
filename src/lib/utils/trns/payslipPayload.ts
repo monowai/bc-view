@@ -112,12 +112,15 @@ export function buildPayslipPayload(
   const data: PayslipTrnLeg[] = []
 
   // 1. Salary — INCOME credits the cash asset with the gross amount.
+  // Cash legs follow the cash convention: price = 1, the amount lives in
+  // quantity (matches CashInputForm / cash transfers). Putting the amount in
+  // price corrupts the cash position's derived unit price.
   const gross = round2(grossSalary)
   data.push({
     assetId: cashAssetId,
     trnType: "INCOME",
-    quantity: 1,
-    price: gross,
+    quantity: gross,
+    price: 1,
     tradeCurrency: cashCurrency,
     tradeAmount: gross,
     cashCurrency,
@@ -138,8 +141,8 @@ export function buildPayslipPayload(
     data.push({
       assetId: cashAssetId,
       trnType: "DEDUCTION",
-      quantity: 1,
-      price: employee,
+      quantity: employee,
+      price: 1,
       tradeCurrency: cashCurrency,
       tradeAmount: employee,
       cashCurrency,
@@ -159,8 +162,8 @@ export function buildPayslipPayload(
     data.push({
       assetId: cashAssetId,
       trnType: "DEDUCTION",
-      quantity: 1,
-      price: taxAmount,
+      quantity: taxAmount,
+      price: 1,
       tradeCurrency: cashCurrency,
       tradeAmount: taxAmount,
       cashCurrency,
