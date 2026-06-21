@@ -147,20 +147,27 @@ export default function CompositeAssetEditor({
             onChange={(e) => {
               const val = e.target.value as PolicyType | ""
               onPolicyTypeChange(val === "" ? undefined : val)
-              if (val === "" && subAccounts.length > 0) {
-                onSubAccountsChange([])
-              }
+              // Changing the policy type resets the sub-accounts to the new
+              // type's default template. Safe to reset unconditionally: this
+              // onChange only fires on an explicit user change, never on
+              // initial load of an existing asset.
               if (val === "CPF") {
-                // CPF is fully prescribed: auto-apply the OA/SA/MA/RA template
-                // (the user can't add codes) and default CPF LIFE to Standard
-                // — otherwise svc-retire's enrichCpfConfigs reports zero
-                // pension income. Both gate on "not already set" so we don't
-                // stomp a returning user's edits.
-                if (subAccounts.length === 0) {
-                  onSubAccountsChange(CPF_TEMPLATE.map((t) => ({ ...t })))
-                }
+                // CPF is fully prescribed: apply the OA/SA/MA/RA template (the
+                // user can't add codes) and default CPF LIFE to Standard —
+                // otherwise svc-retire's enrichCpfConfigs reports zero pension
+                // income. Keep an already-chosen plan (BASIC/ESCALATING).
+                onSubAccountsChange(CPF_TEMPLATE.map((t) => ({ ...t })))
                 if (!cpfLifePlan) {
                   onCpfLifePlanChange?.("STANDARD")
+                }
+              } else {
+                // ILP / Generic / None have no prescribed buckets — start from
+                // an empty template and drop CPF-only settings.
+                if (subAccounts.length > 0) {
+                  onSubAccountsChange([])
+                }
+                if (cpfLifePlan) {
+                  onCpfLifePlanChange?.(undefined)
                 }
               }
             }}
