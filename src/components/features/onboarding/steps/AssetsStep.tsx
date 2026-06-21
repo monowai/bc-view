@@ -633,48 +633,88 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
                 </select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {"Current Balance"}
-                </label>
-                <MathInput
-                  value={newPension.balance}
-                  onChange={(value) =>
-                    setNewPension({
-                      ...newPension,
-                      balance: value || undefined,
-                    })
-                  }
-                  placeholder={"Optional"}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                />
+            {/* Composite Policy Type — asked first so a CPF selection can
+                prescribe the rest of the form (template, hidden fields). */}
+            <CompositeAssetEditor
+              policyType={newPension.policyType}
+              cpfLifePlan={newPension.cpfLifePlan}
+              cpfPayoutStartAge={newPension.payoutAge}
+              lockedUntilDate={newPension.lockedUntilDate || ""}
+              subAccounts={newPension.subAccounts || []}
+              onPolicyTypeChange={(value: PolicyType | undefined) =>
+                // Functional update: the CPF branch also fires
+                // onCpfLifePlanChange in the same tick, and a stale-closure
+                // spread would clobber this policyType write (the
+                // "select twice" bug).
+                setNewPension((prev) => ({
+                  ...prev,
+                  policyType: value,
+                  // CPF contributions are salary-derived; drop any amount the
+                  // user typed before switching the policy to CPF.
+                  monthlyContribution:
+                    value === "CPF" ? undefined : prev.monthlyContribution,
+                }))
+              }
+              onCpfLifePlanChange={(value) =>
+                setNewPension((prev) => ({ ...prev, cpfLifePlan: value }))
+              }
+              onLockedUntilDateChange={(value: string) =>
+                setNewPension((prev) => ({ ...prev, lockedUntilDate: value }))
+              }
+              onSubAccountsChange={(accounts: SubAccountRequest[]) =>
+                setNewPension((prev) => ({ ...prev, subAccounts: accounts }))
+              }
+              onCpfPayoutStartAgeChange={(value) =>
+                setNewPension((prev) => ({ ...prev, payoutAge: value }))
+              }
+            />
+
+            {/* Balance + return are derived from CPF sub-accounts, so hide
+                them for CPF. */}
+            {newPension.policyType !== "CPF" && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {"Current Balance"}
+                  </label>
+                  <MathInput
+                    value={newPension.balance}
+                    onChange={(value) =>
+                      setNewPension((prev) => ({
+                        ...prev,
+                        balance: value || undefined,
+                      }))
+                    }
+                    placeholder={"Optional"}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {"Expected Return %"}
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={
+                      newPension.expectedReturnRate
+                        ? (newPension.expectedReturnRate * 100).toFixed(1)
+                        : ""
+                    }
+                    onChange={(e) =>
+                      setNewPension((prev) => ({
+                        ...prev,
+                        expectedReturnRate: e.target.value
+                          ? Number(e.target.value) / 100
+                          : undefined,
+                      }))
+                    }
+                    placeholder="5.0"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {"Expected Return %"}
-                </label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={
-                    newPension.expectedReturnRate
-                      ? (newPension.expectedReturnRate * 100).toFixed(1)
-                      : ""
-                  }
-                  onChange={(e) =>
-                    setNewPension({
-                      ...newPension,
-                      expectedReturnRate: e.target.value
-                        ? Number(e.target.value) / 100
-                        : undefined,
-                    })
-                  }
-                  placeholder="5.0"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                />
-              </div>
-            </div>
+            )}
 
             {/* Monthly Contribution — CPF is statutory and derived from
                 salary, so we don't ask for an amount on a CPF plan. */}
@@ -715,106 +755,84 @@ const AssetsStep: React.FC<AssetsStepProps> = ({
               </div>
             )}
 
-            {/* Composite Policy Type */}
-            <CompositeAssetEditor
-              policyType={newPension.policyType}
-              cpfLifePlan={newPension.cpfLifePlan}
-              lockedUntilDate={newPension.lockedUntilDate || ""}
-              subAccounts={newPension.subAccounts || []}
-              onPolicyTypeChange={(value: PolicyType | undefined) =>
-                setNewPension({
-                  ...newPension,
-                  policyType: value,
-                  // CPF contributions are salary-derived; drop any amount the
-                  // user may have typed before switching the policy to CPF.
-                  monthlyContribution:
-                    value === "CPF"
-                      ? undefined
-                      : newPension.monthlyContribution,
-                })
-              }
-              onCpfLifePlanChange={(value) =>
-                setNewPension({ ...newPension, cpfLifePlan: value })
-              }
-              onLockedUntilDateChange={(value: string) =>
-                setNewPension({ ...newPension, lockedUntilDate: value })
-              }
-              onSubAccountsChange={(accounts: SubAccountRequest[]) =>
-                setNewPension({ ...newPension, subAccounts: accounts })
-              }
-            />
-
-            {/* Lump Sum Toggle */}
-            <div className="flex items-center p-3 bg-purple-100 rounded-lg">
-              <input
-                type="checkbox"
-                id="pension-lump-sum"
-                checked={newPension.lumpSum || false}
-                onChange={(e) =>
-                  setNewPension({
-                    ...newPension,
-                    lumpSum: e.target.checked,
-                    // Clear monthly payout if switching to lump sum
-                    monthlyPayoutAmount: e.target.checked
-                      ? undefined
-                      : newPension.monthlyPayoutAmount,
-                  })
-                }
-                className="h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
-              />
-              <label
-                htmlFor="pension-lump-sum"
-                className="ml-3 text-sm text-gray-700"
-              >
-                {"Pays out in full (lump sum) rather than monthly"}
-              </label>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {"Payout Age"}
-                </label>
-                <input
-                  type="number"
-                  value={newPension.payoutAge || ""}
-                  onChange={(e) =>
-                    setNewPension({
-                      ...newPension,
-                      payoutAge: e.target.value
-                        ? Number(e.target.value)
-                        : undefined,
-                    })
-                  }
-                  placeholder={"e.g., 65"}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  {"Age when you can start withdrawing"}
-                </p>
-              </div>
-              {!newPension.lumpSum && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {"Monthly Payout"}
-                  </label>
-                  <MathInput
-                    value={newPension.monthlyPayoutAmount}
-                    onChange={(value) =>
-                      setNewPension({
-                        ...newPension,
-                        monthlyPayoutAmount: value || undefined,
-                      })
+            {/* Payout settings — CPF uses its own CPF LIFE payout (age +
+                plan, handled in the policy editor), so hide the generic
+                lump-sum / payout-age / monthly-payout fields for CPF. */}
+            {newPension.policyType !== "CPF" && (
+              <>
+                {/* Lump Sum Toggle */}
+                <div className="flex items-center p-3 bg-purple-100 rounded-lg">
+                  <input
+                    type="checkbox"
+                    id="pension-lump-sum"
+                    checked={newPension.lumpSum || false}
+                    onChange={(e) =>
+                      setNewPension((prev) => ({
+                        ...prev,
+                        lumpSum: e.target.checked,
+                        // Clear monthly payout if switching to lump sum
+                        monthlyPayoutAmount: e.target.checked
+                          ? undefined
+                          : prev.monthlyPayoutAmount,
+                      }))
                     }
-                    placeholder={"Optional"}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className="h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    {"Expected monthly income at payout age"}
-                  </p>
+                  <label
+                    htmlFor="pension-lump-sum"
+                    className="ml-3 text-sm text-gray-700"
+                  >
+                    {"Pays out in full (lump sum) rather than monthly"}
+                  </label>
                 </div>
-              )}
-            </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {"Payout Age"}
+                    </label>
+                    <input
+                      type="number"
+                      value={newPension.payoutAge || ""}
+                      onChange={(e) =>
+                        setNewPension((prev) => ({
+                          ...prev,
+                          payoutAge: e.target.value
+                            ? Number(e.target.value)
+                            : undefined,
+                        }))
+                      }
+                      placeholder={"e.g., 65"}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      {"Age when you can start withdrawing"}
+                    </p>
+                  </div>
+                  {!newPension.lumpSum && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {"Monthly Payout"}
+                      </label>
+                      <MathInput
+                        value={newPension.monthlyPayoutAmount}
+                        onChange={(value) =>
+                          setNewPension((prev) => ({
+                            ...prev,
+                            monthlyPayoutAmount: value || undefined,
+                          }))
+                        }
+                        placeholder={"Optional"}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        {"Expected monthly income at payout age"}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
             <div className="flex justify-end gap-3 pt-2">
               <button
                 type="button"

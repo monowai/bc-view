@@ -926,19 +926,22 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                       cpfLifePlan={config.cpfLifePlan}
                       cpfPayoutStartAge={config.cpfPayoutStartAge}
                       onPolicyTypeChange={(val) =>
-                        setConfig({ ...config, policyType: val })
+                        // Functional updates: selecting CPF fires policy +
+                        // template + CPF-LIFE setters in one tick; stale-closure
+                        // spreads would clobber each other.
+                        setConfig((prev) => ({ ...prev, policyType: val }))
                       }
                       onLockedUntilDateChange={(val) =>
-                        setConfig({ ...config, lockedUntilDate: val })
+                        setConfig((prev) => ({ ...prev, lockedUntilDate: val }))
                       }
                       onSubAccountsChange={(accounts) =>
-                        setConfig({ ...config, subAccounts: accounts })
+                        setConfig((prev) => ({ ...prev, subAccounts: accounts }))
                       }
                       onCpfLifePlanChange={(val) =>
-                        setConfig({ ...config, cpfLifePlan: val })
+                        setConfig((prev) => ({ ...prev, cpfLifePlan: val }))
                       }
                       onCpfPayoutStartAgeChange={(val) =>
-                        setConfig({ ...config, cpfPayoutStartAge: val })
+                        setConfig((prev) => ({ ...prev, cpfPayoutStartAge: val }))
                       }
                     />
                   </div>

@@ -54,15 +54,40 @@ describe("CompositeAssetEditor — CPF LIFE plan default", () => {
     expect(onCpfLifePlanChange).not.toHaveBeenCalled()
   })
 
-  it("seeds STANDARD when Apply CPF Template is clicked with no plan set", () => {
-    const onCpfLifePlanChange = jest.fn()
+  it("auto-applies the OA/SA/MA/RA template when policy turns CPF with no sub-accounts", () => {
     const onSubAccountsChange = jest.fn()
+    render(
+      <CompositeAssetEditor
+        policyType={undefined}
+        lockedUntilDate=""
+        subAccounts={[]}
+        cpfLifePlan={undefined}
+        onPolicyTypeChange={jest.fn()}
+        onLockedUntilDateChange={jest.fn()}
+        onSubAccountsChange={onSubAccountsChange}
+        onCpfLifePlanChange={jest.fn()}
+        onCpfPayoutStartAgeChange={jest.fn()}
+      />,
+    )
+    const policySelect = screen.getAllByRole("combobox")[0] as HTMLSelectElement
+    fireEvent.change(policySelect, { target: { value: "CPF" } })
+    expect(onSubAccountsChange).toHaveBeenCalled()
+    const applied = onSubAccountsChange.mock.calls[0][0] as { code: string }[]
+    expect(applied.map((a) => a.code)).toEqual(["OA", "SA", "MA", "RA"])
+  })
+
+  it("resets sub-accounts and clears the CPF LIFE plan when switching away from CPF", () => {
+    const onSubAccountsChange = jest.fn()
+    const onCpfLifePlanChange = jest.fn()
     render(
       <CompositeAssetEditor
         policyType="CPF"
         lockedUntilDate=""
-        subAccounts={[]}
-        cpfLifePlan={undefined}
+        subAccounts={[
+          { code: "OA", balance: 1000, liquid: true },
+          { code: "MA", balance: 500, liquid: false },
+        ]}
+        cpfLifePlan="STANDARD"
         onPolicyTypeChange={jest.fn()}
         onLockedUntilDateChange={jest.fn()}
         onSubAccountsChange={onSubAccountsChange}
@@ -70,8 +95,38 @@ describe("CompositeAssetEditor — CPF LIFE plan default", () => {
         onCpfPayoutStartAgeChange={jest.fn()}
       />,
     )
-    fireEvent.click(screen.getByRole("button", { name: /Apply CPF Template/i }))
-    expect(onSubAccountsChange).toHaveBeenCalled()
-    expect(onCpfLifePlanChange).toHaveBeenCalledWith("STANDARD")
+    const policySelect = screen.getAllByRole("combobox")[0] as HTMLSelectElement
+    fireEvent.change(policySelect, { target: { value: "ILP" } })
+    // Template resets to the new type's default (empty) and CPF-only state clears.
+    expect(onSubAccountsChange).toHaveBeenCalledWith([])
+    expect(onCpfLifePlanChange).toHaveBeenCalledWith(undefined)
+  })
+
+  it("hides the locked-date picker and the add-sub-account row for CPF", () => {
+    render(
+      <CompositeAssetEditor
+        policyType="CPF"
+        lockedUntilDate=""
+        subAccounts={[
+          { code: "OA", balance: 0, liquid: true },
+          { code: "MA", balance: 0, liquid: false },
+        ]}
+        cpfLifePlan="STANDARD"
+        onPolicyTypeChange={jest.fn()}
+        onLockedUntilDateChange={jest.fn()}
+        onSubAccountsChange={jest.fn()}
+        onCpfLifePlanChange={jest.fn()}
+        onCpfPayoutStartAgeChange={jest.fn()}
+      />,
+    )
+    // CPF is statutorily locked → no manual lock date prompt.
+    expect(screen.queryByText(/Locked Until Date/i)).not.toBeInTheDocument()
+    // CPF sub-accounts are fixed → no "add code" affordance.
+    expect(
+      screen.queryByPlaceholderText(/Sub-account code/i),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: /^Add$/i }),
+    ).not.toBeInTheDocument()
   })
 })
