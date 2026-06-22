@@ -81,13 +81,23 @@ export default function IndependenceMetrics({
             <div className="bg-blue-50 rounded-lg p-4">
               <p className="text-sm text-gray-600 mb-1">Monthly Investment</p>
               {(() => {
-                // Monthly investment target = surplus × allocation %
-                // Surplus = working income - working expenses
-                const surplus =
-                  (primaryPlan.workingIncomeMonthly ?? 0) -
-                  (primaryPlan.workingExpensesMonthly ?? 0)
+                // Monthly investment target = the backend-computed net
+                // contribution. Prefer the projection echo (authoritative,
+                // full formula); fall back to computing it from the plan with
+                // the SAME formula the backend uses — surplus includes bonus
+                // and is net of taxes, which the old surplus calc dropped,
+                // collapsing the target to 0 whenever income ≈ expenses.
+                const planContribution = Math.max(
+                  ((primaryPlan.workingIncomeMonthly ?? 0) +
+                    (primaryPlan.bonusMonthly ?? 0) -
+                    (primaryPlan.workingExpensesMonthly ?? 0) -
+                    (primaryPlan.taxesMonthly ?? 0)) *
+                    (primaryPlan.investmentAllocationPercent ?? 0.8),
+                  0,
+                )
                 const target = Math.round(
-                  surplus * (primaryPlan.investmentAllocationPercent ?? 0.8),
+                  projectionData?.preRetirementAccumulation
+                    ?.monthlyContribution ?? planContribution,
                 )
                 const actual = Math.round(
                   monthlyInvestmentData?.totalInvested ?? 0,

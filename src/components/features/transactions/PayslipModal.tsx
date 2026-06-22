@@ -3,6 +3,7 @@ import useSWR, { mutate as globalMutate } from "swr"
 import Dialog from "@components/ui/Dialog"
 import MathInput from "@components/ui/MathInput"
 import { Asset, Portfolio } from "types/beancounter"
+import { PlansResponse } from "types/independence"
 import {
   accountsKey,
   cashKey,
@@ -94,6 +95,15 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
     modalOpen ? accountsKey : null,
     simpleFetcher(accountsKey),
   )
+  // Primary independence plan (backend sorts primary first). Its monthly
+  // working income seeds the Gross salary field — a payslip is one month's pay.
+  const plansKey = "/api/independence/plans"
+  const { data: plansData } = useSWR<PlansResponse>(
+    modalOpen ? plansKey : null,
+    simpleFetcher(plansKey),
+  )
+  const planIncome = plansData?.data?.[0]?.workingIncomeMonthly
+  const defaultGross = planIncome && planIncome > 0 ? String(planIncome) : ""
 
   const portfolios: Portfolio[] = useMemo(
     () => portfoliosData?.data ?? [],
@@ -151,7 +161,10 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
 
   // Form state. Portfolio + cash asset prefill from saved preferences (also
   // re-applied on each open below).
-  const [grossSalary, setGrossSalary] = useState<string>("")
+  const [grossSalary, setGrossSalary] = useState<string>(() => defaultGross)
+  // Tracks whether the user has typed into Gross salary, so the plan-income
+  // default never clobbers a manual entry.
+  const [grossTouched, setGrossTouched] = useState(false)
   // Explicit user pick; "" follows the derived default (CPF portfolio first).
   const [portfolioId, setPortfolioId] = useState<string>("")
   const [cashAssetId, setCashAssetId] = useState<string>(
@@ -171,7 +184,8 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
   if (modalOpen !== prevOpen) {
     setPrevOpen(modalOpen)
     if (modalOpen) {
-      setGrossSalary("")
+      setGrossSalary(defaultGross)
+      setGrossTouched(false)
       setTax("")
       setBucketOverrides({})
       setIsSubmitting(false)
@@ -179,6 +193,16 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
       setSubmitSuccess(false)
       setPortfolioId("")
       setCashAssetId(preferences?.defaultPayslipCashAssetId ?? "")
+    }
+  }
+
+  // The plan often loads after the modal opens; apply its income once it
+  // arrives, but only while the field is still untouched and pristine.
+  const [prevDefaultGross, setPrevDefaultGross] = useState(defaultGross)
+  if (defaultGross !== prevDefaultGross) {
+    setPrevDefaultGross(defaultGross)
+    if (modalOpen && !grossTouched && defaultGross !== "") {
+      setGrossSalary(defaultGross)
     }
   }
 
@@ -288,6 +312,9 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
       const portfolio = portfolios.find((p) => p.id === effectivePortfolioId)
       if (portfolio) globalMutate(holdingKey(portfolio.code, "today"))
       globalMutate("/api/holdings/aggregated?asAt=today")
+      // Wealth screen sums portfolio.marketValue from this list; without
+      // invalidating it the top-line total stays stale after a payslip posts.
+      globalMutate(portfoliosKey)
 
       setSubmitSuccess(true)
       setTimeout(() => onClose(), 1000)
@@ -347,7 +374,10 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
         </label>
         <MathInput
           value={grossSalary === "" ? "" : parseFloat(grossSalary)}
-          onChange={(value) => setGrossSalary(String(value))}
+          onChange={(value) => {
+            setGrossTouched(true)
+            setGrossSalary(String(value))
+          }}
           placeholder={"0.00"}
           aria-label={"Gross salary"}
           className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border"
