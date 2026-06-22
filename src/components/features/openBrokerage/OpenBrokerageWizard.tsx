@@ -46,6 +46,12 @@ const FALLBACK_CURRENCIES = [
   "JPY",
 ]
 
+// Portfolio code is derived from the name (uppercased alphanumerics) so the
+// user only types one field — mirrors how onboarding names the brokerage
+// portfolio from the broker name.
+const deriveCode = (name: string): string =>
+  name.replace(/[^A-Za-z0-9]/g, "").toUpperCase()
+
 const STEP_TITLES: Record<Exclude<Step, "done">, string> = {
   broker: "Broker",
   portfolio: "Portfolio",
@@ -367,44 +373,33 @@ export default function OpenBrokerageWizard(): React.ReactElement {
                 </p>
               </div>
             ) : (
-              <>
-                <div>
-                  <label
-                    htmlFor="pf-code"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    {"Portfolio code"}
-                  </label>
-                  <input
-                    id="pf-code"
-                    type="text"
-                    value={portfolio.code}
-                    onChange={(e) =>
-                      setPortfolio({ ...portfolio, code: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    placeholder="e.g. IBRK"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="pf-name"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    {"Portfolio name"}
-                  </label>
-                  <input
-                    id="pf-name"
-                    type="text"
-                    value={portfolio.name}
-                    onChange={(e) =>
-                      setPortfolio({ ...portfolio, name: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    placeholder="e.g. Interactive Brokers"
-                  />
-                </div>
-              </>
+              <div>
+                <label
+                  htmlFor="pf-name"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  {"Portfolio name"}
+                </label>
+                <input
+                  id="pf-name"
+                  type="text"
+                  value={portfolio.name}
+                  onChange={(e) =>
+                    setPortfolio({
+                      ...portfolio,
+                      name: e.target.value,
+                      code: deriveCode(e.target.value),
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  placeholder="e.g. Interactive Brokers"
+                />
+                {portfolio.code && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    {`Code: ${portfolio.code}`}
+                  </p>
+                )}
+              </div>
             )}
             {portfolio.mode === "new" && (
               <div>

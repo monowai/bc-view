@@ -114,10 +114,10 @@ describe("<OpenBrokerageWizard />", () => {
     await user.type(screen.getByLabelText(/Broker name/i), "Brand New Broker")
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
-    // Step 2 — portfolio: fill code + currency
+    // Step 2 — portfolio: name only; code is derived from it.
     await screen.findByRole("heading", { name: /Portfolio/i })
-    await user.type(screen.getByLabelText(/Portfolio code/i), "IBKR")
     await user.type(screen.getByLabelText(/Portfolio name/i), "IBKR USD")
+    expect(screen.getByText("Code: IBKRUSD")).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
     // Step 3 — funding: skip
@@ -158,7 +158,6 @@ describe("<OpenBrokerageWizard />", () => {
 
     // Step 2 — portfolio
     await screen.findByRole("heading", { name: /Portfolio/i })
-    await user.type(screen.getByLabelText(/Portfolio code/i), "IBKR")
     await user.type(screen.getByLabelText(/Portfolio name/i), "IBKR USD")
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
@@ -214,7 +213,6 @@ describe("<OpenBrokerageWizard />", () => {
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
     // Step 2 — portfolio
-    await user.type(screen.getByLabelText(/Portfolio code/i), "IBRK")
     await user.type(
       screen.getByLabelText(/Portfolio name/i),
       "Interactive Brokers USD",
