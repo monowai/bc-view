@@ -324,131 +324,184 @@ export default function OpenBrokerageWizard(): React.ReactElement {
       )}
 
       {step === "portfolio" && (
-        <div className="space-y-3">
+        <div className="space-y-6">
+          <p className="text-sm text-gray-500">
+            How would you like to keep this brokerage?
+          </p>
+
           <fieldset className="space-y-3">
-            <label className="flex items-center gap-2">
+            <legend className="sr-only">
+              Choose how to track this brokerage
+            </legend>
+
+            <label
+              className={`flex items-start gap-3 rounded-xl border p-4 cursor-pointer transition-colors ${
+                portfolio.mode === "new"
+                  ? "border-blue-300 bg-blue-50/50 ring-1 ring-blue-300"
+                  : "border-gray-200 hover:border-gray-300"
+              }`}
+            >
               <input
                 type="radio"
                 name="portfolio-mode"
+                className="mt-1"
                 checked={portfolio.mode === "new"}
                 onChange={() => setPortfolio({ ...portfolio, mode: "new" })}
               />
-              <span>Create a new portfolio for this brokerage</span>
+              <span className="flex-1">
+                <span className="block font-medium text-gray-900">
+                  Create a new portfolio for this brokerage
+                </span>
+                <span className="block text-sm text-gray-500 mt-1 leading-relaxed">
+                  Its own space with its own objectives, kept apart from your
+                  non-investment assets — cash, savings, property. Choose this
+                  when you want to judge the brokerage on its own goals.
+                </span>
+              </span>
             </label>
-            <label className="flex items-center gap-2">
+
+            <label
+              className={`flex items-start gap-3 rounded-xl border p-4 transition-colors ${
+                portfolios.length === 0
+                  ? "border-gray-200 opacity-50 cursor-not-allowed"
+                  : portfolio.mode === "existing"
+                    ? "border-blue-300 bg-blue-50/50 ring-1 ring-blue-300 cursor-pointer"
+                    : "border-gray-200 hover:border-gray-300 cursor-pointer"
+              }`}
+            >
               <input
                 type="radio"
                 name="portfolio-mode"
+                className="mt-1"
                 checked={portfolio.mode === "existing"}
                 onChange={() =>
                   setPortfolio({ ...portfolio, mode: "existing" })
                 }
                 disabled={portfolios.length === 0}
               />
-              <span>
-                Attach to an existing portfolio{" "}
-                {portfolios.length === 0 && "(none yet)"}
+              <span className="flex-1">
+                <span className="block font-medium text-gray-900">
+                  Attach to an existing portfolio{" "}
+                  {portfolios.length === 0 && (
+                    <span className="font-normal text-gray-400">
+                      (none yet)
+                    </span>
+                  )}
+                </span>
+                <span className="block text-sm text-gray-500 mt-1 leading-relaxed">
+                  Fold these holdings in beside assets you already track — one
+                  combined view. Choose this when you think of everything as a
+                  single pot.
+                </span>
               </span>
             </label>
           </fieldset>
 
-          {portfolio.mode === "existing" ? (
-            <div>
-              <label
-                htmlFor="pf-existing"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                {"Existing portfolio"}
-              </label>
-              <select
-                id="pf-existing"
-                value={portfolio.existingId}
-                onChange={(e) => {
-                  const id = e.target.value
-                  const pf = portfolios.find((p) => p.id === id)
-                  setPortfolio({
-                    ...portfolio,
-                    existingId: id,
-                    currency: pf?.currency?.code ?? portfolio.currency,
-                  })
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              >
-                <option value="">— Select —</option>
-                {portfolios.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} ({p.code}, {p.currency?.code})
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-gray-500 mt-1">
-                {`Deposits will land on a per-broker cash line (e.g. ${broker.newName || "BROKER"}-${portfolio.currency}) so the brokerage cash stays separate from any existing cash on this portfolio.`}
-              </p>
-            </div>
-          ) : (
-            <>
+          <p className="text-xs text-gray-500 leading-relaxed">
+            Either way, Beancounter totals your net worth across every
+            portfolio — this only decides how you{"’"}d like to view these
+            assets, not what you can see.
+          </p>
+
+          <div className="space-y-4 pt-4 border-t border-gray-100">
+            {portfolio.mode === "existing" ? (
               <div>
                 <label
-                  htmlFor="pf-code"
+                  htmlFor="pf-existing"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  {"Portfolio code"}
+                  {"Existing portfolio"}
                 </label>
-                <input
-                  id="pf-code"
-                  type="text"
-                  value={portfolio.code}
-                  onChange={(e) =>
-                    setPortfolio({ ...portfolio, code: e.target.value })
-                  }
+                <select
+                  id="pf-existing"
+                  value={portfolio.existingId}
+                  onChange={(e) => {
+                    const id = e.target.value
+                    const pf = portfolios.find((p) => p.id === id)
+                    setPortfolio({
+                      ...portfolio,
+                      existingId: id,
+                      currency: pf?.currency?.code ?? portfolio.currency,
+                    })
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  placeholder="e.g. IBRK"
-                />
+                >
+                  <option value="">— Select —</option>
+                  {portfolios.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.code}, {p.currency?.code})
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  {`Deposits will land on a per-broker cash line (e.g. ${broker.newName || "BROKER"}-${portfolio.currency}) so the brokerage cash stays separate from any existing cash on this portfolio.`}
+                </p>
               </div>
+            ) : (
+              <>
+                <div>
+                  <label
+                    htmlFor="pf-code"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    {"Portfolio code"}
+                  </label>
+                  <input
+                    id="pf-code"
+                    type="text"
+                    value={portfolio.code}
+                    onChange={(e) =>
+                      setPortfolio({ ...portfolio, code: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    placeholder="e.g. IBRK"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="pf-name"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    {"Portfolio name"}
+                  </label>
+                  <input
+                    id="pf-name"
+                    type="text"
+                    value={portfolio.name}
+                    onChange={(e) =>
+                      setPortfolio({ ...portfolio, name: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    placeholder="e.g. Interactive Brokers"
+                  />
+                </div>
+              </>
+            )}
+            {portfolio.mode === "new" && (
               <div>
                 <label
-                  htmlFor="pf-name"
+                  htmlFor="pf-ccy"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  {"Portfolio name"}
+                  {"Currency"}
                 </label>
-                <input
-                  id="pf-name"
-                  type="text"
-                  value={portfolio.name}
+                <select
+                  id="pf-ccy"
+                  value={portfolio.currency}
                   onChange={(e) =>
-                    setPortfolio({ ...portfolio, name: e.target.value })
+                    setPortfolio({ ...portfolio, currency: e.target.value })
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  placeholder="e.g. Interactive Brokers"
-                />
+                >
+                  {currencyCodes.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
               </div>
-            </>
-          )}
-          {portfolio.mode === "new" && (
-            <div>
-              <label
-                htmlFor="pf-ccy"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                {"Currency"}
-              </label>
-              <select
-                id="pf-ccy"
-                value={portfolio.currency}
-                onChange={(e) =>
-                  setPortfolio({ ...portfolio, currency: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              >
-                {currencyCodes.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
 
