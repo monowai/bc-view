@@ -16,16 +16,40 @@ jest.mock("@hooks/usePrivacyMode", () => ({
 
 const usd = { code: "USD", symbol: "$" } as unknown as Currency
 
-// Mary: monthly income ≈ expenses, but a bonus drives the real net
-// contribution. The old (income - expenses) × pct target collapsed to 0.
-const maryPlan = {
+// Typed builder so field names are checked against RetirementPlan (no cast),
+// catching schema drift. Defaults encode "Mary": monthly income ≈ expenses,
+// but a bonus drives the real net contribution — the old (income - expenses)
+// × pct target collapsed to 0.
+const makePlan = (overrides: Partial<RetirementPlan> = {}): RetirementPlan => ({
   id: "plan-1",
+  ownerId: "owner-1",
+  name: "Retirement",
+  planningHorizonYears: 25,
+  lifeExpectancy: 90,
+  monthlyExpenses: 3000,
+  expensesCurrency: "SGD",
+  cashReturnRate: 0.03,
+  equityReturnRate: 0.07,
+  housingReturnRate: 0.04,
+  inflationRate: 0.02,
+  cashAllocation: 0.2,
+  equityAllocation: 0.6,
+  housingAllocation: 0.2,
+  pensionMonthly: 0,
+  socialSecurityMonthly: 0,
+  otherIncomeMonthly: 0,
   workingIncomeMonthly: 2000,
   workingExpensesMonthly: 2000,
   taxesMonthly: 0,
   bonusMonthly: 2350,
   investmentAllocationPercent: 0.8,
-} as unknown as RetirementPlan
+  isPrimary: true,
+  createdDate: "2026-01-01",
+  updatedDate: "2026-01-01",
+  ...overrides,
+})
+
+const maryPlan = makePlan()
 
 const render_ = (
   projectionData: RetirementProjection | null,
