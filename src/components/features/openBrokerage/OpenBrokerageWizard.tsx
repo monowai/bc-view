@@ -5,6 +5,7 @@ import {
   type OpenBrokerageResult,
 } from "@lib/openBrokerage/orchestrate"
 import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper"
+import PortfolioModeChooser from "@components/features/openBrokerage/PortfolioModeChooser"
 import type { Broker, Currency, Portfolio } from "types/beancounter"
 
 type Step = "broker" | "portfolio" | "funding" | "review" | "done"
@@ -325,83 +326,11 @@ export default function OpenBrokerageWizard(): React.ReactElement {
 
       {step === "portfolio" && (
         <div className="space-y-6">
-          <p className="text-sm text-gray-500">
-            How would you like to keep this brokerage?
-          </p>
-
-          <fieldset className="space-y-3">
-            <legend className="sr-only">
-              Choose how to track this brokerage
-            </legend>
-
-            <label
-              className={`flex items-start gap-3 rounded-xl border p-4 cursor-pointer transition-colors ${
-                portfolio.mode === "new"
-                  ? "border-blue-300 bg-blue-50/50 ring-1 ring-blue-300"
-                  : "border-gray-200 hover:border-gray-300"
-              }`}
-            >
-              <input
-                type="radio"
-                name="portfolio-mode"
-                className="mt-1"
-                checked={portfolio.mode === "new"}
-                onChange={() => setPortfolio({ ...portfolio, mode: "new" })}
-              />
-              <span className="flex-1">
-                <span className="block font-medium text-gray-900">
-                  Create a new portfolio for this brokerage
-                </span>
-                <span className="block text-sm text-gray-500 mt-1 leading-relaxed">
-                  Its own space with its own objectives, kept apart from your
-                  non-investment assets — cash, savings, property. Choose this
-                  when you want to judge the brokerage on its own goals.
-                </span>
-              </span>
-            </label>
-
-            <label
-              className={`flex items-start gap-3 rounded-xl border p-4 transition-colors ${
-                portfolios.length === 0
-                  ? "border-gray-200 opacity-50 cursor-not-allowed"
-                  : portfolio.mode === "existing"
-                    ? "border-blue-300 bg-blue-50/50 ring-1 ring-blue-300 cursor-pointer"
-                    : "border-gray-200 hover:border-gray-300 cursor-pointer"
-              }`}
-            >
-              <input
-                type="radio"
-                name="portfolio-mode"
-                className="mt-1"
-                checked={portfolio.mode === "existing"}
-                onChange={() =>
-                  setPortfolio({ ...portfolio, mode: "existing" })
-                }
-                disabled={portfolios.length === 0}
-              />
-              <span className="flex-1">
-                <span className="block font-medium text-gray-900">
-                  Attach to an existing portfolio{" "}
-                  {portfolios.length === 0 && (
-                    <span className="font-normal text-gray-400">
-                      (none yet)
-                    </span>
-                  )}
-                </span>
-                <span className="block text-sm text-gray-500 mt-1 leading-relaxed">
-                  Fold these holdings in beside assets you already track — one
-                  combined view. Choose this when you think of everything as a
-                  single pot.
-                </span>
-              </span>
-            </label>
-          </fieldset>
-
-          <p className="text-xs text-gray-500 leading-relaxed">
-            Either way, Beancounter totals your net worth across every
-            portfolio — this only decides how you{"’"}d like to view these
-            assets, not what you can see.
-          </p>
+          <PortfolioModeChooser
+            mode={portfolio.mode}
+            onSelect={(mode) => setPortfolio({ ...portfolio, mode })}
+            existingDisabled={portfolios.length === 0}
+          />
 
           <div className="space-y-4 pt-4 border-t border-gray-100">
             {portfolio.mode === "existing" ? (

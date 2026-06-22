@@ -1,6 +1,9 @@
 import React from "react"
 import Link from "next/link"
 import MathInput from "@components/ui/MathInput"
+import PortfolioModeChooser, {
+  type PortfolioMode,
+} from "@components/features/openBrokerage/PortfolioModeChooser"
 import type { Portfolio } from "types/beancounter"
 import type { BankAccount } from "../OnboardingWizard"
 
@@ -35,11 +38,17 @@ export interface BrokerageStepProps {
   // bank-account line on the default portfolio.
   bankAccounts: BankAccount[]
   defaultPortfolioName: string
+  // Portfolio choice — same new-vs-existing decision as the standalone
+  // /tools/open-brokerage wizard, so onboarding behaves identically.
+  portfolioMode: PortfolioMode
+  existingPortfolioId: string
   onEnabledChange: (v: boolean) => void
   onBrokerNameChange: (v: string) => void
   onSourceChange: (v: SourceValue) => void
   onAmountChange: (v: string) => void
   onCurrencyChange: (v: string) => void
+  onPortfolioModeChange: (v: PortfolioMode) => void
+  onExistingPortfolioChange: (id: string) => void
 }
 
 /**
@@ -58,11 +67,15 @@ const BrokerageStep: React.FC<BrokerageStepProps> = ({
   existingPortfolios,
   bankAccounts,
   defaultPortfolioName,
+  portfolioMode,
+  existingPortfolioId,
   onEnabledChange,
   onBrokerNameChange,
   onSourceChange,
   onAmountChange,
   onCurrencyChange,
+  onPortfolioModeChange,
+  onExistingPortfolioChange,
 }) => {
   // Filter source options to the chosen currency (same-currency v1).
   const sameCurrencyPortfolios = existingPortfolios.filter(
@@ -121,34 +134,69 @@ const BrokerageStep: React.FC<BrokerageStepProps> = ({
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
               placeholder="e.g. IBRK"
             />
-            <p className="text-xs text-gray-500 mt-1">
-              {`A new portfolio "${brokerName || "BROKER"} Portfolio" will be created for your brokerage, keeping its cash and trades separate from your "${defaultPortfolioName}" bank-account portfolio.`}
-            </p>
+            {portfolioMode === "new" && (
+              <p className="text-xs text-gray-500 mt-1">
+                {`A new portfolio "${brokerName || "BROKER"} Portfolio" will be created for your brokerage, keeping its cash and trades separate from your "${defaultPortfolioName}" bank-account portfolio.`}
+              </p>
+            )}
           </div>
 
-          <div>
-            <label
-              htmlFor="ob-currency"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              {"Reporting currency"}
-            </label>
-            <select
-              id="ob-currency"
-              value={currency}
-              onChange={(e) => onCurrencyChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            >
-              {currencyCodes.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-            <p className="text-xs text-gray-500 mt-1">
-              {`Cash and trades in this brokerage portfolio will report in ${currency}. Picking a different currency from the bank-account source needs FX (not handled in v1 — same-currency source only).`}
-            </p>
-          </div>
+          <PortfolioModeChooser
+            mode={portfolioMode}
+            onSelect={onPortfolioModeChange}
+            existingDisabled={existingPortfolios.length === 0}
+          />
+
+          {portfolioMode === "existing" ? (
+            <div>
+              <label
+                htmlFor="ob-existing"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                {"Existing portfolio"}
+              </label>
+              <select
+                id="ob-existing"
+                value={existingPortfolioId}
+                onChange={(e) => onExistingPortfolioChange(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              >
+                <option value="">— Select —</option>
+                {existingPortfolios.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} ({p.code}, {p.currency?.code})
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                {`The brokerage's cash lands on a per-broker line (e.g. ${brokerName || "BROKER"}-${currency}) so it stays separate from any existing cash on this portfolio.`}
+              </p>
+            </div>
+          ) : (
+            <div>
+              <label
+                htmlFor="ob-currency"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                {"Reporting currency"}
+              </label>
+              <select
+                id="ob-currency"
+                value={currency}
+                onChange={(e) => onCurrencyChange(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              >
+                {currencyCodes.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                {`Cash and trades in this brokerage portfolio will report in ${currency}. Picking a different currency from the bank-account source needs FX (not handled in v1 — same-currency source only).`}
+              </p>
+            </div>
+          )}
 
           <div>
             <label
