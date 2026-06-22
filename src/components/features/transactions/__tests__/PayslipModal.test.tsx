@@ -40,6 +40,9 @@ const mockBankAccounts = {
   ],
 }
 
+let mockPlans: { data: Array<{ workingIncomeMonthly?: number }> } = { data: [] }
+const mockMutate = jest.fn()
+
 // Synchronous SWR: route by key substring.
 jest.mock("swr", () => ({
   __esModule: true,
@@ -48,6 +51,8 @@ jest.mock("swr", () => ({
     // CPF "where held" lookup → the CPF asset lives in pf-1.
     if (key.includes("/positions"))
       return { data: "pf-1", error: undefined, isLoading: false }
+    if (key.includes("independence/plans"))
+      return { data: mockPlans, error: undefined, isLoading: false }
     if (key.includes("portfolios"))
       return { data: mockPortfolios, error: undefined, isLoading: false }
     if (key.includes("category=TRADE"))
@@ -58,7 +63,7 @@ jest.mock("swr", () => ({
       return { data: mockCash, error: undefined, isLoading: false }
     return { data: { data: [] }, error: undefined, isLoading: false }
   },
-  mutate: jest.fn(),
+  mutate: (...args: unknown[]) => mockMutate(...args),
 }))
 
 const mockPreferences = {
@@ -99,6 +104,8 @@ describe("PayslipModal", () => {
   beforeEach(() => {
     mockConfigs = []
     mockDc = undefined
+    mockPlans = { data: [] }
+    mockMutate.mockClear()
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({}),
@@ -112,6 +119,33 @@ describe("PayslipModal", () => {
     expect(screen.getByLabelText("Portfolio")).toBeInTheDocument()
     expect(screen.getByLabelText("Pay into")).toBeInTheDocument()
     expect(screen.getByLabelText("Tax deducted")).toBeInTheDocument()
+  })
+
+  it("defaults Gross salary to the primary plan's monthly working income", () => {
+    mockPlans = { data: [{ workingIncomeMonthly: 6000 }] }
+    render(<PayslipModal modalOpen onClose={jest.fn()} />)
+    expect(
+      (screen.getByLabelText("Gross salary") as HTMLInputElement).value,
+    ).toBe("6000")
+  })
+
+  it("leaves Gross salary empty when the user has no plan", () => {
+    mockPlans = { data: [] }
+    render(<PayslipModal modalOpen onClose={jest.fn()} />)
+    expect(
+      (screen.getByLabelText("Gross salary") as HTMLInputElement).value,
+    ).toBe("")
+  })
+
+  it("revalidates the portfolios list on save so the Wealth total refreshes", async () => {
+    render(<PayslipModal modalOpen onClose={jest.fn()} />)
+    fireEvent.change(screen.getByLabelText("Gross salary"), {
+      target: { value: "4000" },
+    })
+    fireEvent.click(screen.getByRole("button", { name: "Save" }))
+    await waitFor(() => {
+      expect(mockMutate).toHaveBeenCalledWith("/api/portfolios?inactive=true")
+    })
   })
 
   it("lists private TRADE/ACCOUNT accounts in Pay into, not just cash balances", () => {
