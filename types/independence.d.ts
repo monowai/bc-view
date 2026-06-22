@@ -767,6 +767,13 @@ export interface RetirementProjection {
   adjustmentPercentWithLiquidation?: number
   /** Age at which illiquid asset disposal begins in the with-liquidation scenario */
   liquidationAge?: number
+  /**
+   * Statutory CPF LIFE lock age (55) when the OA/SA -> RA annuity fold falls
+   * within the horizon; absent when already past the lock or no CPF. Read this
+   * directly for the "🔒 CPF LIFE" marker — do NOT re-derive from the
+   * annuitizedValue transition (that lands one row early, at age 54).
+   */
+  cpfLifeAge?: number
   /** Data quality warnings - empty means all data fetched successfully */
   warnings?: ProjectionWarning[]
   /** Plan-level insights derived from the projection (Plan Insights list). */
