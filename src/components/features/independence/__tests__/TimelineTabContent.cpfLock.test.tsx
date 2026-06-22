@@ -3,8 +3,11 @@ import { render, screen } from "@testing-library/react"
 import TimelineTabContent from "@components/features/independence/TimelineTabContent"
 import { RetirementProjection } from "types/independence"
 
-// Minimal projection: accumulation runs 53→56, with the CPF RA transfer
-// locking 213k into annuitizedValue at age 55 (0 → >0 transition).
+// Accumulation runs 53→56. The CPF RA transfer funds annuitizedValue when the
+// user turns 55, but because each row carries END-of-year balances the 0 → >0
+// transition lands on the row keyed by the start-of-year age (54). The marker
+// must therefore come from the backend's authoritative `cpfLifeAge` (55), NOT
+// from the transition row.
 function makeProjection(
   overrides: Partial<RetirementProjection> = {},
 ): RetirementProjection {
@@ -15,9 +18,10 @@ function makeProjection(
     contribution: 0,
     investmentGrowth: 0,
     endingBalance: 100000,
-    nonSpendableValue: age >= 55 ? 213000 : 0,
-    annuitizedValue: age >= 55 ? 213000 : 0,
-    totalWealth: 100000 + (age >= 55 ? 213000 : 0),
+    // Off-by-one reality: annuity first funds on the age-54 row.
+    nonSpendableValue: age >= 54 ? 213000 : 0,
+    annuitizedValue: age >= 54 ? 213000 : 0,
+    totalWealth: 100000 + (age >= 54 ? 213000 : 0),
     currency: "SGD",
   }))
   return {
@@ -32,6 +36,7 @@ function makeProjection(
       },
     ],
     accumulationProjections: accum,
+    cpfLifeAge: 55,
     monthlyExpenses: 3500,
     ...overrides,
   } as unknown as RetirementProjection
@@ -46,36 +51,18 @@ const baseProps = {
 }
 
 describe("TimelineTabContent — CPF lock note", () => {
-  it("shows the CPF LIFE lock note at the age the annuity bucket first funds", () => {
+  it("shows the statutory CPF LIFE lock age (55) even when the annuity bucket funds on the age-54 row", () => {
     render(<TimelineTabContent projection={makeProjection()} {...baseProps} />)
-    expect(screen.getByTestId("cpf-lock-note")).toHaveTextContent(/55/)
-    expect(screen.getByTestId("cpf-lock-note")).toHaveTextContent(/CPF LIFE/i)
+    const note = screen.getByTestId("cpf-lock-note")
+    expect(note).toHaveTextContent(/CPF LIFE/i)
+    expect(note).toHaveTextContent(/55/)
+    // Must NOT surface the off-by-one transition age.
+    expect(note).not.toHaveTextContent(/54/)
   })
 
-  it("omits the note when there is no CPF annuity (no locked layer)", () => {
+  it("omits the note when the backend reports no CPF LIFE lock (cpfLifeAge absent)", () => {
     const noCpf = makeProjection({
-      accumulationProjections: [53, 54, 55, 56].map((age) => ({
-        year: 2000 + age,
-        age,
-        startingBalance: 100000,
-        contribution: 0,
-        investmentGrowth: 0,
-        endingBalance: 100000,
-        nonSpendableValue: 0,
-        annuitizedValue: 0,
-        totalWealth: 100000,
-        currency: "SGD",
-      })),
-      yearlyProjections: [
-        {
-          age: 65,
-          endingBalance: 90000,
-          nonSpendableValue: 0,
-          annuitizedValue: 0,
-          totalWealth: 90000,
-          currency: "SGD",
-        },
-      ],
+      cpfLifeAge: undefined,
     } as unknown as Partial<RetirementProjection>)
     render(<TimelineTabContent projection={noCpf} {...baseProps} />)
     expect(screen.queryByTestId("cpf-lock-note")).not.toBeInTheDocument()

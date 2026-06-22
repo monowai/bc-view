@@ -91,25 +91,17 @@ export default function TimelineTabContent({
     return year?.age ?? null
   }, [projection])
 
-  // Age at which CPF savings first lock into the CPF LIFE annuity — the year
-  // annuitizedValue transitions 0 → >0 (Singapore's age-55 OA/SA → RA
-  // transfer). This is what makes the blue Liquid line dip: the money isn't
-  // lost, it moves into the grey "CPF LIFE principal" band and becomes a
-  // lifelong income stream from the payout age. Surfaced as a chart marker +
-  // caption so the dip reads as "locked", not "gone".
-  const cpfLockAge = useMemo(() => {
-    if (!projection) return null
-    const series = [
-      ...(projection.accumulationProjections ?? []),
-      ...projection.yearlyProjections,
-    ]
-    for (let i = 1; i < series.length; i++) {
-      const prev = series[i - 1].annuitizedValue ?? 0
-      const cur = series[i].annuitizedValue ?? 0
-      if (prev === 0 && cur > 0) return series[i].age ?? null
-    }
-    return null
-  }, [projection])
+  // Age at which CPF savings lock into the CPF LIFE annuity (Singapore's
+  // statutory age-55 OA/SA → RA transfer). This is what makes the blue Liquid
+  // line dip: the money isn't lost, it moves into the grey "CPF LIFE principal"
+  // band and becomes a lifelong income stream from the payout age. Surfaced as
+  // a chart marker + caption so the dip reads as "locked", not "gone".
+  //
+  // Read from the backend's authoritative `cpfLifeAge` (55). Do NOT re-derive
+  // it from the annuitizedValue 0 → >0 transition: each projection row carries
+  // end-of-year balances, so the transition lands on the start-of-year row
+  // (age 54) and the marker would read "CPF LIFE (54)".
+  const cpfLockAge = projection?.cpfLifeAge ?? null
 
   // Active scenario = backend captured a baseline overlay alongside the
   // adjusted projection. Used to gate the "compared to baseline" UI.
