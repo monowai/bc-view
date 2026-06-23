@@ -114,10 +114,10 @@ describe("<OpenBrokerageWizard />", () => {
     await user.type(screen.getByLabelText(/Broker name/i), "Brand New Broker")
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
-    // Step 2 — portfolio: fill code + currency
+    // Step 2 — portfolio: no inputs in new mode; code + name derive from the
+    // broker name entered in step 1.
     await screen.findByRole("heading", { name: /Portfolio/i })
-    await user.type(screen.getByLabelText(/Portfolio code/i), "IBKR")
-    await user.type(screen.getByLabelText(/Portfolio name/i), "IBKR USD")
+    expect(screen.getByText(/code BRANDNEWBROKER/i)).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
     // Step 3 — funding: skip
@@ -126,8 +126,8 @@ describe("<OpenBrokerageWizard />", () => {
 
     // Step 4 — review
     await screen.findByRole("heading", { name: /Review/i })
-    expect(screen.getByText(/Brand New Broker/)).toBeInTheDocument()
-    expect(screen.getByText(/IBKR/)).toBeInTheDocument()
+    expect(screen.getByText(/Brand New Broker \(new\)/)).toBeInTheDocument()
+    expect(screen.getByText(/BRANDNEWBROKER/)).toBeInTheDocument()
     await user.click(
       screen.getByRole("button", { name: /Create|Confirm|Open Brokerage/i }),
     )
@@ -156,10 +156,8 @@ describe("<OpenBrokerageWizard />", () => {
     await user.type(screen.getByLabelText(/Broker name/i), "IBKR")
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
-    // Step 2 — portfolio
+    // Step 2 — portfolio (new mode derives code/name from the broker)
     await screen.findByRole("heading", { name: /Portfolio/i })
-    await user.type(screen.getByLabelText(/Portfolio code/i), "IBKR")
-    await user.type(screen.getByLabelText(/Portfolio name/i), "IBKR USD")
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
     // Step 3 — funding: enter amount + source
@@ -213,12 +211,8 @@ describe("<OpenBrokerageWizard />", () => {
     )
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
-    // Step 2 — portfolio
-    await user.type(screen.getByLabelText(/Portfolio code/i), "IBRK")
-    await user.type(
-      screen.getByLabelText(/Portfolio name/i),
-      "Interactive Brokers USD",
-    )
+    // Step 2 — portfolio (new mode derives code/name from the broker)
+    await screen.findByRole("heading", { name: /Portfolio/i })
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
     // Step 3 — skip funding
@@ -305,7 +299,7 @@ describe("<OpenBrokerageWizard />", () => {
     expect(brokerCashAsset).toBeDefined()
   })
 
-  test("blocks Next on Portfolio step when code is empty", async () => {
+  test("derives the portfolio code from the broker; blocks Next only when attaching without a pick", async () => {
     const user = userEvent.setup()
     render(<OpenBrokerageWizard />)
     await screen.findByRole("heading", { name: /Broker/i })
@@ -315,9 +309,19 @@ describe("<OpenBrokerageWizard />", () => {
     await user.type(screen.getByLabelText(/Broker name/i), "Test Broker")
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
-    // Portfolio step — Next button disabled while code empty
     await screen.findByRole("heading", { name: /Portfolio/i })
-    const nextBtn = screen.getByRole("button", { name: /Next|Continue/i })
-    expect(nextBtn).toBeDisabled()
+    // New mode: code derives from the broker name → Next enabled.
+    expect(screen.getByText(/code TESTBROKER/i)).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: /Next|Continue/i }),
+    ).not.toBeDisabled()
+
+    // Switch to attach-to-existing without choosing one → Next blocked.
+    await user.click(
+      screen.getByRole("radio", { name: /Attach to an existing portfolio/i }),
+    )
+    expect(
+      screen.getByRole("button", { name: /Next|Continue/i }),
+    ).toBeDisabled()
   })
 })

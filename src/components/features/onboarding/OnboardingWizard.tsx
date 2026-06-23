@@ -18,6 +18,7 @@ import CompleteStep from "./steps/CompleteStep"
 import IndependencePlanStep from "./steps/IndependencePlanStep"
 import BrokerageStep from "./steps/BrokerageStep"
 import type { SourceValue } from "./steps/BrokerageStep"
+import { type PortfolioMode } from "@components/features/openBrokerage/PortfolioModeChooser"
 import { openBrokerage } from "@lib/openBrokerage/orchestrate"
 import { useRegistration } from "@contexts/RegistrationContext"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
@@ -156,6 +157,11 @@ const OnboardingWizard: React.FC = () => {
   const [brokerageSource, setBrokerageSource] = useState<SourceValue>("")
   const [brokerageAmount, setBrokerageAmount] = useState("")
   const [brokerageCurrency, setBrokerageCurrency] = useState("")
+  // Portfolio choice for the brokerage — mirrors the standalone wizard so
+  // onboarding can also attach the brokerage to an existing portfolio.
+  const [brokeragePortfolioMode, setBrokeragePortfolioMode] =
+    useState<PortfolioMode>("new")
+  const [brokerageExistingId, setBrokerageExistingId] = useState("")
   const [brokerageCreated, setBrokerageCreated] = useState(false)
 
   // Pre-fill fields from user preferences or Auth0 profile (render-phase
@@ -741,7 +747,16 @@ const OnboardingWizard: React.FC = () => {
       // Use the local `portfolioId` variable (set just above), not the
       // React state `createdPortfolioId` — setState hasn't flushed inside
       // the same async function call.
-      if (brokerageEnabled && brokerageBrokerName.trim() && portfolioId) {
+      const brokerageExistingPortfolio =
+        brokeragePortfolioMode === "existing"
+          ? existingPortfolios.find((p) => p.id === brokerageExistingId)
+          : undefined
+      if (
+        brokerageEnabled &&
+        brokerageBrokerName.trim() &&
+        portfolioId &&
+        (brokeragePortfolioMode === "new" || !!brokerageExistingPortfolio)
+      ) {
         const amt = parseFloat(brokerageAmount)
         try {
           // Brokerage gets its own dedicated portfolio (named after the
@@ -755,16 +770,24 @@ const OnboardingWizard: React.FC = () => {
           // step 7; falls back to baseCurrency if they didn't touch the
           // dropdown. `base` stays as the user's overall base currency for
           // consolidated reporting upstream.
-          const brokerageCcy = brokerageCurrency || baseCurrency
+          const brokerageCcy = brokerageExistingPortfolio
+            ? (brokerageExistingPortfolio.currency?.code ?? brokerageCurrency)
+            : brokerageCurrency || baseCurrency
           const brokerageResult = await openBrokerage({
             broker: { mode: "new", newName: brokerCode },
-            portfolio: {
-              mode: "new",
-              code: brokerCode,
-              name: `${brokerCode} Portfolio`,
-              currency: brokerageCcy,
-              base: baseCurrency,
-            },
+            portfolio: brokerageExistingPortfolio
+              ? {
+                  mode: "existing",
+                  existingId: brokerageExistingPortfolio.id,
+                  currency: brokerageCcy,
+                }
+              : {
+                  mode: "new",
+                  code: brokerCode,
+                  name: `${brokerCode} Portfolio`,
+                  currency: brokerageCcy,
+                  base: baseCurrency,
+                },
             funding:
               Number.isFinite(amt) && amt > 0
                 ? (() => {
@@ -799,7 +822,8 @@ const OnboardingWizard: React.FC = () => {
           // portfolios list shows it with no market value until the user
           // opens it.
           try {
-            await fetch(`/api/holdings/${brokerCode}?asAt=${today}`, {
+            const valuationCode = brokerageExistingPortfolio?.code ?? brokerCode
+            await fetch(`/api/holdings/${valuationCode}?asAt=${today}`, {
               credentials: "include",
             })
           } catch (vErr) {
@@ -923,11 +947,37 @@ const OnboardingWizard: React.FC = () => {
             existingPortfolios={existingPortfolios}
             bankAccounts={bankAccounts}
             defaultPortfolioName={portfolioName}
+            portfolioMode={brokeragePortfolioMode}
+            existingPortfolioId={brokerageExistingId}
             onEnabledChange={setBrokerageEnabled}
             onBrokerNameChange={setBrokerageBrokerName}
             onSourceChange={setBrokerageSource}
             onAmountChange={setBrokerageAmount}
             onCurrencyChange={setBrokerageCurrency}
+            onPortfolioModeChange={(mode) => {
+              setBrokeragePortfolioMode(mode)
+              // Re-sync currency to the still-selected existing portfolio so a
+              // currency changed while in "new" mode can't leave the source
+              // filter / deposit on a stale currency.
+              if (mode === "existing" && brokerageExistingId) {
+                const pf = existingPortfolios.find(
+                  (p) => p.id === brokerageExistingId,
+                )
+                const nextCurrency = pf?.currency?.code
+                if (nextCurrency && nextCurrency !== brokerageCurrency) {
+                  setBrokerageCurrency(nextCurrency)
+                  setBrokerageSource("")
+                }
+              }
+            }}
+            onExistingPortfolioChange={(id) => {
+              setBrokerageExistingId(id)
+              // Sync the brokerage currency to the chosen portfolio so the
+              // source filter + deposit stay same-currency (mirrors the
+              // standalone wizard).
+              const pf = existingPortfolios.find((p) => p.id === id)
+              if (pf?.currency?.code) setBrokerageCurrency(pf.currency.code)
+            }}
           />
         )
       case 7:

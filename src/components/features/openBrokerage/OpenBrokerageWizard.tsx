@@ -5,6 +5,7 @@ import {
   type OpenBrokerageResult,
 } from "@lib/openBrokerage/orchestrate"
 import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper"
+import PortfolioModeChooser from "@components/features/openBrokerage/PortfolioModeChooser"
 import type { Broker, Currency, Portfolio } from "types/beancounter"
 
 type Step = "broker" | "portfolio" | "funding" | "review" | "done"
@@ -18,9 +19,8 @@ interface BrokerState {
 
 interface PortfolioState {
   mode: "new" | "existing"
-  // mode === "new"
-  code: string
-  name: string
+  // mode === "new": the portfolio code + name are derived from the broker
+  // name (one less thing to type; matches the onboarding flow).
   currency: string
   // mode === "existing"
   existingId: string
@@ -44,6 +44,12 @@ const FALLBACK_CURRENCIES = [
   "HKD",
   "JPY",
 ]
+
+// Portfolio code is derived from the name (uppercased alphanumerics) so the
+// user only types one field — mirrors how onboarding names the brokerage
+// portfolio from the broker name.
+const deriveCode = (name: string): string =>
+  name.replace(/[^A-Za-z0-9]/g, "").toUpperCase()
 
 const STEP_TITLES: Record<Exclude<Step, "done">, string> = {
   broker: "Broker",
@@ -85,8 +91,6 @@ export default function OpenBrokerageWizard(): React.ReactElement {
   })
   const [portfolio, setPortfolio] = useState<PortfolioState>({
     mode: "new",
-    code: "",
-    name: "",
     currency: "USD",
     existingId: "",
   })
@@ -112,6 +116,16 @@ export default function OpenBrokerageWizard(): React.ReactElement {
   )
   const brokers = useMemo(() => brokersData?.data ?? [], [brokersData])
   const portfolios = useMemo(() => portfoliosData?.data ?? [], [portfoliosData])
+
+  // The new brokerage portfolio takes its identity from the broker: code is
+  // the broker name uppercased/alphanumeric, the display name appends
+  // "Portfolio". Mirrors the onboarding flow so the two surfaces match.
+  const brokerName =
+    broker.mode === "new"
+      ? broker.newName.trim()
+      : (brokers.find((b) => b.id === broker.existingId)?.name ?? "")
+  const derivedCode = deriveCode(brokerName)
+  const derivedName = brokerName ? `${brokerName} Portfolio` : ""
   const currencyCodes = useMemo(() => {
     const codes = currenciesData?.data?.map((c) => c.code)
     return codes && codes.length > 0 ? codes : FALLBACK_CURRENCIES
@@ -141,7 +155,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
   const portfolioValid =
     portfolio.mode === "existing"
       ? !!portfolio.existingId
-      : portfolio.code.trim().length > 0 && portfolio.name.trim().length > 0
+      : derivedCode.length > 0
 
   const back = (): void => {
     const i = STEP_ORDER.indexOf(step as Exclude<Step, "done">)
@@ -174,8 +188,8 @@ export default function OpenBrokerageWizard(): React.ReactElement {
               }
             : {
                 mode: "new",
-                code: portfolio.code,
-                name: portfolio.name,
+                code: derivedCode,
+                name: derivedName,
                 currency: portfolio.currency,
                 base: portfolio.currency,
               },
@@ -204,7 +218,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
           {"Done — brokerage opened"}
         </h1>
         <p className="text-gray-600 mb-6">
-          {`Portfolio ${portfolio.code} ready. `}
+          {`Portfolio ${portfolio.mode === "existing" ? (portfolios.find((p) => p.id === portfolio.existingId)?.code ?? "") : derivedCode} ready. `}
           {result?.trnIds.length
             ? `${result.trnIds.length} cash transaction(s) posted.`
             : "No initial deposit posted."}
@@ -325,83 +339,26 @@ export default function OpenBrokerageWizard(): React.ReactElement {
 
       {step === "portfolio" && (
         <div className="space-y-6">
-          <p className="text-sm text-gray-500">
-            How would you like to keep this brokerage?
-          </p>
-
-          <fieldset className="space-y-3">
-            <legend className="sr-only">
-              Choose how to track this brokerage
-            </legend>
-
-            <label
-              className={`flex items-start gap-3 rounded-xl border p-4 cursor-pointer transition-colors ${
-                portfolio.mode === "new"
-                  ? "border-blue-300 bg-blue-50/50 ring-1 ring-blue-300"
-                  : "border-gray-200 hover:border-gray-300"
-              }`}
-            >
-              <input
-                type="radio"
-                name="portfolio-mode"
-                className="mt-1"
-                checked={portfolio.mode === "new"}
-                onChange={() => setPortfolio({ ...portfolio, mode: "new" })}
-              />
-              <span className="flex-1">
-                <span className="block font-medium text-gray-900">
-                  Create a new portfolio for this brokerage
-                </span>
-                <span className="block text-sm text-gray-500 mt-1 leading-relaxed">
-                  Its own space with its own objectives, kept apart from your
-                  non-investment assets — cash, savings, property. Choose this
-                  when you want to judge the brokerage on its own goals.
-                </span>
-              </span>
-            </label>
-
-            <label
-              className={`flex items-start gap-3 rounded-xl border p-4 transition-colors ${
-                portfolios.length === 0
-                  ? "border-gray-200 opacity-50 cursor-not-allowed"
-                  : portfolio.mode === "existing"
-                    ? "border-blue-300 bg-blue-50/50 ring-1 ring-blue-300 cursor-pointer"
-                    : "border-gray-200 hover:border-gray-300 cursor-pointer"
-              }`}
-            >
-              <input
-                type="radio"
-                name="portfolio-mode"
-                className="mt-1"
-                checked={portfolio.mode === "existing"}
-                onChange={() =>
-                  setPortfolio({ ...portfolio, mode: "existing" })
+          <PortfolioModeChooser
+            mode={portfolio.mode}
+            onSelect={(mode) =>
+              setPortfolio((prev) => {
+                // Re-sync currency to the still-selected existing portfolio so
+                // a currency changed while in "new" mode can't leak into the
+                // existing-mode submit / source filter.
+                if (mode === "existing" && prev.existingId) {
+                  const pf = portfolios.find((p) => p.id === prev.existingId)
+                  return {
+                    ...prev,
+                    mode,
+                    currency: pf?.currency?.code ?? prev.currency,
+                  }
                 }
-                disabled={portfolios.length === 0}
-              />
-              <span className="flex-1">
-                <span className="block font-medium text-gray-900">
-                  Attach to an existing portfolio{" "}
-                  {portfolios.length === 0 && (
-                    <span className="font-normal text-gray-400">
-                      (none yet)
-                    </span>
-                  )}
-                </span>
-                <span className="block text-sm text-gray-500 mt-1 leading-relaxed">
-                  Fold these holdings in beside assets you already track — one
-                  combined view. Choose this when you think of everything as a
-                  single pot.
-                </span>
-              </span>
-            </label>
-          </fieldset>
-
-          <p className="text-xs text-gray-500 leading-relaxed">
-            Either way, Beancounter totals your net worth across every
-            portfolio — this only decides how you{"’"}d like to view these
-            assets, not what you can see.
-          </p>
+                return { ...prev, mode }
+              })
+            }
+            existingDisabled={portfolios.length === 0}
+          />
 
           <div className="space-y-4 pt-4 border-t border-gray-100">
             {portfolio.mode === "existing" ? (
@@ -438,44 +395,21 @@ export default function OpenBrokerageWizard(): React.ReactElement {
                 </p>
               </div>
             ) : (
-              <>
-                <div>
-                  <label
-                    htmlFor="pf-code"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    {"Portfolio code"}
-                  </label>
-                  <input
-                    id="pf-code"
-                    type="text"
-                    value={portfolio.code}
-                    onChange={(e) =>
-                      setPortfolio({ ...portfolio, code: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    placeholder="e.g. IBRK"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="pf-name"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    {"Portfolio name"}
-                  </label>
-                  <input
-                    id="pf-name"
-                    type="text"
-                    value={portfolio.name}
-                    onChange={(e) =>
-                      setPortfolio({ ...portfolio, name: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    placeholder="e.g. Interactive Brokers"
-                  />
-                </div>
-              </>
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">
+                <p className="text-gray-500">New portfolio</p>
+                {derivedCode ? (
+                  <p className="font-medium text-gray-900">
+                    {derivedName}
+                    <span className="ml-1 font-normal text-gray-500">
+                      {`(code ${derivedCode})`}
+                    </span>
+                  </p>
+                ) : (
+                  <p className="text-gray-400">
+                    Name your broker first — the portfolio takes its name.
+                  </p>
+                )}
+              </div>
             )}
             {portfolio.mode === "new" && (
               <div>
@@ -571,7 +505,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
               <dd className="col-span-2 text-gray-900">
                 {portfolio.mode === "existing"
                   ? `${portfolios.find((p) => p.id === portfolio.existingId)?.name ?? "?"} (existing, ${portfolio.currency})`
-                  : `${portfolio.code} — ${portfolio.name} (new, ${portfolio.currency})`}
+                  : `${derivedCode} — ${derivedName} (new, ${portfolio.currency})`}
               </dd>
               <dt className="text-gray-500">Funding</dt>
               <dd className="col-span-2 text-gray-900">
