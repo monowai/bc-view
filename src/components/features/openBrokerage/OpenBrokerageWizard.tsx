@@ -341,7 +341,22 @@ export default function OpenBrokerageWizard(): React.ReactElement {
         <div className="space-y-6">
           <PortfolioModeChooser
             mode={portfolio.mode}
-            onSelect={(mode) => setPortfolio({ ...portfolio, mode })}
+            onSelect={(mode) =>
+              setPortfolio((prev) => {
+                // Re-sync currency to the still-selected existing portfolio so
+                // a currency changed while in "new" mode can't leak into the
+                // existing-mode submit / source filter.
+                if (mode === "existing" && prev.existingId) {
+                  const pf = portfolios.find((p) => p.id === prev.existingId)
+                  return {
+                    ...prev,
+                    mode,
+                    currency: pf?.currency?.code ?? prev.currency,
+                  }
+                }
+                return { ...prev, mode }
+              })
+            }
             existingDisabled={portfolios.length === 0}
           />
 

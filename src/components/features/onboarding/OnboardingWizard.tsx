@@ -954,7 +954,22 @@ const OnboardingWizard: React.FC = () => {
             onSourceChange={setBrokerageSource}
             onAmountChange={setBrokerageAmount}
             onCurrencyChange={setBrokerageCurrency}
-            onPortfolioModeChange={setBrokeragePortfolioMode}
+            onPortfolioModeChange={(mode) => {
+              setBrokeragePortfolioMode(mode)
+              // Re-sync currency to the still-selected existing portfolio so a
+              // currency changed while in "new" mode can't leave the source
+              // filter / deposit on a stale currency.
+              if (mode === "existing" && brokerageExistingId) {
+                const pf = existingPortfolios.find(
+                  (p) => p.id === brokerageExistingId,
+                )
+                const nextCurrency = pf?.currency?.code
+                if (nextCurrency && nextCurrency !== brokerageCurrency) {
+                  setBrokerageCurrency(nextCurrency)
+                  setBrokerageSource("")
+                }
+              }
+            }}
             onExistingPortfolioChange={(id) => {
               setBrokerageExistingId(id)
               // Sync the brokerage currency to the chosen portfolio so the
