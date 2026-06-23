@@ -178,7 +178,7 @@ const BrokerageStep: React.FC<BrokerageStepProps> = ({
                 htmlFor="ob-currency"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                {"Reporting currency"}
+                {"Default Currency"}
               </label>
               <select
                 id="ob-currency"

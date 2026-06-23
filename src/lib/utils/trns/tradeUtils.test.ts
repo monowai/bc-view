@@ -380,6 +380,42 @@ describe("TradeUtils", () => {
     expect(result).toContain("Buy USD/Sell SGD") // Comment uses currencies
   })
 
+  test("FX buy into generic cash balance uses BUY market in Market column", () => {
+    // Sell from DBS-SGD bank account (PRIVATE) → buy generic USD cash balance (CASH).
+    // The Market column describes the BUY asset, so it must be CASH (the buy side),
+    // NOT PRIVATE (the sell side). Using the sell market resolved a phantom
+    // PRIVATE/USD asset and no USD balance ever appeared.
+    const data: TradeFormData = {
+      type: { value: "FX", label: "FX" },
+      asset: "DBS-SGD", // Sell from DBS-SGD bank account
+      market: "PRIVATE", // Sell side market
+      tradeDate: "2023-01-21",
+      quantity: 5958.77, // Sell amount in SGD
+      price: 1,
+      tradeCurrency: {
+        value: "SGD",
+        label: "SGD",
+        currency: "SGD",
+        market: "PRIVATE",
+      },
+      cashCurrency: {
+        value: "USD", // Buy generic USD cash balance
+        label: "USD",
+        currency: "USD",
+        market: "CASH", // Buy side market — belongs in the Market column
+      },
+      cashAmount: 4600, // Buy amount in USD
+      fees: 0,
+      tax: 0,
+      comments: undefined,
+    }
+    const result = getCashRow(data)
+
+    // Market=CASH (buy side), Code=USD, CashAccount=DBS-SGD (sell), CashCurrency=SGD
+    expect(result).toContain("FX_BUY,CASH,USD,,DBS-SGD,SGD,")
+    expect(result).toContain("Buy USD/Sell SGD")
+  })
+
   test("tradeCurrency defaults to cashCurrency if missing", () => {
     const data: TradeFormData = {
       type: { value: "DIVI", label: "Dividend" },
