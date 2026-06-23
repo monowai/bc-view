@@ -41,6 +41,9 @@ const mockBankAccounts = {
 }
 
 let mockPlans: { data: Array<{ workingIncomeMonthly?: number }> } = { data: [] }
+let mockScenarios: {
+  data: Array<{ isCurrent: boolean; workingIncomeMonthly?: number }>
+} = { data: [] }
 const mockMutate = jest.fn()
 
 // Synchronous SWR: route by key substring.
@@ -51,6 +54,8 @@ jest.mock("swr", () => ({
     // CPF "where held" lookup → the CPF asset lives in pf-1.
     if (key.includes("/positions"))
       return { data: "pf-1", error: undefined, isLoading: false }
+    if (key.includes("work-scenarios"))
+      return { data: mockScenarios, error: undefined, isLoading: false }
     if (key.includes("independence/plans"))
       return { data: mockPlans, error: undefined, isLoading: false }
     if (key.includes("portfolios"))
@@ -105,6 +110,7 @@ describe("PayslipModal", () => {
     mockConfigs = []
     mockDc = undefined
     mockPlans = { data: [] }
+    mockScenarios = { data: [] }
     mockMutate.mockClear()
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
@@ -121,15 +127,32 @@ describe("PayslipModal", () => {
     expect(screen.getByLabelText("Tax deducted")).toBeInTheDocument()
   })
 
-  it("defaults Gross salary to the primary plan's monthly working income", () => {
-    mockPlans = { data: [{ workingIncomeMonthly: 6000 }] }
+  it("defaults Gross salary to the active work scenario's monthly income", () => {
+    // Scenario income wins over the plan field (the authoritative source).
+    mockScenarios = {
+      data: [
+        { isCurrent: false, workingIncomeMonthly: 1000 },
+        { isCurrent: true, workingIncomeMonthly: 6000 },
+      ],
+    }
+    mockPlans = { data: [{ workingIncomeMonthly: 999 }] }
     render(<PayslipModal modalOpen onClose={jest.fn()} />)
     expect(
       (screen.getByLabelText("Gross salary") as HTMLInputElement).value,
     ).toBe("6000")
   })
 
-  it("leaves Gross salary empty when the user has no plan", () => {
+  it("falls back to the primary plan's income when there is no work scenario", () => {
+    mockScenarios = { data: [] }
+    mockPlans = { data: [{ workingIncomeMonthly: 4200 }] }
+    render(<PayslipModal modalOpen onClose={jest.fn()} />)
+    expect(
+      (screen.getByLabelText("Gross salary") as HTMLInputElement).value,
+    ).toBe("4200")
+  })
+
+  it("leaves Gross salary empty when there is no scenario or plan income", () => {
+    mockScenarios = { data: [] }
     mockPlans = { data: [] }
     render(<PayslipModal modalOpen onClose={jest.fn()} />)
     expect(
