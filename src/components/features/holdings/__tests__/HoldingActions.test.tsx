@@ -158,12 +158,12 @@ describe("HoldingActions Mobile Portrait Tests (TDD)", () => {
       setupMatchMedia(375, 667)
     })
 
-    // Mobile-portrait parity: Copy / Trade / Rebalance / Share must all render
+    // Mobile-portrait parity: Copy / Trade / Invest / Share must all render
     // and must NOT sit inside a `mobile-portrait:hidden` ancestor. Labels may
     // collapse to icon-only via `hidden sm:inline`, but the actions stay
     // reachable. Locate by aria-label since the visible text label is
     // CSS-hidden in this viewport.
-    it.each([["Copy Holdings"], ["Trade"], ["Rebalance"]])(
+    it.each([["Copy Holdings"], ["Trade"], ["Invest"]])(
       "renders %s reachable on mobile portrait (no hidden ancestor)",
       (label) => {
         render(
@@ -252,7 +252,7 @@ describe("HoldingActions Mobile Portrait Tests (TDD)", () => {
 
       expect(screen.getByLabelText("Copy Holdings")).toBeInTheDocument()
       expect(screen.getByLabelText("Trade")).toBeInTheDocument()
-      expect(screen.getByLabelText("Rebalance")).toBeInTheDocument()
+      expect(screen.getByLabelText("Invest")).toBeInTheDocument()
     })
   })
 })
