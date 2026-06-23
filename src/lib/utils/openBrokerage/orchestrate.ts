@@ -6,6 +6,7 @@
  */
 
 import type { Broker } from "types/beancounter"
+import { deriveBrokerCode } from "@lib/openBrokerage/brokerCode"
 
 // Local-date YYYY-MM-DD so tradeDate matches the user's calendar day,
 // not UTC's. `new Date().toISOString()` would mis-report the day for any
@@ -28,36 +29,43 @@ interface BrokerStep {
 
 interface PortfolioStep {
   mode: "new" | "existing"
-  // Required when mode === "new"
+  // Required when mode === "new". `currency` is the portfolio's default
+  // (reporting/base) currency.
   code?: string
   name?: string
   currency: string
   base?: string
-  // Required when mode === "existing"
+  // Required when mode === "existing". `code` lets the orchestrator return a
+  // portfolioCode for navigation without a round-trip to look it up.
   existingId?: string
 }
 
-interface FundingStep {
+// One currency account to open in the brokerage, with its opening deposit.
+// The wizard collects a list of these so a brokerage can be funded across
+// several currencies in a single pass (e.g. an IB account holding USD + SGD).
+interface FundingAccount {
+  currency: string
   amount: number
-  // Either side may be omitted (no WITHDRAWAL leg = standalone deposit).
-  // When both are given, sourceAssetId takes precedence — use it when the
-  // source is a specific PRIVATE asset (e.g. a bank-account line inside
+  // Either source side may be omitted (no WITHDRAWAL leg = standalone
+  // deposit). When both are given, sourceAssetId takes precedence — use it
+  // when the source is a specific PRIVATE asset (e.g. a bank-account line in
   // the same portfolio); fall back to ensureCashAsset(currency) when only
   // sourcePortfolioId is set.
   sourcePortfolioId?: string
   sourceAssetId?: string
-  currency: string
 }
 
 export interface OpenBrokerageRequest {
   broker: BrokerStep
   portfolio: PortfolioStep
-  funding?: FundingStep
+  funding?: FundingAccount[]
 }
 
 export interface OpenBrokerageResult {
   broker: Broker
   portfolioId: string
+  // Portfolio CODE (not id) — callers navigate to /holdings/{code}.
+  portfolioCode: string
   trnIds: string[]
 }
 
@@ -79,7 +87,19 @@ async function postJson<T>(url: string, body: unknown): Promise<T> {
 async function ensureBroker(step: BrokerStep): Promise<Broker> {
   if (step.mode === "existing") {
     if (!step.existingId) throw new Error("Existing broker id required")
-    return { id: step.existingId, name: "" }
+    // Resolve the broker's name so the per-broker cash asset code
+    // (deriveBrokerCode(name)) is correct for existing brokers too — without
+    // this the code would collapse to "-{ccy}" on the existing-broker path.
+    const existingId = step.existingId
+    const found = await fetch("/api/brokers")
+      .then((r) => (r.ok ? (r.json() as Promise<{ data: Broker[] }>) : null))
+      .then((j) => j?.data.find((b) => b.id === existingId))
+      .catch(() => undefined)
+    // Fail fast rather than degrade to an empty name: an empty name collapses
+    // the per-broker cash code to "-{ccy}", which two unresolved brokers would
+    // then share, mixing their balances.
+    if (!found) throw new Error("Could not resolve the selected broker")
+    return found
   }
   if (!step.newName) throw new Error("Broker name required")
   // Reuse any existing broker with the same name so retrying the wizard
@@ -98,10 +118,12 @@ async function ensureBroker(step: BrokerStep): Promise<Broker> {
   return resp.data
 }
 
-async function resolvePortfolio(step: PortfolioStep): Promise<string> {
+async function resolvePortfolio(
+  step: PortfolioStep,
+): Promise<{ id: string; code: string }> {
   if (step.mode === "existing") {
     if (!step.existingId) throw new Error("Existing portfolio id required")
-    return step.existingId
+    return { id: step.existingId, code: step.code ?? "" }
   }
   if (!step.code || !step.name || !step.base) {
     throw new Error("New portfolio requires code, name and base currency")
@@ -120,7 +142,7 @@ async function resolvePortfolio(step: PortfolioStep): Promise<string> {
     },
   )
   if (!resp.data?.[0]?.id) throw new Error("Portfolio creation returned no id")
-  return resp.data[0].id
+  return { id: resp.data[0].id, code: step.code }
 }
 
 async function ensureAsset(payload: {
@@ -147,18 +169,21 @@ async function ensureAsset(payload: {
 const ensureCashAsset = (currency: string): Promise<string> =>
   ensureAsset({ code: currency, market: "CASH" })
 
-// Per-broker PRIVATE cash asset like "IBRK-USD" / "DBS-SGD". Used when the
+// Per-broker PRIVATE cash asset like "IB-USD" / "CS-SGD". Used when the
 // brokerage attaches to an EXISTING portfolio so the broker's cash is
-// visible as a distinct line ("IBRK USD Balance") alongside any pre-existing
-// generic-cash holdings in the same portfolio. PRIVATE assets MUST carry an
+// visible as a distinct line ("Interactive Brokers USD Balance") alongside
+// any pre-existing generic-cash holdings in the same portfolio. The CODE is
+// the abbreviated broker code (deriveBrokerCode) so it stays compact; the
+// display NAME keeps the full broker name. PRIVATE assets MUST carry an
 // explicit `currency` and `category` per svc-data's AssetController
 // validation ("Currency required for private asset {code}").
 const ensureBrokerCashAsset = (
+  brokerCode: string,
   brokerName: string,
   currency: string,
 ): Promise<string> =>
   ensureAsset({
-    code: `${brokerName}-${currency}`,
+    code: `${brokerCode}-${currency}`,
     market: "PRIVATE",
     name: `${brokerName} ${currency} Balance`,
     currency,
@@ -216,18 +241,25 @@ export async function openBrokerage(
   req: OpenBrokerageRequest,
 ): Promise<OpenBrokerageResult> {
   const broker = await ensureBroker(req.broker)
-  const portfolioId = await resolvePortfolio(req.portfolio)
+  const { id: portfolioId, code: portfolioCode } = await resolvePortfolio(
+    req.portfolio,
+  )
+  const brokerCode = deriveBrokerCode(broker.name)
 
+  // Each funded currency account is opened independently so a single pass can
+  // span several currencies (e.g. an IB account holding USD + SGD). Sequential
+  // — see the function doc on idempotency.
   const trnIds: string[] = []
-  if (req.funding && req.funding.amount > 0) {
-    // Attach-to-existing-portfolio path uses a per-broker PRIVATE cash
-    // asset so the brokerage cash is visible as a distinct line in the
-    // existing portfolio's holdings; the new-portfolio path uses the
-    // generic per-currency CASH asset (the portfolio itself segregates).
+  for (const account of req.funding ?? []) {
+    if (account.amount <= 0) continue
+    // Attach-to-existing-portfolio path uses a per-broker PRIVATE cash asset
+    // so the brokerage cash is visible as a distinct line in the existing
+    // portfolio's holdings; the new-portfolio path uses the generic
+    // per-currency CASH asset (the portfolio itself segregates).
     const depositAssetId =
       req.portfolio.mode === "existing"
-        ? await ensureBrokerCashAsset(broker.name, req.funding.currency)
-        : await ensureCashAsset(req.funding.currency)
+        ? await ensureBrokerCashAsset(brokerCode, broker.name, account.currency)
+        : await ensureCashAsset(account.currency)
     // Order matters: DEPOSIT first into the freshly-created portfolio
     // (always succeeds — no balance/code constraints), then WITHDRAWAL
     // from the source. If WITHDRAWAL fails afterwards the worst-case
@@ -238,34 +270,33 @@ export async function openBrokerage(
         portfolioId,
         trnType: "DEPOSIT",
         assetId: depositAssetId,
-        currency: req.funding.currency,
-        amount: req.funding.amount,
+        currency: account.currency,
+        amount: account.amount,
       }),
     )
-    if (req.funding.sourcePortfolioId || req.funding.sourceAssetId) {
+    if (account.sourcePortfolioId || account.sourceAssetId) {
       // Withdraw from either the specific source asset (e.g. a bank-account
       // PRIVATE line) when provided, or fall back to the portfolio's
       // generic CASH/{ccy} asset. Broker-tagged cash only exists on the
       // destination, never the source.
       const sourceAssetId =
-        req.funding.sourceAssetId ??
-        (await ensureCashAsset(req.funding.currency))
+        account.sourceAssetId ?? (await ensureCashAsset(account.currency))
       // If sourceAssetId is supplied without an explicit sourcePortfolioId,
       // assume the asset lives on the same portfolio the wizard is
       // attaching the broker to (true for the onboarding flow's
       // bank-account-on-default-portfolio case).
-      const sourcePortfolioId = req.funding.sourcePortfolioId ?? portfolioId
+      const sourcePortfolioId = account.sourcePortfolioId ?? portfolioId
       trnIds.push(
         await postTrn({
           portfolioId: sourcePortfolioId,
           trnType: "WITHDRAWAL",
           assetId: sourceAssetId,
-          currency: req.funding.currency,
-          amount: req.funding.amount,
+          currency: account.currency,
+          amount: account.amount,
         }),
       )
     }
   }
 
-  return { broker, portfolioId, trnIds }
+  return { broker, portfolioId, portfolioCode, trnIds }
 }
