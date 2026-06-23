@@ -42,8 +42,10 @@ const renderStep = (overrides: Partial<BrokerageStepProps> = {}): void => {
 describe("BrokerageStep portfolio choice", () => {
   it("new mode shows the currency picker, not the existing-portfolio selector", () => {
     renderStep({ portfolioMode: "new" })
-    expect(screen.getByLabelText("Reporting currency")).toBeInTheDocument()
-    expect(screen.queryByLabelText("Existing portfolio")).not.toBeInTheDocument()
+    expect(screen.getByLabelText("Default Currency")).toBeInTheDocument()
+    expect(
+      screen.queryByLabelText("Existing portfolio"),
+    ).not.toBeInTheDocument()
     // Shared chooser is present.
     expect(
       screen.getByRole("radio", {
@@ -59,9 +61,7 @@ describe("BrokerageStep portfolio choice", () => {
     expect(
       Array.from(select.querySelectorAll("option")).map((o) => o.textContent),
     ).toContain("Main (MAIN, SGD)")
-    expect(
-      screen.queryByLabelText("Reporting currency"),
-    ).not.toBeInTheDocument()
+    expect(screen.queryByLabelText("Default Currency")).not.toBeInTheDocument()
   })
 
   it("selecting the existing portfolio reports its id", () => {

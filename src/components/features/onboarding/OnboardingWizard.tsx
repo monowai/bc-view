@@ -20,6 +20,7 @@ import BrokerageStep from "./steps/BrokerageStep"
 import type { SourceValue } from "./steps/BrokerageStep"
 import { type PortfolioMode } from "@components/features/openBrokerage/PortfolioModeChooser"
 import { openBrokerage } from "@lib/openBrokerage/orchestrate"
+import { deriveBrokerCode } from "@lib/openBrokerage/brokerCode"
 import { useRegistration } from "@contexts/RegistrationContext"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import Spinner from "@components/ui/Spinner"
@@ -765,7 +766,10 @@ const OnboardingWizard: React.FC = () => {
           // resolves to a bank-account asset on the default portfolio
           // when the user picked one, so a paired WITHDRAWAL hits the
           // right line.
-          const brokerCode = brokerageBrokerName.trim()
+          const brokerName = brokerageBrokerName.trim()
+          // Abbreviated code (Interactive Brokers → IB) for the portfolio
+          // code; the display name keeps the full broker name.
+          const brokerCode = deriveBrokerCode(brokerName)
           // Reporting currency for the brokerage portfolio. User-picked in
           // step 7; falls back to baseCurrency if they didn't touch the
           // dropdown. `base` stays as the user's overall base currency for
@@ -774,17 +778,18 @@ const OnboardingWizard: React.FC = () => {
             ? (brokerageExistingPortfolio.currency?.code ?? brokerageCurrency)
             : brokerageCurrency || baseCurrency
           const brokerageResult = await openBrokerage({
-            broker: { mode: "new", newName: brokerCode },
+            broker: { mode: "new", newName: brokerName },
             portfolio: brokerageExistingPortfolio
               ? {
                   mode: "existing",
                   existingId: brokerageExistingPortfolio.id,
+                  code: brokerageExistingPortfolio.code,
                   currency: brokerageCcy,
                 }
               : {
                   mode: "new",
                   code: brokerCode,
-                  name: `${brokerCode} Portfolio`,
+                  name: `${brokerName} Portfolio`,
                   currency: brokerageCcy,
                   base: baseCurrency,
                 },
@@ -812,7 +817,7 @@ const OnboardingWizard: React.FC = () => {
                         fund.sourcePortfolioId = portfolioId
                       }
                     }
-                    return fund
+                    return [fund]
                   })()
                 : undefined,
           })
