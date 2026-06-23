@@ -528,9 +528,9 @@ const HoldingActions: React.FC<HoldingActionsProps> = ({
             colorClass="bg-emerald-500 hover:bg-emerald-600 shadow-sm shadow-emerald-500/20"
             items={tradeItems}
           />
-          {/* Rebalance Dropdown */}
+          {/* Invest (rebalance) Dropdown */}
           <DropdownMenu
-            label="Rebalance"
+            label="Invest"
             icon="fa-balance-scale"
             colorClass="bg-blue-500 hover:bg-blue-600 shadow-sm shadow-blue-500/20"
             items={rebalanceItems}

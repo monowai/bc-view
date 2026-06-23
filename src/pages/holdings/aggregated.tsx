@@ -585,11 +585,11 @@ function AggregatedHoldingsPage(): React.ReactElement {
                   : ""
                 router.push(`/rebalance/wizard${portfolioParams}`)
               }}
-              aria-label="Rebalance"
-              title="Rebalance"
+              aria-label="Invest"
+              title="Invest"
             >
               <i className="fas fa-balance-scale sm:mr-2"></i>
-              <span className="hidden sm:inline">Rebalance</span>
+              <span className="hidden sm:inline">Invest</span>
             </button>
           </div>
         </div>
