@@ -53,7 +53,7 @@ interface SharedActionHandlers {
   onRecordExpense?: (data: QuickSellData) => void
   onSetCashBalance?: (data: SetCashBalanceData) => void
   onCashTransfer?: (data: CashTransferData) => void
-  onCashTransaction?: (assetCode: string) => void
+  onCashTransaction?: (assetCode: string, initialType?: string) => void
   onPriceChart?: (data: PriceChartData) => void
   onPortfolioBreakdown?: (data: PortfolioBreakdownData) => void
   onEditAsset?: (asset: Asset) => void
