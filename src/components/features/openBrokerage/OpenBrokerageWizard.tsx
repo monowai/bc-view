@@ -6,6 +6,7 @@ import {
 } from "@lib/openBrokerage/orchestrate"
 import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper"
 import PortfolioModeChooser from "@components/features/openBrokerage/PortfolioModeChooser"
+import { deriveBrokerCode } from "@lib/openBrokerage/brokerCode"
 import type { Broker, Currency, Portfolio } from "types/beancounter"
 
 type Step = "broker" | "portfolio" | "funding" | "review" | "done"
@@ -26,9 +27,13 @@ interface PortfolioState {
   existingId: string
 }
 
-interface FundingState {
-  amount: string // free-text input; parsed at submit
-  sourcePortfolioId: string // empty = no source (cash injection)
+// One currency account the user flags to open + fund. The wizard collects a
+// list so the brokerage can span several currencies (e.g. USD + SGD) in one
+// pass. `amount` is free-text and parsed at submit.
+interface FundingRow {
+  currency: string
+  amount: string
+  sourcePortfolioId: string // empty = no source (standalone deposit)
 }
 
 // Fallback list — used only if /api/currencies hasn't returned yet so the
@@ -45,11 +50,9 @@ const FALLBACK_CURRENCIES = [
   "JPY",
 ]
 
-// Portfolio code is derived from the name (uppercased alphanumerics) so the
-// user only types one field — mirrors how onboarding names the brokerage
-// portfolio from the broker name.
-const deriveCode = (name: string): string =>
-  name.replace(/[^A-Za-z0-9]/g, "").toUpperCase()
+// Portfolio code is the abbreviated broker code (deriveBrokerCode) so the
+// user only types one field — "Interactive Brokers" → "IB" — and the code
+// stays compact instead of echoing the full name.
 
 const STEP_TITLES: Record<Exclude<Step, "done">, string> = {
   broker: "Broker",
@@ -94,10 +97,9 @@ export default function OpenBrokerageWizard(): React.ReactElement {
     currency: "USD",
     existingId: "",
   })
-  const [funding, setFunding] = useState<FundingState>({
-    amount: "",
-    sourcePortfolioId: "",
-  })
+  // Currency accounts the user flags to open + fund. Seeded with the
+  // portfolio's default currency on entry to the funding step.
+  const [fundingRows, setFundingRows] = useState<FundingRow[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<OpenBrokerageResult | null>(null)
@@ -118,35 +120,22 @@ export default function OpenBrokerageWizard(): React.ReactElement {
   const portfolios = useMemo(() => portfoliosData?.data ?? [], [portfoliosData])
 
   // The new brokerage portfolio takes its identity from the broker: code is
-  // the broker name uppercased/alphanumeric, the display name appends
-  // "Portfolio". Mirrors the onboarding flow so the two surfaces match.
+  // the abbreviated broker code (Interactive Brokers → IB), the display name
+  // appends "Portfolio". Mirrors the onboarding flow so the two surfaces match.
   const brokerName =
     broker.mode === "new"
       ? broker.newName.trim()
       : (brokers.find((b) => b.id === broker.existingId)?.name ?? "")
-  const derivedCode = deriveCode(brokerName)
+  const derivedCode = deriveBrokerCode(brokerName)
   const derivedName = brokerName ? `${brokerName} Portfolio` : ""
   const currencyCodes = useMemo(() => {
     const codes = currenciesData?.data?.map((c) => c.code)
     return codes && codes.length > 0 ? codes : FALLBACK_CURRENCIES
   }, [currenciesData])
 
-  const sameCurrencySources = useMemo(
-    () => portfolios.filter((p) => p.currency?.code === portfolio.currency),
-    [portfolios, portfolio.currency],
-  )
-
-  // If the user backs up and changes the portfolio currency, drop a
-  // previously-picked source portfolio if it no longer matches.
-  // Otherwise a cross-currency source id would sneak through to submit.
-  // Render-phase reset: the guard is self-terminating (clearing the id makes
-  // the condition false on the next render), so it never loops.
-  if (
-    funding.sourcePortfolioId &&
-    !sameCurrencySources.some((p) => p.id === funding.sourcePortfolioId)
-  ) {
-    setFunding((f) => ({ ...f, sourcePortfolioId: "" }))
-  }
+  // Same-currency source portfolios for a given funding row's currency.
+  const sourcesFor = (currency: string): Portfolio[] =>
+    portfolios.filter((p) => p.currency?.code === currency)
 
   const brokerValid =
     broker.mode === "existing"
@@ -162,16 +151,62 @@ export default function OpenBrokerageWizard(): React.ReactElement {
     if (i > 0) setStep(STEP_ORDER[i - 1])
   }
 
+  // Seed the funding step with the portfolio's default currency the first
+  // time the user lands on it, so there's always one account ready to fund.
+  const seedFundingRows = (): void => {
+    setFundingRows((rows) => {
+      // Re-seed while nothing has been entered yet, so changing the portfolio
+      // default currency (then returning to funding) doesn't leave a stale
+      // row in the old currency. Once the user has typed an amount or picked a
+      // source, their rows are preserved as-is.
+      const untouched = rows.every((r) => !r.amount && !r.sourcePortfolioId)
+      return rows.length === 0 || untouched
+        ? [{ currency: portfolio.currency, amount: "", sourcePortfolioId: "" }]
+        : rows
+    })
+  }
+
   const advance = (): void => {
     const i = STEP_ORDER.indexOf(step as Exclude<Step, "done">)
-    if (i < STEP_ORDER.length - 1) setStep(STEP_ORDER[i + 1])
+    if (i < STEP_ORDER.length - 1) {
+      const next = STEP_ORDER[i + 1]
+      if (next === "funding") seedFundingRows()
+      setStep(next)
+    }
   }
+
+  const updateRow = (idx: number, patch: Partial<FundingRow>): void =>
+    setFundingRows((rows) =>
+      rows.map((r, i) => (i === idx ? { ...r, ...patch } : r)),
+    )
+
+  const addCurrencyRow = (currency: string): void =>
+    setFundingRows((rows) => [
+      ...rows,
+      { currency, amount: "", sourcePortfolioId: "" },
+    ])
+
+  const removeRow = (idx: number): void =>
+    setFundingRows((rows) => rows.filter((_, i) => i !== idx))
+
+  // Currencies not yet opened as accounts — offered in the "add" dropdown.
+  const availableCurrencies = currencyCodes.filter(
+    (c) => !fundingRows.some((r) => r.currency === c),
+  )
+
+  // Funded accounts ready to submit: enabled (amount > 0) rows only.
+  const fundedAccounts = fundingRows
+    .map((r) => ({ ...r, parsed: parseFloat(r.amount) }))
+    .filter((r) => Number.isFinite(r.parsed) && r.parsed > 0)
 
   const submit = async (): Promise<void> => {
     setSubmitting(true)
     setError(null)
     try {
-      const amount = parseFloat(funding.amount)
+      const existingCode =
+        portfolio.mode === "existing"
+          ? (portfolios.find((p) => p.id === portfolio.existingId)?.code ?? "")
+          : ""
       const res = await openBrokerage({
         broker: {
           mode: broker.mode,
@@ -184,6 +219,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
             ? {
                 mode: "existing",
                 existingId: portfolio.existingId,
+                code: existingCode,
                 currency: portfolio.currency,
               }
             : {
@@ -193,14 +229,13 @@ export default function OpenBrokerageWizard(): React.ReactElement {
                 currency: portfolio.currency,
                 base: portfolio.currency,
               },
-        funding:
-          Number.isFinite(amount) && amount > 0
-            ? {
-                amount,
-                currency: portfolio.currency,
-                sourcePortfolioId: funding.sourcePortfolioId || undefined,
-              }
-            : undefined,
+        funding: fundedAccounts.length
+          ? fundedAccounts.map((r) => ({
+              currency: r.currency,
+              amount: r.parsed,
+              sourcePortfolioId: r.sourcePortfolioId || undefined,
+            }))
+          : undefined,
       })
       setResult(res)
       setStep("done")
@@ -224,7 +259,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
             : "No initial deposit posted."}
         </p>
         <a
-          href={`/holdings/${result?.portfolioId ?? ""}`}
+          href={`/holdings/${result?.portfolioCode ?? ""}`}
           className="btn-primary"
         >
           {"View the portfolio"}
@@ -417,7 +452,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
                   htmlFor="pf-ccy"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  {"Currency"}
+                  {"Default Currency"}
                 </label>
                 <select
                   id="pf-ccy"
@@ -442,51 +477,108 @@ export default function OpenBrokerageWizard(): React.ReactElement {
       {step === "funding" && (
         <div className="space-y-4">
           <p className="text-sm text-gray-600">
-            {`Optional — fund the new portfolio in ${portfolio.currency}. Pick a source portfolio (must be in ${portfolio.currency}) to record a matching withdrawal, or leave blank for a standalone deposit.`}
+            {
+              "Optional — flag the currency accounts to open and how much to deposit in each. Pick a same-currency source portfolio to record a matching withdrawal, or leave blank for a standalone deposit."
+            }
           </p>
-          <div>
-            <label
-              htmlFor="fund-amount"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              {"Amount"}
-            </label>
-            <input
-              id="fund-amount"
-              type="number"
-              inputMode="decimal"
-              min="0"
-              value={funding.amount}
-              onChange={(e) =>
-                setFunding({ ...funding, amount: e.target.value })
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              placeholder="0"
-            />
+
+          <div className="space-y-3">
+            {fundingRows.map((row, idx) => {
+              const sources = sourcesFor(row.currency)
+              return (
+                <div
+                  key={row.currency}
+                  className="rounded-lg border border-gray-200 p-3 space-y-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-gray-900">
+                      {`${row.currency} account`}
+                    </span>
+                    {fundingRows.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeRow(idx)}
+                        className="text-xs text-gray-400 hover:text-red-600"
+                      >
+                        {"Remove"}
+                      </button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label
+                        htmlFor={`fund-amount-${row.currency}`}
+                        className="block text-xs font-medium text-gray-600 mb-1"
+                      >
+                        {`Deposit (${row.currency})`}
+                      </label>
+                      <input
+                        id={`fund-amount-${row.currency}`}
+                        type="number"
+                        inputMode="decimal"
+                        min="0"
+                        value={row.amount}
+                        onChange={(e) =>
+                          updateRow(idx, { amount: e.target.value })
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                        placeholder="0"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor={`fund-source-${row.currency}`}
+                        className="block text-xs font-medium text-gray-600 mb-1"
+                      >
+                        {"Source portfolio (optional)"}
+                      </label>
+                      <select
+                        id={`fund-source-${row.currency}`}
+                        value={row.sourcePortfolioId}
+                        onChange={(e) =>
+                          updateRow(idx, { sourcePortfolioId: e.target.value })
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      >
+                        <option value="">— None (deposit only) —</option>
+                        {sources.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name} ({p.code})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
           </div>
-          <div>
-            <label
-              htmlFor="fund-source"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              {"Source portfolio (optional)"}
-            </label>
-            <select
-              id="fund-source"
-              value={funding.sourcePortfolioId}
-              onChange={(e) =>
-                setFunding({ ...funding, sourcePortfolioId: e.target.value })
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            >
-              <option value="">— None (deposit only) —</option>
-              {sameCurrencySources.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({p.code})
-                </option>
-              ))}
-            </select>
-          </div>
+
+          {availableCurrencies.length > 0 && (
+            <div>
+              <label
+                htmlFor="fund-add-ccy"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                {"Add another currency account"}
+              </label>
+              <select
+                id="fund-add-ccy"
+                value=""
+                onChange={(e) => {
+                  if (e.target.value) addCurrencyRow(e.target.value)
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              >
+                <option value="">— Add currency —</option>
+                {availableCurrencies.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       )}
 
@@ -509,13 +601,21 @@ export default function OpenBrokerageWizard(): React.ReactElement {
               </dd>
               <dt className="text-gray-500">Funding</dt>
               <dd className="col-span-2 text-gray-900">
-                {funding.amount && parseFloat(funding.amount) > 0
-                  ? `${parseFloat(funding.amount).toLocaleString()} ${portfolio.currency} ${
-                      funding.sourcePortfolioId
-                        ? `from ${portfolios.find((p) => p.id === funding.sourcePortfolioId)?.name}`
-                        : "(standalone deposit)"
-                    }`
-                  : "None"}
+                {fundedAccounts.length ? (
+                  <ul className="space-y-1">
+                    {fundedAccounts.map((r) => (
+                      <li key={r.currency}>
+                        {`${r.parsed.toLocaleString()} ${r.currency} ${
+                          r.sourcePortfolioId
+                            ? `from ${portfolios.find((p) => p.id === r.sourcePortfolioId)?.name}`
+                            : "(standalone deposit)"
+                        }`}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  "None"
+                )}
               </dd>
             </dl>
           </div>
@@ -536,7 +636,13 @@ export default function OpenBrokerageWizard(): React.ReactElement {
             <button
               type="button"
               onClick={() => {
-                setFunding({ amount: "", sourcePortfolioId: "" })
+                setFundingRows((rows) =>
+                  rows.map((r) => ({
+                    ...r,
+                    amount: "",
+                    sourcePortfolioId: "",
+                  })),
+                )
                 advance()
               }}
               className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900"
@@ -546,7 +652,6 @@ export default function OpenBrokerageWizard(): React.ReactElement {
             <button
               type="button"
               onClick={advance}
-              disabled={!funding.amount || parseFloat(funding.amount) <= 0}
               className="btn-primary btn-primary--sm disabled:opacity-50"
             >
               {"Next →"}

@@ -117,7 +117,7 @@ describe("<OpenBrokerageWizard />", () => {
     // Step 2 — portfolio: no inputs in new mode; code + name derive from the
     // broker name entered in step 1.
     await screen.findByRole("heading", { name: /Portfolio/i })
-    expect(screen.getByText(/code BRANDNEWBROKER/i)).toBeInTheDocument()
+    expect(screen.getByText(/code BNB/i)).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
     // Step 3 — funding: skip
@@ -127,7 +127,7 @@ describe("<OpenBrokerageWizard />", () => {
     // Step 4 — review
     await screen.findByRole("heading", { name: /Review/i })
     expect(screen.getByText(/Brand New Broker \(new\)/)).toBeInTheDocument()
-    expect(screen.getByText(/BRANDNEWBROKER/)).toBeInTheDocument()
+    expect(screen.getByText(/BNB/)).toBeInTheDocument()
     await user.click(
       screen.getByRole("button", { name: /Create|Confirm|Open Brokerage/i }),
     )
@@ -162,7 +162,7 @@ describe("<OpenBrokerageWizard />", () => {
 
     // Step 3 — funding: enter amount + source
     await screen.findByRole("heading", { name: /Funding|Deposit/i })
-    await user.type(screen.getByLabelText(/Amount/i), "5000")
+    await user.type(screen.getByLabelText(/Deposit/i), "5000")
     await user.selectOptions(
       screen.getByLabelText(/Source portfolio/i),
       "src-pf",
@@ -265,7 +265,7 @@ describe("<OpenBrokerageWizard />", () => {
 
     // Step 3 — funding: standalone deposit (no source)
     await screen.findByRole("heading", { name: /Funding|Deposit/i })
-    await user.type(screen.getByLabelText(/Amount/i), "1000")
+    await user.type(screen.getByLabelText(/Deposit/i), "1000")
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
     // Step 4 — review + submit
@@ -299,6 +299,74 @@ describe("<OpenBrokerageWizard />", () => {
     expect(brokerCashAsset).toBeDefined()
   })
 
+  test("opens and funds multiple currency accounts in one pass", async () => {
+    const user = userEvent.setup()
+    render(<OpenBrokerageWizard />)
+
+    // Step 1 — broker
+    await screen.findByRole("heading", { name: /Broker/i })
+    await user.type(screen.getByLabelText(/Broker name/i), "IBKR")
+    await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
+
+    // Step 2 — portfolio (new mode, default currency USD)
+    await screen.findByRole("heading", { name: /Portfolio/i })
+    await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
+
+    // Step 3 — funding: fund the default USD account, then add + fund SGD
+    await screen.findByRole("heading", { name: /Funding|Deposit/i })
+    await user.type(screen.getByLabelText(/Deposit \(USD\)/i), "5000")
+    await user.selectOptions(
+      screen.getByLabelText(/Add another currency account/i),
+      "SGD",
+    )
+    await user.type(screen.getByLabelText(/Deposit \(SGD\)/i), "3000")
+    await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
+
+    // Step 4 — review + submit
+    await screen.findByRole("heading", { name: /Review/i })
+    await user.click(
+      screen.getByRole("button", { name: /Create|Confirm|Open Brokerage/i }),
+    )
+    await screen.findByRole("heading", { name: /Done|Complete|Success/i })
+
+    // Two DEPOSITs expected — one per currency
+    const trnPosts = fetchMock.mock.calls.filter((c) => {
+      const url = c[0] as string
+      const method = (c[1] as RequestInit | undefined)?.method ?? "GET"
+      return method === "POST" && url.includes("/api/trns")
+    })
+    const depositCurrencies = trnPosts
+      .map((c) => JSON.parse((c[1] as RequestInit).body as string))
+      .flatMap((b) => b.data)
+      .filter((d: { trnType: string }) => d.trnType === "DEPOSIT")
+      .map((d: { cashCurrency: string }) => d.cashCurrency)
+    expect(depositCurrencies).toContain("USD")
+    expect(depositCurrencies).toContain("SGD")
+  })
+
+  test("links to the new portfolio by code, not id", async () => {
+    const user = userEvent.setup()
+    render(<OpenBrokerageWizard />)
+
+    await screen.findByRole("heading", { name: /Broker/i })
+    await user.type(screen.getByLabelText(/Broker name/i), "IBKR")
+    await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
+    await screen.findByRole("heading", { name: /Portfolio/i })
+    await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
+    await screen.findByRole("heading", { name: /Funding|Deposit/i })
+    await user.click(screen.getByRole("button", { name: /Skip|No deposit/i }))
+    await screen.findByRole("heading", { name: /Review/i })
+    await user.click(
+      screen.getByRole("button", { name: /Create|Confirm|Open Brokerage/i }),
+    )
+    await screen.findByRole("heading", { name: /Done|Complete|Success/i })
+
+    // Single-word broker → code "IBKR"; the link must use the code, never the
+    // backend id "pf-new".
+    const link = screen.getByRole("link", { name: /View the portfolio/i })
+    expect(link).toHaveAttribute("href", "/holdings/IBKR")
+  })
+
   test("derives the portfolio code from the broker; blocks Next only when attaching without a pick", async () => {
     const user = userEvent.setup()
     render(<OpenBrokerageWizard />)
@@ -311,7 +379,7 @@ describe("<OpenBrokerageWizard />", () => {
 
     await screen.findByRole("heading", { name: /Portfolio/i })
     // New mode: code derives from the broker name → Next enabled.
-    expect(screen.getByText(/code TESTBROKER/i)).toBeInTheDocument()
+    expect(screen.getByText(/code TB/i)).toBeInTheDocument()
     expect(
       screen.getByRole("button", { name: /Next|Continue/i }),
     ).not.toBeDisabled()

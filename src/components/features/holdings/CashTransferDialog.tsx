@@ -151,6 +151,10 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
       setSubmitError(
         err instanceof Error ? err.message : "Failed to resolve target asset",
       )
+      // Reset the submitting flag — this early return skips the finally below,
+      // and leaving it true would keep the Transfer button disabled for the
+      // rest of the dialog session.
+      setIsSubmitting(false)
       return
     }
 
@@ -294,7 +298,7 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
     parsedReceivedAmount <= parsedSentAmount
 
   // Validation for step 2
-  const isTargetValid = targetPortfolioId && targetAssetId
+  const isTargetValid = Boolean(targetPortfolioId && targetAssetId)
 
   const selectedPortfolio = portfolios.find((p) => p.id === targetPortfolioId)
   const selectedAsset =
@@ -451,6 +455,11 @@ const CashTransferDialog: React.FC<CashTransferDialogProps> = ({
               onChange={(e) => setTargetPortfolioId(e.target.value)}
               className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border focus:ring-purple-500 focus:border-purple-500"
             >
+              {/* Placeholder so an empty targetPortfolioId is VISIBLE. Without
+                  it the browser shows the first portfolio while state stays
+                  "", and re-picking that already-shown portfolio fires no
+                  onChange — leaving the Transfer button silently disabled. */}
+              <option value="">{"Select target portfolio..."}</option>
               {portfolios.map((portfolio) => (
                 <option key={portfolio.id} value={portfolio.id}>
                   {portfolio.code} - {portfolio.name}
