@@ -277,8 +277,15 @@ export const getCashRow = (data: TradeFormData): string => {
     // Otherwise (selling from generic cash balance), leave CashAccount empty
     const sellAssetCode = data.market === "PRIVATE" ? data.asset || "" : ""
 
+    // The Market column describes the BUY asset (the Code column), so it must
+    // come from the buy side, not tradeImport.market (the sell side). Using the
+    // sell market resolved a phantom <sellMarket>/<buyCode> asset (e.g.
+    // PRIVATE/USD) when buying into a different-market account, so the buy-side
+    // balance never appeared. Fall back to the sell market only if absent.
+    const buyMarket = data.cashCurrency?.market || tradeImport.market
+
     const comment = `Buy ${buyCurrency}/Sell ${sellCurrency}`
-    return `${tradeImport.batchId},,FX_BUY,${tradeImport.market},${buyAssetCode},,${sellAssetCode},${sellCurrency},${tradeImport.tradeDate},${buyAmount},,${buyCurrency},1,${tradeImport.fees},,,-${sellAmount},${comment},${tradeImport.status},${tradeImport.brokerId}`
+    return `${tradeImport.batchId},,FX_BUY,${buyMarket},${buyAssetCode},,${sellAssetCode},${sellCurrency},${tradeImport.tradeDate},${buyAmount},,${buyCurrency},1,${tradeImport.fees},,,-${sellAmount},${comment},${tradeImport.status},${tradeImport.brokerId}`
   }
 
   return `${tradeImport.batchId},,${tradeImport.type},${tradeImport.market},${tradeImport.asset},,${tradeImport.cashAccount},${tradeImport.cashCurrency},${tradeImport.tradeDate},${tradeImport.cashAmount},,${tradeImport.tradeCurrency},${tradeImport.price},${tradeImport.fees},,,${tradeImport.cashAmount},${tradeImport.comments},${tradeImport.status},${tradeImport.brokerId}`
