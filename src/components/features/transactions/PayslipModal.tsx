@@ -3,7 +3,7 @@ import useSWR, { mutate as globalMutate } from "swr"
 import Dialog from "@components/ui/Dialog"
 import MathInput from "@components/ui/MathInput"
 import { Asset, Portfolio } from "types/beancounter"
-import { PlansResponse } from "types/independence"
+import { PlansResponse, WorkScenariosResponse } from "types/independence"
 import {
   accountsKey,
   cashKey,
@@ -95,15 +95,26 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
     modalOpen ? accountsKey : null,
     simpleFetcher(accountsKey),
   )
-  // Primary independence plan (backend sorts primary first). Its monthly
-  // working income seeds the Gross salary field — a payslip is one month's pay.
+  // Seed the Gross salary from the user's work plan — a payslip is one
+  // month's pay. The authoritative monthly working income lives on the
+  // ACTIVE work scenario, not the RetirementPlan (whose workingIncomeMonthly
+  // is 0 when income is held in the scenario). Prefer the current scenario,
+  // fall back to the primary plan's field.
+  const scenariosKey = "/api/independence/work-scenarios"
+  const { data: scenariosData } = useSWR<WorkScenariosResponse>(
+    modalOpen ? scenariosKey : null,
+    simpleFetcher(scenariosKey),
+  )
   const plansKey = "/api/independence/plans"
   const { data: plansData } = useSWR<PlansResponse>(
     modalOpen ? plansKey : null,
     simpleFetcher(plansKey),
   )
+  const scenarioIncome = scenariosData?.data?.find((s) => s.isCurrent)
+    ?.workingIncomeMonthly
   const planIncome = plansData?.data?.[0]?.workingIncomeMonthly
-  const defaultGross = planIncome && planIncome > 0 ? String(planIncome) : ""
+  const income = scenarioIncome ?? planIncome
+  const defaultGross = income && income > 0 ? String(income) : ""
 
   const portfolios: Portfolio[] = useMemo(
     () => portfoliosData?.data ?? [],
