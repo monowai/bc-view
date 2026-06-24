@@ -37,7 +37,7 @@ export default function SummaryStep({
         }
       </p>
 
-      <div className="space-y-4 mb-8">
+      <div className="space-y-4 mb-8 max-h-64 overflow-y-auto pr-1">
         <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
           <div className="flex items-center">
             <i className="fas fa-folder text-blue-500 mr-3"></i>
