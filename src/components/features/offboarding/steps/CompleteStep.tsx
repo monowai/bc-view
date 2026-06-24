@@ -1,6 +1,7 @@
 import React from "react"
 import { OffboardingResult } from "types/beancounter"
 import Link from "next/link"
+import { forceLogout } from "@utils/offboarding"
 
 interface CompleteStepProps {
   results: OffboardingResult[]
@@ -12,6 +13,16 @@ export default function CompleteStep({
   accountDeleted,
 }: CompleteStepProps): React.ReactElement {
   const hasFailures = results.some((r) => !r.success)
+
+  // Force logout once the account is closed. The session is dead server-side
+  // (the user is deactivated), so don't leave them sitting in a stale app —
+  // redirect to the Auth0 logout flow after a short beat so they see the
+  // confirmation. Full-page navigation is required for Auth0 logout.
+  React.useEffect(() => {
+    if (!accountDeleted) return undefined
+    const timer = setTimeout(forceLogout, 3000)
+    return () => clearTimeout(timer)
+  }, [accountDeleted])
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
@@ -71,7 +82,7 @@ export default function CompleteStep({
         <div className="text-center">
           <p className="text-gray-600 mb-4">
             {
-              "Your account has been deleted. Please log out to complete the process."
+              "Your account has been closed and your data removed. Logging you out… Sign in again any time to reactivate it."
             }
           </p>
           {/* Using <a> intentionally - /auth/logout requires full page navigation for Auth0 logout flow */}
@@ -80,7 +91,7 @@ export default function CompleteStep({
             className="inline-flex items-center px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
           >
             <i className="fas fa-sign-out-alt mr-2"></i>
-            {"Log Out"}
+            {"Log Out Now"}
           </a>
         </div>
       ) : (

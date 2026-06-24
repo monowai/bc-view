@@ -231,8 +231,8 @@ describe("OffboardingWizard", () => {
     )
 
     expect(
-      screen.getByText(/your account has been deleted/i),
+      screen.getByText(/your account has been closed/i),
     ).toBeInTheDocument()
-    expect(screen.getByText("Log Out")).toBeInTheDocument()
+    expect(screen.getByText("Log Out Now")).toBeInTheDocument()
   })
 })
