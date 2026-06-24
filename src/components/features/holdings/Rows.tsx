@@ -57,7 +57,7 @@ interface RowsProps extends HoldingValues {
   onSetBalance?: (data: SetBalanceData) => void
   onSectorWeightings?: (data: SectorWeightingsData) => void
   onCashTransfer?: (data: CashTransferData) => void
-  onCashTransaction?: (assetCode: string) => void
+  onCashTransaction?: (assetCode: string, initialType?: string) => void
   onCostAdjust?: (data: CostAdjustData) => void
   onMovePosition?: (data: MovePositionData) => void
   onRecordIncome?: (data: QuickSellData) => void

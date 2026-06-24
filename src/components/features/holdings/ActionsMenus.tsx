@@ -365,7 +365,12 @@ export interface CashActionsMenuProps {
   tradeCurrency?: { code: string; symbol: string; name: string }
   onSetCashBalance?: (data: SetCashBalanceData) => void
   onCashTransfer?: (data: CashTransferData) => void
-  onCashTransaction?: (assetCode: string) => void
+  /**
+   * Open the cash transaction dialog for this asset. `initialType` pre-selects
+   * the transaction type — "Exchange Cash" passes "FX" so the dialog opens
+   * ready to sell from this holding.
+   */
+  onCashTransaction?: (assetCode: string, initialType?: string) => void
   onRecordIncome?: (data: QuickSellData) => void
   onRecordExpense?: (data: QuickSellData) => void
   onEditAsset?: (asset: Asset) => void
@@ -456,6 +461,13 @@ export const CashActionsMenu: React.FC<CashActionsMenuProps> = ({
                       currentBalance: marketValue,
                     })
                   })}
+                />
+              )}
+              {onCashTransaction && (
+                <MenuItem
+                  iconClass="fas fa-right-left text-blue-500 w-4"
+                  label="Exchange Cash"
+                  onClick={handle(() => onCashTransaction(assetCode, "FX"))}
                 />
               )}
               {onCashTransaction && (
