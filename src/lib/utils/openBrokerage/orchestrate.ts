@@ -40,9 +40,12 @@ interface PortfolioStep {
   existingId?: string
 }
 
-// One currency account to open in the brokerage, with its opening deposit.
-// The wizard collects a list of these so a brokerage can be funded across
+// One currency account to open in the brokerage, with an optional opening
+// deposit. The wizard collects a list of these so a brokerage can span
 // several currencies in a single pass (e.g. an IB account holding USD + SGD).
+// The cash account (asset) is ALWAYS created, even when `amount` is 0 — the
+// brokerage opens with the currency buckets the user selected. An opening
+// DEPOSIT (and optional matching WITHDRAWAL) is posted only when amount > 0.
 interface FundingAccount {
   currency: string
   amount: number
@@ -66,6 +69,10 @@ export interface OpenBrokerageResult {
   portfolioId: string
   // Portfolio CODE (not id) — callers navigate to /holdings/{code}.
   portfolioCode: string
+  // Cash-asset ids opened — one per selected currency account, including any
+  // opened with a zero balance.
+  accountIds: string[]
+  // Trn ids for opening deposits — only currencies funded with amount > 0.
   trnIds: string[]
 }
 
@@ -249,17 +256,21 @@ export async function openBrokerage(
   // Each funded currency account is opened independently so a single pass can
   // span several currencies (e.g. an IB account holding USD + SGD). Sequential
   // — see the function doc on idempotency.
+  const accountIds: string[] = []
   const trnIds: string[] = []
   for (const account of req.funding ?? []) {
-    if (account.amount <= 0) continue
-    // Attach-to-existing-portfolio path uses a per-broker PRIVATE cash asset
-    // so the brokerage cash is visible as a distinct line in the existing
-    // portfolio's holdings; the new-portfolio path uses the generic
-    // per-currency CASH asset (the portfolio itself segregates).
+    // Open the account regardless of balance. Attach-to-existing-portfolio
+    // path uses a per-broker PRIVATE cash asset so the brokerage cash is
+    // visible as a distinct line in the existing portfolio's holdings; the
+    // new-portfolio path uses the generic per-currency CASH asset (the
+    // portfolio itself segregates).
     const depositAssetId =
       req.portfolio.mode === "existing"
         ? await ensureBrokerCashAsset(brokerCode, broker.name, account.currency)
         : await ensureCashAsset(account.currency)
+    accountIds.push(depositAssetId)
+    // Zero-balance account: created above, but no cash to move.
+    if (account.amount <= 0) continue
     // Order matters: DEPOSIT first into the freshly-created portfolio
     // (always succeeds — no balance/code constraints), then WITHDRAWAL
     // from the source. If WITHDRAWAL fails afterwards the worst-case
@@ -298,5 +309,5 @@ export async function openBrokerage(
     }
   }
 
-  return { broker, portfolioId, portfolioCode, trnIds }
+  return { broker, portfolioId, portfolioCode, accountIds, trnIds }
 }

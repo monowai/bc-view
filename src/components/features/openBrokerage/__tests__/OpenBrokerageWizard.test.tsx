@@ -147,7 +147,7 @@ describe("<OpenBrokerageWizard />", () => {
     expect(posts.some((c) => c.url.includes("/api/trns"))).toBe(false)
   })
 
-  test("posts DEPOSIT + WITHDRAWAL pair when user funds from a source portfolio", async () => {
+  test("posts a single DEPOSIT (no source/WITHDRAWAL leg) when an opening amount is entered", async () => {
     const user = userEvent.setup()
     render(<OpenBrokerageWizard />)
 
@@ -160,13 +160,11 @@ describe("<OpenBrokerageWizard />", () => {
     await screen.findByRole("heading", { name: /Portfolio/i })
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
-    // Step 3 — funding: enter amount + source
+    // Step 3 — funding: enter an opening amount. No source portfolio — the
+    // funding step no longer offers one.
     await screen.findByRole("heading", { name: /Funding|Deposit/i })
-    await user.type(screen.getByLabelText(/Deposit/i), "5000")
-    await user.selectOptions(
-      screen.getByLabelText(/Source portfolio/i),
-      "src-pf",
-    )
+    await user.type(screen.getByLabelText(/deposit/i), "5000")
+    expect(screen.queryByLabelText(/Source portfolio/i)).not.toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
     // Step 4 — review
@@ -177,23 +175,59 @@ describe("<OpenBrokerageWizard />", () => {
 
     await screen.findByRole("heading", { name: /Done|Complete|Success/i })
 
-    // Two trn POSTs expected (WITHDRAWAL + DEPOSIT)
+    // Exactly one trn POST — a DEPOSIT, no WITHDRAWAL.
     const trnPosts = fetchMock.mock.calls.filter((c) => {
       const url = c[0] as string
       const method = (c[1] as RequestInit | undefined)?.method ?? "GET"
       return method === "POST" && url.includes("/api/trns")
     })
-    expect(trnPosts.length).toBeGreaterThanOrEqual(2)
-
-    // Inspect trn bodies for the type pair
-    const bodies = trnPosts.map((c) =>
-      JSON.parse((c[1] as RequestInit).body as string),
-    )
-    const types = bodies.flatMap((b) =>
-      b.data.map((d: { trnType: string }) => d.trnType),
-    )
+    const types = trnPosts
+      .map((c) => JSON.parse((c[1] as RequestInit).body as string))
+      .flatMap((b) => b.data.map((d: { trnType: string }) => d.trnType))
     expect(types).toContain("DEPOSIT")
-    expect(types).toContain("WITHDRAWAL")
+    expect(types).not.toContain("WITHDRAWAL")
+  })
+
+  test("opens a zero-balance account (asset created, no DEPOSIT) when no amount is entered", async () => {
+    const user = userEvent.setup()
+    render(<OpenBrokerageWizard />)
+
+    // Step 1 — broker
+    await screen.findByRole("heading", { name: /Broker/i })
+    await user.type(screen.getByLabelText(/Broker name/i), "IBKR")
+    await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
+
+    // Step 2 — portfolio (new mode, default currency USD)
+    await screen.findByRole("heading", { name: /Portfolio/i })
+    await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
+
+    // Step 3 — funding: leave the seeded USD account at zero, advance with Next
+    // (not Skip) so the account still opens.
+    await screen.findByRole("heading", { name: /Funding|Deposit/i })
+    await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
+
+    // Step 4 — review + submit
+    await screen.findByRole("heading", { name: /Review/i })
+    await user.click(
+      screen.getByRole("button", { name: /Create|Confirm|Open Brokerage/i }),
+    )
+    await screen.findByRole("heading", { name: /Done|Complete|Success/i })
+
+    // The cash account asset is created even with a zero opening balance...
+    const assetPosts = fetchMock.mock.calls.filter((c) => {
+      const url = c[0] as string
+      const method = (c[1] as RequestInit | undefined)?.method ?? "GET"
+      return method === "POST" && url.includes("/api/assets")
+    })
+    expect(assetPosts.length).toBeGreaterThan(0)
+
+    // ...but no DEPOSIT transaction is posted (nothing to fund).
+    const trnPosts = fetchMock.mock.calls.filter((c) => {
+      const url = c[0] as string
+      const method = (c[1] as RequestInit | undefined)?.method ?? "GET"
+      return method === "POST" && url.includes("/api/trns")
+    })
+    expect(trnPosts).toHaveLength(0)
   })
 
   test("reuses an existing broker by name instead of POSTing a duplicate", async () => {
