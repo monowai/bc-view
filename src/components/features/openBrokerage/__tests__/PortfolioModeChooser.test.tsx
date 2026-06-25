@@ -42,11 +42,7 @@ describe("PortfolioModeChooser", () => {
 
   it("disables the existing option when there is nothing to attach to", () => {
     render(
-      <PortfolioModeChooser
-        mode="new"
-        onSelect={jest.fn()}
-        existingDisabled
-      />,
+      <PortfolioModeChooser mode="new" onSelect={jest.fn()} existingDisabled />,
     )
     expect(
       screen.getByRole("radio", { name: /Attach to an existing portfolio/i }),

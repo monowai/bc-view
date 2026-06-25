@@ -110,8 +110,9 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
     modalOpen ? plansKey : null,
     simpleFetcher(plansKey),
   )
-  const scenarioIncome = scenariosData?.data?.find((s) => s.isCurrent)
-    ?.workingIncomeMonthly
+  const scenarioIncome = scenariosData?.data?.find(
+    (s) => s.isCurrent,
+  )?.workingIncomeMonthly
   const planIncome = plansData?.data?.[0]?.workingIncomeMonthly
   const income = scenarioIncome ?? planIncome
   const defaultGross = income && income > 0 ? String(income) : ""
@@ -262,7 +263,10 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
   // Portfolio default order: explicit pick → CPF-holding portfolio → saved
   // pref. CPF wins over the generic saved default so contributions land right.
   const effectivePortfolioId =
-    portfolioId || cpfPortfolioId || preferences?.defaultPayslipPortfolioId || ""
+    portfolioId ||
+    cpfPortfolioId ||
+    preferences?.defaultPayslipPortfolioId ||
+    ""
 
   const selectedCashCurrency = useMemo(() => {
     const opt = [...cashOptions, ...accountOptions].find(
