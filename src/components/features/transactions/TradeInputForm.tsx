@@ -832,8 +832,11 @@ const TradeInputForm: React.FC<{
                     </div>
                   )}
 
-                  {/* Portfolio Selection */}
-                  {portfolios.length > 0 && (
+                  {/* Portfolio Selection — only when there's a choice to make.
+                      With a single portfolio it's already the selection
+                      (selectedPortfolioId defaults to it), so the dropdown is
+                      noise. */}
+                  {portfolios.length > 1 && (
                     <div>
                       <label className={labelClass}>{"Portfolio"}</label>
                       <select

@@ -120,6 +120,19 @@ export default function OpenBrokerageWizard(): React.ReactElement {
   const brokers = useMemo(() => brokersData?.data ?? [], [brokersData])
   const portfolios = useMemo(() => portfoliosData?.data ?? [], [portfoliosData])
 
+  // Auto-select when there's only one portfolio to pick — nothing to choose,
+  // so treat the lone portfolio as the selection. Derived during render (not
+  // stored via an effect) so it can't trigger cascading renders; an explicit
+  // pick still wins. In attach mode the brokerage currency follows the chosen
+  // portfolio, so a new-mode currency choice is never clobbered.
+  const soleExistingId = portfolios.length === 1 ? portfolios[0].id : ""
+  const existingId = portfolio.existingId || soleExistingId
+  const existingCurrency =
+    portfolios.find((p) => p.id === existingId)?.currency?.code ??
+    portfolio.currency
+  const effectiveCurrency =
+    portfolio.mode === "existing" ? existingCurrency : portfolio.currency
+
   // The new brokerage portfolio takes its identity from the broker: code is
   // the abbreviated broker code (Interactive Brokers → IB), the display name
   // appends "Portfolio". Mirrors the onboarding flow so the two surfaces match.
@@ -139,9 +152,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
       ? !!broker.existingId
       : broker.newName.trim().length > 0
   const portfolioValid =
-    portfolio.mode === "existing"
-      ? !!portfolio.existingId
-      : derivedCode.length > 0
+    portfolio.mode === "existing" ? !!existingId : derivedCode.length > 0
 
   const back = (): void => {
     const i = STEP_ORDER.indexOf(step as Exclude<Step, "done">)
@@ -160,7 +171,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
       // survive a Back/Next round-trip, even when every row is zero-balance).
       const onlyUntouchedDefault = rows.length === 1 && !rows[0].amount
       return rows.length === 0 || onlyUntouchedDefault
-        ? [{ currency: portfolio.currency, amount: 0 }]
+        ? [{ currency: effectiveCurrency, amount: 0 }]
         : rows
     })
   }
@@ -203,7 +214,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
     try {
       const existingCode =
         portfolio.mode === "existing"
-          ? (portfolios.find((p) => p.id === portfolio.existingId)?.code ?? "")
+          ? (portfolios.find((p) => p.id === existingId)?.code ?? "")
           : ""
       const res = await openBrokerage({
         broker: {
@@ -216,9 +227,9 @@ export default function OpenBrokerageWizard(): React.ReactElement {
           portfolio.mode === "existing"
             ? {
                 mode: "existing",
-                existingId: portfolio.existingId,
+                existingId,
                 code: existingCode,
-                currency: portfolio.currency,
+                currency: existingCurrency,
               }
             : {
                 mode: "new",
@@ -247,7 +258,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
           {"Done — brokerage opened"}
         </h1>
         <p className="text-gray-600 mb-6">
-          {`Portfolio ${portfolio.mode === "existing" ? (portfolios.find((p) => p.id === portfolio.existingId)?.code ?? "") : derivedCode} ready. `}
+          {`Portfolio ${portfolio.mode === "existing" ? (portfolios.find((p) => p.id === existingId)?.code ?? "") : derivedCode} ready. `}
           {result?.accountIds.length
             ? `${result.accountIds.length} currency account(s) opened. `
             : ""}
@@ -375,22 +386,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
         <div className="space-y-6">
           <PortfolioModeChooser
             mode={portfolio.mode}
-            onSelect={(mode) =>
-              setPortfolio((prev) => {
-                // Re-sync currency to the still-selected existing portfolio so
-                // a currency changed while in "new" mode can't leak into the
-                // existing-mode submit / source filter.
-                if (mode === "existing" && prev.existingId) {
-                  const pf = portfolios.find((p) => p.id === prev.existingId)
-                  return {
-                    ...prev,
-                    mode,
-                    currency: pf?.currency?.code ?? prev.currency,
-                  }
-                }
-                return { ...prev, mode }
-              })
-            }
+            onSelect={(mode) => setPortfolio((prev) => ({ ...prev, mode }))}
             existingDisabled={portfolios.length === 0}
           />
 
@@ -405,16 +401,10 @@ export default function OpenBrokerageWizard(): React.ReactElement {
                 </label>
                 <select
                   id="pf-existing"
-                  value={portfolio.existingId}
-                  onChange={(e) => {
-                    const id = e.target.value
-                    const pf = portfolios.find((p) => p.id === id)
-                    setPortfolio({
-                      ...portfolio,
-                      existingId: id,
-                      currency: pf?.currency?.code ?? portfolio.currency,
-                    })
-                  }}
+                  value={existingId}
+                  onChange={(e) =>
+                    setPortfolio({ ...portfolio, existingId: e.target.value })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 >
                   <option value="">— Select —</option>
@@ -425,7 +415,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
                   ))}
                 </select>
                 <p className="text-xs text-gray-500 mt-1">
-                  {`Deposits will land on a per-broker cash line (e.g. ${broker.newName || "BROKER"}-${portfolio.currency}) so the brokerage cash stays separate from any existing cash on this portfolio.`}
+                  {`Deposits will land on a per-broker cash line (e.g. ${broker.newName || "BROKER"}-${effectiveCurrency}) so the brokerage cash stays separate from any existing cash on this portfolio.`}
                 </p>
               </div>
             ) : (
@@ -561,7 +551,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
               <dt className="text-gray-500">Portfolio</dt>
               <dd className="col-span-2 text-gray-900">
                 {portfolio.mode === "existing"
-                  ? `${portfolios.find((p) => p.id === portfolio.existingId)?.name ?? "?"} (existing, ${portfolio.currency})`
+                  ? `${portfolios.find((p) => p.id === existingId)?.name ?? "?"} (existing, ${effectiveCurrency})`
                   : `${derivedCode} — ${derivedName} (new, ${portfolio.currency})`}
               </dd>
               <dt className="text-gray-500">Accounts</dt>
