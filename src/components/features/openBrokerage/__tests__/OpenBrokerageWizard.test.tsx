@@ -2,6 +2,7 @@ import React from "react"
 import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { enableFetchMocks } from "jest-fetch-mock"
+import { SWRConfig } from "swr"
 import OpenBrokerageWizard from "../OpenBrokerageWizard"
 import type { Broker, Portfolio } from "types/beancounter"
 
@@ -12,6 +13,8 @@ const existingBrokers: Broker[] = [
   { id: "broker-dbs", name: "DBS Vickers" },
 ]
 
+// Two portfolios so the "attach without a pick" path has a genuine unpicked
+// state. The single-portfolio auto-select case overrides this per-test.
 const existingPortfolios: Pick<
   Portfolio,
   "id" | "code" | "name" | "currency"
@@ -20,6 +23,12 @@ const existingPortfolios: Pick<
     id: "src-pf",
     code: "SAVINGS",
     name: "Savings",
+    currency: { code: "USD", name: "US Dollar", symbol: "$" },
+  },
+  {
+    id: "pf-2",
+    code: "GROWTH",
+    name: "Growth",
     currency: { code: "USD", name: "US Dollar", symbol: "$" },
   },
 ]
@@ -425,5 +434,59 @@ describe("<OpenBrokerageWizard />", () => {
     expect(
       screen.getByRole("button", { name: /Next|Continue/i }),
     ).toBeDisabled()
+  })
+
+  test("auto-selects the sole existing portfolio so no manual pick is needed", async () => {
+    // Override the portfolios endpoint to return exactly one.
+    fetchMock.resetMocks()
+    const onlyPf = [
+      {
+        id: "only-pf",
+        code: "ONLY",
+        name: "Only One",
+        currency: { code: "USD", name: "US Dollar", symbol: "$" },
+      },
+    ]
+    fetchMock.mockResponse((req) => {
+      if (req.url.includes("/api/portfolios") && req.method === "GET") {
+        return Promise.resolve(JSON.stringify({ data: onlyPf }))
+      }
+      return handleMock(req)
+    })
+
+    const user = userEvent.setup()
+    // Fresh SWR cache so the sole-portfolio response isn't shadowed by the
+    // two-portfolio data other tests primed into the shared global cache.
+    render(
+      <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
+        <OpenBrokerageWizard />
+      </SWRConfig>,
+    )
+
+    await screen.findByRole("heading", { name: /Broker/i })
+    await user.type(screen.getByLabelText(/Broker name/i), "IBKR")
+    await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
+
+    // Switch to attach-to-existing — the lone portfolio is already selected.
+    await screen.findByRole("heading", { name: /Portfolio/i })
+    await waitFor(() =>
+      expect(
+        screen.getByRole("radio", {
+          name: /Attach to an existing portfolio/i,
+        }),
+      ).not.toBeDisabled(),
+    )
+    await user.click(
+      screen.getByRole("radio", { name: /Attach to an existing portfolio/i }),
+    )
+
+    const select = (await screen.findByLabelText(
+      "Existing portfolio",
+    )) as HTMLSelectElement
+    await waitFor(() => expect(select.value).toBe("only-pf"))
+    // No pick required → Next is enabled straight away.
+    expect(
+      screen.getByRole("button", { name: /Next|Continue/i }),
+    ).not.toBeDisabled()
   })
 })

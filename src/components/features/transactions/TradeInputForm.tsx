@@ -555,6 +555,23 @@ const TradeInputForm: React.FC<{
     setValue,
   ])
 
+  // Auto-select the broker when there's only one — nothing to choose, and it
+  // lets the broker's settlement account resolve without a manual pick. Fires
+  // once (guarded by a ref) so that a later explicit "-- No broker --" choice
+  // sticks instead of being re-filled. Create-mode only — never an edited trn.
+  const brokerAutoSelectedRef = useRef(false)
+  useEffect(() => {
+    if (brokerAutoSelectedRef.current || isEditMode) return
+    if (
+      acceptsBroker(type?.value) &&
+      brokers.length === 1 &&
+      !watch("brokerId")
+    ) {
+      brokerAutoSelectedRef.current = true
+      setValue("brokerId", brokers[0].id)
+    }
+  }, [isEditMode, type?.value, brokers, setValue, watch])
+
   const cashAmountField = watch("cashAmount")
   const market = watch("market")
 
@@ -832,8 +849,11 @@ const TradeInputForm: React.FC<{
                     </div>
                   )}
 
-                  {/* Portfolio Selection */}
-                  {portfolios.length > 0 && (
+                  {/* Portfolio Selection — only when there's a choice to make.
+                      With a single portfolio it's already the selection
+                      (selectedPortfolioId defaults to it), so the dropdown is
+                      noise. */}
+                  {portfolios.length > 1 && (
                     <div>
                       <label className={labelClass}>{"Portfolio"}</label>
                       <select
