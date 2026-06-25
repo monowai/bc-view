@@ -39,9 +39,15 @@ export function useDefinedContribution(
     ? `/api/independence/projection/defined-contribution?salary=${salary}&age=${age}`
     : null
 
+  // keepPreviousData: the salary is in the URL, so every keystroke is a new SWR
+  // key. Without this, `data` blips to undefined between keys and any
+  // consumer gating UI on it (e.g. the payslip pension box) unmounts/remounts
+  // on every character — a visible flash. Hold the last result while the next
+  // loads; values just update in place.
   const { data, isLoading, error } = useSwr<DefinedContributionResponse>(
     url,
     url ? simpleFetcher(url) : null,
+    { keepPreviousData: true },
   )
 
   return { data, isLoading, error }
