@@ -9,7 +9,7 @@ jest.mock("swr", () => ({
   useSWRConfig: () => ({ mutate: jest.fn() }),
 }))
 
-const makeTrn = (): Transaction =>
+const makeTrn = (overrides: Partial<Transaction> = {}): Transaction =>
   ({
     id: "trn-1",
     trnType: "BALANCE",
@@ -33,6 +33,7 @@ const makeTrn = (): Transaction =>
     tax: 0,
     comments: "",
     subAccounts: { OA: 60000, SA: 20000, MA: 20000 },
+    ...overrides,
   }) as unknown as Transaction
 
 const mockFetch = (): void => {
@@ -94,4 +95,29 @@ describe("SubAccountTrnEditModal", () => {
     expect(body.quantity).toBe(110000)
     expect(body.trnType).toBe("BALANCE")
   })
+
+  it.each(["BALANCE", "ADD"] as const)(
+    "preserves the %s transaction type on save",
+    async (trnType) => {
+      render(
+        <SubAccountTrnEditModal trn={makeTrn({ trnType })} onClose={jest.fn()} />,
+      )
+      await screen.findByLabelText("Ordinary")
+      fireEvent.click(screen.getByRole("button", { name: "Save" }))
+
+      await waitFor(() => {
+        const patch = (global.fetch as jest.Mock).mock.calls.find(
+          (c) =>
+            String(c[0]).includes("/api/trns/trn-1") &&
+            c[1]?.method === "PATCH",
+        )
+        expect(patch).toBeDefined()
+      })
+      const patch = (global.fetch as jest.Mock).mock.calls.find(
+        (c) =>
+          String(c[0]).includes("/api/trns/trn-1") && c[1]?.method === "PATCH",
+      )!
+      expect(JSON.parse(patch[1].body).trnType).toBe(trnType)
+    },
+  )
 })

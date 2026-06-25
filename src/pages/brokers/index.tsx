@@ -477,6 +477,15 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
                   </button>
                   <div className="flex items-center space-x-2 ml-4">
                     <button
+                      onClick={() =>
+                        router.push(`/brokers/${broker.id}/holdings`)
+                      }
+                      className="text-gray-400 hover:text-green-600 p-2 transition-colors"
+                      title={"Reconcile Holdings"}
+                    >
+                      <i className="fas fa-balance-scale"></i>
+                    </button>
+                    <button
                       onClick={() => handleEdit(broker)}
                       className="text-gray-400 hover:text-blue-600 p-2 transition-colors"
                       title={"Edit"}

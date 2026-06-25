@@ -307,19 +307,36 @@ jobs:
           GITHUB_REF: ${{ github.ref }}
         run: |
           IMAGE="${{ env.CONTAINER_REGISTRY }}/${{ env.CONTAINER_ORG }}/${{ env.IMAGE_NAME }}"
+          AMD64="${IMAGE}:${{ github.run_number }}-linux-amd64"
+          ARM64="${IMAGE}:${{ github.run_number }}-linux-arm64"
 
-          # Create manifest for versioned tag
-          docker manifest create ${IMAGE}:${{ github.run_number }} \
-            ${IMAGE}:${{ github.run_number }}-linux-amd64 \
-            ${IMAGE}:${{ github.run_number }}-linux-arm64
-          docker manifest push ${IMAGE}:${{ github.run_number }}
+          # ghcr.io manifest reads are intermittently flaky; retry transient
+          # network failures so a registry blip doesn't red main.
+          retry() {
+            local n=0 max=5
+            until "$@"; do
+              n=$((n + 1))
+              if [ "$n" -ge "$max" ]; then
+                echo "::error::'$*' failed after ${max} attempts"
+                return 1
+              fi
+              echo "attempt ${n}/${max} failed; retrying in $((n * 5))s..."
+              sleep $((n * 5))
+            done
+          }
+
+          publish_tag() {
+            local tag="$1"
+            retry docker manifest create "${IMAGE}:${tag}" "${AMD64}" "${ARM64}"
+            retry docker manifest push "${IMAGE}:${tag}"
+          }
+
+          # Versioned tag
+          publish_tag "${{ github.run_number }}"
 
           # Only tag :latest from main so branch builds don't clobber the deployed tag
           if [ "$GITHUB_REF" = "refs/heads/main" ]; then
-            docker manifest create ${IMAGE}:latest \
-              ${IMAGE}:${{ github.run_number }}-linux-amd64 \
-              ${IMAGE}:${{ github.run_number }}-linux-arm64
-            docker manifest push ${IMAGE}:latest
+            publish_tag latest
           fi
 
       - name: Output image tags

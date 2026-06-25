@@ -196,6 +196,11 @@ function HoldingsPage(): React.ReactElement {
   const [cashTransactionAsset, setCashTransactionAsset] = useState<
     string | undefined
   >(undefined)
+  // Pre-selected transaction type for the cash dialog (e.g. "FX" for Exchange
+  // Cash); undefined opens with the default deposit type.
+  const [cashTransactionType, setCashTransactionType] = useState<
+    string | undefined
+  >(undefined)
   const [editAsset, setEditAsset] = useState<Asset | undefined>(undefined)
   const [adminEditAsset, setAdminEditAsset] = useState<Asset | undefined>(
     undefined,
@@ -430,16 +435,23 @@ function HoldingsPage(): React.ReactElement {
     mutate()
   }, [mutate])
 
-  // Handle cash transaction from cash row menu
-  const handleCashTransaction = useCallback((assetCode: string) => {
-    setCashTransactionAsset(assetCode)
-  }, [])
+  // Handle cash transaction from cash row menu. `initialType` pre-selects the
+  // dialog's transaction type — "Exchange Cash" passes "FX" so the dialog opens
+  // ready to sell from the chosen holding.
+  const handleCashTransaction = useCallback(
+    (assetCode: string, initialType?: string) => {
+      setCashTransactionAsset(assetCode)
+      setCashTransactionType(initialType)
+    },
+    [],
+  )
 
   // Close cash transaction modal and refresh
   const handleCashTransactionClose = useCallback(
     (open: boolean) => {
       if (!open) {
         setCashTransactionAsset(undefined)
+        setCashTransactionType(undefined)
         mutate()
       }
     },
@@ -875,6 +887,7 @@ function HoldingsPage(): React.ReactElement {
           modalOpen={true}
           setModalOpen={handleCashTransactionClose}
           initialAsset={cashTransactionAsset}
+          initialType={cashTransactionType}
         />
       )}
       {/* Rebalance Dialogs (managed at page level for feature isolation) */}

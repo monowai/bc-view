@@ -105,7 +105,9 @@ const CashInputForm: React.FC<{
   modalOpen: boolean
   setModalOpen: (open: boolean) => void
   initialAsset?: string
-}> = ({ portfolio, modalOpen, setModalOpen, initialAsset }) => {
+  /** Pre-select the transaction type (e.g. "FX" for Exchange Cash). */
+  initialType?: string
+}> = ({ portfolio, modalOpen, setModalOpen, initialAsset, initialType }) => {
   const {
     control,
     handleSubmit,
@@ -130,9 +132,12 @@ const CashInputForm: React.FC<{
       reset({
         ...defaultValues,
         asset: initialAsset || defaultValues.asset,
+        type: initialType
+          ? { value: initialType, label: initialType }
+          : defaultValues.type,
       })
     }
-  }, [modalOpen, reset, initialAsset])
+  }, [modalOpen, reset, initialAsset, initialType])
 
   // Focus type select when modal opens
   useEffect(() => {

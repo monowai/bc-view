@@ -93,6 +93,13 @@ export default function OffboardingWizard(): React.ReactElement {
         if (response.ok) {
           const result = await response.json()
           newResults.push(result)
+        } else {
+          newResults.push({
+            success: false,
+            deletedCount: 0,
+            type: "wealth",
+            message: `Delete failed (${response.status})`,
+          })
         }
       }
 
@@ -103,6 +110,13 @@ export default function OffboardingWizard(): React.ReactElement {
         if (response.ok) {
           const result = await response.json()
           newResults.push(result)
+        } else {
+          newResults.push({
+            success: false,
+            deletedCount: 0,
+            type: "plans",
+            message: `Delete failed (${response.status})`,
+          })
         }
       }
 
@@ -113,29 +127,56 @@ export default function OffboardingWizard(): React.ReactElement {
         if (response.ok) {
           const result = await response.json()
           newResults.push(result)
+        } else {
+          newResults.push({
+            success: false,
+            deletedCount: 0,
+            type: "models",
+            message: `Delete failed (${response.status})`,
+          })
         }
       }
 
       if (deleteAccount) {
-        // Delete from all services when deleting account
-        const [wealthRes, plansRes, modelsRes, accountRes] = await Promise.all([
-          fetch("/api/offboard/wealth", { method: "DELETE" }),
+        // Bug A fix: /api/offboard/account already deletes portfolios + assets +
+        // brokers + tax rates + the user (it is the superset). Do NOT call
+        // /api/offboard/wealth here — that would race against account on the
+        // same rows and cause an optimistic-lock collision.
+        const [plansRes, modelsRes, accountRes] = await Promise.all([
           fetch("/api/offboard/plans", { method: "DELETE" }).catch(() => null),
           fetch("/api/offboard/models", { method: "DELETE" }).catch(() => null),
           fetch("/api/offboard/account", { method: "DELETE" }),
         ])
 
-        if (wealthRes.ok) {
-          newResults.push(await wealthRes.json())
-        }
         if (plansRes?.ok) {
           newResults.push(await plansRes.json())
+        } else if (plansRes != null) {
+          newResults.push({
+            success: false,
+            deletedCount: 0,
+            type: "plans",
+            message: `Delete failed (${plansRes.status})`,
+          })
         }
         if (modelsRes?.ok) {
           newResults.push(await modelsRes.json())
+        } else if (modelsRes != null) {
+          newResults.push({
+            success: false,
+            deletedCount: 0,
+            type: "models",
+            message: `Delete failed (${modelsRes.status})`,
+          })
         }
         if (accountRes.ok) {
           newResults.push(await accountRes.json())
+        } else {
+          newResults.push({
+            success: false,
+            deletedCount: 0,
+            type: "account",
+            message: `Delete failed (${accountRes.status})`,
+          })
         }
       }
 
@@ -143,6 +184,14 @@ export default function OffboardingWizard(): React.ReactElement {
       setCurrentStep(5) // Move to complete step
     } catch (error) {
       console.error("Deletion failed:", error)
+      newResults.push({
+        success: false,
+        deletedCount: 0,
+        type: "unknown",
+        message: "An unexpected error occurred",
+      })
+      setResults(newResults)
+      setCurrentStep(5)
     } finally {
       setIsDeleting(false)
     }
@@ -196,8 +245,16 @@ export default function OffboardingWizard(): React.ReactElement {
             hasSelections={hasSelections}
           />
         )
-      case 5:
-        return <CompleteStep results={results} accountDeleted={deleteAccount} />
+      case 5: {
+        // Bug B fix: accountDeleted must be true only when the account DELETE
+        // actually succeeded, not merely when the user requested it.
+        const accountSucceeded = results.some(
+          (r) => r.type === "account" && r.success,
+        )
+        return (
+          <CompleteStep results={results} accountDeleted={accountSucceeded} />
+        )
+      }
       default:
         return <div>Unknown step</div>
     }
