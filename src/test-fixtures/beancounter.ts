@@ -19,6 +19,7 @@ import {
   PortfolioBreakdown,
   Position,
   QuantityValues,
+  SubAccountRequest,
 } from "types/beancounter"
 import { ValueIn } from "@components/features/holdings/GroupByOptions"
 
@@ -97,6 +98,18 @@ export function makeMoneyValues(overrides: Partial<Money> = {}): Money {
     },
     ...rest,
   } as Money
+}
+
+export function makeSubAccount(
+  overrides: Partial<SubAccountRequest> = {},
+): SubAccountRequest {
+  return {
+    code: "OA",
+    displayName: "Ordinary Account",
+    balance: 0,
+    liquid: true,
+    ...overrides,
+  }
 }
 
 export function makeQuantityValues(

@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useMemo } from "react"
 import { PolicyType, SubAccountRequest } from "types/beancounter"
 import TouchDatePicker from "@components/ui/TouchDatePicker"
+import MathInput from "@components/ui/MathInput"
 
 /**
  * CPF default sub-accounts with Board-published interest rates (as of 2024).
@@ -300,9 +301,6 @@ export default function CompositeAssetEditor({
                   <th className="text-right px-3 py-2 font-medium text-gray-600">
                     Fee %
                   </th>
-                  <th className="text-center px-3 py-2 font-medium text-gray-600">
-                    Liquid
-                  </th>
                   <th className="px-3 py-2"></th>
                 </tr>
               </thead>
@@ -322,16 +320,12 @@ export default function CompositeAssetEditor({
                       </div>
                     </td>
                     <td className="px-3 py-2">
-                      <input
-                        type="number"
+                      <MathInput
+                        aria-label={`${account.code} balance`}
                         step="100"
                         value={account.balance || ""}
-                        onChange={(e) =>
-                          handleSubAccountChange(
-                            index,
-                            "balance",
-                            parseFloat(e.target.value) || 0,
-                          )
+                        onChange={(val) =>
+                          handleSubAccountChange(index, "balance", val)
                         }
                         placeholder="0"
                         className="w-full min-w-[6rem] text-right border-gray-300 rounded px-2 py-1.5 border focus:ring-indigo-500 focus:border-indigo-500"
@@ -383,20 +377,6 @@ export default function CompositeAssetEditor({
                         }
                         placeholder="--"
                         className="w-full min-w-[4.5rem] text-right border-gray-300 rounded px-2 py-1.5 border focus:ring-indigo-500 focus:border-indigo-500"
-                      />
-                    </td>
-                    <td className="px-3 py-2 text-center">
-                      <input
-                        type="checkbox"
-                        checked={account.liquid !== false}
-                        onChange={(e) =>
-                          handleSubAccountChange(
-                            index,
-                            "liquid",
-                            e.target.checked,
-                          )
-                        }
-                        className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
                       />
                     </td>
                     <td className="px-3 py-2">
