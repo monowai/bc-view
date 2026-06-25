@@ -1,11 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/router"
 import useSwr, { mutate } from "swr"
-import {
-  fetcher,
-  simpleFetcher,
-  portfoliosKey,
-} from "@utils/api/fetchHelper"
+import { fetcher, simpleFetcher, portfoliosKey } from "@utils/api/fetchHelper"
 import { rootLoader } from "@components/ui/PageLoader"
 import { Broker, Portfolio, Transaction, TrnStatus } from "types/beancounter"
 import { ProposedTransaction, AggregatedTransaction } from "types/proposed"
@@ -37,19 +33,6 @@ const getAssetDisplayCode = (asset: { code: string }): string => {
 export default function ProposedTransactions(): React.JSX.Element {
   const { user, isLoading: userLoading } = useUser()
   const router = useRouter()
-
-  // Portfolios — used to offer a "go to your portfolio" shortcut when there's
-  // nothing to review and the user has a single portfolio (zen mode).
-  const { data: portfoliosData } = useSwr<{ data: Portfolio[] }>(
-    user ? portfoliosKey : null,
-    simpleFetcher(portfoliosKey),
-  )
-  const solePortfolio = useMemo(() => {
-    const active = (portfoliosData?.data ?? []).filter(
-      (p) => p.active !== false,
-    )
-    return active.length === 1 ? active[0] : null
-  }, [portfoliosData])
 
   const [transactions, setTransactions] = useState<ProposedTransaction[]>([])
   const [isSaving, setIsSaving] = useState(false)
@@ -137,6 +120,21 @@ export default function ProposedTransactions(): React.JSX.Element {
   const { data: proposedData, error: fetchError } = useSwr<{
     data: Transaction[]
   }>(proposedKey, fetcher, { refreshInterval: 0 })
+
+  // Portfolios — only to offer a "go to your portfolio" shortcut when there's
+  // nothing to review. Fetched solely on the empty path (when proposed has
+  // loaded and is empty) so the common case doesn't pay for an unused list.
+  const proposedEmpty = (proposedData?.data?.length ?? 1) === 0
+  const { data: portfoliosData } = useSwr<{ data: Portfolio[] }>(
+    user && proposedEmpty ? portfoliosKey : null,
+    simpleFetcher(portfoliosKey),
+  )
+  const solePortfolio = useMemo(() => {
+    const active = (portfoliosData?.data ?? []).filter(
+      (p) => p.active !== false,
+    )
+    return active.length === 1 ? active[0] : null
+  }, [portfoliosData])
 
   // Fetch brokers for dropdown
   const { data: brokersData } = useSwr(
@@ -889,9 +887,7 @@ export default function ProposedTransactions(): React.JSX.Element {
               <div className="space-y-3">
                 <p>{"No proposed transactions — you're all caught up."}</p>
                 <button
-                  onClick={() =>
-                    router.push(`/holdings/${solePortfolio.code}`)
-                  }
+                  onClick={() => router.push(`/holdings/${solePortfolio.code}`)}
                   className="btn-primary btn-primary--sm"
                 >
                   {`View ${solePortfolio.name} holdings`}

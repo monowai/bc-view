@@ -127,9 +127,12 @@ export default function OpenBrokerageWizard(): React.ReactElement {
   // portfolio, so a new-mode currency choice is never clobbered.
   const soleExistingId = portfolios.length === 1 ? portfolios[0].id : ""
   const existingId = portfolio.existingId || soleExistingId
+  const selectedExistingPortfolio = useMemo(
+    () => portfolios.find((p) => p.id === existingId),
+    [portfolios, existingId],
+  )
   const existingCurrency =
-    portfolios.find((p) => p.id === existingId)?.currency?.code ??
-    portfolio.currency
+    selectedExistingPortfolio?.currency?.code ?? portfolio.currency
   const effectiveCurrency =
     portfolio.mode === "existing" ? existingCurrency : portfolio.currency
 
@@ -214,7 +217,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
     try {
       const existingCode =
         portfolio.mode === "existing"
-          ? (portfolios.find((p) => p.id === existingId)?.code ?? "")
+          ? (selectedExistingPortfolio?.code ?? "")
           : ""
       const res = await openBrokerage({
         broker: {
@@ -258,7 +261,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
           {"Done — brokerage opened"}
         </h1>
         <p className="text-gray-600 mb-6">
-          {`Portfolio ${portfolio.mode === "existing" ? (portfolios.find((p) => p.id === existingId)?.code ?? "") : derivedCode} ready. `}
+          {`Portfolio ${portfolio.mode === "existing" ? (selectedExistingPortfolio?.code ?? "") : derivedCode} ready. `}
           {result?.accountIds.length
             ? `${result.accountIds.length} currency account(s) opened. `
             : ""}
@@ -551,7 +554,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
               <dt className="text-gray-500">Portfolio</dt>
               <dd className="col-span-2 text-gray-900">
                 {portfolio.mode === "existing"
-                  ? `${portfolios.find((p) => p.id === existingId)?.name ?? "?"} (existing, ${effectiveCurrency})`
+                  ? `${selectedExistingPortfolio?.name ?? "?"} (existing, ${effectiveCurrency})`
                   : `${derivedCode} — ${derivedName} (new, ${portfolio.currency})`}
               </dd>
               <dt className="text-gray-500">Accounts</dt>
