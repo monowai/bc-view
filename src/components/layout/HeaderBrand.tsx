@@ -3,6 +3,9 @@ import { useRouter } from "next/router"
 import Link from "next/link"
 import { useUser } from "@auth0/nextjs-auth0/client"
 import { usePermissions } from "@hooks/usePermissions"
+import { usePortfolios } from "@hooks/usePortfolios"
+import { useUserPreferences } from "@contexts/UserPreferencesContext"
+import { deriveZenModeFromPreferences } from "@lib/user/zenMode"
 import PayslipModal from "@components/features/transactions/PayslipModal"
 
 // Sentinel `action` values for nav items that open a modal instead of
@@ -16,6 +19,8 @@ interface NavItem {
   description?: string
   adminOnly?: boolean
   aiOnly?: boolean
+  // Hidden in zen mode (single portfolio) — there's no list to browse.
+  zenHidden?: boolean
   action?: NavAction
 }
 
@@ -31,7 +36,12 @@ const navSections: NavSection[] = [
     title: "Wealth",
     items: [
       { href: "/wealth", label: "Net Worth", icon: "fa-coins" },
-      { href: "/portfolios", label: "Portfolios", icon: "fa-chart-pie" },
+      {
+        href: "/portfolios",
+        label: "Portfolios",
+        icon: "fa-chart-pie",
+        zenHidden: true,
+      },
       { href: "/accounts", label: "Assets", icon: "fa-gem" },
       { href: "/allocation", label: "Allocation", icon: "fa-chart-bar" },
     ],
@@ -162,12 +172,14 @@ function DesktopDropdown({
   section,
   isAdmin,
   canRunAi,
+  zenMode,
   router,
   onAction,
 }: {
   section: NavSection
   isAdmin: boolean
   canRunAi: boolean
+  zenMode: boolean
   router: ReturnType<typeof useRouter>
   onAction: (action: NavAction) => void
 }): React.ReactElement | null {
@@ -207,7 +219,10 @@ function DesktopDropdown({
   }, [isOpen])
 
   const filteredItems = section.items.filter(
-    (item) => (!item.adminOnly || isAdmin) && (!item.aiOnly || canRunAi),
+    (item) =>
+      (!item.adminOnly || isAdmin) &&
+      (!item.aiOnly || canRunAi) &&
+      (!item.zenHidden || !zenMode),
   )
   const isActive = filteredItems.some((item) =>
     isActiveRoute(router.pathname, item.href),
@@ -310,6 +325,11 @@ function HeaderBrand(): React.ReactElement {
   const router = useRouter()
   const { user } = useUser()
   const { admin: isAdmin, ai: canRunAi } = usePermissions()
+  const { portfolios } = usePortfolios()
+  const { preferences } = useUserPreferences()
+  // Zen mode (single portfolio) drops portfolio-list nav entries — nothing to
+  // browse. Shared helper so it tracks the rest of bc-view's zen behaviour.
+  const zenMode = deriveZenModeFromPreferences(portfolios.length, preferences)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [payslipOpen, setPayslipOpen] = useState(false)
   const mobileMenuRef = useRef<HTMLDivElement>(null)
@@ -405,7 +425,8 @@ function HeaderBrand(): React.ReactElement {
                   const filteredItems = section.items.filter(
                     (item) =>
                       (!item.adminOnly || isAdmin) &&
-                      (!item.aiOnly || canRunAi),
+                      (!item.aiOnly || canRunAi) &&
+                      (!item.zenHidden || !zenMode),
                   )
                   if (filteredItems.length === 0) return null
                   return (
@@ -497,6 +518,7 @@ function HeaderBrand(): React.ReactElement {
               section={section}
               isAdmin={isAdmin}
               canRunAi={canRunAi}
+              zenMode={zenMode}
               router={router}
               onAction={openAction}
             />

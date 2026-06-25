@@ -22,9 +22,16 @@ jest.mock("@hooks/usePermissions", () => ({
   }),
 }))
 
+// Portfolio count drives zen mode (single portfolio hides portfolio-list nav).
+let mockPortfolios: Array<{ id: string }> = []
+jest.mock("@hooks/usePortfolios", () => ({
+  usePortfolios: () => ({ portfolios: mockPortfolios }),
+}))
+
 describe("HeaderBrand", () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    mockPortfolios = [{ id: "pf-1" }, { id: "pf-2" }] // master mode by default
   })
 
   it("renders nav dropdowns for authenticated user", () => {
@@ -33,6 +40,25 @@ describe("HeaderBrand", () => {
     expect(screen.getByRole("button", { name: /^Invest/i })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: /^Plan/i })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: /^Tools/i })).toBeInTheDocument()
+  })
+
+  it("shows the Portfolios link in master mode (multiple portfolios)", () => {
+    render(<HeaderBrand />)
+    fireEvent.click(screen.getByRole("button", { name: /^Wealth/i }))
+    expect(
+      screen.getByRole("link", { name: /Portfolios/i }),
+    ).toBeInTheDocument()
+  })
+
+  it("hides the Portfolios link in zen mode (single portfolio)", () => {
+    mockPortfolios = [{ id: "pf-1" }]
+    render(<HeaderBrand />)
+    fireEvent.click(screen.getByRole("button", { name: /^Wealth/i }))
+    // Net Worth still there; the portfolio list is gone.
+    expect(screen.getByRole("link", { name: /Net Worth/i })).toBeInTheDocument()
+    expect(
+      screen.queryByRole("link", { name: /Portfolios/i }),
+    ).not.toBeInTheDocument()
   })
 
   it("Tools dropdown includes Cost Stack link", () => {

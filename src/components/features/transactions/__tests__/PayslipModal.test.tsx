@@ -323,6 +323,15 @@ describe("PayslipModal", () => {
     expect(screen.getByTestId("pension-section")).toBeInTheDocument()
   })
 
+  it("shows the pension box on open for a CPF user, before any gross is typed", () => {
+    mockConfigs = [{ assetId: "cpf-asset", policyType: "CPF" }]
+    mockDc = undefined // not yet computed — box must still show
+    render(<PayslipModal modalOpen onClose={jest.fn()} />)
+    expect(screen.getByTestId("pension-section")).toBeInTheDocument()
+    // No totals until a contribution is computed.
+    expect(screen.queryByTestId("pension-total")).not.toBeInTheDocument()
+  })
+
   it("hides the pension section when there is no CPF asset", () => {
     render(<PayslipModal modalOpen onClose={jest.fn()} />)
     expect(screen.queryByTestId("pension-section")).not.toBeInTheDocument()
