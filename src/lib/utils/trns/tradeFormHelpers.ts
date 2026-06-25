@@ -10,7 +10,8 @@ import {
   calculateNewPositionWeight,
   getAssetCurrency,
 } from "./tradeUtils"
-import { getDisplayCode } from "@lib/assets/assetUtils"
+import { getDisplayCode, stripOwnerPrefix } from "@lib/assets/assetUtils"
+import { deriveBrokerCode } from "@lib/openBrokerage/brokerCode"
 
 // --- Weight and position calculations ---
 
@@ -375,4 +376,39 @@ export const brokerHasSettlementForCurrency = (params: {
       (sa) => sa.currencyCode === tradeCurrency,
     ) ?? false
   )
+}
+
+/**
+ * Resolve the cash asset id to settle a broker's trade into, for a currency.
+ * Prefers the broker's explicit settlement mapping; otherwise falls back to
+ * the broker's own cash line by code convention (`{brokerCode}-{currency}`,
+ * a PRIVATE/ACCOUNT asset) so brokers created before settlement-mapping
+ * existed (or never configured) still route to their own cash, not a generic
+ * CASH/{ccy}. Returns null when neither resolves — caller should then let the
+ * backend pick its default. Asset codes carry an owner-id prefix, so match on
+ * the stripped code.
+ */
+export const resolveBrokerCashAssetId = (params: {
+  brokerId: string | undefined
+  currency: string
+  brokers: BrokerWithAccounts[]
+  accountAssets: AssetLike[]
+}): string | null => {
+  const { brokerId, currency, brokers, accountAssets } = params
+  if (!brokerId) return null
+  const broker = brokers.find((b) => b.id === brokerId)
+  if (!broker) return null
+
+  // 1. Explicit per-currency settlement mapping.
+  const mapped = broker.settlementAccounts?.find(
+    (sa) => sa.currencyCode === currency,
+  )?.accountId
+  if (mapped) return mapped
+
+  // 2. Convention: the broker's own {code}-{currency} cash line.
+  const brokerCode = deriveBrokerCode(broker.name)
+  if (!brokerCode) return null
+  const target = `${brokerCode}-${currency}`
+  const conv = accountAssets.find((a) => stripOwnerPrefix(a.code) === target)
+  return conv?.id ?? null
 }

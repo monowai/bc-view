@@ -12,6 +12,7 @@ import {
   buildDefaultCashAsset,
   resolveBrokerSettlementAccount,
   brokerHasSettlementForCurrency,
+  resolveBrokerCashAssetId,
 } from "./tradeFormHelpers"
 import { Transaction } from "types/beancounter"
 
@@ -626,6 +627,78 @@ describe("tradeFormHelpers", () => {
         allBankAccounts,
       })
       expect(result).toBeNull()
+    })
+  })
+
+  describe("resolveBrokerCashAssetId", () => {
+    // IBRK has no explicit mapping (the real-world case for brokers created
+    // before settlement mappings existed); SCB has an explicit one.
+    const brokers = [
+      { id: "ibrk", name: "IBRK", settlementAccounts: [] },
+      {
+        id: "scb",
+        name: "SCB",
+        settlementAccounts: [{ currencyCode: "USD", accountId: "scb-usd-id" }],
+      },
+    ]
+    // Asset codes carry an owner-id prefix, as the API returns them.
+    const accountAssets = [
+      {
+        id: "ibrk-usd-id",
+        code: "2xstJu-9QzaiX_Ou1U2Ssw.IBRK-USD",
+        name: "IBRK USD",
+        market: { code: "PRIVATE" },
+      },
+      {
+        id: "scb-usd-id",
+        code: "2xstJu-9QzaiX_Ou1U2Ssw.SCB-USD",
+        name: "SCB USD Trade Account",
+        market: { code: "PRIVATE" },
+      },
+    ]
+
+    test("uses the explicit settlement mapping when present", () => {
+      expect(
+        resolveBrokerCashAssetId({
+          brokerId: "scb",
+          currency: "USD",
+          brokers: brokers as any,
+          accountAssets: accountAssets as any,
+        }),
+      ).toBe("scb-usd-id")
+    })
+
+    test("falls back to the broker's own {code}-{ccy} cash line by convention", () => {
+      expect(
+        resolveBrokerCashAssetId({
+          brokerId: "ibrk",
+          currency: "USD",
+          brokers: brokers as any,
+          accountAssets: accountAssets as any,
+        }),
+      ).toBe("ibrk-usd-id")
+    })
+
+    test("returns null when no broker selected", () => {
+      expect(
+        resolveBrokerCashAssetId({
+          brokerId: undefined,
+          currency: "USD",
+          brokers: brokers as any,
+          accountAssets: accountAssets as any,
+        }),
+      ).toBeNull()
+    })
+
+    test("returns null when no account matches the convention", () => {
+      expect(
+        resolveBrokerCashAssetId({
+          brokerId: "ibrk",
+          currency: "SGD", // no IBRK-SGD account exists
+          brokers: brokers as any,
+          accountAssets: accountAssets as any,
+        }),
+      ).toBeNull()
     })
   })
 
