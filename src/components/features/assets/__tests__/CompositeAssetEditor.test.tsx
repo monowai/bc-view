@@ -1,6 +1,7 @@
 import React from "react"
 import { render, screen, fireEvent } from "@testing-library/react"
 import CompositeAssetEditor from "../CompositeAssetEditor"
+import { makeSubAccount } from "@test-fixtures/beancounter"
 
 /**
  * Regression: a fresh CPF asset must default to the STANDARD CPF LIFE plan
@@ -84,8 +85,8 @@ describe("CompositeAssetEditor — CPF LIFE plan default", () => {
         policyType="CPF"
         lockedUntilDate=""
         subAccounts={[
-          { code: "OA", balance: 1000, liquid: true },
-          { code: "MA", balance: 500, liquid: false },
+          makeSubAccount({ code: "OA", balance: 1000 }),
+          makeSubAccount({ code: "MA", balance: 500, liquid: false }),
         ]}
         cpfLifePlan="STANDARD"
         onPolicyTypeChange={jest.fn()}
@@ -108,8 +109,8 @@ describe("CompositeAssetEditor — CPF LIFE plan default", () => {
         policyType="CPF"
         lockedUntilDate=""
         subAccounts={[
-          { code: "OA", balance: 0, liquid: true },
-          { code: "MA", balance: 0, liquid: false },
+          makeSubAccount({ code: "OA" }),
+          makeSubAccount({ code: "MA", liquid: false }),
         ]}
         cpfLifePlan="STANDARD"
         onPolicyTypeChange={jest.fn()}
@@ -129,7 +130,7 @@ describe("CompositeAssetEditor — CPF LIFE plan default", () => {
       <CompositeAssetEditor
         policyType="CPF"
         lockedUntilDate=""
-        subAccounts={[{ code: "OA", balance: 0, liquid: true }]}
+        subAccounts={[makeSubAccount({ code: "OA" })]}
         cpfLifePlan="STANDARD"
         onPolicyTypeChange={jest.fn()}
         onLockedUntilDateChange={jest.fn()}
@@ -143,7 +144,7 @@ describe("CompositeAssetEditor — CPF LIFE plan default", () => {
     fireEvent.blur(balance)
     // MathInput expands shorthand + evaluates: 1k*2 -> 2000.
     expect(onSubAccountsChange).toHaveBeenCalledWith([
-      { code: "OA", balance: 2000, liquid: true },
+      makeSubAccount({ code: "OA", balance: 2000 }),
     ])
   })
 
@@ -153,8 +154,8 @@ describe("CompositeAssetEditor — CPF LIFE plan default", () => {
         policyType="CPF"
         lockedUntilDate=""
         subAccounts={[
-          { code: "OA", balance: 0, liquid: true },
-          { code: "MA", balance: 0, liquid: false },
+          makeSubAccount({ code: "OA" }),
+          makeSubAccount({ code: "MA", liquid: false }),
         ]}
         cpfLifePlan="STANDARD"
         onPolicyTypeChange={jest.fn()}
