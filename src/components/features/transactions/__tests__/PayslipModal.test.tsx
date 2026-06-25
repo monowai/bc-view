@@ -304,6 +304,25 @@ describe("PayslipModal", () => {
     expect(screen.getByLabelText("Portfolio")).toBeInTheDocument()
   })
 
+  it("shows the pension box whenever the user has a CPF plan, not gated on the live verdict", () => {
+    mockConfigs = [{ assetId: "cpf-asset", policyType: "CPF" }]
+    // hasDefinedContribution false on purpose — the plan's existence is the
+    // signal, so the box still shows once a gross is entered.
+    mockDc = {
+      employeeContribution: 0,
+      employerContribution: 0,
+      employeeRate: 0,
+      cappedSalary: 0,
+      hasDefinedContribution: false,
+      buckets: [{ code: "OA", amount: 0 }],
+    }
+    render(<PayslipModal modalOpen onClose={jest.fn()} />)
+    fireEvent.change(screen.getByLabelText("Gross salary"), {
+      target: { value: "6000" },
+    })
+    expect(screen.getByTestId("pension-section")).toBeInTheDocument()
+  })
+
   it("hides the pension section when there is no CPF asset", () => {
     render(<PayslipModal modalOpen onClose={jest.fn()} />)
     expect(screen.queryByTestId("pension-section")).not.toBeInTheDocument()
