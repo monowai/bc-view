@@ -104,6 +104,23 @@ describe("WealthHeroSection — net worth links to aggregate holdings", () => {
   })
 })
 
+describe("WealthHeroSection — zen mode hides portfolio chrome", () => {
+  it("hides the Portfolios link and portfolio count in zen mode (one portfolio)", () => {
+    renderHero(makeSummary({ portfolioCount: 1 }), [makePortfolio()])
+    expect(screen.queryByTitle("Portfolios")).not.toBeInTheDocument()
+    expect(screen.queryByText(/Across \d+ portfolio/)).not.toBeInTheDocument()
+  })
+
+  it("shows the Portfolios link and count in master mode (multiple portfolios)", () => {
+    renderHero(makeSummary({ portfolioCount: 2 }), [
+      makePortfolio({ code: "ALPHA" }),
+      makePortfolio({ code: "BETA" }),
+    ])
+    expect(screen.getByTitle("Portfolios")).toBeInTheDocument()
+    expect(screen.getByText(/Across 2 portfolios/)).toBeInTheDocument()
+  })
+})
+
 describe("WealthHeroSection — Healthcare Reserve", () => {
   it("renders the 'Includes Healthcare Reserve' line when summary.healthcareReserve > 0", () => {
     renderHero(makeSummary({ healthcareReserve: 58_000 }))

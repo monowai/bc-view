@@ -415,8 +415,11 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
       </div>
 
       {/* Pension section — sits directly under Gross salary since CPF is
-          derived from gross and the user reviews it before allocating pay. */}
-      {showPension && dc && (
+          derived from gross and the user reviews it before allocating pay.
+          Shown whenever the user has a CPF plan (not gated on the live
+          recompute landing) so it never blinks out mid-edit; the per-bucket
+          and total figures fill in once `dc` resolves. */}
+      {showPension && (
         <div
           className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-3"
           data-testid="pension-section"
@@ -460,27 +463,29 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
             </div>
           ))}
 
-          <div className="pt-2 border-t border-amber-200 text-xs text-gray-600 space-y-1">
-            <div className="flex justify-between">
-              <span>{"Your contribution"}</span>
-              <span>{formatAmount(dc.employeeContribution)}</span>
+          {dc && (
+            <div className="pt-2 border-t border-amber-200 text-xs text-gray-600 space-y-1">
+              <div className="flex justify-between">
+                <span>{"Your contribution"}</span>
+                <span>{formatAmount(dc.employeeContribution)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>{"Employer contribution"}</span>
+                <span>{formatAmount(dc.employerContribution)}</span>
+              </div>
+              <div
+                className="flex justify-between pt-1 border-t border-amber-200 font-semibold text-gray-800"
+                data-testid="pension-total"
+              >
+                <span>{"Total contribution"}</span>
+                <span>
+                  {formatAmount(
+                    dc.employeeContribution + dc.employerContribution,
+                  )}
+                </span>
+              </div>
             </div>
-            <div className="flex justify-between">
-              <span>{"Employer contribution"}</span>
-              <span>{formatAmount(dc.employerContribution)}</span>
-            </div>
-            <div
-              className="flex justify-between pt-1 border-t border-amber-200 font-semibold text-gray-800"
-              data-testid="pension-total"
-            >
-              <span>{"Total contribution"}</span>
-              <span>
-                {formatAmount(
-                  dc.employeeContribution + dc.employerContribution,
-                )}
-              </span>
-            </div>
-          </div>
+          )}
         </div>
       )}
 
