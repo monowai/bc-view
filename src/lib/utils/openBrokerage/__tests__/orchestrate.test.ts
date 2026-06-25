@@ -123,6 +123,56 @@ describe("openBrokerage", () => {
     expect(trnPosts()).toHaveLength(0)
   })
 
+  // The opened cash accounts become the broker's per-currency settlement
+  // default (PATCH /api/brokers/{id}), so a later trade settles to the
+  // broker's own cash line rather than a generic CASH/ccy.
+  test("registers opened accounts as the broker's settlement default per currency", async () => {
+    await openBrokerage({
+      broker: { mode: "new", newName: "IBKR" },
+      portfolio: {
+        mode: "existing",
+        existingId: "pf-existing",
+        code: "SAVINGS",
+        currency: "USD",
+      },
+      funding: [
+        { currency: "USD", amount: 0 },
+        { currency: "SGD", amount: 1000 },
+      ],
+    })
+
+    const patch = fetchMock.mock.calls.find((c) => {
+      const url = c[0] as string
+      const m = (c[1] as RequestInit | undefined)?.method
+      return m === "PATCH" && url.includes("/api/brokers/")
+    })
+    expect(patch).toBeDefined()
+    const body = JSON.parse((patch![1] as RequestInit).body as string) as {
+      settlementAccounts: Record<string, string>
+    }
+    expect(body.settlementAccounts.USD).toBe("asset-IBKR-USD")
+    expect(body.settlementAccounts.SGD).toBe("asset-IBKR-SGD")
+  })
+
+  // No accounts opened → no settlement registration.
+  test("does not PATCH the broker when no accounts are opened", async () => {
+    await openBrokerage({
+      broker: { mode: "new", newName: "IBKR" },
+      portfolio: {
+        mode: "new",
+        code: "IBKR",
+        name: "IBKR Portfolio",
+        currency: "USD",
+        base: "USD",
+      },
+    })
+    const patched = fetchMock.mock.calls.some((c) => {
+      const m = (c[1] as RequestInit | undefined)?.method
+      return m === "PATCH" && (c[0] as string).includes("/api/brokers/")
+    })
+    expect(patched).toBe(false)
+  })
+
   // Zero-balance account, new dedicated portfolio: generic CASH asset created,
   // still no deposit.
   test("opens a zero-balance CASH account in new mode without a deposit", async () => {

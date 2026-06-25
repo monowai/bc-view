@@ -5,7 +5,7 @@
  * component so it can be unit-tested or reused.
  */
 
-import type { Broker } from "types/beancounter"
+import type { Broker, BrokerWithAccounts } from "types/beancounter"
 import { deriveBrokerCode } from "@lib/openBrokerage/brokerCode"
 
 // Local-date YYYY-MM-DD so tradeDate matches the user's calendar day,
@@ -89,6 +89,49 @@ async function postJson<T>(url: string, body: unknown): Promise<T> {
     )
   }
   return (await res.json()) as T
+}
+
+// Register the just-opened cash accounts as the broker's default settlement
+// account per currency, so settling a trade through this broker defaults to
+// its own cash line (e.g. IB-USD) instead of a generic CASH/USD. Merges with
+// any existing mappings — PATCH replaces the whole map, so we must preserve
+// other currencies. Non-fatal: a failure here doesn't undo the brokerage.
+async function registerBrokerSettlementAccounts(
+  broker: Broker,
+  byCurrency: Record<string, string>,
+): Promise<void> {
+  if (Object.keys(byCurrency).length === 0) return
+  try {
+    const existing = await fetch("/api/brokers?includeAccounts=true")
+      .then((r) =>
+        r.ok ? (r.json() as Promise<{ data: BrokerWithAccounts[] }>) : null,
+      )
+      .then((j) => j?.data.find((b) => b.id === broker.id))
+      .catch(() => undefined)
+    const merged: Record<string, string> = {}
+    existing?.settlementAccounts?.forEach((sa) => {
+      merged[sa.currencyCode] = sa.accountId
+    })
+    // Newly-opened accounts win for their currency.
+    Object.assign(merged, byCurrency)
+    const res = await fetch(`/api/brokers/${broker.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: broker.name,
+        accountNumber: broker.accountNumber,
+        notes: broker.notes,
+        settlementAccounts: merged,
+      }),
+    })
+    if (!res.ok) {
+      console.warn(
+        `registerBrokerSettlementAccounts: PATCH failed (${res.status})`,
+      )
+    }
+  } catch (e) {
+    console.warn("registerBrokerSettlementAccounts: skipped", e)
+  }
 }
 
 async function ensureBroker(step: BrokerStep): Promise<Broker> {
@@ -258,6 +301,9 @@ export async function openBrokerage(
   // — see the function doc on idempotency.
   const accountIds: string[] = []
   const trnIds: string[] = []
+  // currency → opened cash-asset id, registered as the broker's default
+  // settlement account once all accounts are open.
+  const settlementByCurrency: Record<string, string> = {}
   for (const account of req.funding ?? []) {
     // Open the account regardless of balance. Attach-to-existing-portfolio
     // path uses a per-broker PRIVATE cash asset so the brokerage cash is
@@ -269,6 +315,8 @@ export async function openBrokerage(
         ? await ensureBrokerCashAsset(brokerCode, broker.name, account.currency)
         : await ensureCashAsset(account.currency)
     accountIds.push(depositAssetId)
+    // Last opened account for a currency is the broker's settlement default.
+    settlementByCurrency[account.currency] = depositAssetId
     // Zero-balance account: created above, but no cash to move.
     if (account.amount <= 0) continue
     // Order matters: DEPOSIT first into the freshly-created portfolio
@@ -308,6 +356,10 @@ export async function openBrokerage(
       )
     }
   }
+
+  // Make these accounts the broker's per-currency settlement default so a
+  // later trade settles to the broker's own cash line, not a generic CASH/ccy.
+  await registerBrokerSettlementAccounts(broker, settlementByCurrency)
 
   return { broker, portfolioId, portfolioCode, accountIds, trnIds }
 }
