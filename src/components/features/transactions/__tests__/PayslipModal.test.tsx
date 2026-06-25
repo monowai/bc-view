@@ -2,10 +2,21 @@ import React from "react"
 import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import PayslipModal from "../PayslipModal"
+import { SGD, makePortfolio } from "@test-fixtures/beancounter"
 
-const mockPortfolios = {
-  data: [{ id: "pf-1", code: "MAIN", name: "Main", base: { code: "SGD" } }],
+// Two portfolios by default → "master" mode where the Portfolio selector is
+// shown. Zen mode (a single portfolio, selector hidden) is exercised below by
+// overriding this to one entry.
+const masterPortfolios = {
+  data: [
+    makePortfolio({ id: "pf-1", code: "MAIN", name: "Main", base: SGD }),
+    makePortfolio({ id: "pf-2", code: "SECOND", name: "Second", base: SGD }),
+  ],
 }
+const zenPortfolios = {
+  data: [makePortfolio({ id: "pf-1", code: "MAIN", name: "Main", base: SGD })],
+}
+let mockPortfolios: typeof masterPortfolios = masterPortfolios
 const mockCash = {
   data: [
     {
@@ -107,6 +118,7 @@ jest.mock("@components/features/independence/useDefinedContribution", () => ({
 
 describe("PayslipModal", () => {
   beforeEach(() => {
+    mockPortfolios = masterPortfolios
     mockConfigs = []
     mockDc = undefined
     mockPlans = { data: [] }
@@ -238,6 +250,58 @@ describe("PayslipModal", () => {
     } finally {
       mockPreferences.preferences = prev
     }
+  })
+
+  it("shows the Portfolio selector in master mode (more than one portfolio)", () => {
+    mockPortfolios = masterPortfolios
+    render(<PayslipModal modalOpen onClose={jest.fn()} />)
+    expect(screen.getByLabelText("Portfolio")).toBeInTheDocument()
+  })
+
+  it("hides the Portfolio selector in zen mode (single portfolio auto-selected)", () => {
+    mockPortfolios = zenPortfolios
+    render(<PayslipModal modalOpen onClose={jest.fn()} />)
+    // No selector to choose — the sole portfolio is targeted implicitly.
+    expect(screen.queryByLabelText("Portfolio")).not.toBeInTheDocument()
+  })
+
+  it("auto-targets the sole portfolio in zen mode, even over a stale saved default", async () => {
+    mockPortfolios = zenPortfolios
+    const prev = mockPreferences.preferences
+    // A stale saved default pointing at a since-deleted portfolio must NOT win
+    // in zen mode — the selector is hidden, so the sole live portfolio has to
+    // outrank it or the payslip posts to a dead id with no way to fix it.
+    mockPreferences.preferences = {
+      ...prev,
+      defaultPayslipPortfolioId: "pf-deleted",
+    }
+    try {
+      render(<PayslipModal modalOpen onClose={jest.fn()} />)
+      fireEvent.change(screen.getByLabelText("Gross salary"), {
+        target: { value: "4000" },
+      })
+      fireEvent.click(screen.getByRole("button", { name: "Save" }))
+      await waitFor(() => {
+        const trnCall = (global.fetch as jest.Mock).mock.calls.find(
+          (c) => c[0] === "/api/trns",
+        )
+        expect(trnCall).toBeDefined()
+      })
+      const trnCall = (global.fetch as jest.Mock).mock.calls.find(
+        (c) => c[0] === "/api/trns",
+      )!
+      expect(JSON.parse(trnCall[1].body).portfolioId).toBe("pf-1")
+    } finally {
+      mockPreferences.preferences = prev
+    }
+  })
+
+  it("keeps the Portfolio selector when there are no portfolios (never strands the user)", () => {
+    // Zero portfolios derives as zen, but there's nothing to auto-target, so
+    // the picker must stay visible rather than hide with no recovery path.
+    mockPortfolios = { data: [] } as typeof masterPortfolios
+    render(<PayslipModal modalOpen onClose={jest.fn()} />)
+    expect(screen.getByLabelText("Portfolio")).toBeInTheDocument()
   })
 
   it("hides the pension section when there is no CPF asset", () => {

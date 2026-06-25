@@ -3,6 +3,7 @@ import Link from "next/link"
 import { Currency, Portfolio } from "types/beancounter"
 import { FormatValue } from "@components/ui/MoneyUtils"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
+import { solePortfolio } from "@lib/user/zenMode"
 import { WealthSummary, LIQUIDITY_COLORS } from "@lib/wealth/liquidityGroups"
 
 interface WealthHeroSectionProps {
@@ -24,12 +25,19 @@ const WealthHeroSection: React.FC<WealthHeroSectionProps> = ({
 }) => {
   const { hideValues } = usePrivacyMode()
 
-  // Net worth is the sum across every contributing portfolio — clicking it
-  // drills into the aggregated holdings of exactly those portfolios. Pass the
-  // codes explicitly so the drill-down matches the wealth total even if the
-  // backend's notion of "all portfolios" ever diverges from this view's set.
-  const aggregateHref =
-    portfolios.length > 0
+  // Net worth is the sum across every contributing portfolio. Clicking it
+  // drills in:
+  //  - A single (active) portfolio: straight to that portfolio's holdings —
+  //    aggregating one portfolio is pointless. Keyed off `solePortfolio`, the
+  //    shared notion of "the one portfolio", not the zen flag: drilling needs a
+  //    concrete target, which only exists when there's exactly one.
+  //  - Otherwise: the aggregated holdings of exactly those portfolios. Pass the
+  //    codes explicitly so the drill-down matches the wealth total even if the
+  //    backend's notion of "all portfolios" ever diverges from this set.
+  const sole = solePortfolio(portfolios)
+  const aggregateHref = sole
+    ? `/holdings/${encodeURIComponent(sole.code)}`
+    : portfolios.length > 0
       ? `/holdings/aggregated?codes=${encodeURIComponent(
           portfolios.map((p) => p.code).join(","),
         )}`

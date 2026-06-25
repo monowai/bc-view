@@ -67,6 +67,8 @@ import {
   labelClass,
   EditModeProps,
 } from "@lib/trns/tradeFormConfig"
+import { useUserPreferences } from "@contexts/UserPreferencesContext"
+import { showPortfolioPicker } from "@lib/user/zenMode"
 
 const TradeInputForm: React.FC<{
   portfolio: Portfolio
@@ -136,6 +138,7 @@ const TradeInputForm: React.FC<{
     () => portfoliosData?.data || [],
     [portfoliosData?.data],
   )
+  const { preferences } = useUserPreferences()
 
   // Fetch models for model selection (edit mode only)
   const { data: modelsData } = useSwr(
@@ -852,8 +855,9 @@ const TradeInputForm: React.FC<{
                   {/* Portfolio Selection — only when there's a choice to make.
                       With a single portfolio it's already the selection
                       (selectedPortfolioId defaults to it), so the dropdown is
-                      noise. */}
-                  {portfolios.length > 1 && (
+                      noise. Routed through the shared zen-mode helper so the
+                      hide rule stays consistent with the rest of bc-view. */}
+                  {showPortfolioPicker(portfolios, preferences) && (
                     <div>
                       <label className={labelClass}>{"Portfolio"}</label>
                       <select

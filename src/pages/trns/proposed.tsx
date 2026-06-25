@@ -9,6 +9,7 @@ import Head from "next/head"
 import { useUser } from "@auth0/nextjs-auth0/client"
 import { calculateTradeAmount } from "@utils/trns/tradeUtils"
 import { stripOwnerPrefix } from "@lib/assets/assetUtils"
+import { solePortfolio as soleActivePortfolio } from "@lib/user/zenMode"
 import DateInput from "@components/ui/DateInput"
 import Alert from "@components/ui/Alert"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
@@ -129,12 +130,10 @@ export default function ProposedTransactions(): React.JSX.Element {
     user && proposedEmpty ? portfoliosKey : null,
     simpleFetcher(portfoliosKey),
   )
-  const solePortfolio = useMemo(() => {
-    const active = (portfoliosData?.data ?? []).filter(
-      (p) => p.active !== false,
-    )
-    return active.length === 1 ? active[0] : null
-  }, [portfoliosData])
+  const solePortfolio = useMemo(
+    () => soleActivePortfolio(portfoliosData?.data ?? []),
+    [portfoliosData],
+  )
 
   // Fetch brokers for dropdown
   const { data: brokersData } = useSwr(

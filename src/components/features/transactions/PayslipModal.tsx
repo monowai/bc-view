@@ -23,6 +23,7 @@ import {
   useDefinedContribution,
 } from "@components/features/independence/useDefinedContribution"
 import { buildPayslipPayload, PayslipPayload } from "@utils/trns/payslipPayload"
+import { showPortfolioPicker, solePortfolioId } from "@lib/user/zenMode"
 
 interface PayslipModalProps {
   modalOpen: boolean
@@ -260,11 +261,23 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
   // default appears the moment the account lists load.
   const effectiveCashAssetId = cashAssetId || preferredCashAssetId
 
-  // Portfolio default order: explicit pick → CPF-holding portfolio → saved
-  // pref. CPF wins over the generic saved default so contributions land right.
+  // Zen mode: a single portfolio means nothing to choose — hide the selector
+  // and auto-target that portfolio. Master mode shows the picker. Both the
+  // picker decision and "the one portfolio" come from the shared helper so an
+  // explicit SystemUser flag can override behaviour everywhere at once, and the
+  // picker is never hidden when there's nothing concrete to target.
+  const showPicker = showPortfolioPicker(portfolios, preferences)
+  const soleId = solePortfolioId(portfolios)
+
+  // Portfolio default order: explicit pick → CPF-holding portfolio → sole
+  // portfolio → saved pref. The sole portfolio outranks the saved default so a
+  // single-portfolio user can't post to a stale/deleted id that the now-hidden
+  // selector gives no way to correct. CPF still wins so contributions land
+  // right (for a single-portfolio user CPF and sole are the same portfolio).
   const effectivePortfolioId =
     portfolioId ||
     cpfPortfolioId ||
+    soleId ||
     preferences?.defaultPayslipPortfolioId ||
     ""
 
@@ -399,80 +412,8 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
         />
       </div>
 
-      {/* Portfolio */}
-      <div>
-        <label
-          htmlFor="payslip-portfolio"
-          className="block text-sm font-medium text-gray-700 mb-1"
-        >
-          {"Portfolio"}
-        </label>
-        <select
-          id="payslip-portfolio"
-          value={effectivePortfolioId}
-          onChange={(e) => setPortfolioId(e.target.value)}
-          className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border bg-white"
-        >
-          <option value="">{"Select a portfolio..."}</option>
-          {portfolios.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.code} — {p.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Cash asset */}
-      <div>
-        <label
-          htmlFor="payslip-cash-asset"
-          className="block text-sm font-medium text-gray-700 mb-1"
-        >
-          {"Pay into"}
-        </label>
-        <select
-          id="payslip-cash-asset"
-          value={effectiveCashAssetId}
-          onChange={(e) => setCashAssetId(e.target.value)}
-          className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border bg-white"
-        >
-          <option value="">{"Select a cash account..."}</option>
-          {accountOptions.length > 0 && (
-            <optgroup label="Accounts">
-              {accountOptions.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </optgroup>
-          )}
-          {cashOptions.length > 0 && (
-            <optgroup label="Cash balances">
-              {cashOptions.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </optgroup>
-          )}
-        </select>
-      </div>
-
-      {/* Tax */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          {"Tax deducted (optional)"}
-        </label>
-        <MathInput
-          value={tax === "" ? "" : parseFloat(tax)}
-          onChange={(value) => setTax(String(value))}
-          placeholder={"0.00"}
-          aria-label={"Tax deducted"}
-          className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border"
-        />
-      </div>
-
-      {/* Pension section */}
+      {/* Pension section — sits directly under Gross salary since CPF is
+          derived from gross and the user reviews it before allocating pay. */}
       {showPension && dc && (
         <div
           className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-3"
@@ -540,6 +481,81 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
           </div>
         </div>
       )}
+
+      {/* Portfolio — hidden in zen mode (single portfolio auto-selected). */}
+      {showPicker && (
+        <div>
+          <label
+            htmlFor="payslip-portfolio"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            {"Portfolio"}
+          </label>
+          <select
+            id="payslip-portfolio"
+            value={effectivePortfolioId}
+            onChange={(e) => setPortfolioId(e.target.value)}
+            className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border bg-white"
+          >
+            <option value="">{"Select a portfolio..."}</option>
+            {portfolios.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.code} — {p.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* Cash asset */}
+      <div>
+        <label
+          htmlFor="payslip-cash-asset"
+          className="block text-sm font-medium text-gray-700 mb-1"
+        >
+          {"Pay into"}
+        </label>
+        <select
+          id="payslip-cash-asset"
+          value={effectiveCashAssetId}
+          onChange={(e) => setCashAssetId(e.target.value)}
+          className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border bg-white"
+        >
+          <option value="">{"Select a cash account..."}</option>
+          {accountOptions.length > 0 && (
+            <optgroup label="Accounts">
+              {accountOptions.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </optgroup>
+          )}
+          {cashOptions.length > 0 && (
+            <optgroup label="Cash balances">
+              {cashOptions.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </optgroup>
+          )}
+        </select>
+      </div>
+
+      {/* Tax */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          {"Tax deducted (optional)"}
+        </label>
+        <MathInput
+          value={tax === "" ? "" : parseFloat(tax)}
+          onChange={(value) => setTax(String(value))}
+          placeholder={"0.00"}
+          aria-label={"Tax deducted"}
+          className="w-full border-gray-300 rounded-md shadow-sm px-3 py-2 border"
+        />
+      </div>
 
       <Dialog.ErrorAlert message={submitError} />
     </Dialog>

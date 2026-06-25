@@ -513,6 +513,12 @@ export interface UserPreferences {
   // can prefill on the next pay run.
   defaultPayslipPortfolioId?: string | null
   defaultPayslipCashAssetId?: string | null
+  // Zen mode collapses multi-portfolio chrome (pickers, aggregate drill-downs)
+  // for single-portfolio users. Currently derived from portfolio count; this
+  // optional flag is the forward hook for an explicit SystemUser property that
+  // will override the derivation once the backend exposes it. See
+  // `@lib/user/zenMode`.
+  zenMode?: boolean
 }
 
 export interface UserPreferencesRequest {
