@@ -1,9 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/router"
 import useSwr, { mutate } from "swr"
-import { fetcher, simpleFetcher } from "@utils/api/fetchHelper"
+import {
+  fetcher,
+  simpleFetcher,
+  portfoliosKey,
+} from "@utils/api/fetchHelper"
 import { rootLoader } from "@components/ui/PageLoader"
-import { Broker, Transaction, TrnStatus } from "types/beancounter"
+import { Broker, Portfolio, Transaction, TrnStatus } from "types/beancounter"
 import { ProposedTransaction, AggregatedTransaction } from "types/proposed"
 import Head from "next/head"
 import { useUser } from "@auth0/nextjs-auth0/client"
@@ -33,6 +37,19 @@ const getAssetDisplayCode = (asset: { code: string }): string => {
 export default function ProposedTransactions(): React.JSX.Element {
   const { user, isLoading: userLoading } = useUser()
   const router = useRouter()
+
+  // Portfolios — used to offer a "go to your portfolio" shortcut when there's
+  // nothing to review and the user has a single portfolio (zen mode).
+  const { data: portfoliosData } = useSwr<{ data: Portfolio[] }>(
+    user ? portfoliosKey : null,
+    simpleFetcher(portfoliosKey),
+  )
+  const solePortfolio = useMemo(() => {
+    const active = (portfoliosData?.data ?? []).filter(
+      (p) => p.active !== false,
+    )
+    return active.length === 1 ? active[0] : null
+  }, [portfoliosData])
 
   const [transactions, setTransactions] = useState<ProposedTransaction[]>([])
   const [isSaving, setIsSaving] = useState(false)
@@ -868,7 +885,21 @@ export default function ProposedTransactions(): React.JSX.Element {
 
         {!fetchError && transactions.length === 0 && (
           <div className="bg-gray-50 border border-gray-200 text-gray-600 px-4 py-8 rounded text-center">
-            No proposed transactions found. All caught up!
+            {solePortfolio ? (
+              <div className="space-y-3">
+                <p>{"No proposed transactions — you're all caught up."}</p>
+                <button
+                  onClick={() =>
+                    router.push(`/holdings/${solePortfolio.code}`)
+                  }
+                  className="btn-primary btn-primary--sm"
+                >
+                  {`View ${solePortfolio.name} holdings`}
+                </button>
+              </div>
+            ) : (
+              "No proposed transactions found. All caught up!"
+            )}
           </div>
         )}
 
