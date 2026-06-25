@@ -1,6 +1,7 @@
 import React from "react"
 import { render, screen, fireEvent } from "@testing-library/react"
 import CompositeAssetEditor from "../CompositeAssetEditor"
+import { makeSubAccount } from "@test-fixtures/beancounter"
 
 /**
  * Regression: a fresh CPF asset must default to the STANDARD CPF LIFE plan
@@ -84,8 +85,8 @@ describe("CompositeAssetEditor — CPF LIFE plan default", () => {
         policyType="CPF"
         lockedUntilDate=""
         subAccounts={[
-          { code: "OA", balance: 1000, liquid: true },
-          { code: "MA", balance: 500, liquid: false },
+          makeSubAccount({ code: "OA", balance: 1000 }),
+          makeSubAccount({ code: "MA", balance: 500, liquid: false }),
         ]}
         cpfLifePlan="STANDARD"
         onPolicyTypeChange={jest.fn()}
@@ -102,14 +103,59 @@ describe("CompositeAssetEditor — CPF LIFE plan default", () => {
     expect(onCpfLifePlanChange).toHaveBeenCalledWith(undefined)
   })
 
+  it("does not render a Liquid checkbox — liquidity is template-driven, not user-chosen", () => {
+    render(
+      <CompositeAssetEditor
+        policyType="CPF"
+        lockedUntilDate=""
+        subAccounts={[
+          makeSubAccount({ code: "OA" }),
+          makeSubAccount({ code: "MA", liquid: false }),
+        ]}
+        cpfLifePlan="STANDARD"
+        onPolicyTypeChange={jest.fn()}
+        onLockedUntilDateChange={jest.fn()}
+        onSubAccountsChange={jest.fn()}
+        onCpfLifePlanChange={jest.fn()}
+        onCpfPayoutStartAgeChange={jest.fn()}
+      />,
+    )
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument()
+    expect(screen.queryByText(/^Liquid$/)).not.toBeInTheDocument()
+  })
+
+  it("evaluates a math expression in a bucket balance via MathInput", () => {
+    const onSubAccountsChange = jest.fn()
+    render(
+      <CompositeAssetEditor
+        policyType="CPF"
+        lockedUntilDate=""
+        subAccounts={[makeSubAccount({ code: "OA" })]}
+        cpfLifePlan="STANDARD"
+        onPolicyTypeChange={jest.fn()}
+        onLockedUntilDateChange={jest.fn()}
+        onSubAccountsChange={onSubAccountsChange}
+        onCpfLifePlanChange={jest.fn()}
+        onCpfPayoutStartAgeChange={jest.fn()}
+      />,
+    )
+    const balance = screen.getByLabelText(/OA balance/i)
+    fireEvent.change(balance, { target: { value: "1k*2" } })
+    fireEvent.blur(balance)
+    // MathInput expands shorthand + evaluates: 1k*2 -> 2000.
+    expect(onSubAccountsChange).toHaveBeenCalledWith([
+      makeSubAccount({ code: "OA", balance: 2000 }),
+    ])
+  })
+
   it("hides the locked-date picker and the add-sub-account row for CPF", () => {
     render(
       <CompositeAssetEditor
         policyType="CPF"
         lockedUntilDate=""
         subAccounts={[
-          { code: "OA", balance: 0, liquid: true },
-          { code: "MA", balance: 0, liquid: false },
+          makeSubAccount({ code: "OA" }),
+          makeSubAccount({ code: "MA", liquid: false }),
         ]}
         cpfLifePlan="STANDARD"
         onPolicyTypeChange={jest.fn()}
