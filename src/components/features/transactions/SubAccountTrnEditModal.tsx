@@ -32,9 +32,9 @@ export default function SubAccountTrnEditModal({
   const currency = getAssetCurrency(trn.asset) || trn.tradeCurrency.code
 
   const [date, setDate] = useState<string>(trn.tradeDate)
-  const [values, setValues] = useState<Record<string, number>>(
-    () => ({ ...(trn.subAccounts ?? {}) }),
-  )
+  const [values, setValues] = useState<Record<string, number>>(() => ({
+    ...(trn.subAccounts ?? {}),
+  }))
   // Canonical sub-account rows (code + displayName + order) come from the asset
   // config; fall back to the codes carried on the transaction itself.
   const [configRows, setConfigRows] = useState<SubAccountRow[] | null>(null)

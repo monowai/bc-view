@@ -935,13 +935,19 @@ const EditAccountDialog: React.FC<EditAccountDialogProps> = ({
                         setConfig((prev) => ({ ...prev, lockedUntilDate: val }))
                       }
                       onSubAccountsChange={(accounts) =>
-                        setConfig((prev) => ({ ...prev, subAccounts: accounts }))
+                        setConfig((prev) => ({
+                          ...prev,
+                          subAccounts: accounts,
+                        }))
                       }
                       onCpfLifePlanChange={(val) =>
                         setConfig((prev) => ({ ...prev, cpfLifePlan: val }))
                       }
                       onCpfPayoutStartAgeChange={(val) =>
-                        setConfig((prev) => ({ ...prev, cpfPayoutStartAge: val }))
+                        setConfig((prev) => ({
+                          ...prev,
+                          cpfPayoutStartAge: val,
+                        }))
                       }
                     />
                   </div>

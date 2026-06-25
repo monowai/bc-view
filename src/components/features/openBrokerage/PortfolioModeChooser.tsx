@@ -49,8 +49,8 @@ const PortfolioModeChooser: React.FC<PortfolioModeChooserProps> = ({
           </span>
           <span className="block text-sm text-gray-500 mt-1 leading-relaxed">
             Its own space with its own objectives, kept apart from your
-            non-investment assets — cash, savings, property. Choose this when you
-            want to judge the brokerage on its own goals.
+            non-investment assets — cash, savings, property. Choose this when
+            you want to judge the brokerage on its own goals.
           </span>
         </span>
       </label>
@@ -80,8 +80,9 @@ const PortfolioModeChooser: React.FC<PortfolioModeChooserProps> = ({
             )}
           </span>
           <span className="block text-sm text-gray-500 mt-1 leading-relaxed">
-            Fold these holdings in beside assets you already track — one combined
-            view. Choose this when you think of everything as a single pot.
+            Fold these holdings in beside assets you already track — one
+            combined view. Choose this when you think of everything as a single
+            pot.
           </span>
         </span>
       </label>
@@ -89,8 +90,8 @@ const PortfolioModeChooser: React.FC<PortfolioModeChooserProps> = ({
 
     <p className="text-xs text-gray-500 leading-relaxed">
       Either way, Beancounter totals your net worth across every portfolio —
-      this only decides how you{"’"}d like to view these assets, not what you can
-      see.
+      this only decides how you{"’"}d like to view these assets, not what you
+      can see.
     </p>
   </div>
 )
