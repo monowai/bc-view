@@ -12,6 +12,7 @@ import ShareInviteDialog from "@components/features/portfolios/ShareInviteDialog
 import PortfolioImportDialog from "@components/features/portfolios/PortfolioImportDialog"
 import PortfoliosList from "@components/features/portfolios/PortfoliosList"
 import LinkCompositeBanner from "@components/features/portfolios/LinkCompositeBanner"
+import ConsolidatePortfoliosDialog from "@components/features/portfolios/ConsolidatePortfoliosDialog"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 import { usePortfolios } from "@hooks/usePortfolios"
 import { sharesManagedKey, simpleFetcher } from "@utils/api/fetchHelper"
@@ -41,6 +42,9 @@ export default withPageAuthRequired(function Portfolios({
 
   // Import dialog state
   const [showImportDialog, setShowImportDialog] = useState(false)
+
+  // Consolidate (merge-and-remove) wizard state.
+  const [showConsolidate, setShowConsolidate] = useState(false)
 
   // Delete confirmation state
   const [deleteTarget, setDeleteTarget] = useState<{
@@ -200,6 +204,11 @@ export default withPageAuthRequired(function Portfolios({
             onCurrencyChange={setDisplayCurrency}
             onImportClick={handleImportClick}
             onShareClick={handleShareClick}
+            onConsolidateClick={
+              activePortfolios.length > 1
+                ? () => setShowConsolidate(true)
+                : undefined
+            }
             onCorporateActions={setCorporateActionsPortfolio}
             onDelete={setDeleteTarget}
           />
@@ -242,6 +251,15 @@ export default withPageAuthRequired(function Portfolios({
           preSelectedPortfolioId={sharePortfolioId}
           onClose={() => setSharePortfolioId(null)}
           onSuccess={() => setSharePortfolioId(null)}
+        />
+      )}
+      {showConsolidate && (
+        <ConsolidatePortfoliosDialog
+          portfolios={activePortfolios}
+          onClose={() => setShowConsolidate(false)}
+          onComplete={async () => {
+            await mutate()
+          }}
         />
       )}
       {deleteTarget && (

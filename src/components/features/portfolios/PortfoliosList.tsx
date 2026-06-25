@@ -17,6 +17,7 @@ interface PortfoliosListProps {
   onCurrencyChange: (currency: Currency) => void
   onImportClick: () => void
   onShareClick: (portfolioId?: string) => void
+  onConsolidateClick?: () => void
   onCorporateActions: (portfolio: Portfolio) => void
   onDelete: (target: { id: string; code: string }) => void
   isInactiveTab?: boolean
@@ -157,6 +158,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
   onCurrencyChange,
   onImportClick,
   onShareClick,
+  onConsolidateClick,
   onCorporateActions,
   onDelete,
   isInactiveTab = false,
@@ -344,6 +346,7 @@ const PortfoliosList: React.FC<PortfoliosListProps> = ({
               <PortfolioActions
                 onImportClick={onImportClick}
                 onShareClick={() => onShareClick()}
+                onConsolidateClick={onConsolidateClick}
               />
             </div>
 
