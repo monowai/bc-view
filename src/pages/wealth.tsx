@@ -225,7 +225,12 @@ function WealthDashboard(): React.ReactElement {
     return errorOut("Error retrieving portfolios", portfolioError)
   }
 
-  if (portfolioLoading || !fxReady) {
+  // Wait for aggregated holdings too: customAssetTotals' double-count guard
+  // keys off portfolioAssetIds (derived from holdings). Rendering before
+  // holdings arrive counts a composite (e.g. CPF) that the portfolio already
+  // includes, so the headline value flickers high then corrects down once
+  // holdings load. Gating here renders the final value once.
+  if (portfolioLoading || !fxReady || holdingsLoading) {
     return rootLoader("Loading...")
   }
 
