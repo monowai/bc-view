@@ -3,7 +3,8 @@ import Link from "next/link"
 import { Currency, Portfolio } from "types/beancounter"
 import { FormatValue } from "@components/ui/MoneyUtils"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
-import { solePortfolio } from "@lib/user/zenMode"
+import { useUserPreferences } from "@contexts/UserPreferencesContext"
+import { deriveZenModeFromPreferences, solePortfolio } from "@lib/user/zenMode"
 import { WealthSummary, LIQUIDITY_COLORS } from "@lib/wealth/liquidityGroups"
 
 interface WealthHeroSectionProps {
@@ -24,6 +25,12 @@ const WealthHeroSection: React.FC<WealthHeroSectionProps> = ({
   onShareClick,
 }) => {
   const { hideValues } = usePrivacyMode()
+  const { preferences } = useUserPreferences()
+
+  // Zen mode (single portfolio): the portfolio list and the "across N
+  // portfolios" count are noise — there's nothing to compare or navigate to.
+  // Hide the entry points only; the /portfolios route stays reachable.
+  const zenMode = deriveZenModeFromPreferences(portfolios.length, preferences)
 
   // Net worth is the sum across every contributing portfolio. Clicking it
   // drills in:
@@ -107,10 +114,12 @@ const WealthHeroSection: React.FC<WealthHeroSectionProps> = ({
             </span>
           )}
         </div>
-        <p className="text-white/80 text-sm mt-1">
-          Across {summary.portfolioCount} portfolio
-          {summary.portfolioCount !== 1 ? "s" : ""}
-        </p>
+        {!zenMode && (
+          <p className="text-white/80 text-sm mt-1">
+            Across {summary.portfolioCount} portfolio
+            {summary.portfolioCount !== 1 ? "s" : ""}
+          </p>
+        )}
         {summary.healthcareReserve > 0 && (
           <p
             className="text-white/70 text-sm mt-1"
@@ -168,16 +177,20 @@ const WealthHeroSection: React.FC<WealthHeroSectionProps> = ({
 
       {/* Navigation links */}
       <div className="flex items-center gap-1 px-8 pb-5">
-        <Link
-          href="/portfolios"
-          className="text-sky-300 hover:text-sky-200 hover:bg-white/15 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
-          title="Portfolios"
-        >
-          <i className="fas fa-chart-pie text-sm text-white"></i>
-          <span className="text-xs font-medium hidden sm:inline">
-            Portfolios
-          </span>
-        </Link>
+        {/* Portfolios list — hidden in zen mode (a single portfolio has no
+            list to browse). Route stays reachable directly. */}
+        {!zenMode && (
+          <Link
+            href="/portfolios"
+            className="text-sky-300 hover:text-sky-200 hover:bg-white/15 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
+            title="Portfolios"
+          >
+            <i className="fas fa-chart-pie text-sm text-white"></i>
+            <span className="text-xs font-medium hidden sm:inline">
+              Portfolios
+            </span>
+          </Link>
+        )}
         <Link
           href="/rebalance/wizard"
           className="text-emerald-300 hover:text-emerald-200 hover:bg-white/15 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
