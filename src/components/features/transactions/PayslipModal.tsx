@@ -232,12 +232,13 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
     hasCpfAsset ? currentAge : undefined,
   )
 
-  // Show the pension box whenever the user has a CPF contribution plan and has
-  // entered a gross — don't hide it on the live recompute's verdict. The plan's
-  // existence (the CPF asset) is the signal, not whether a given salary happens
-  // to produce a defined contribution. Paired with `keepPreviousData` in
-  // useDefinedContribution, the box stays mounted across keystrokes (no flash).
-  const showPension = hasCpfAsset && grossNum > 0
+  // Show the pension box whenever the user has a CPF contribution plan — on
+  // open, before any gross is typed, not gated on the live recompute's verdict.
+  // The plan's existence (the CPF asset) is the signal; the per-bucket and
+  // total figures fill in once a gross is entered and `dc` resolves. Paired
+  // with `keepPreviousData` in useDefinedContribution, the box stays mounted
+  // across keystrokes (no flash).
+  const showPension = hasCpfAsset
 
   // Effective buckets = computed amount unless the user overrode it.
   const effectiveBuckets: DefinedContributionBucket[] = useMemo(
