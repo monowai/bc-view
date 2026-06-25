@@ -485,18 +485,9 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                         </span>
                         <span
                           className="ml-2 text-sm font-medium text-gray-900"
-                          title={trn.asset.name || getDisplayCode(trn.asset)}
+                          title={getDisplayCode(trn.asset)}
                         >
                           {getDisplayCode(trn.asset)}
-                          {trn.asset.name && (
-                            <span className="text-xs text-gray-500 ml-1">
-                              (
-                              {trn.asset.name.length > 20
-                                ? `${trn.asset.name.substring(0, 20)}...`
-                                : trn.asset.name}
-                              )
-                            </span>
-                          )}
                         </span>
                         <span className="ml-2 text-sm text-gray-500">
                           {trn.tradeCurrency.code}
@@ -717,18 +708,11 @@ export default withPageAuthRequired(function Trades(): React.ReactElement {
                         </td>
                         <td
                           className="px-4 py-3 whitespace-nowrap"
-                          title={trn.asset.name || getDisplayCode(trn.asset)}
+                          title={getDisplayCode(trn.asset)}
                         >
                           <div className="font-medium text-gray-900">
                             {getDisplayCode(trn.asset)}
                           </div>
-                          {trn.asset.name && (
-                            <div className="text-xs text-gray-500 truncate max-w-32">
-                              {trn.asset.name.length > 20
-                                ? `${trn.asset.name.substring(0, 20)}...`
-                                : trn.asset.name}
-                            </div>
-                          )}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           {trn.tradeCurrency.code}
