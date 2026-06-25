@@ -83,6 +83,14 @@ describe("WealthHeroSection — net worth links to aggregate holdings", () => {
     expect(link).toHaveAttribute("href", "/holdings/aggregated")
   })
 
+  it("drills straight to the sole portfolio's holdings in zen mode (one portfolio)", () => {
+    renderHero(makeSummary({ totalValue: 100_000, portfolioCount: 1 }), [
+      makePortfolio({ code: "MAIN" }),
+    ])
+    const link = screen.getByTitle(/holdings contributing to your net worth/i)
+    expect(link).toHaveAttribute("href", "/holdings/MAIN")
+  })
+
   it("passes the contributing portfolio codes when portfolios are present", () => {
     renderHero(makeSummary({ totalValue: 100_000, portfolioCount: 2 }), [
       makePortfolio({ code: "ALPHA" }),

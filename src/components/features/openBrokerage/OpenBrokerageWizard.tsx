@@ -8,6 +8,7 @@ import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper"
 import PortfolioModeChooser from "@components/features/openBrokerage/PortfolioModeChooser"
 import DecimalInput from "@components/ui/DecimalInput"
 import { deriveBrokerCode } from "@lib/openBrokerage/brokerCode"
+import { solePortfolioId } from "@lib/user/zenMode"
 import type { Broker, Currency, Portfolio } from "types/beancounter"
 
 type Step = "broker" | "portfolio" | "funding" | "review" | "done"
@@ -125,8 +126,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
   // stored via an effect) so it can't trigger cascading renders; an explicit
   // pick still wins. In attach mode the brokerage currency follows the chosen
   // portfolio, so a new-mode currency choice is never clobbered.
-  const soleExistingId = portfolios.length === 1 ? portfolios[0].id : ""
-  const existingId = portfolio.existingId || soleExistingId
+  const existingId = portfolio.existingId || solePortfolioId(portfolios)
   const selectedExistingPortfolio = useMemo(
     () => portfolios.find((p) => p.id === existingId),
     [portfolios, existingId],
