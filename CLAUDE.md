@@ -151,8 +151,8 @@ Rules for new code:
 - Never `@lib/utils/...` — double-`utils`; the alias already points
   inside `src/lib/utils/`.
 
-CodeRabbit gets this wrong; reject any suggestion that rewrites
-`@utils/api/*` to `@lib/api/*`.
+AI reviewers (e.g. Graphite Agent) get this wrong; reject any suggestion that
+rewrites `@utils/api/*` to `@lib/api/*`.
 
 ## API Routes
 
