@@ -100,7 +100,10 @@ describe("SubAccountTrnEditModal", () => {
     "preserves the %s transaction type on save",
     async (trnType) => {
       render(
-        <SubAccountTrnEditModal trn={makeTrn({ trnType })} onClose={jest.fn()} />,
+        <SubAccountTrnEditModal
+          trn={makeTrn({ trnType })}
+          onClose={jest.fn()}
+        />,
       )
       await screen.findByLabelText("Ordinary")
       fireEvent.click(screen.getByRole("button", { name: "Save" }))
