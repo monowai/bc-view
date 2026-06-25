@@ -3,7 +3,8 @@ import useSWR from "swr"
 import { useRouter } from "next/router"
 import Dialog from "@components/ui/Dialog"
 import Spinner from "@components/ui/Spinner"
-import { simpleFetcher } from "@utils/api/fetchHelper"
+import { simpleFetcher, accountsKey } from "@utils/api/fetchHelper"
+import { resolveBrokerCashAssetId } from "@utils/trns/tradeFormHelpers"
 import {
   parseShorthandAmount,
   hasShorthandSuffix,
@@ -14,7 +15,7 @@ import {
   ExecutionItemDto,
   PlanDto,
 } from "types/rebalance"
-import { Broker } from "types/beancounter"
+import { BrokerWithAccounts } from "types/beancounter"
 
 interface InvestCashDialogProps {
   modalOpen: boolean
@@ -66,12 +67,24 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
 
   const router = useRouter()
 
-  // Fetch brokers
+  // Fetch brokers (with settlement accounts) + the account assets, so the
+  // commit can route cash into the selected broker's own cash line.
   const { data: brokersData } = useSWR(
-    modalOpen ? "/api/brokers" : null,
-    simpleFetcher("/api/brokers"),
+    modalOpen ? "/api/brokers?includeAccounts=true" : null,
+    simpleFetcher("/api/brokers?includeAccounts=true"),
   )
-  const brokers: Broker[] = brokersData?.data || []
+  const brokers: BrokerWithAccounts[] = brokersData?.data || []
+  const { data: accountAssetsData } = useSWR(
+    modalOpen ? accountsKey : null,
+    simpleFetcher(accountsKey),
+  )
+  const accountAssets = useMemo(
+    () =>
+      accountAssetsData?.data
+        ? (Object.values(accountAssetsData.data) as any[])
+        : [],
+    [accountAssetsData],
+  )
 
   // Convenience: if the user has exactly one broker, pre-select it
   // when the dialog opens. Skip if user already chose (or cleared it).
@@ -238,6 +251,17 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
         }
       }
 
+      // Route settlement into the selected broker's own cash line (e.g.
+      // IBRK-USD) when resolvable; otherwise omit so the backend falls back
+      // to the generic CASH/{ccy} for the execution currency.
+      const cashAssetId =
+        resolveBrokerCashAssetId({
+          brokerId: selectedBrokerId,
+          currency: execution.currency,
+          brokers,
+          accountAssets,
+        }) ?? undefined
+
       // Commit to create transactions
       const response = await fetch(
         `/api/rebalance/executions/${execution.id}/commit`,
@@ -248,6 +272,7 @@ const InvestCashDialog: React.FC<InvestCashDialogProps> = ({
             portfolioId: portfolioId,
             transactionStatus,
             brokerId: selectedBrokerId,
+            cashAssetId,
           }),
         },
       )
