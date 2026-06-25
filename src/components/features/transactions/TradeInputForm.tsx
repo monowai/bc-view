@@ -556,16 +556,18 @@ const TradeInputForm: React.FC<{
   ])
 
   // Auto-select the broker when there's only one — nothing to choose, and it
-  // lets the broker's settlement account resolve without a manual pick. Only
-  // on create (never override an edited trn) and only while the field is
-  // empty, so an explicit "-- No broker --" choice is respected.
+  // lets the broker's settlement account resolve without a manual pick. Fires
+  // once (guarded by a ref) so that a later explicit "-- No broker --" choice
+  // sticks instead of being re-filled. Create-mode only — never an edited trn.
+  const brokerAutoSelectedRef = useRef(false)
   useEffect(() => {
+    if (brokerAutoSelectedRef.current || isEditMode) return
     if (
-      !isEditMode &&
       acceptsBroker(type?.value) &&
       brokers.length === 1 &&
       !watch("brokerId")
     ) {
+      brokerAutoSelectedRef.current = true
       setValue("brokerId", brokers[0].id)
     }
   }, [isEditMode, type?.value, brokers, setValue, watch])
