@@ -32,10 +32,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "yarn"
@@ -44,7 +44,7 @@ jobs:
         run: yarn install --frozen-lockfile --prefer-offline --network-concurrency 8
 
       - name: Restore Jest cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: .jest-cache
           key: jest-cache-${{ hashFiles('yarn.lock') }}
@@ -80,10 +80,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "yarn"
@@ -105,7 +105,7 @@ jobs:
       # AFTER the secret was added, leaving the browser bundle with an undefined DSN.
       # Routine yarn.lock / next.config.js changes still benefit from partial restore.
       - name: Restore Next.js build cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: .next/cache
           key: nextjs-cache-${{ hashFiles('.github/workflows/build.yml') }}-${{ hashFiles('yarn.lock', 'next.config.js') }}
@@ -179,7 +179,7 @@ jobs:
       # Artifact handoff to the docker job — gated on the same condition as the
       # docker job itself so PR builds (where docker doesn't run) don't pay any
       # storage cost. include-hidden-files: true is REQUIRED — without it,
-      # actions/upload-artifact@v6 silently drops .next/ (dot-prefixed paths are
+      # actions/upload-artifact@v7 silently drops .next/ (dot-prefixed paths are
       # treated as "hidden") and the Docker job's "use pre-built .next" branch
       # falls into the rebuild path. The Dockerfile's post-build DSN guard runs
       # against the final .next regardless of which path produced it, so this
@@ -188,7 +188,7 @@ jobs:
         if: |
           (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
           (github.event_name == 'workflow_dispatch' && inputs.build_image)
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: build-output
           path: |
@@ -218,10 +218,10 @@ jobs:
             runner: ubuntu-24.04-arm
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: build-output
 
@@ -240,10 +240,10 @@ jobs:
           done
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Login to Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.CONTAINER_REGISTRY }}
           username: ${{ github.actor }}
@@ -258,7 +258,7 @@ jobs:
           echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           platforms: ${{ matrix.platform }}
@@ -296,7 +296,7 @@ jobs:
       packages: write
     steps:
       - name: Login to Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.CONTAINER_REGISTRY }}
           username: ${{ github.actor }}
