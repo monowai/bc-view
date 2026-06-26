@@ -5,9 +5,30 @@ import {
 } from "@components/ui/SkeletonLoader"
 import { useRouter } from "next/router"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
-import useSwr from "swr"
-import { simpleFetcher, portfoliosKey } from "@utils/api/fetchHelper"
+import useSwr, { mutate as globalMutate } from "swr"
+import dynamic from "next/dynamic"
+import {
+  simpleFetcher,
+  portfoliosKey,
+  ccyKey,
+  categoriesKey,
+} from "@utils/api/fetchHelper"
+import {
+  USER_ASSET_CATEGORIES,
+  type CategoryOption,
+  type SectorInfo,
+  type SectorOption,
+} from "@components/features/accounts/accountTypes"
+import { currencyOptions } from "@lib/currency"
 import { errorOut } from "@components/errors/ErrorOut"
+const EditAccountDialog = dynamic(
+  () => import("@components/features/accounts/EditAccountDialog"),
+  { ssr: false },
+)
+const AdminAssetEditDialog = dynamic(
+  () => import("@components/features/admin/AdminAssetEditDialog"),
+  { ssr: false },
+)
 import { useHoldingState } from "@lib/holdings/holdingState"
 import { useHoldingsView } from "@lib/holdings/useHoldingsView"
 import {
@@ -24,6 +45,7 @@ import SetCashBalanceDialog from "@components/features/holdings/SetCashBalanceDi
 import TradeInputForm from "@components/features/transactions/TradeInputForm"
 import {
   Asset,
+  AssetCategory,
   Portfolio,
   PortfolioBreakdown,
   PortfolioBreakdownData,
@@ -236,7 +258,11 @@ function AggregatedHoldingsPage(): React.ReactElement {
   const holdingState = useHoldingState()
   const groupOptions = useGroupOptions()
   const { preferences } = useUserPreferences()
-  const { ai: canRunAi, isLoading: permsLoading } = usePermissions()
+  const {
+    ai: canRunAi,
+    admin: isAdmin,
+    isLoading: permsLoading,
+  } = usePermissions()
   const { popup: reviewPopup, showReview } = usePortfolioReview()
   // Get portfolio codes from URL query parameter
   const codes = router.query.codes as string | undefined
@@ -257,7 +283,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
     ? `${aggregatedHoldingsKey}&currency=${encodeURIComponent(reportCurrency)}`
     : aggregatedHoldingsKey
 
-  const { data, error, isLoading } = useSwr(
+  const { data, error, isLoading, mutate } = useSwr(
     aggregatedHoldingsUrl,
     simpleFetcher(aggregatedHoldingsUrl),
   )
@@ -303,6 +329,103 @@ function AggregatedHoldingsPage(): React.ReactElement {
   const handlePortfolioBreakdownClose = useCallback(() => {
     setPortfolioBreakdownData(undefined)
   }, [])
+
+  // Edit-asset state. Asset metadata is global (not portfolio-scoped), so
+  // editing works the same in the aggregate view as on a single portfolio —
+  // no target-portfolio resolution needed.
+  const [editAsset, setEditAsset] = useState<Asset | undefined>(undefined)
+  const [adminEditAsset, setAdminEditAsset] = useState<Asset | undefined>(
+    undefined,
+  )
+
+  // Lazy-fetch the same reference data as the accounts page — only after the
+  // user opens the edit dialog. Holdings is a hot path; editing is incidental.
+  const { data: ccyData } = useSwr(
+    editAsset ? ccyKey : null,
+    simpleFetcher(ccyKey),
+  )
+  const { data: categoriesData } = useSwr(
+    editAsset ? categoriesKey : null,
+    simpleFetcher(categoriesKey),
+  )
+  const { data: sectorsData } = useSwr<{ data: SectorInfo[] }>(
+    editAsset ? "/api/classifications/sectors" : null,
+    simpleFetcher("/api/classifications/sectors"),
+  )
+  const ccyOptions = ccyData?.data ? currencyOptions(ccyData.data) : []
+  const categoryOptions: CategoryOption[] = categoriesData?.data
+    ? categoriesData.data
+        .filter((cat: AssetCategory) => USER_ASSET_CATEGORIES.includes(cat.id))
+        .map((cat: AssetCategory) => ({ value: cat.id, label: cat.name }))
+    : []
+  const sectorOptions: SectorOption[] = sectorsData?.data
+    ? sectorsData.data.map((sector: SectorInfo) => ({
+        value: sector.name,
+        label: sector.name,
+      }))
+    : []
+
+  const handleEditAsset = useCallback(
+    (asset: Asset) => {
+      // PRIVATE assets are user-owned → use the existing owner-scoped dialog.
+      // Non-PRIVATE assets are public; only admins can edit those, and they
+      // go through the slim admin dialog (category / name / sector only).
+      if (asset.market?.code === "PRIVATE") {
+        setEditAsset(asset)
+      } else if (isAdmin) {
+        setAdminEditAsset(asset)
+      }
+    },
+    [isAdmin],
+  )
+
+  const handleEditAssetClose = useCallback(() => {
+    setEditAsset(undefined)
+  }, [])
+
+  const handleEditAssetSave = useCallback(
+    async (
+      assetId: string,
+      code: string,
+      name: string,
+      currency: string,
+      category: string,
+      sector?: string,
+      expectedReturnRate?: number,
+    ): Promise<void> => {
+      const response = await fetch(`/api/assets/${assetId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          market: "PRIVATE",
+          code,
+          name,
+          currency,
+          category,
+          expectedReturnRate,
+        }),
+      })
+      if (!response.ok) {
+        throw new Error("Failed to update asset")
+      }
+      if (sector) {
+        try {
+          await fetch(`/api/classifications/${assetId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sector }),
+          })
+        } catch (err) {
+          console.error("Failed to update sector classification:", err)
+        }
+      }
+      // Refresh aggregated holdings + the assets list (accounts page cache)
+      await mutate()
+      await globalMutate("/api/assets")
+      setEditAsset(undefined)
+    },
+    [mutate],
+  )
 
   // --- Aggregated trading -------------------------------------------------
   // The aggregated context portfolio is synthetic, so actions must target a
@@ -670,6 +793,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
                             onRecordExpense={handleRecordExpense}
                             onSetCashBalance={handleSetCashBalance}
                             onGoToPortfolio={handleGoToPortfolio}
+                            onEditAsset={handleEditAsset}
                           />
                           <SubTotal
                             groupBy={groupKey}
@@ -709,6 +833,7 @@ function AggregatedHoldingsPage(): React.ReactElement {
               onRecordExpense={handleRecordExpense}
               onSetCashBalance={handleSetCashBalance}
               onGoToPortfolio={handleGoToPortfolio}
+              onEditAsset={handleEditAsset}
             />
           </div>
         ) : viewMode === "heatmap" ? (
@@ -817,6 +942,27 @@ function AggregatedHoldingsPage(): React.ReactElement {
             market={cashBalanceData.market}
             assetCode={cashBalanceData.assetCode}
             assetName={cashBalanceData.assetName}
+          />
+        )}
+        {editAsset && (
+          <EditAccountDialog
+            asset={editAsset}
+            currencies={ccyOptions}
+            categories={categoryOptions}
+            sectors={sectorOptions}
+            onClose={handleEditAssetClose}
+            onSave={handleEditAssetSave}
+          />
+        )}
+        {adminEditAsset && (
+          <AdminAssetEditDialog
+            asset={adminEditAsset}
+            onClose={() => setAdminEditAsset(undefined)}
+            onSaved={async () => {
+              setAdminEditAsset(undefined)
+              await mutate()
+              await globalMutate("/api/assets")
+            }}
           />
         )}
         {reviewPopup}
