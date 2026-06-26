@@ -31,6 +31,36 @@ export function indexBreakdownByAssetId(
   return index
 }
 
+interface WeightPosition {
+  asset: { id: string }
+  moneyValues?: Record<string, { weight?: number } | undefined>
+}
+interface WeightGroup {
+  positions: WeightPosition[]
+}
+
+/**
+ * Build a lookup from asset id to its weight (as a percentage) within the
+ * AGGREGATE view, taken from the backend-computed `moneyValues[valueIn].weight`.
+ * The aggregated trade form uses this so "current weight" reflects the asset's
+ * share of the whole aggregate, not of the single portfolio the trade lands in.
+ */
+export function buildAggregateWeightByAssetId(
+  holdingGroups: Record<string, WeightGroup>,
+  valueIn: string,
+): Map<string, number> {
+  const index = new Map<string, number>()
+  for (const group of Object.values(holdingGroups)) {
+    for (const position of group.positions) {
+      const weight = position.moneyValues?.[valueIn]?.weight
+      if (typeof weight === "number") {
+        index.set(position.asset.id, weight * 100)
+      }
+    }
+  }
+  return index
+}
+
 export type TargetResolution =
   | { kind: "direct"; target: PortfolioBreakdown }
   | { kind: "choose"; options: PortfolioBreakdown[] }

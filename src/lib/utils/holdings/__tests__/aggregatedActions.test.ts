@@ -1,4 +1,8 @@
-import { indexBreakdownByAssetId, resolveTarget } from "../aggregatedActions"
+import {
+  buildAggregateWeightByAssetId,
+  indexBreakdownByAssetId,
+  resolveTarget,
+} from "../aggregatedActions"
 import { makePortfolioBreakdown } from "@test-fixtures/beancounter"
 
 describe("indexBreakdownByAssetId", () => {
@@ -28,6 +32,55 @@ describe("indexBreakdownByAssetId", () => {
       Equity: { positions: [{ asset: { id: "asset-a" } }] },
     }
     expect(indexBreakdownByAssetId(holdingGroups).has("asset-a")).toBe(false)
+  })
+})
+
+describe("buildAggregateWeightByAssetId", () => {
+  it("maps asset id to its aggregate weight as a percentage", () => {
+    const holdingGroups = {
+      Equity: {
+        positions: [
+          {
+            asset: { id: "asset-a" },
+            moneyValues: { PORTFOLIO: { weight: 0.0011 } },
+          },
+          {
+            asset: { id: "asset-b" },
+            moneyValues: { PORTFOLIO: { weight: 0.25 } },
+          },
+        ],
+      },
+    }
+
+    const index = buildAggregateWeightByAssetId(holdingGroups, "PORTFOLIO")
+
+    expect(index.get("asset-a")).toBeCloseTo(0.11)
+    expect(index.get("asset-b")).toBeCloseTo(25)
+  })
+
+  it("reads the weight for the requested valueIn", () => {
+    const holdingGroups = {
+      Equity: {
+        positions: [
+          {
+            asset: { id: "asset-a" },
+            moneyValues: { PORTFOLIO: { weight: 0.1 }, BASE: { weight: 0.2 } },
+          },
+        ],
+      },
+    }
+    expect(
+      buildAggregateWeightByAssetId(holdingGroups, "BASE").get("asset-a"),
+    ).toBeCloseTo(20)
+  })
+
+  it("skips positions with no weight for the valueIn", () => {
+    const holdingGroups = {
+      Equity: { positions: [{ asset: { id: "asset-a" }, moneyValues: {} }] },
+    }
+    expect(
+      buildAggregateWeightByAssetId(holdingGroups, "PORTFOLIO").has("asset-a"),
+    ).toBe(false)
   })
 })
 

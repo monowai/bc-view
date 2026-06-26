@@ -11,6 +11,7 @@ import { errorOut } from "@components/errors/ErrorOut"
 import { useHoldingState } from "@lib/holdings/holdingState"
 import { useHoldingsView } from "@lib/holdings/useHoldingsView"
 import {
+  buildAggregateWeightByAssetId,
   indexBreakdownByAssetId,
   resolveTarget,
 } from "@lib/holdings/aggregatedActions"
@@ -328,6 +329,16 @@ function AggregatedHoldingsPage(): React.ReactElement {
     }
     return map
   }, [holdings])
+  // Each asset's weight within the aggregate, so the trade form shows the
+  // aggregate weight rather than the position's weight in its source portfolio.
+  const aggregateWeightByAssetId = useMemo(
+    () =>
+      buildAggregateWeightByAssetId(
+        holdings?.holdingGroups ?? {},
+        holdingState.valueIn.value,
+      ),
+    [holdings, holdingState.valueIn.value],
+  )
 
   // Trade modal bound to the resolved portfolio
   const [tradePortfolio, setTradePortfolio] = useState<Portfolio | undefined>(
@@ -336,6 +347,10 @@ function AggregatedHoldingsPage(): React.ReactElement {
   const [quickSellData, setQuickSellData] = useState<QuickSellData | undefined>(
     undefined,
   )
+  // Aggregate weight basis for the trade form (current weight + slider denominator)
+  const [tradeWeight, setTradeWeight] = useState<
+    { currentWeight: number | null; marketValue: number } | undefined
+  >(undefined)
   // Set-balance dialog bound to the resolved portfolio
   const [cashPortfolio, setCashPortfolio] = useState<Portfolio | undefined>(
     undefined,
@@ -391,10 +406,17 @@ function AggregatedHoldingsPage(): React.ReactElement {
           // Selling acts on the chosen portfolio's holding, not the aggregate.
           const quantity = type === "SELL" ? row.quantity : data.quantity
           setQuickSellData({ ...data, type, quantity })
+          // Weight is expressed against the aggregate, not the source portfolio.
+          setTradeWeight({
+            currentWeight: data.assetId
+              ? (aggregateWeightByAssetId.get(data.assetId) ?? null)
+              : null,
+            marketValue: holdings?.viewTotals.marketValue ?? 0,
+          })
         },
       )
     },
-    [withTargetPortfolio],
+    [withTargetPortfolio, aggregateWeightByAssetId, holdings],
   )
 
   const handleTrade = useCallback(
@@ -781,6 +803,8 @@ function AggregatedHoldingsPage(): React.ReactElement {
             modalOpen={true}
             setModalOpen={handleTradeClose}
             initialValues={quickSellData}
+            weightBasisMarketValue={tradeWeight?.marketValue}
+            currentWeightOverride={tradeWeight?.currentWeight}
           />
         )}
         {cashBalanceData && cashPortfolio && (
