@@ -6,11 +6,14 @@ import Spinner from "@components/ui/Spinner"
 interface PortfolioActionsProps {
   onImportClick: () => void
   onShareClick: () => void
+  // Present only when consolidation is possible (more than one portfolio).
+  onConsolidateClick?: () => void
 }
 
 const PortfolioActions = ({
   onImportClick,
   onShareClick,
+  onConsolidateClick,
 }: PortfolioActionsProps): React.ReactElement => {
   const router = useRouter()
   const [isExporting, setIsExporting] = useState(false)
@@ -48,6 +51,16 @@ const PortfolioActions = ({
         <i className="fas fa-upload mr-2"></i>
         {"Import"}
       </button>
+      {onConsolidateClick && (
+        <button
+          className="hidden md:flex bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600 transition-colors items-center"
+          onClick={onConsolidateClick}
+          title="Move one portfolio's transactions into another and remove it"
+        >
+          <i className="fas fa-object-group mr-2"></i>
+          {"Consolidate"}
+        </button>
+      )}
       <button
         className="hidden md:flex bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition-colors items-center"
         onClick={onShareClick}
