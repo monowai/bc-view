@@ -17,7 +17,6 @@ import ReviewStep from "./steps/ReviewStep"
 import CompleteStep from "./steps/CompleteStep"
 import IndependencePlanStep from "./steps/IndependencePlanStep"
 import BrokerageStep from "./steps/BrokerageStep"
-import type { SourceValue } from "./steps/BrokerageStep"
 import { type PortfolioMode } from "@components/features/openBrokerage/PortfolioModeChooser"
 import { openBrokerage } from "@lib/openBrokerage/orchestrate"
 import { buildBrokerageFunding } from "@lib/openBrokerage/buildBrokerageFunding"
@@ -156,12 +155,12 @@ const OnboardingWizard: React.FC = () => {
   // Brokerage step (optional, post-default-portfolio creation)
   const [brokerageEnabled, setBrokerageEnabled] = useState(false)
   const [brokerageBrokerName, setBrokerageBrokerName] = useState("")
-  const [brokerageSource, setBrokerageSource] = useState<SourceValue>("")
-  const [brokerageAmount, setBrokerageAmount] = useState("")
-  const [brokerageCurrency, setBrokerageCurrency] = useState("")
+  // Currencies the user expects to trade — one per-broker cash account + default
+  // settlement mapping is opened for each. Opening balances are recorded later.
+  const [brokerageCurrencies, setBrokerageCurrencies] = useState<string[]>([])
   // Zen vs Master for the brokerage. Default to Zen — attach to the default
   // portfolio created during onboarding (the single-pot path). Master gives
-  // the brokerage its own dedicated portfolio + opening deposit.
+  // the brokerage its own dedicated portfolio.
   const [brokeragePortfolioMode, setBrokeragePortfolioMode] =
     useState<PortfolioMode>("existing")
   const [brokerageCreated, setBrokerageCreated] = useState(false)
@@ -655,10 +654,7 @@ const OnboardingWizard: React.FC = () => {
       }
       setCreatedPortfolioId(portfolioId ?? null)
 
-      // Create assets if any. The returned bankAccountAssetIds map is
-      // used below to wire the optional brokerage step's source to a
-      // specific bank-account asset.
-      let bankAccountAssetIds: Record<string, string> = {}
+      // Create assets if any (bank accounts, properties, pensions, insurances).
       if (
         portfolioId &&
         (bankAccounts.length > 0 ||
@@ -666,8 +662,7 @@ const OnboardingWizard: React.FC = () => {
           pensions.length > 0 ||
           insurances.length > 0)
       ) {
-        const created = await createAssets(portfolioId)
-        bankAccountAssetIds = created.bankAccountAssetIds
+        await createAssets(portfolioId)
       }
 
       // Trigger portfolio valuation by fetching holdings
@@ -752,24 +747,24 @@ const OnboardingWizard: React.FC = () => {
       // Zen Mode attaches the brokerage to the default portfolio just created
       // above; Master Mode gives it a new dedicated portfolio.
       const isZen = brokeragePortfolioMode === "existing"
+      // Currencies the user expects to trade — fall back to base currency so a
+      // broker is never registered with zero settlement accounts.
+      const brokerageCcys =
+        brokerageCurrencies.length > 0 ? brokerageCurrencies : [baseCurrency]
       if (brokerageEnabled && brokerageBrokerName.trim() && portfolioId) {
-        const amt = parseFloat(brokerageAmount)
         try {
           // Brokerage gets its own dedicated portfolio (named after the
           // broker) so its cash + future trades stay separate from the
-          // user's day-to-day bank-account portfolio. Source still
-          // resolves to a bank-account asset on the default portfolio
-          // when the user picked one, so a paired WITHDRAWAL hits the
-          // right line.
+          // user's day-to-day bank-account portfolio.
           const brokerName = brokerageBrokerName.trim()
           // Abbreviated code (Interactive Brokers → IB) for the portfolio
           // code; the display name keeps the full broker name.
           const brokerCode = deriveBrokerCode(brokerName)
-          // Currency the user picked next to the broker name (step 6); falls
-          // back to baseCurrency if untouched. Drives the brokerage cash
-          // account code ({brokerCode}-{ccy}). `base` stays the user's overall
-          // base currency for consolidated reporting upstream.
-          const brokerageCcy = brokerageCurrency || baseCurrency
+          // First picked currency is the dedicated portfolio's reporting
+          // currency; the portfolio still holds every selected currency's cash
+          // line. `base` stays the user's overall base for consolidated
+          // reporting upstream.
+          const brokerageCcy = brokerageCcys[0] || baseCurrency
           // Portfolio code used for the brokerage — Zen reuses the default
           // portfolio's code, Master coins a new one from the broker. Drives
           // both the openBrokerage payload and the post-create valuation fetch
@@ -791,19 +786,10 @@ const OnboardingWizard: React.FC = () => {
                   currency: brokerageCcy,
                   base: baseCurrency,
                 },
-            // Always open the broker's cash account (e.g. IB-USD) in the
-            // chosen currency so its settlement mapping exists — even in Zen
-            // mode or with a zero opening deposit. The opening deposit + source
-            // (Master-only; the Zen step hides them) only post a trn when
-            // amount > 0.
-            funding: buildBrokerageFunding({
-              isZen,
-              currency: brokerageCcy,
-              amount: amt,
-              source: brokerageSource,
-              defaultPortfolioId: portfolioId,
-              bankAccountAssetIds,
-            }),
+            // Open one broker cash account (e.g. IB-USD) per selected currency
+            // so its settlement mapping exists — Zen or Master. Opening balances
+            // are recorded later, so every row is amount 0 (no trn posted).
+            funding: buildBrokerageFunding(brokerageCcys),
           })
           setBrokerageCreated(true)
           // Trigger valuation for the new brokerage portfolio (same as we
@@ -925,29 +911,24 @@ const OnboardingWizard: React.FC = () => {
           <BrokerageStep
             enabled={brokerageEnabled}
             brokerName={brokerageBrokerName}
-            source={brokerageSource}
-            amount={brokerageAmount}
-            currency={brokerageCurrency || baseCurrency || "USD"}
+            currencies={brokerageCurrencies}
             currencyCodes={
               currencies.length > 0
                 ? currencies.map((c) => c.code)
                 : [baseCurrency || "USD"]
             }
-            existingPortfolios={existingPortfolios}
-            bankAccounts={bankAccounts}
             defaultPortfolioName={portfolioName}
             portfolioMode={brokeragePortfolioMode}
-            onEnabledChange={setBrokerageEnabled}
-            onBrokerNameChange={setBrokerageBrokerName}
-            onSourceChange={setBrokerageSource}
-            onAmountChange={setBrokerageAmount}
-            onCurrencyChange={(c) => {
-              setBrokerageCurrency(c)
-              // The source dropdown filters to same-currency options, so a
-              // previously-picked source no longer matches — clear it to avoid
-              // a stale cross-currency WITHDRAWAL against the wrong line.
-              setBrokerageSource("")
+            onEnabledChange={(v) => {
+              setBrokerageEnabled(v)
+              // Seed the user's base currency so enabling the step always has at
+              // least one account to open; they can add/remove from there.
+              if (v && brokerageCurrencies.length === 0 && baseCurrency) {
+                setBrokerageCurrencies([baseCurrency])
+              }
             }}
+            onBrokerNameChange={setBrokerageBrokerName}
+            onCurrenciesChange={setBrokerageCurrencies}
             onPortfolioModeChange={setBrokeragePortfolioMode}
           />
         )

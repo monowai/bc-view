@@ -520,7 +520,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
         <div className="space-y-4">
           <p className="text-sm text-gray-600">
             {
-              "Add a cash account for each currency you'll hold in this brokerage. Nothing is opened by default — add only what you need, with an optional opening deposit to seed cash now."
+              "Add a cash account for each currency you expect to trade. Each becomes the broker's default settlement account for that currency. Nothing is opened by default — add only what you need, with an optional opening deposit to seed cash now."
             }
           </p>
 

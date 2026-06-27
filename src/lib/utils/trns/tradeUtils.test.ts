@@ -416,6 +416,40 @@ describe("TradeUtils", () => {
     expect(result).toContain("Buy USD/Sell SGD")
   })
 
+  test("FX buy with no buy-side market falls back to CASH, not the sell market", () => {
+    // User leaves the default Buy Currency (no market set) and sells from a
+    // PRIVATE bank account. The buy side must still resolve to a CASH balance —
+    // falling back to the sell market produced a phantom PRIVATE/USD equity
+    // asset and no USD balance appeared.
+    const data: TradeFormData = {
+      type: { value: "FX", label: "FX" },
+      asset: "DBS-SGD",
+      market: "PRIVATE", // Sell side market
+      tradeDate: "2026-06-27",
+      quantity: 5000, // Sell SGD
+      price: 1,
+      tradeCurrency: {
+        value: "SGD",
+        label: "SGD",
+        currency: "SGD",
+        market: "PRIVATE",
+      },
+      cashCurrency: {
+        value: "USD", // Default buy option — note: NO market field
+        label: "USD",
+        currency: "USD",
+      },
+      cashAmount: 3863.39, // Buy USD
+      fees: 0,
+      tax: 0,
+      comments: undefined,
+    }
+    const result = getCashRow(data)
+
+    // Must be CASH, not the sell side's PRIVATE.
+    expect(result).toContain("FX_BUY,CASH,USD,,DBS-SGD,SGD,")
+  })
+
   test("tradeCurrency defaults to cashCurrency if missing", () => {
     const data: TradeFormData = {
       type: { value: "DIVI", label: "Dividend" },
