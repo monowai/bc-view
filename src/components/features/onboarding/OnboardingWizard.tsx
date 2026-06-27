@@ -21,6 +21,7 @@ import { type PortfolioMode } from "@components/features/openBrokerage/Portfolio
 import { openBrokerage } from "@lib/openBrokerage/orchestrate"
 import { buildBrokerageFunding } from "@lib/openBrokerage/buildBrokerageFunding"
 import { deriveBrokerCode } from "@lib/openBrokerage/brokerCode"
+import { saveOnboardingExpenses } from "@lib/onboarding/saveIndependenceExpenses"
 import { useRegistration } from "@contexts/RegistrationContext"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import Spinner from "@components/ui/Spinner"
@@ -729,6 +730,24 @@ const OnboardingWizard: React.FC = () => {
           })
           if (planResponse.ok) {
             setIndependencePlanCreated(true)
+            // Persist the lump-sum retirement expenses as a categorised
+            // plan_expense row so the new plan opens with a real expense line.
+            try {
+              const planBody = await planResponse.json()
+              const planId = planBody?.data?.id
+              if (planId) {
+                await saveOnboardingExpenses(
+                  planId,
+                  independenceMonthlyExpenses,
+                  baseCurrency,
+                )
+              }
+            } catch (expenseErr) {
+              console.warn(
+                "Failed to save onboarding retirement expenses:",
+                expenseErr,
+              )
+            }
           } else {
             console.warn("Failed to create independence plan")
           }
