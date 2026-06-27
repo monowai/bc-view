@@ -30,32 +30,6 @@ const PortfolioModeChooser: React.FC<PortfolioModeChooserProps> = ({
       <legend className="sr-only">Choose how to track this brokerage</legend>
 
       <label
-        className={`flex items-start gap-3 rounded-xl border p-4 cursor-pointer transition-colors ${
-          mode === "new"
-            ? "border-blue-300 bg-blue-50/50 ring-1 ring-blue-300"
-            : "border-gray-200 hover:border-gray-300"
-        }`}
-      >
-        <input
-          type="radio"
-          name="portfolio-mode"
-          className="mt-1"
-          checked={mode === "new"}
-          onChange={() => onSelect("new")}
-        />
-        <span className="flex-1">
-          <span className="block font-medium text-gray-900">
-            Create a new portfolio for this brokerage
-          </span>
-          <span className="block text-sm text-gray-500 mt-1 leading-relaxed">
-            Its own space with its own objectives, kept apart from your
-            non-investment assets — cash, savings, property. Choose this when
-            you want to judge the brokerage on its own goals.
-          </span>
-        </span>
-      </label>
-
-      <label
         className={`flex items-start gap-3 rounded-xl border p-4 transition-colors ${
           existingDisabled
             ? "border-gray-200 opacity-50 cursor-not-allowed"
@@ -74,15 +48,41 @@ const PortfolioModeChooser: React.FC<PortfolioModeChooserProps> = ({
         />
         <span className="flex-1">
           <span className="block font-medium text-gray-900">
-            Attach to an existing portfolio{" "}
+            Zen Mode — keep one portfolio{" "}
             {existingDisabled && (
               <span className="font-normal text-gray-400">(none yet)</span>
             )}
           </span>
           <span className="block text-sm text-gray-500 mt-1 leading-relaxed">
-            Fold these holdings in beside assets you already track — one
-            combined view. Choose this when you think of everything as a single
-            pot.
+            Fold this brokerage into a portfolio you already have — one combined
+            view, one number to watch. The simplest way to track everything as a
+            single pot.
+          </span>
+        </span>
+      </label>
+
+      <label
+        className={`flex items-start gap-3 rounded-xl border p-4 cursor-pointer transition-colors ${
+          mode === "new"
+            ? "border-blue-300 bg-blue-50/50 ring-1 ring-blue-300"
+            : "border-gray-200 hover:border-gray-300"
+        }`}
+      >
+        <input
+          type="radio"
+          name="portfolio-mode"
+          className="mt-1"
+          checked={mode === "new"}
+          onChange={() => onSelect("new")}
+        />
+        <span className="flex-1">
+          <span className="block font-medium text-gray-900">
+            Master Mode — a dedicated portfolio
+          </span>
+          <span className="block text-sm text-gray-500 mt-1 leading-relaxed">
+            Give this brokerage its own space with its own objectives, kept
+            apart from your other assets. Choose this when you want to judge it
+            on its own goals.
           </span>
         </span>
       </label>

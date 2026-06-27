@@ -5,10 +5,14 @@ import {
   type OpenBrokerageResult,
 } from "@lib/openBrokerage/orchestrate"
 import { ccyKey, simpleFetcher } from "@utils/api/fetchHelper"
-import PortfolioModeChooser from "@components/features/openBrokerage/PortfolioModeChooser"
 import DecimalInput from "@components/ui/DecimalInput"
 import { deriveBrokerCode } from "@lib/openBrokerage/brokerCode"
-import { solePortfolioId } from "@lib/user/zenMode"
+import {
+  deriveZenModeFromPreferences,
+  solePortfolio,
+  solePortfolioId,
+} from "@lib/user/zenMode"
+import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import type { Broker, Currency, Portfolio } from "types/beancounter"
 
 type Step = "broker" | "portfolio" | "funding" | "review" | "done"
@@ -95,12 +99,15 @@ export default function OpenBrokerageWizard(): React.ReactElement {
     newAccountNumber: "",
   })
   const [portfolio, setPortfolio] = useState<PortfolioState>({
-    mode: "new",
+    // Master users toggle this; for Zen users the effective mode is derived
+    // from their posture (see effMode below), so this is just the Master
+    // default — attach to an existing portfolio.
+    mode: "existing",
     currency: "USD",
     existingId: "",
   })
-  // Currency accounts the user flags to open + fund. Seeded with the
-  // portfolio's default currency on entry to the funding step.
+  // Currency accounts the user flags to open + fund. Starts empty — nothing is
+  // opened until the user explicitly adds a currency on the funding step.
   const [fundingRows, setFundingRows] = useState<FundingRow[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -121,30 +128,48 @@ export default function OpenBrokerageWizard(): React.ReactElement {
   const brokers = useMemo(() => brokersData?.data ?? [], [brokersData])
   const portfolios = useMemo(() => portfoliosData?.data ?? [], [portfoliosData])
 
-  // Auto-select when there's only one portfolio to pick — nothing to choose,
-  // so treat the lone portfolio as the selection. Derived during render (not
-  // stored via an effect) so it can't trigger cascading renders; an explicit
-  // pick still wins. In attach mode the brokerage currency follows the chosen
-  // portfolio, so a new-mode currency choice is never clobbered.
+  const { preferences } = useUserPreferences()
+
+  // The user's existing posture decides how the brokerage attaches:
+  //  • Zen user with a sole portfolio   → fold into it, no chooser.
+  //  • Zen user with no portfolio yet   → create their first one, coded/named
+  //    after the broker (stays single-pot).
+  //  • Master user (several portfolios) → plain attach-existing / create-new
+  //    toggle, without the Zen/Master framing.
+  const zen = deriveZenModeFromPreferences(portfolios.length, preferences)
+  const sole = solePortfolio(portfolios)
+  const masterUser = !zen
+
+  // Auto-select the sole portfolio for attach mode; an explicit pick wins.
   const existingId = portfolio.existingId || solePortfolioId(portfolios)
   const selectedExistingPortfolio = useMemo(
     () => portfolios.find((p) => p.id === existingId),
     [portfolios, existingId],
   )
-  const existingCurrency =
-    selectedExistingPortfolio?.currency?.code ?? portfolio.currency
-  const effectiveCurrency =
-    portfolio.mode === "existing" ? existingCurrency : portfolio.currency
 
-  // The new brokerage portfolio takes its identity from the broker: code is
-  // the abbreviated broker code (Interactive Brokers → IB), the display name
-  // appends "Portfolio". Mirrors the onboarding flow so the two surfaces match.
+  // The new brokerage portfolio takes its identity from the broker: code is the
+  // abbreviated broker code (Interactive Brokers → IB). Master mode appends
+  // "Portfolio"; a zero-portfolio Zen user's first portfolio is named after the
+  // broker outright.
   const brokerName =
     broker.mode === "new"
       ? broker.newName.trim()
       : (brokers.find((b) => b.id === broker.existingId)?.name ?? "")
   const derivedCode = deriveBrokerCode(brokerName)
   const derivedName = brokerName ? `${brokerName} Portfolio` : ""
+
+  // Effective portfolio decision after applying the zen posture. Zen+sole folds
+  // into the lone portfolio; Zen+none creates the first portfolio; Master lets
+  // the user toggle existing-vs-new.
+  const effMode: "existing" | "new" =
+    zen && sole ? "existing" : zen && !sole ? "new" : portfolio.mode
+  const newPortfolioName = zen && !sole ? brokerName : derivedName
+
+  const existingCurrency =
+    selectedExistingPortfolio?.currency?.code ?? portfolio.currency
+  const effectiveCurrency =
+    effMode === "existing" ? existingCurrency : portfolio.currency
+
   const currencyCodes = useMemo(() => {
     const codes = currenciesData?.data?.map((c) => c.code)
     return codes && codes.length > 0 ? codes : FALLBACK_CURRENCIES
@@ -155,36 +180,19 @@ export default function OpenBrokerageWizard(): React.ReactElement {
       ? !!broker.existingId
       : broker.newName.trim().length > 0
   const portfolioValid =
-    portfolio.mode === "existing" ? !!existingId : derivedCode.length > 0
+    effMode === "existing" ? !!existingId : derivedCode.length > 0
 
   const back = (): void => {
     const i = STEP_ORDER.indexOf(step as Exclude<Step, "done">)
     if (i > 0) setStep(STEP_ORDER[i - 1])
   }
 
-  // Seed the funding step with the portfolio's default currency the first
-  // time the user lands on it, so there's always one account ready to fund.
-  const seedFundingRows = (): void => {
-    setFundingRows((rows) => {
-      // Re-seed when there's nothing yet, or when the only row is the lone
-      // untouched default — so changing the portfolio currency (then returning
-      // to funding) refreshes that single row instead of leaving it stale.
-      // Once the user has added a second currency or typed an amount, their
-      // selection is preserved as-is (a deliberate multi-currency choice must
-      // survive a Back/Next round-trip, even when every row is zero-balance).
-      const onlyUntouchedDefault = rows.length === 1 && !rows[0].amount
-      return rows.length === 0 || onlyUntouchedDefault
-        ? [{ currency: effectiveCurrency, amount: 0 }]
-        : rows
-    })
-  }
-
   const advance = (): void => {
     const i = STEP_ORDER.indexOf(step as Exclude<Step, "done">)
     if (i < STEP_ORDER.length - 1) {
-      const next = STEP_ORDER[i + 1]
-      if (next === "funding") seedFundingRows()
-      setStep(next)
+      // No cash account is seeded — the funding step opens empty and the user
+      // explicitly adds each currency they want via "Add a currency account".
+      setStep(STEP_ORDER[i + 1])
     }
   }
 
@@ -216,9 +224,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
     setError(null)
     try {
       const existingCode =
-        portfolio.mode === "existing"
-          ? (selectedExistingPortfolio?.code ?? "")
-          : ""
+        effMode === "existing" ? (selectedExistingPortfolio?.code ?? "") : ""
       const res = await openBrokerage({
         broker: {
           mode: broker.mode,
@@ -227,7 +233,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
           newAccountNumber: broker.newAccountNumber || undefined,
         },
         portfolio:
-          portfolio.mode === "existing"
+          effMode === "existing"
             ? {
                 mode: "existing",
                 existingId,
@@ -237,7 +243,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
             : {
                 mode: "new",
                 code: derivedCode,
-                name: derivedName,
+                name: newPortfolioName,
                 currency: portfolio.currency,
                 base: portfolio.currency,
               },
@@ -261,7 +267,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
           {"Done — brokerage opened"}
         </h1>
         <p className="text-gray-600 mb-6">
-          {`Portfolio ${portfolio.mode === "existing" ? (selectedExistingPortfolio?.code ?? "") : derivedCode} ready. `}
+          {`Portfolio ${effMode === "existing" ? (selectedExistingPortfolio?.code ?? "") : derivedCode} ready. `}
           {result?.accountIds.length
             ? `${result.accountIds.length} currency account(s) opened. `
             : ""}
@@ -387,80 +393,124 @@ export default function OpenBrokerageWizard(): React.ReactElement {
 
       {step === "portfolio" && (
         <div className="space-y-6">
-          <PortfolioModeChooser
-            mode={portfolio.mode}
-            onSelect={(mode) => setPortfolio((prev) => ({ ...prev, mode }))}
-            existingDisabled={portfolios.length === 0}
-          />
+          {masterUser ? (
+            // Master user: plain attach-vs-create toggle, no Zen/Master cards.
+            <fieldset className="space-y-3">
+              <legend className="text-sm text-gray-700 mb-1">
+                {"How would you like to track this brokerage?"}
+              </legend>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="pf-mode"
+                  checked={portfolio.mode === "existing"}
+                  onChange={() =>
+                    setPortfolio((prev) => ({ ...prev, mode: "existing" }))
+                  }
+                />
+                <span>Attach to an existing portfolio</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="pf-mode"
+                  checked={portfolio.mode === "new"}
+                  onChange={() =>
+                    setPortfolio((prev) => ({ ...prev, mode: "new" }))
+                  }
+                />
+                <span>Create a new portfolio</span>
+              </label>
+            </fieldset>
+          ) : effMode === "existing" ? (
+            // Zen user with a sole portfolio: fold in, no chooser.
+            <p className="text-sm text-gray-600">
+              {`This brokerage folds into your portfolio "${sole?.name ?? ""}" — one combined view. Its cash lands on a per-broker line (${derivedCode || "BROKER"}-${effectiveCurrency}).`}
+            </p>
+          ) : (
+            // Zen user with no portfolio yet: create their first, named after
+            // the broker.
+            <p className="text-sm text-gray-600">
+              {`We'll create your "${brokerName || "broker"}" portfolio to hold this brokerage. Pick its currency below.`}
+            </p>
+          )}
 
           <div className="space-y-4 pt-4 border-t border-gray-100">
-            {portfolio.mode === "existing" ? (
-              <div>
-                <label
-                  htmlFor="pf-existing"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  {"Existing portfolio"}
-                </label>
-                <select
-                  id="pf-existing"
-                  value={existingId}
-                  onChange={(e) =>
-                    setPortfolio({ ...portfolio, existingId: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                >
-                  <option value="">— Select —</option>
-                  {portfolios.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} ({p.code}, {p.currency?.code})
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  {`Deposits will land on a per-broker cash line (e.g. ${broker.newName || "BROKER"}-${effectiveCurrency}) so the brokerage cash stays separate from any existing cash on this portfolio.`}
-                </p>
-              </div>
+            {effMode === "existing" ? (
+              masterUser && (
+                <div>
+                  <label
+                    htmlFor="pf-existing"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    {"Existing portfolio"}
+                  </label>
+                  <select
+                    id="pf-existing"
+                    value={existingId}
+                    onChange={(e) =>
+                      setPortfolio({
+                        ...portfolio,
+                        existingId: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  >
+                    <option value="">— Select —</option>
+                    {portfolios.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} ({p.code}, {p.currency?.code})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {`Deposits land on a per-broker cash line (e.g. ${derivedCode || "BROKER"}-${effectiveCurrency}) so the brokerage cash stays separate from any existing cash on this portfolio.`}
+                  </p>
+                </div>
+              )
             ) : (
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">
-                <p className="text-gray-500">New portfolio</p>
-                {derivedCode ? (
-                  <p className="font-medium text-gray-900">
-                    {derivedName}
-                    <span className="ml-1 font-normal text-gray-500">
-                      {`(code ${derivedCode})`}
-                    </span>
-                  </p>
-                ) : (
-                  <p className="text-gray-400">
-                    Name your broker first — the portfolio takes its name.
-                  </p>
-                )}
-              </div>
-            )}
-            {portfolio.mode === "new" && (
-              <div>
-                <label
-                  htmlFor="pf-ccy"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  {"Default Currency"}
-                </label>
-                <select
-                  id="pf-ccy"
-                  value={portfolio.currency}
-                  onChange={(e) =>
-                    setPortfolio({ ...portfolio, currency: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                >
-                  {currencyCodes.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <>
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">
+                  <p className="text-gray-500">New portfolio</p>
+                  {derivedCode ? (
+                    <p className="font-medium text-gray-900">
+                      {newPortfolioName}
+                      <span className="ml-1 font-normal text-gray-500">
+                        {`(code ${derivedCode})`}
+                      </span>
+                    </p>
+                  ) : (
+                    <p className="text-gray-400">
+                      Name your broker first — the portfolio takes its name.
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label
+                    htmlFor="pf-ccy"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    {"Default Currency"}
+                  </label>
+                  <select
+                    id="pf-ccy"
+                    value={portfolio.currency}
+                    onChange={(e) =>
+                      setPortfolio({
+                        ...portfolio,
+                        currency: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  >
+                    {currencyCodes.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
             )}
           </div>
         </div>
@@ -470,7 +520,7 @@ export default function OpenBrokerageWizard(): React.ReactElement {
         <div className="space-y-4">
           <p className="text-sm text-gray-600">
             {
-              "Open a cash account for each currency you'll hold in this brokerage. Accounts open even with a zero balance — add an opening deposit if you want to seed cash now. Remove any you don't need."
+              "Add a cash account for each currency you'll hold in this brokerage. Nothing is opened by default — add only what you need, with an optional opening deposit to seed cash now."
             }
           </p>
 
@@ -518,7 +568,9 @@ export default function OpenBrokerageWizard(): React.ReactElement {
                 htmlFor="fund-add-ccy"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                {"Add another currency account"}
+                {fundingRows.length === 0
+                  ? "Add a currency account"
+                  : "Add another currency account"}
               </label>
               <select
                 id="fund-add-ccy"
@@ -553,9 +605,9 @@ export default function OpenBrokerageWizard(): React.ReactElement {
               </dd>
               <dt className="text-gray-500">Portfolio</dt>
               <dd className="col-span-2 text-gray-900">
-                {portfolio.mode === "existing"
+                {effMode === "existing"
                   ? `${selectedExistingPortfolio?.name ?? "?"} (existing, ${effectiveCurrency})`
-                  : `${derivedCode} — ${derivedName} (new, ${portfolio.currency})`}
+                  : `${derivedCode} — ${newPortfolioName} (new, ${portfolio.currency})`}
               </dd>
               <dt className="text-gray-500">Accounts</dt>
               <dd className="col-span-2 text-gray-900">

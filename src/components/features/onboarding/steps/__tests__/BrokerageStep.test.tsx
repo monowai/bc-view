@@ -1,5 +1,5 @@
 import React from "react"
-import { render, screen, fireEvent } from "@testing-library/react"
+import { render, screen } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import BrokerageStep from "../BrokerageStep"
 import type { BrokerageStepProps } from "../BrokerageStep"
@@ -25,14 +25,12 @@ const baseProps: BrokerageStepProps = {
   bankAccounts: [],
   defaultPortfolioName: "Cash",
   portfolioMode: "new",
-  existingPortfolioId: "",
   onEnabledChange: jest.fn(),
   onBrokerNameChange: jest.fn(),
   onSourceChange: jest.fn(),
   onAmountChange: jest.fn(),
   onCurrencyChange: jest.fn(),
   onPortfolioModeChange: jest.fn(),
-  onExistingPortfolioChange: jest.fn(),
 }
 
 const renderStep = (overrides: Partial<BrokerageStepProps> = {}): void => {
@@ -40,36 +38,40 @@ const renderStep = (overrides: Partial<BrokerageStepProps> = {}): void => {
 }
 
 describe("BrokerageStep portfolio choice", () => {
-  it("new mode shows the currency picker, not the existing-portfolio selector", () => {
+  it("shows the currency picker next to the broker name in both modes", () => {
     renderStep({ portfolioMode: "new" })
-    expect(screen.getByLabelText("Default Currency")).toBeInTheDocument()
+    expect(screen.getByLabelText("Currency")).toBeInTheDocument()
+    expect(screen.getByLabelText("Broker name")).toBeInTheDocument()
+    // Shared chooser offers Zen + Master.
     expect(
-      screen.queryByLabelText("Existing portfolio"),
-    ).not.toBeInTheDocument()
-    // Shared chooser is present.
-    expect(
-      screen.getByRole("radio", {
-        name: /Create a new portfolio for this brokerage/i,
-      }),
+      screen.getByRole("radio", { name: /Master Mode/i }),
     ).toBeInTheDocument()
+    expect(screen.getByRole("radio", { name: /Zen Mode/i })).toBeInTheDocument()
   })
 
-  it("existing mode shows the existing-portfolio selector, not the currency picker", () => {
-    renderStep({ portfolioMode: "existing" })
-    const select = screen.getByLabelText("Existing portfolio")
-    expect(select).toBeInTheDocument()
+  it("surfaces the computed brokerage code and cash-account name", () => {
+    renderStep({ brokerName: "Interactive Brokers", currency: "USD" })
+    // deriveBrokerCode("Interactive Brokers") === "IB"
+    expect(screen.getByText("IB")).toBeInTheDocument()
+    expect(screen.getByText("IB-USD")).toBeInTheDocument()
+  })
+
+  it("new (Master) mode shows the new-portfolio box plus opening deposit + source", () => {
+    renderStep({ portfolioMode: "new", brokerName: "Interactive Brokers" })
     expect(
-      Array.from(select.querySelectorAll("option")).map((o) => o.textContent),
-    ).toContain("Main (MAIN, SGD)")
-    expect(screen.queryByLabelText("Default Currency")).not.toBeInTheDocument()
+      screen.getByText("Interactive Brokers Portfolio"),
+    ).toBeInTheDocument()
+    expect(screen.getByLabelText(/Opening deposit/i)).toBeInTheDocument()
+    expect(screen.getByLabelText("Source (optional)")).toBeInTheDocument()
   })
 
-  it("selecting the existing portfolio reports its id", () => {
-    const onExistingPortfolioChange = jest.fn()
-    renderStep({ portfolioMode: "existing", onExistingPortfolioChange })
-    fireEvent.change(screen.getByLabelText("Existing portfolio"), {
-      target: { value: "pf-1" },
-    })
-    expect(onExistingPortfolioChange).toHaveBeenCalledWith("pf-1")
+  it("existing (Zen) mode hides deposit + source and shows the attach note", () => {
+    renderStep({ portfolioMode: "existing", brokerName: "Interactive Brokers" })
+    expect(screen.queryByLabelText(/Opening deposit/i)).not.toBeInTheDocument()
+    expect(screen.queryByLabelText("Source (optional)")).not.toBeInTheDocument()
+    // Zen attaches to the user's main portfolio — no portfolio picker.
+    expect(
+      screen.getByText(/attaches to your main portfolio/i),
+    ).toBeInTheDocument()
   })
 })

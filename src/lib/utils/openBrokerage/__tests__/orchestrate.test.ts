@@ -173,9 +173,10 @@ describe("openBrokerage", () => {
     expect(patched).toBe(false)
   })
 
-  // Zero-balance account, new dedicated portfolio: generic CASH asset created,
-  // still no deposit.
-  test("opens a zero-balance CASH account in new mode without a deposit", async () => {
+  // Zero-balance account, new dedicated portfolio: the brokerage cash uses the
+  // per-broker PRIVATE line ({brokerCode}-{ccy}) in this mode too, so the cash
+  // shows as a broker-coded account regardless of which portfolio holds it.
+  test("opens a zero-balance per-broker PRIVATE cash account in new mode without a deposit", async () => {
     const res = await openBrokerage({
       broker: { mode: "new", newName: "IBKR" },
       portfolio: {
@@ -188,10 +189,10 @@ describe("openBrokerage", () => {
       funding: [{ currency: "USD", amount: 0 }],
     })
 
-    const cashAsset = assetPosts().find(
-      (b) => b.data?.["USD"]?.market === "CASH",
+    const privateAsset = assetPosts().find(
+      (b) => b.data?.["IBKR-USD"]?.market === "PRIVATE",
     )
-    expect(cashAsset).toBeDefined()
+    expect(privateAsset).toBeDefined()
     expect(res.accountIds).toHaveLength(1)
     expect(res.trnIds).toHaveLength(0)
   })

@@ -222,10 +222,10 @@ const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
             </div>
           </div>
 
-          {/* Section 2: My Work Scenario */}
+          {/* Section 2: Working Situation */}
           <div className="bg-gray-50 rounded-lg p-6 space-y-4">
             <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-              {"My Work Scenario"}
+              {"Working Situation"}
             </h3>
             <p className="text-xs text-gray-500">
               {

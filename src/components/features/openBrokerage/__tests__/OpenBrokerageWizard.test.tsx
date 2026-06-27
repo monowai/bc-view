@@ -126,6 +126,10 @@ describe("<OpenBrokerageWizard />", () => {
     // Step 2 — portfolio: no inputs in new mode; code + name derive from the
     // broker name entered in step 1.
     await screen.findByRole("heading", { name: /Portfolio/i })
+    // Default is Zen (attach to existing); switch to Master for a new portfolio.
+    await user.click(
+      screen.getByRole("radio", { name: /Create a new portfolio/i }),
+    )
     expect(screen.getByText(/code BNB/i)).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
@@ -165,14 +169,21 @@ describe("<OpenBrokerageWizard />", () => {
     await user.type(screen.getByLabelText(/Broker name/i), "IBKR")
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
-    // Step 2 — portfolio (new mode derives code/name from the broker)
+    // Step 2 — portfolio: Master mode derives code/name from the broker
     await screen.findByRole("heading", { name: /Portfolio/i })
+    await user.click(
+      screen.getByRole("radio", { name: /Create a new portfolio/i }),
+    )
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
-    // Step 3 — funding: enter an opening amount. No source portfolio — the
-    // funding step no longer offers one.
+    // Step 3 — funding: nothing seeded, so add a USD account then fund it. No
+    // source portfolio — the funding step no longer offers one.
     await screen.findByRole("heading", { name: /Funding|Deposit/i })
-    await user.type(screen.getByLabelText(/deposit/i), "5000")
+    await user.selectOptions(
+      screen.getByLabelText(/Add a currency account/i),
+      "USD",
+    )
+    await user.type(screen.getByLabelText(/Deposit \(USD\)/i), "5000")
     expect(screen.queryByLabelText(/Source portfolio/i)).not.toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
@@ -206,13 +217,20 @@ describe("<OpenBrokerageWizard />", () => {
     await user.type(screen.getByLabelText(/Broker name/i), "IBKR")
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
-    // Step 2 — portfolio (new mode, default currency USD)
+    // Step 2 — portfolio: Master mode, default currency USD
     await screen.findByRole("heading", { name: /Portfolio/i })
+    await user.click(
+      screen.getByRole("radio", { name: /Create a new portfolio/i }),
+    )
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
-    // Step 3 — funding: leave the seeded USD account at zero, advance with Next
-    // (not Skip) so the account still opens.
+    // Step 3 — funding: add a USD account but leave it at zero, then advance
+    // with Next (not Skip) so the account still opens.
     await screen.findByRole("heading", { name: /Funding|Deposit/i })
+    await user.selectOptions(
+      screen.getByLabelText(/Add a currency account/i),
+      "USD",
+    )
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
     // Step 4 — review + submit
@@ -254,8 +272,11 @@ describe("<OpenBrokerageWizard />", () => {
     )
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
-    // Step 2 — portfolio (new mode derives code/name from the broker)
+    // Step 2 — portfolio: Master mode derives code/name from the broker
     await screen.findByRole("heading", { name: /Portfolio/i })
+    await user.click(
+      screen.getByRole("radio", { name: /Create a new portfolio/i }),
+    )
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
     // Step 3 — skip funding
@@ -292,9 +313,7 @@ describe("<OpenBrokerageWizard />", () => {
     await screen.findByRole("heading", { name: /Portfolio/i })
     await waitFor(() =>
       expect(
-        screen.getByRole("radio", {
-          name: /Attach to an existing portfolio/i,
-        }),
+        screen.getByRole("radio", { name: /Attach to an existing portfolio/i }),
       ).not.toBeDisabled(),
     )
     await user.click(
@@ -306,9 +325,13 @@ describe("<OpenBrokerageWizard />", () => {
     )
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
-    // Step 3 — funding: standalone deposit (no source)
+    // Step 3 — funding: add a USD account + standalone deposit (no source)
     await screen.findByRole("heading", { name: /Funding|Deposit/i })
-    await user.type(screen.getByLabelText(/Deposit/i), "1000")
+    await user.selectOptions(
+      screen.getByLabelText(/Add a currency account/i),
+      "USD",
+    )
+    await user.type(screen.getByLabelText(/Deposit \(USD\)/i), "1000")
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
     // Step 4 — review + submit
@@ -351,12 +374,19 @@ describe("<OpenBrokerageWizard />", () => {
     await user.type(screen.getByLabelText(/Broker name/i), "IBKR")
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
-    // Step 2 — portfolio (new mode, default currency USD)
+    // Step 2 — portfolio: Master mode, default currency USD
     await screen.findByRole("heading", { name: /Portfolio/i })
+    await user.click(
+      screen.getByRole("radio", { name: /Create a new portfolio/i }),
+    )
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
-    // Step 3 — funding: fund the default USD account, then add + fund SGD
+    // Step 3 — funding: add + fund USD, then add + fund SGD
     await screen.findByRole("heading", { name: /Funding|Deposit/i })
+    await user.selectOptions(
+      screen.getByLabelText(/Add a currency account/i),
+      "USD",
+    )
     await user.type(screen.getByLabelText(/Deposit \(USD\)/i), "5000")
     await user.selectOptions(
       screen.getByLabelText(/Add another currency account/i),
@@ -395,6 +425,9 @@ describe("<OpenBrokerageWizard />", () => {
     await user.type(screen.getByLabelText(/Broker name/i), "IBKR")
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
     await screen.findByRole("heading", { name: /Portfolio/i })
+    await user.click(
+      screen.getByRole("radio", { name: /Create a new portfolio/i }),
+    )
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
     await screen.findByRole("heading", { name: /Funding|Deposit/i })
     await user.click(screen.getByRole("button", { name: /Skip|No deposit/i }))
@@ -421,13 +454,16 @@ describe("<OpenBrokerageWizard />", () => {
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
     await screen.findByRole("heading", { name: /Portfolio/i })
-    // New mode: code derives from the broker name → Next enabled.
+    // Master mode: code derives from the broker name → Next enabled.
+    await user.click(
+      screen.getByRole("radio", { name: /Create a new portfolio/i }),
+    )
     expect(screen.getByText(/code TB/i)).toBeInTheDocument()
     expect(
       screen.getByRole("button", { name: /Next|Continue/i }),
     ).not.toBeDisabled()
 
-    // Switch to attach-to-existing without choosing one → Next blocked.
+    // Switch to Zen (attach to existing) without choosing one → Next blocked.
     await user.click(
       screen.getByRole("radio", { name: /Attach to an existing portfolio/i }),
     )
@@ -436,8 +472,8 @@ describe("<OpenBrokerageWizard />", () => {
     ).toBeDisabled()
   })
 
-  test("auto-selects the sole existing portfolio so no manual pick is needed", async () => {
-    // Override the portfolios endpoint to return exactly one.
+  test("zen user with a sole portfolio folds in with no chooser", async () => {
+    // Override the portfolios endpoint to return exactly one → zen + sole.
     fetchMock.resetMocks()
     const onlyPf = [
       {
@@ -467,24 +503,20 @@ describe("<OpenBrokerageWizard />", () => {
     await user.type(screen.getByLabelText(/Broker name/i), "IBKR")
     await user.click(screen.getByRole("button", { name: /Next|Continue/i }))
 
-    // Switch to attach-to-existing — the lone portfolio is already selected.
+    // Zen user with a sole portfolio: no Zen/Master chooser, no picker — the
+    // brokerage just folds into the one portfolio and Next is enabled.
     await screen.findByRole("heading", { name: /Portfolio/i })
     await waitFor(() =>
       expect(
-        screen.getByRole("radio", {
-          name: /Attach to an existing portfolio/i,
-        }),
-      ).not.toBeDisabled(),
+        screen.getByText(/folds into your portfolio/i),
+      ).toBeInTheDocument(),
     )
-    await user.click(
-      screen.getByRole("radio", { name: /Attach to an existing portfolio/i }),
-    )
-
-    const select = (await screen.findByLabelText(
-      "Existing portfolio",
-    )) as HTMLSelectElement
-    await waitFor(() => expect(select.value).toBe("only-pf"))
-    // No pick required → Next is enabled straight away.
+    expect(
+      screen.queryByRole("radio", { name: /Create a new portfolio/i }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByLabelText("Existing portfolio"),
+    ).not.toBeInTheDocument()
     expect(
       screen.getByRole("button", { name: /Next|Continue/i }),
     ).not.toBeDisabled()
