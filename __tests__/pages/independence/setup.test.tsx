@@ -37,7 +37,7 @@ describe("/independence/setup", () => {
       screen.getByText(/set up your independence plan/i),
     ).toBeInTheDocument()
     expect(screen.getByText(/independence settings/i)).toBeInTheDocument()
-    expect(screen.getByText(/my work scenario/i)).toBeInTheDocument()
+    expect(screen.getByText(/working situation/i)).toBeInTheDocument()
   })
 
   test("shows date of birth and target age inputs", async () => {

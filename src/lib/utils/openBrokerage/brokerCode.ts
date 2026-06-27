@@ -24,6 +24,18 @@ const KNOWN_BROKER_CODES: Record<string, string> = {
 
 const alnum = (s: string): string => s.replace(/[^A-Za-z0-9]/g, "")
 
+/**
+ * The per-broker cash asset code: `{brokerCode}-{currency}` (e.g. `IB-USD`).
+ * Single source of truth so the onboarding/wizard preview and the asset the
+ * orchestrator actually creates can never drift apart.
+ */
+export function brokerCashAssetCode(
+  brokerCode: string,
+  currency: string,
+): string {
+  return `${brokerCode}-${currency}`
+}
+
 export function deriveBrokerCode(name: string): string {
   const trimmed = name.trim()
   if (!trimmed) return ""

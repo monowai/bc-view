@@ -81,7 +81,7 @@ function IndependenceSetupPage(): React.ReactElement {
       })
 
       const workPayload = {
-        name: "My Work Scenario",
+        name: "Working Situation",
         currency: baseCurrency,
         workingIncomeMonthly,
         workingExpensesMonthly,

@@ -4,21 +4,17 @@ import "@testing-library/jest-dom"
 import PortfolioModeChooser from "../PortfolioModeChooser"
 
 describe("PortfolioModeChooser", () => {
-  it("renders both options and the net-worth reassurance", () => {
+  it("renders both options (Zen first) and the net-worth reassurance", () => {
     render(
       <PortfolioModeChooser
-        mode="new"
+        mode="existing"
         onSelect={jest.fn()}
         existingDisabled={false}
       />,
     )
+    expect(screen.getByRole("radio", { name: /Zen Mode/i })).toBeChecked()
     expect(
-      screen.getByRole("radio", {
-        name: /Create a new portfolio for this brokerage/i,
-      }),
-    ).toBeChecked()
-    expect(
-      screen.getByRole("radio", { name: /Attach to an existing portfolio/i }),
+      screen.getByRole("radio", { name: /Master Mode/i }),
     ).not.toBeChecked()
     expect(
       screen.getByText(/totals your net worth across every portfolio/i),
@@ -29,24 +25,20 @@ describe("PortfolioModeChooser", () => {
     const onSelect = jest.fn()
     render(
       <PortfolioModeChooser
-        mode="new"
+        mode="existing"
         onSelect={onSelect}
         existingDisabled={false}
       />,
     )
-    fireEvent.click(
-      screen.getByRole("radio", { name: /Attach to an existing portfolio/i }),
-    )
-    expect(onSelect).toHaveBeenCalledWith("existing")
+    fireEvent.click(screen.getByRole("radio", { name: /Master Mode/i }))
+    expect(onSelect).toHaveBeenCalledWith("new")
   })
 
-  it("disables the existing option when there is nothing to attach to", () => {
+  it("disables the Zen (existing) option when there is nothing to attach to", () => {
     render(
       <PortfolioModeChooser mode="new" onSelect={jest.fn()} existingDisabled />,
     )
-    expect(
-      screen.getByRole("radio", { name: /Attach to an existing portfolio/i }),
-    ).toBeDisabled()
+    expect(screen.getByRole("radio", { name: /Zen Mode/i })).toBeDisabled()
     expect(screen.getByText(/\(none yet\)/i)).toBeInTheDocument()
   })
 })

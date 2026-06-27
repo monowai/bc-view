@@ -4,6 +4,10 @@ import MathInput from "@components/ui/MathInput"
 import PortfolioModeChooser, {
   type PortfolioMode,
 } from "@components/features/openBrokerage/PortfolioModeChooser"
+import {
+  deriveBrokerCode,
+  brokerCashAssetCode,
+} from "@lib/openBrokerage/brokerCode"
 import type { Portfolio } from "types/beancounter"
 import type { BankAccount } from "../OnboardingWizard"
 
@@ -38,17 +42,17 @@ export interface BrokerageStepProps {
   // bank-account line on the default portfolio.
   bankAccounts: BankAccount[]
   defaultPortfolioName: string
-  // Portfolio choice — same new-vs-existing decision as the standalone
-  // /tools/open-brokerage wizard, so onboarding behaves identically.
+  // Zen vs Master — same decision as the standalone /tools/open-brokerage
+  // wizard. Zen attaches to the user's main (default) portfolio; Master gives
+  // the brokerage its own dedicated portfolio. Opening deposit + source are
+  // Master-only — Zen is the lightweight "just register the broker" path.
   portfolioMode: PortfolioMode
-  existingPortfolioId: string
   onEnabledChange: (v: boolean) => void
   onBrokerNameChange: (v: string) => void
   onSourceChange: (v: SourceValue) => void
   onAmountChange: (v: string) => void
   onCurrencyChange: (v: string) => void
   onPortfolioModeChange: (v: PortfolioMode) => void
-  onExistingPortfolioChange: (id: string) => void
 }
 
 /**
@@ -68,14 +72,12 @@ const BrokerageStep: React.FC<BrokerageStepProps> = ({
   bankAccounts,
   defaultPortfolioName,
   portfolioMode,
-  existingPortfolioId,
   onEnabledChange,
   onBrokerNameChange,
   onSourceChange,
   onAmountChange,
   onCurrencyChange,
   onPortfolioModeChange,
-  onExistingPortfolioChange,
 }) => {
   // Filter source options to the chosen currency (same-currency v1).
   const sameCurrencyPortfolios = existingPortfolios.filter(
@@ -93,6 +95,10 @@ const BrokerageStep: React.FC<BrokerageStepProps> = ({
   const showFxNotice =
     sameCurrencyBankAccounts.length === 0 &&
     otherCurrencyBankAccounts.length > 0
+  // Abbreviated broker code (Interactive Brokers → IB) shown live so the user
+  // sees the code and the resulting cash-account name ({code}-{ccy}) they'll
+  // get before submitting.
+  const brokerCode = deriveBrokerCode(brokerName)
   return (
     <div className="py-2">
       <p className="text-gray-500 text-xs mb-3">
@@ -119,66 +125,31 @@ const BrokerageStep: React.FC<BrokerageStepProps> = ({
 
       {enabled && (
         <div className="space-y-3 max-w-md">
-          <div>
-            <label
-              htmlFor="ob-broker"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              {"Broker name"}
-            </label>
-            <input
-              id="ob-broker"
-              type="text"
-              value={brokerName}
-              onChange={(e) => onBrokerNameChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              placeholder="e.g. IBRK"
-            />
-            {portfolioMode === "new" && (
-              <p className="text-xs text-gray-500 mt-1">
-                {`A new portfolio "${brokerName || "BROKER"} Portfolio" will be created for your brokerage, keeping its cash and trades separate from your "${defaultPortfolioName}" bank-account portfolio.`}
-              </p>
-            )}
-          </div>
-
-          <PortfolioModeChooser
-            mode={portfolioMode}
-            onSelect={onPortfolioModeChange}
-            existingDisabled={existingPortfolios.length === 0}
-          />
-
-          {portfolioMode === "existing" ? (
-            <div>
+          {/* Broker name + default currency sit side by side: the currency
+              drives the brokerage cash-account code ({broker.code}-{ccy}). */}
+          <div className="flex gap-3">
+            <div className="flex-1">
               <label
-                htmlFor="ob-existing"
+                htmlFor="ob-broker"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                {"Existing portfolio"}
+                {"Broker name"}
               </label>
-              <select
-                id="ob-existing"
-                value={existingPortfolioId}
-                onChange={(e) => onExistingPortfolioChange(e.target.value)}
+              <input
+                id="ob-broker"
+                type="text"
+                value={brokerName}
+                onChange={(e) => onBrokerNameChange(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              >
-                <option value="">— Select —</option>
-                {existingPortfolios.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} ({p.code}, {p.currency?.code})
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-gray-500 mt-1">
-                {`The brokerage's cash lands on a per-broker line (e.g. ${brokerName || "BROKER"}-${currency}) so it stays separate from any existing cash on this portfolio.`}
-              </p>
+                placeholder="e.g. Interactive Brokers"
+              />
             </div>
-          ) : (
-            <div>
+            <div className="w-28">
               <label
                 htmlFor="ob-currency"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                {"Default Currency"}
+                {"Currency"}
               </label>
               <select
                 id="ob-currency"
@@ -192,78 +163,128 @@ const BrokerageStep: React.FC<BrokerageStepProps> = ({
                   </option>
                 ))}
               </select>
-              <p className="text-xs text-gray-500 mt-1">
-                {`Cash and trades in this brokerage portfolio will report in ${currency}. Picking a different currency from the bank-account source needs FX (not handled in v1 — same-currency source only).`}
-              </p>
             </div>
+          </div>
+
+          {brokerName.trim() && (
+            <p className="text-xs text-gray-500">
+              {"Brokerage code "}
+              <span className="font-mono font-medium text-gray-700">
+                {brokerCode}
+              </span>
+              {" · cash account "}
+              <span className="font-mono font-medium text-gray-700">
+                {brokerCashAssetCode(brokerCode, currency)}
+              </span>
+            </p>
           )}
 
-          <div>
-            <label
-              htmlFor="ob-amount"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              {`Opening deposit (${currency})`}
-            </label>
-            <MathInput
-              id="ob-amount"
-              value={amount}
-              onChange={(v) => onAmountChange(v === 0 ? "" : String(v))}
-              min={0}
-              placeholder="0"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            />
-          </div>
+          <PortfolioModeChooser
+            mode={portfolioMode}
+            onSelect={onPortfolioModeChange}
+            existingDisabled={false}
+          />
 
-          <div>
-            <label
-              htmlFor="ob-source"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              {"Source (optional)"}
-            </label>
-            {showFxNotice && (
-              <div className="mb-2 px-3 py-2 rounded bg-amber-50 border border-amber-200 text-xs text-amber-800">
-                {`You have bank accounts in ${otherCurrencyBankAccounts
-                  .map((b) => b.currency)
-                  .filter((c, i, a) => a.indexOf(c) === i)
-                  .join(
-                    ", ",
-                  )} but the brokerage currency is ${currency}. Cross-currency funding (FX) isn't supported yet — the opening deposit will be recorded as a standalone cash injection on the new portfolio with no matching withdrawal.`}
-              </div>
-            )}
-            <select
-              id="ob-source"
-              value={source}
-              onChange={(e) => onSourceChange(e.target.value as SourceValue)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            >
-              <option value="">— None (standalone deposit) —</option>
-              {sameCurrencyBankAccounts.length > 0 && (
-                <optgroup label={`Bank accounts on "${defaultPortfolioName}"`}>
-                  {sameCurrencyBankAccounts.map((b) => (
-                    <option key={`b-${b.name}`} value={`bankAccount:${b.name}`}>
-                      {b.name}
-                    </option>
-                  ))}
-                </optgroup>
-              )}
-              {sameCurrencyPortfolios.length > 0 && (
-                <optgroup label="Other portfolios">
-                  {sameCurrencyPortfolios.map((p) => (
-                    <option key={`p-${p.id}`} value={`portfolio:${p.id}`}>
-                      {p.name} ({p.code})
-                    </option>
-                  ))}
-                </optgroup>
-              )}
-            </select>
-            <p className="text-xs text-gray-500 mt-1">
-              {
-                "Picking a source posts a matching withdrawal so the source's cash stays accurate."
-              }
+          {portfolioMode === "existing" ? (
+            <p className="text-xs text-gray-500">
+              {`Attaches to your main portfolio ("${defaultPortfolioName}"). Trades settle to a per-broker cash line (${brokerCashAssetCode(brokerCode || "BROKER", currency)}). Want a dedicated portfolio or an opening deposit now? Switch to Master Mode.`}
             </p>
-          </div>
+          ) : (
+            <>
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">
+                <p className="text-gray-500">{"New portfolio"}</p>
+                {brokerName.trim() ? (
+                  <p className="font-medium text-gray-900">
+                    {`${brokerName} Portfolio`}
+                    <span className="ml-1 font-normal text-gray-500">
+                      {`(code ${brokerCode})`}
+                    </span>
+                  </p>
+                ) : (
+                  <p className="text-gray-400">
+                    {"Name your broker first — the portfolio takes its name."}
+                  </p>
+                )}
+                <p className="text-gray-500 mt-1">
+                  {`Kept separate from your "${defaultPortfolioName}" portfolio so its cash and trades stand on their own.`}
+                </p>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="ob-amount"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  {`Opening deposit (${currency})`}
+                </label>
+                <MathInput
+                  id="ob-amount"
+                  value={amount}
+                  onChange={(v) => onAmountChange(v === 0 ? "" : String(v))}
+                  min={0}
+                  placeholder="0"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="ob-source"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  {"Source (optional)"}
+                </label>
+                {showFxNotice && (
+                  <div className="mb-2 px-3 py-2 rounded bg-amber-50 border border-amber-200 text-xs text-amber-800">
+                    {`You have bank accounts in ${otherCurrencyBankAccounts
+                      .map((b) => b.currency)
+                      .filter((c, i, a) => a.indexOf(c) === i)
+                      .join(
+                        ", ",
+                      )} but the brokerage currency is ${currency}. Cross-currency funding (FX) isn't supported yet — the opening deposit will be recorded as a standalone cash injection on the new portfolio with no matching withdrawal.`}
+                  </div>
+                )}
+                <select
+                  id="ob-source"
+                  value={source}
+                  onChange={(e) =>
+                    onSourceChange(e.target.value as SourceValue)
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                >
+                  <option value="">— None (standalone deposit) —</option>
+                  {sameCurrencyBankAccounts.length > 0 && (
+                    <optgroup
+                      label={`Bank accounts on "${defaultPortfolioName}"`}
+                    >
+                      {sameCurrencyBankAccounts.map((b) => (
+                        <option
+                          key={`b-${b.name}`}
+                          value={`bankAccount:${b.name}`}
+                        >
+                          {b.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {sameCurrencyPortfolios.length > 0 && (
+                    <optgroup label="Other portfolios">
+                      {sameCurrencyPortfolios.map((p) => (
+                        <option key={`p-${p.id}`} value={`portfolio:${p.id}`}>
+                          {p.name} ({p.code})
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  {
+                    "Picking a source posts a matching withdrawal so the source's cash stays accurate."
+                  }
+                </p>
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>

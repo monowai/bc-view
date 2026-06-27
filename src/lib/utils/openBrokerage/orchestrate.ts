@@ -6,7 +6,10 @@
  */
 
 import type { Broker, BrokerWithAccounts } from "types/beancounter"
-import { deriveBrokerCode } from "@lib/openBrokerage/brokerCode"
+import {
+  deriveBrokerCode,
+  brokerCashAssetCode,
+} from "@lib/openBrokerage/brokerCode"
 
 // Local-date YYYY-MM-DD so tradeDate matches the user's calendar day,
 // not UTC's. `new Date().toISOString()` would mis-report the day for any
@@ -233,7 +236,7 @@ const ensureBrokerCashAsset = (
   currency: string,
 ): Promise<string> =>
   ensureAsset({
-    code: `${brokerCode}-${currency}`,
+    code: brokerCashAssetCode(brokerCode, currency),
     market: "PRIVATE",
     name: `${brokerName} ${currency} Balance`,
     currency,
@@ -305,15 +308,16 @@ export async function openBrokerage(
   // settlement account once all accounts are open.
   const settlementByCurrency: Record<string, string> = {}
   for (const account of req.funding ?? []) {
-    // Open the account regardless of balance. Attach-to-existing-portfolio
-    // path uses a per-broker PRIVATE cash asset so the brokerage cash is
-    // visible as a distinct line in the existing portfolio's holdings; the
-    // new-portfolio path uses the generic per-currency CASH asset (the
-    // portfolio itself segregates).
-    const depositAssetId =
-      req.portfolio.mode === "existing"
-        ? await ensureBrokerCashAsset(brokerCode, broker.name, account.currency)
-        : await ensureCashAsset(account.currency)
+    // Open the account regardless of balance. Both paths use a per-broker
+    // PRIVATE cash asset (e.g. `IB-USD`) so the brokerage's cash always shows
+    // as a distinct, broker-coded line — whether it's folded into an existing
+    // portfolio (Zen) or sitting in its own dedicated one (Master). Keeps the
+    // settlement default and holdings label consistent across both modes.
+    const depositAssetId = await ensureBrokerCashAsset(
+      brokerCode,
+      broker.name,
+      account.currency,
+    )
     accountIds.push(depositAssetId)
     // Last opened account for a currency is the broker's settlement default.
     settlementByCurrency[account.currency] = depositAssetId

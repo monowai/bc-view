@@ -134,7 +134,7 @@ const OnboardingWizard: React.FC = () => {
 
   // Independence plan state
   const currentYear = new Date().getFullYear()
-  const [independencePlanEnabled, setIndependencePlanEnabled] = useState(false)
+  const [independencePlanEnabled, setIndependencePlanEnabled] = useState(true)
   const [independenceYearOfBirth, setIndependenceYearOfBirth] = useState(
     currentYear - 55,
   )
@@ -158,11 +158,11 @@ const OnboardingWizard: React.FC = () => {
   const [brokerageSource, setBrokerageSource] = useState<SourceValue>("")
   const [brokerageAmount, setBrokerageAmount] = useState("")
   const [brokerageCurrency, setBrokerageCurrency] = useState("")
-  // Portfolio choice for the brokerage — mirrors the standalone wizard so
-  // onboarding can also attach the brokerage to an existing portfolio.
+  // Zen vs Master for the brokerage. Default to Zen — attach to the default
+  // portfolio created during onboarding (the single-pot path). Master gives
+  // the brokerage its own dedicated portfolio + opening deposit.
   const [brokeragePortfolioMode, setBrokeragePortfolioMode] =
-    useState<PortfolioMode>("new")
-  const [brokerageExistingId, setBrokerageExistingId] = useState("")
+    useState<PortfolioMode>("existing")
   const [brokerageCreated, setBrokerageCreated] = useState(false)
 
   // Pre-fill fields from user preferences or Auth0 profile (render-phase
@@ -690,7 +690,7 @@ const OnboardingWizard: React.FC = () => {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              name: "My Work Scenario",
+              name: "Working Situation",
               currency: baseCurrency,
               workingIncomeMonthly,
               workingExpensesMonthly,
@@ -748,16 +748,10 @@ const OnboardingWizard: React.FC = () => {
       // Use the local `portfolioId` variable (set just above), not the
       // React state `createdPortfolioId` — setState hasn't flushed inside
       // the same async function call.
-      const brokerageExistingPortfolio =
-        brokeragePortfolioMode === "existing"
-          ? existingPortfolios.find((p) => p.id === brokerageExistingId)
-          : undefined
-      if (
-        brokerageEnabled &&
-        brokerageBrokerName.trim() &&
-        portfolioId &&
-        (brokeragePortfolioMode === "new" || !!brokerageExistingPortfolio)
-      ) {
+      // Zen Mode attaches the brokerage to the default portfolio just created
+      // above; Master Mode gives it a new dedicated portfolio.
+      const isZen = brokeragePortfolioMode === "existing"
+      if (brokerageEnabled && brokerageBrokerName.trim() && portfolioId) {
         const amt = parseFloat(brokerageAmount)
         try {
           // Brokerage gets its own dedicated portfolio (named after the
@@ -770,31 +764,36 @@ const OnboardingWizard: React.FC = () => {
           // Abbreviated code (Interactive Brokers → IB) for the portfolio
           // code; the display name keeps the full broker name.
           const brokerCode = deriveBrokerCode(brokerName)
-          // Reporting currency for the brokerage portfolio. User-picked in
-          // step 7; falls back to baseCurrency if they didn't touch the
-          // dropdown. `base` stays as the user's overall base currency for
-          // consolidated reporting upstream.
-          const brokerageCcy = brokerageExistingPortfolio
-            ? (brokerageExistingPortfolio.currency?.code ?? brokerageCurrency)
-            : brokerageCurrency || baseCurrency
+          // Currency the user picked next to the broker name (step 6); falls
+          // back to baseCurrency if untouched. Drives the brokerage cash
+          // account code ({brokerCode}-{ccy}). `base` stays the user's overall
+          // base currency for consolidated reporting upstream.
+          const brokerageCcy = brokerageCurrency || baseCurrency
+          // Portfolio code used for the brokerage — Zen reuses the default
+          // portfolio's code, Master coins a new one from the broker. Drives
+          // both the openBrokerage payload and the post-create valuation fetch
+          // below so the two can't drift.
+          const usedPortfolioCode = isZen ? portfolioCode : brokerCode
           const brokerageResult = await openBrokerage({
             broker: { mode: "new", newName: brokerName },
-            portfolio: brokerageExistingPortfolio
+            portfolio: isZen
               ? {
                   mode: "existing",
-                  existingId: brokerageExistingPortfolio.id,
-                  code: brokerageExistingPortfolio.code,
+                  existingId: portfolioId,
+                  code: usedPortfolioCode,
                   currency: brokerageCcy,
                 }
               : {
                   mode: "new",
-                  code: brokerCode,
+                  code: usedPortfolioCode,
                   name: `${brokerName} Portfolio`,
                   currency: brokerageCcy,
                   base: baseCurrency,
                 },
+            // Opening deposit + source are Master-only (the Zen step hides
+            // them), so only build funding for the new-portfolio path.
             funding:
-              Number.isFinite(amt) && amt > 0
+              !isZen && Number.isFinite(amt) && amt > 0
                 ? (() => {
                     const fund: {
                       amount: number
@@ -827,7 +826,7 @@ const OnboardingWizard: React.FC = () => {
           // portfolios list shows it with no market value until the user
           // opens it.
           try {
-            const valuationCode = brokerageExistingPortfolio?.code ?? brokerCode
+            const valuationCode = usedPortfolioCode
             await fetch(`/api/holdings/${valuationCode}?asAt=${today}`, {
               credentials: "include",
             })
@@ -953,36 +952,18 @@ const OnboardingWizard: React.FC = () => {
             bankAccounts={bankAccounts}
             defaultPortfolioName={portfolioName}
             portfolioMode={brokeragePortfolioMode}
-            existingPortfolioId={brokerageExistingId}
             onEnabledChange={setBrokerageEnabled}
             onBrokerNameChange={setBrokerageBrokerName}
             onSourceChange={setBrokerageSource}
             onAmountChange={setBrokerageAmount}
-            onCurrencyChange={setBrokerageCurrency}
-            onPortfolioModeChange={(mode) => {
-              setBrokeragePortfolioMode(mode)
-              // Re-sync currency to the still-selected existing portfolio so a
-              // currency changed while in "new" mode can't leave the source
-              // filter / deposit on a stale currency.
-              if (mode === "existing" && brokerageExistingId) {
-                const pf = existingPortfolios.find(
-                  (p) => p.id === brokerageExistingId,
-                )
-                const nextCurrency = pf?.currency?.code
-                if (nextCurrency && nextCurrency !== brokerageCurrency) {
-                  setBrokerageCurrency(nextCurrency)
-                  setBrokerageSource("")
-                }
-              }
+            onCurrencyChange={(c) => {
+              setBrokerageCurrency(c)
+              // The source dropdown filters to same-currency options, so a
+              // previously-picked source no longer matches — clear it to avoid
+              // a stale cross-currency WITHDRAWAL against the wrong line.
+              setBrokerageSource("")
             }}
-            onExistingPortfolioChange={(id) => {
-              setBrokerageExistingId(id)
-              // Sync the brokerage currency to the chosen portfolio so the
-              // source filter + deposit stay same-currency (mirrors the
-              // standalone wizard).
-              const pf = existingPortfolios.find((p) => p.id === id)
-              if (pf?.currency?.code) setBrokerageCurrency(pf.currency.code)
-            }}
+            onPortfolioModeChange={setBrokeragePortfolioMode}
           />
         )
       case 7:
@@ -1016,17 +997,17 @@ const OnboardingWizard: React.FC = () => {
       title: "Set your currencies",
       lead: "Base currency tracks costs; reporting currency displays values. Default to the same one — they can differ.",
     },
-    4: {
+    3: {
       title: "Add your accounts",
       lead: "Tell us about your assets to get a complete picture of your wealth. Optional.",
     },
-    6: {
+    5: {
       title: "Quick Independence Check",
       lead: "Want to see how your finances might look in retirement? Just three quick questions.",
     },
-    7: {
+    6: {
       title: "Brokerage account",
-      lead: "Optional — set up a broker, a brokerage portfolio, and your opening cash deposit.",
+      lead: "Optional — set up a broker, attach it to a portfolio, and add an opening cash deposit.",
     },
   }
   const intro = stepIntro[currentStep]
