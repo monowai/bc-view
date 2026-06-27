@@ -28,6 +28,7 @@ import WealthPerformanceChart from "@components/features/wealth/WealthPerformanc
 import { useWealthSummary } from "@components/features/wealth/useWealthSummary"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { usePrivateAssetConfigs } from "@utils/assets/usePrivateAssetConfigs"
+import { deriveZenModeFromPreferences } from "@lib/user/zenMode"
 
 type SortConfig = {
   key: string | null
@@ -101,6 +102,7 @@ function WealthDashboard(): React.ReactElement {
     () => portfolioData?.data || [],
     [portfolioData?.data],
   )
+  const zenMode = deriveZenModeFromPreferences(portfolios.length, preferences)
 
   // Composite assets (CPF / pensions) have two cases:
   //   1. Parent trn lives in a portfolio (CompositeValuation already rolls
@@ -350,18 +352,21 @@ function WealthDashboard(): React.ReactElement {
             />
           )}
 
-          {/* Portfolio Details Table */}
-          <PortfolioDetailsTable
-            summary={summary}
-            sortConfig={sortConfig}
-            onSort={handleSort}
-            displayCurrency={displayCurrency}
-            collapsed={collapsedSections.portfolioDetails}
-            onToggle={() => toggleSection("portfolioDetails")}
-          />
+          {/* Portfolio Details Table — hidden in zen mode (a single
+              portfolio is a one-row table with nothing to compare). */}
+          {!zenMode && (
+            <PortfolioDetailsTable
+              summary={summary}
+              sortConfig={sortConfig}
+              onSort={handleSort}
+              displayCurrency={displayCurrency}
+              collapsed={collapsedSections.portfolioDetails}
+              onToggle={() => toggleSection("portfolioDetails")}
+            />
+          )}
 
           {/* Quick Actions */}
-          <QuickActionCards />
+          <QuickActionCards zenMode={zenMode} />
         </div>
       </div>
 
