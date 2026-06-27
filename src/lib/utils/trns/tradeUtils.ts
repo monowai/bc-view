@@ -281,8 +281,10 @@ export const getCashRow = (data: TradeFormData): string => {
     // come from the buy side, not tradeImport.market (the sell side). Using the
     // sell market resolved a phantom <sellMarket>/<buyCode> asset (e.g.
     // PRIVATE/USD) when buying into a different-market account, so the buy-side
-    // balance never appeared. Fall back to the sell market only if absent.
-    const buyMarket = data.cashCurrency?.market || tradeImport.market
+    // balance never appeared. When the buy option carries no market (user left
+    // the default Buy Currency), fall back to CASH — buying a currency lands in
+    // a generic cash balance — NEVER the sell market.
+    const buyMarket = data.cashCurrency?.market || "CASH"
 
     const comment = `Buy ${buyCurrency}/Sell ${sellCurrency}`
     return `${tradeImport.batchId},,FX_BUY,${buyMarket},${buyAssetCode},,${sellAssetCode},${sellCurrency},${tradeImport.tradeDate},${buyAmount},,${buyCurrency},1,${tradeImport.fees},,,-${sellAmount},${comment},${tradeImport.status},${tradeImport.brokerId}`

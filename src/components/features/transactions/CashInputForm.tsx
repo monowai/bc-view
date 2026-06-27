@@ -62,7 +62,7 @@ const defaultValues = {
   market: "CASH",
   tradeDate: new Date().toISOString().split("T")[0],
   tradeCurrency: { value: "USD", label: "USD" },
-  cashCurrency: { value: "USD", label: "USD" },
+  cashCurrency: { value: "USD", label: "USD", market: "CASH" },
   quantity: 0,
   price: 1,
   tradeAmount: 0,
