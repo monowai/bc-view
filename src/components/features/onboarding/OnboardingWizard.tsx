@@ -20,6 +20,7 @@ import BrokerageStep from "./steps/BrokerageStep"
 import type { SourceValue } from "./steps/BrokerageStep"
 import { type PortfolioMode } from "@components/features/openBrokerage/PortfolioModeChooser"
 import { openBrokerage } from "@lib/openBrokerage/orchestrate"
+import { buildBrokerageFunding } from "@lib/openBrokerage/buildBrokerageFunding"
 import { deriveBrokerCode } from "@lib/openBrokerage/brokerCode"
 import { useRegistration } from "@contexts/RegistrationContext"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
@@ -790,35 +791,19 @@ const OnboardingWizard: React.FC = () => {
                   currency: brokerageCcy,
                   base: baseCurrency,
                 },
-            // Opening deposit + source are Master-only (the Zen step hides
-            // them), so only build funding for the new-portfolio path.
-            funding:
-              !isZen && Number.isFinite(amt) && amt > 0
-                ? (() => {
-                    const fund: {
-                      amount: number
-                      currency: string
-                      sourcePortfolioId?: string
-                      sourceAssetId?: string
-                    } = { amount: amt, currency: brokerageCcy }
-                    if (brokerageSource.startsWith("portfolio:")) {
-                      fund.sourcePortfolioId = brokerageSource.slice(
-                        "portfolio:".length,
-                      )
-                    } else if (brokerageSource.startsWith("bankAccount:")) {
-                      const name = brokerageSource.slice("bankAccount:".length)
-                      const assetId = bankAccountAssetIds[name]
-                      if (assetId) {
-                        fund.sourceAssetId = assetId
-                        // Bank-account assets live on the default
-                        // portfolio, not the new brokerage portfolio
-                        // being created — pin the WITHDRAWAL there.
-                        fund.sourcePortfolioId = portfolioId
-                      }
-                    }
-                    return [fund]
-                  })()
-                : undefined,
+            // Always open the broker's cash account (e.g. IB-USD) in the
+            // chosen currency so its settlement mapping exists — even in Zen
+            // mode or with a zero opening deposit. The opening deposit + source
+            // (Master-only; the Zen step hides them) only post a trn when
+            // amount > 0.
+            funding: buildBrokerageFunding({
+              isZen,
+              currency: brokerageCcy,
+              amount: amt,
+              source: brokerageSource,
+              defaultPortfolioId: portfolioId,
+              bankAccountAssetIds,
+            }),
           })
           setBrokerageCreated(true)
           // Trigger valuation for the new brokerage portfolio (same as we
