@@ -49,7 +49,7 @@ interface PortfolioStep {
 // The cash account (asset) is ALWAYS created, even when `amount` is 0 — the
 // brokerage opens with the currency buckets the user selected. An opening
 // DEPOSIT (and optional matching WITHDRAWAL) is posted only when amount > 0.
-interface FundingAccount {
+export interface FundingAccount {
   currency: string
   amount: number
   // Either source side may be omitted (no WITHDRAWAL leg = standalone
