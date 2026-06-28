@@ -18,6 +18,7 @@ import { useAssetReview } from "@components/features/assets/useAssetReview"
 import PriceChartPopup from "@components/features/holdings/PriceChartPopup"
 import Spinner from "@components/ui/Spinner"
 import AssetAdminDialog from "@components/features/assets/AssetAdminDialog"
+import TradeAssetAction from "@components/features/transactions/TradeAssetAction"
 import { usePermissions } from "@hooks/usePermissions"
 
 interface AssetPosition {
@@ -358,6 +359,7 @@ function AssetLookupPage(): React.ReactElement {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
+              {selectedAsset.symbol && <TradeAssetAction asset={selectedAsset} />}
               {selectedAsset.market && selectedAsset.symbol && (
                 <button
                   type="button"
