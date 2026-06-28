@@ -1,6 +1,6 @@
 /**
  * Converts a just-created base plan into the default phased trio
- * (go-go / slow-go / go-slow), with go-go as the user's primary plan. The
+ * (go-go / slow-go / no-go), with go-go as the user's primary plan. The
  * backend converts the base plan IN PLACE into the go-go, so this yields three
  * plans, not four.
  *

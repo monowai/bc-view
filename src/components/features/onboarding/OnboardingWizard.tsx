@@ -749,7 +749,7 @@ const OnboardingWizard: React.FC = () => {
                   baseCurrency,
                 )
                 // Convert the base plan into the default phased trio
-                // (go-go / slow-go / go-slow) with go-go as the primary plan, so
+                // (go-go / slow-go / no-go) with go-go as the primary plan, so
                 // new users land on a phased independence plan by default.
                 // Non-fatal — the base plan stands alone if phasing fails.
                 try {

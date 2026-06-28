@@ -24,7 +24,7 @@ export default function GeneratePhasesOffer({
           </h2>
           <p className="text-sm text-gray-600 mb-4">
             Retirement spending naturally changes over time — go-go years of
-            active travel, slow-go years of quieter living, and go-slow years
+            active travel, slow-go years of quieter living, and no-go years
             closer to end of life. Generate phased plans to model each stage
             with its own spending level.
           </p>
