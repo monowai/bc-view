@@ -29,6 +29,7 @@ import {
 import { WizardFormData, PlanRequest } from "types/independence"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
+import { generatePhasedPlans } from "@lib/onboarding/generatePhasedPlans"
 
 interface WizardContainerProps {
   planId?: string
@@ -302,6 +303,16 @@ export default function WizardContainer({
       if (isEditMode) {
         setIsSubmitting(false)
       } else {
+        // New plan → convert into the default phased trio (go-go / slow-go /
+        // go-slow). force=false: a user who already has a real composite keeps
+        // it (the backend rejects and this plan stays single), so manual
+        // "Create Plan" never clobbers an existing phased setup. savedPlanId is
+        // the go-go after conversion (convert-in-place reuses the base id).
+        try {
+          await generatePhasedPlans(savedPlanId, false)
+        } catch (phaseErr) {
+          console.warn("Failed to generate phased plans:", phaseErr)
+        }
         router.push(`/independence/plans/${savedPlanId}`)
       }
     } catch (err: unknown) {
