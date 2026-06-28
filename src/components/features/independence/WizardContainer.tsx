@@ -304,7 +304,7 @@ export default function WizardContainer({
         setIsSubmitting(false)
       } else {
         // New plan → convert into the default phased trio (go-go / slow-go /
-        // go-slow). force=false: a user who already has a real composite keeps
+        // no-go). force=false: a user who already has a real composite keeps
         // it (the backend rejects and this plan stays single), so manual
         // "Create Plan" never clobbers an existing phased setup. savedPlanId is
         // the go-go after conversion (convert-in-place reuses the base id).
