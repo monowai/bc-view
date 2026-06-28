@@ -143,6 +143,8 @@ const OnboardingWizard: React.FC = () => {
   const [independenceMonthOfBirth, setIndependenceMonthOfBirth] = useState(1)
   const [independenceMonthlyExpenses, setIndependenceMonthlyExpenses] =
     useState(0)
+  const [independenceMedicalExpenses, setIndependenceMedicalExpenses] =
+    useState(0)
   const [independenceTargetAge, setIndependenceTargetAge] = useState(65)
   const [independencePlanCreated, setIndependencePlanCreated] = useState(false)
 
@@ -710,7 +712,8 @@ const OnboardingWizard: React.FC = () => {
               yearOfBirth: independenceYearOfBirth,
               planningHorizonYears: 90 - independenceTargetAge,
               lifeExpectancy: 90,
-              monthlyExpenses: independenceMonthlyExpenses,
+              monthlyExpenses:
+                independenceMonthlyExpenses + independenceMedicalExpenses,
               expensesCurrency: baseCurrency,
               cashReturnRate: 0.03,
               equityReturnRate: 0.08,
@@ -731,8 +734,10 @@ const OnboardingWizard: React.FC = () => {
           })
           if (planResponse.ok) {
             setIndependencePlanCreated(true)
-            // Persist the lump-sum retirement expenses as a categorised
-            // plan_expense row so the new plan opens with a real expense line.
+            // Persist the retirement expenses as categorised plan_expense rows
+            // (general under "Other", medical under "Healthcare") so the plan
+            // opens with real expense lines AND the phased generator can ramp
+            // medical separately from discretionary spend.
             try {
               const planBody = await planResponse.json()
               const planId = planBody?.data?.id
@@ -740,6 +745,7 @@ const OnboardingWizard: React.FC = () => {
                 await saveOnboardingExpenses(
                   planId,
                   independenceMonthlyExpenses,
+                  independenceMedicalExpenses,
                   baseCurrency,
                 )
                 // Convert the base plan into the default phased trio
@@ -916,6 +922,7 @@ const OnboardingWizard: React.FC = () => {
             yearOfBirth={independenceYearOfBirth}
             monthOfBirth={independenceMonthOfBirth}
             monthlyExpenses={independenceMonthlyExpenses}
+            medicalExpenses={independenceMedicalExpenses}
             targetRetirementAge={independenceTargetAge}
             workingIncomeMonthly={workingIncomeMonthly}
             workingExpensesMonthly={workingExpensesMonthly}
@@ -926,6 +933,7 @@ const OnboardingWizard: React.FC = () => {
             onYearOfBirthChange={setIndependenceYearOfBirth}
             onMonthOfBirthChange={setIndependenceMonthOfBirth}
             onMonthlyExpensesChange={setIndependenceMonthlyExpenses}
+            onMedicalExpensesChange={setIndependenceMedicalExpenses}
             onTargetRetirementAgeChange={setIndependenceTargetAge}
             onWorkingIncomeMonthlyChange={setWorkingIncomeMonthly}
             onWorkingExpensesMonthlyChange={setWorkingExpensesMonthly}

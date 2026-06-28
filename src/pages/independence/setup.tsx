@@ -3,6 +3,7 @@ import { useRouter } from "next/router"
 import Head from "next/head"
 import { withPageAuthRequired } from "@auth0/nextjs-auth0/client"
 import IndependencePlanStep from "@components/features/onboarding/steps/IndependencePlanStep"
+import { saveOnboardingExpenses } from "@lib/onboarding/saveIndependenceExpenses"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import { WorkScenario } from "types/independence"
 
@@ -16,6 +17,7 @@ function IndependenceSetupPage(): React.ReactElement {
   const [monthOfBirth, setMonthOfBirth] = useState(1)
   const [targetRetirementAge, setTargetRetirementAge] = useState(65)
   const [monthlyExpenses, setMonthlyExpenses] = useState(0)
+  const [medicalExpenses, setMedicalExpenses] = useState(0)
   const [workingIncomeMonthly, setWorkingIncomeMonthly] = useState(0)
   const [workingExpensesMonthly, setWorkingExpensesMonthly] = useState(0)
   const [taxesMonthly, setTaxesMonthly] = useState(0)
@@ -114,7 +116,7 @@ function IndependenceSetupPage(): React.ReactElement {
           yearOfBirth,
           planningHorizonYears: 90 - targetRetirementAge,
           lifeExpectancy: 90,
-          monthlyExpenses,
+          monthlyExpenses: monthlyExpenses + medicalExpenses,
           expensesCurrency: baseCurrency,
           cashReturnRate: 0.03,
           equityReturnRate: 0.08,
@@ -141,6 +143,18 @@ function IndependenceSetupPage(): React.ReactElement {
       const plan = await planResponse.json()
       const planId = plan?.data?.id ?? plan?.id
       if (planId) {
+        // Persist the general + medical figures as categorised expense rows so
+        // the plan opens with real lines and phasing can ramp medical separately.
+        try {
+          await saveOnboardingExpenses(
+            planId,
+            monthlyExpenses,
+            medicalExpenses,
+            baseCurrency,
+          )
+        } catch (expenseErr) {
+          console.warn("Failed to save setup retirement expenses:", expenseErr)
+        }
         await router.push(`/independence/wizard/${planId}`)
       } else {
         await router.push("/independence")
@@ -180,6 +194,7 @@ function IndependenceSetupPage(): React.ReactElement {
               yearOfBirth={yearOfBirth}
               monthOfBirth={monthOfBirth}
               monthlyExpenses={monthlyExpenses}
+              medicalExpenses={medicalExpenses}
               targetRetirementAge={targetRetirementAge}
               workingIncomeMonthly={workingIncomeMonthly}
               workingExpensesMonthly={workingExpensesMonthly}
@@ -190,6 +205,7 @@ function IndependenceSetupPage(): React.ReactElement {
               onYearOfBirthChange={setYearOfBirth}
               onMonthOfBirthChange={setMonthOfBirth}
               onMonthlyExpensesChange={setMonthlyExpenses}
+              onMedicalExpensesChange={setMedicalExpenses}
               onTargetRetirementAgeChange={setTargetRetirementAge}
               onWorkingIncomeMonthlyChange={setWorkingIncomeMonthly}
               onWorkingExpensesMonthlyChange={setWorkingExpensesMonthly}

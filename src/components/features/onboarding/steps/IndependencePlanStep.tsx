@@ -28,6 +28,7 @@ export interface IndependencePlanStepProps {
   yearOfBirth: number
   monthOfBirth: number
   monthlyExpenses: number
+  medicalExpenses: number
   targetRetirementAge: number
   workingIncomeMonthly: number
   workingExpensesMonthly: number
@@ -38,6 +39,7 @@ export interface IndependencePlanStepProps {
   onYearOfBirthChange: (year: number) => void
   onMonthOfBirthChange: (month: number) => void
   onMonthlyExpensesChange: (amount: number) => void
+  onMedicalExpensesChange: (amount: number) => void
   onTargetRetirementAgeChange: (age: number) => void
   onWorkingIncomeMonthlyChange: (amount: number) => void
   onWorkingExpensesMonthlyChange: (amount: number) => void
@@ -65,6 +67,7 @@ const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
   yearOfBirth,
   monthOfBirth,
   monthlyExpenses,
+  medicalExpenses,
   targetRetirementAge,
   workingIncomeMonthly,
   workingExpensesMonthly,
@@ -75,6 +78,7 @@ const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
   onYearOfBirthChange,
   onMonthOfBirthChange,
   onMonthlyExpensesChange,
+  onMedicalExpensesChange,
   onTargetRetirementAgeChange,
   onWorkingIncomeMonthlyChange,
   onWorkingExpensesMonthlyChange,
@@ -202,7 +206,7 @@ const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
                 htmlFor="independenceMonthlyExpenses"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                {`Estimated Monthly Expenses in Retirement (${baseCurrency})`}
+                {`General Monthly Expenses in Retirement (${baseCurrency})`}
               </label>
               <input
                 id="independenceMonthlyExpenses"
@@ -219,6 +223,38 @@ const IndependencePlanStep: React.FC<IndependencePlanStepProps> = ({
                 }
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
               />
+              <p className="mt-1 text-xs text-gray-500">
+                {"Day-to-day living costs, excluding healthcare."}
+              </p>
+            </div>
+
+            <div>
+              <label
+                htmlFor="independenceMedicalExpenses"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                {`Monthly Healthcare / Medical (${baseCurrency})`}
+              </label>
+              <input
+                id="independenceMedicalExpenses"
+                type="number"
+                aria-label="Monthly medical expenses"
+                value={medicalExpenses || ""}
+                min={0}
+                step={50}
+                placeholder={"e.g. 300"}
+                onChange={(e) =>
+                  onMedicalExpensesChange(
+                    e.target.value === "" ? 0 : Number(e.target.value),
+                  )
+                }
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                {
+                  "Tracked separately so later retirement phases can ramp it up as other spending eases."
+                }
+              </p>
             </div>
           </div>
 

@@ -1,68 +1,113 @@
 /**
- * Persists the onboarding retirement-expenses lump sum as a categorised
- * plan_expense row. The onboarding wizard collects a single "monthly expenses
- * in retirement" figure but previously only stored it on the plan total — no
- * `plan_expense` rows were written, so the categorised expense breakdown was
- * empty. This saves that lump sum under the shared "Other" category so the
- * plan opens with a real, editable expense line.
+ * Persists the onboarding retirement-expenses figures as categorised
+ * `plan_expense` rows. The onboarding wizard collects a general living-cost
+ * figure plus a separate healthcare/medical figure; without these rows the
+ * categorised breakdown is empty AND the phased generator can't tell medical
+ * (which ramps up with age) apart from discretionary spend (which tapers).
  *
- * Kept out of the wizard component so it can be unit-tested in isolation.
+ * Writes one row per positive amount: the general figure under "Other", the
+ * medical figure under "Healthcare". Kept out of the wizard component so it can
+ * be unit-tested in isolation.
  */
 
 import type { CategoryLabelsResponse } from "types/independence"
 
 const OTHER_CATEGORY = "Other"
+const HEALTHCARE_CATEGORY = "Healthcare"
 // resolveCategoryLabel (svc-retire) accepts any `custom-` prefixed id without a
-// DB lookup, so this is a safe fallback if the seeded system label is absent.
+// DB lookup, so these are safe fallbacks if the seeded system label is absent.
 const CUSTOM_OTHER_ID = "custom-other"
+const CUSTOM_HEALTHCARE_ID = "custom-healthcare"
 
 /**
  * @param planId           the just-created independence plan
- * @param monthlyExpenses  the onboarding lump-sum retirement expenses
+ * @param generalExpenses  monthly living costs excluding healthcare
+ * @param medicalExpenses  monthly healthcare/medical costs (tracked separately)
  * @param currency         the plan's expense currency
  * @param fetchImpl        injectable for testing; defaults to global fetch
  */
 export async function saveOnboardingExpenses(
   planId: string,
-  monthlyExpenses: number,
+  generalExpenses: number,
+  medicalExpenses: number,
   currency: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<void> {
-  if (!planId || monthlyExpenses <= 0) return
+  if (!planId || (generalExpenses <= 0 && medicalExpenses <= 0)) return
 
-  const categoryLabelId = await resolveOtherCategoryId(fetchImpl)
+  // Resolve both category ids up front from the single categories fetch.
+  const labels = await fetchCategoryLabels(fetchImpl)
 
-  const res = await fetchImpl(`/api/independence/plans/${planId}/expenses`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      categoryLabelId,
+  const rows: Array<{
+    categoryLabelId: string
+    categoryName: string
+    amount: number
+  }> = []
+  if (generalExpenses > 0) {
+    rows.push({
+      categoryLabelId: resolveCategoryId(
+        labels,
+        OTHER_CATEGORY,
+        CUSTOM_OTHER_ID,
+      ),
       categoryName: OTHER_CATEGORY,
-      monthlyAmount: monthlyExpenses,
-      currency,
-      expensePhase: "RETIREMENT",
-    }),
-  })
+      amount: generalExpenses,
+    })
+  }
+  if (medicalExpenses > 0) {
+    rows.push({
+      categoryLabelId: resolveCategoryId(
+        labels,
+        HEALTHCARE_CATEGORY,
+        CUSTOM_HEALTHCARE_ID,
+      ),
+      categoryName: HEALTHCARE_CATEGORY,
+      amount: medicalExpenses,
+    })
+  }
 
-  // Surface a failed save rather than resolving silently — the caller logs it
-  // so the expense isn't lost without a trace while the plan total succeeds.
-  if (!res.ok) {
-    throw new Error(`Failed to save onboarding expense: ${res.status}`)
+  for (const row of rows) {
+    const res = await fetchImpl(`/api/independence/plans/${planId}/expenses`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        categoryLabelId: row.categoryLabelId,
+        categoryName: row.categoryName,
+        monthlyAmount: row.amount,
+        currency,
+        expensePhase: "RETIREMENT",
+      }),
+    })
+
+    // Surface a failed save rather than resolving silently — the caller logs it
+    // so the expense isn't lost without a trace while the plan total succeeds.
+    if (!res.ok) {
+      throw new Error(
+        `Failed to save onboarding expense (${row.categoryName}): ${res.status}`,
+      )
+    }
   }
 }
 
-async function resolveOtherCategoryId(
+async function fetchCategoryLabels(
   fetchImpl: typeof fetch,
-): Promise<string> {
+): Promise<CategoryLabelsResponse["data"] | undefined> {
   try {
     const res = await fetchImpl("/api/independence/categories")
     if (res.ok) {
       const body = (await res.json()) as CategoryLabelsResponse
-      const other = body.data?.find((c) => c.name === OTHER_CATEGORY)
-      if (other) return other.id
+      return body.data
     }
   } catch {
-    // fall through to the custom fallback below
+    // fall through to the custom fallbacks
   }
-  return CUSTOM_OTHER_ID
+  return undefined
+}
+
+function resolveCategoryId(
+  labels: CategoryLabelsResponse["data"] | undefined,
+  name: string,
+  fallbackId: string,
+): string {
+  return labels?.find((c) => c.name === name)?.id ?? fallbackId
 }
