@@ -57,10 +57,10 @@ export default function AssetsTabContent({
           pathToHorizon={projection.pathToHorizon}
           view={view}
           inflationRate={effectivePlanValues?.inflationRate ?? 0.025}
-          equityReturnRate={effectivePlanValues?.equityReturnRate ?? 0.08}
-          cashReturnRate={effectivePlanValues?.cashReturnRate ?? 0.03}
-          equityAllocation={effectivePlanValues?.equityAllocation ?? 0.8}
-          cashAllocation={effectivePlanValues?.cashAllocation ?? 0.2}
+          equityReturnRate={effectivePlanValues?.equityReturnRate ?? 0.07}
+          cashReturnRate={effectivePlanValues?.cashReturnRate ?? 0.012}
+          equityAllocation={effectivePlanValues?.equityAllocation ?? 0.0}
+          cashAllocation={effectivePlanValues?.cashAllocation ?? 1.0}
         />
       )}
     </div>
