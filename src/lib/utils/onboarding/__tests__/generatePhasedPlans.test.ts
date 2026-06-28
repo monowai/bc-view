@@ -12,7 +12,7 @@ describe("generatePhasedPlans", () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it("posts to the plan's phases endpoint with an empty body", async () => {
+  it("posts to the plan's phases endpoint with force so a stale composite is overwritten", async () => {
     const fetchMock = jest.fn().mockResolvedValueOnce(okResponse())
 
     await generatePhasedPlans("plan-1", fetchMock)
@@ -20,7 +20,7 @@ describe("generatePhasedPlans", () => {
     const [url, init] = fetchMock.mock.calls[0]
     expect(url).toBe("/api/independence/plans/plan-1/phases")
     expect(init.method).toBe("POST")
-    expect(JSON.parse(init.body)).toEqual({})
+    expect(JSON.parse(init.body)).toEqual({ force: true })
   })
 
   it("throws when the phases POST returns a non-ok status", async () => {
