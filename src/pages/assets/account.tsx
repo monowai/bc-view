@@ -21,6 +21,10 @@ import { validateInput } from "@components/errors/validator"
 import { accountInputSchema } from "@lib/account/schema"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import CompositeAssetEditor from "@components/features/assets/CompositeAssetEditor"
+import { usePortfolios } from "@hooks/usePortfolios"
+import { showPortfolioPicker, solePortfolio } from "@lib/user/zenMode"
+import { buildCompositeBalanceTrn } from "@utils/trns/compositeBalanceTrn"
+import PortfolioPickerDialog from "@components/features/portfolios/PortfolioPickerDialog"
 
 interface SectorInfo {
   code: string
@@ -53,6 +57,16 @@ export default withPageAuthRequired(
   function CreateAccount(): React.ReactElement {
     const router = useRouter()
     const { preferences, isLoading: prefsLoading } = useUserPreferences()
+    const { portfolios } = usePortfolios()
+
+    // When a composite policy (CPF) is created in master mode we can't pick the
+    // target portfolio for the user — prompt with the shared picker. Zen-mode
+    // users (sole portfolio) are auto-linked without a prompt. Holds the
+    // already-built BALANCE trn so the picker only has to supply a portfolioId.
+    const [pendingLink, setPendingLink] = useState<{
+      assetName: string
+      trnRow: NonNullable<ReturnType<typeof buildCompositeBalanceTrn>>
+    } | null>(null)
 
     // Get category from query param (e.g., /assets/account?category=POLICY)
     const categoryFromQuery = router.query.category as string | undefined
@@ -137,6 +151,57 @@ export default withPageAuthRequired(
       }
     }, [categoryFromQuery, categoryOptions, setValue])
 
+    const goToAccounts = (): void => {
+      router.push("/accounts").then()
+    }
+
+    const postLink = async (
+      portfolioId: string,
+      trnRow: NonNullable<ReturnType<typeof buildCompositeBalanceTrn>>,
+    ): Promise<void> => {
+      try {
+        await fetch("/api/trns", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ portfolioId, data: [trnRow] }),
+        })
+      } catch (err) {
+        console.error("Failed to link asset to portfolio:", err)
+      }
+    }
+
+    // Link a freshly-created composite policy (CPF) to a portfolio. Zen-mode
+    // users with a sole portfolio are auto-linked; master-mode users are
+    // prompted via PortfolioPickerDialog. Returns true when a prompt is now
+    // pending (caller must not redirect yet).
+    const linkAfterCreate = async (
+      assetId: string,
+      formData: AccountFormInput,
+    ): Promise<boolean> => {
+      const trnRow =
+        formData.category.value === "POLICY" && policyType
+          ? buildCompositeBalanceTrn({
+              assetId,
+              assetName: formData.name,
+              currency: formData.currency.value,
+              tradeDate: new Date().toISOString().slice(0, 10),
+              subAccounts,
+            })
+          : null
+
+      if (!trnRow || portfolios.length === 0) return false
+
+      if (!showPortfolioPicker(portfolios, preferences)) {
+        const sole = solePortfolio(portfolios)
+        if (sole) {
+          await postLink(sole.id, trnRow)
+          return false
+        }
+      }
+      setPendingLink({ assetName: formData.name, trnRow })
+      return true
+    }
+
     const handleSubmit: SubmitHandler<AccountFormInput> = (formData) => {
       validateInput(accountInputSchema, formData)
         .then(() => {
@@ -211,7 +276,8 @@ export default withPageAuthRequired(
                   }
                 }
 
-                router.push("/accounts").then()
+                const pending = await linkAfterCreate(createdAsset.id, formData)
+                if (!pending) goToAccounts()
               }
             })
             .catch((err) => {
@@ -384,6 +450,23 @@ export default withPageAuthRequired(
             </button>
           </div>
         </form>
+
+        {pendingLink && (
+          <PortfolioPickerDialog
+            title={`Add ${pendingLink.assetName} to a portfolio`}
+            prompt="Which portfolio do you want to add this to?"
+            portfolios={portfolios}
+            onClose={() => {
+              setPendingLink(null)
+              goToAccounts()
+            }}
+            onSelect={(p) => {
+              const { trnRow } = pendingLink
+              setPendingLink(null)
+              postLink(p.id, trnRow).finally(goToAccounts)
+            }}
+          />
+        )}
       </div>
     )
   },

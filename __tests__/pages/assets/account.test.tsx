@@ -19,6 +19,11 @@ jest.mock("next/router", () => ({
   }),
 }))
 
+// Mock usePortfolios — the page now reads it to decide zen vs master linking.
+jest.mock("@hooks/usePortfolios", () => ({
+  usePortfolios: () => ({ portfolios: [] }),
+}))
+
 // Mock useUserPreferences
 jest.mock("@contexts/UserPreferencesContext", () => ({
   useUserPreferences: () => ({
