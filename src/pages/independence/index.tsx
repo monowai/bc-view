@@ -31,6 +31,7 @@ import {
   AssetBreakdown,
 } from "@components/features/independence"
 import CompositeTab from "@components/features/independence/CompositeTab"
+import GeneratePhasesOffer from "@components/features/independence/GeneratePhasesOffer"
 import ScenarioList from "@components/features/independence/scenarios/ScenarioList"
 import IndependenceSettingsPanel from "@components/features/independence/IndependenceSettingsPanel"
 import ResourceShareInviteDialog from "@components/features/shares/ResourceShareInviteDialog"
@@ -295,7 +296,7 @@ function PlanCard({
 function RetirementPlanning(): React.ReactElement {
   const router = useRouter()
   const { hideValues } = usePrivacyMode()
-  const { settings } = useIndependenceSettings()
+  const { settings, mutateSettings } = useIndependenceSettings()
   const { data: scenariosData } = useSwr<WorkScenariosResponse>(
     "/api/independence/work-scenarios",
     simpleFetcher("/api/independence/work-scenarios"),
@@ -331,6 +332,10 @@ function RetirementPlanning(): React.ReactElement {
   const [deletePlanId, setDeletePlanId] = useState<string | null>(null)
   const [copyPlan, setCopyPlan] = useState<RetirementPlan | null>(null)
   const [copyName, setCopyName] = useState("")
+  const [isGeneratingPhases, setIsGeneratingPhases] = useState(false)
+  const [generatePhasesError, setGeneratePhasesError] = useState<string | null>(
+    null,
+  )
 
   const { data, error, isLoading, mutate } = useSwr<PlansResponse>(
     plansKey,
@@ -619,6 +624,34 @@ function RetirementPlanning(): React.ReactElement {
     }
   }
 
+  const handleGeneratePhases = async (): Promise<void> => {
+    if (ownedPlans.length !== 1) return
+    const planId = ownedPlans[0].id
+    setIsGeneratingPhases(true)
+    setGeneratePhasesError(null)
+    try {
+      const response = await fetch(`/api/independence/plans/${planId}/phases`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      })
+      if (!response.ok) {
+        const body = await response.text()
+        setGeneratePhasesError(
+          body || `Failed to generate phases (${response.status})`,
+        )
+        return
+      }
+      await Promise.all([mutate(), mutateSettings()])
+    } catch (err) {
+      setGeneratePhasesError(
+        err instanceof Error ? err.message : "Failed to generate phases",
+      )
+    } finally {
+      setIsGeneratingPhases(false)
+    }
+  }
+
   return (
     <>
       <Head>
@@ -848,6 +881,35 @@ function RetirementPlanning(): React.ReactElement {
             )}
 
           {activeView === "profile" && <IndependenceSettingsPanel />}
+
+          {generatePhasesError && activeView === "plans" && (
+            <div className="mb-6">
+              <Alert>
+                <div className="flex justify-between items-center">
+                  <span>{generatePhasesError}</span>
+                  <button
+                    onClick={() => setGeneratePhasesError(null)}
+                    className="text-red-500 hover:text-red-700 ml-2"
+                  >
+                    <i className="fas fa-times"></i>
+                  </button>
+                </div>
+              </Alert>
+            </div>
+          )}
+
+          {!isLoading &&
+            ownedPlans.length === 1 &&
+            !settings?.compositePhases &&
+            activeView === "plans" && (
+              <div className="mb-6">
+                <GeneratePhasesOffer
+                  plan={ownedPlans[0]}
+                  onGenerate={handleGeneratePhases}
+                  isLoading={isGeneratingPhases}
+                />
+              </div>
+            )}
 
           {!isLoading && plans.length > 0 && activeView === "plans" && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
