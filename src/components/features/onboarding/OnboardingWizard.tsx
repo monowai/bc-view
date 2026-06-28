@@ -22,6 +22,7 @@ import { openBrokerage } from "@lib/openBrokerage/orchestrate"
 import { buildBrokerageFunding } from "@lib/openBrokerage/buildBrokerageFunding"
 import { deriveBrokerCode } from "@lib/openBrokerage/brokerCode"
 import { saveOnboardingExpenses } from "@lib/onboarding/saveIndependenceExpenses"
+import { generatePhasedPlans } from "@lib/onboarding/generatePhasedPlans"
 import { useRegistration } from "@contexts/RegistrationContext"
 import { useUserPreferences } from "@contexts/UserPreferencesContext"
 import Spinner from "@components/ui/Spinner"
@@ -741,6 +742,15 @@ const OnboardingWizard: React.FC = () => {
                   independenceMonthlyExpenses,
                   baseCurrency,
                 )
+                // Convert the base plan into the default phased trio
+                // (go-go / slow-go / go-slow) with go-go as the primary plan, so
+                // new users land on a phased independence plan by default.
+                // Non-fatal — the base plan stands alone if phasing fails.
+                try {
+                  await generatePhasedPlans(planId)
+                } catch (phaseErr) {
+                  console.warn("Failed to generate phased plans:", phaseErr)
+                }
               }
             } catch (expenseErr) {
               console.warn(
