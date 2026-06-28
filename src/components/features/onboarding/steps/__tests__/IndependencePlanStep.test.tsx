@@ -1,5 +1,5 @@
 import React from "react"
-import { render, screen } from "@testing-library/react"
+import { render, screen, fireEvent } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import IndependencePlanStep from "../IndependencePlanStep"
 
@@ -8,6 +8,7 @@ const baseProps = {
   yearOfBirth: 1981,
   monthOfBirth: 1,
   monthlyExpenses: 0,
+  medicalExpenses: 0,
   targetRetirementAge: 65,
   workingIncomeMonthly: 0,
   workingExpensesMonthly: 0,
@@ -18,6 +19,7 @@ const baseProps = {
   onYearOfBirthChange: jest.fn(),
   onMonthOfBirthChange: jest.fn(),
   onMonthlyExpensesChange: jest.fn(),
+  onMedicalExpensesChange: jest.fn(),
   onTargetRetirementAgeChange: jest.fn(),
   onWorkingIncomeMonthlyChange: jest.fn(),
   onWorkingExpensesMonthlyChange: jest.fn(),
@@ -53,5 +55,30 @@ describe("IndependencePlanStep — CPF date-of-birth requirement", () => {
     expect(
       screen.queryByText(/required to calculate your CPF contributions/i),
     ).not.toBeInTheDocument()
+  })
+})
+
+describe("IndependencePlanStep — retirement expenses capture", () => {
+  it("captures general and medical expenses as separate inputs", () => {
+    const onMonthlyExpensesChange = jest.fn()
+    const onMedicalExpensesChange = jest.fn()
+    render(
+      <IndependencePlanStep
+        {...baseProps}
+        enabled
+        onMonthlyExpensesChange={onMonthlyExpensesChange}
+        onMedicalExpensesChange={onMedicalExpensesChange}
+      />,
+    )
+
+    fireEvent.change(screen.getByLabelText("Monthly retirement expenses"), {
+      target: { value: "3000" },
+    })
+    fireEvent.change(screen.getByLabelText("Monthly medical expenses"), {
+      target: { value: "300" },
+    })
+
+    expect(onMonthlyExpensesChange).toHaveBeenCalledWith(3000)
+    expect(onMedicalExpensesChange).toHaveBeenCalledWith(300)
   })
 })
