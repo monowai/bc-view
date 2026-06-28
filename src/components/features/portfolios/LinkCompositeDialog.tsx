@@ -1,16 +1,8 @@
 import React, { useState } from "react"
-import useSwr from "swr"
-import { portfoliosKey, simpleFetcher } from "@utils/api/fetchHelper"
+import { usePortfolios } from "@hooks/usePortfolios"
+import { useUserPreferences } from "@contexts/UserPreferencesContext"
+import { showPortfolioPicker, solePortfolio } from "@lib/user/zenMode"
 import type { StandaloneCompositeConfig } from "@hooks/useStandaloneCompositeAssets"
-
-interface PortfoliosResponse {
-  data: Array<{
-    id: string
-    code: string
-    name: string
-    currency: { code: string }
-  }>
-}
 
 interface Props {
   config: StandaloneCompositeConfig
@@ -28,23 +20,29 @@ export default function LinkCompositeDialog({
   config,
   onClose,
 }: Props): React.ReactElement {
-  const { data: portfoliosData } = useSwr<PortfoliosResponse>(
-    portfoliosKey,
-    simpleFetcher(portfoliosKey),
-  )
+  const { portfolios } = usePortfolios()
+  const { preferences } = useUserPreferences()
   const [portfolioId, setPortfolioId] = useState<string>("")
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
-  // Default to first same-currency portfolio once the list arrives.
-  const [prevPortfoliosData, setPrevPortfoliosData] = useState(portfoliosData)
-  if (portfoliosData !== prevPortfoliosData) {
-    setPrevPortfoliosData(portfoliosData)
-    if (!portfolioId && portfoliosData?.data?.length) {
-      const sameCcy = portfoliosData.data.find(
+  // Zen-mode users (sole portfolio) skip the picker entirely — the link
+  // auto-targets that portfolio. Master-mode users keep the dropdown.
+  const needsPick = showPortfolioPicker(portfolios, preferences)
+  const sole = solePortfolio(portfolios)
+
+  // Seed a sensible default once the list arrives: the sole portfolio in zen
+  // mode, otherwise the first same-currency portfolio.
+  const [seeded, setSeeded] = useState(false)
+  if (!seeded && portfolios.length) {
+    setSeeded(true)
+    if (!needsPick && sole) {
+      setPortfolioId(sole.id)
+    } else {
+      const sameCcy = portfolios.find(
         (p) => p.currency.code === config.currency,
       )
-      setPortfolioId((sameCcy ?? portfoliosData.data[0]).id)
+      setPortfolioId((sameCcy ?? portfolios[0]).id)
     }
   }
 
@@ -130,18 +128,27 @@ export default function LinkCompositeDialog({
           >
             Portfolio
           </label>
-          <select
-            id="link-composite-portfolio"
-            value={portfolioId}
-            onChange={(e) => setPortfolioId(e.target.value)}
-            className="w-full rounded-md border border-gray-300 p-2 text-sm"
-          >
-            {portfoliosData?.data?.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.code} — {p.name} ({p.currency.code})
-              </option>
-            ))}
-          </select>
+          {needsPick ? (
+            <select
+              id="link-composite-portfolio"
+              value={portfolioId}
+              onChange={(e) => setPortfolioId(e.target.value)}
+              className="w-full rounded-md border border-gray-300 p-2 text-sm"
+            >
+              {portfolios.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.code} — {p.name} ({p.currency.code})
+                </option>
+              ))}
+            </select>
+          ) : (
+            <p
+              id="link-composite-portfolio"
+              className="rounded-md border border-gray-200 bg-gray-50 p-2 text-sm text-gray-700"
+            >
+              {sole ? `${sole.code} — ${sole.name}` : "—"}
+            </p>
+          )}
         </div>
         {error && (
           <p className="mb-2 text-sm text-red-600" role="alert">
