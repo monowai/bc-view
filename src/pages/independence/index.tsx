@@ -633,7 +633,10 @@ function RetirementPlanning(): React.ReactElement {
       const response = await fetch(`/api/independence/plans/${planId}/phases`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        // force: with a single owned plan, any existing composite is necessarily
+        // stale (a real phased composite references three plans), so overwrite it
+        // rather than letting the backend reject with "composite already exists".
+        body: JSON.stringify({ force: true }),
       })
       if (!response.ok) {
         const body = await response.text()
@@ -898,18 +901,18 @@ function RetirementPlanning(): React.ReactElement {
             </div>
           )}
 
-          {!isLoading &&
-            ownedPlans.length === 1 &&
-            !settings?.compositePhases &&
-            activeView === "plans" && (
-              <div className="mb-6">
-                <GeneratePhasesOffer
-                  plan={ownedPlans[0]}
-                  onGenerate={handleGeneratePhases}
-                  isLoading={isGeneratingPhases}
-                />
-              </div>
-            )}
+          {/* Offer phasing to any single-plan user. With one owned plan there is
+              no valid phased composite yet, so the offer stays available even if
+              a stale composite lingers; clicking it converts the plan to Go-Go. */}
+          {!isLoading && ownedPlans.length === 1 && activeView === "plans" && (
+            <div className="mb-6">
+              <GeneratePhasesOffer
+                plan={ownedPlans[0]}
+                onGenerate={handleGeneratePhases}
+                isLoading={isGeneratingPhases}
+              />
+            </div>
+          )}
 
           {!isLoading && plans.length > 0 && activeView === "plans" && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
