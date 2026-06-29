@@ -36,6 +36,7 @@ import { useNewsAsset } from "./useNewsAsset"
 import { AlphaProgress } from "@components/ui/ProgressBar"
 import { useDisplayCurrencyConversion } from "@lib/hooks/useDisplayCurrencyConversion"
 import { getCellClasses } from "@lib/holdings/cellClasses"
+import { isChartableCategory } from "@lib/categoryMapping"
 import {
   ActionsMenu,
   CashActionsMenu,
@@ -272,10 +273,9 @@ export default function Rows({
               !moneyValues[valueIn].priceData?.close
                 ? " "
                 : (() => {
-                    const categoryId = asset.assetCategory?.id
                     const isChartable =
                       !!onPriceChart &&
-                      (categoryId === "EQUITY" || categoryId === "ETF")
+                      isChartableCategory(asset.assetCategory?.id)
                     const priceContent = (
                       <>
                         <span className="text-xs text-slate-500">
