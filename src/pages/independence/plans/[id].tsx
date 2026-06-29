@@ -29,10 +29,7 @@ import {
   ScenarioBar,
 } from "@components/features/independence"
 import { useScenario } from "@components/features/independence/scenario/useScenario"
-import {
-  applyRealReturn,
-  blendedReturnRate as computeBlendedReturnRate,
-} from "@components/features/independence/scenario/scenarioToPayload"
+import { applyRealReturn } from "@components/features/independence/scenario/scenarioToPayload"
 import {
   defaultStrategyView,
   type StrategyView,
@@ -979,8 +976,10 @@ function PlanView(): React.ReactElement {
               }
               onViewChange={setStrategyView}
               derivedLiquidAssets={liquidAssets}
-              planBlendedReturn={computeBlendedReturnRate(plan)}
               planInflation={plan.inflationRate}
+              planCashRate={plan.cashReturnRate}
+              planEquityRate={plan.equityReturnRate}
+              planCashAlloc={plan.cashAllocation}
               pathToHorizon={adjustedProjection?.pathToHorizon}
             />
           )}

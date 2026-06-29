@@ -359,7 +359,9 @@ function AssetLookupPage(): React.ReactElement {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              {selectedAsset.symbol && <TradeAssetAction asset={selectedAsset} />}
+              {selectedAsset.symbol && (
+                <TradeAssetAction asset={selectedAsset} />
+              )}
               {selectedAsset.market && selectedAsset.symbol && (
                 <button
                   type="button"
