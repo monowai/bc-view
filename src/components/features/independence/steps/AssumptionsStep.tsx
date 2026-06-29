@@ -9,6 +9,7 @@ import {
 import { WizardFormData } from "types/independence"
 import { AllocationResponse } from "types/beancounter"
 import { wizardMessages } from "@lib/independence/messages"
+import { normalizeAllocation } from "@lib/independence/planHelpers"
 import Spinner from "@components/ui/Spinner"
 import MathInput from "@components/ui/MathInput"
 
@@ -74,13 +75,16 @@ export default function AssumptionsStep({
         if (response.data) {
           const { cashAllocation, equityAllocation, housingAllocation } =
             response.data
-          // Only apply if we have meaningful allocation data
           const total = cashAllocation + equityAllocation + housingAllocation
           if (total > 0) {
-            // Round to nearest integer for cleaner display
-            setValue("cashAllocation", Math.round(cashAllocation))
-            setValue("equityAllocation", Math.round(equityAllocation))
-            setValue("housingAllocation", Math.round(housingAllocation))
+            const norm = normalizeAllocation(
+              equityAllocation,
+              cashAllocation,
+              housingAllocation,
+            )
+            setValue("cashAllocation", norm.cash)
+            setValue("equityAllocation", norm.equity)
+            setValue("housingAllocation", norm.housing)
             hasAppliedAllocation.current = true
           }
         }
@@ -104,9 +108,14 @@ export default function AssumptionsStep({
             response.data
           const total = cashAllocation + equityAllocation + housingAllocation
           if (total > 0) {
-            setValue("cashAllocation", Math.round(cashAllocation))
-            setValue("equityAllocation", Math.round(equityAllocation))
-            setValue("housingAllocation", Math.round(housingAllocation))
+            const norm = normalizeAllocation(
+              equityAllocation,
+              cashAllocation,
+              housingAllocation,
+            )
+            setValue("cashAllocation", norm.cash)
+            setValue("equityAllocation", norm.equity)
+            setValue("housingAllocation", norm.housing)
           }
         }
       })
