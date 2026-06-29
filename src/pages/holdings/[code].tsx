@@ -590,6 +590,7 @@ function HoldingsPage(): React.ReactElement {
           quickSellData={quickSellData}
           onQuickSellHandled={handleQuickSellHandled}
           emptyHoldings={true}
+          onInvestCash={() => setInvestCashModalOpen(true)}
         />
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center mt-4">
           <p className="text-gray-600 mb-6">
@@ -610,6 +611,15 @@ function HoldingsPage(): React.ReactElement {
             </p>
           </div>
         </div>
+        <InvestCashDialog
+          modalOpen={investCashModalOpen}
+          portfolioId={holdingResults.portfolio.id}
+          onClose={() => setInvestCashModalOpen(false)}
+          onSuccess={() => {
+            setInvestCashModalOpen(false)
+            router.replace(router.asPath)
+          }}
+        />
       </div>
     )
   }
