@@ -287,7 +287,9 @@ export default function ScenarioBar({
                 </span>
                 <span
                   className={
-                    shiftedReal >= 0 ? "text-green-600 ml-1" : "text-red-500 ml-1"
+                    shiftedReal >= 0
+                      ? "text-green-600 ml-1"
+                      : "text-red-500 ml-1"
                   }
                 >
                   {shiftedReal >= 0

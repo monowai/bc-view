@@ -127,6 +127,25 @@ export function parseManualAssets(
 /**
  * Check if plan has manual assets with non-zero values.
  */
+/**
+ * Normalizes equity/cash/housing percentages to sum to exactly 100.
+ * CPF (retirement fund) sits in the svc-position denominator but is not
+ * mapped to any of the three plan buckets, so the raw values may sum < 100.
+ * Housing is derived last to absorb rounding drift.
+ */
+export function normalizeAllocation(
+  equity: number,
+  cash: number,
+  housing: number,
+): { equity: number; cash: number; housing: number } {
+  const sum = equity + cash + housing
+  if (sum <= 0) return { equity: 0, cash: 0, housing: 0 }
+  const e = Math.round((equity / sum) * 100)
+  const c = Math.round((cash / sum) * 100)
+  const h = 100 - e - c
+  return { equity: e, cash: c, housing: h }
+}
+
 export function hasManualAssets(
   manualAssets: Record<string, number> | string | undefined | null,
 ): boolean {

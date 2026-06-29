@@ -1,25 +1,25 @@
 import React from "react"
-import { render, screen, fireEvent } from "@testing-library/react"
+import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import EditPlanDetailsModal from "../EditPlanDetailsModal"
 import { RetirementPlan } from "types/independence"
+import useSWR from "swr"
 
-// Mock SWR + the asset-configs hook so the modal's portfolio + asset-config
-// fetches resolve synchronously. Without this, SWR schedules a microtask
-// that triggers setState after the initial render completes — outside any
-// act() scope — producing "An update to EditPlanDetailsModal inside a test
-// was not wrapped in act(...)" warnings.
 jest.mock("swr", () => ({
   __esModule: true,
-  default: () => ({
-    data: { data: [] },
-    error: undefined,
-    isLoading: false,
-    mutate: jest.fn(),
-  }),
+  default: jest.fn(),
   mutate: jest.fn(),
   SWRConfig: ({ children }: { children: React.ReactNode }) => children,
 }))
+
+const mockedUseSWR = useSWR as jest.MockedFunction<typeof useSWR>
+
+const emptySwrReturn = {
+  data: { data: [] },
+  error: undefined,
+  isLoading: false,
+  mutate: jest.fn(),
+} as any
 
 jest.mock("@utils/assets/usePrivateAssetConfigs", () => ({
   usePrivateAssetConfigs: () => ({
@@ -68,11 +68,8 @@ describe("EditPlanDetailsModal", () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
+    mockedUseSWR.mockReturnValue(emptySwrReturn)
   })
-
-  // Open/closed lifecycle is now controlled by the parent via conditional
-  // mounting, so the previous "renders nothing when closed" assertion is no
-  // longer meaningful at this level.
 
   it("renders dialog title when open", () => {
     render(<EditPlanDetailsModal {...defaultProps} />)
@@ -244,5 +241,42 @@ describe("EditPlanDetailsModal", () => {
 
     const inputs = screen.getAllByRole("spinbutton")
     expect(inputs[0]).toHaveValue(2000)
+  })
+
+  it("Use Actual button normalizes CPF-polluted allocation to 100%", async () => {
+    // Provide an active portfolio so the button renders
+    mockedUseSWR.mockReturnValue({
+      data: {
+        data: [{ id: "p1", code: "MY", name: "My Portfolio", active: true }],
+      },
+      error: undefined,
+      isLoading: false,
+      mutate: jest.fn(),
+    } as any)
+
+    // Allocation response: equity=42, cash=18, housing=10 → sum 70 (CPF=30%)
+    // Expected normalized: equity=60, cash=26, housing=14
+    global.fetch = jest.fn().mockResolvedValue({
+      json: () =>
+        Promise.resolve({
+          data: {
+            cashAllocation: 18,
+            equityAllocation: 42,
+            housingAllocation: 10,
+          },
+        }),
+    }) as jest.Mock
+
+    render(<EditPlanDetailsModal {...defaultProps} />)
+
+    const useActualBtn = screen.getByRole("button", { name: /use actual/i })
+    fireEvent.click(useActualBtn)
+
+    await waitFor(() => {
+      const textboxes = screen.getAllByRole("textbox") as HTMLInputElement[]
+      expect(parseFloat(textboxes[4].value)).toBe(60) // equityAllocation
+      expect(parseFloat(textboxes[5].value)).toBe(26) // cashAllocation
+      expect(parseFloat(textboxes[6].value)).toBe(14) // housingAllocation
+    })
   })
 })

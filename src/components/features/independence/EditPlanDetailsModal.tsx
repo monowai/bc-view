@@ -29,6 +29,7 @@ interface EditedOverrides {
 import {
   parseExcludedPortfolioIds,
   parseExcludedRentalAssetIds,
+  normalizeAllocation,
 } from "@lib/independence/planHelpers"
 import MathInput from "@components/ui/MathInput"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
@@ -144,6 +145,43 @@ export default function EditPlanDetailsModal({
       plan.excludedRentalAssetIds,
     ),
   }))
+
+  const [isSyncingAllocation, setIsSyncingAllocation] = useState(false)
+
+  const syncAllocationFromPortfolios = (): void => {
+    const includedIds = portfolios
+      .filter((p) => p.active !== false)
+      .filter((p) => !formData.excludedPortfolioIds.includes(p.id))
+      .map((p) => p.id)
+    if (includedIds.length === 0) return
+
+    setIsSyncingAllocation(true)
+    fetch(
+      `/api/holdings/allocation?asAt=today&ids=${encodeURIComponent(includedIds.join(","))}`,
+    )
+      .then((res) => res.json())
+      .then((response) => {
+        const d = response?.data
+        if (!d) return
+        const total =
+          d.cashAllocation + d.equityAllocation + d.housingAllocation
+        if (total > 0) {
+          const norm = normalizeAllocation(
+            d.equityAllocation,
+            d.cashAllocation,
+            d.housingAllocation,
+          )
+          setFormData((prev) => ({
+            ...prev,
+            equityAllocation: norm.equity,
+            cashAllocation: norm.cash,
+            housingAllocation: norm.housing,
+          }))
+        }
+      })
+      .catch(console.error)
+      .finally(() => setIsSyncingAllocation(false))
+  }
 
   // Fetch rental property configs for per-property checkboxes
   const { configs: assetConfigs, assetNames } = usePrivateAssetConfigs()
@@ -345,9 +383,22 @@ export default function EditPlanDetailsModal({
 
           {/* Asset Allocations */}
           <div className="border-t pt-4 mt-4">
-            <h3 className="text-sm font-medium text-gray-700 mb-3">
-              Asset Allocations
-            </h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-medium text-gray-700">
+                Asset Allocations
+              </h3>
+              {portfolios.filter((p) => p.active !== false).length > 0 && (
+                <button
+                  type="button"
+                  onClick={syncAllocationFromPortfolios}
+                  disabled={isSyncingAllocation}
+                  className="flex items-center px-2 py-1 text-xs bg-blue-50 text-blue-700 rounded hover:bg-blue-100 disabled:opacity-50"
+                >
+                  <i className="fas fa-sync-alt mr-1"></i>
+                  {isSyncingAllocation ? "Loading…" : "Use Actual"}
+                </button>
+              )}
+            </div>
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className="block text-xs text-gray-500 mb-1">
