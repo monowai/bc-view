@@ -1,5 +1,5 @@
 import React from "react"
-import { render, screen } from "@testing-library/react"
+import { render, screen, fireEvent } from "@testing-library/react"
 import "@testing-library/jest-dom"
 import HoldingActions from "../HoldingActions"
 import { HoldingContract } from "types/beancounter"
@@ -253,6 +253,28 @@ describe("HoldingActions Mobile Portrait Tests (TDD)", () => {
       expect(screen.getByLabelText("Copy Holdings")).toBeInTheDocument()
       expect(screen.getByLabelText("Trade")).toBeInTheDocument()
       expect(screen.getByLabelText("Invest")).toBeInTheDocument()
+    })
+
+    // Regression: on an empty portfolio (emptyHoldings), the Invest Cash menu
+    // item rendered but did nothing because the holdings page never passed
+    // onInvestCash. Guard the menu→callback contract so a present, undefined
+    // callback can't silently no-op again.
+    it("fires onInvestCash when Invest Cash is clicked with empty holdings", () => {
+      const onInvestCash = jest.fn()
+      render(
+        <HoldingActions
+          holdingResults={mockHoldingResults}
+          columns={mockColumns}
+          valueIn={mockValueIn}
+          emptyHoldings={true}
+          onInvestCash={onInvestCash}
+        />,
+      )
+
+      fireEvent.click(screen.getByLabelText("Invest"))
+      fireEvent.click(screen.getByText("Invest Cash"))
+
+      expect(onInvestCash).toHaveBeenCalledTimes(1)
     })
   })
 })
