@@ -29,13 +29,14 @@ export interface ScenarioBarProps {
    * slider's range.
    */
   derivedLiquidAssets: number
-  /**
-   * Plan blended return rate (cash + equity, weighted). Used to seed the
-   * realReturn slider's initial position when the user hasn't moved it.
-   */
-  planBlendedReturn: number
-  /** Plan's own inflation rate, used to anchor realReturn = blended − inflation. */
+  /** Plan's own inflation rate, used to compute real return on Cash→Invest display. */
   planInflation: number
+  /** Plan's cash return rate (e.g. 0.015 for 1.5%). */
+  planCashRate: number
+  /** Plan's equity return rate (e.g. 0.07 for 7%). */
+  planEquityRate: number
+  /** Plan's cash allocation as a decimal (e.g. 1.0 = 100% cash). */
+  planCashAlloc: number
   /**
    * Off-track diagnostic from the latest projection: present ONLY when the
    * plan's money runs out before life expectancy. Caveats the Retirement-Age
@@ -67,8 +68,10 @@ export default function ScenarioBar({
   view,
   onViewChange,
   derivedLiquidAssets,
-  planBlendedReturn,
   planInflation,
+  planCashRate,
+  planEquityRate,
+  planCashAlloc,
   pathToHorizon,
 }: ScenarioBarProps): React.ReactElement {
   // Sliders default-collapsed at every viewport to keep the page chrome
@@ -84,13 +87,16 @@ export default function ScenarioBar({
   const offTrack = pathToHorizon != null
 
   const effectiveLiquidAssets = scenario.liquidAssets ?? derivedLiquidAssets
-  const planRealReturn = planBlendedReturn - planInflation
-  const effectiveRealReturn = scenario.realReturn ?? planRealReturn
   const liquidMax = Math.max(derivedLiquidAssets * 2, 100_000)
-  // Slider snaps to nearest 0.001; treat anything within half a step of the
-  // plan's real return as "matches plan" and restore the null override so
-  // the isDirty badge clears.
-  const REAL_RETURN_SNAP = 0.0005
+
+  // Compute the expected blended return for the Cash→Invest shift display.
+  const cashShift =
+    Math.max(0, Math.min(100, scenario.cashToInvestPercent ?? 0)) / 100
+  const shiftedCashAlloc = planCashAlloc * (1 - cashShift)
+  const shiftedEquityAlloc = 1 - planCashAlloc + planCashAlloc * cashShift
+  const shiftedBlended =
+    shiftedCashAlloc * planCashRate + shiftedEquityAlloc * planEquityRate
+  const shiftedReal = shiftedBlended - planInflation
 
   return (
     <div className="sticky top-0 z-30 bg-white border-b shadow-sm mb-3">
@@ -227,18 +233,6 @@ export default function ScenarioBar({
               formatValue={(v) => `${currency}${N0(v)}`}
             />
             <WhatIfSlider
-              label="Pension / CPF"
-              value={scenario.pensionMonthly}
-              onChange={(pensionMonthly) =>
-                onScenarioChange({ pensionMonthly })
-              }
-              min={0}
-              max={10_000}
-              step={50}
-              unit=""
-              formatValue={(v) => `${currency}${N0(v)}/mo`}
-            />
-            <WhatIfSlider
               label="Government Benefits"
               value={scenario.socialSecurityMonthly}
               onChange={(socialSecurityMonthly) =>
@@ -263,21 +257,6 @@ export default function ScenarioBar({
               formatValue={(v) => `${currency}${N0(v)}/mo`}
             />
             <WhatIfSlider
-              label="Real Return"
-              value={Math.round(effectiveRealReturn * 1000) / 1000}
-              onChange={(v) =>
-                onScenarioChange({
-                  realReturn:
-                    Math.abs(v - planRealReturn) < REAL_RETURN_SNAP ? null : v,
-                })
-              }
-              min={0}
-              max={0.12}
-              step={0.001}
-              unit=""
-              formatValue={PCT}
-            />
-            <WhatIfSlider
               label="Inflation"
               value={scenario.inflation}
               onChange={(inflation) => onScenarioChange({ inflation })}
@@ -287,25 +266,36 @@ export default function ScenarioBar({
               unit=""
               formatValue={PCT}
             />
-            {/* Wealth Transfer — cash → equities. Surfaces a Singapore-flavoured
-                question: "what if I moved part of my bank cash into
-                investments?" Slider stays at 0 (no shift) by default; moving
-                it changes plan.cashAllocation / equityAllocation via
-                scenarioToPayload. Future siblings (OA → SA, ETF → CPF VC)
-                will live alongside this once we generalise to
-                wealthTransfers[]. */}
-            <WhatIfSlider
-              label="Cash → Investments"
-              value={scenario.cashToInvestPercent}
-              onChange={(cashToInvestPercent) =>
-                onScenarioChange({ cashToInvestPercent })
-              }
-              min={0}
-              max={100}
-              step={5}
-              unit="%"
-              formatValue={(v) => `${Math.round(v)}%`}
-            />
+            {/* Wealth Transfer — cash → equities. Shows what blended return
+                to expect given the plan's own rate assumptions. */}
+            <div>
+              <WhatIfSlider
+                label="Cash → Investments"
+                value={scenario.cashToInvestPercent}
+                onChange={(cashToInvestPercent) =>
+                  onScenarioChange({ cashToInvestPercent })
+                }
+                min={0}
+                max={100}
+                step={5}
+                unit="%"
+                formatValue={(v) => `${Math.round(v)}%`}
+              />
+              <p className="text-xs mt-0.5">
+                <span className="text-gray-500">
+                  Expected: {PCT(shiftedBlended)} blended
+                </span>
+                <span
+                  className={
+                    shiftedReal >= 0 ? "text-green-600 ml-1" : "text-red-500 ml-1"
+                  }
+                >
+                  {shiftedReal >= 0
+                    ? `+${PCT(shiftedReal)} real`
+                    : `${PCT(shiftedReal)} real`}
+                </span>
+              </p>
+            </div>
           </div>
         )}
       </div>

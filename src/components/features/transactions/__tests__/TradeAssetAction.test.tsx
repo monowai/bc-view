@@ -46,7 +46,9 @@ describe("TradeAssetAction", () => {
   it("renders a Trade button", () => {
     setPortfolios([makePortfolio({ id: "p1", code: "MAIN" })])
     render(<TradeAssetAction asset={asset} />)
-    expect(screen.getByRole("button", { name: /Trade AAPL/i })).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: /Trade AAPL/i }),
+    ).toBeInTheDocument()
   })
 
   it("disables the button when the user has no portfolios", () => {

@@ -300,7 +300,8 @@ const PayslipModal: React.FC<PayslipModalProps> = ({ modalOpen, onClose }) => {
       cashAssetId: effectiveCashAssetId,
       cashCurrency: selectedCashCurrency,
       cpfAssetId: showPension && dc ? cpfConfig?.assetId : undefined,
-      employeeContribution: showPension && dc ? dc.employeeContribution : undefined,
+      employeeContribution:
+        showPension && dc ? dc.employeeContribution : undefined,
       buckets: showPension && dc ? effectiveBuckets : undefined,
     })
 

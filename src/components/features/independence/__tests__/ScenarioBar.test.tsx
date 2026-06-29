@@ -31,8 +31,10 @@ const baseProps = {
   view: "FIRE" as const,
   onViewChange: jest.fn(),
   derivedLiquidAssets: 250_000,
-  planBlendedReturn: 0.058,
   planInflation: 0.025,
+  planCashRate: 0.015,
+  planEquityRate: 0.07,
+  planCashAlloc: 1.0,
 }
 
 beforeEach(() => {
@@ -42,22 +44,23 @@ beforeEach(() => {
 })
 
 describe("ScenarioBar", () => {
-  it("renders all eight slider labels when expanded", () => {
+  it("renders slider labels when expanded", () => {
     render(<ScenarioBar {...baseProps} />)
-    // Expand the slider grid (collapsed by default).
     fireEvent.click(screen.getByRole("button", { name: /Show sliders/ }))
     for (const label of [
       "Retirement Age",
       "Life Expectancy",
       "Liquid Assets",
       "Monthly Expenses",
-      "Pension / CPF",
+      "Government Benefits",
       "Other Income",
-      "Real Return",
       "Inflation",
+      "Cash → Investments",
     ]) {
       expect(screen.getByText(label)).toBeInTheDocument()
     }
+    expect(screen.queryByText("Pension / CPF")).not.toBeInTheDocument()
+    expect(screen.queryByText("Real Return")).not.toBeInTheDocument()
   })
 
   it("collapses the slider grid by default and toggles open", () => {
@@ -180,19 +183,23 @@ describe("ScenarioBar", () => {
     })
   })
 
-  it("restores realReturn=null when slider returns within half a step of plan real", () => {
-    // planRealReturn = 0.058 - 0.025 = 0.033. Start with a non-null override.
-    const props = {
-      ...baseProps,
-      scenario: { ...baseScenario, realReturn: 0.05 },
-    }
-    render(<ScenarioBar {...props} />)
+  it("shows blended return at 0% shift (motivates moving cash to investments)", () => {
+    render(<ScenarioBar {...baseProps} />)
     fireEvent.click(screen.getByRole("button", { name: /Show sliders/ }))
-    const realReturnSlider = screen
-      .getByText("Real Return")
-      .closest(".space-y-2")
-      ?.querySelector('input[type="range"]') as HTMLInputElement
-    fireEvent.change(realReturnSlider, { target: { value: "0.033" } })
-    expect(props.onScenarioChange).toHaveBeenCalledWith({ realReturn: null })
+    // 0% shift: 100% cash at 1.5% → blended=1.5%, real=1.5%-2.5%=-1.0% (red)
+    expect(screen.getByText(/Expected:/)).toBeInTheDocument()
+    expect(screen.getByText(/-1\.0% real/)).toBeInTheDocument()
+  })
+
+  it("shows positive real return when cash is shifted to investments", () => {
+    render(
+      <ScenarioBar
+        {...baseProps}
+        scenario={{ ...baseScenario, cashToInvestPercent: 50 }}
+      />,
+    )
+    fireEvent.click(screen.getByRole("button", { name: /Show sliders/ }))
+    // 50% shift: 0.5*1.5% + 0.5*7% = 0.75% + 3.5% = 4.25% blended, real=1.75%
+    expect(screen.getByText(/\+1\.8% real/)).toBeInTheDocument()
   })
 })
