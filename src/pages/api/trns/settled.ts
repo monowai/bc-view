@@ -4,8 +4,9 @@ import { transformTrnEnvelopeJson } from "@utils/trns/trnsSelectors"
 
 export default createApiHandler({
   url: (req) => {
-    const tradeDate = req.query.tradeDate as string
-    return getDataUrl(`/trns/settled?tradeDate=${tradeDate}`)
+    const from = req.query.from as string
+    const to = req.query.to as string
+    return getDataUrl(`/trns/settled?from=${from}&to=${to}`)
   },
   transformJson: transformTrnEnvelopeJson,
 })
