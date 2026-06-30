@@ -43,6 +43,7 @@ import {
   computeWeightInfo,
   computeCurrentPositionWeight,
   calculateQuantityFromTargetWeight,
+  calculateNewPositionQuantityFromTargetWeight,
   calculateQuantityFromTradeValue,
   buildEditModeValues,
   buildQuickSellValues,
@@ -359,6 +360,38 @@ const TradeInputForm: React.FC<{
     const result = calculateQuantityFromTargetWeight(
       parseFloat(newTargetWeight),
       currentPositionWeight,
+      price,
+      weightBasis,
+    )
+    if (!result) return
+    setValue("quantity", result.quantity)
+    setValue("type", { value: result.tradeType, label: result.tradeType })
+  }
+
+  // A brand-new position (no existing holding) has no current weight, but we
+  // can still size it to a target weight of the resulting, post-trade
+  // portfolio — provided the portfolio already has value to weigh against.
+  const newPositionTargetWeight = useMemo(
+    () =>
+      currentPositionWeight === null
+        ? calculateNewPositionQuantityFromTargetWeight(
+            parseFloat(targetWeight),
+            price,
+            weightBasis,
+          )
+        : null,
+    [currentPositionWeight, targetWeight, price, weightBasis],
+  )
+  const canTargetNewPositionWeight =
+    currentPositionWeight === null && price > 0 && weightBasis > 0
+
+  // Handle target weight change for a new (not-yet-held) position.
+  const handleNewPositionTargetWeightChange = (
+    newTargetWeight: string,
+  ): void => {
+    setTargetWeight(newTargetWeight)
+    const result = calculateNewPositionQuantityFromTargetWeight(
+      parseFloat(newTargetWeight),
       price,
       weightBasis,
     )
@@ -1124,11 +1157,61 @@ const TradeInputForm: React.FC<{
                         <span className="text-purple-600 text-sm">%</span>
                       </div>
                     </div>
+                  ) : canTargetNewPositionWeight ? (
+                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                      <label className="block text-xs font-medium text-purple-800 mb-2">
+                        {"Target Weight"}
+                      </label>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs text-purple-700">
+                          {"New position"}
+                        </span>
+                        <span className="text-purple-400">&rarr;</span>
+                        <MathInput
+                          value={targetWeight ? parseFloat(targetWeight) : 0}
+                          onChange={(value) => {
+                            if (value >= 0) {
+                              handleNewPositionTargetWeightChange(String(value))
+                            }
+                          }}
+                          placeholder={"0.0"}
+                          className="w-20 px-2 py-2 border border-purple-300 rounded text-sm"
+                        />
+                        <span className="text-purple-600 text-sm">
+                          {"% of portfolio"}
+                        </span>
+                      </div>
+                      {newPositionTargetWeight && (
+                        <p className="mt-2 text-xs text-purple-700">
+                          {newPositionTargetWeight.quantity} {"shares · "}
+                          <NumericFormat
+                            value={newPositionTargetWeight.quantity * price}
+                            displayType="text"
+                            thousandSeparator
+                            decimalScale={2}
+                            fixedDecimalScale
+                            prefix="$"
+                          />
+                          {" of a "}
+                          <NumericFormat
+                            value={
+                              newPositionTargetWeight.nominalPortfolioValue
+                            }
+                            displayType="text"
+                            thousandSeparator
+                            decimalScale={2}
+                            fixedDecimalScale
+                            prefix="$"
+                          />
+                          {" portfolio"}
+                        </p>
+                      )}
+                    </div>
                   ) : (
                     <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center">
                       <p className="text-xs text-gray-500">
                         {
-                          "Target weight is available when trading existing positions"
+                          "Target weight needs a price and an existing portfolio value"
                         }
                       </p>
                     </div>

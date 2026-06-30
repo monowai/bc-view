@@ -128,6 +128,46 @@ export const calculateQuantityFromTargetWeight = (
 }
 
 /**
+ * Size a brand-new position (no existing holding) to a target weight of the
+ * resulting, post-trade portfolio. The buy is funded from outside the
+ * portfolio, so adding value V grows the total to (PV + V):
+ *   w = V / (PV + V)  =>  V = w·PV / (1 - w)
+ * Always a BUY. Returns null when the portfolio has no value yet (the first
+ * position is 100% by definition, so a target weight is meaningless) or when
+ * the weight is outside the reachable (0, 100) range.
+ */
+export const calculateNewPositionQuantityFromTargetWeight = (
+  targetWeightPercent: number,
+  price: number,
+  portfolioMarketValue: number,
+): {
+  quantity: number
+  tradeType: "BUY"
+  nominalPortfolioValue: number
+} | null => {
+  if (isNaN(targetWeightPercent) || targetWeightPercent <= 0) return null
+  if (targetWeightPercent >= 100) return null
+  if (
+    !price ||
+    price <= 0 ||
+    !portfolioMarketValue ||
+    portfolioMarketValue <= 0
+  )
+    return null
+
+  const w = targetWeightPercent / 100
+  const targetValue = (w * portfolioMarketValue) / (1 - w)
+  // Round (not floor) so we land on the nearest share to the target weight,
+  // matching calculateQuantityFromTargetWeight and avoiding float undershoot.
+  const quantity = Math.round(targetValue / price)
+  return {
+    quantity,
+    tradeType: "BUY",
+    nominalPortfolioValue: portfolioMarketValue + quantity * price,
+  }
+}
+
+/**
  * Calculate quantity from a total investment value.
  * Returns floor of (value / price), or null if price is invalid.
  */
