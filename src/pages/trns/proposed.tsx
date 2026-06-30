@@ -28,6 +28,15 @@ const SESSION_KEY_AGGREGATE_VIEW = "proposed-aggregate-view"
 const SESSION_KEY_SCOPE = "proposed-scope"
 const SESSION_KEY_FROM = "proposed-from"
 const SESSION_KEY_TO = "proposed-to"
+const SESSION_KEY_FILTERS_OPEN = "proposed-filters-open"
+
+// The filter panel is heavy on a phone, so default it collapsed on mobile
+// (< sm) and expanded on larger screens. A manual toggle is persisted and
+// overrides this default thereafter.
+const defaultFiltersOpen = (): boolean =>
+  typeof window === "undefined"
+    ? true
+    : window.matchMedia("(min-width: 640px)").matches
 
 // The review window defaults to a tight t-1..t+1 band: yesterday catches
 // just-executed trades, tomorrow surfaces imminently-due proposed rows
@@ -65,6 +74,7 @@ export default function ProposedTransactions(): React.JSX.Element {
   const [isSettling, setIsSettling] = useState(false)
   const [isUnsettling, setIsUnsettling] = useState(false)
   const [aggregateView, setAggregateView] = useState(false)
+  const [filtersOpen, setFiltersOpen] = useState(true)
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
   const [editTarget, setEditTarget] = useState<{
     portfolioId: string
@@ -82,6 +92,9 @@ export default function ProposedTransactions(): React.JSX.Element {
     setFromDate(getSessionValue(SESSION_KEY_FROM, defaultFrom()))
     setToDate(getSessionValue(SESSION_KEY_TO, defaultTo()))
     setAggregateView(getSessionValue(SESSION_KEY_AGGREGATE_VIEW, false))
+    setFiltersOpen(
+      getSessionValue(SESSION_KEY_FILTERS_OPEN, defaultFiltersOpen()),
+    )
     const storedScope = getSessionValue<ProposedScope>(SESSION_KEY_SCOPE, "ALL")
     if (
       storedScope === "OWNED" ||
@@ -124,6 +137,12 @@ export default function ProposedTransactions(): React.JSX.Element {
       setSessionValue(SESSION_KEY_AGGREGATE_VIEW, aggregateView)
     }
   }, [aggregateView, sessionInitialized])
+
+  useEffect(() => {
+    if (sessionInitialized) {
+      setSessionValue(SESSION_KEY_FILTERS_OPEN, filtersOpen)
+    }
+  }, [filtersOpen, sessionInitialized])
 
   // Fetch proposed transactions across all portfolios, bounded to those due on or before toDate.
   const proposedKey = user
@@ -760,153 +779,199 @@ export default function ProposedTransactions(): React.JSX.Element {
           include them in your holdings calculations.
         </p>
 
-        {/* Filter toolbar — grouped into labelled sections so each control's
-            purpose is self-evident. */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end gap-x-6 mb-6 bg-gray-50 p-3 sm:p-4 rounded-lg border border-gray-200">
-          {/* Scope */}
-          <div className="flex flex-col gap-1">
-            <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
-              Scope
-            </span>
-            <div
-              role="group"
-              aria-label="Scope"
-              className="inline-flex rounded-md border border-gray-300 overflow-hidden text-sm self-start"
-            >
-              {(["ALL", "OWNED", "MANAGED"] as ProposedScope[]).map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setScope(s)}
-                  className={`px-3 py-1 ${
-                    scope === s
-                      ? "bg-invest-600 text-white"
-                      : "bg-white text-gray-700 hover:bg-gray-100"
-                  }`}
-                >
-                  {s === "ALL" ? "All" : s === "OWNED" ? "Mine" : "Managed"}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Date range — one window for everything on the page */}
-          <div className="flex flex-col gap-1">
-            <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
-              Date range
-            </span>
-            <div className="flex items-center gap-2 text-sm">
-              <DateInput
-                value={fromDate}
-                onChange={setFromDate}
-                max={toDate}
-                className="px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+        {/* Collapsible filter toolbar — collapsed by default on mobile to cut
+            scrolling; a one-line summary keeps the active filters visible while
+            collapsed. Sections are labelled so each control's purpose is clear. */}
+        <div className="mb-6">
+          <button
+            type="button"
+            onClick={() => setFiltersOpen((o) => !o)}
+            aria-expanded={filtersOpen}
+            aria-controls="trn-filters"
+            className={`flex w-full items-center justify-between gap-3 border border-gray-200 bg-gray-50 px-3 py-2 text-left sm:px-4 ${
+              filtersOpen ? "rounded-t-lg" : "rounded-lg"
+            }`}
+          >
+            <span className="flex items-center gap-2 text-sm font-medium text-gray-700">
+              <i
+                className="fas fa-sliders-h text-gray-400"
+                aria-hidden="true"
               />
-              <span className="text-gray-400">→</span>
-              <DateInput
-                value={toDate}
-                onChange={setToDate}
-                min={fromDate}
-                className="px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  setFromDate(defaultFrom())
-                  setToDate(defaultTo())
-                }}
-                className="text-xs text-blue-600 hover:underline"
-                title="Reset to yesterday → tomorrow"
-              >
-                Reset
-              </button>
-            </div>
-            <span className="text-xs text-gray-400">
-              Proposed due on/before end · settled within range
+              Filters
             </span>
-          </div>
-
-          {/* Settled */}
-          <div className="flex flex-col gap-1">
-            <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
-              Settled
-            </span>
-            <label className="flex h-[30px] items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={includeSettled}
-                onChange={(e) => setIncludeSettled(e.target.checked)}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <span className="text-gray-700">Include settled</span>
-              {includeSettled && (
-                <span className="text-xs text-gray-500">
-                  {settledLoading
-                    ? "(loading…)"
-                    : `(${settledTransactions.length})`}
+            <span className="flex min-w-0 items-center gap-2">
+              {!filtersOpen && (
+                <span className="truncate text-xs text-gray-500">
+                  {scope === "ALL"
+                    ? "All"
+                    : scope === "OWNED"
+                      ? "Mine"
+                      : "Managed"}
+                  {` · ${fromDate} → ${toDate}`}
+                  {includeSettled ? " · +settled" : ""}
+                  {typeFilter !== "ALL" ? ` · ${typeFilter}` : ""}
+                  {aggregateView ? " · aggregated" : ""}
                 </span>
               )}
-            </label>
-          </div>
-
-          {/* Type */}
-          <div className="flex flex-col gap-1">
-            <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
-              Type
-            </span>
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="h-[30px] px-2 py-1 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="ALL">ALL</option>
-              <option value="DIVI">DIVI</option>
-              <option value="SPLIT">SPLIT</option>
-              <option value="BUY">BUY</option>
-              <option value="SELL">SELL</option>
-              <option value="ADD">ADD</option>
-              <option value="REDUCE">REDUCE</option>
-            </select>
-          </div>
-
-          {/* View */}
-          <div className="flex flex-col gap-1">
-            <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
-              View
-            </span>
-            <label className="flex h-[30px] items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={aggregateView}
-                onChange={(e) => setAggregateView(e.target.checked)}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              <i
+                className={`fas fa-chevron-${filtersOpen ? "up" : "down"} text-gray-400`}
+                aria-hidden="true"
               />
-              <span className="text-gray-700">Aggregate by broker + asset</span>
-            </label>
-          </div>
+            </span>
+          </button>
+          {filtersOpen && (
+            <div
+              id="trn-filters"
+              className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end gap-x-6 bg-gray-50 p-3 sm:p-4 rounded-b-lg border border-t-0 border-gray-200"
+            >
+              {/* Scope */}
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                  Scope
+                </span>
+                <div
+                  role="group"
+                  aria-label="Scope"
+                  className="inline-flex rounded-md border border-gray-300 overflow-hidden text-sm self-start"
+                >
+                  {(["ALL", "OWNED", "MANAGED"] as ProposedScope[]).map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setScope(s)}
+                      className={`px-3 py-1 ${
+                        scope === s
+                          ? "bg-invest-600 text-white"
+                          : "bg-white text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      {s === "ALL" ? "All" : s === "OWNED" ? "Mine" : "Managed"}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-          {brokers.length > 0 && transactions.length > 0 && (
-            <div className="flex flex-col gap-1">
-              <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                Apply broker
-              </span>
-              <select
-                value=""
-                onChange={(e) => {
-                  handleApplyBrokerToAll(e.target.value)
-                  // Reset so the same broker can be re-applied later.
-                  e.currentTarget.selectedIndex = 0
-                }}
-                className="h-[30px] px-2 py-1 border border-gray-300 rounded text-sm bg-white"
-              >
-                <option value="">— Pick a broker —</option>
-                {brokers.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                    {b.accountNumber ? ` (${b.accountNumber})` : ""}
-                  </option>
-                ))}
-              </select>
+              {/* Date range — one window for everything on the page */}
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                  Date range
+                </span>
+                <div className="flex items-center gap-2 text-sm">
+                  <DateInput
+                    value={fromDate}
+                    onChange={setFromDate}
+                    max={toDate}
+                    className="px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                  <span className="text-gray-400">→</span>
+                  <DateInput
+                    value={toDate}
+                    onChange={setToDate}
+                    min={fromDate}
+                    className="px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFromDate(defaultFrom())
+                      setToDate(defaultTo())
+                    }}
+                    className="text-xs text-blue-600 hover:underline"
+                    title="Reset to yesterday → tomorrow"
+                  >
+                    Reset
+                  </button>
+                </div>
+                <span className="text-xs text-gray-400">
+                  Proposed due on/before end · settled within range
+                </span>
+              </div>
+
+              {/* Settled */}
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                  Settled
+                </span>
+                <label className="flex h-[30px] items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={includeSettled}
+                    onChange={(e) => setIncludeSettled(e.target.checked)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-gray-700">Include settled</span>
+                  {includeSettled && (
+                    <span className="text-xs text-gray-500">
+                      {settledLoading
+                        ? "(loading…)"
+                        : `(${settledTransactions.length})`}
+                    </span>
+                  )}
+                </label>
+              </div>
+
+              {/* Type */}
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                  Type
+                </span>
+                <select
+                  value={typeFilter}
+                  onChange={(e) => setTypeFilter(e.target.value)}
+                  className="h-[30px] px-2 py-1 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="ALL">ALL</option>
+                  <option value="DIVI">DIVI</option>
+                  <option value="SPLIT">SPLIT</option>
+                  <option value="BUY">BUY</option>
+                  <option value="SELL">SELL</option>
+                  <option value="ADD">ADD</option>
+                  <option value="REDUCE">REDUCE</option>
+                </select>
+              </div>
+
+              {/* View */}
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                  View
+                </span>
+                <label className="flex h-[30px] items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={aggregateView}
+                    onChange={(e) => setAggregateView(e.target.checked)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-gray-700">
+                    Aggregate by broker + asset
+                  </span>
+                </label>
+              </div>
+
+              {brokers.length > 0 && transactions.length > 0 && (
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                    Apply broker
+                  </span>
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      handleApplyBrokerToAll(e.target.value)
+                      // Reset so the same broker can be re-applied later.
+                      e.currentTarget.selectedIndex = 0
+                    }}
+                    className="h-[30px] px-2 py-1 border border-gray-300 rounded text-sm bg-white"
+                  >
+                    <option value="">— Pick a broker —</option>
+                    {brokers.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name}
+                        {b.accountNumber ? ` (${b.accountNumber})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
           )}
         </div>
