@@ -1236,6 +1236,8 @@ export interface CompositeProjectionResult {
   isSustainable: boolean
   yearlyProjections: CompositeYearlyProjection[]
   warnings: string[]
+  /** Pre-retirement accumulation rows (currentAge → firstPhaseAge-1). Empty when already retired. */
+  accumulationProjections?: CompositeYearlyProjection[]
 }
 
 export interface CompositeScenarioResult {
