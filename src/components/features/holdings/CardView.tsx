@@ -27,7 +27,7 @@ import {
   supportsBalanceSetting,
 } from "@lib/assets/assetUtils"
 import { useDisplayCurrencyConversion } from "@lib/hooks/useDisplayCurrencyConversion"
-import { getGroupComparator } from "@lib/categoryMapping"
+import { getGroupComparator, isChartableCategory } from "@lib/categoryMapping"
 import { useRouter } from "next/router"
 import { AlphaProgress } from "@components/ui/ProgressBar"
 import { QuickTooltip } from "@components/ui/Tooltip"
@@ -448,11 +448,10 @@ const PositionCard: React.FC<PositionCardProps> = ({
 
       {!isCashRelated(asset) &&
         (() => {
-          const categoryId = asset.assetCategory?.id
           const isChartable =
             !!onPriceChart &&
             !!values.priceData?.close &&
-            (categoryId === "EQUITY" || categoryId === "ETF")
+            isChartableCategory(asset.assetCategory?.id)
           const handlePriceClick = isChartable
             ? (e: React.MouseEvent) => {
                 e.preventDefault()

@@ -49,6 +49,21 @@ export function mapToReportCategory(categoryId: string): string {
   }
 }
 
+const NON_CHARTABLE_CATEGORIES = new Set([
+  "CASH",
+  "RE",
+  "REAL ESTATE",
+  "ACCOUNT",
+  "BANK ACCOUNT",
+  "TRADE",
+  "POLICY",
+])
+
+export function isChartableCategory(categoryId: string | undefined): boolean {
+  if (!categoryId) return false
+  return !NON_CHARTABLE_CATEGORIES.has(categoryId.toUpperCase())
+}
+
 /**
  * Gets the report category for an asset.
  * Uses effectiveReportCategory from backend if available,

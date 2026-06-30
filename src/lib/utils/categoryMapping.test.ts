@@ -1,6 +1,7 @@
 import {
   mapToReportCategory,
   getReportCategory,
+  isChartableCategory,
   REPORT_CATEGORIES,
   compareByReportCategory,
   compareByMarket,
@@ -73,6 +74,36 @@ describe("categoryMapping", () => {
 
     it("returns original category for unknown categories", () => {
       expect(mapToReportCategory("SomeNewCategory")).toBe("SomeNewCategory")
+    })
+  })
+
+  describe("isChartableCategory", () => {
+    it.each(["EQUITY", "ETF", "EXCHANGE TRADED FUND", "MUTUAL FUND"])(
+      "returns true for %s",
+      (cat) => {
+        expect(isChartableCategory(cat)).toBe(true)
+      },
+    )
+
+    it.each([
+      "CASH",
+      "RE",
+      "ACCOUNT",
+      "TRADE",
+      "POLICY",
+      "REAL ESTATE",
+      "BANK ACCOUNT",
+    ])("returns false for non-chartable %s", (cat) => {
+      expect(isChartableCategory(cat)).toBe(false)
+    })
+
+    it("returns false for undefined", () => {
+      expect(isChartableCategory(undefined)).toBe(false)
+    })
+
+    it("is case-insensitive", () => {
+      expect(isChartableCategory("equity")).toBe(true)
+      expect(isChartableCategory("cash")).toBe(false)
     })
   })
 

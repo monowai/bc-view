@@ -156,7 +156,7 @@ describe("CardView footer (Quantity / Price / Weight)", () => {
 
     it("does not render a price button for non-chartable categories", () => {
       const onPriceChart = jest.fn()
-      renderWithChart(onPriceChart, "BOND")
+      renderWithChart(onPriceChart, "CASH")
       expect(
         screen.queryByRole("button", { name: /Show price chart/i }),
       ).not.toBeInTheDocument()
