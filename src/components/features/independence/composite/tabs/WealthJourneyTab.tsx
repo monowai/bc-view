@@ -65,8 +65,15 @@ export default function WealthJourneyTab(): React.ReactElement | null {
   // buildWealthJourneyChartData also nets cpfNonLiquidValue out of
   // housingValue so users with no real estate don't see a phantom
   // Housing legend entry from the upstream svc-retire MA bleed.
+  // Prepend accumulation rows so the chart spans current-age → life-expectancy,
+  // matching the single-plan My Path tab. Backend emits accumulationProjections
+  // when the user hasn't yet reached retirement age; empty when already retired.
+  const allRows = [
+    ...(projection.accumulationProjections ?? []),
+    ...projection.yearlyProjections,
+  ]
   const { chartData, hasHousingLayer, hasAnnuitizedLayer } =
-    buildWealthJourneyChartData(projection.yearlyProjections)
+    buildWealthJourneyChartData(allRows)
 
   // First year where housingValue drops to 0 after being > 0 = property sold.
   // CompositeYearlyProjection lacks propertyLiquidated, so we detect from the
