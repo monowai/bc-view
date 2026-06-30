@@ -15,14 +15,25 @@ import Alert from "@components/ui/Alert"
 import ConfirmDialog from "@components/ui/ConfirmDialog"
 import DetailedTransactionsTable from "@components/features/transactions/DetailedTransactionsTable"
 import AggregatedTransactionsTable from "@components/features/transactions/AggregatedTransactionsTable"
-import { getToday, getSessionValue, setSessionValue } from "@lib/sessionStorage"
+import {
+  getToday,
+  getDateOffset,
+  getSessionValue,
+  setSessionValue,
+} from "@lib/sessionStorage"
 
 // Session storage keys for filter preferences
 const SESSION_KEY_INCLUDE_SETTLED = "proposed-include-settled"
-const SESSION_KEY_SETTLED_DATE = "proposed-settled-date"
 const SESSION_KEY_AGGREGATE_VIEW = "proposed-aggregate-view"
 const SESSION_KEY_SCOPE = "proposed-scope"
-const SESSION_KEY_AS_AT = "proposed-as-at"
+const SESSION_KEY_FROM = "proposed-from"
+const SESSION_KEY_TO = "proposed-to"
+
+// The review window defaults to a tight t-1..t+1 band: yesterday catches
+// just-executed trades, tomorrow surfaces imminently-due proposed rows
+// (e.g. a dividend paying out the next day).
+const defaultFrom = (): string => getDateOffset(-1)
+const defaultTo = (): string => getDateOffset(1)
 
 type ProposedScope = "OWNED" | "MANAGED" | "ALL"
 
@@ -39,10 +50,10 @@ export default function ProposedTransactions(): React.JSX.Element {
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [includeSettled, setIncludeSettled] = useState(false)
-  const [settledDate, setSettledDate] = useState(getToday())
-  // Proposed transactions due on or before this date are shown; defaults to today so
-  // future-dated rows (e.g. dividends with a forward pay date) stay hidden until due.
-  const [asAtDate, setAsAtDate] = useState(getToday())
+  // The review window. Proposed rows are bounded "due on or before" toDate;
+  // settled rows are filtered to tradeDate within fromDate..toDate.
+  const [fromDate, setFromDate] = useState(defaultFrom())
+  const [toDate, setToDate] = useState(defaultTo())
   const [settledTransactions, setSettledTransactions] = useState<Transaction[]>(
     [],
   )
@@ -68,8 +79,8 @@ export default function ProposedTransactions(): React.JSX.Element {
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setIncludeSettled(getSessionValue(SESSION_KEY_INCLUDE_SETTLED, false))
-    setSettledDate(getSessionValue(SESSION_KEY_SETTLED_DATE, getToday()))
-    setAsAtDate(getSessionValue(SESSION_KEY_AS_AT, getToday()))
+    setFromDate(getSessionValue(SESSION_KEY_FROM, defaultFrom()))
+    setToDate(getSessionValue(SESSION_KEY_TO, defaultTo()))
     setAggregateView(getSessionValue(SESSION_KEY_AGGREGATE_VIEW, false))
     const storedScope = getSessionValue<ProposedScope>(SESSION_KEY_SCOPE, "ALL")
     if (
@@ -98,15 +109,15 @@ export default function ProposedTransactions(): React.JSX.Element {
 
   useEffect(() => {
     if (sessionInitialized) {
-      setSessionValue(SESSION_KEY_SETTLED_DATE, settledDate)
+      setSessionValue(SESSION_KEY_FROM, fromDate)
     }
-  }, [settledDate, sessionInitialized])
+  }, [fromDate, sessionInitialized])
 
   useEffect(() => {
     if (sessionInitialized) {
-      setSessionValue(SESSION_KEY_AS_AT, asAtDate)
+      setSessionValue(SESSION_KEY_TO, toDate)
     }
-  }, [asAtDate, sessionInitialized])
+  }, [toDate, sessionInitialized])
 
   useEffect(() => {
     if (sessionInitialized) {
@@ -114,9 +125,9 @@ export default function ProposedTransactions(): React.JSX.Element {
     }
   }, [aggregateView, sessionInitialized])
 
-  // Fetch proposed transactions across all portfolios, bounded to those due on or before asAtDate.
+  // Fetch proposed transactions across all portfolios, bounded to those due on or before toDate.
   const proposedKey = user
-    ? `/api/trns/proposed?scope=${scope}&asAt=${asAtDate}`
+    ? `/api/trns/proposed?scope=${scope}&asAt=${toDate}`
     : null
   const { data: proposedData, error: fetchError } = useSwr<{
     data: Transaction[]
@@ -160,7 +171,7 @@ export default function ProposedTransactions(): React.JSX.Element {
       setSettledError(null)
       try {
         const response = await fetch(
-          `/api/trns/settled?tradeDate=${settledDate}`,
+          `/api/trns/settled?from=${fromDate}&to=${toDate}`,
         )
         if (!response.ok) {
           setSettledError(`Failed to fetch: ${response.statusText}`)
@@ -177,7 +188,7 @@ export default function ProposedTransactions(): React.JSX.Element {
     }
 
     fetchSettled()
-  }, [includeSettled, settledDate])
+  }, [includeSettled, fromDate, toDate])
 
   // Rebuild the editable transaction list whenever the underlying data or
   // filter changes. Render-phase "store previous value" pattern instead of an
@@ -749,44 +760,104 @@ export default function ProposedTransactions(): React.JSX.Element {
           include them in your holdings calculations.
         </p>
 
-        {/* Filter options */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4 mb-6 bg-gray-50 p-3 rounded-lg">
-          <div
-            role="group"
-            aria-label="Scope"
-            className="inline-flex rounded-md border border-gray-300 overflow-hidden text-sm self-start"
-          >
-            {(["ALL", "OWNED", "MANAGED"] as ProposedScope[]).map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setScope(s)}
-                className={`px-3 py-1 ${
-                  scope === s
-                    ? "bg-invest-600 text-white"
-                    : "bg-white text-gray-700 hover:bg-gray-100"
-                }`}
-              >
-                {s === "ALL" ? "All" : s === "OWNED" ? "Mine" : "Managed"}
-              </button>
-            ))}
+        {/* Filter toolbar — grouped into labelled sections so each control's
+            purpose is self-evident. */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end gap-x-6 mb-6 bg-gray-50 p-3 sm:p-4 rounded-lg border border-gray-200">
+          {/* Scope */}
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+              Scope
+            </span>
+            <div
+              role="group"
+              aria-label="Scope"
+              className="inline-flex rounded-md border border-gray-300 overflow-hidden text-sm self-start"
+            >
+              {(["ALL", "OWNED", "MANAGED"] as ProposedScope[]).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setScope(s)}
+                  className={`px-3 py-1 ${
+                    scope === s
+                      ? "bg-invest-600 text-white"
+                      : "bg-white text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  {s === "ALL" ? "All" : s === "OWNED" ? "Mine" : "Managed"}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="hidden sm:block border-l border-gray-300 h-6" />
-          <label className="flex items-center gap-2 text-sm">
-            <span className="text-gray-700">Due up to</span>
-            <DateInput
-              value={asAtDate}
-              onChange={setAsAtDate}
-              className="px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-          </label>
-          <div className="hidden sm:block border-l border-gray-300 h-6" />
-          <label className="flex items-center gap-2 text-sm">
-            <span className="text-gray-700">Type:</span>
+
+          {/* Date range — one window for everything on the page */}
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+              Date range
+            </span>
+            <div className="flex items-center gap-2 text-sm">
+              <DateInput
+                value={fromDate}
+                onChange={setFromDate}
+                max={toDate}
+                className="px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+              <span className="text-gray-400">→</span>
+              <DateInput
+                value={toDate}
+                onChange={setToDate}
+                min={fromDate}
+                className="px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setFromDate(defaultFrom())
+                  setToDate(defaultTo())
+                }}
+                className="text-xs text-blue-600 hover:underline"
+                title="Reset to yesterday → tomorrow"
+              >
+                Reset
+              </button>
+            </div>
+            <span className="text-xs text-gray-400">
+              Proposed due on/before end · settled within range
+            </span>
+          </div>
+
+          {/* Settled */}
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+              Settled
+            </span>
+            <label className="flex h-[30px] items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={includeSettled}
+                onChange={(e) => setIncludeSettled(e.target.checked)}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-gray-700">Include settled</span>
+              {includeSettled && (
+                <span className="text-xs text-gray-500">
+                  {settledLoading
+                    ? "(loading…)"
+                    : `(${settledTransactions.length})`}
+                </span>
+              )}
+            </label>
+          </div>
+
+          {/* Type */}
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+              Type
+            </span>
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
-              className="px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="h-[30px] px-2 py-1 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="ALL">ALL</option>
               <option value="DIVI">DIVI</option>
@@ -796,69 +867,47 @@ export default function ProposedTransactions(): React.JSX.Element {
               <option value="ADD">ADD</option>
               <option value="REDUCE">REDUCE</option>
             </select>
-          </label>
-          <div className="hidden sm:block border-l border-gray-300 h-6" />
-          <div className="flex flex-wrap items-center gap-2">
-            <label className="flex items-center gap-2 text-sm">
+          </div>
+
+          {/* View */}
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+              View
+            </span>
+            <label className="flex h-[30px] items-center gap-2 text-sm">
               <input
                 type="checkbox"
-                checked={includeSettled}
-                onChange={(e) => setIncludeSettled(e.target.checked)}
+                checked={aggregateView}
+                onChange={(e) => setAggregateView(e.target.checked)}
                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
-              <span className="text-gray-700">Include SETTLED on</span>
+              <span className="text-gray-700">Aggregate by broker + asset</span>
             </label>
-            <DateInput
-              value={settledDate}
-              onChange={setSettledDate}
-              disabled={!includeSettled}
-              className={`px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${
-                !includeSettled ? "bg-gray-100 text-gray-400" : ""
-              }`}
-            />
-            {includeSettled && (
-              <span className="text-xs text-gray-500">
-                {settledLoading
-                  ? "(loading...)"
-                  : `(${settledTransactions.length} settled)`}
-              </span>
-            )}
           </div>
-          <div className="hidden sm:block border-l border-gray-300 h-6" />
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={aggregateView}
-              onChange={(e) => setAggregateView(e.target.checked)}
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            />
-            <span className="text-gray-700">Aggregate by Broker + Asset</span>
-          </label>
 
           {brokers.length > 0 && transactions.length > 0 && (
-            <>
-              <div className="hidden sm:block border-l border-gray-300 h-6" />
-              <label className="flex items-center gap-2 text-sm">
-                <span className="text-gray-700">Apply broker to all:</span>
-                <select
-                  value=""
-                  onChange={(e) => {
-                    handleApplyBrokerToAll(e.target.value)
-                    // Reset so the same broker can be re-applied later.
-                    e.currentTarget.selectedIndex = 0
-                  }}
-                  className="px-2 py-1 border border-gray-300 rounded text-sm bg-white"
-                >
-                  <option value="">— Pick a broker —</option>
-                  {brokers.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name}
-                      {b.accountNumber ? ` (${b.accountNumber})` : ""}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </>
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                Apply broker
+              </span>
+              <select
+                value=""
+                onChange={(e) => {
+                  handleApplyBrokerToAll(e.target.value)
+                  // Reset so the same broker can be re-applied later.
+                  e.currentTarget.selectedIndex = 0
+                }}
+                className="h-[30px] px-2 py-1 border border-gray-300 rounded text-sm bg-white"
+              >
+                <option value="">— Pick a broker —</option>
+                {brokers.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                    {b.accountNumber ? ` (${b.accountNumber})` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
           )}
         </div>
 
