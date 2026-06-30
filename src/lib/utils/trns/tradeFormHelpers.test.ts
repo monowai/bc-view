@@ -2,6 +2,7 @@ import {
   computeWeightInfo,
   computeCurrentPositionWeight,
   calculateQuantityFromTargetWeight,
+  calculateNewPositionQuantityFromTargetWeight,
   calculateQuantityFromTradeValue,
   buildEditModeValues,
   buildQuickSellValues,
@@ -199,6 +200,59 @@ describe("tradeFormHelpers", () => {
 
     test("returns null for NaN target weight", () => {
       expect(calculateQuantityFromTargetWeight(NaN, 5, 10, 10000)).toBeNull()
+    })
+  })
+
+  describe("calculateNewPositionQuantityFromTargetWeight", () => {
+    test("sizes a new position to the target weight of the post-trade portfolio", () => {
+      // PV = 30000, want 70%. V = 0.7*30000/0.3 = 70000. qty = floor(70000/10) = 7000
+      const result = calculateNewPositionQuantityFromTargetWeight(70, 10, 30000)
+      expect(result).toEqual({
+        quantity: 7000,
+        tradeType: "BUY",
+        nominalPortfolioValue: 100000,
+      })
+      // verify the realised weight lands on target
+      const { quantity, nominalPortfolioValue } = result!
+      expect(((quantity * 10) / nominalPortfolioValue) * 100).toBeCloseTo(70, 5)
+    })
+
+    test("handles a 50% target (new position equals existing portfolio)", () => {
+      const result = calculateNewPositionQuantityFromTargetWeight(50, 5, 10000)
+      // V = 0.5*10000/0.5 = 10000, qty = 2000, nominal = 20000
+      expect(result).toEqual({
+        quantity: 2000,
+        tradeType: "BUY",
+        nominalPortfolioValue: 20000,
+      })
+    })
+
+    test("returns null when price is 0", () => {
+      expect(
+        calculateNewPositionQuantityFromTargetWeight(70, 0, 10000),
+      ).toBeNull()
+    })
+
+    test("returns null when portfolio value is 0 (empty portfolio)", () => {
+      expect(calculateNewPositionQuantityFromTargetWeight(70, 10, 0)).toBeNull()
+    })
+
+    test("returns null for a target weight of 100% or more (unreachable)", () => {
+      expect(
+        calculateNewPositionQuantityFromTargetWeight(100, 10, 10000),
+      ).toBeNull()
+      expect(
+        calculateNewPositionQuantityFromTargetWeight(150, 10, 10000),
+      ).toBeNull()
+    })
+
+    test("returns null for a non-positive or NaN target weight", () => {
+      expect(
+        calculateNewPositionQuantityFromTargetWeight(0, 10, 10000),
+      ).toBeNull()
+      expect(
+        calculateNewPositionQuantityFromTargetWeight(NaN, 10, 10000),
+      ).toBeNull()
     })
   })
 
