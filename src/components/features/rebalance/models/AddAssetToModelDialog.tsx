@@ -174,7 +174,7 @@ const AddAssetToModelDialog: React.FC<AddAssetToModelDialogProps> = ({
           <div className="flex-1">
             <AssetSearch
               key={`${selectedMarket}-${existingAssetIds.join(",")}`}
-              market={selectedMarket}
+              market={selectedMarket === "LOCAL" ? undefined : selectedMarket}
               knownMarkets={knownMarkets}
               value={selectedAsset}
               onSelect={setSelectedAsset}
