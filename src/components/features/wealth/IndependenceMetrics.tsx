@@ -9,7 +9,8 @@ import Spinner from "@components/ui/Spinner"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 
 interface MonthlyInvestmentData {
-  yearMonth: string
+  startDate: string
+  endDate: string
   totalInvested: number
   currency?: string
 }
@@ -38,7 +39,7 @@ export default function IndependenceMetrics({
 
   // Fetch transactions only when modal is open
   const investmentTrnsUrl = showInvestmentModal
-    ? "/api/trns/investments/monthly/transactions"
+    ? "/api/trns/investments/monthly/transactions?days=30"
     : null
   const { data: investmentTrnsData } = useSwr<{ data: Transaction[] }>(
     investmentTrnsUrl,
@@ -146,7 +147,7 @@ export default function IndependenceMetrics({
                     </div>
                     <p className="text-xs text-gray-500 mt-2">
                       {isNegative
-                        ? "Net withdrawal this month"
+                        ? "Net withdrawal (last 30 days)"
                         : progress >= 100
                           ? "Target met!"
                           : `${progress.toFixed(0)}% of monthly target`}
@@ -344,7 +345,10 @@ export default function IndependenceMetrics({
                     Monthly Investment Transactions
                   </h3>
                   <p className="text-sm text-gray-500">
-                    {monthlyInvestmentData?.yearMonth || "Current month"}
+                    {monthlyInvestmentData?.startDate &&
+                    monthlyInvestmentData?.endDate
+                      ? `${monthlyInvestmentData.startDate} – ${monthlyInvestmentData.endDate}`
+                      : "Last 30 days"}
                   </p>
                 </div>
                 <button
@@ -364,7 +368,7 @@ export default function IndependenceMetrics({
                   </div>
                 ) : investmentTrnsData.data.length === 0 ? (
                   <p className="text-center text-gray-500 py-8">
-                    No investment transactions this month
+                    No investment transactions in the last 30 days
                   </p>
                 ) : (
                   <table className="min-w-full">

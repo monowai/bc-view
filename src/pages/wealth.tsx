@@ -178,12 +178,13 @@ function WealthDashboard(): React.ReactElement {
     sourceCurrencyCodes,
   )
 
-  // Fetch monthly investment for current month (depends on display currency)
+  // Fetch investment over the rolling 30-day window (depends on display currency)
   const monthlyInvestmentUrl = displayCurrency
-    ? `/api/trns/investments/monthly?currency=${displayCurrency.code}`
+    ? `/api/trns/investments/monthly?currency=${displayCurrency.code}&days=30`
     : null
   const { data: monthlyInvestmentData } = useSwr<{
-    yearMonth: string
+    startDate: string
+    endDate: string
     totalInvested: number
     currency?: string
   }>(

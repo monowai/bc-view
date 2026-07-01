@@ -60,7 +60,11 @@ const render_ = (
       primaryPlan={maryPlan}
       projectionData={projectionData}
       projectionLoading={false}
-      monthlyInvestmentData={{ yearMonth: "2026-06", totalInvested }}
+      monthlyInvestmentData={{
+        startDate: "2026-06-01",
+        endDate: "2026-07-01",
+        totalInvested,
+      }}
       displayCurrency={usd}
       collapsed={false}
       onToggle={jest.fn()}
