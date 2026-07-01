@@ -315,16 +315,19 @@ function RetirementPlanning(): React.ReactElement {
   const fileInputRef = useRef<HTMLInputElement>(null)
   // Allow deep-linking to a view, e.g. `/independence?view=profile` from the
   // "set your date of birth" notice on the plan page.
+  // Legacy `?view=plans` links map to the renamed `phases` view.
+  const requestedView =
+    router.query.view === "plans" ? "phases" : router.query.view
   const initialView =
-    router.query.view === "profile" ||
-    router.query.view === "work" ||
-    router.query.view === "plans" ||
-    router.query.view === "shared" ||
-    router.query.view === "composite"
-      ? router.query.view
-      : "plans"
+    requestedView === "profile" ||
+    requestedView === "work" ||
+    requestedView === "phases" ||
+    requestedView === "shared" ||
+    requestedView === "composite"
+      ? requestedView
+      : "phases"
   const [activeView, setActiveView] = useState<
-    "profile" | "work" | "plans" | "shared" | "composite"
+    "profile" | "work" | "phases" | "shared" | "composite"
   >(initialView)
   const [isImporting, setIsImporting] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
@@ -718,7 +721,7 @@ function RetirementPlanning(): React.ReactElement {
                 className="bg-independence-600 text-white px-6 py-3 rounded-lg hover:bg-independence-700 font-medium flex items-center"
               >
                 <i className="fas fa-plus mr-2"></i>
-                Create Plan
+                Create Phase
               </Link>
             </div>
           </div>
@@ -792,15 +795,15 @@ function RetirementPlanning(): React.ReactElement {
               )}
             </button>
             <button
-              onClick={() => setActiveView("plans")}
+              onClick={() => setActiveView("phases")}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                activeView === "plans"
+                activeView === "phases"
                   ? "bg-white text-independence-700 shadow-sm"
                   : "text-gray-600 hover:text-gray-800"
               }`}
             >
               <i className="fas fa-th-large mr-2"></i>
-              Plans
+              Phases
             </button>
             {sharedPlans.length > 0 && (
               <button
@@ -852,7 +855,7 @@ function RetirementPlanning(): React.ReactElement {
           {!isLoading &&
             !error &&
             plans.length === 0 &&
-            activeView === "plans" && (
+            activeView === "phases" && (
               <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
                 <div className="w-20 h-20 bg-independence-100 rounded-full flex items-center justify-center mx-auto mb-6">
                   <i className="fas fa-umbrella-beach text-3xl text-independence-600"></i>
@@ -885,7 +888,7 @@ function RetirementPlanning(): React.ReactElement {
 
           {activeView === "profile" && <IndependenceSettingsPanel />}
 
-          {generatePhasesError && activeView === "plans" && (
+          {generatePhasesError && activeView === "phases" && (
             <div className="mb-6">
               <Alert>
                 <div className="flex justify-between items-center">
@@ -904,7 +907,7 @@ function RetirementPlanning(): React.ReactElement {
           {/* Offer phasing to any single-plan user. With one owned plan there is
               no valid phased composite yet, so the offer stays available even if
               a stale composite lingers; clicking it converts the plan to Go-Go. */}
-          {!isLoading && ownedPlans.length === 1 && activeView === "plans" && (
+          {!isLoading && ownedPlans.length === 1 && activeView === "phases" && (
             <div className="mb-6">
               <GeneratePhasesOffer
                 plan={ownedPlans[0]}
@@ -914,7 +917,7 @@ function RetirementPlanning(): React.ReactElement {
             </div>
           )}
 
-          {!isLoading && plans.length > 0 && activeView === "plans" && (
+          {!isLoading && plans.length > 0 && activeView === "phases" && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {plans.map((plan: RetirementPlan) => (
                 <PlanCard

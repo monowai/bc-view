@@ -8,10 +8,10 @@ import { useCompositeProjectionContext } from "../CompositeProjectionContext"
 const HIDDEN_VALUE = "****"
 
 /**
- * Plans tab — combines phase configuration and the scenario comparison table.
+ * Phases tab — combines phase configuration and the scenario comparison table.
  * Reads all state from {@link useCompositeProjectionContext}.
  */
-export default function PlansTab(): React.ReactElement {
+export default function PhasesTab(): React.ReactElement {
   const { hideValues } = usePrivacyMode()
   const {
     plans,

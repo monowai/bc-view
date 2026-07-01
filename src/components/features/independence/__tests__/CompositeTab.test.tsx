@@ -181,7 +181,7 @@ describe("CompositeTab", () => {
     })
   })
 
-  it("renders settings bar (currency selector) on default Plans tab", () => {
+  it("renders settings bar (currency selector) on default Phases tab", () => {
     render(<CompositeTab plans={plans} settings={settings} />)
     expect(screen.getByLabelText("Display Currency")).toBeInTheDocument()
   })
@@ -189,7 +189,7 @@ describe("CompositeTab", () => {
   it("renders all five sub-tabs in the navigation", () => {
     render(<CompositeTab plans={plans} settings={settings} />)
     expect(screen.getByRole("tab", { name: /FI Overview/ })).toBeInTheDocument()
-    expect(screen.getByRole("tab", { name: /Plans/ })).toBeInTheDocument()
+    expect(screen.getByRole("tab", { name: /Phases/ })).toBeInTheDocument()
     expect(
       screen.getByRole("tab", { name: /Wealth Journey/ }),
     ).toBeInTheDocument()
@@ -199,12 +199,12 @@ describe("CompositeTab", () => {
     ).toBeInTheDocument()
   })
 
-  it("defaults to the FI Overview tab", () => {
+  it("defaults to the Phases tab", () => {
     render(<CompositeTab plans={plans} settings={settings} />)
+    const phasesTab = screen.getByRole("tab", { name: /Phases/ })
+    expect(phasesTab).toHaveAttribute("aria-selected", "true")
     const overviewTab = screen.getByRole("tab", { name: /FI Overview/ })
-    expect(overviewTab).toHaveAttribute("aria-selected", "true")
-    const plansTab = screen.getByRole("tab", { name: /Plans/ })
-    expect(plansTab).toHaveAttribute("aria-selected", "false")
+    expect(overviewTab).toHaveAttribute("aria-selected", "false")
   })
 
   it("does not render Year-by-Year timeline by default", () => {
@@ -273,7 +273,7 @@ describe("CompositeTab", () => {
     ).toBeInTheDocument()
   })
 
-  it("renders error inside Plans tab when present", () => {
+  it("renders error inside Phases tab when present", () => {
     const { useCompositeProjection } = jest.requireMock(
       "@hooks/useCompositeProjection",
     )
@@ -294,11 +294,11 @@ describe("CompositeTab", () => {
     expect(screen.getByText("Something went wrong")).toBeInTheDocument()
   })
 
-  it("renders loading spinner on FI Overview tab when loading", () => {
+  it("renders loading spinner on FI Overview tab when loading", async () => {
     const { useCompositeProjection } = jest.requireMock(
       "@hooks/useCompositeProjection",
     )
-    useCompositeProjection.mockReturnValueOnce({
+    useCompositeProjection.mockReturnValue({
       phases: [{ planId: "p1", fromAge: 60 }],
       setPhases: jest.fn(),
       displayCurrency: "SGD",
@@ -312,6 +312,7 @@ describe("CompositeTab", () => {
     })
 
     render(<CompositeTab plans={plans} settings={settings} />)
+    await userEvent.click(screen.getByRole("tab", { name: /FI Overview/ }))
     expect(screen.getByText("Computing projection…")).toBeInTheDocument()
   })
 })

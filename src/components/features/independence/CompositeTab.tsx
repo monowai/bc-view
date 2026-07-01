@@ -9,7 +9,7 @@ import {
   CompositeProjectionValue,
 } from "./composite/CompositeProjectionContext"
 import CompositeSettingsBar from "./composite/CompositeSettingsBar"
-import PlansTab from "./composite/tabs/PlansTab"
+import PhasesTab from "./composite/tabs/PhasesTab"
 import WealthJourneyTab from "./composite/tabs/WealthJourneyTab"
 import StressTestTab from "./composite/tabs/StressTestTab"
 import YearByYearTab from "./composite/tabs/YearByYearTab"
@@ -20,7 +20,12 @@ interface CompositeTabProps {
   settings: UserIndependenceSettings | undefined
 }
 
-type CompositeSubTabId = "overview" | "plans" | "wealth" | "stress" | "timeline"
+type CompositeSubTabId =
+  | "overview"
+  | "phases"
+  | "wealth"
+  | "stress"
+  | "timeline"
 
 interface CompositeSubTabConfig {
   id: CompositeSubTabId
@@ -29,7 +34,7 @@ interface CompositeSubTabConfig {
 }
 
 const COMPOSITE_SUB_TABS: CompositeSubTabConfig[] = [
-  { id: "plans", label: "Plans", icon: "fa-clipboard-list" },
+  { id: "phases", label: "Phases", icon: "fa-clipboard-list" },
   { id: "overview", label: "FI Overview", icon: "fa-bullseye" },
   { id: "wealth", label: "Wealth Journey", icon: "fa-chart-line" },
   { id: "stress", label: "Stress Test", icon: "fa-dice" },
@@ -81,7 +86,7 @@ function CompositeSubTabNavigation({
  *
  * Acts as a tab container: owns the {@link CompositeProjectionProvider},
  * renders the always-visible settings bar, and switches between
- * {@link PlansTab}, {@link WealthJourneyTab}, {@link StressTestTab}, and
+ * {@link PhasesTab}, {@link WealthJourneyTab}, {@link StressTestTab}, and
  * {@link YearByYearTab} sub-tabs. Sub-tabs read all data from the context.
  */
 export default function CompositeTab({
@@ -89,7 +94,7 @@ export default function CompositeTab({
   settings,
 }: CompositeTabProps): React.ReactElement {
   const projectionState = useCompositeProjection(plans, settings)
-  const [activeTab, setActiveTab] = useState<CompositeSubTabId>("overview")
+  const [activeTab, setActiveTab] = useState<CompositeSubTabId>("phases")
 
   const contextValue: CompositeProjectionValue = {
     plans,
@@ -106,7 +111,7 @@ export default function CompositeTab({
             onTabChange={setActiveTab}
           />
           {activeTab === "overview" && <FiOverviewTab />}
-          {activeTab === "plans" && <PlansTab />}
+          {activeTab === "phases" && <PhasesTab />}
           {activeTab === "wealth" && <WealthJourneyTab />}
           {activeTab === "stress" && <StressTestTab />}
           {activeTab === "timeline" && <YearByYearTab />}
