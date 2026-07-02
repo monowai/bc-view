@@ -1,9 +1,21 @@
+import React from "react"
 import { renderHook, waitFor } from "@testing-library/react"
+import { SWRConfig } from "swr"
 import {
   useDisplayCurrencyConversion,
   useCurrencies,
 } from "../useDisplayCurrencyConversion"
 import { Currency, Portfolio } from "types/beancounter"
+
+// Isolated SWR cache so a malformed /api/currencies payload in one test does
+// not leak into others via the shared module-level cache.
+function isolatedWrapper({ children }: { children: React.ReactNode }): React.ReactElement {
+  return React.createElement(
+    SWRConfig,
+    { value: { provider: () => new Map() } },
+    children,
+  )
+}
 
 jest.mock("@lib/holdings/holdingState", () => ({
   useHoldingState: jest.fn(),
@@ -151,6 +163,27 @@ describe("useDisplayCurrencyConversion", () => {
     })
     expect(result.current.isCustomCurrency).toBe(true)
   })
+
+  it("does not throw when /api/currencies returns a non-array payload", async () => {
+    withDisplay("CUSTOM", "GBP")
+    // Malformed payload: data is an object, not an array. Was crashing with
+    // "t.find is not a function" (BC-VIEW-3Q).
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ data: { unexpected: "shape" } }),
+    })
+
+    const { result } = renderHook(
+      () => useDisplayCurrencyConversion({ sourceCurrency: USD, portfolio }),
+      { wrapper: isolatedWrapper },
+    )
+
+    // Falls back to sourceCurrency (rate 1) instead of throwing.
+    await waitFor(() => {
+      expect(result.current.currencyCode).toBe("USD")
+    })
+    expect(result.current.convert(100)).toBe(100)
+  })
 })
 
 // useCurrencies has a module-scoped cache so it's stateful across tests; the
@@ -176,5 +209,22 @@ describe("useCurrencies", () => {
       expect(result.current.currencies.length).toBeGreaterThan(0)
       expect(result.current.isLoading).toBe(false)
     })
+  })
+
+  it("returns [] when the payload is a non-array object", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ data: { unexpected: "shape" } }),
+    })
+
+    const { result } = renderHook(() => useCurrencies(), {
+      wrapper: isolatedWrapper,
+    })
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+    expect(Array.isArray(result.current.currencies)).toBe(true)
+    expect(result.current.currencies).toHaveLength(0)
   })
 })
