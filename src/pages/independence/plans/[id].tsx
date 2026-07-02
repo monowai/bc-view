@@ -1012,6 +1012,7 @@ function PlanView(): React.ReactElement {
               currentAge={displayCurrentAge}
               isCalculating={isCalculating}
               hideValues={hideValues}
+              onOpenStressTest={() => setActiveTab("simulation")}
             />
           )}
 

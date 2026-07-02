@@ -18,6 +18,8 @@ import type { ScenarioState } from "./scenario/types"
 import type { AssetBreakdown } from "./useAssetBreakdown"
 import type { RentalIncomeData } from "./useUnifiedProjection"
 import { useMonteCarloSimulation } from "./useMonteCarloSimulation"
+import KpiCard from "@components/ui/KpiCard"
+import CollapsibleSection from "@components/ui/CollapsibleSection"
 
 const HIDDEN_VALUE = "****"
 const MC_ITERATION_OPTIONS = [500, 1000, 2000, 5000]
@@ -65,30 +67,40 @@ interface ChartRow {
   p50?: number
 }
 
-function KpiCard({
-  label,
-  value,
-  sub,
-  accent = false,
-}: {
-  label: string
-  value: string
-  sub?: string
-  accent?: boolean
-}): React.ReactElement {
-  return (
-    <div className="flex flex-col">
-      <span className="text-xs text-gray-500">{label}</span>
-      <span
-        className={`mt-0.5 text-2xl font-bold tabular-nums leading-none ${
-          accent ? "text-green-600" : "text-gray-900"
-        }`}
-      >
-        {value}
-      </span>
-      {sub && <span className="mt-1 text-xs text-gray-500">{sub}</span>}
-    </div>
-  )
+/**
+ * Builds the base trajectory series by prepending accumulation-phase rows
+ * to the retirement drawdown rows so the chart covers current age → life
+ * expectancy in a single continuous line.
+ *
+ * Boundary rule: when the last accumulation row shares an age with the first
+ * drawdown row (the retirement year appears in both arrays), the accumulation
+ * copy is dropped so there is no duplicate data point.
+ */
+export function buildTrajectorySeries(
+  projection: RetirementProjection,
+): Array<{ age: number; year: number; endingBalance: number }> {
+  const accRows = (projection.accumulationProjections ?? []).map((r) => ({
+    age: r.age,
+    year: r.year,
+    endingBalance: r.endingBalance,
+  }))
+  const drawdownRows = (projection.yearlyProjections ?? []).map((r) => ({
+    age: r.age ?? 0,
+    year: r.year,
+    endingBalance: r.endingBalance,
+  }))
+
+  // Drop the last accumulation row when it shares an age with the first
+  // drawdown row to avoid a duplicate data point at the retirement boundary.
+  const firstDrawdownAge = drawdownRows[0]?.age
+  const trimmedAcc =
+    accRows.length > 0 &&
+    firstDrawdownAge != null &&
+    accRows[accRows.length - 1].age === firstDrawdownAge
+      ? accRows.slice(0, -1)
+      : accRows
+
+  return [...trimmedAcc, ...drawdownRows]
 }
 
 interface PlanFiOverviewTabProps {
@@ -103,6 +115,8 @@ interface PlanFiOverviewTabProps {
   currentAge: number | undefined
   isCalculating: boolean
   hideValues: boolean
+  /** When provided, renders a "Full stress test →" link that switches to the simulation tab. */
+  onOpenStressTest?: () => void
 }
 
 export default function PlanFiOverviewTab({
@@ -117,6 +131,7 @@ export default function PlanFiOverviewTab({
   currentAge,
   isCalculating,
   hideValues,
+  onOpenStressTest,
 }: PlanFiOverviewTabProps): React.ReactElement | null {
   const [mcIterations, setMcIterations] = useState(1000)
 
@@ -139,18 +154,16 @@ export default function PlanFiOverviewTab({
   const currentLiquid = projection?.liquidAssets ?? 0
   const isAchieved = fiMetrics?.isFinanciallyIndependent ?? false
 
-  // Build chart rows — merge MC bands when available
+  // Build chart rows — accumulation prepended to drawdown, then MC bands overlaid
   const chartData = useMemo((): ChartRow[] => {
     if (!projection?.yearlyProjections?.length) return []
     const bandByYear = new Map(
       (mcResult?.yearlyBands ?? []).map((b) => [b.year, b]),
     )
-    return projection.yearlyProjections.map((row) => {
+    return buildTrajectorySeries(projection).map((row) => {
       const band = bandByYear.get(row.year)
       return {
-        age: row.age ?? 0,
-        year: row.year,
-        endingBalance: row.endingBalance,
+        ...row,
         ...(band
           ? {
               p10Base: band.p10,
@@ -256,7 +269,7 @@ export default function PlanFiOverviewTab({
           label={isAchieved ? "Surplus" : "Gap to FI"}
           value={hideValues ? HIDDEN_VALUE : fmtShort(gap, effectiveCurrency)}
           sub={isAchieved ? "above target" : "remaining"}
-          accent={isAchieved}
+          tone={isAchieved ? "positive" : "default"}
         />
         <KpiCard
           label={fiCrossingAge ? "FI at age" : "Runway"}
@@ -276,7 +289,7 @@ export default function PlanFiOverviewTab({
                 ? "To end of plan"
                 : "Until depletion"
           }
-          accent={isAchieved || fiCrossingAge != null}
+          tone={isAchieved || fiCrossingAge != null ? "positive" : "default"}
         />
         <KpiCard
           label="Success Rate"
@@ -286,9 +299,60 @@ export default function PlanFiOverviewTab({
               ? `${mcResult!.iterations.toLocaleString()} MC runs`
               : "Run below"
           }
-          accent={(mcSuccessRate ?? 0) >= 80}
+          tone={(mcSuccessRate ?? 0) >= 80 ? "positive" : "default"}
         />
       </div>
+
+      {/* ——— Income basis (collapsed by default) ——— */}
+      {fiMetrics && (
+        <CollapsibleSection
+          title="How your FI Target is calculated"
+          defaultOpen={false}
+        >
+          <div className="space-y-2">
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-sm text-gray-600">
+                Monthly retirement expenses
+              </span>
+              <span className="tabular-nums font-medium text-sm text-gray-700">
+                {hideValues
+                  ? HIDDEN_VALUE
+                  : fmtFull(scenario.monthlyExpenses, effectiveCurrency)}
+              </span>
+            </div>
+            {fiMetrics.totalMonthlyIncome > 0 && (
+              <div className="flex items-baseline justify-between gap-2 pl-4">
+                <span className="text-xs text-gray-500">
+                  <span className="text-gray-400 mr-1.5">−</span>
+                  Guaranteed income (pension + benefits + other)
+                </span>
+                <span className="tabular-nums font-medium text-sm text-green-600">
+                  {hideValues
+                    ? HIDDEN_VALUE
+                    : `−${fmtFull(fiMetrics.totalMonthlyIncome, effectiveCurrency)}`}
+                </span>
+              </div>
+            )}
+            <div className="border-t border-gray-200 pt-2 mt-1 flex items-baseline justify-between gap-2">
+              <span className="text-sm font-semibold text-gray-900">
+                Net monthly portfolio need
+              </span>
+              <span className="tabular-nums font-medium text-base text-gray-900">
+                {hideValues
+                  ? HIDDEN_VALUE
+                  : fmtFull(fiMetrics.netMonthlyExpenses, effectiveCurrency)}
+              </span>
+            </div>
+            <p className="text-xs text-gray-500 pt-0.5">
+              FI Number ={" "}
+              {hideValues
+                ? HIDDEN_VALUE
+                : fmtShort(fiNumber, effectiveCurrency)}{" "}
+              (25× annual net spend at the 4% rule)
+            </p>
+          </div>
+        </CollapsibleSection>
+      )}
 
       {/* ——— Progress bar ——— */}
       {fiNumber > 0 && (
@@ -318,10 +382,9 @@ export default function PlanFiOverviewTab({
           {dipsBelow && (
             <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-2">
               <i className="fas fa-info-circle mr-1.5" />
-              Your projected returns are below the implied 4% safe withdrawal
-              rate, so the trajectory may drift back below the FI line in later
-              years. The Monte Carlo success rate gives a probability-weighted
-              view.
+              Returns are below the 4% withdrawal rate, so the trajectory can
+              drift back under the FI line — run the simulation for a
+              probability-weighted view.
             </p>
           )}
         </div>
@@ -583,110 +646,23 @@ export default function PlanFiOverviewTab({
         )}
 
         {hasMc && (
-          <div className="mt-5 pt-4 border-t border-gray-100 grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-4">
-            <KpiCard
-              label="Success Rate"
-              value={`${mcResult!.successRate.toFixed(1)}%`}
-              sub="portfolio survives to end"
-              accent={mcResult!.successRate >= 80}
-            />
-            <KpiCard
-              label="Median End Balance"
-              value={
-                hideValues
-                  ? HIDDEN_VALUE
-                  : fmtShort(
-                      mcResult!.terminalBalancePercentiles.p50,
-                      effectiveCurrency,
-                    )
-              }
-              sub="50th percentile outcome"
-            />
-            <KpiCard
-              label="Worst 10% Outcome"
-              value={
-                hideValues
-                  ? HIDDEN_VALUE
-                  : fmtShort(
-                      mcResult!.terminalBalancePercentiles.p10,
-                      effectiveCurrency,
-                    )
-              }
-              sub="10th percentile end balance"
-            />
-            <KpiCard
-              label="Depletion Risk"
-              value={
-                mcResult!.depletionAgeDistribution.depletedCount > 0
-                  ? `${((mcResult!.depletionAgeDistribution.depletedCount / mcResult!.iterations) * 100).toFixed(1)}%`
-                  : "0%"
-              }
-              sub={
-                mcResult!.depletionAgeDistribution.mostCommonDepletionAge
-                  ? `typically age ${mcResult!.depletionAgeDistribution.mostCommonDepletionAge}`
-                  : "all scenarios survive"
-              }
-              accent={
-                mcResult!.depletionAgeDistribution.depletedCount === 0 ||
-                mcResult!.depletionAgeDistribution.depletedCount /
-                  mcResult!.iterations <
-                  0.1
-              }
-            />
+          <div className="mt-5 pt-4 border-t border-gray-100">
+            <p className="text-xs text-gray-500">
+              Full percentile bands, depletion analysis and terminal balances
+              live in the Stress Test tab.
+            </p>
+            {onOpenStressTest && (
+              <button
+                type="button"
+                onClick={onOpenStressTest}
+                className="mt-2 text-sm font-medium text-independence-600 hover:underline"
+              >
+                Full stress test →
+              </button>
+            )}
           </div>
         )}
       </div>
-
-      {/* ——— Income breakdown ——— */}
-      {fiMetrics && (
-        <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
-          <h3 className="text-xs font-semibold text-gray-600 mb-3">
-            Monthly income &amp; FI number basis
-          </h3>
-          <div className="space-y-2">
-            <div className="flex items-baseline justify-between gap-2">
-              <span className="text-sm text-gray-600">
-                Monthly retirement expenses
-              </span>
-              <span className="tabular-nums font-medium text-sm text-gray-700">
-                {hideValues
-                  ? HIDDEN_VALUE
-                  : fmtFull(scenario.monthlyExpenses, effectiveCurrency)}
-              </span>
-            </div>
-            {fiMetrics.totalMonthlyIncome > 0 && (
-              <div className="flex items-baseline justify-between gap-2 pl-4">
-                <span className="text-xs text-gray-500">
-                  <span className="text-gray-400 mr-1.5">−</span>
-                  Guaranteed income (pension + benefits + other)
-                </span>
-                <span className="tabular-nums font-medium text-sm text-green-600">
-                  {hideValues
-                    ? HIDDEN_VALUE
-                    : `−${fmtFull(fiMetrics.totalMonthlyIncome, effectiveCurrency)}`}
-                </span>
-              </div>
-            )}
-            <div className="border-t border-gray-200 pt-2 mt-1 flex items-baseline justify-between gap-2">
-              <span className="text-sm font-semibold text-gray-900">
-                Net monthly portfolio need
-              </span>
-              <span className="tabular-nums font-medium text-base text-gray-900">
-                {hideValues
-                  ? HIDDEN_VALUE
-                  : fmtFull(fiMetrics.netMonthlyExpenses, effectiveCurrency)}
-              </span>
-            </div>
-            <p className="text-xs text-gray-500 pt-0.5">
-              FI Number ={" "}
-              {hideValues
-                ? HIDDEN_VALUE
-                : fmtShort(fiNumber, effectiveCurrency)}{" "}
-              (25× annual net spend at the 4% rule)
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
