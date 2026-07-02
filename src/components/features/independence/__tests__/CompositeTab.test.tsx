@@ -181,11 +181,11 @@ describe("CompositeTab", () => {
     })
   })
 
-  it("renders settings bar", () => {
+  it("renders narrative field in Phases tab", () => {
     render(<CompositeTab plans={plans} settings={settings} />)
-    // CompositeSettingsBar should be rendered at the top
-    const settingsBar = screen.getByText(/Composite plan narrative/)
-    expect(settingsBar).toBeInTheDocument()
+    // Narrative textarea is inside PhasesTab (default tab)
+    const narrativeLabel = screen.getByText(/Plan narrative/)
+    expect(narrativeLabel).toBeInTheDocument()
   })
 
   it("renders all sub-tabs in the navigation", () => {
@@ -206,7 +206,6 @@ describe("CompositeTab", () => {
     const phasesTab = screen.getByRole("tab", { name: /Phases/ })
     expect(phasesTab).toHaveAttribute("aria-selected", "true")
   })
-
 
   it("switches to the Wealth Journey tab when clicked", async () => {
     const { useCompositeProjection } = jest.requireMock(

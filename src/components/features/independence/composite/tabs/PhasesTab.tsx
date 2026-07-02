@@ -8,8 +8,8 @@ import { useCompositeProjectionContext } from "../CompositeProjectionContext"
 const HIDDEN_VALUE = "****"
 
 /**
- * Phases tab — combines phase configuration and the scenario comparison table.
- * Reads all state from {@link useCompositeProjectionContext}.
+ * Phases tab — phase configuration (left) + narrative (right) in a two-column
+ * layout, followed by the scenario comparison table.
  */
 export default function PhasesTab(): React.ReactElement {
   const { hideValues } = usePrivacyMode()
@@ -22,19 +22,44 @@ export default function PhasesTab(): React.ReactElement {
     scenarios,
     isLoading,
     error,
+    compositeNarrative,
+    setCompositeNarrative,
   } = useCompositeProjectionContext()
 
   return (
     <div className="space-y-6">
-      {/* Phase Configuration */}
+      {/* Phase Configuration + Narrative */}
       <div className="bg-white rounded-xl shadow-md p-4">
-        <PhaseConfigList
-          plans={plans}
-          phases={phases}
-          onPhaseChange={setPhases}
-          onExclude={toggleExclusion}
-          excludedPlanIds={excludedPlanIds}
-        />
+        <div className="flex gap-6">
+          <div className="flex-1 min-w-0">
+            <PhaseConfigList
+              plans={plans}
+              phases={phases}
+              onPhaseChange={setPhases}
+              onExclude={toggleExclusion}
+              excludedPlanIds={excludedPlanIds}
+            />
+          </div>
+          <div className="w-72 shrink-0">
+            <label
+              htmlFor="composite-narrative"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Plan narrative
+              <span className="ml-1 text-xs font-normal text-gray-500">
+                (optional)
+              </span>
+            </label>
+            <textarea
+              id="composite-narrative"
+              value={compositeNarrative ?? ""}
+              onChange={(e) => setCompositeNarrative(e.target.value)}
+              rows={7}
+              placeholder="Overarching goal across all phases. Used as context by AI tools."
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Loading / Error */}
