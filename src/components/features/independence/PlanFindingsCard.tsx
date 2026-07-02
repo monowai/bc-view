@@ -4,6 +4,11 @@ import { Finding, FindingSeverity } from "types/independence"
 
 interface PlanFindingsCardProps {
   findings: Finding[] | undefined
+  /**
+   * When true, skip the first finding — it is promoted to the VerdictBanner
+   * at the top of the Summary tab and should not be duplicated in this list.
+   */
+  excludeFirst?: boolean
 }
 
 interface SeverityStyle {
@@ -61,8 +66,10 @@ function ctaFor(code: string): { label: string; href: string } | null {
  */
 export default function PlanFindingsCard({
   findings,
+  excludeFirst = false,
 }: PlanFindingsCardProps): React.ReactElement | null {
-  if (!findings || findings.length === 0) {
+  const displayFindings = excludeFirst ? findings?.slice(1) : findings
+  if (!displayFindings || displayFindings.length === 0) {
     return null
   }
 
@@ -73,7 +80,7 @@ export default function PlanFindingsCard({
         Plan Insights
       </h2>
       <ul className="space-y-3">
-        {findings.map((finding) => {
+        {displayFindings.map((finding) => {
           const style = SEVERITY_STYLE[finding.severity]
           const cta = ctaFor(finding.code)
           return (

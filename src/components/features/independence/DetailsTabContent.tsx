@@ -1,14 +1,14 @@
 import React from "react"
 import InfoTooltip from "@components/ui/Tooltip"
+import KpiCard from "@components/ui/KpiCard"
 import { RetirementPlan, RetirementProjection } from "types/independence"
 import { HIDDEN_VALUE } from "@lib/independence/planHelpers"
 import {
   RentalIncomeData,
-  SustainableSpendingCard,
-  SpendableAtIndependenceCard,
   SetDateOfBirthNotice,
   PlanFindingsCard,
 } from "@components/features/independence"
+import VerdictBanner from "./VerdictBanner"
 import { applyRealReturn } from "@components/features/independence/scenario/scenarioToPayload"
 import { isStreamInflationIndexed } from "@lib/independence/valueBasis"
 import type { ScenarioState } from "@components/features/independence/scenario/types"
@@ -23,7 +23,7 @@ interface DetailsTabContentProps {
   effectiveCurrency: string
   planCurrency: string
   onEditDetails: () => void
-  // Headline outcome figures (Spendable at Independence) shown on My Plan.
+  // Headline outcome figures (Spendable at Independence) shown on Summary.
   liquidAssets: number
   blendedReturnRate: number
   currentAge: number | undefined
@@ -78,6 +78,8 @@ export default function DetailsTabContent({
     rentalIncome?.totalMonthlyInPlanCurrency ??
     0
   const displayTarget = planInputs?.targetBalance ?? effectiveTarget ?? 0
+
+  // Net monthly need: expenses minus all guaranteed income sources.
   const displayNetMonthlyNeed = Math.max(
     0,
     displayExpenses -
@@ -95,196 +97,246 @@ export default function DetailsTabContent({
     "pension",
   )
 
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Plan Details */}
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">
-            {"Plan Details"}
-          </h2>
-          <button
-            onClick={onEditDetails}
-            className="text-sm text-independence-600 hover:text-independence-700"
-          >
-            <i className="fas fa-edit mr-1"></i>
-            Edit
-          </button>
-        </div>
-        <div className="space-y-3">
-          <div className="flex justify-between">
-            <InfoTooltip
-              text={
-                "Your total expected monthly spending after reaching independence, including housing, food, healthcare, and other regular costs."
-              }
-            >
-              <span className="text-gray-500">{"Monthly Expenses"}</span>
-            </InfoTooltip>
-            <span
-              className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
-            >
-              {hideValues
-                ? HIDDEN_VALUE
-                : `${detailsCurrency}${Math.round(displayExpenses).toLocaleString()}`}
-            </span>
-          </div>
-          <div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">{"Pension"}</span>
-              <span
-                className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
-              >
-                {hideValues
-                  ? HIDDEN_VALUE
-                  : `${detailsCurrency}${Math.round(displayPension).toLocaleString()}`}
-              </span>
-            </div>
-            {pensionIndexed === false && displayPension > 0 && (
-              <p className="text-xs text-amber-700 mt-0.5">
-                This amount stays the same every year, so it buys less over time
-                as prices rise.
-              </p>
-            )}
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-500">{"Government Benefits"}</span>
-            <span
-              className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
-            >
-              {hideValues
-                ? HIDDEN_VALUE
-                : `${detailsCurrency}${Math.round(displaySocialSecurity).toLocaleString()}`}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-500">{"Other Income"}</span>
-            <span
-              className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
-            >
-              {hideValues
-                ? HIDDEN_VALUE
-                : `${detailsCurrency}${Math.round(displayOtherIncome).toLocaleString()}`}
-            </span>
-          </div>
-          {displayRentalIncome > 0 && (
-            <div className="flex justify-between">
-              <InfoTooltip text="Net rental income from properties (after all expenses). Stops if property is liquidated.">
-                <span className="text-gray-500">
-                  <i className="fas fa-home text-xs mr-1"></i>
-                  Property Rental
-                </span>
-              </InfoTooltip>
-              <span
-                className={`font-medium ${hideValues ? "text-gray-400" : "text-green-600"}`}
-              >
-                {hideValues
-                  ? HIDDEN_VALUE
-                  : `${detailsCurrency}${Math.round(displayRentalIncome).toLocaleString()}`}
-              </span>
-            </div>
-          )}
-          <div className="flex justify-between">
-            <InfoTooltip
-              text={
-                "What you need from your savings each month after accounting for pension, government benefits, and other income sources."
-              }
-            >
-              <span className="text-gray-500">{"Net Monthly Need"}</span>
-            </InfoTooltip>
-            <span
-              className={`font-medium ${hideValues ? "text-gray-400" : "text-independence-600"}`}
-            >
-              {hideValues
-                ? HIDDEN_VALUE
-                : `${detailsCurrency}${Math.round(displayNetMonthlyNeed).toLocaleString()}`}
-            </span>
-          </div>
-          <hr />
-          <div className="flex justify-between">
-            <InfoTooltip
-              text={
-                "Expected yearly increase in living costs. Your expenses will grow by this rate each year."
-              }
-            >
-              <span className="text-gray-500">{"Inflation"}</span>
-            </InfoTooltip>
-            <span className="font-medium">
-              {(effectiveInflation * 100).toFixed(1)}%
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-500">Return Rates</span>
-            <span className="font-medium text-blue-600">
-              E:{(effectiveEquityReturn * 100).toFixed(0)}% C:
-              {(effectiveCashReturn * 100).toFixed(0)}% H:
-              {(effectiveHousingReturn * 100).toFixed(0)}%
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <InfoTooltip
-              text={
-                "Allocation-weighted return across your cash and equity mix, net of fees — the single rate that drives portfolio growth."
-              }
-            >
-              <span className="text-gray-500">Blended Return Rate</span>
-            </InfoTooltip>
-            <span className="font-medium text-blue-600">
-              {(blendedReturnRate * 100).toFixed(1)}%
-            </span>
-          </div>
-          {effectiveTarget && effectiveTarget > 0 && (
-            <div className="flex justify-between">
-              <InfoTooltip
-                text={
-                  "The amount you want to have left at the end of your planning period, for a legacy or safety buffer."
-                }
-              >
-                <span className="text-gray-500">{"Target Balance"}</span>
-              </InfoTooltip>
-              <span
-                className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
-              >
-                {hideValues
-                  ? HIDDEN_VALUE
-                  : `${detailsCurrency}${Math.round(displayTarget).toLocaleString()}`}
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
+  // --- Tile 1: Projected funds at retirement ---
+  // Logic mirrors SpendableAtIndependenceCard.
+  const fundsTileValue = projection?.preRetirementAccumulation
+    ?.liquidAssetsAtRetirement
+    ? projection.preRetirementAccumulation.liquidAssetsAtRetirement -
+      excludedPensionFV * effectiveFxRate
+    : (liquidAssets + includedPensionFvDifferential) * effectiveFxRate
 
-      {/* Both headline outcome figures share one section: what you'll have to
-          spend at independence, and the budget that lasts the plan. Assets by
-          Category now lives on its own "Assets" tab. Without a date of birth
-          the projection can't model the working years, so we surface that gap
-          instead of showing misleading figures. */}
+  const yearsUntilRetirement =
+    currentAge != null ? retirementAge - currentAge : 0
+  const fundsSub =
+    currentAge != null
+      ? `at independence · age ${retirementAge}${yearsUntilRetirement > 0 ? `, ${yearsUntilRetirement}yr` : ", now"}`
+      : undefined
+
+  // --- Tile 2: Sustainable spending ---
+  const sustainableTileValue = projection?.sustainableMonthlyExpense
+  const spendAdjustment = projection?.expenseAdjustment
+
+  let spendChip: string | undefined
+  let spendChipTone: "positive" | "negative" | "default" = "default"
+  if (!hideValues && spendAdjustment != null) {
+    if (spendAdjustment >= 0) {
+      spendChip = "room to increase"
+      spendChipTone = "positive"
+    } else {
+      spendChip = `−${effectiveCurrency}${Math.round(Math.abs(spendAdjustment)).toLocaleString()}/mo vs plan`
+      spendChipTone = "negative"
+    }
+  }
+
+  let spendSub: string | undefined
+  if (
+    !hideValues &&
+    projection?.sustainableWithLiquidation != null &&
+    projection.sustainableWithLiquidation !== sustainableTileValue
+  ) {
+    spendSub = `or ${effectiveCurrency}${Math.round(projection.sustainableWithLiquidation).toLocaleString()}/mo with disposal`
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Verdict Banner — top-priority finding promoted full-width */}
+      {currentAge != null &&
+        projection?.findings &&
+        projection.findings.length > 0 && (
+          <VerdictBanner finding={projection.findings[0]} />
+        )}
+
+      {/* Tile row (or DOB notice when age is unknown) */}
       {currentAge == null ? (
         <SetDateOfBirthNotice />
       ) : (
-        <>
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-              <SustainableSpendingCard
-                embedded
-                projection={projection}
-                currency={effectiveCurrency}
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <KpiCard
+              label="Projected funds at retirement"
+              value={
+                hideValues
+                  ? HIDDEN_VALUE
+                  : `${effectiveCurrency}${Math.round(fundsTileValue).toLocaleString()}`
+              }
+              sub={fundsSub}
+              tone="default"
+            />
+            {sustainableTileValue != null && (
+              <KpiCard
+                label="Sustainable spending"
+                value={
+                  hideValues
+                    ? HIDDEN_VALUE
+                    : `${effectiveCurrency}${Math.round(sustainableTileValue).toLocaleString()}`
+                }
+                tone="positive"
+                chip={hideValues ? undefined : spendChip}
+                chipTone={spendChipTone}
+                sub={spendSub}
               />
-              <SpendableAtIndependenceCard
-                embedded
-                projection={projection}
-                liquidAssets={liquidAssets}
-                excludedPensionFV={excludedPensionFV}
-                includedPensionFvDifferential={includedPensionFvDifferential}
-                effectiveFxRate={effectiveFxRate}
-                currentAge={currentAge}
-                retirementAge={retirementAge}
-                currency={effectiveCurrency}
-              />
-            </div>
+            )}
+            <KpiCard
+              label="Net monthly need"
+              value={
+                hideValues
+                  ? HIDDEN_VALUE
+                  : `${detailsCurrency}${Math.round(displayNetMonthlyNeed).toLocaleString()}`
+              }
+              tone="default"
+              sub="expenses − guaranteed income"
+            />
           </div>
-          <PlanFindingsCard findings={projection?.findings} />
-        </>
+        </div>
       )}
+
+      {/* Two-column: inputs-only Plan Details | Plan Insights (findings) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Plan Details — inputs only; Net Monthly Need moved to tile row */}
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">
+              {"Plan Details"}
+            </h2>
+            <button
+              onClick={onEditDetails}
+              className="text-sm text-independence-600 hover:text-independence-700"
+            >
+              <i className="fas fa-edit mr-1"></i>
+              Edit
+            </button>
+          </div>
+          <div className="space-y-3">
+            <div className="flex justify-between">
+              <InfoTooltip
+                text={
+                  "Your total expected monthly spending after reaching independence, including housing, food, healthcare, and other regular costs."
+                }
+              >
+                <span className="text-gray-500">{"Monthly Expenses"}</span>
+              </InfoTooltip>
+              <span
+                className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
+              >
+                {hideValues
+                  ? HIDDEN_VALUE
+                  : `${detailsCurrency}${Math.round(displayExpenses).toLocaleString()}`}
+              </span>
+            </div>
+            <div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">{"Pension"}</span>
+                <span
+                  className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
+                >
+                  {hideValues
+                    ? HIDDEN_VALUE
+                    : `${detailsCurrency}${Math.round(displayPension).toLocaleString()}`}
+                </span>
+              </div>
+              {pensionIndexed === false && displayPension > 0 && (
+                <p className="text-xs text-amber-700 mt-0.5">
+                  This amount stays the same every year, so it buys less over
+                  time as prices rise.
+                </p>
+              )}
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500">{"Government Benefits"}</span>
+              <span
+                className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
+              >
+                {hideValues
+                  ? HIDDEN_VALUE
+                  : `${detailsCurrency}${Math.round(displaySocialSecurity).toLocaleString()}`}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500">{"Other Income"}</span>
+              <span
+                className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
+              >
+                {hideValues
+                  ? HIDDEN_VALUE
+                  : `${detailsCurrency}${Math.round(displayOtherIncome).toLocaleString()}`}
+              </span>
+            </div>
+            {displayRentalIncome > 0 && (
+              <div className="flex justify-between">
+                <InfoTooltip text="Net rental income from properties (after all expenses). Stops if property is liquidated.">
+                  <span className="text-gray-500">
+                    <i className="fas fa-home text-xs mr-1"></i>
+                    Property Rental
+                  </span>
+                </InfoTooltip>
+                <span
+                  className={`font-medium ${hideValues ? "text-gray-400" : "text-green-600"}`}
+                >
+                  {hideValues
+                    ? HIDDEN_VALUE
+                    : `${detailsCurrency}${Math.round(displayRentalIncome).toLocaleString()}`}
+                </span>
+              </div>
+            )}
+            <hr />
+            <div className="flex justify-between">
+              <InfoTooltip
+                text={
+                  "Expected yearly increase in living costs. Your expenses will grow by this rate each year."
+                }
+              >
+                <span className="text-gray-500">{"Inflation"}</span>
+              </InfoTooltip>
+              <span className="font-medium">
+                {(effectiveInflation * 100).toFixed(1)}%
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500">Return Rates</span>
+              <span className="font-medium text-blue-600">
+                E:{(effectiveEquityReturn * 100).toFixed(0)}% C:
+                {(effectiveCashReturn * 100).toFixed(0)}% H:
+                {(effectiveHousingReturn * 100).toFixed(0)}%
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <InfoTooltip
+                text={
+                  "Allocation-weighted return across your cash and equity mix, net of fees — the single rate that drives portfolio growth."
+                }
+              >
+                <span className="text-gray-500">Blended Return Rate</span>
+              </InfoTooltip>
+              <span className="font-medium text-blue-600">
+                {(blendedReturnRate * 100).toFixed(1)}%
+              </span>
+            </div>
+            {effectiveTarget && effectiveTarget > 0 && (
+              <div className="flex justify-between">
+                <InfoTooltip
+                  text={
+                    "The amount you want to have left at the end of your planning period, for a legacy or safety buffer."
+                  }
+                >
+                  <span className="text-gray-500">{"Target Balance"}</span>
+                </InfoTooltip>
+                <span
+                  className={`font-medium ${hideValues ? "text-gray-400" : ""}`}
+                >
+                  {hideValues
+                    ? HIDDEN_VALUE
+                    : `${detailsCurrency}${Math.round(displayTarget).toLocaleString()}`}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Plan Insights — first finding excluded (promoted to VerdictBanner) */}
+        {currentAge != null && (
+          <PlanFindingsCard findings={projection?.findings} excludeFirst />
+        )}
+      </div>
     </div>
   )
 }

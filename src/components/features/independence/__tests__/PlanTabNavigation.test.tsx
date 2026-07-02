@@ -15,7 +15,7 @@ describe("PlanTabNavigation", () => {
       />,
     )
     expect(screen.getByText("FI Overview")).toBeInTheDocument()
-    expect(screen.getByText("My Plan")).toBeInTheDocument()
+    expect(screen.getByText("Summary")).toBeInTheDocument()
   })
 
   it("hides the FI Overview tab when showFiTab is false (non-FIRE plans)", () => {
@@ -29,7 +29,7 @@ describe("PlanTabNavigation", () => {
     )
     expect(screen.queryByText("FI Overview")).not.toBeInTheDocument()
     // Other tabs remain.
-    expect(screen.getByText("My Plan")).toBeInTheDocument()
+    expect(screen.getByText("Summary")).toBeInTheDocument()
     expect(screen.getByText("Metrics")).toBeInTheDocument()
   })
 

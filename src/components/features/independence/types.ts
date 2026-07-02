@@ -27,10 +27,10 @@ export interface TabConfig {
 export const TABS: TabConfig[] = [
   {
     id: "details",
-    label: "My Plan",
+    label: "Summary",
     icon: "fa-clipboard-list",
     byline:
-      "Your income, expenses, and assumptions — the inputs that drive everything.",
+      "Where you stand at a glance — verdict, key numbers, and your plan inputs.",
   },
   {
     id: "breakdown",

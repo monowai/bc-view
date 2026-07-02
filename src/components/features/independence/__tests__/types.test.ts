@@ -22,7 +22,7 @@ describe("types constants", () => {
 
     it("has correct labels", () => {
       expect(TABS.find((t) => t.id === "fi")?.label).toBe("FI Overview")
-      expect(TABS.find((t) => t.id === "details")?.label).toBe("My Plan")
+      expect(TABS.find((t) => t.id === "details")?.label).toBe("Summary")
       expect(TABS.find((t) => t.id === "assets")?.label).toBe("Metrics")
       expect(TABS.find((t) => t.id === "breakdown")?.label).toBe("Assets")
       expect(TABS.find((t) => t.id === "timeline")?.label).toBe("My Path")
@@ -46,7 +46,7 @@ describe("types constants", () => {
       }
       expect(TABS.find((t) => t.id === "fi")?.byline).toContain("FI target")
       expect(TABS.find((t) => t.id === "details")?.byline).toContain(
-        "inputs that drive everything",
+        "at a glance",
       )
       expect(TABS.find((t) => t.id === "assets")?.byline).toContain(
         "independence",
