@@ -85,17 +85,18 @@ export function useWealthSummary(
         const classification = mapToLiquidityGroup(
           position.asset?.assetCategory?.name || "Uncategorised",
         )
-        const positionValue = position.moneyValues?.BASE?.marketValue || 0
+        // Apply FX conversion from position's BASE currency to display currency
+        const positionCurrency = position.moneyValues?.BASE?.currency?.code
+        const rate = positionCurrency ? fxRates[positionCurrency] || 1 : 1
+        const positionValue =
+          (position.moneyValues?.BASE?.marketValue || 0) * rate
         classificationTotals[classification] =
           (classificationTotals[classification] || 0) + positionValue
 
         // Sum gainOnDay only when there's price data (gainOnDay is meaningless without it)
-        // Apply FX conversion from position's BASE currency to display currency
         const priceData = position.moneyValues?.BASE?.priceData
         if (priceData?.changePercent) {
           const gainOnDay = position.moneyValues?.BASE?.gainOnDay || 0
-          const positionCurrency = position.moneyValues?.BASE?.currency?.code
-          const rate = positionCurrency ? fxRates[positionCurrency] || 1 : 1
           totalGainOnDay += gainOnDay * rate
         }
       })
