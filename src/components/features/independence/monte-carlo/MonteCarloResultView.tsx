@@ -1,6 +1,7 @@
 import React from "react"
 import { MonteCarloResult, RetirementProjection } from "types/independence"
 import { FanChart } from "./FanChart"
+import { ConfidenceRibbon } from "./ConfidenceRibbon"
 import { DepletionHistogram } from "./DepletionHistogram"
 import { PercentileTable } from "./PercentileTable"
 
@@ -79,6 +80,9 @@ export function MonteCarloResultView({
         currency={currency}
         hideValues={hideValues}
       />
+
+      {/* Confidence Ribbon — survival probability strip aligned below FanChart */}
+      <ConfidenceRibbon result={result} />
 
       {/* Summary Statistics */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">

@@ -41,9 +41,7 @@ export default function CompositePlanSettingsCard({
     }
   }
 
-  const handleCurrencyChange = async (
-    currency: string,
-  ): Promise<void> => {
+  const handleCurrencyChange = async (currency: string): Promise<void> => {
     setDisplayCurrencyLocal(currency)
     await updateSettings({ compositeDisplayCurrency: currency })
   }

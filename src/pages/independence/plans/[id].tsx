@@ -26,7 +26,7 @@ import {
   AssetsBreakdown,
   TimelineTabContent,
   PlanFiOverviewTab,
-  ScenarioBar,
+  AssumptionsPanel,
 } from "@components/features/independence"
 import { useScenario } from "@components/features/independence/scenario/useScenario"
 import { applyRealReturn } from "@components/features/independence/scenario/scenarioToPayload"
@@ -959,162 +959,173 @@ function PlanView(): React.ReactElement {
             </div>
           )}
 
-          {/* Sticky scenario panel — drives projection, Stress Test and the
-              Wealth-tab card. Replaces the old What-If modal + summary bar. */}
-          {plan && (
-            <ScenarioBar
-              scenario={scenario}
-              onScenarioChange={setScenario}
-              onReset={resetScenario}
-              onSave={() => setShowSaveDialog(true)}
-              isDirty={scenarioIsDirty}
-              currency={effectiveCurrency}
-              fiMetrics={adjustedProjection?.fiMetrics}
-              view={
-                strategyView ??
-                defaultStrategyView(adjustedProjection?.effectiveStrategy)
-              }
-              onViewChange={setStrategyView}
-              derivedLiquidAssets={liquidAssets}
-              planInflation={plan.inflationRate}
-              planCashRate={plan.cashReturnRate}
-              planEquityRate={plan.equityReturnRate}
-              planCashAlloc={plan.cashAllocation}
-              pathToHorizon={adjustedProjection?.pathToHorizon}
-            />
-          )}
-
-          {/* Tab Navigation */}
-          <PlanTabNavigation
-            activeTab={effectiveTab}
-            onTabChange={setActiveTab}
-            hasAssets={hasAssets}
-            showFiTab={showFiTab}
-          />
-
-          {/* Tab Content */}
-          {effectiveTab === "fi" && (
-            <PlanFiOverviewTab
-              plan={plan}
-              projection={adjustedProjection}
-              scenario={scenario}
-              assets={{
-                liquidAssets,
-                nonSpendableAssets,
-                totalAssets,
-                hasAssets,
-                isLoaded: true,
-              }}
-              monthlyInvestment={monthlyInvestment}
-              rentalIncome={rentalIncome}
-              displayCurrency={displayCurrency ?? undefined}
-              effectiveCurrency={effectiveCurrency}
-              currentAge={displayCurrentAge}
-              isCalculating={isCalculating}
-              hideValues={hideValues}
-            />
-          )}
-
-          {effectiveTab === "details" && (
-            <DetailsTabContent
-              plan={plan}
-              scenario={scenario}
-              projection={adjustedProjection}
-              rentalIncome={rentalIncome}
-              effectiveCurrency={effectiveCurrency}
-              planCurrency={planCurrency}
-              onEditDetails={() => setShowEditDetailsModal(true)}
-              liquidAssets={displayLiquidAssets}
-              blendedReturnRate={blendedReturnRate}
-              currentAge={displayCurrentAge}
-              retirementAge={displayRetirementAge}
-              effectiveFxRate={effectiveFxRate}
-              excludedPensionFV={excludedPensionFV}
-              includedPensionFvDifferential={includedPensionFvDifferential}
-            />
-          )}
-
-          {effectiveTab === "breakdown" &&
-            (isSharedPlan && displayCategorySlices.length === 0 ? (
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-900">
-                <p className="font-medium mb-1">
-                  <i className="fas fa-share-alt mr-2"></i>
-                  Owner-scoped projection
-                </p>
-                <p>
-                  Per-category asset breakdown for this shared plan needs the
-                  plan owner to also share their portfolios with you. The
-                  projection uses the owner&apos;s holdings via a server-side
-                  fetch.
-                </p>
+          {/* Two-column layout: tab content left, Assumptions sidebar right on lg+.
+              On mobile (flex-col) CSS order puts the sidebar (order-1) above the
+              tabs (order-2); on desktop (lg:flex-row) order reverses so tabs are
+              on the left and the sidebar is a sticky right column. */}
+          <div className="flex flex-col lg:flex-row lg:gap-6 lg:items-start">
+            {/* Assumptions sidebar — mobile: collapsible card above tabs (order-1),
+                desktop: sticky right column (lg:order-2, ~w-80). */}
+            {plan && (
+              <div className="order-1 lg:order-2 lg:w-80 lg:shrink-0 mb-3 lg:mb-0">
+                <AssumptionsPanel
+                  scenario={scenario}
+                  onScenarioChange={setScenario}
+                  onReset={resetScenario}
+                  onSave={() => setShowSaveDialog(true)}
+                  isDirty={scenarioIsDirty}
+                  currency={effectiveCurrency}
+                  fiMetrics={adjustedProjection?.fiMetrics}
+                  view={
+                    strategyView ??
+                    defaultStrategyView(adjustedProjection?.effectiveStrategy)
+                  }
+                  onViewChange={setStrategyView}
+                  derivedLiquidAssets={liquidAssets}
+                  planInflation={plan.inflationRate}
+                  planCashRate={plan.cashReturnRate}
+                  planEquityRate={plan.equityReturnRate}
+                  planCashAlloc={plan.cashAllocation}
+                  pathToHorizon={adjustedProjection?.pathToHorizon}
+                />
               </div>
-            ) : (
-              <AssetsBreakdown
-                categorySlices={displayCategorySlices}
-                spendableCategories={spendableCategories}
-                onToggleCategory={toggleCategory}
-                pensionProjections={pensionProjections}
-                totalAssets={displayTotalAssets}
-                liquidAssets={displayLiquidAssets}
-                effectiveCurrency={effectiveCurrency}
-                effectiveFxRate={effectiveFxRate}
-                isCalculating={isCalculating}
-                holdingsLoaded={!!holdingsData}
-                usingManualAssets={usingManualAssets}
-                isRefreshingHoldings={isRefreshingHoldings}
-                onRefreshHoldings={() => refreshHoldings()}
-                cpfSubAccountsByCategoryKey={cpfSubAccountsByCategoryKey}
+            )}
+
+            {/* Main content — mobile: below sidebar (order-2), desktop: left column (lg:order-1). */}
+            <div className="order-2 lg:order-1 lg:flex-1 min-w-0">
+              {/* Tab Navigation */}
+              <PlanTabNavigation
+                activeTab={effectiveTab}
+                onTabChange={setActiveTab}
+                hasAssets={hasAssets}
+                showFiTab={showFiTab}
               />
-            ))}
 
-          {effectiveTab === "assets" && (
-            <AssetsTabContent
-              projection={adjustedProjection}
-              effectivePlanValues={effectivePlanValues}
-              blendedReturnRate={blendedReturnRate}
-              currentAge={displayCurrentAge}
-              retirementAge={displayRetirementAge}
-              effectiveCurrency={effectiveCurrency}
-              fireDataReady={fireDataReady}
-              view={
-                strategyView ??
-                defaultStrategyView(adjustedProjection?.effectiveStrategy)
-              }
-            />
-          )}
+              {/* Tab Content */}
+              {effectiveTab === "fi" && (
+                <PlanFiOverviewTab
+                  plan={plan}
+                  projection={adjustedProjection}
+                  scenario={scenario}
+                  assets={{
+                    liquidAssets,
+                    nonSpendableAssets,
+                    totalAssets,
+                    hasAssets,
+                    isLoaded: true,
+                  }}
+                  monthlyInvestment={monthlyInvestment}
+                  rentalIncome={rentalIncome}
+                  displayCurrency={displayCurrency ?? undefined}
+                  effectiveCurrency={effectiveCurrency}
+                  currentAge={displayCurrentAge}
+                  isCalculating={isCalculating}
+                  hideValues={hideValues}
+                />
+              )}
 
-          {effectiveTab === "timeline" && (
-            <TimelineTabContent
-              projection={adjustedProjection}
-              baselineProjection={baselineProjection}
-              retirementAge={displayRetirementAge}
-              lifeExpectancy={displayLifeExpectancy}
-              hideValues={hideValues}
-              isCalculating={isCalculating}
-              effectiveCurrency={effectiveCurrency}
-            />
-          )}
+              {effectiveTab === "details" && (
+                <DetailsTabContent
+                  plan={plan}
+                  scenario={scenario}
+                  projection={adjustedProjection}
+                  rentalIncome={rentalIncome}
+                  effectiveCurrency={effectiveCurrency}
+                  planCurrency={planCurrency}
+                  onEditDetails={() => setShowEditDetailsModal(true)}
+                  liquidAssets={displayLiquidAssets}
+                  blendedReturnRate={blendedReturnRate}
+                  currentAge={displayCurrentAge}
+                  retirementAge={displayRetirementAge}
+                  effectiveFxRate={effectiveFxRate}
+                  excludedPensionFV={excludedPensionFV}
+                  includedPensionFvDifferential={includedPensionFvDifferential}
+                />
+              )}
 
-          {/* Simulation Tab - Monte Carlo Analysis */}
-          {effectiveTab === "simulation" && (
-            <MonteCarloTab
-              plan={plan}
-              assets={{
-                liquidAssets,
-                nonSpendableAssets,
-                totalAssets,
-                hasAssets,
-                isLoaded: true,
-              }}
-              monthlyInvestment={monthlyInvestment}
-              scenario={scenario}
-              rentalIncome={rentalIncome}
-              displayCurrency={displayCurrency ?? undefined}
-              hideValues={hideValues}
-              currency={effectiveCurrency}
-              displayProjection={adjustedProjection}
-            />
-          )}
+              {effectiveTab === "breakdown" &&
+                (isSharedPlan && displayCategorySlices.length === 0 ? (
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-900">
+                    <p className="font-medium mb-1">
+                      <i className="fas fa-share-alt mr-2"></i>
+                      Owner-scoped projection
+                    </p>
+                    <p>
+                      Per-category asset breakdown for this shared plan needs
+                      the plan owner to also share their portfolios with you.
+                      The projection uses the owner&apos;s holdings via a
+                      server-side fetch.
+                    </p>
+                  </div>
+                ) : (
+                  <AssetsBreakdown
+                    categorySlices={displayCategorySlices}
+                    spendableCategories={spendableCategories}
+                    onToggleCategory={toggleCategory}
+                    pensionProjections={pensionProjections}
+                    totalAssets={displayTotalAssets}
+                    liquidAssets={displayLiquidAssets}
+                    effectiveCurrency={effectiveCurrency}
+                    effectiveFxRate={effectiveFxRate}
+                    isCalculating={isCalculating}
+                    holdingsLoaded={!!holdingsData}
+                    usingManualAssets={usingManualAssets}
+                    isRefreshingHoldings={isRefreshingHoldings}
+                    onRefreshHoldings={() => refreshHoldings()}
+                    cpfSubAccountsByCategoryKey={cpfSubAccountsByCategoryKey}
+                  />
+                ))}
+
+              {effectiveTab === "assets" && (
+                <AssetsTabContent
+                  projection={adjustedProjection}
+                  effectivePlanValues={effectivePlanValues}
+                  blendedReturnRate={blendedReturnRate}
+                  currentAge={displayCurrentAge}
+                  retirementAge={displayRetirementAge}
+                  effectiveCurrency={effectiveCurrency}
+                  fireDataReady={fireDataReady}
+                  view={
+                    strategyView ??
+                    defaultStrategyView(adjustedProjection?.effectiveStrategy)
+                  }
+                />
+              )}
+
+              {effectiveTab === "timeline" && (
+                <TimelineTabContent
+                  projection={adjustedProjection}
+                  baselineProjection={baselineProjection}
+                  retirementAge={displayRetirementAge}
+                  lifeExpectancy={displayLifeExpectancy}
+                  hideValues={hideValues}
+                  isCalculating={isCalculating}
+                  effectiveCurrency={effectiveCurrency}
+                />
+              )}
+
+              {/* Simulation Tab - Monte Carlo Analysis */}
+              {effectiveTab === "simulation" && (
+                <MonteCarloTab
+                  plan={plan}
+                  assets={{
+                    liquidAssets,
+                    nonSpendableAssets,
+                    totalAssets,
+                    hasAssets,
+                    isLoaded: true,
+                  }}
+                  monthlyInvestment={monthlyInvestment}
+                  scenario={scenario}
+                  rentalIncome={rentalIncome}
+                  displayCurrency={displayCurrency ?? undefined}
+                  hideValues={hideValues}
+                  currency={effectiveCurrency}
+                  displayProjection={adjustedProjection}
+                />
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
