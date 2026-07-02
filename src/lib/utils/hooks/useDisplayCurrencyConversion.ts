@@ -100,7 +100,12 @@ export function useDisplayCurrencyConversion({
     simpleFetcher(ccyKey),
     SWR_CURRENCIES_CONFIG,
   )
-  const currencies = currenciesData?.data
+  // Guard against a malformed /api/currencies payload (object instead of
+  // array). A bare truthiness check let a non-array through and `.find` threw
+  // "t.find is not a function" (BC-VIEW-3Q).
+  const currencies = Array.isArray(currenciesData?.data)
+    ? currenciesData.data
+    : []
 
   const [asyncFx, setAsyncFx] = useState<AsyncFx | null>(null)
 
@@ -220,7 +225,9 @@ export function useCurrencies(): {
     SWR_CURRENCIES_CONFIG,
   )
   return {
-    currencies: data?.data ?? [],
+    // `?? []` only guards null/undefined; a truthy non-array payload would
+    // still reach `.filter` consumers and throw (BC-VIEW-3Q).
+    currencies: Array.isArray(data?.data) ? data.data : [],
     isLoading,
   }
 }
