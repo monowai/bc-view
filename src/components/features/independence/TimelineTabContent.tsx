@@ -44,6 +44,7 @@ export default function TimelineTabContent({
   lifeExpectancy,
   hideValues,
   isCalculating,
+  effectiveCurrency,
 }: TimelineTabContentProps): React.ReactElement {
   // Timeline view mode - "traditional" shows work-to-retire path, "fire" shows FIRE path
   const [timelineViewMode, setTimelineViewMode] = useState<
@@ -517,6 +518,10 @@ export default function TimelineTabContent({
                 projection.accumulationProjections ?? [],
                 projection.yearlyProjections,
               ),
+              {
+                depletionAge: projection.depletionAge,
+                currency: effectiveCurrency,
+              },
             )}
           />
         )}

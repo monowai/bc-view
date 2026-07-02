@@ -194,6 +194,109 @@ describe("deriveJourneyRibbon", () => {
       expect(cells[1].note).not.toMatch(/run out this year/)
       expect(cells[1].note).toMatch(/unfunded/)
     })
+
+    it("uses guaranteed-income note for later shortfall rows with cashflowIncome > 0", () => {
+      const rows = [
+        makeDrawdownRow(70, {
+          unfundedExpense: 10_000,
+          endingBalance: 0,
+          cashflowIncome: 30_000,
+        }),
+        makeDrawdownRow(75, {
+          unfundedExpense: 61_200,
+          endingBalance: 0,
+          cashflowIncome: 30_000,
+        }),
+      ]
+      const { cells } = deriveJourneyRibbon(rows)
+      // First shortfall: unchanged
+      expect(cells[0].note).toMatch(/run out this year/)
+      // Later shortfall with income: guaranteed-income copy
+      expect(cells[1].note).toMatch(/savings gone/)
+      expect(cells[1].note).toMatch(/guaranteed income covers part/)
+    })
+
+    it("rounds unfundedExpense to nearest k in guaranteed-income note", () => {
+      const rows = [
+        makeDrawdownRow(70, {
+          unfundedExpense: 10_000,
+          endingBalance: 0,
+          cashflowIncome: 5_000,
+        }),
+        makeDrawdownRow(75, {
+          unfundedExpense: 61_200,
+          endingBalance: 0,
+          cashflowIncome: 5_000,
+        }),
+      ]
+      const { cells } = deriveJourneyRibbon(rows)
+      expect(cells[1].note).toContain("61k/yr short")
+    })
+
+    it("includes currency prefix in guaranteed-income note", () => {
+      const rows = [
+        makeDrawdownRow(70, {
+          unfundedExpense: 10_000,
+          endingBalance: 0,
+          cashflowIncome: 5_000,
+        }),
+        makeDrawdownRow(75, {
+          unfundedExpense: 61_000,
+          endingBalance: 0,
+          cashflowIncome: 5_000,
+        }),
+      ]
+      const { cells } = deriveJourneyRibbon(rows, { currency: "SGD" })
+      expect(cells[1].note).toContain("SGD 61k/yr short")
+    })
+
+    it("omits currency prefix when currency is empty", () => {
+      const rows = [
+        makeDrawdownRow(70, {
+          unfundedExpense: 10_000,
+          endingBalance: 0,
+          cashflowIncome: 5_000,
+        }),
+        makeDrawdownRow(75, {
+          unfundedExpense: 61_000,
+          endingBalance: 0,
+          cashflowIncome: 5_000,
+        }),
+      ]
+      const { cells } = deriveJourneyRibbon(rows, { currency: "" })
+      expect(cells[1].note).toContain("(61k/yr short)")
+      expect(cells[1].note).not.toContain("SGD")
+    })
+
+    it("keeps 'expenses unfunded' for later shortfall rows with no cashflowIncome", () => {
+      const rows = [
+        makeDrawdownRow(70, {
+          unfundedExpense: 10_000,
+          endingBalance: 0,
+          cashflowIncome: 0,
+        }),
+        makeDrawdownRow(75, {
+          unfundedExpense: 10_000,
+          endingBalance: 0,
+          cashflowIncome: 0,
+        }),
+      ]
+      const { cells } = deriveJourneyRibbon(rows)
+      expect(cells[1].note).toMatch(/expenses unfunded/)
+      expect(cells[1].note).not.toMatch(/guaranteed/)
+    })
+
+    it("first shortfall note is unchanged even when that row has cashflowIncome", () => {
+      const rows = [
+        makeDrawdownRow(70, {
+          unfundedExpense: 10_000,
+          endingBalance: 0,
+          cashflowIncome: 30_000,
+        }),
+      ]
+      const { cells } = deriveJourneyRibbon(rows)
+      expect(cells[0].note).toMatch(/run out this year/)
+    })
   })
 
   describe("verdict", () => {
@@ -258,6 +361,115 @@ describe("deriveJourneyRibbon", () => {
       const { verdict } = deriveJourneyRibbon(rows)
       expect(verdict).toMatch(/84/)
       expect(verdict).toContain("6")
+    })
+  })
+
+  describe("annuity shortfall verdict", () => {
+    it("returns annuity verdict when post-depletion rows have cashflowIncome", () => {
+      const rows = [
+        makeDrawdownRow(70, {
+          unfundedExpense: 10_000,
+          endingBalance: 0,
+          cashflowIncome: 30_000,
+        }),
+        makeDrawdownRow(75, {
+          unfundedExpense: 61_000,
+          endingBalance: 0,
+          cashflowIncome: 30_000,
+        }),
+        makeDrawdownRow(90, {
+          unfundedExpense: 61_000,
+          endingBalance: 0,
+          cashflowIncome: 30_000,
+        }),
+      ]
+      const { verdict } = deriveJourneyRibbon(rows)
+      expect(verdict).toMatch(/annuity keeps paying but leaves a shortfall/)
+      expect(verdict).toMatch(/70/)
+    })
+
+    it("annuity verdict tone is bad when no post-depletion recovery", () => {
+      const rows = [
+        makeDrawdownRow(70, {
+          unfundedExpense: 10_000,
+          endingBalance: 0,
+          cashflowIncome: 30_000,
+        }),
+        makeDrawdownRow(75, {
+          unfundedExpense: 61_000,
+          endingBalance: 0,
+          cashflowIncome: 30_000,
+        }),
+        makeDrawdownRow(90, {
+          unfundedExpense: 61_000,
+          endingBalance: 0,
+          cashflowIncome: 30_000,
+        }),
+      ]
+      const { verdictTone } = deriveJourneyRibbon(rows)
+      expect(verdictTone).toBe("bad")
+    })
+
+    it("annuity verdict tone is warn when a post-depletion row has no shortfall (recovery)", () => {
+      const rows = [
+        makeDrawdownRow(70, {
+          unfundedExpense: 10_000,
+          endingBalance: 0,
+          cashflowIncome: 30_000,
+        }),
+        makeDrawdownRow(75, {
+          endingBalance: 50_000,
+          expenses: 80_000,
+          cashflowIncome: 90_000,
+          unfundedExpense: 0,
+        }),
+      ]
+      const { verdictTone } = deriveJourneyRibbon(rows)
+      expect(verdictTone).toBe("warn")
+    })
+
+    it("opts.depletionAge overrides client-detected depletion age in verdict", () => {
+      // Client sees depletion at 71 (first row with endingBalance <= 0)
+      // Backend says 70
+      const rows = [
+        makeDrawdownRow(70, {
+          endingBalance: 1,
+          unfundedExpense: 0,
+          cashflowIncome: 0,
+        }),
+        makeDrawdownRow(71, {
+          endingBalance: 0,
+          unfundedExpense: 10_000,
+          cashflowIncome: 0,
+        }),
+        makeDrawdownRow(90, {
+          endingBalance: 0,
+          unfundedExpense: 10_000,
+          cashflowIncome: 0,
+        }),
+      ]
+      const { verdict, depletionAge } = deriveJourneyRibbon(rows, {
+        depletionAge: 70,
+      })
+      expect(depletionAge).toBe(70)
+      expect(verdict).toMatch(/70/)
+    })
+
+    it("falls back to client-detected depletion age when opts.depletionAge is null", () => {
+      const rows = [
+        makeDrawdownRow(84, {
+          unfundedExpense: 1,
+          endingBalance: 0,
+          cashflowIncome: 0,
+        }),
+        makeDrawdownRow(90, {
+          unfundedExpense: 1,
+          endingBalance: 0,
+          cashflowIncome: 0,
+        }),
+      ]
+      const { depletionAge } = deriveJourneyRibbon(rows, { depletionAge: null })
+      expect(depletionAge).toBe(84)
     })
   })
 

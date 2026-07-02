@@ -291,7 +291,12 @@ export default function WealthJourneyTab(): React.ReactElement | null {
         </ComposedChart>
       </ChartFrame>
 
-      <JourneyRibbon data={deriveJourneyRibbon(fromCompositeRows(allRows))} />
+      <JourneyRibbon
+        data={deriveJourneyRibbon(fromCompositeRows(allRows), {
+          depletionAge: projection.depletionAge,
+          currency: displayCurrency,
+        })}
+      />
 
       {/* Phase legend */}
       <div className="flex flex-wrap gap-3 mt-3 pt-3 border-t border-gray-100">

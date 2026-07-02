@@ -240,6 +240,31 @@ describe("CompositeTab", () => {
     ).toBeInTheDocument()
   })
 
+  it("shows 'Savings deplete at age N' badge when projection is not sustainable", () => {
+    const { useCompositeProjection } = jest.requireMock(
+      "@hooks/useCompositeProjection",
+    )
+    useCompositeProjection.mockReturnValue({
+      phases: [{ planId: "p1", fromAge: 60 }],
+      setPhases: jest.fn(),
+      displayCurrency: "SGD",
+      setDisplayCurrency: jest.fn(),
+      excludedPlanIds: new Set(),
+      toggleExclusion: jest.fn(),
+      projection: {
+        ...makeProjection(),
+        isSustainable: false,
+        depletionAge: 70,
+      },
+      scenarios: undefined,
+      isLoading: false,
+      error: null,
+    })
+
+    render(<CompositeTab plans={plans} settings={settings} />)
+    expect(screen.getByText(/Savings deplete at age 70/)).toBeInTheDocument()
+  })
+
   it("renders error inside Phases tab when present", () => {
     const { useCompositeProjection } = jest.requireMock(
       "@hooks/useCompositeProjection",

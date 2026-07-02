@@ -34,6 +34,13 @@ export interface NormalizedJourneyRow {
   cashflowIncome: number
 }
 
+export interface JourneyRibbonOpts {
+  /** Backend-authoritative depletion age; overrides client detection for the verdict string. */
+  depletionAge?: number | null
+  /** Currency code for shortfall notes (e.g. "SGD"). Empty string = omit prefix. */
+  currency?: string
+}
+
 function isShortfallRow(row: NormalizedJourneyRow): boolean {
   if (row.isAccumulation) return false
   return row.unfundedExpense > 0 || row.endingBalance <= 0
@@ -41,6 +48,7 @@ function isShortfallRow(row: NormalizedJourneyRow): boolean {
 
 export function deriveJourneyRibbon(
   rows: NormalizedJourneyRow[],
+  opts?: JourneyRibbonOpts,
 ): JourneyRibbonData {
   if (rows.length === 0) {
     return { cells: [], verdict: "", verdictTone: "good" }
@@ -48,8 +56,14 @@ export function deriveJourneyRibbon(
 
   const lastAge = rows[rows.length - 1].age
 
-  // Pre-compute depletionAge (first shortfall year)
-  const depletionAge = rows.find((r) => isShortfallRow(r))?.age
+  // Client-side detection: used for cell status/coloring and "savings run out this year" note
+  const clientDepletionAge = rows.find((r) => isShortfallRow(r))?.age
+
+  // Verdict depletion age: backend value takes precedence; client detection is the fallback
+  const verdictDepletionAge =
+    opts?.depletionAge != null ? opts.depletionAge : clientDepletionAge
+
+  const currency = opts?.currency ?? ""
 
   const cells: JourneyCell[] = rows.map((row, idx) => {
     if (row.isAccumulation) {
@@ -62,13 +76,30 @@ export function deriveJourneyRibbon(
     }
 
     if (isShortfallRow(row)) {
-      const isFirstShortfall = row.age === depletionAge
+      const isFirstShortfall = row.age === clientDepletionAge
+      if (isFirstShortfall) {
+        return {
+          age: row.age,
+          status: "shortfall",
+          note: `Age ${row.age} — savings run out this year`,
+          isAccumulation: false,
+        }
+      }
+      // Later shortfall: if annuity income is partially covering expenses, say so
+      if (row.cashflowIncome > 0) {
+        const prefix = currency ? `${currency} ` : ""
+        const shortfallK = Math.round(row.unfundedExpense / 1_000)
+        return {
+          age: row.age,
+          status: "shortfall",
+          note: `Age ${row.age} — savings gone; guaranteed income covers part (${prefix}${shortfallK}k/yr short)`,
+          isAccumulation: false,
+        }
+      }
       return {
         age: row.age,
         status: "shortfall",
-        note: isFirstShortfall
-          ? `Age ${row.age} — savings run out this year`
-          : `Age ${row.age} — expenses unfunded`,
+        note: `Age ${row.age} — expenses unfunded`,
         isAccumulation: false,
       }
     }
@@ -89,7 +120,7 @@ export function deriveJourneyRibbon(
       return {
         age: row.age,
         status: "thinning",
-        note: `Age ${row.age} — spending from savings; money runs out at ${depletionAge}`,
+        note: `Age ${row.age} — spending from savings; money runs out at ${clientDepletionAge}`,
         isAccumulation: false,
       }
     }
@@ -103,7 +134,7 @@ export function deriveJourneyRibbon(
   })
 
   // Verdict
-  if (!depletionAge) {
+  if (!verdictDepletionAge) {
     return {
       cells,
       verdict: `Money lasts to age ${lastAge}+`,
@@ -111,17 +142,37 @@ export function deriveJourneyRibbon(
     }
   }
 
-  const yearsShort = lastAge - depletionAge
-  const verdictText = `Savings run out at ${depletionAge} — ${yearsShort} year${yearsShort !== 1 ? "s" : ""} short`
+  // Rows strictly after the verdict depletion age (post-depletion)
+  const postDepletionRows = rows.filter(
+    (r) => !r.isAccumulation && r.age > verdictDepletionAge,
+  )
+  const hasAnnuityIncome = postDepletionRows.some((r) => r.cashflowIncome > 0)
+
+  if (hasAnnuityIncome) {
+    // Guaranteed income keeps paying after savings run out, but a shortfall remains.
+    // Tone is warn if a post-depletion row fully recovers (non-shortfall), bad otherwise.
+    const hasRecovery = postDepletionRows.some((r) => !isShortfallRow(r))
+    const verdictTone = hasRecovery ? "warn" : "bad"
+    return {
+      cells,
+      verdict: `Savings run out at ${verdictDepletionAge} — annuity keeps paying but leaves a shortfall`,
+      verdictTone,
+      depletionAge: verdictDepletionAge,
+    }
+  }
+
+  // No annuity income post-depletion — classic "N years short" verdict
+  const yearsShort = lastAge - verdictDepletionAge
+  const verdictText = `Savings run out at ${verdictDepletionAge} — ${yearsShort} year${yearsShort !== 1 ? "s" : ""} short`
   const lastRow = rows[rows.length - 1]
-  // Warn when shortfall exists but final year has positive balance (lumpy expense, recovery after)
+  // Warn when shortfall exists but final year balance is positive (lumpy expense / recovery)
   const verdictTone = lastRow.endingBalance > 0 ? "warn" : "bad"
 
   return {
     cells,
     verdict: verdictText,
     verdictTone,
-    depletionAge,
+    depletionAge: verdictDepletionAge,
   }
 }
 

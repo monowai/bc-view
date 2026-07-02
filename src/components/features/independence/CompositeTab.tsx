@@ -59,7 +59,7 @@ function CompositeSubTabNavigation({
   const sustainabilityText = projection
     ? projection.isSustainable
       ? `Sustainable to age ${projection.yearlyProjections[projection.yearlyProjections.length - 1]?.age ?? "?"}`
-      : `Depletes at age ${projection.depletionAge ?? "?"}`
+      : `Savings deplete at age ${projection.depletionAge ?? "?"}`
     : null
 
   return (

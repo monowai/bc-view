@@ -51,6 +51,24 @@ describe("JourneyRibbon", () => {
       )
       expect(screen.getByText(/8 years short/)).toBeInTheDocument()
     })
+
+    it("bad verdict uses ✗ glyph distinct from warn ⚠", () => {
+      const { container: warnContainer } = render(
+        <JourneyRibbon
+          data={makeData({ verdictTone: "warn", verdict: "Warn" })}
+        />,
+      )
+      const { container: badContainer } = render(
+        <JourneyRibbon
+          data={makeData({ verdictTone: "bad", verdict: "Bad" })}
+        />,
+      )
+      const warnGlyph = warnContainer.querySelector("span span")?.textContent
+      const badGlyph = badContainer.querySelector("span span")?.textContent
+      expect(warnGlyph).toBe("⚠")
+      expect(badGlyph).toBe("✗")
+      expect(warnGlyph).not.toBe(badGlyph)
+    })
   })
 
   describe("ribbon row", () => {

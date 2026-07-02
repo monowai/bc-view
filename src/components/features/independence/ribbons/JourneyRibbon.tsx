@@ -33,7 +33,7 @@ const VERDICT_STYLE: Record<
 > = {
   good: { bg: "bg-green-100", text: "text-green-800", glyph: "✓" },
   warn: { bg: "bg-amber-100", text: "text-amber-800", glyph: "⚠" },
-  bad: { bg: "bg-red-100", text: "text-red-800", glyph: "⚠" },
+  bad: { bg: "bg-red-100", text: "text-red-800", glyph: "✗" },
 }
 
 interface JourneyRibbonProps {
