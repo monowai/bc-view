@@ -59,10 +59,6 @@ export function deriveJourneyRibbon(
   // Client-side detection: used for cell status/coloring and "savings run out this year" note
   const clientDepletionAge = rows.find((r) => isShortfallRow(r))?.age
 
-  // Verdict depletion age: backend value takes precedence; client detection is the fallback
-  const verdictDepletionAge =
-    opts?.depletionAge != null ? opts.depletionAge : clientDepletionAge
-
   const currency = opts?.currency ?? ""
 
   const cells: JourneyCell[] = rows.map((row, idx) => {
@@ -136,14 +132,28 @@ export function deriveJourneyRibbon(
     }
   })
 
-  // Verdict
-  if (!verdictDepletionAge) {
+  // Verdict — the rendered rows are the truth: when no year shows a shortfall,
+  // the plan lasts, regardless of the backend depletionAge (its semantics
+  // wobble at the horizon, e.g. surplus plans reporting depletion at life
+  // expectancy).
+  if (clientDepletionAge == null) {
     return {
       cells,
       verdict: `Money lasts to age ${lastAge}+`,
       verdictTone: "good",
     }
   }
+
+  // Rows do show a shortfall — the backend age refines the headline number
+  // when it falls within the rendered age range (it may sit a year before the
+  // first shortfall row: year-end vs year-start semantics).
+  const firstAge = rows[0].age
+  const verdictDepletionAge =
+    opts?.depletionAge != null &&
+    opts.depletionAge >= firstAge &&
+    opts.depletionAge <= lastAge
+      ? opts.depletionAge
+      : clientDepletionAge
 
   // Rows strictly after the verdict depletion age (post-depletion)
   const postDepletionRows = rows.filter(
@@ -166,7 +176,10 @@ export function deriveJourneyRibbon(
 
   // No annuity income post-depletion — classic "N years short" verdict
   const yearsShort = lastAge - verdictDepletionAge
-  const verdictText = `Savings run out at ${verdictDepletionAge} — ${yearsShort} year${yearsShort !== 1 ? "s" : ""} short`
+  const verdictText =
+    yearsShort > 0
+      ? `Savings run out at ${verdictDepletionAge} — ${yearsShort} year${yearsShort !== 1 ? "s" : ""} short`
+      : `Savings run out at ${verdictDepletionAge}`
   const lastRow = rows[rows.length - 1]
   // Warn when shortfall exists but final year balance is positive (lumpy expense / recovery)
   const verdictTone = lastRow.endingBalance > 0 ? "warn" : "bad"
