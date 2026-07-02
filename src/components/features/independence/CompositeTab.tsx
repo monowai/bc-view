@@ -14,6 +14,7 @@ import WealthJourneyTab from "./composite/tabs/WealthJourneyTab"
 import StressTestTab from "./composite/tabs/StressTestTab"
 import YearByYearTab from "./composite/tabs/YearByYearTab"
 import FiOverviewTab from "./composite/tabs/FiOverviewTab"
+import NetWorthTab from "./composite/tabs/NetWorthTab"
 
 interface CompositeTabProps {
   plans: RetirementPlan[]
@@ -24,6 +25,7 @@ type CompositeSubTabId =
   | "overview"
   | "phases"
   | "wealth"
+  | "networth"
   | "stress"
   | "timeline"
 
@@ -37,6 +39,7 @@ const COMPOSITE_SUB_TABS: CompositeSubTabConfig[] = [
   { id: "phases", label: "Phases", icon: "fa-clipboard-list" },
   { id: "overview", label: "FI Overview", icon: "fa-bullseye" },
   { id: "wealth", label: "Wealth Journey", icon: "fa-chart-line" },
+  { id: "networth", label: "Net Worth", icon: "fa-wallet" },
   { id: "stress", label: "Stress Test", icon: "fa-dice" },
   { id: "timeline", label: "Year-by-Year", icon: "fa-table" },
 ]
@@ -133,6 +136,7 @@ export default function CompositeTab({
         {activeTab === "overview" && <FiOverviewTab />}
         {activeTab === "phases" && <PhasesTab />}
         {activeTab === "wealth" && <WealthJourneyTab />}
+        {activeTab === "networth" && <NetWorthTab />}
         {activeTab === "stress" && <StressTestTab />}
         {activeTab === "timeline" && <YearByYearTab />}
       </div>
