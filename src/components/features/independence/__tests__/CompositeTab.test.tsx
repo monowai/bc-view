@@ -183,9 +183,10 @@ describe("CompositeTab", () => {
 
   it("renders narrative field in Phases tab", () => {
     render(<CompositeTab plans={plans} settings={settings} />)
-    // Narrative textarea is inside PhasesTab (default tab)
-    const narrativeLabel = screen.getByText(/Plan narrative/)
-    expect(narrativeLabel).toBeInTheDocument()
+    // Narrative textarea is inside PhasesTab (default tab).
+    // PhasesTab renders desktop + mobile copies so there are two labels.
+    const narrativeLabels = screen.getAllByText(/Plan narrative/)
+    expect(narrativeLabels.length).toBeGreaterThanOrEqual(1)
   })
 
   it("renders all sub-tabs in the navigation", () => {

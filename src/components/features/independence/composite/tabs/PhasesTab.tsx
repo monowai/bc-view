@@ -1,5 +1,6 @@
 import React from "react"
 import PhaseConfigList from "../../PhaseConfigList"
+import FlipCard from "@components/ui/FlipCard"
 import Spinner from "@components/ui/Spinner"
 import Alert from "@components/ui/Alert"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
@@ -7,9 +8,46 @@ import { useCompositeProjectionContext } from "../CompositeProjectionContext"
 
 const HIDDEN_VALUE = "****"
 
+/** Shared narrative textarea content — accepts an `id` so desktop and mobile
+ *  copies can each have a unique DOM id while staying controlled from the same
+ *  context value. */
+function NarrativeField({
+  id,
+  value,
+  onChange,
+}: {
+  id: string
+  value: string
+  onChange: (v: string) => void
+}): React.ReactElement {
+  return (
+    <>
+      <label
+        htmlFor={id}
+        className="block text-sm font-medium text-gray-700 mb-1"
+      >
+        Plan narrative
+        <span className="ml-1 text-xs font-normal text-gray-500">
+          (optional)
+        </span>
+      </label>
+      <textarea
+        id={id}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        rows={7}
+        placeholder="Overarching goal across all phases. Used as context by AI tools."
+        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
+      />
+    </>
+  )
+}
+
 /**
- * Phases tab — phase configuration (left) + narrative (right) in a two-column
- * layout, followed by the scenario comparison table.
+ * Phases tab — phase configuration (left) + narrative (right).
+ *
+ * Desktop (`lg+`): unchanged two-column layout — config flex-1, narrative w-72.
+ * Mobile (below `lg`): a flip card — front = PhaseConfigList, back = narrative.
  */
 export default function PhasesTab(): React.ReactElement {
   const { hideValues } = usePrivacyMode()
@@ -26,11 +64,17 @@ export default function PhasesTab(): React.ReactElement {
     setCompositeNarrative,
   } = useCompositeProjectionContext()
 
+  const narrativeValue = compositeNarrative ?? ""
+
   return (
     <div className="space-y-6">
       {/* Phase Configuration + Narrative */}
       <div className="bg-white rounded-xl shadow-md p-4">
-        <div className="flex gap-6">
+        {/* ── Desktop: two-column side-by-side (lg+) ── */}
+        <div
+          className="hidden lg:flex gap-6"
+          data-testid="phases-desktop-layout"
+        >
           <div className="flex-1 min-w-0">
             <PhaseConfigList
               plans={plans}
@@ -41,24 +85,36 @@ export default function PhasesTab(): React.ReactElement {
             />
           </div>
           <div className="w-72 shrink-0">
-            <label
-              htmlFor="composite-narrative"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Plan narrative
-              <span className="ml-1 text-xs font-normal text-gray-500">
-                (optional)
-              </span>
-            </label>
-            <textarea
+            <NarrativeField
               id="composite-narrative"
-              value={compositeNarrative ?? ""}
-              onChange={(e) => setCompositeNarrative(e.target.value)}
-              rows={7}
-              placeholder="Overarching goal across all phases. Used as context by AI tools."
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-independence-500 focus:border-independence-500"
+              value={narrativeValue}
+              onChange={setCompositeNarrative}
             />
           </div>
+        </div>
+
+        {/* ── Mobile: flip card (below lg) ── */}
+        <div className="lg:hidden" data-testid="phases-mobile-layout">
+          <FlipCard
+            frontLabel="Phases"
+            backLabel="Narrative"
+            front={
+              <PhaseConfigList
+                plans={plans}
+                phases={phases}
+                onPhaseChange={setPhases}
+                onExclude={toggleExclusion}
+                excludedPlanIds={excludedPlanIds}
+              />
+            }
+            back={
+              <NarrativeField
+                id="composite-narrative-mobile"
+                value={narrativeValue}
+                onChange={setCompositeNarrative}
+              />
+            }
+          />
         </div>
       </div>
 
