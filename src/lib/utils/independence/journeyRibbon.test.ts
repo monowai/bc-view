@@ -322,6 +322,38 @@ describe("deriveJourneyRibbon", () => {
   })
 
   describe("verdict", () => {
+    it("ignores backend depletionAge when no rendered year is short (surplus plan)", () => {
+      const rows = [
+        makeDrawdownRow(60, { endingBalance: 1_400_000, expenses: 80_000 }),
+        makeDrawdownRow(75, { endingBalance: 1_600_000, expenses: 90_000 }),
+        makeDrawdownRow(90, { endingBalance: 1_800_000, expenses: 100_000 }),
+      ]
+      const result = deriveJourneyRibbon(rows, { depletionAge: 90 })
+      expect(result.verdict).toBe("Money lasts to age 90+")
+      expect(result.verdictTone).toBe("good")
+      expect(result.depletionAge).toBeUndefined()
+    })
+
+    it("falls back to the rendered shortfall age when backend depletionAge is out of range", () => {
+      const rows = [
+        makeDrawdownRow(70, { endingBalance: 100_000, expenses: 80_000 }),
+        makeDrawdownRow(84, { unfundedExpense: 20_000, endingBalance: 0 }),
+        makeDrawdownRow(90, { unfundedExpense: 30_000, endingBalance: 0 }),
+      ]
+      const result = deriveJourneyRibbon(rows, { depletionAge: 95 })
+      expect(result.verdict).toContain("Savings run out at 84")
+    })
+
+    it("omits the years-short suffix when shortfall lands on the final year", () => {
+      const rows = [
+        makeDrawdownRow(89, { endingBalance: 10_000, expenses: 80_000 }),
+        makeDrawdownRow(90, { unfundedExpense: 5_000, endingBalance: 0 }),
+      ]
+      const result = deriveJourneyRibbon(rows)
+      expect(result.verdict).toBe("Savings run out at 90")
+      expect(result.verdict).not.toContain("short")
+    })
+
     it("returns good verdict when no shortfall", () => {
       const rows = [
         makeDrawdownRow(65, {
