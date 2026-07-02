@@ -70,7 +70,7 @@ export default function IndependenceMetrics({
             href={`/independence/plans/${primaryPlan.id}`}
             className="text-sm text-blue-600 hover:text-blue-800"
           >
-            View Plan →
+            Projections →
           </Link>
         </div>
 

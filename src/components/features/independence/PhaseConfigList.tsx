@@ -119,11 +119,8 @@ export default function PhaseConfigList({
                 key={phase.planId}
                 className="flex items-center gap-2 px-3 py-2 text-sm"
               >
-                <span className="text-gray-400 w-16 shrink-0">
-                  Phase {index + 1}:
-                </span>
-                <span className="font-medium text-gray-800 truncate min-w-0 flex-1">
-                  {getPlanName(plans, phase.planId)}
+                <span className="font-medium text-gray-700 shrink-0 truncate max-w-[8rem]">
+                  {getPlanName(plans, phase.planId)}:
                 </span>
                 <MathInput
                   value={phase.fromAge}
@@ -131,7 +128,7 @@ export default function PhaseConfigList({
                   className="w-14 px-1 py-0.5 border border-gray-300 rounded text-center text-sm focus:ring-1 focus:ring-independence-500 focus:border-independence-500"
                   min={18}
                   max={120}
-                  aria-label={`Phase ${index + 1} from age`}
+                  aria-label={`${getPlanName(plans, phase.planId)} from age`}
                 />
                 <span className="text-gray-400">→</span>
                 {isLast ? (
@@ -143,7 +140,7 @@ export default function PhaseConfigList({
                     className="w-14 px-1 py-0.5 border border-gray-300 rounded text-center text-sm focus:ring-1 focus:ring-independence-500 focus:border-independence-500"
                     min={18}
                     max={120}
-                    aria-label={`Phase ${index + 1} to age`}
+                    aria-label={`${getPlanName(plans, phase.planId)} to age`}
                   />
                 )}
                 <span className="text-xs text-gray-400 w-16 text-right">
