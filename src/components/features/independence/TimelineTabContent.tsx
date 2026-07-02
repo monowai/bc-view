@@ -18,6 +18,11 @@ import { RetirementProjection } from "types/independence"
 import { HIDDEN_VALUE } from "@lib/independence/planHelpers"
 import { netHousingValue } from "@lib/independence/wealthJourneyChartData"
 import { ageAxisDomain, ageAxisTicks } from "@lib/independence/ageAxis"
+import {
+  deriveJourneyRibbon,
+  fromSinglePlan,
+} from "@lib/independence/journeyRibbon"
+import JourneyRibbon from "@components/features/independence/ribbons/JourneyRibbon"
 import { IncomeBreakdownTable } from "@components/features/independence"
 import Spinner from "@components/ui/Spinner"
 
@@ -39,6 +44,7 @@ export default function TimelineTabContent({
   lifeExpectancy,
   hideValues,
   isCalculating,
+  effectiveCurrency,
 }: TimelineTabContentProps): React.ReactElement {
   // Timeline view mode - "traditional" shows work-to-retire path, "fire" shows FIRE path
   const [timelineViewMode, setTimelineViewMode] = useState<
@@ -505,6 +511,20 @@ export default function TimelineTabContent({
             )}
           </ComposedChart>
         </ChartFrame>
+        {timelineViewMode === "traditional" && (
+          <JourneyRibbon
+            data={deriveJourneyRibbon(
+              fromSinglePlan(
+                projection.accumulationProjections ?? [],
+                projection.yearlyProjections,
+              ),
+              {
+                depletionAge: projection.depletionAge,
+                currency: effectiveCurrency,
+              },
+            )}
+          />
+        )}
         {timelineViewMode === "traditional" &&
           hasAnnuitizedLayer &&
           cpfLockAge != null && (

@@ -898,15 +898,17 @@ function RetirementPlanning(): React.ReactElement {
           {/* Offer phasing to any single-plan user. With one owned plan there is
               no valid phased composite yet, so the offer stays available even if
               a stale composite lingers; clicking it converts the plan to Go-Go. */}
-          {!isLoading && ownedPlans.length === 1 && effectiveView === "phases" && (
-            <div className="mb-6">
-              <GeneratePhasesOffer
-                plan={ownedPlans[0]}
-                onGenerate={handleGeneratePhases}
-                isLoading={isGeneratingPhases}
-              />
-            </div>
-          )}
+          {!isLoading &&
+            ownedPlans.length === 1 &&
+            effectiveView === "phases" && (
+              <div className="mb-6">
+                <GeneratePhasesOffer
+                  plan={ownedPlans[0]}
+                  onGenerate={handleGeneratePhases}
+                  isLoading={isGeneratingPhases}
+                />
+              </div>
+            )}
 
           {!isLoading && plans.length > 0 && effectiveView === "phases" && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

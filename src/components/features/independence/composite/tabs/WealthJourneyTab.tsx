@@ -15,6 +15,11 @@ import Spinner from "@components/ui/Spinner"
 import Alert from "@components/ui/Alert"
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import { buildWealthJourneyChartData } from "@lib/independence/wealthJourneyChartData"
+import {
+  deriveJourneyRibbon,
+  fromCompositeRows,
+} from "@lib/independence/journeyRibbon"
+import JourneyRibbon from "@components/features/independence/ribbons/JourneyRibbon"
 import { useCompositeProjectionContext } from "../CompositeProjectionContext"
 
 const HIDDEN_VALUE = "****"
@@ -285,6 +290,13 @@ export default function WealthJourneyTab(): React.ReactElement | null {
           )}
         </ComposedChart>
       </ChartFrame>
+
+      <JourneyRibbon
+        data={deriveJourneyRibbon(fromCompositeRows(allRows), {
+          depletionAge: projection.depletionAge,
+          currency: displayCurrency,
+        })}
+      />
 
       {/* Phase legend */}
       <div className="flex flex-wrap gap-3 mt-3 pt-3 border-t border-gray-100">

@@ -9,7 +9,11 @@ import { Currency, Portfolio } from "types/beancounter"
 
 // Isolated SWR cache so a malformed /api/currencies payload in one test does
 // not leak into others via the shared module-level cache.
-function isolatedWrapper({ children }: { children: React.ReactNode }): React.ReactElement {
+function isolatedWrapper({
+  children,
+}: {
+  children: React.ReactNode
+}): React.ReactElement {
   return React.createElement(
     SWRConfig,
     { value: { provider: () => new Map() } },
