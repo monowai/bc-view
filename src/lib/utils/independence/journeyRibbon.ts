@@ -113,14 +113,17 @@ export function deriveJourneyRibbon(
       }
     }
 
-    // Withdrawing from savings — check if any later row is shortfall
-    const hasLaterShortfall = rows.slice(idx + 1).some((r) => isShortfallRow(r))
+    // Withdrawing from savings — reference the NEXT shortfall, not the first
+    // overall (after a recovery year the first shortfall is already in the past)
+    const nextShortfallAge = rows
+      .slice(idx + 1)
+      .find((r) => isShortfallRow(r))?.age
 
-    if (hasLaterShortfall) {
+    if (nextShortfallAge != null) {
       return {
         age: row.age,
         status: "thinning",
-        note: `Age ${row.age} — spending from savings; money runs out at ${clientDepletionAge}`,
+        note: `Age ${row.age} — spending from savings; money runs out at ${nextShortfallAge}`,
         isAccumulation: false,
       }
     }

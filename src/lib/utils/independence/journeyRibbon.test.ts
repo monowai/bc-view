@@ -165,6 +165,28 @@ describe("deriveJourneyRibbon", () => {
       const { cells } = deriveJourneyRibbon(rows)
       expect(cells[0].note).toMatch(/84/)
     })
+
+    it("thinning after a recovery references the NEXT shortfall, not the first", () => {
+      // shortfall at 70 → recovery (funded) at 71 → thinning 72 → shortfall at 75
+      const rows = [
+        makeDrawdownRow(70, { unfundedExpense: 10_000, endingBalance: 0 }),
+        makeDrawdownRow(71, {
+          expenses: 80_000,
+          cashflowIncome: 90_000,
+          endingBalance: 50_000,
+        }),
+        makeDrawdownRow(72, {
+          expenses: 80_000,
+          cashflowIncome: 20_000,
+          endingBalance: 30_000,
+        }),
+        makeDrawdownRow(75, { unfundedExpense: 40_000, endingBalance: 0 }),
+      ]
+      const { cells } = deriveJourneyRibbon(rows)
+      expect(cells[2].status).toBe("thinning")
+      expect(cells[2].note).toContain("money runs out at 75")
+      expect(cells[2].note).not.toContain("70")
+    })
   })
 
   describe("shortfall status", () => {
