@@ -25,6 +25,7 @@ import {
 import { usePrivacyMode } from "@hooks/usePrivacyMode"
 import { useIndependenceSettings } from "@hooks/useIndependenceSettings"
 import { sortPlansByCompositeOrder } from "@lib/independence/planOrdering"
+import { pickHeadlineGauge } from "@utils/independence/headlineGauge"
 import {
   useAssetBreakdown,
   useFiProjectionSimple,
@@ -34,6 +35,7 @@ import CompositeTab from "@components/features/independence/CompositeTab"
 import GeneratePhasesOffer from "@components/features/independence/GeneratePhasesOffer"
 import ScenarioList from "@components/features/independence/scenarios/ScenarioList"
 import IndependenceSettingsPanel from "@components/features/independence/IndependenceSettingsPanel"
+import CompositePlanSettingsCard from "@components/features/independence/CompositePlanSettingsCard"
 import ResourceShareInviteDialog from "@components/features/shares/ResourceShareInviteDialog"
 import PendingResourceSharesPanel from "@components/features/shares/PendingResourceSharesPanel"
 import Alert from "@components/ui/Alert"
@@ -86,23 +88,11 @@ function PlanCard({
     (plan.socialSecurityMonthly || 0) +
     (plan.otherIncomeMonthly || 0) +
     rentalIncomeMonthly
-  const netMonthlyExpenses = Math.max(
-    0,
-    plan.monthlyExpenses - totalMonthlyIncome,
+  const gauge = pickHeadlineGauge(
+    projection?.effectiveHeadlineMetric,
+    projection?.fiMetrics ?? undefined,
   )
-
-  // Use server-calculated FI Number if available, otherwise fall back to local calculation
-  // FI Number = 25× net annual expenses (based on 4% SWR)
-  const fiNumber =
-    projection?.fiMetrics?.fiNumber ?? Math.round(netMonthlyExpenses * 12 * 25)
-  const fiProgress = projection?.fiMetrics?.fiProgress ?? 0
-
-  const getProgressColor = (progress: number): string => {
-    if (progress >= 100) return "text-green-600"
-    if (progress >= 75) return "text-blue-600"
-    if (progress >= 50) return "text-yellow-600"
-    return "text-independence-600"
-  }
+  const fallbackGauge = pickHeadlineGauge(plan.headlineMetric, undefined)
 
   const getProgressBgColor = (progress: number): string => {
     if (progress >= 100) return "bg-green-500"
@@ -182,7 +172,7 @@ function PlanCard({
         </div>
       </div>
 
-      {/* FI Number and Progress */}
+      {/* Headline metric — mirrors what the plan drill-down shows */}
       <div className="bg-independence-50 rounded-lg p-3 mb-4 border border-independence-100">
         {fiLoading ? (
           <div className="flex items-center text-xs text-gray-400">
@@ -193,44 +183,33 @@ function PlanCard({
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">
                 <i className="fas fa-bullseye text-independence-500 mr-1"></i>
-                FI Number
+                {gauge.label}
               </span>
               <span
                 className={`font-bold tabular-nums ${hideValues ? "text-gray-400" : "text-independence-600"}`}
               >
-                {hideValues
-                  ? HIDDEN_VALUE
-                  : `${currency}${Math.round(fiNumber).toLocaleString()}`}
+                {hideValues ? HIDDEN_VALUE : gauge.display}
               </span>
             </div>
             <div className="mt-2">
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-xs text-gray-500">FI Progress</span>
-                <span
-                  className={`text-xs font-medium tabular-nums ${hideValues ? "text-gray-400" : getProgressColor(fiProgress)}`}
-                >
-                  {hideValues ? HIDDEN_VALUE : `${fiProgress.toFixed(1)}%`}
-                </span>
-              </div>
               <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
                 <div
-                  className={`h-full ${getProgressBgColor(fiProgress)} transition-all duration-500`}
+                  className={`h-full ${getProgressBgColor(gauge.fillPercent)} transition-all duration-500`}
                   style={{
-                    width: hideValues ? "0%" : `${Math.min(fiProgress, 100)}%`,
+                    width: hideValues ? "0%" : `${gauge.fillPercent}%`,
                   }}
                 />
               </div>
+              <p className="mt-1 text-xs text-gray-500">{gauge.byline}</p>
             </div>
           </>
         ) : (
           <div className="flex justify-between items-center">
             <span className="text-sm text-gray-600">
               <i className="fas fa-bullseye text-independence-500 mr-1"></i>
-              FI Number
+              {fallbackGauge.label}
             </span>
-            <span className="text-xs text-gray-500">
-              25× annual expenses (4% SWR)
-            </span>
+            <span className="text-xs text-gray-500">Not yet projected</span>
           </div>
         )}
       </div>
@@ -325,7 +304,7 @@ function RetirementPlanning(): React.ReactElement {
     requestedView === "shared" ||
     requestedView === "composite"
       ? requestedView
-      : "phases"
+      : "composite"
   const [activeView, setActiveView] = useState<
     "profile" | "work" | "phases" | "shared" | "composite"
   >(initialView)
@@ -744,34 +723,19 @@ function RetirementPlanning(): React.ReactElement {
 
           {/* Tab Switcher */}
           <div className="flex gap-1 mb-6 bg-gray-100 rounded-lg p-1 w-fit">
-            <button
-              onClick={() => setActiveView("profile")}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                activeView === "profile"
-                  ? profileIncomplete
-                    ? "bg-white text-red-600 shadow-sm"
-                    : "bg-white text-independence-700 shadow-sm"
-                  : profileIncomplete
-                    ? "text-red-600 hover:text-red-700"
+            {plans.length > 1 && (
+              <button
+                onClick={() => setActiveView("composite")}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  activeView === "composite"
+                    ? "bg-white text-independence-700 shadow-sm"
                     : "text-gray-600 hover:text-gray-800"
-              }`}
-              title={
-                profileIncomplete
-                  ? "Set your date of birth, target age and life expectancy for accurate projections"
-                  : "Profile settings"
-              }
-            >
-              <i
-                className={`fas ${profileIncomplete ? "fa-triangle-exclamation" : "fa-cog"} mr-2`}
-              ></i>
-              Profile
-              {profileIncomplete && (
-                <span
-                  className="ml-1.5 inline-block w-2 h-2 rounded-full bg-red-500"
-                  aria-label="Profile incomplete"
-                />
-              )}
-            </button>
+                }`}
+              >
+                <i className="fas fa-layer-group mr-2"></i>
+                Plan
+              </button>
+            )}
             <button
               onClick={() => setActiveView("work")}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -821,19 +785,34 @@ function RetirementPlanning(): React.ReactElement {
                 </span>
               </button>
             )}
-            {plans.length > 1 && (
-              <button
-                onClick={() => setActiveView("composite")}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  activeView === "composite"
-                    ? "bg-white text-independence-700 shadow-sm"
+            <button
+              onClick={() => setActiveView("profile")}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                activeView === "profile"
+                  ? profileIncomplete
+                    ? "bg-white text-red-600 shadow-sm"
+                    : "bg-white text-independence-700 shadow-sm"
+                  : profileIncomplete
+                    ? "text-red-600 hover:text-red-700"
                     : "text-gray-600 hover:text-gray-800"
-                }`}
-              >
-                <i className="fas fa-layer-group mr-2"></i>
-                Composite
-              </button>
-            )}
+              }`}
+              title={
+                profileIncomplete
+                  ? "Set your date of birth, target age and life expectancy for accurate projections"
+                  : "Profile settings"
+              }
+            >
+              <i
+                className={`fas ${profileIncomplete ? "fa-triangle-exclamation" : "fa-cog"} mr-2`}
+              ></i>
+              Profile
+              {profileIncomplete && (
+                <span
+                  className="ml-1.5 inline-block w-2 h-2 rounded-full bg-red-500"
+                  aria-label="Profile incomplete"
+                />
+              )}
+            </button>
           </div>
 
           {pendingResourceShares && (
@@ -886,7 +865,12 @@ function RetirementPlanning(): React.ReactElement {
               </div>
             )}
 
-          {activeView === "profile" && <IndependenceSettingsPanel />}
+          {activeView === "profile" && (
+            <div className="flex flex-col gap-6 md:flex-row md:flex-wrap md:items-start">
+              <IndependenceSettingsPanel />
+              <CompositePlanSettingsCard plans={plans} />
+            </div>
+          )}
 
           {generatePhasesError && activeView === "phases" && (
             <div className="mb-6">

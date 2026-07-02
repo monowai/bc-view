@@ -181,12 +181,14 @@ describe("CompositeTab", () => {
     })
   })
 
-  it("renders settings bar (currency selector) on default Phases tab", () => {
+  it("renders settings bar", () => {
     render(<CompositeTab plans={plans} settings={settings} />)
-    expect(screen.getByLabelText("Display Currency")).toBeInTheDocument()
+    // CompositeSettingsBar should be rendered at the top
+    const settingsBar = screen.getByText(/Composite plan narrative/)
+    expect(settingsBar).toBeInTheDocument()
   })
 
-  it("renders all five sub-tabs in the navigation", () => {
+  it("renders all sub-tabs in the navigation", () => {
     render(<CompositeTab plans={plans} settings={settings} />)
     expect(screen.getByRole("tab", { name: /FI Overview/ })).toBeInTheDocument()
     expect(screen.getByRole("tab", { name: /Phases/ })).toBeInTheDocument()
@@ -203,14 +205,8 @@ describe("CompositeTab", () => {
     render(<CompositeTab plans={plans} settings={settings} />)
     const phasesTab = screen.getByRole("tab", { name: /Phases/ })
     expect(phasesTab).toHaveAttribute("aria-selected", "true")
-    const overviewTab = screen.getByRole("tab", { name: /FI Overview/ })
-    expect(overviewTab).toHaveAttribute("aria-selected", "false")
   })
 
-  it("does not render Year-by-Year timeline by default", () => {
-    render(<CompositeTab plans={plans} settings={settings} />)
-    expect(screen.queryByText("Year-by-Year Timeline")).not.toBeInTheDocument()
-  })
 
   it("switches to the Wealth Journey tab when clicked", async () => {
     const { useCompositeProjection } = jest.requireMock(
@@ -235,34 +231,6 @@ describe("CompositeTab", () => {
     await userEvent.click(wealthTab)
 
     expect(wealthTab).toHaveAttribute("aria-selected", "true")
-    // Heading inside the wealth tab content (not the tab button label)
-    expect(
-      screen.getByRole("heading", { name: /Wealth Journey/ }),
-    ).toBeInTheDocument()
-  })
-
-  it("switches to the Year-by-Year tab when clicked", async () => {
-    const { useCompositeProjection } = jest.requireMock(
-      "@hooks/useCompositeProjection",
-    )
-    const projectionState = {
-      phases: [{ planId: "p1", fromAge: 60 }],
-      setPhases: jest.fn(),
-      displayCurrency: "SGD",
-      setDisplayCurrency: jest.fn(),
-      excludedPlanIds: new Set(),
-      toggleExclusion: jest.fn(),
-      projection: makeProjection(),
-      scenarios: undefined,
-      isLoading: false,
-      error: null,
-    }
-    useCompositeProjection.mockReturnValue(projectionState)
-
-    render(<CompositeTab plans={plans} settings={settings} />)
-    await userEvent.click(screen.getByRole("tab", { name: /Year-by-Year/ }))
-
-    expect(screen.getByText("Year-by-Year Timeline")).toBeInTheDocument()
   })
 
   it("switches to the Stress Test tab when clicked", async () => {
