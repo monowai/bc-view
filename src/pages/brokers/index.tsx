@@ -457,7 +457,9 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
                 <div className="flex justify-between items-start">
                   <button
                     type="button"
-                    onClick={() => handleEdit(broker)}
+                    onClick={() =>
+                      router.push(`/brokers/${broker.id}/holdings`)
+                    }
                     className="flex-1 text-left group cursor-pointer"
                   >
                     <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
@@ -568,10 +570,7 @@ export default withPageAuthRequired(function Brokers(): React.ReactElement {
       {deletingBroker && (
         <ConfirmDialog
           title={"Delete Broker"}
-          message={
-            `Delete broker ${name} and all associated data?` ||
-            `Delete broker "${deletingBroker.name}"?`
-          }
+          message={`Delete broker ${deletingBroker.name} and all associated data?`}
           confirmLabel={"Delete"}
           cancelLabel={"Cancel"}
           variant="red"
