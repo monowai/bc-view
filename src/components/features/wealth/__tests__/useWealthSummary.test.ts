@@ -1,6 +1,6 @@
 import { renderHook } from "@testing-library/react"
 import { useWealthSummary } from "../useWealthSummary"
-import { Portfolio, HoldingContract } from "types/beancounter"
+import { Portfolio, HoldingContract, Position } from "types/beancounter"
 
 const SGD = { code: "SGD" } as Portfolio["base"]
 const USD = { code: "USD" } as Portfolio["base"]
@@ -181,5 +181,60 @@ describe("useWealthSummary", () => {
     const reserveInDisplay = 58000 * 0.78
     expect(result.current.healthcareReserve).toBeCloseTo(reserveInDisplay, 2)
     expect(result.current.totalValue).toBeCloseTo(100000, 2)
+  })
+
+  it("converts classificationBreakdown (liquidity) values via fxRates, not raw BASE marketValue", () => {
+    // Selected display currency is SGD. One position priced in SGD (Equity,
+    // rate 1) and one in USD (Cash, rate 1.28) — the USD position's
+    // marketValue must be converted before being summed into the "Cash"
+    // liquidity bucket, matching how totalGainOnDay is already converted.
+    function position(overrides: {
+      category: string
+      currencyCode: string
+      marketValue: number
+    }): Position {
+      return {
+        asset: { assetCategory: { name: overrides.category } },
+        moneyValues: {
+          BASE: {
+            marketValue: overrides.marketValue,
+            currency: { code: overrides.currencyCode },
+          },
+        },
+      } as unknown as Position
+    }
+
+    const holdingsData = {
+      positions: {
+        "1": position({
+          category: "Equity",
+          currencyCode: "SGD",
+          marketValue: 1000,
+        }),
+        "2": position({
+          category: "Cash",
+          currencyCode: "USD",
+          marketValue: 1000,
+        }),
+      },
+    } as unknown as HoldingContract
+
+    const fxRates = { SGD: 1, USD: 1.28 }
+    const portfolios = [
+      portfolio({ code: "P-SGD", marketValue: 2000, base: SGD, currency: SGD }),
+    ]
+
+    const { result } = renderHook(() =>
+      useWealthSummary(portfolios, fxRates, NO_SORT, holdingsData),
+    )
+
+    const investment = result.current.classificationBreakdown.find(
+      (c) => c.classification === "Investment",
+    )
+    const cash = result.current.classificationBreakdown.find(
+      (c) => c.classification === "Cash",
+    )
+    expect(investment?.value).toBeCloseTo(1000, 2)
+    expect(cash?.value).toBeCloseTo(1000 * 1.28, 2)
   })
 })
