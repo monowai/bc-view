@@ -61,16 +61,19 @@ describe("PhaseConfigList", () => {
   it("renders phase rows with plan names", () => {
     render(<PhaseConfigList {...defaultProps} />)
 
-    // Plan names appear in both checkboxes and phase rows
-    expect(screen.getAllByText("Asia Plan")).toHaveLength(2)
-    expect(screen.getAllByText("Europe Plan")).toHaveLength(2)
+    // Plan name appears in checkbox and as row label (with colon)
+    expect(screen.getByText("Asia Plan")).toBeInTheDocument()
+    expect(screen.getByText("Asia Plan:")).toBeInTheDocument()
+    expect(screen.getByText("Europe Plan")).toBeInTheDocument()
+    expect(screen.getByText("Europe Plan:")).toBeInTheDocument()
   })
 
-  it("renders phase numbers", () => {
+  it("uses plan names as row labels instead of generic phase numbers", () => {
     render(<PhaseConfigList {...defaultProps} />)
 
-    expect(screen.getByText("Phase 1:")).toBeInTheDocument()
-    expect(screen.getByText("Phase 2:")).toBeInTheDocument()
+    expect(screen.getByText("Asia Plan:")).toBeInTheDocument()
+    expect(screen.getByText("Europe Plan:")).toBeInTheDocument()
+    expect(screen.queryByText("Phase 1:")).not.toBeInTheDocument()
   })
 
   it("renders age inputs for each phase", () => {
