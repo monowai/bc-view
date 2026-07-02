@@ -423,6 +423,13 @@ function RetirementPlanning(): React.ReactElement {
   // plans; sharing UI references sharedPlans directly.
   const plans = ownedPlans
 
+  // Composite tab requires >1 plan. While loading, honour the stored view so
+  // we don't flash to phases and back. Once loaded with <=1 plan, fall back.
+  const effectiveView: typeof activeView =
+    activeView === "composite" && !isLoading && plans.length <= 1
+      ? "phases"
+      : activeView
+
   const handleExportPlan = async (plan: RetirementPlan): Promise<void> => {
     try {
       const response = await fetch(`/api/independence/plans/${plan.id}/export`)
@@ -727,7 +734,7 @@ function RetirementPlanning(): React.ReactElement {
               <button
                 onClick={() => setActiveView("composite")}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  activeView === "composite"
+                  effectiveView === "composite"
                     ? "bg-white text-independence-700 shadow-sm"
                     : "text-gray-600 hover:text-gray-800"
                 }`}
@@ -739,7 +746,7 @@ function RetirementPlanning(): React.ReactElement {
             <button
               onClick={() => setActiveView("work")}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                activeView === "work"
+                effectiveView === "work"
                   ? "bg-white text-independence-700 shadow-sm"
                   : "text-gray-600 hover:text-gray-800"
               }`}
@@ -761,7 +768,7 @@ function RetirementPlanning(): React.ReactElement {
             <button
               onClick={() => setActiveView("phases")}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                activeView === "phases"
+                effectiveView === "phases"
                   ? "bg-white text-independence-700 shadow-sm"
                   : "text-gray-600 hover:text-gray-800"
               }`}
@@ -773,7 +780,7 @@ function RetirementPlanning(): React.ReactElement {
               <button
                 onClick={() => setActiveView("shared")}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  activeView === "shared"
+                  effectiveView === "shared"
                     ? "bg-white text-independence-700 shadow-sm"
                     : "text-gray-600 hover:text-gray-800"
                 }`}
@@ -788,7 +795,7 @@ function RetirementPlanning(): React.ReactElement {
             <button
               onClick={() => setActiveView("profile")}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                activeView === "profile"
+                effectiveView === "profile"
                   ? profileIncomplete
                     ? "bg-white text-red-600 shadow-sm"
                     : "bg-white text-independence-700 shadow-sm"
@@ -834,7 +841,7 @@ function RetirementPlanning(): React.ReactElement {
           {!isLoading &&
             !error &&
             plans.length === 0 &&
-            activeView === "phases" && (
+            effectiveView === "phases" && (
               <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
                 <div className="w-20 h-20 bg-independence-100 rounded-full flex items-center justify-center mx-auto mb-6">
                   <i className="fas fa-umbrella-beach text-3xl text-independence-600"></i>
@@ -865,14 +872,14 @@ function RetirementPlanning(): React.ReactElement {
               </div>
             )}
 
-          {activeView === "profile" && (
+          {effectiveView === "profile" && (
             <div className="flex flex-col gap-6 md:flex-row md:flex-wrap md:items-start">
               <IndependenceSettingsPanel />
               <CompositePlanSettingsCard plans={plans} />
             </div>
           )}
 
-          {generatePhasesError && activeView === "phases" && (
+          {generatePhasesError && effectiveView === "phases" && (
             <div className="mb-6">
               <Alert>
                 <div className="flex justify-between items-center">
@@ -891,7 +898,7 @@ function RetirementPlanning(): React.ReactElement {
           {/* Offer phasing to any single-plan user. With one owned plan there is
               no valid phased composite yet, so the offer stays available even if
               a stale composite lingers; clicking it converts the plan to Go-Go. */}
-          {!isLoading && ownedPlans.length === 1 && activeView === "phases" && (
+          {!isLoading && ownedPlans.length === 1 && effectiveView === "phases" && (
             <div className="mb-6">
               <GeneratePhasesOffer
                 plan={ownedPlans[0]}
@@ -901,7 +908,7 @@ function RetirementPlanning(): React.ReactElement {
             </div>
           )}
 
-          {!isLoading && plans.length > 0 && activeView === "phases" && (
+          {!isLoading && plans.length > 0 && effectiveView === "phases" && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {plans.map((plan: RetirementPlan) => (
                 <PlanCard
@@ -918,7 +925,7 @@ function RetirementPlanning(): React.ReactElement {
             </div>
           )}
 
-          {!isLoading && activeView === "shared" && (
+          {!isLoading && effectiveView === "shared" && (
             <>
               {leaveError && (
                 <Alert variant="error" className="mb-4">
@@ -947,7 +954,7 @@ function RetirementPlanning(): React.ReactElement {
             </>
           )}
 
-          {activeView === "work" && (
+          {effectiveView === "work" && (
             <ScenarioList
               defaultCurrency={
                 (plans.find((p) => p.isPrimary) ?? plans[0])?.expensesCurrency
@@ -955,7 +962,7 @@ function RetirementPlanning(): React.ReactElement {
             />
           )}
 
-          {!isLoading && plans.length > 1 && activeView === "composite" && (
+          {!isLoading && plans.length > 1 && effectiveView === "composite" && (
             <CompositeTab plans={plans} settings={settings} />
           )}
         </div>
