@@ -44,7 +44,7 @@ export default function FlipCard({
           height is the natural max of the two faces. */}
       <div
         className={[
-          "grid transition-transform duration-500 motion-reduce:transition-none",
+          "grid w-full transition-transform duration-500 motion-reduce:transition-none",
           "[transform-style:preserve-3d]",
           flipped ? "[transform:rotateY(180deg)]" : "",
         ]
@@ -55,7 +55,7 @@ export default function FlipCard({
       >
         {/* ── Front face ── */}
         <div
-          className="[grid-area:card] [backface-visibility:hidden]"
+          className="[grid-area:card] min-w-0 max-w-full [backface-visibility:hidden]"
           aria-hidden={flipped ? "true" : undefined}
           {...(flipped ? { inert: true } : {})}
         >
@@ -75,7 +75,7 @@ export default function FlipCard({
 
         {/* ── Back face ── */}
         <div
-          className="[grid-area:card] [backface-visibility:hidden] [transform:rotateY(180deg)]"
+          className="[grid-area:card] min-w-0 max-w-full [backface-visibility:hidden] [transform:rotateY(180deg)]"
           aria-hidden={!flipped ? "true" : undefined}
           {...(!flipped ? { inert: true } : {})}
         >

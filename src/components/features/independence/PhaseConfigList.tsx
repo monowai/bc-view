@@ -117,7 +117,9 @@ export default function PhaseConfigList({
             return (
               <div
                 key={phase.planId}
-                className="flex items-center gap-2 px-3 py-2 text-sm"
+                // flex-wrap + min-w-0 let rows reflow on narrow (mobile flip
+                // card) widths; a no-op on desktop where the row fits one line.
+                className="flex flex-wrap items-center gap-2 px-3 py-2 text-sm min-w-0"
               >
                 <span className="font-medium text-gray-700 shrink-0 truncate max-w-[8rem]">
                   {getPlanName(plans, phase.planId)}:
