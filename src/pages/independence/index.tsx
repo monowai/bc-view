@@ -266,7 +266,7 @@ function PlanCard({
         href={`/independence/plans/${plan.id}`}
         className="w-full block text-center bg-independence-600 text-white px-4 py-2 rounded-lg hover:bg-independence-700 font-medium transition-colors"
       >
-        View Plan
+        Projections
       </Link>
     </div>
   )
