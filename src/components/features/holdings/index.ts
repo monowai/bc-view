@@ -1,5 +1,6 @@
 // Components
-export { default as Header } from "./Header"
+export { default as ColumnHeader } from "./Header"
+export { default as GroupBar } from "./GroupBar"
 export { default as Rows } from "./Rows"
 export { default as SubTotal } from "./SubTotal"
 export { default as GrandTotal } from "./GrandTotal"

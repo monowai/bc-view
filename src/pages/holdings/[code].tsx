@@ -56,8 +56,10 @@ import { PriceChartData } from "types/beancounter"
 import SectorWeightingsPopup from "@components/features/holdings/SectorWeightingsPopup"
 import PriceChartPopup from "@components/features/holdings/PriceChartPopup"
 import SubTotal from "@components/features/holdings/SubTotal"
-import Header from "@components/features/holdings/Header"
+import ColumnHeader from "@components/features/holdings/Header"
+import GroupBar from "@components/features/holdings/GroupBar"
 import GrandTotal from "@components/features/holdings/GrandTotal"
+import { useStickyHeaderOffset } from "@lib/holdings/useStickyHeaderOffset"
 import HoldingActions from "@components/features/holdings/HoldingActions"
 import { COPYABLE_HOLDING_COLUMNS } from "@components/features/holdings/constants"
 import PerformanceHeatmap from "@components/ui/PerformanceHeatmap"
@@ -160,6 +162,24 @@ function HoldingsPage(): React.ReactElement {
   const [columns, setColumns] = useState<string[]>([
     ...COPYABLE_HOLDING_COLUMNS,
   ])
+  // Collapsed table sections (by groupKey). Default: all expanded.
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
+    () => new Set<string>(),
+  )
+  const toggleGroup = useCallback((groupKey: string) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(groupKey)) {
+        next.delete(groupKey)
+      } else {
+        next.add(groupKey)
+      }
+      return next
+    })
+  }, [])
+  // Measure the sticky column header so per-group bars pin just beneath it.
+  const { ref: columnHeaderRef, offset: headerOffset } =
+    useStickyHeaderOffset<HTMLTableSectionElement>()
   const [quickSellData, setQuickSellData] = useState<QuickSellData | undefined>(
     undefined,
   )
@@ -673,60 +693,70 @@ function HoldingsPage(): React.ReactElement {
             viewMode={viewMode}
             onViewModeChange={setViewMode}
           />
-          <div className="overflow-x-auto">
-            <table className="w-full bg-white">
-              {(() => {
-                let cumulativeCount = 0
-                return Object.keys(holdings.holdingGroups)
-                  .sort(getGroupComparator(holdingState.groupBy.value))
-                  .map((groupKey, index) => {
-                    const currentCumulative = cumulativeCount
-                    cumulativeCount +=
-                      holdings.holdingGroups[groupKey].positions.length
-                    return (
-                      <React.Fragment key={groupKey}>
-                        <Header
-                          groupKey={groupKey}
-                          sortConfig={sortConfig}
-                          onSort={handleSort}
-                          cumulativePositionCount={currentCumulative}
-                          isFirstGroup={index === 0}
-                        />
-                        <Rows
-                          portfolio={holdingResults.portfolio}
-                          groupBy={groupKey}
-                          holdingGroup={holdings.holdingGroups[groupKey]}
-                          valueIn={holdingState.valueIn.value}
-                          onColumnsChange={setColumns}
-                          onTrade={handleTrade}
-                          onQuickSell={handleQuickSell}
-                          onCorporateActions={handleCorporateActions}
-                          onWeightClick={handleWeightClick}
-                          onSetCashBalance={handleSetCashBalance}
-                          onSetPrice={handleSetPrice}
-                          onSetBalance={handleSetBalance}
-                          onSectorWeightings={handleSectorWeightings}
-                          onPriceChart={handlePriceChart}
-                          onCashTransfer={handleCashTransfer}
-                          onCashTransaction={handleCashTransaction}
-                          onCostAdjust={handleCostAdjust}
-                          onMovePosition={handleMovePosition}
-                          onRecordIncome={handleRecordIncome}
-                          onRecordExpense={handleRecordExpense}
-                          onEditAsset={handleEditAsset}
-                        />
-                        <SubTotal
-                          groupBy={groupKey}
-                          subTotals={holdings.holdingGroups[groupKey].subTotals}
-                          valueIn={holdingState.valueIn.value}
-                          positionCount={
-                            holdings.holdingGroups[groupKey].positions.length
-                          }
-                        />
-                      </React.Fragment>
-                    )
-                  })
-              })()}
+          <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)] md:max-h-[calc(100vh-320px)] scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
+            <table className="min-w-full bg-white">
+              <ColumnHeader
+                ref={columnHeaderRef}
+                sortConfig={sortConfig}
+                onSort={handleSort}
+              />
+              {Object.keys(holdings.holdingGroups)
+                .sort(getGroupComparator(holdingState.groupBy.value))
+                .map((groupKey) => {
+                  const isCollapsed = collapsedGroups.has(groupKey)
+                  return (
+                    <React.Fragment key={groupKey}>
+                      <GroupBar
+                        groupBy={groupKey}
+                        subTotals={holdings.holdingGroups[groupKey].subTotals}
+                        valueIn={holdingState.valueIn.value}
+                        positionCount={
+                          holdings.holdingGroups[groupKey].positions.length
+                        }
+                        isCollapsed={isCollapsed}
+                        onToggleCollapse={() => toggleGroup(groupKey)}
+                        stickyTop={headerOffset}
+                      />
+                      {!isCollapsed && (
+                        <>
+                          <Rows
+                            portfolio={holdingResults.portfolio}
+                            groupBy={groupKey}
+                            holdingGroup={holdings.holdingGroups[groupKey]}
+                            valueIn={holdingState.valueIn.value}
+                            onColumnsChange={setColumns}
+                            onTrade={handleTrade}
+                            onQuickSell={handleQuickSell}
+                            onCorporateActions={handleCorporateActions}
+                            onWeightClick={handleWeightClick}
+                            onSetCashBalance={handleSetCashBalance}
+                            onSetPrice={handleSetPrice}
+                            onSetBalance={handleSetBalance}
+                            onSectorWeightings={handleSectorWeightings}
+                            onPriceChart={handlePriceChart}
+                            onCashTransfer={handleCashTransfer}
+                            onCashTransaction={handleCashTransaction}
+                            onCostAdjust={handleCostAdjust}
+                            onMovePosition={handleMovePosition}
+                            onRecordIncome={handleRecordIncome}
+                            onRecordExpense={handleRecordExpense}
+                            onEditAsset={handleEditAsset}
+                          />
+                          <SubTotal
+                            groupBy={groupKey}
+                            subTotals={
+                              holdings.holdingGroups[groupKey].subTotals
+                            }
+                            valueIn={holdingState.valueIn.value}
+                            positionCount={
+                              holdings.holdingGroups[groupKey].positions.length
+                            }
+                          />
+                        </>
+                      )}
+                    </React.Fragment>
+                  )
+                })}
               <GrandTotal
                 holdings={holdings}
                 valueIn={holdingState.valueIn.value}
