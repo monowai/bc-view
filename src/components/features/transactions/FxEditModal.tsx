@@ -12,6 +12,8 @@ import { postData } from "@components/ui/DropZone"
 import { holdingKey, trnKey } from "@utils/api/fetchHelper"
 import MathInput from "@components/ui/MathInput"
 import DateInput from "@components/ui/DateInput"
+import Dialog from "@components/ui/Dialog"
+import { useDialogSubmit } from "@hooks/useDialogSubmit"
 
 // Fetcher for FX rates
 const fxFetcher = async (
@@ -67,8 +69,10 @@ export default function FxEditModal({
   onClose,
   onDelete,
 }: FxEditModalProps): React.ReactElement {
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [submitError, setSubmitError] = useState<string | null>(null)
+  const { isSubmitting, submitError, handleSubmit: dialogHandleSubmit } =
+    useDialogSubmit({
+      fallbackError: "Failed to update transaction",
+    })
   const [fxRate, setFxRate] = useState<number | null>(null)
   const [fxRateLoading, setFxRateLoading] = useState(false)
   const [manualBuyAmount, setManualBuyAmount] = useState(false)
@@ -119,7 +123,7 @@ export default function FxEditModal({
 
   const {
     control,
-    handleSubmit,
+    handleSubmit: rhfHandleSubmit,
     getValues,
     setValue,
     watch,
@@ -133,17 +137,6 @@ export default function FxEditModal({
   // eslint-disable-next-line react-hooks/incompatible-library
   const sellAmount = watch("sellAmount")
   const buyAmount = watch("buyAmount")
-
-  // Handle Escape key to close modal
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent): void => {
-      if (e.key === "Escape") {
-        onClose()
-      }
-    }
-    window.addEventListener("keydown", handleEscape)
-    return () => window.removeEventListener("keydown", handleEscape)
-  }, [onClose])
 
   // Fetch FX rate for reference
   useEffect(() => {
@@ -231,17 +224,13 @@ export default function FxEditModal({
   }
 
   const onSubmit = async (data: FxEditFormData): Promise<void> => {
-    setIsSubmitting(true)
-    setSubmitError(null)
-
-    try {
+    await dialogHandleSubmit(async () => {
       // FX transactions: Delete old + Add new via CSV import
       const deleteResponse = await fetch(`/api/trns/trades/${trn.id}`, {
         method: "DELETE",
       })
       if (!deleteResponse.ok) {
-        setSubmitError("Failed to delete transaction")
-        return
+        throw new Error("Failed to delete transaction")
       }
 
       // Build data structure matching what getCashRow expects for FX
@@ -282,292 +271,263 @@ export default function FxEditModal({
       )
       invalidateHoldingsCache(trn.portfolio.code)
       onClose()
-    } catch (error) {
-      console.error("Failed to update FX transaction:", error)
-      setSubmitError("Failed to update transaction")
-    } finally {
-      setIsSubmitting(false)
-    }
+    })
+  }
+
+  const handleSave = (): void => {
+    void rhfHandleSubmit(onSubmit)()
   }
 
   const inputClass =
     "mt-1 block w-full border-gray-300 rounded-md shadow-sm input-height"
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div
-        className="fixed inset-0 bg-black opacity-50"
-        onClick={onClose}
-      ></div>
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-md mx-4 p-4 z-50 text-sm flex flex-col max-h-[85vh]">
-        {/* Header */}
-        <header className="flex-shrink-0 pb-3 border-b">
-          <div className="flex items-center justify-between mb-2">
+    <Dialog
+      title={
+        <div className="flex items-center justify-between w-full">
+          <div className="flex-1 text-center">
+            <div className="font-semibold text-base">{"FX Trade"}</div>
+            <div className="text-xs text-gray-500">{trn.tradeDate}</div>
+          </div>
+          <div className="flex gap-1 flex-shrink-0">
             <button
-              className="text-gray-400 hover:text-gray-600 p-1"
-              onClick={onClose}
-              title={"Cancel"}
+              type="button"
+              className="text-green-600 hover:text-green-700 p-1"
+              onClick={handleCopy}
+              title={"Copy"}
             >
-              <i className="fas fa-times"></i>
+              <i className="fas fa-copy"></i>
             </button>
-            <div className="text-center flex-1 px-2">
-              <div className="font-semibold">{"FX Trade"}</div>
-              <div className="text-xs text-gray-500">{trn.tradeDate}</div>
-            </div>
-            <div className="flex gap-1">
-              <button
-                type="button"
-                className="text-green-600 hover:text-green-700 p-1"
-                onClick={handleCopy}
-                title={"Copy"}
-              >
-                <i className="fas fa-copy"></i>
-              </button>
-              <button
-                type="button"
-                className="text-red-500 hover:text-red-600 p-1"
-                onClick={onDelete}
-                title={"Delete"}
-              >
-                <i className="fas fa-trash-can"></i>
-              </button>
-            </div>
+            <button
+              type="button"
+              className="text-red-500 hover:text-red-600 p-1"
+              onClick={onDelete}
+              title={"Delete"}
+            >
+              <i className="fas fa-trash-can"></i>
+            </button>
           </div>
-
-          {/* FX Visual Summary */}
-          <div className="bg-linear-to-r from-red-50 to-green-50 border border-gray-200 rounded-lg p-3">
-            <div className="flex items-center justify-center gap-4">
-              {/* Sell Side */}
-              <div className="text-center flex-1">
-                <div className="text-xs text-red-600 font-medium uppercase mb-1">
-                  {"Sell"}
-                </div>
-                <div className="font-bold text-red-700">
-                  <NumericFormat
-                    value={sellAmount}
-                    displayType="text"
-                    thousandSeparator
-                    decimalScale={2}
-                    fixedDecimalScale
-                  />
-                </div>
-                <div
-                  className="text-xs text-red-600 mt-1 truncate"
-                  title={sellDisplayName}
-                >
-                  {sellDisplayName}
-                </div>
-              </div>
-
-              {/* Arrow and Rate */}
-              <div className="text-center text-gray-400 px-2">
-                <i className="fas fa-arrow-right"></i>
-                {fxRateLoading ? (
-                  <div className="text-xs mt-1">
-                    <i className="fas fa-spinner fa-spin"></i>
-                  </div>
-                ) : impliedRate ? (
-                  <div className="text-xs mt-1 font-mono text-gray-600">
-                    @{impliedRate.toFixed(4)}
-                  </div>
-                ) : null}
-              </div>
-
-              {/* Buy Side */}
-              <div className="text-center flex-1">
-                <div className="text-xs text-green-600 font-medium uppercase mb-1">
-                  {"Buy"}
-                </div>
-                <div className="font-bold text-green-700">
-                  <NumericFormat
-                    value={buyAmount}
-                    displayType="text"
-                    thousandSeparator
-                    decimalScale={2}
-                    fixedDecimalScale
-                  />
-                </div>
-                <div
-                  className="text-xs text-green-600 mt-1 truncate"
-                  title={buyDisplayName}
-                >
-                  {buyDisplayName}
-                </div>
-              </div>
-            </div>
-            {fxRate && !manualBuyAmount && (
-              <div className="text-center text-xs text-gray-500 mt-2">
-                Market rate: {fxRate.toFixed(4)}
-              </div>
-            )}
-            {manualBuyAmount && (
-              <div className="text-center text-xs text-amber-600 mt-2">
-                Manual amount entered
-              </div>
-            )}
-          </div>
-        </header>
-
-        {/* Form */}
-        <form
-          id="fx-edit-form"
-          onSubmit={handleSubmit(onSubmit)}
-          className="flex-1 overflow-y-auto py-3 space-y-3"
-        >
-          {/* Trade Date */}
-          <div>
-            <label className="block text-xs font-medium text-gray-600">
-              {"Trade Date"}
-            </label>
-            <Controller
-              name="tradeDate"
-              control={control}
-              render={({ field }) => (
-                <DateInput
-                  value={field.value}
-                  onChange={field.onChange}
-                  className={inputClass}
-                />
-              )}
-            />
-          </div>
-
-          {/* Sell Amount */}
-          <div>
-            <label className="block text-xs font-medium text-gray-600">
-              <span className="text-red-600">{"Sell Amount"}</span>
-              <span className="text-gray-400 ml-1">({sellCurrency})</span>
-            </label>
-            <Controller
-              name="sellAmount"
-              control={control}
-              render={({ field }) => (
-                <MathInput
-                  value={field.value}
-                  onChange={(value) => {
-                    setManualBuyAmount(false) // Reset manual override when sell amount changes
-                    field.onChange(value)
-                  }}
-                  className={`${inputClass} border-red-200 bg-red-50`}
-                />
-              )}
-            />
-            {errors.sellAmount && (
-              <p className="text-red-500 text-xs">
-                {errors.sellAmount.message}
-              </p>
-            )}
-          </div>
-
-          {/* Buy Amount */}
-          <div>
-            <label className="block text-xs font-medium text-gray-600">
-              <span className="text-green-600">{"Buy Amount"}</span>
-              <span className="text-gray-400 ml-1">({buyCurrency})</span>
-            </label>
-            <Controller
-              name="buyAmount"
-              control={control}
-              render={({ field }) => (
-                <MathInput
-                  value={field.value}
-                  onChange={handleBuyAmountChange}
-                  className={`${inputClass} border-green-200 bg-green-50`}
-                />
-              )}
-            />
-            {errors.buyAmount && (
-              <p className="text-red-500 text-xs">{errors.buyAmount.message}</p>
-            )}
-          </div>
-
-          {/* Fees */}
-          <div>
-            <label className="block text-xs font-medium text-gray-600">
-              {"Fees"}
-            </label>
-            <Controller
-              name="fees"
-              control={control}
-              render={({ field }) => (
-                <MathInput
-                  value={field.value}
-                  onChange={field.onChange}
-                  className={inputClass}
-                />
-              )}
-            />
-          </div>
-
-          {/* Comments */}
-          <div>
-            <label className="block text-xs font-medium text-gray-600">
-              {"Comments"}
-            </label>
-            <Controller
-              name="comments"
-              control={control}
-              render={({ field }) => (
-                <input
-                  {...field}
-                  type="text"
-                  className={inputClass}
-                  value={field.value || ""}
-                  placeholder={`Buy ${buyCurrency}/Sell ${sellCurrency}`}
-                />
-              )}
-            />
-          </div>
-
-          {/* Status (read-only) */}
-          <div>
-            <label className="block text-xs font-medium text-gray-600">
-              {"Status"}
-            </label>
-            <div className={`${inputClass} bg-gray-100 flex items-center`}>
-              <span
-                className={`inline-block px-2 py-1 text-xs font-medium rounded ${
-                  trn.status === "SETTLED"
-                    ? "bg-green-100 text-green-800"
-                    : "bg-yellow-100 text-yellow-800"
-                }`}
-              >
-                {trn.status}
-              </span>
-            </div>
-          </div>
-
-          {/* Error Display */}
-          {submitError && (
-            <div className="text-red-500 text-xs bg-red-50 p-2 rounded">
-              {submitError}
-            </div>
-          )}
-        </form>
-
-        {/* Footer */}
-        <div className="flex-shrink-0 pt-3 border-t flex justify-end gap-2">
-          <button
-            type="button"
-            className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
-            onClick={onClose}
-          >
-            {"Cancel"}
-          </button>
-          <button
-            type="submit"
-            form="fx-edit-form"
-            disabled={isSubmitting || !isDirty}
-            className={`px-4 py-2 rounded text-white text-sm ${
-              isSubmitting || !isDirty
-                ? "bg-blue-300 cursor-not-allowed"
-                : "bg-blue-500 hover:bg-blue-600"
-            }`}
-          >
-            {isSubmitting ? "Saving..." : "Save"}
-          </button>
         </div>
+      }
+      onClose={onClose}
+      maxWidth="md"
+      scrollable
+      footer={
+        <>
+          <Dialog.CancelButton onClick={onClose} />
+          <Dialog.SubmitButton
+            onClick={handleSave}
+            label="Save"
+            loadingLabel="Saving..."
+            isSubmitting={isSubmitting}
+            disabled={!isDirty}
+            variant="blue"
+          />
+        </>
+      }
+    >
+      {/* FX Visual Summary */}
+      <div className="bg-linear-to-r from-red-50 to-green-50 border border-gray-200 rounded-lg p-3">
+        <div className="flex items-center justify-center gap-4">
+          {/* Sell Side */}
+          <div className="text-center flex-1">
+            <div className="text-xs text-red-600 font-medium uppercase mb-1">
+              {"Sell"}
+            </div>
+            <div className="font-bold text-red-700">
+              <NumericFormat
+                value={sellAmount}
+                displayType="text"
+                thousandSeparator
+                decimalScale={2}
+                fixedDecimalScale
+              />
+            </div>
+            <div
+              className="text-xs text-red-600 mt-1 truncate"
+              title={sellDisplayName}
+            >
+              {sellDisplayName}
+            </div>
+          </div>
+
+          {/* Arrow and Rate */}
+          <div className="text-center text-gray-400 px-2">
+            <i className="fas fa-arrow-right"></i>
+            {fxRateLoading ? (
+              <div className="text-xs mt-1">
+                <i className="fas fa-spinner fa-spin"></i>
+              </div>
+            ) : impliedRate ? (
+              <div className="text-xs mt-1 font-mono text-gray-600">
+                @{impliedRate.toFixed(4)}
+              </div>
+            ) : null}
+          </div>
+
+          {/* Buy Side */}
+          <div className="text-center flex-1">
+            <div className="text-xs text-green-600 font-medium uppercase mb-1">
+              {"Buy"}
+            </div>
+            <div className="font-bold text-green-700">
+              <NumericFormat
+                value={buyAmount}
+                displayType="text"
+                thousandSeparator
+                decimalScale={2}
+                fixedDecimalScale
+              />
+            </div>
+            <div
+              className="text-xs text-green-600 mt-1 truncate"
+              title={buyDisplayName}
+            >
+              {buyDisplayName}
+            </div>
+          </div>
+        </div>
+        {fxRate && !manualBuyAmount && (
+          <div className="text-center text-xs text-gray-500 mt-2">
+            Market rate: {fxRate.toFixed(4)}
+          </div>
+        )}
+        {manualBuyAmount && (
+          <div className="text-center text-xs text-amber-600 mt-2">
+            Manual amount entered
+          </div>
+        )}
       </div>
-    </div>
+
+      {/* Form */}
+      <form
+        id="fx-edit-form"
+        onSubmit={rhfHandleSubmit(onSubmit)}
+        className="space-y-3"
+      >
+        {/* Trade Date */}
+        <div>
+          <label className="block text-xs font-medium text-gray-600">
+            {"Trade Date"}
+          </label>
+          <Controller
+            name="tradeDate"
+            control={control}
+            render={({ field }) => (
+              <DateInput
+                value={field.value}
+                onChange={field.onChange}
+                className={inputClass}
+              />
+            )}
+          />
+        </div>
+
+        {/* Sell Amount */}
+        <div>
+          <label className="block text-xs font-medium text-gray-600">
+            <span className="text-red-600">{"Sell Amount"}</span>
+            <span className="text-gray-400 ml-1">({sellCurrency})</span>
+          </label>
+          <Controller
+            name="sellAmount"
+            control={control}
+            render={({ field }) => (
+              <MathInput
+                value={field.value}
+                onChange={(value) => {
+                  setManualBuyAmount(false) // Reset manual override when sell amount changes
+                  field.onChange(value)
+                }}
+                className={`${inputClass} border-red-200 bg-red-50`}
+              />
+            )}
+          />
+          {errors.sellAmount && (
+            <p className="text-red-500 text-xs">{errors.sellAmount.message}</p>
+          )}
+        </div>
+
+        {/* Buy Amount */}
+        <div>
+          <label className="block text-xs font-medium text-gray-600">
+            <span className="text-green-600">{"Buy Amount"}</span>
+            <span className="text-gray-400 ml-1">({buyCurrency})</span>
+          </label>
+          <Controller
+            name="buyAmount"
+            control={control}
+            render={({ field }) => (
+              <MathInput
+                value={field.value}
+                onChange={handleBuyAmountChange}
+                className={`${inputClass} border-green-200 bg-green-50`}
+              />
+            )}
+          />
+          {errors.buyAmount && (
+            <p className="text-red-500 text-xs">{errors.buyAmount.message}</p>
+          )}
+        </div>
+
+        {/* Fees */}
+        <div>
+          <label className="block text-xs font-medium text-gray-600">
+            {"Fees"}
+          </label>
+          <Controller
+            name="fees"
+            control={control}
+            render={({ field }) => (
+              <MathInput
+                value={field.value}
+                onChange={field.onChange}
+                className={inputClass}
+              />
+            )}
+          />
+        </div>
+
+        {/* Comments */}
+        <div>
+          <label className="block text-xs font-medium text-gray-600">
+            {"Comments"}
+          </label>
+          <Controller
+            name="comments"
+            control={control}
+            render={({ field }) => (
+              <input
+                {...field}
+                type="text"
+                className={inputClass}
+                value={field.value || ""}
+                placeholder={`Buy ${buyCurrency}/Sell ${sellCurrency}`}
+              />
+            )}
+          />
+        </div>
+
+        {/* Status (read-only) */}
+        <div>
+          <label className="block text-xs font-medium text-gray-600">
+            {"Status"}
+          </label>
+          <div className={`${inputClass} bg-gray-100 flex items-center`}>
+            <span
+              className={`inline-block px-2 py-1 text-xs font-medium rounded ${
+                trn.status === "SETTLED"
+                  ? "bg-green-100 text-green-800"
+                  : "bg-yellow-100 text-yellow-800"
+              }`}
+            >
+              {trn.status}
+            </span>
+          </div>
+        </div>
+      </form>
+
+      <Dialog.ErrorAlert message={submitError} />
+    </Dialog>
   )
 }
